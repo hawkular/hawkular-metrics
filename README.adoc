@@ -1,4 +1,4 @@
-rhq-metrics
+= rhq-metrics
 
 Project to implement a MaaS and CaaS
 
