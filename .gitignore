@@ -1,0 +1,9 @@
+target/
+*.iml
+*.swp
+.metadata/
+*.ipr
+.DS_Store/
+.classpath
+.settings
+.project
