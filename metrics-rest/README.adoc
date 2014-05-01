@@ -1,6 +1,6 @@
 # rhq-metrics-rest
 
-This is a prototype for providing REST endpoints for rhq-metrics using Xert.x. This project depends on rhq-metrics-core and it generates a Vert.x module. Currently there are two endpoints.
+This is a prototype for providing REST endpoints for rhq-metrics using Vert.x. This project depends on rhq-metrics-core and it generates a Vert.x module. Currently there are two endpoints.
 
 `GET  <hostname>:7474/rhq-metrics/:id`
 
