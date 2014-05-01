@@ -1,0 +1,40 @@
+# rhq-metrics-rest
+
+This is a prototype for providing REST endpoints for rhq-metrics using Xert.x. This project depends on rhq-metrics-core and it generates a Vert.x module. Currently there are two endpoints.
+
+`GET  <hostname>:7474/rhq-metrics/:id`
+
+Returns raw metrics through the past 8 hours for the metric id specified by :id, e.g., 
+
+    {
+      "bucket": "raw",
+      "id": "100",
+      "data": [
+        {
+          "time": 1398891828116,
+          "value":5.0
+        },
+        {
+          "time": 1398911237832,
+          "value": 7.0
+        },
+        {
+          "time": 1398911274536,
+          "value": 11.0
+        },
+        {
+          "time": 1398911637596,
+          "value": 13.0
+          }
+        ]
+      }
+
+`POST <hostname>:7474/rhq-metrics/:id`
+
+Stores a single raw metric for the metric id specified by :id where the content type is assumed to be json, e.g., 
+
+    {
+      "id": 100,
+      "value": 5,
+      "timestamp": 1398891828116
+    }
