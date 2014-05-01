@@ -1,0 +1,3 @@
+{
+  "main": "org.rhq.metrics.rest.MetricsServer"
+}

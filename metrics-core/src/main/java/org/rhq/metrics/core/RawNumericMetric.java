@@ -29,6 +29,10 @@ public class RawNumericMetric implements NumericMetric {
         return id;
     }
 
+    public void setId(String id) {
+        this.id = id;
+    }
+
     public Double getMin() {
         return value;
     }
@@ -41,8 +45,20 @@ public class RawNumericMetric implements NumericMetric {
         return value;
     }
 
+    public Double getValue() {
+        return value;
+    }
+
+    public void setValue(Double value) {
+        this.value = value;
+    }
+
     public long getTimestamp() {
         return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
 
     @Override
