@@ -22,6 +22,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import org.rhq.metrics.impl.cassandra.MetricsServiceCassandra;
+
 /**
  * @author John Sanda
  */
@@ -29,7 +31,7 @@ public class MetricsServiceTest {
 
     private static final long FUTURE_TIMEOUT = 3;
 
-    private MetricsService metricsService;
+    private MetricsServiceCassandra metricsService;
 
     private Session session;
 
@@ -43,7 +45,7 @@ public class MetricsServiceTest {
         session = cluster.connect("rhq");
         dataAccess = new DataAccess(session);
 
-        metricsService = new MetricsService();
+        metricsService = new MetricsServiceCassandra();
         metricsService.setDataAccess(dataAccess);
     }
 

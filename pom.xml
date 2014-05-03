@@ -15,17 +15,19 @@
     <testng.version>6.8.8</testng.version>
     <slf4j.version>1.7.7</slf4j.version>
     <log4j.version>1.2.17</log4j.version>
+    <resteasy.version>3.0.7.Final</resteasy.version>
+    <trove4j.version>3.0.3</trove4j.version>
   </properties>
 
   <modules>
     <module>metrics-core</module>
+    <module>rest-servlet</module>
   </modules>
 
   <build>
     <plugins>
       <plugin>
-        <artifactId>mave-compiler-plugin</artifactId>
-        <version>3.0</version>
+        <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <source>1.7</source>
           <target>1.7</target>
@@ -38,6 +40,18 @@
         <version>2.17</version>
       </plugin>
     </plugins>
+
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.1</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
   </build>
+
+
 
 </project>
