@@ -41,10 +41,22 @@ import io.netty.handler.codec.http.HttpResponseStatus;
  */
 public class MetricsServer extends Verticle {
 
+    private static final String NODE_ADDRESSES = "nodes";
+
+    private static final String CLUSTER_NAME = "cluster";
+
+    private static final String CQL_PORT = "cqlPort";
+
+    private static final String HTTP_PORT = "httpPort";
+
+
     @Override
     public void start() {
-        Cluster cluster = new Cluster.Builder().addContactPoint("127.0.0.1").build();
-        Session session = cluster.connect("rhq");
+        Cluster cluster = new Cluster.Builder()
+            .addContactPoints(getContactPoints())
+            .withPort(container.config().getNumber(CQL_PORT, 9042).intValue())
+            .build();
+        Session session = cluster.connect(container.config().getString(CLUSTER_NAME, "rhq"));
 
         final DataAccess dataAccess = new DataAccess(session);
 
@@ -205,6 +217,20 @@ public class MetricsServer extends Verticle {
             }
         });
 
-        vertx.createHttpServer().requestHandler(routeMatcher).listen(7474);
+        vertx.createHttpServer().requestHandler(routeMatcher).listen(container.config().getNumber(HTTP_PORT,
+            7474).intValue());
+    }
+
+    private String[] getContactPoints() {
+        JsonArray addresses = container.config().getArray(NODE_ADDRESSES);
+        if (addresses == null) {
+            return new String[] {"127.0.0.1"};
+        } else {
+            String[] contactPoints = new String[addresses.size()];
+            for (int i = 0; i < addresses.size(); ++i) {
+                contactPoints[i] = addresses.get(i);
+            }
+            return contactPoints;
+        }
     }
 }
