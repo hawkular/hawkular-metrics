@@ -1,9 +1,12 @@
 package org.rhq.metrics.restServlet;
 
+import javax.xml.bind.annotation.XmlRootElement;
+
 /**
  * A data point with an Id
  * @author Heiko W. Rupp
  */
+@XmlRootElement
 public class IdDataPoint extends DataPoint {
 
     private String id;

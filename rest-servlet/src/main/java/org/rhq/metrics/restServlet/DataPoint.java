@@ -1,9 +1,12 @@
 package org.rhq.metrics.restServlet;
 
+import javax.xml.bind.annotation.XmlRootElement;
+
 /**
  * One single data point
  * @author Heiko W. Rupp
  */
+@XmlRootElement
 public class DataPoint {
 
     private long timestamp;

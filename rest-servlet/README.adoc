@@ -1,0 +1,39 @@
+== Servlet that exposes a rest endpoint to add / retrive data
+
+Example input as JSON
+[source,json]
+----
+{
+ "id":"foo",
+ "timestamp":1234,
+ "value":12.3
+}
+----
+
+Example input as XML
+[source,xml]
+----
+<idDataPoint>
+  <id>foo</id>
+  <timestamp>1234</timestamp>
+  <value>12.3</value>
+</idDataPoint>
+----
+
+=== Add data
+
+Endpoint is http://localhost:8080/rest/metric
+
+  $ curl -i -X POST http://localhost:8080/rest/metric -d@/tmp/fooX -HContent-Type:application/xml
+
+=== Retrieve data
+
+Endpoint is http://localhost:8080/rest/metric/{id}
+
+  $ curl -i http://localhost:8080/rest/metric/foo?start=0\&end=2000 -HAccept:application/json
+
+Parameters are:
+
+* start: defaults to now-8h
+* end: defaults to now
+
