@@ -3,4 +3,4 @@
 Project to implement a MaaS and CaaS
 
 * MaaS: Metrics as a Service
-* CaaS: Charts as a Service
+* ChaaS: Charts as a Service
