@@ -1,5 +1,7 @@
 package org.rhq.metrics.impl.cassandra;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -23,6 +25,7 @@ import org.rhq.metrics.core.DataAccess;
 import org.rhq.metrics.core.DataType;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
+import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.RawNumericMetric;
 
 /**
@@ -83,4 +86,13 @@ public class MetricsServiceCassandra implements MetricsService {
         return dataAccess.findData(bucket, id, start, end);
     }
 
+    @Override
+    public List<NumericMetric> findData(String id, long start, long end) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public boolean idExists(String id) {
+        return false;  // TODO: Customise this generated block
+    }
 }

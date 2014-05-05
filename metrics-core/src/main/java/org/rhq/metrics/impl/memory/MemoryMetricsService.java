@@ -45,7 +45,12 @@ public class MemoryMetricsService implements MetricsService {
     @Override
     public ResultSetFuture findData(String bucket, String id, long start, long end) {
         // Bucket is always raw for this.
+        // We don't implement this here.
+        return null;
+    }
 
+    @Override
+    public List<NumericMetric> findData(String id, long start, long end) {
         List<NumericMetric> metrics = new ArrayList<>();
 
         if (storage.containsKey(id)) {
@@ -58,7 +63,11 @@ public class MemoryMetricsService implements MetricsService {
 
             }
         }
+        return metrics;
+    }
 
-        return null;  // TODO: Customise this generated block
+    @Override
+    public boolean idExists(String id) {
+        return storage.containsKey(id);
     }
 }
