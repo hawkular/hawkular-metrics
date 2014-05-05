@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
@@ -20,10 +21,12 @@ import com.google.common.util.concurrent.Futures;
 import org.joda.time.DateTime;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.buffer.Buffer;
+import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.http.RouteMatcher;
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
+import org.vertx.java.core.streams.Pump;
 import org.vertx.java.platform.Verticle;
 
 import org.rhq.metrics.core.DataAccess;
@@ -43,7 +46,7 @@ public class MetricsServer extends Verticle {
         Cluster cluster = new Cluster.Builder().addContactPoint("127.0.0.1").build();
         Session session = cluster.connect("rhq");
 
-        DataAccess dataAccess = new DataAccess(session);
+        final DataAccess dataAccess = new DataAccess(session);
 
         final MetricsService metricsService = new MetricsService();
         metricsService.setDataAccess(dataAccess);
@@ -93,7 +96,6 @@ public class MetricsServer extends Verticle {
                 request.bodyHandler(new Handler<Buffer>() {
                     public void handle(Buffer body) {
                         try {
-                            System.out.println("POST single metric");
                             RawData rawData = mapper.readValue(body.getBytes(), RawData.class);
 
                             metricsService.addData(ImmutableSet.of(new RawNumericMetric(rawData.id, rawData.value,
@@ -109,13 +111,46 @@ public class MetricsServer extends Verticle {
             }
         });
 
+        routeMatcher.get("/rhq-metrics/data", new Handler<HttpServerRequest>() {
+            public void handle(final HttpServerRequest request) {
+                final List<String> ids = request.params().getAll("id");
+                if (ids.isEmpty()) {
+                    request.response().setStatusCode(HttpResponseStatus.NO_CONTENT.code());
+                    request.response().end();
+                } else {
+                    long start = DateTime.now().minusHours(8).getMillis();
+                    long end = DateTime.now().getMillis();
+                    final AtomicInteger count = new AtomicInteger();
+                    final Pump pump = Pump.createPump(request, request.response()).start();
+
+                    request.response().setChunked(true);
+
+                    for (final String id : ids) {
+                        JsonObject message = new JsonObject()
+                            .putString("id", id)
+                            .putNumber("start", start)
+                            .putNumber("end", end);
+                        vertx.eventBus().send("find-metrics", message, new Handler<Message<JsonObject>>() {
+                            public void handle(Message<JsonObject> event) {
+                                JsonObject result = event.body();
+                                request.response().write(result.toString());
+                                if (count.addAndGet(1) == ids.size()) {
+                                    pump.stop();
+                                    request.response().setStatusCode(HttpResponseStatus.OK.code());
+                                    request.response().end();
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        });
+
         routeMatcher.post("/rhq-metrics/data", new Handler<HttpServerRequest>() {
             public void handle(final HttpServerRequest request) {
                 request.bodyHandler(new Handler<Buffer>() {
                     public void handle(Buffer body) {
                         try {
-                            System.out.println("POST multiple metrics");
-//                            RawDataList rawDataList = mapper.readValue(body.getBytes(), RawDataList.class);
                             List<RawData> rawData = mapper.readValue(body.getBytes(),
                                 TypeFactory.defaultInstance().constructCollectionType(List.class, RawData.class));
                             Set<RawNumericMetric> rawMetrics = new HashSet<RawNumericMetric>();
@@ -131,6 +166,40 @@ public class MetricsServer extends Verticle {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
+                    }
+                });
+            }
+        });
+
+        vertx.eventBus().registerHandler("find-metrics", new Handler<Message<JsonObject>>() {
+            public void handle(final Message<JsonObject> event) {
+                JsonObject request = event.body();
+                final String id = request.getString("id");
+                long start = request.getNumber("start").longValue();
+                long end = request.getNumber("end").longValue();
+
+                ResultSetFuture future = dataAccess.findData("raw", id, start, end);
+                Futures.addCallback(future, new FutureCallback<ResultSet>() {
+                    public void onSuccess(ResultSet resultSet) {
+                        JsonObject result = new JsonObject();
+                        result.putString("bucket", "raw");
+                        result.putString("id", id);
+                        JsonArray data = new JsonArray();
+
+                        for (Row row : resultSet) {
+                            Map<Integer, Double> map = row.getMap(2, Integer.class, Double.class);
+                            JsonObject jsonRow = new JsonObject();
+                            jsonRow.putNumber("time", row.getDate(1).getTime());
+                            jsonRow.putNumber("value", map.get(DataType.RAW.ordinal()));
+                            data.addObject(jsonRow);
+                        }
+                        result.putArray("data", data);
+
+                        event.reply(result);
+                    }
+
+                    public void onFailure(Throwable t) {
+
                     }
                 });
             }

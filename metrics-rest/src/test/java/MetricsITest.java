@@ -1,7 +1,10 @@
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -17,6 +20,8 @@ import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
 
 import org.testng.annotations.AfterClass;
@@ -92,7 +97,7 @@ public class MetricsITest {
     // Not sure if it is a client side bug or something I am doing wrong but we need to
     // test the GET request after the POST request. See
     // https://bugs.eclipse.org/bugs/show_bug.cgi?id=434064 for details.
-    @Test(dependsOnMethods = "insertMultipleMetrics")
+    @Test(dependsOnMethods = "insertSingleMetric")
     public void findRawMetrics() throws Exception {
         session.execute("TRUNCATE metrics");
 
@@ -144,6 +149,101 @@ public class MetricsITest {
 
         assertEquals(actual, expected, "The data returned for GET /rhq-metrics/" + metricId + "/data" +
             " does not match the expected value");
+    }
+
+    @Test(dependsOnMethods = "findRawMetrics")
+    public void findRawMetricsForMultipleIds() throws Exception {
+        session.execute("TRUNCATE metrics");
+
+        long collectionTime = System.currentTimeMillis();
+
+        List<RawNumericMetric> rawMetrics = ImmutableList.of(
+            new RawNumericMetric("100", 100.0, collectionTime - 100),
+            new RawNumericMetric("200", 200.0, collectionTime - 100),
+            new RawNumericMetric("300", 300.0, collectionTime - 100),
+            new RawNumericMetric("100", 110.0, collectionTime - 200),
+            new RawNumericMetric("200", 210.0, collectionTime - 200),
+            new RawNumericMetric("300", 310.0, collectionTime - 200),
+            new RawNumericMetric("100", 120.0, collectionTime - 300),
+            new RawNumericMetric("200", 220.0, collectionTime - 300)
+        );
+
+        List<ResultSetFuture> insertFutures = new ArrayList<ResultSetFuture>(rawMetrics.size());
+        for (RawNumericMetric metric : rawMetrics) {
+            insertFutures.add(dataAccess.insertData("raw", metric.getId(), metric.getTimestamp(),
+                ImmutableMap.of(DataType.RAW.ordinal(), metric.getValue()), TTL));
+        }
+        ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
+        getUninterruptibly(insertsFuture);
+
+        final CountDownLatch responseReceived = new CountDownLatch(1);
+        final Map<String, JsonObject> results = new HashMap<String, JsonObject>();
+
+
+        String uri = "/rhq-metrics/data?id=100&id=200&id=300";
+        HttpClient httpClient = platformManager.vertx().createHttpClient().setPort(7474);
+        HttpClientRequest request = httpClient.get(uri, new Handler<HttpClientResponse>() {
+            public void handle(HttpClientResponse response) {
+                response.dataHandler(new Handler<Buffer>() {
+                    public void handle(Buffer data) {
+                        JsonObject json = new JsonObject(data.toString());
+                        results.put(json.getString("id"), json);
+                    }
+                });
+
+                response.endHandler(new Handler<Void>() {
+                    public void handle(Void event) {
+                        responseReceived.countDown();
+                    }
+                });
+            }
+        });
+        request.end();
+        responseReceived.await();
+
+        List<JsonObject> expected = ImmutableList.of(
+            new JsonObject()
+                .putString("bucket", "raw")
+                .putString("id", "100")
+                .putArray("data", new JsonArray()
+                    .addObject(new JsonObject()
+                        .putNumber("time", collectionTime - 300)
+                        .putNumber("value", 120.0))
+                    .addObject(new JsonObject()
+                        .putNumber("time", collectionTime - 200)
+                        .putNumber("value", 110.0))
+                    .addObject(new JsonObject()
+                        .putNumber("time", collectionTime - 100)
+                        .putNumber("value", 100.0))),
+            new JsonObject()
+                .putString("bucket", "raw")
+                .putString("id", "200")
+                .putArray("data", new JsonArray()
+                    .addObject(new JsonObject()
+                        .putNumber("time", collectionTime - 300)
+                        .putNumber("value", 220.0))
+                    .addObject(new JsonObject()
+                        .putNumber("time", collectionTime - 200)
+                        .putNumber("value", 210.0))
+                    .addObject(new JsonObject()
+                        .putNumber("time", collectionTime - 100)
+                        .putNumber("value", 200.0))),
+            new JsonObject()
+                .putString("bucket", "raw")
+                .putString("id", "300")
+                .putArray("data", new JsonArray()
+                    .addObject(new JsonObject()
+                        .putNumber("time", collectionTime - 200)
+                        .putNumber("value", 310.0))
+                    .addObject(new JsonObject()
+                        .putNumber("time", collectionTime - 100)
+                        .putNumber("value", 300.0)))
+        );
+
+//        assertEquals(actual, expected, "Failed to retrieve raw data for multiple ids");
+        assertEquals(results.get("100"), expected.get(0), "Failed to retrieve raw data for id 100");
+        assertEquals(results.get("200"), expected.get(1), "Failed to retrieve raw data for id 200");
+        assertEquals(results.get("300"), expected.get(2), "Failed to retrieve raw data for id 300");
     }
 
     @Test
