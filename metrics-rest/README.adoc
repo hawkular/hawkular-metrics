@@ -1,10 +1,34 @@
 # rhq-metrics-rest
 
-This is a prototype for providing REST endpoints for rhq-metrics using Vert.x. This project depends on rhq-metrics-core and it generates a Vert.x module. Currently there are two endpoints.
+This is a prototype for providing REST endpoints for rhq-metrics using Vert.x. This project depends on rhq-metrics-core and it generates a Vert.x module. 
 
-`GET  <hostname>:7474/rhq-metrics/:id`
+## Module Configuration
+The module recognizes the following configuration
 
-Returns raw metrics through the past 8 hours for the metric id specified by :id, e.g., 
+    {
+      "cluster": "rhq-metrics",
+      "nodes": ["192.168.1.1, 192.168.1.2"],
+      "cqlPort": 9042,
+      "httpPort": 7474
+    }
+
+**cluster**
+The name of the Cassandra cluster to connect to. This must match the value of the `cluster_name` property in cassandra.yaml. Defaults to rhq.
+
+**nodes**
+The addresses of one or more Cassandra nodes that is needed to discover cluster topology. The value must match the value of the `listen_address` property in cassandra.yaml. Defaults to 127.0.0.1.
+
+**cqlPort**
+The port on which Cassandra listens for CQL/client requests. This must match the value of the `native_transport_port` property in cassandra.yaml. Defaults to 9042.
+
+**httpPort**
+The port on which the REST services listen for HTTP requests. Defaults to 7474.
+
+## REST Endpoints
+
+`GET  <hostname>:7474/rhq-metrics/data/:id`
+
+Returns raw metrics through the past 8 hours for the id specified by :id, e.g., 
 
     {
       "bucket": "raw",
@@ -25,16 +49,100 @@ Returns raw metrics through the past 8 hours for the metric id specified by :id,
         {
           "time": 1398911637596,
           "value": 13.0
-          }
-        ]
-      }
+        }
+      ]
+    }
 
-`POST <hostname>:7474/rhq-metrics/:id`
+`GET <hostname>:7474/rhq-metrics/data?id=100&id=200&id300`
 
-Stores a single raw metric for the metric id specified by :id where the content type is assumed to be json, e.g., 
+Returns raw metrics through the past 8 hours for the specified ids. The HTTP response uses chunked encoding, with each chunk containing the result set for one of the specified ids, e.g.,
+
+    // first chunk
+    {
+      "bucket": "raw",
+      "id": "200",
+      "data": [
+        {
+          "time": 1398891828116,
+          "value":5.0
+        },
+        {
+          "time": 1398911237832,
+          "value": 7.0
+        },        
+      ]
+    }
+    
+    // second chunk
+    {
+      "bucket": "raw",
+      "id": "100",
+      "data": [
+        {
+          "time": 1398891828116,
+          "value": 24
+        },
+        {
+          "time": 1398911237832,
+          "value": 27
+        },        
+      ]
+    }
+    
+    // third chunk
+    {
+      "bucket": "raw",
+      "id": "300",
+      "data": [
+        {
+          "time": 1398891828116,
+          "value": 4.27
+        },
+        {
+          "time": 1398911237832,
+          "value": 3.89
+        },        
+      ]
+    }
+
+`POST <hostname>:7474/rhq-metrics/data/:id`
+
+Stores a single raw metric for the id specified by :id where the content type is assumed to be json, e.g., 
 
     {
       "id": 100,
       "value": 5,
       "timestamp": 1398891828116
-    }
+    }   
+
+`POST <hostname>:7474/rhq-metrics/data`
+
+Stores raw metrics for a variable number of ids where the content type is assumed to be json, e.g.,
+
+    [
+      {
+        "id": 100,
+        "value": 5,
+        "timestamp": 1398891828116
+      },
+      {
+        "id": 100,
+        "value": 10,
+        "timestamp": 1398891828116
+      },    
+      {
+        "id": 100,
+        "value": 12,
+        "timestamp": 1398891828116
+      },
+      {
+        "id": 200,
+        "value": 25,
+        "timestamp": 1398891828116
+      },
+      {
+        "id": 200,
+        "value": 20,
+        "timestamp": 1398891828116
+      },
+    ]
