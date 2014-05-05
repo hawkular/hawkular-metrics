@@ -26,7 +26,7 @@ The port on which the REST services listen for HTTP requests. Defaults to 7474.
 
 ## REST Endpoints
 
-###`GET  <hostname>:7474/rhq-metrics/data/:id`
+`GET  <hostname>:7474/rhq-metrics/data/:id`
 
 Returns raw metrics through the past 8 hours for the id specified by :id, e.g., 
 
@@ -53,7 +53,7 @@ Returns raw metrics through the past 8 hours for the id specified by :id, e.g.,
       ]
     }
 
-###`GET <hostname>:7474/rhq-metrics/data?id=100&id=200&id300`
+`GET <hostname>:7474/rhq-metrics/data?id=100&id=200&id300`
 
 Returns raw metrics through the past 8 hours for the specified ids. The HTTP response uses chunked encoding, with each chunk containing the result set for one of the specified ids, e.g.,
 
@@ -105,7 +105,7 @@ Returns raw metrics through the past 8 hours for the specified ids. The HTTP res
       ]
     }
 
-###`POST <hostname>:7474/rhq-metrics/data/:id`
+`POST <hostname>:7474/rhq-metrics/data/:id`
 
 Stores a single raw metric for the id specified by :id where the content type is assumed to be json, e.g., 
 
@@ -115,7 +115,7 @@ Stores a single raw metric for the id specified by :id where the content type is
       "timestamp": 1398891828116
     }   
 
-###`POST <hostname>:7474/rhq-metrics/data`
+`POST <hostname>:7474/rhq-metrics/data`
 
 Stores raw metrics for a variable number of ids where the content type is assumed to be json, e.g.,
 
