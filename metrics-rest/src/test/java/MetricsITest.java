@@ -15,6 +15,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Uninterruptibles;
 
@@ -91,7 +92,7 @@ public class MetricsITest {
     // Not sure if it is a client side bug or something I am doing wrong but we need to
     // test the GET request after the POST request. See
     // https://bugs.eclipse.org/bugs/show_bug.cgi?id=434064 for details.
-    @Test(dependsOnMethods = "insertSingleMetric")
+    @Test(dependsOnMethods = "insertMultipleMetrics")
     public void findRawMetrics() throws Exception {
         session.execute("TRUNCATE metrics");
 
@@ -116,7 +117,7 @@ public class MetricsITest {
         final Buffer buffer = new Buffer();
 
         HttpClient httpClient = platformManager.vertx().createHttpClient().setPort(7474);
-        httpClient.getNow("/rhq-metrics/" + metricId, new Handler<HttpClientResponse>() {
+        httpClient.getNow("/rhq-metrics/" + metricId + "/data", new Handler<HttpClientResponse>() {
             public void handle(HttpClientResponse response) {
                 response.bodyHandler(new Handler<Buffer>() {
                     public void handle(Buffer content) {
@@ -141,7 +142,7 @@ public class MetricsITest {
                     .putNumber("time", timestamp1)
                     .putNumber("value", value1)));
 
-        assertEquals(actual, expected, "The data returned for GET /rhq-metrics/" + metricId +
+        assertEquals(actual, expected, "The data returned for GET /rhq-metrics/" + metricId + "/data" +
             " does not match the expected value");
     }
 
@@ -158,10 +159,8 @@ public class MetricsITest {
             .putNumber("timestamp", System.currentTimeMillis());
         int contentLength = json.toString().length();
 
-        HttpClient httpClient = platformManager.vertx().createHttpClient()
-            .setMaxPoolSize(1)
-            .setPort(7474);
-        HttpClientRequest request = httpClient.post("/rhq-metrics/111", new Handler<HttpClientResponse>() {
+        HttpClient httpClient = platformManager.vertx().createHttpClient().setPort(7474);
+        HttpClientRequest request = httpClient.post("/rhq-metrics/111/data", new Handler<HttpClientResponse>() {
             public void handle(HttpClientResponse response) {
                 status.set(response.statusCode());
                 responseReceived.countDown();
@@ -171,8 +170,6 @@ public class MetricsITest {
         request.putHeader("Content-Length", Integer.toString(contentLength));
         request.write(json.toString());
         request.end();
-
-        httpClient.close();
 
         responseReceived.await();
 
@@ -191,6 +188,57 @@ public class MetricsITest {
             json.getNumber("timestamp").longValue());
 
         assertEquals(actual, expected, "The raw metric does not match the expected value");
+    }
+
+    @Test
+    public void insertMultipleMetrics() throws Exception {
+        session.execute("TRUNCATE metrics");
+
+        final CountDownLatch responseReceived = new CountDownLatch(1);
+        final AtomicInteger status = new AtomicInteger();
+
+        long collectionTime = System.currentTimeMillis();
+
+        JsonArray json = new JsonArray()
+            .addObject(new JsonObject()
+                .putString("id", "100")
+                .putNumber("timestamp", collectionTime + 100)
+                .putNumber("value", 100))
+            .addObject(new JsonObject()
+                .putString("id", "200")
+                .putNumber("timestamp", collectionTime + 200)
+                .putNumber("value", 200))
+            .addObject(new JsonObject()
+                .putString("id", "300")
+                .putNumber("timestamp", collectionTime + 300)
+                .putNumber("value", 300));
+        int contentLength = json.toString().length();
+
+        HttpClient httpClient = platformManager.vertx().createHttpClient().setPort(7474);
+        HttpClientRequest request = httpClient.post("/rhq-metrics/data", new Handler<HttpClientResponse>() {
+            public void handle(HttpClientResponse response) {
+                status.set(response.statusCode());
+                responseReceived.countDown();
+            }
+        });
+
+        request.putHeader("Content-Length", Integer.toString(contentLength));
+        request.write(json.toString());
+        request.end();
+
+        responseReceived.await();
+
+        assertEquals(status.get(), HttpResponseStatus.NO_CONTENT.code(), "The status code is wrong");
+
+        ResultSet resultSet = session.execute("SELECT metric_id, time, value FROM metrics");
+        List<RawNumericMetric> actual = rawMapper.map(resultSet);
+        List<RawNumericMetric> expected = ImmutableList.of(
+            new RawNumericMetric("100", 100.0, collectionTime + 100),
+            new RawNumericMetric("200", 200.0, collectionTime + 200),
+            new RawNumericMetric("300", 300.0, collectionTime + 300)
+        );
+
+        assertEquals(actual, expected, "The data returned from the database does not match the expected values");
     }
 
     private <V> V getUninterruptibly(Future<V> future) throws ExecutionException, TimeoutException {

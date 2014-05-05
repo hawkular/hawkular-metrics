@@ -1,7 +1,10 @@
 package org.rhq.metrics.rest;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
@@ -9,6 +12,7 @@ import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -47,7 +51,7 @@ public class MetricsServer extends Verticle {
         final ObjectMapper mapper = new ObjectMapper();
 
         RouteMatcher routeMatcher = new RouteMatcher();
-        routeMatcher.get("/rhq-metrics/:id", new Handler<HttpServerRequest>() {
+        routeMatcher.get("/rhq-metrics/:id/data", new Handler<HttpServerRequest>() {
             public void handle(final HttpServerRequest request) {
                 final String id = request.params().get("id");
 //                long start = Long.parseLong(request.params().get("start"));
@@ -84,11 +88,12 @@ public class MetricsServer extends Verticle {
             }
         });
 
-        routeMatcher.post("/rhq-metrics/:id", new Handler<HttpServerRequest>() {
+        routeMatcher.post("/rhq-metrics/:id/data", new Handler<HttpServerRequest>() {
             public void handle(final HttpServerRequest request) {
                 request.bodyHandler(new Handler<Buffer>() {
                     public void handle(Buffer body) {
                         try {
+                            System.out.println("POST single metric");
                             RawData rawData = mapper.readValue(body.getBytes(), RawData.class);
 
                             metricsService.addData(ImmutableSet.of(new RawNumericMetric(rawData.id, rawData.value,
@@ -96,6 +101,33 @@ public class MetricsServer extends Verticle {
 
                             request.response().setStatusCode(HttpResponseStatus.NO_CONTENT.code());
                             request.response().end();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            }
+        });
+
+        routeMatcher.post("/rhq-metrics/data", new Handler<HttpServerRequest>() {
+            public void handle(final HttpServerRequest request) {
+                request.bodyHandler(new Handler<Buffer>() {
+                    public void handle(Buffer body) {
+                        try {
+                            System.out.println("POST multiple metrics");
+//                            RawDataList rawDataList = mapper.readValue(body.getBytes(), RawDataList.class);
+                            List<RawData> rawData = mapper.readValue(body.getBytes(),
+                                TypeFactory.defaultInstance().constructCollectionType(List.class, RawData.class));
+                            Set<RawNumericMetric> rawMetrics = new HashSet<RawNumericMetric>();
+
+                            for (RawData datum : rawData) {
+                                rawMetrics.add(new RawNumericMetric(datum.id, datum.value, datum.timestamp));
+                            }
+
+                            metricsService.addData(rawMetrics);
+
+                            request.response().setStatusCode(HttpResponseStatus.NO_CONTENT.code());
+                             request.response().end();
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
