@@ -98,7 +98,7 @@ public class MetricsITest {
     // test the GET request after the POST request. See
     // https://bugs.eclipse.org/bugs/show_bug.cgi?id=434064 for details.
     @Test(dependsOnMethods = "insertSingleMetric")
-    public void findRawMetrics() throws Exception {
+    public void findRawMetricsForSingleId() throws Exception {
         session.execute("TRUNCATE metrics");
 
         String metricId = UUID.randomUUID().toString();
@@ -151,7 +151,70 @@ public class MetricsITest {
             " does not match the expected value");
     }
 
-    @Test(dependsOnMethods = "findRawMetrics")
+    @Test(dependsOnMethods = "insertSingleMetric")
+    public void findRawMetricsForSingleIdWithDateFilters() throws Exception {
+        session.execute("TRUNCATE metrics");
+
+        String metricId = UUID.randomUUID().toString();
+        long timestamp1 = System.currentTimeMillis();
+        double value1 = 2.17;
+
+        ResultSetFuture insertFuture = dataAccess.insertData("raw", metricId, timestamp1,
+            ImmutableMap.of(DataType.RAW.ordinal(), value1), TTL);
+        // wait for the insert to finish
+        getUninterruptibly(insertFuture);
+
+        long timestamp2 = timestamp1 - 10000;
+        double value2 = 2.4567;
+
+        insertFuture = dataAccess.insertData("raw", metricId, timestamp2, ImmutableMap.of(DataType.RAW.ordinal(),
+            value2), TTL);
+        // wait for insert to finish
+        getUninterruptibly(insertFuture);
+
+        long timestamp3 = timestamp1 - 20000;
+        double value3 = 3.001;
+
+        insertFuture = dataAccess.insertData("raw", metricId, timestamp3, ImmutableMap.of(DataType.RAW.ordinal(),
+            value3), TTL);
+        // wait for insert to finish
+        getUninterruptibly(insertFuture);
+
+        final CountDownLatch responseReceived = new CountDownLatch(1);
+        final Buffer buffer = new Buffer();
+
+        String uri = "/rhq-metrics/" + metricId + "/data?start=" + timestamp3 + "&end=" + timestamp1;
+        HttpClient httpClient = platformManager.vertx().createHttpClient().setPort(7474);
+        httpClient.getNow(uri, new Handler<HttpClientResponse>() {
+            public void handle(HttpClientResponse response) {
+                response.bodyHandler(new Handler<Buffer>() {
+                    public void handle(Buffer content) {
+                        buffer.appendBuffer(content);
+                        responseReceived.countDown();
+                    }
+                });
+            }
+        });
+        responseReceived.await();
+
+        JsonObject actual = new JsonObject(buffer.toString());
+
+        JsonObject expected = new JsonObject()
+            .putString("bucket", "raw")
+            .putString("id", metricId)
+            .putArray("data", new JsonArray()
+                .addElement(new JsonObject()
+                    .putNumber("time", timestamp3)
+                    .putNumber("value", value3))
+                .addElement(new JsonObject()
+                    .putNumber("time", timestamp2)
+                    .putNumber("value", value2)));
+
+        assertEquals(actual, expected, "The data returned for GET /rhq-metrics/" + metricId + "/data" +
+            " does not match the expected value");
+    }
+
+    @Test(dependsOnMethods = "findRawMetricsForSingleId")
     public void findRawMetricsForMultipleIds() throws Exception {
         session.execute("TRUNCATE metrics");
 
@@ -240,10 +303,87 @@ public class MetricsITest {
                         .putNumber("value", 300.0)))
         );
 
-//        assertEquals(actual, expected, "Failed to retrieve raw data for multiple ids");
         assertEquals(results.get("100"), expected.get(0), "Failed to retrieve raw data for id 100");
         assertEquals(results.get("200"), expected.get(1), "Failed to retrieve raw data for id 200");
         assertEquals(results.get("300"), expected.get(2), "Failed to retrieve raw data for id 300");
+    }
+
+    @Test(dependsOnMethods = "findRawMetricsForSingleId")
+    public void findRawMetricsForMultipleIdsWithDateFilters() throws Exception {
+        session.execute("TRUNCATE metrics");
+
+        long collectionTime = System.currentTimeMillis();
+
+        List<RawNumericMetric> rawMetrics = ImmutableList.of(
+            new RawNumericMetric("100", 100.0, collectionTime - 100),
+            new RawNumericMetric("200", 200.0, collectionTime - 100),
+            new RawNumericMetric("300", 300.0, collectionTime - 100),
+            new RawNumericMetric("100", 110.0, collectionTime - 200),
+            new RawNumericMetric("200", 210.0, collectionTime - 200),
+            new RawNumericMetric("300", 310.0, collectionTime - 200),
+            new RawNumericMetric("100", 120.0, collectionTime - 300),
+            new RawNumericMetric("200", 220.0, collectionTime - 300)
+        );
+
+        List<ResultSetFuture> insertFutures = new ArrayList<ResultSetFuture>(rawMetrics.size());
+        for (RawNumericMetric metric : rawMetrics) {
+            insertFutures.add(dataAccess.insertData("raw", metric.getId(), metric.getTimestamp(),
+                ImmutableMap.of(DataType.RAW.ordinal(), metric.getValue()), TTL));
+        }
+        ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
+        getUninterruptibly(insertsFuture);
+
+        final CountDownLatch responseReceived = new CountDownLatch(1);
+        final Map<String, JsonObject> results = new HashMap<String, JsonObject>();
+
+        String uri = "/rhq-metrics/data?id=100&id=200&&start=" + (collectionTime - 300) + "&end=" +
+            (collectionTime - 100);
+        HttpClient httpClient = platformManager.vertx().createHttpClient().setPort(7474);
+        HttpClientRequest request = httpClient.get(uri, new Handler<HttpClientResponse>() {
+            public void handle(HttpClientResponse response) {
+                response.dataHandler(new Handler<Buffer>() {
+                    public void handle(Buffer data) {
+                        JsonObject json = new JsonObject(data.toString());
+                        results.put(json.getString("id"), json);
+                    }
+                });
+
+                response.endHandler(new Handler<Void>() {
+                    public void handle(Void event) {
+                        responseReceived.countDown();
+                    }
+                });
+            }
+        });
+        request.end();
+        responseReceived.await();
+
+        List<JsonObject> expected = ImmutableList.of(
+            new JsonObject()
+                .putString("bucket", "raw")
+                .putString("id", "100")
+                .putArray("data", new JsonArray()
+                    .addObject(new JsonObject()
+                        .putNumber("time", collectionTime - 300)
+                        .putNumber("value", 120.0))
+                    .addObject(new JsonObject()
+                        .putNumber("time", collectionTime - 200)
+                        .putNumber("value", 110.0))),
+            new JsonObject()
+                .putString("bucket", "raw")
+                .putString("id", "200")
+                .putArray("data", new JsonArray()
+                    .addObject(new JsonObject()
+                        .putNumber("time", collectionTime - 300)
+                        .putNumber("value", 220.0))
+                    .addObject(new JsonObject()
+                        .putNumber("time", collectionTime - 200)
+                        .putNumber("value", 210.0)))
+        );
+
+        assertEquals(results.get("100"), expected.get(0), "Failed to retrieve raw data for id 100");
+        assertEquals(results.get("200"), expected.get(1), "Failed to retrieve raw data for id 200");
+        assertEquals(results.get("300"), null, "Did not expect to get back any results for id 300");
     }
 
     @Test

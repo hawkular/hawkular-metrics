@@ -69,10 +69,23 @@ public class MetricsServer extends Verticle {
         routeMatcher.get("/rhq-metrics/:id/data", new Handler<HttpServerRequest>() {
             public void handle(final HttpServerRequest request) {
                 final String id = request.params().get("id");
-//                long start = Long.parseLong(request.params().get("start"));
-//                long end = Long.parseLong(request.params().get("end"));
-                long start = DateTime.now().minusHours(8).getMillis();
-                long end = DateTime.now().getMillis();
+
+                long start;
+                String startParam = request.params().get("start");
+                if (startParam == null) {
+                    start = DateTime.now().minusHours(8).getMillis();
+                } else {
+                    start = Long.parseLong(startParam);
+                }
+
+                long end;
+                String endParam = request.params().get("end");
+                if (endParam == null) {
+                    end = DateTime.now().getMillis();
+                } else {
+                    end = Long.parseLong(endParam);
+                }
+
                 ResultSetFuture future = metricsService.findData("raw", id, start, end);
 
                 Futures.addCallback(future, new FutureCallback<ResultSet>() {
@@ -130,8 +143,21 @@ public class MetricsServer extends Verticle {
                     request.response().setStatusCode(HttpResponseStatus.NO_CONTENT.code());
                     request.response().end();
                 } else {
-                    long start = DateTime.now().minusHours(8).getMillis();
-                    long end = DateTime.now().getMillis();
+                    long start;
+                    String startParam = request.params().get("start");
+                    if (startParam == null) {
+                        start = DateTime.now().minusHours(8).getMillis();
+                    } else {
+                        start = Long.parseLong(startParam);
+                    }
+
+                    long end;
+                    String endParam = request.params().get("end");
+                    if (endParam == null) {
+                        end = DateTime.now().getMillis();
+                    } else {
+                        end = Long.parseLong(endParam);
+                    }
                     final AtomicInteger count = new AtomicInteger();
                     final Pump pump = Pump.createPump(request, request.response()).start();
 
@@ -233,4 +259,5 @@ public class MetricsServer extends Verticle {
             return contactPoints;
         }
     }
+
 }
