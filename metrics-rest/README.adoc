@@ -3,7 +3,7 @@
 This is a prototype for providing REST endpoints for rhq-metrics using Vert.x. This project depends on rhq-metrics-core and it generates a Vert.x module. 
 
 ## Module Configuration
-The module recognizes the following configuration
+The module supports the following configuration,
 
     {
       "cluster": "rhq-metrics",
@@ -13,22 +13,47 @@ The module recognizes the following configuration
     }
 
 **cluster**
+
 The name of the Cassandra cluster to connect to. This must match the value of the `cluster_name` property in cassandra.yaml. Defaults to rhq.
 
 **nodes**
+
 The addresses of one or more Cassandra nodes that is needed to discover cluster topology. The value must match the value of the `listen_address` property in cassandra.yaml. Defaults to 127.0.0.1.
 
 **cqlPort**
+
 The port on which Cassandra listens for CQL/client requests. This must match the value of the `native_transport_port` property in cassandra.yaml. Defaults to 9042.
 
 **httpPort**
+
 The port on which the REST services listen for HTTP requests. Defaults to 7474.
 
-## REST Endpoints
+## API
 
-`GET  <hostname>:7474/rhq-metrics/data/:id`
+### findMetricsForId
 
-Returns raw metrics through the past 8 hours for the id specified by :id, e.g., 
+**Description**
+
+Retrieves raw metrics for a specified id.
+
+**Method** 
+
+GET
+
+**URI**
+
+/rhq-metrics/:id/data
+
+**Parameters**
+
+| Name | Type | Required | Default | Description |
+|------|------|----------|-------------|
+| start| long | no | 8 hours ago | The start date inclusive specified as a timestamp |
+| end | long | no | now | The end date exclusive specified as a timestamp |
+
+**Example**
+
+GET http://localhost:7474/rhq-metrics/100/data?start=1398911637596&end=1398891828116
 
     {
       "bucket": "raw",
@@ -53,96 +78,164 @@ Returns raw metrics through the past 8 hours for the id specified by :id, e.g.,
       ]
     }
 
-`GET <hostname>:7474/rhq-metrics/data?id=100&id=200&id300`
+### findMetricsForIds
 
-Returns raw metrics through the past 8 hours for the specified ids. The HTTP response uses chunked encoding, with each chunk containing the result set for one of the specified ids, e.g.,
+**Description**
 
-    // first chunk
+Retrives raw metrics for a variable number of ids.
+
+**Method**
+
+GET
+
+**URI**
+
+/rhq-metrics/data
+
+**Parameters**
+
+| Name | Type | Required | Default | Description |
+|------|------|----------|-------------|
+| start| long | no | 8 hours ago | The start date inclusive specified as a timestamp |
+| end | long | no | now | The end date exclusive specified as a timestamp |
+| id | string | yes | N/A | Can be set multiple times to specify the list of ids for which to retrieve data |
+
+**Example**
+
+GET http://7474/rhq-metrics/data?id=100&id=200&id300
+
+
+```
+// first chunk
+{
+  "bucket": "raw",
+  "id": "200",
+  "data": [
     {
-      "bucket": "raw",
-      "id": "200",
-      "data": [
-        {
-          "time": 1398891828116,
-          "value":5.0
-        },
-        {
-          "time": 1398911237832,
-          "value": 7.0
-        },        
-      ]
-    }
+      "time": 1398891828116,
+      "value":5.0
+    },
+    {
+      "time": 1398911237832,
+      "value": 7.0
+    },        
+  ]
+}
          
-    // second chunk
+// second chunk
+{
+  "bucket": "raw",
+  "id": "100",
+  "data": [
     {
-      "bucket": "raw",
-      "id": "100",
-      "data": [
-        {
-          "time": 1398891828116,
-          "value": 24
-        },
-        {
-          "time": 1398911237832,
-          "value": 27
-        },        
-      ]
-    }
+      "time": 1398891828116,
+      "value": 24
+    },
+    {
+      "time": 1398911237832,
+      "value": 27
+    },        
+  ]
+}
         
-    // third chunk
+// third chunk
+{
+  "bucket": "raw",
+  "id": "300",
+  "data": [
     {
-      "bucket": "raw",
-      "id": "300",
-      "data": [
-        {
-          "time": 1398891828116,
-          "value": 4.27
-        },
-        {
-          "time": 1398911237832,
-          "value": 3.89
-        },        
-      ]
-    }
-
-`POST <hostname>:7474/rhq-metrics/data/:id`
-
-Stores a single raw metric for the id specified by :id where the content type is assumed to be json, e.g., 
-
+      "time": 1398891828116,
+      "value": 4.27
+    },
     {
-      "id": 100,
-      "value": 5,
-      "timestamp": 1398891828116
-    }   
+      "time": 1398911237832,
+      "value": 3.89
+    },        
+  ]
+}
+```   
 
-`POST <hostname>:7474/rhq-metrics/data`
+The HTTP response uses chunked encoding, with each chunk containing the result set for one of the specified ids.
 
-Stores raw metrics for a variable number of ids where the content type is assumed to be json, e.g.,
+### addRawMetricsForId
 
-    [
-      {
-        "id": 100,
-        "value": 5,
-        "timestamp": 1398891828116
-      },
-      {
-        "id": 100,
-        "value": 10,
-        "timestamp": 1398891828116
-      },    
-      {
-        "id": 100,
-        "value": 12,
-        "timestamp": 1398891828116
-      },
-      {
-        "id": 200,
-        "value": 25,
-        "timestamp": 1398891828116
-      },
-      {
-        "id": 200,
-        "value": 20,
-        "timestamp": 1398891828116
-      },
-    ]
+**Description**
+
+Stores raw metrics for a particular id.
+
+**Method**
+
+POST
+
+**URI**
+
+/rhq-metrics/:id/data
+
+**Parameters**
+
+None
+
+**Example**
+
+POST http://localhost:7474/rhq-metrics/100/data
+
+```
+// request body
+{
+  "id": 100,
+  "value": 5,
+  "timestamp": 1398891828116
+}   
+```
+
+### addRawMetricsForIds
+
+**Description**
+
+Stores raw metrics for a set of ids.
+
+**Method**
+
+POST
+
+**URI**
+
+/rhq-metrics/data
+
+**Parameters**
+
+None
+
+**Example**
+
+POST http://localhost:7474/rhq-metrics/data
+
+```
+[
+  {
+    "id": 100,
+    "value": 5,
+    "timestamp": 1398891828116
+  },
+  {
+    "id": 100,
+    "value": 10,
+    "timestamp": 1398891828116
+  },    
+  {
+    "id": 100,
+    "value": 12,
+    "timestamp": 1398891828116
+  },
+  {
+    "id": 200,
+    "value": 25,
+    "timestamp": 1398891828116
+  },
+  {
+    "id": 200,
+    "value": 20,
+    "timestamp": 1398891828116
+  },
+]
+```
