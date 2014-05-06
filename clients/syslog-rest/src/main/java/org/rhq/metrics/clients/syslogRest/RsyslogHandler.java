@@ -1,6 +1,9 @@
 package org.rhq.metrics.clients.syslogRest;
 
 
+import java.util.Iterator;
+import java.util.List;
+
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -47,8 +50,8 @@ public class RsyslogHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) throws Exception {
 
-        final SyslogMetricEvent in = (SyslogMetricEvent) msg;
-        logger.debug("Received a metric :[" + in +"]");
+        final List<SyslogMetricEvent> in = (List<SyslogMetricEvent>) msg;
+        logger.debug("Received some metrics :[" + in + "]");
 
         ChannelFuture cf = connectRestServer(ctx.channel().eventLoop().parent());
 
@@ -60,9 +63,10 @@ public class RsyslogHandler extends ChannelInboundHandlerAdapter {
 //                    packet.release(); TODO what do we need to do?
                     logger.warn("something went wrong");
                 } else {
-                    ByteBuf content = Unpooled.copiedBuffer(in.toJson(), CharsetUtil.UTF_8);
+                    String payload = eventsToJson(in);
+                    ByteBuf content = Unpooled.copiedBuffer(payload, CharsetUtil.UTF_8);
                     final Channel ch = future.channel();
-                    FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/rest/metric", content);
+                    FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/rest/metric/s", content);
                     HttpHeaders.setContentLength(request, content.readableBytes());
                     HttpHeaders.setKeepAlive(request, true);
                     HttpHeaders.setHeader(request, HttpHeaders.Names.CONTENT_TYPE, "application/json;charset=utf-8");
@@ -109,6 +113,20 @@ public class RsyslogHandler extends ChannelInboundHandlerAdapter {
         ChannelFuture clientFuture = clientBootstrap.connect();
 
         return clientFuture;
-                        }
+    }
 
+    private String eventsToJson(List<SyslogMetricEvent> events) {
+        StringBuilder builder = new StringBuilder("[");
+        Iterator<SyslogMetricEvent> iter = events.iterator();
+        while (iter.hasNext()) {
+            SyslogMetricEvent event = iter.next();
+            builder.append(event.toJson());
+            if (iter.hasNext()) {
+                builder.append(',');
+            }
+        }
+        builder.append(']');
+
+        return builder.toString();
+    }
 }

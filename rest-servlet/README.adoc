@@ -32,8 +32,18 @@ Endpoint is http://localhost:8080/rest/metric/{id}
 
   $ curl -i http://localhost:8080/rest/metric/foo?start=0\&end=2000 -HAccept:application/json
 
+or simply
+
+  $ curl -i http://localhost:8080/rest/metric/foo
+
+to receive data for the last 8 hours
+
 Parameters are:
 
 * start: defaults to now-8h
 * end: defaults to now
 
+=== Running
+
+run `mvn install` to create the servlet and then drop it into a WildFly 8
+instance into `standalone/deploy/` and start the server with `bin/standalone.sh`

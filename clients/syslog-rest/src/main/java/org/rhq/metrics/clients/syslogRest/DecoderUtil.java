@@ -1,5 +1,6 @@
 package org.rhq.metrics.clients.syslogRest;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import io.netty.buffer.ByteBuf;
@@ -49,6 +50,9 @@ public class DecoderUtil {
             long now = System.currentTimeMillis();
 
             String[] entries = text.split(" ");
+
+            List<SyslogMetricEvent> eventList = new ArrayList<>(entries.length);
+
             for (String entry: entries) {
                 if (entry.equals("type=metric")) {
                     continue;
@@ -61,8 +65,9 @@ public class DecoderUtil {
                     e.printStackTrace();  // TODO: Customise this generated block
                 }
                 SyslogMetricEvent event = new SyslogMetricEvent(keyVal[0],now, value);
-                out.add(event);
+                eventList.add(event);
             }
+            out.add(eventList);
         }
     }
 }

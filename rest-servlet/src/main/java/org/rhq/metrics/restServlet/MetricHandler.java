@@ -1,6 +1,7 @@
 package org.rhq.metrics.restServlet;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -18,6 +19,8 @@ import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.jboss.resteasy.annotations.GZIP;
 
 import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.RawNumericMetric;
@@ -50,7 +53,22 @@ public class MetricHandler {
         ServiceKeeper.getInstance().service.addData(rawSet);
     }
 
+    @POST
+    @Path("/s")
+    @Consumes({"application/json","application/xml"})
+    public void addMetrics(Collection<IdDataPoint> dataPoints) {
 
+        Set<RawNumericMetric> rawSet = new HashSet<>(dataPoints.size());
+        for (IdDataPoint dataPoint : dataPoints) {
+            RawNumericMetric rawMetric = new RawNumericMetric(dataPoint.getId(), dataPoint.getValue(),
+                dataPoint.getTimestamp());
+            rawSet.add(rawMetric);
+        }
+
+        ServiceKeeper.getInstance().service.addData(rawSet);
+    }
+
+    @GZIP
     @GET
     @Path("/{id}")
     @Produces({"application/json","text/json","application/xml"})

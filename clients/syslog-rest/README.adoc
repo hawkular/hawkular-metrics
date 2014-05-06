@@ -12,7 +12,9 @@ is the current time on the proxy when the udp packet was received.
 
 === running
 
-  $ java  -cp ~/.m2/repository/io/netty/netty-all/4.0.14.Final/netty-all-4.0.14.Final.jar:target/syslog-rest-0.1.0-SNAPSHOT.jar  org.rhq.metrics.clients.syslogRest.Main
+  $ java  -cp ~/.m2/repository/io/netty/netty-all/4.0.14.Final/netty-all-4.0.14.Final.jar:target/syslog-rest-0.1.0-SNAPSHOT.jar\
+        :~/.m2/repository/org/slf4j/slf4j-log4j12/1.7.7/slf4j-log4j12-1.7.7.jar:/.m2/repository/org/slf4j/slf4j-api/1.7.7/slf4j-api-1.7.7.jar\
+        :~/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar org.rhq.metrics.clients.syslogRest.Main
 
 Before you start the proxy, make sure the rest-server is running.
 
