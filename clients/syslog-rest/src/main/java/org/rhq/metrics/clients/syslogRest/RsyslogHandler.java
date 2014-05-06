@@ -16,9 +16,13 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestEncoder;
+import io.netty.handler.codec.http.HttpResponseDecoder;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.CharsetUtil;
 
@@ -31,10 +35,8 @@ import static io.netty.channel.ChannelHandler.Sharable;
 @Sharable
 public class RsyslogHandler extends ChannelInboundHandlerAdapter {
 
-    private Channel clientChannel;
 
-    public RsyslogHandler(Channel clientChannel) {
-        this.clientChannel = clientChannel;
+    public RsyslogHandler() {
         System.out.println("RsyslogHandler init");
     }
 
@@ -44,7 +46,7 @@ public class RsyslogHandler extends ChannelInboundHandlerAdapter {
         final SyslogMetricEvent in = (SyslogMetricEvent) msg;
         System.out.println("Received a metric :[" + in +"]");
 
-        ChannelFuture cf = connectRestServer(clientChannel.eventLoop().parent());
+        ChannelFuture cf = connectRestServer(ctx.channel().eventLoop().parent());
 
         cf.addListener(new ChannelFutureListener() {
             @Override
@@ -93,10 +95,24 @@ public class RsyslogHandler extends ChannelInboundHandlerAdapter {
 
                     ChannelPipeline pipeline = ch.pipeline();
                     pipeline.addLast(new HttpRequestEncoder());
+                    pipeline.addLast(new HttpResponseDecoder());
+                    pipeline.addLast(new HttpObjectAggregator(1024));
+                    pipeline.addLast(new ChannelInboundHandlerAdapter() {
+                        @Override
+                        public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                            if (msg instanceof FullHttpResponse) {
+                                FullHttpResponse response = (FullHttpResponse) msg;
+                                if (!response.getStatus().equals(HttpResponseStatus.NO_CONTENT) &&
+                                    !response.getStatus().equals(HttpResponseStatus.OK)){
+                                    System.err.println("Send failed:" + response.toString());
+                                }
+                            }
+                        }
+                    });
                 }
             })
         ;
-        ChannelFuture clientFuture = clientBootstrap.connect().sync();
+        ChannelFuture clientFuture = clientBootstrap.connect();
 
         return clientFuture;
                         }

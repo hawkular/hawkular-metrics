@@ -67,7 +67,7 @@ public class Main {
                     public void initChannel(Channel socketChannel) throws Exception {
                         ChannelPipeline pipeline = socketChannel.pipeline();
                         pipeline.addLast(new SyslogEventDecoder());
-                        pipeline.addLast(new RsyslogHandler(clientFuture.channel()));
+                        pipeline.addLast(new RsyslogHandler());
                     }
                 })
             ;
