@@ -16,6 +16,7 @@
     <module.name>${project.groupId}~${project.artifactId}~${project.version}</module.name>
     <mods.directory>target/mods</mods.directory>
     <vertx.createFatJar>true</vertx.createFatJar>
+    <conf.file>src/test/resources/conf.json</conf.file>
     <!--<maven.failsafe.debug>-Xdebug -Xnoagent -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,address=8797,server=y,suspend=y</maven.failsafe.debug>-->
   </properties>
 
@@ -245,6 +246,9 @@
             <version>${vertx.version}</version>
           </dependency>
         </dependencies>
+        <configuration>
+          <configFile>${conf.file}</configFile>
+        </configuration>
         <executions>
           <execution>
             <id>create-fat-jar</id>

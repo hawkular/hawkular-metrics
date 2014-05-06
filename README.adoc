@@ -4,3 +4,14 @@ Project to implement a MaaS and CaaS
 
 * MaaS: Metrics as a Service
 * CaaS: Charts as a Service
+
+# Build Instructions
+This project has a dependency on Cassandra 2.x. A running Cassandra cluster, which can be a single node, is required for unit and integrationt tests.
+
+1. Install [ccm](https://github.com/pcmanus/ccm)
+2. ccm create -v 2.0.7 rhq
+3. ccm populate -n 1
+4. ccm start
+5. mvn install
+
+These steps build and install a single node cluster of Cassandra 2.0.7. Any version of 2.x should suffice if you prefer a differen one. Note that while it is recommended to use ccm, it is not necessary. You just need to make sure you have a running 2.x cluster.
