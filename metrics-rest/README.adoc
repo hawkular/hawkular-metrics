@@ -1,6 +1,10 @@
-#Overview
+# Overview
 
 This is a prototype for providing REST endpoints for rhq-metrics using Vert.x. This project depends on rhq-metrics-core and it generates a Vert.x module. The module configuration and API described below are likely to change, but I will do my best to keep the docs up to date.
+
+# Build Instructions
+
+TODO
 
 # Module Configuration
 The module supports the following configuration,
@@ -20,7 +24,7 @@ The name of the Cassandra cluster to connect to. This must match the value of th
 
 The addresses of one or more Cassandra nodes that is needed to discover cluster topology. The value must match the value of the `listen_address` property in cassandra.yaml. Defaults to 127.0.0.1.
 
-cqlPort`
+`cqlPort`
 
 The port on which Cassandra listens for CQL/client requests. This must match the value of the `native_transport_port` property in cassandra.yaml. Defaults to 9042.
 
@@ -30,21 +34,21 @@ The port on which the REST services listen for HTTP requests. Defaults to 7474.
 
 # API
 
-##findMetricsForId
+## findMetricsForId
 
-####Description
+#### Description
 
 Retrieves raw metrics for a specified id.
 
-####Method
+#### Method
 
 GET
 
-####URI
+#### URI
 
 /rhq-metrics/:id/data
 
-####Parameters
+#### Parameters
 
 `start`
 
@@ -66,7 +70,7 @@ GET
 
 **Default:** now
 
-####Example
+#### Example
 
 `GET http://localhost:7474/rhq-metrics/100/data?start=1398911637596&end=1398891828116`
 
@@ -93,21 +97,21 @@ GET
       ]
     }
 
-##findMetricsForIds
+## findMetricsForIds
 
-####Description
+#### Description
 
 Retrives raw metrics for a variable number of ids.
 
-####Method
+#### Method
 
 GET
 
-####URI
+#### URI
 
 /rhq-metrics/data
 
-####Parameters
+#### Parameters
 
 `start`
 
@@ -140,7 +144,7 @@ GET
 
 **Default:** N/A
 
-####Example
+#### Example
 
 `GET http://7474/rhq-metrics/data?id=100&id=200&id300`
 
@@ -197,25 +201,25 @@ GET
 }
 ```   
 
-##addRawMetricsForId
+## addRawMetricsForId
 
-####Description
+#### Description
 
 Stores raw metrics for a particular id.
 
-####Method
+#### Method
 
 POST
 
-####URI
+#### URI
 
 /rhq-metrics/:id/data
 
-####Parameters
+#### Parameters
 
 None
 
-####Example
+#### Example
 
 `POST http://localhost:7474/rhq-metrics/100/data`
 
@@ -228,25 +232,25 @@ None
 }   
 ```
 
-##addRawMetricsForIds
+## addRawMetricsForIds
 
-####Description
+#### Description
 
 Stores raw metrics for a set of ids.
 
-####Method
+#### Method
 
 POST
 
-####URI
+#### URI
 
 /rhq-metrics/data
 
-####Parameters
+#### Parameters
 
 None
 
-####Example
+#### Example
 
 `POST http://localhost:7474/rhq-metrics/data`
 
