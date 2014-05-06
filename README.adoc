@@ -8,7 +8,7 @@ Project to implement a MaaS and CaaS
 # Build Instructions
 This project has a dependency on Cassandra 2.x. A running Cassandra cluster, which can be a single node, is required for unit and integrationt tests.
 
-1. Install [ccm](https://github.com/pcmanus/ccm)
+1. Install link:https://github.com/pcmanus/ccm[ccm]
 2. ccm create -v 2.0.7 rhq
 3. ccm populate -n 1
 4. ccm start

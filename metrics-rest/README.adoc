@@ -4,7 +4,7 @@ This is a prototype for providing REST endpoints for rhq-metrics using Vert.x. T
 
 # Build Instructions
 
-See the [build instructions](../README.adoc) for the parent module.
+See the link:../README.adoc[build instructions] for the parent module.
 
 The build for this Maven module currently produces a few artifacts,
 
