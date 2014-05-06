@@ -1,8 +1,8 @@
-# rhq-metrics-rest
+#Overview
 
-This is a prototype for providing REST endpoints for rhq-metrics using Vert.x. This project depends on rhq-metrics-core and it generates a Vert.x module. 
+This is a prototype for providing REST endpoints for rhq-metrics using Vert.x. This project depends on rhq-metrics-core and it generates a Vert.x module. The module configuration and API described below are likely to change, but I will do my best to keep the docs up to date.
 
-## Module Configuration
+# Module Configuration
 The module supports the following configuration,
 
     {
@@ -12,48 +12,63 @@ The module supports the following configuration,
       "httpPort": 7474
     }
 
-**cluster**
+`cluster`
 
 The name of the Cassandra cluster to connect to. This must match the value of the `cluster_name` property in cassandra.yaml. Defaults to rhq.
 
-**nodes**
+`nodes`
 
 The addresses of one or more Cassandra nodes that is needed to discover cluster topology. The value must match the value of the `listen_address` property in cassandra.yaml. Defaults to 127.0.0.1.
 
-**cqlPort**
+cqlPort`
 
 The port on which Cassandra listens for CQL/client requests. This must match the value of the `native_transport_port` property in cassandra.yaml. Defaults to 9042.
 
-**httpPort**
+`httpPort`
 
 The port on which the REST services listen for HTTP requests. Defaults to 7474.
 
-## API
+# API
 
-### findMetricsForId
+##findMetricsForId
 
-**Description**
+####Description
 
 Retrieves raw metrics for a specified id.
 
-**Method** 
+####Method
 
 GET
 
-**URI**
+####URI
 
 /rhq-metrics/:id/data
 
-**Parameters**
+####Parameters
 
-| Name | Type | Required | Default | Description |
-|------|------|----------|-------------|
-| start| long | no | 8 hours ago | The start date inclusive specified as a timestamp |
-| end | long | no | now | The end date exclusive specified as a timestamp |
+`start`
 
-**Example**
+**Description:** The start date inclusive specified as a timestamp.
 
-GET http://localhost:7474/rhq-metrics/100/data?start=1398911637596&end=1398891828116
+**Type:** long
+
+**Required:** no
+
+**Default:** 8 hours ago
+
+`end`
+
+**Description:** The end data exclusive specified as a timestamp.
+
+**Type:** long
+
+**Required:** no
+
+**Default:** now
+
+####Example
+
+`GET http://localhost:7474/rhq-metrics/100/data?start=1398911637596&end=1398891828116`
 
     {
       "bucket": "raw",
@@ -78,34 +93,61 @@ GET http://localhost:7474/rhq-metrics/100/data?start=1398911637596&end=139889182
       ]
     }
 
-### findMetricsForIds
+##findMetricsForIds
 
-**Description**
+####Description
 
 Retrives raw metrics for a variable number of ids.
 
-**Method**
+####Method
 
 GET
 
-**URI**
+####URI
 
 /rhq-metrics/data
 
-**Parameters**
+####Parameters
 
-| Name | Type | Required | Default | Description |
-|------|------|----------|-------------|
-| start| long | no | 8 hours ago | The start date inclusive specified as a timestamp |
-| end | long | no | now | The end date exclusive specified as a timestamp |
-| id | string | yes | N/A | Can be set multiple times to specify the list of ids for which to retrieve data |
+`start`
 
-**Example**
+**Description:** The start date inclusive specified as a timestamp
 
-GET http://7474/rhq-metrics/data?id=100&id=200&id300
 
+**Type:** long
+
+**Required:** no
+
+**Default:** 8 hours ago
+
+`end`
+
+**Description:** The end data exclusive specified as a timestamp
+
+**Type:** long
+
+**Required:** no
+
+**Default:** now
+
+`id`
+
+**Description:** A list of ids for which to retrieve data
+
+**Type:** string
+
+**Required:** yes
+
+**Default:** N/A
+
+####Example
+
+`GET http://7474/rhq-metrics/data?id=100&id=200&id300`
 
 ```
+// The HTTP response uses chunked encoding, with each chunk containing 
+// the result set for one of the specified ids.
+
 // first chunk
 {
   "bucket": "raw",
@@ -155,29 +197,27 @@ GET http://7474/rhq-metrics/data?id=100&id=200&id300
 }
 ```   
 
-The HTTP response uses chunked encoding, with each chunk containing the result set for one of the specified ids.
+##addRawMetricsForId
 
-### addRawMetricsForId
-
-**Description**
+####Description
 
 Stores raw metrics for a particular id.
 
-**Method**
+####Method
 
 POST
 
-**URI**
+####URI
 
 /rhq-metrics/:id/data
 
-**Parameters**
+####Parameters
 
 None
 
-**Example**
+####Example
 
-POST http://localhost:7474/rhq-metrics/100/data
+`POST http://localhost:7474/rhq-metrics/100/data`
 
 ```
 // request body
@@ -188,27 +228,27 @@ POST http://localhost:7474/rhq-metrics/100/data
 }   
 ```
 
-### addRawMetricsForIds
+##addRawMetricsForIds
 
-**Description**
+####Description
 
 Stores raw metrics for a set of ids.
 
-**Method**
+####Method
 
 POST
 
-**URI**
+####URI
 
 /rhq-metrics/data
 
-**Parameters**
+####Parameters
 
 None
 
-**Example**
+####Example
 
-POST http://localhost:7474/rhq-metrics/data
+`POST http://localhost:7474/rhq-metrics/data`
 
 ```
 [
