@@ -16,35 +16,39 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestEncoder;
 import io.netty.handler.codec.http.HttpResponseDecoder;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.CharsetUtil;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static io.netty.channel.ChannelHandler.Sharable;
 
 /**
- * // TODO: Document this
+ * Handler that takes incoming syslog metric messages (which are already parsed)
+ * and forwards them to rhq-metrics rest servlet.
  * @author Heiko W. Rupp
  */
 @Sharable
 public class RsyslogHandler extends ChannelInboundHandlerAdapter {
 
 
+    private static final Logger logger = LoggerFactory.getLogger(RsyslogHandler.class);
+
     public RsyslogHandler() {
-        System.out.println("RsyslogHandler init");
+        logger.info("RsyslogHandler init");
     }
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) throws Exception {
 
         final SyslogMetricEvent in = (SyslogMetricEvent) msg;
-        System.out.println("Received a metric :[" + in +"]");
+        logger.debug("Received a metric :[" + in +"]");
 
         ChannelFuture cf = connectRestServer(ctx.channel().eventLoop().parent());
 
@@ -54,7 +58,7 @@ public class RsyslogHandler extends ChannelInboundHandlerAdapter {
                 if (!future.isSuccess()) {
                     // something went wrong
 //                    packet.release(); TODO what do we need to do?
-                    System.err.println("something went wrong");
+                    logger.warn("something went wrong");
                 } else {
                     ByteBuf content = Unpooled.copiedBuffer(in.toJson(), CharsetUtil.UTF_8);
                     final Channel ch = future.channel();
@@ -68,7 +72,7 @@ public class RsyslogHandler extends ChannelInboundHandlerAdapter {
                             if (!future.isSuccess()) {
                                 // and remove from connection pool if you have one etc...
                                 ch.close();
-                                System.err.println("op not complete: " + future.cause());
+                                logger.error("op not complete: " + future.cause());
                             }
                         }
                     });
@@ -95,20 +99,10 @@ public class RsyslogHandler extends ChannelInboundHandlerAdapter {
 
                     ChannelPipeline pipeline = ch.pipeline();
                     pipeline.addLast(new HttpRequestEncoder());
+                    // data is sent here and the http response obtained
                     pipeline.addLast(new HttpResponseDecoder());
                     pipeline.addLast(new HttpObjectAggregator(1024));
-                    pipeline.addLast(new ChannelInboundHandlerAdapter() {
-                        @Override
-                        public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-                            if (msg instanceof FullHttpResponse) {
-                                FullHttpResponse response = (FullHttpResponse) msg;
-                                if (!response.getStatus().equals(HttpResponseStatus.NO_CONTENT) &&
-                                    !response.getStatus().equals(HttpResponseStatus.OK)){
-                                    System.err.println("Send failed:" + response.toString());
-                                }
-                            }
-                        }
-                    });
+                    pipeline.addLast(new HttpErrorLogger());
                 }
             })
         ;
@@ -116,4 +110,5 @@ public class RsyslogHandler extends ChannelInboundHandlerAdapter {
 
         return clientFuture;
                         }
+
 }

@@ -2,6 +2,7 @@ package org.rhq.metrics.clients.syslogRest;
 
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -10,9 +11,12 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Simple client (proxy) that receives messages from other syslogs and
@@ -22,6 +26,8 @@ import io.netty.util.concurrent.EventExecutorGroup;
 public class Main {
 
     int syslogPort = 5140; // UDP port to listen on
+
+    private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) throws Exception {
         Main main = new Main(args);
@@ -36,29 +42,30 @@ public class Main {
         final EventExecutorGroup executorGroup = new DefaultEventExecutorGroup(5);
         try {
 
-            // The rest client
-            Bootstrap clientBootstrap = new Bootstrap();
-            clientBootstrap
+            // The syslog TCP socket server
+
+            ServerBootstrap tcpBootstrap = new ServerBootstrap();
+            tcpBootstrap
                 .group(group)
-                .channel(NioSocketChannel.class)
-                .remoteAddress("localhost", 8080)
-                .handler(new ChannelInitializer<SocketChannel>() {
+                .channel(NioServerSocketChannel.class)
+                .localAddress(syslogPort)
+                .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
-                    protected void initChannel(SocketChannel ch) throws Exception {
-                        ChannelPipeline pipeline = ch.pipeline();
-//                        pipeline.addLast(executorGroup, new RestEncoder());
-//                        pipeline.addLast(executorGroup, new RestClientHandler());
+                    public void initChannel(SocketChannel socketChannel) throws Exception {
+                        ChannelPipeline pipeline = socketChannel.pipeline();
+                        pipeline.addLast(new SyslogEventDecoder());
+                        pipeline.addLast(new RsyslogHandler());
                     }
                 })
             ;
-            final ChannelFuture clientFuture = clientBootstrap.connect().sync();
-            System.out.println("Connected to the rest server at " + clientFuture.channel().remoteAddress());
-
+            ChannelFuture tcpFuture = tcpBootstrap.bind().sync();
+            logger.info("Syslogd listening on tcp" + tcpFuture.channel().localAddress());
+            tcpFuture.channel().closeFuture();
 
 
             // The syslog UPD socket server
-            Bootstrap serverBootstrap = new Bootstrap();
-            serverBootstrap
+            Bootstrap udpBootstrap = new Bootstrap();
+            udpBootstrap
                 .group(group)
                 .channel(NioDatagramChannel.class)
                 .localAddress(syslogPort)
@@ -66,14 +73,14 @@ public class Main {
                     @Override
                     public void initChannel(Channel socketChannel) throws Exception {
                         ChannelPipeline pipeline = socketChannel.pipeline();
-                        pipeline.addLast(new SyslogEventDecoder());
+                        pipeline.addLast(new UdpSyslogEventDecoder());
                         pipeline.addLast(new RsyslogHandler());
                     }
                 })
             ;
-            ChannelFuture serverFuture = serverBootstrap.bind().sync();
-            System.out.println("Syslogd listening on " + serverFuture.channel().localAddress());
-            serverFuture.channel().closeFuture().sync();
+            ChannelFuture udpFuture = udpBootstrap.bind().sync();
+            logger.info("Syslogd listening on udp" + udpFuture.channel().localAddress());
+            udpFuture.channel().closeFuture().sync();
 
         } finally {
             group.shutdownGracefully().sync();

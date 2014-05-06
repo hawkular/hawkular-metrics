@@ -37,7 +37,6 @@ to add entries to syslog for testing purposes.
 
 * add information about the remote to the key so make the key unique
 * reconnect to the rest server if it goes down
-* add a tcp udp listener
 * add a syslog file tailer
 * allow to start even if the rest server is not available
 * allow for more syslog formats
