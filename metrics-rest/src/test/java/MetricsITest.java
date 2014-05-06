@@ -42,6 +42,7 @@ import org.rhq.metrics.core.DataAccess;
 import org.rhq.metrics.core.DataType;
 import org.rhq.metrics.core.RawMetricMapper;
 import org.rhq.metrics.core.RawNumericMetric;
+import org.rhq.metrics.rest.MetricsServer;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 
@@ -67,9 +68,12 @@ public class MetricsITest {
         final CountDownLatch moduleDeployed = new CountDownLatch(1);
         final AtomicReference<Throwable> cause = new AtomicReference<Throwable>();
 
+        JsonObject config = new JsonObject()
+            .putString(MetricsServer.LOG4J_CONF_FILE, "target/test-classes/log4j.properties");
+
         platformManager = PlatformLocator.factory.createPlatformManager();
         String moduleName = System.getProperty("module.name");
-        platformManager.deployModule(moduleName, null, 1, new Handler<AsyncResult<String>>() {
+        platformManager.deployModule(moduleName, config, 1, new Handler<AsyncResult<String>>() {
             public void handle(AsyncResult<String> result) {
                 if (result.failed()) {
                     cause.set(result.cause());

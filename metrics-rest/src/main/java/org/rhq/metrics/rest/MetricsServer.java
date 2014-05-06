@@ -18,7 +18,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.PropertyConfigurator;
 import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.eventbus.Message;
@@ -42,17 +46,30 @@ import io.netty.handler.codec.http.HttpResponseStatus;
  */
 public class MetricsServer extends Verticle {
 
-    private static final String NODE_ADDRESSES = "nodes";
+    public static final String NODE_ADDRESSES = "nodes";
 
-    private static final String CLUSTER_NAME = "cluster";
+    public static final String KEYSPACE = "cluster";
 
-    private static final String CQL_PORT = "cqlPort";
+    public static final String CQL_PORT = "cqlPort";
 
-    private static final String HTTP_PORT = "httpPort";
+    public static final String HTTP_PORT = "httpPort";
 
+    public static final String LOG4J_CONF_FILE = "log4jConfFile";
+
+    public static final Logger logger = LoggerFactory.getLogger(MetricsServer.class);
 
     @Override
     public void start() {
+        String log4jConfFile = container.config().getString(LOG4J_CONF_FILE);
+        LogManager.resetConfiguration();
+        if (log4jConfFile == null) {
+            PropertyConfigurator.configure(getClass().getResourceAsStream("/default.log4j.properties"));
+        } else {
+            PropertyConfigurator.configure(log4jConfFile);
+        }
+
+        logger.info("Starting metrics server...");
+
         Cluster cluster = new Cluster.Builder()
             .addContactPoints(getContactPoints())
             .withPort(container.config().getNumber(CQL_PORT, 9042).intValue())
@@ -60,7 +77,7 @@ public class MetricsServer extends Verticle {
 
         updateSchemaIfNecessary(cluster);
 
-        Session session = cluster.connect(container.config().getString(CLUSTER_NAME, "rhq"));
+        Session session = cluster.connect(container.config().getString(KEYSPACE, "rhq"));
 
         final DataAccess dataAccess = new DataAccess(session);
 

@@ -46,15 +46,16 @@ If you want to use a custom module configuration, then do
 The module supports the following configuration,
 
     {
-      "cluster": "rhq-metrics",
+      "keyspace": "rhq-metrics",
       "nodes": ["192.168.1.1, 192.168.1.2"],
       "cqlPort": 9042,
-      "httpPort": 7474
+      "httpPort": 7474,
+      "log4jConfFile": path/to/log4j.properties
     }
 
-`cluster`
+`keyspace`
 
-The name of the Cassandra cluster to connect to. This must match the value of the `cluster_name` property in cassandra.yaml. Defaults to rhq.
+The name of the keyspace to connecto to. Defaults to rhq.
 
 `nodes`
 
@@ -67,6 +68,9 @@ The port on which Cassandra listens for CQL/client requests. This must match the
 `httpPort`
 
 The port on which the REST services listen for HTTP requests. Defaults to 7474.
+
+`log4jConfFile`
+A path to a Log4J properties file to customize logging. By default, INFO level statements are logged to the console.
 
 # API
 
