@@ -33,6 +33,7 @@ import org.rhq.metrics.core.DataAccess;
 import org.rhq.metrics.core.DataType;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.RawNumericMetric;
+import org.rhq.metrics.core.SchemaManager;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 
@@ -56,6 +57,9 @@ public class MetricsServer extends Verticle {
             .addContactPoints(getContactPoints())
             .withPort(container.config().getNumber(CQL_PORT, 9042).intValue())
             .build();
+
+        updateSchemaIfNecessary(cluster);
+
         Session session = cluster.connect(container.config().getString(CLUSTER_NAME, "rhq"));
 
         final DataAccess dataAccess = new DataAccess(session);
@@ -245,6 +249,13 @@ public class MetricsServer extends Verticle {
 
         vertx.createHttpServer().requestHandler(routeMatcher).listen(container.config().getNumber(HTTP_PORT,
             7474).intValue());
+    }
+
+    private void updateSchemaIfNecessary(Cluster cluster) {
+        try (Session session = cluster.connect("system")) {
+            SchemaManager schemaManager = new SchemaManager(session);
+            schemaManager.updateSchema();
+        }
     }
 
     private String[] getContactPoints() {

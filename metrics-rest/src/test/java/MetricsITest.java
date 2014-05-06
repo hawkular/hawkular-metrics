@@ -64,13 +64,6 @@ public class MetricsITest {
 
     @BeforeClass
     public void startModule() throws Exception {
-        Cluster cluster = new Cluster.Builder().addContactPoint("127.0.0.1").build();
-        session = cluster.connect("rhq");
-
-        dataAccess = new DataAccess(session);
-
-        rawMapper = new RawMetricMapper();
-
         final CountDownLatch moduleDeployed = new CountDownLatch(1);
         final AtomicReference<Throwable> cause = new AtomicReference<Throwable>();
 
@@ -87,6 +80,13 @@ public class MetricsITest {
         });
         moduleDeployed.await();
         assertNull(cause.get(), "Deployment of " + moduleName + " failed");
+
+        Cluster cluster = new Cluster.Builder().addContactPoint("127.0.0.1").build();
+        session = cluster.connect("rhq");
+
+        dataAccess = new DataAccess(session);
+
+        rawMapper = new RawMetricMapper();
     }
 
     @AfterClass
