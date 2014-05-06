@@ -1,0 +1,44 @@
+== Syslog - rhq-metrics restServlet proxy
+
+This module contains a simple proxy server that listens on UDP port 5140
+for syslog messages. If a message is of the format
+
+  type=metric thread.count=7 thread.active=5 heap.permgen.size=20000000
+
+Then it is taken and the individual key-value-pairs are broken apart and
+sent as individual metrics to a rhq-metrics rest server. The timestamp
+is the current time on the proxy when the udp packet was received.
+
+
+=== running
+
+  $ java  -cp ~/.m2/repository/io/netty/netty-all/4.0.14.Final/netty-all-4.0.14.Final.jar:target/syslog-rest-0.1.0-SNAPSHOT.jar  org.rhq.metrics.clients.syslogRest.Main
+
+Before you start the proxy, make sure the rest-server is running.
+
+=== Configuring syslog
+
+You need to configure syslog to forward you the messages.
+For this you need to edit `/etc/syslog.conf` and add a line like this:
+
+  *.info          @127.0.0.1:5140
+
+(the facility and severity may vary depending on how your application is logging the metrics)
+
+=== Manually testing
+
+On a *nix command line you can run
+
+  $ logger -p local3.info "type=metric thread.count=7 thread.active=5 heap.permgen.size=20000000"
+
+to add entries to syslog for testing purposes.
+
+=== Room for improvement:
+
+* add information about the remote to the key so make the key unique
+* reconnect to the rest server if it goes down
+* add a tcp udp listener
+* add a syslog file tailer
+* allow to start even if the rest server is not available
+* allow for more syslog formats
+* support reliable syslog protocol
