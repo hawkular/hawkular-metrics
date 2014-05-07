@@ -101,7 +101,7 @@ public class MetricsITest {
     // Not sure if it is a client side bug or something I am doing wrong but we need to
     // test the GET request after the POST request. See
     // https://bugs.eclipse.org/bugs/show_bug.cgi?id=434064 for details.
-    @Test(dependsOnMethods = "insertSingleMetric")
+    @Test(dependsOnMethods = "insertMetricsForOneId")
     public void findRawMetricsForSingleId() throws Exception {
         session.execute("TRUNCATE metrics");
 
@@ -155,7 +155,7 @@ public class MetricsITest {
             " does not match the expected value");
     }
 
-    @Test(dependsOnMethods = "insertSingleMetric")
+    @Test(dependsOnMethods = "insertMetricsForOneId")
     public void findRawMetricsForSingleIdWithDateFilters() throws Exception {
         session.execute("TRUNCATE metrics");
 
@@ -391,20 +391,28 @@ public class MetricsITest {
     }
 
     @Test
-    public void insertSingleMetric() throws Exception {
+    public void insertMetricsForOneId() throws Exception {
         session.execute("TRUNCATE metrics");
 
+        String id = "111";
         final CountDownLatch responseReceived = new CountDownLatch(1);
         final AtomicInteger status = new AtomicInteger();
+        long collectionTime = System.currentTimeMillis();
 
-        JsonObject json = new JsonObject()
-            .putString("id", "111")
-            .putNumber("value", 3.14)
-            .putNumber("timestamp", System.currentTimeMillis());
+        JsonArray json = new JsonArray()
+            .addObject(new JsonObject()
+                .putNumber("value", 22.3)
+                .putNumber("timestamp", collectionTime - 100))
+            .addObject(new JsonObject()
+                .putNumber("value", 18.19)
+                .putNumber("timestamp", collectionTime - 200))
+            .addObject(new JsonObject()
+                .putNumber("value", 24.42)
+                .putNumber("timestamp", collectionTime - 300));
         int contentLength = json.toString().length();
 
         HttpClient httpClient = platformManager.vertx().createHttpClient().setPort(7474);
-        HttpClientRequest request = httpClient.post("/rhq-metrics/111/data", new Handler<HttpClientResponse>() {
+        HttpClientRequest request = httpClient.post("/rhq-metrics/" + id + "/data", new Handler<HttpClientResponse>() {
             public void handle(HttpClientResponse response) {
                 status.set(response.statusCode());
                 responseReceived.countDown();
@@ -419,23 +427,24 @@ public class MetricsITest {
 
         assertEquals(status.get(), HttpResponseStatus.NO_CONTENT.code(), "The status code is wrong");
 
-        ResultSetFuture future = dataAccess.findData("raw", json.getString("id"),
-            json.getNumber("timestamp").longValue(), System.currentTimeMillis());
+        ResultSetFuture future = dataAccess.findData("raw", id, collectionTime - 300, collectionTime);
         ResultSet resultSet = getUninterruptibly(future);
 
-        List<RawNumericMetric> metrics = rawMapper.map(resultSet);
+        List<RawNumericMetric> actual = rawMapper.map(resultSet);
 
-        assertEquals(metrics.size(), 1, "Expected to get back one row");
+        assertEquals(actual.size(), 3, "Expected to get back 3 raw metrics");
 
-        RawNumericMetric actual = metrics.get(0);
-        RawNumericMetric expected = new RawNumericMetric(json.getString("id"), json.getNumber("value").doubleValue(),
-            json.getNumber("timestamp").longValue());
+        List<RawNumericMetric> expected = ImmutableList.of(
+            new RawNumericMetric(id, 24.42, collectionTime - 300),
+            new RawNumericMetric(id, 18.19, collectionTime - 200),
+            new RawNumericMetric(id, 22.3, collectionTime - 100)
+        );
 
-        assertEquals(actual, expected, "The raw metric does not match the expected value");
+        assertEquals(actual, expected, "The raw metrics doe not match the expected values");
     }
 
     @Test
-    public void insertMultipleMetrics() throws Exception {
+    public void insertMetricsForMultipleIds() throws Exception {
         session.execute("TRUNCATE metrics");
 
         final CountDownLatch responseReceived = new CountDownLatch(1);

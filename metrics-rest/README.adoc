@@ -266,11 +266,11 @@ None
 
 ```
 // request body
-{
-  "id": 100,
-  "value": 5,
-  "timestamp": 1398891828116
-}   
+[
+  {"value": 5, "timestamp": 1398891828116},
+  {"value": 15, "timestamp": 1398891828116},
+  {"value": 25, "timestamp": 1398891828116}
+]   
 ```
 
 ## addRawMetricsForIds

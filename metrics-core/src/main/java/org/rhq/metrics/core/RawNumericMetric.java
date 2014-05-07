@@ -15,6 +15,9 @@ public class RawNumericMetric implements NumericMetric {
 
     private long timestamp;
 
+    public RawNumericMetric() {
+    }
+
     public RawNumericMetric(String id, Double value, long timestamp) {
         this.id = id;
         this.value = value;
@@ -69,16 +72,18 @@ public class RawNumericMetric implements NumericMetric {
         RawNumericMetric that = (RawNumericMetric) o;
 
         if (timestamp != that.timestamp) return false;
-        if (!id.equals(that.id)) return false;
-        if (!value.equals(that.value)) return false;
+        if (bucket != null ? !bucket.equals(that.bucket) : that.bucket != null) return false;
+        if (id != null ? !id.equals(that.id) : that.id != null) return false;
+        if (value != null ? !value.equals(that.value) : that.value != null) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        int result = id.hashCode();
-        result = 47 * result + value.hashCode();
+        int result = bucket != null ? bucket.hashCode() : 0;
+        result = 47 * result + (id != null ? id.hashCode() : 0);
+        result = 47 * result + (value != null ? value.hashCode() : 0);
         result = 47 * result + (int) (timestamp ^ (timestamp >>> 32));
         return result;
     }

@@ -1,7 +1,6 @@
 package org.rhq.metrics.rest;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,7 +13,6 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 
@@ -142,10 +140,14 @@ public class MetricsServer extends Verticle {
                 request.bodyHandler(new Handler<Buffer>() {
                     public void handle(Buffer body) {
                         try {
-                            RawData rawData = mapper.readValue(body.getBytes(), RawData.class);
-
-                            metricsService.addData(ImmutableSet.of(new RawNumericMetric(rawData.id, rawData.value,
-                                rawData.timestamp)));
+                            String id = request.params().get("id");
+                            Set<RawNumericMetric> rawData = mapper.readValue(body.getBytes(),
+                                TypeFactory.defaultInstance().constructCollectionType(Set.class,
+                                    RawNumericMetric.class));
+                            for (RawNumericMetric raw : rawData) {
+                                raw.setId(id);
+                            }
+                            metricsService.addData(rawData);
 
                             request.response().setStatusCode(HttpResponseStatus.NO_CONTENT.code());
                             request.response().end();
@@ -210,15 +212,10 @@ public class MetricsServer extends Verticle {
                 request.bodyHandler(new Handler<Buffer>() {
                     public void handle(Buffer body) {
                         try {
-                            List<RawData> rawData = mapper.readValue(body.getBytes(),
-                                TypeFactory.defaultInstance().constructCollectionType(List.class, RawData.class));
-                            Set<RawNumericMetric> rawMetrics = new HashSet<RawNumericMetric>();
-
-                            for (RawData datum : rawData) {
-                                rawMetrics.add(new RawNumericMetric(datum.id, datum.value, datum.timestamp));
-                            }
-
-                            metricsService.addData(rawMetrics);
+                            Set<RawNumericMetric> rawData = mapper.readValue(body.getBytes(),
+                                TypeFactory.defaultInstance().constructCollectionType(Set.class,
+                                    RawNumericMetric.class));
+                            metricsService.addData(rawData);
 
                             request.response().setStatusCode(HttpResponseStatus.NO_CONTENT.code());
                              request.response().end();
