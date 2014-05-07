@@ -70,6 +70,7 @@ The port on which Cassandra listens for CQL/client requests. This must match the
 The port on which the REST services listen for HTTP requests. Defaults to 7474.
 
 `log4jConfFile`
+
 A path to a Log4J properties file to customize logging. By default, INFO level statements are logged to the console.
 
 # API

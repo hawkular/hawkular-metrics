@@ -48,7 +48,7 @@ public class MetricsServer extends Verticle {
 
     public static final String NODE_ADDRESSES = "nodes";
 
-    public static final String KEYSPACE = "cluster";
+    public static final String KEYSPACE = "keyspace";
 
     public static final String CQL_PORT = "cqlPort";
 
@@ -271,7 +271,7 @@ public class MetricsServer extends Verticle {
     private void updateSchemaIfNecessary(Cluster cluster) {
         try (Session session = cluster.connect("system")) {
             SchemaManager schemaManager = new SchemaManager(session);
-            schemaManager.updateSchema();
+            schemaManager.updateSchema(container.config().getString(KEYSPACE, "rhq"));
         }
     }
 

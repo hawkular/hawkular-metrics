@@ -8,27 +8,25 @@ import com.datastax.driver.core.Session;
  */
 public class SchemaManager {
 
-    private static final String KEYSPACE = "rhq";
-
     private Session session;
 
     public SchemaManager(Session session) {
         this.session = session;
     }
 
-    public void updateSchema() {
+    public void updateSchema(String keyspace) {
         ResultSet resultSet = session.execute(
-            "SELECT * FROM system.schema_keyspaces WHERE keyspace_name = '" + KEYSPACE + "'");
+             "SELECT * FROM system.schema_keyspaces WHERE keyspace_name = '" + keyspace + "'");
 
         if (!resultSet.isExhausted()) {
             return;
         }
 
         session.execute(
-            "CREATE KEYSPACE " + KEYSPACE + " WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}");
+            "CREATE KEYSPACE " + keyspace + " WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}");
 
         session.execute(
-            "CREATE TABLE rhq.metrics ( " +
+            "CREATE TABLE " + keyspace + ".metrics ( " +
                 "bucket varchar, " +
                 "metric_id varchar, " +
                 "time timestamp, " +

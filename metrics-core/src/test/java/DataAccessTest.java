@@ -38,7 +38,7 @@ public class DataAccessTest {
     @BeforeClass
     public void initClass() {
         Cluster cluster = new Cluster.Builder().addContactPoint("127.0.0.1").build();
-        session = cluster.connect("rhq");
+        session = cluster.connect(System.getProperty("keyspace", "rhqtest"));
         dataAccess = new DataAccess(session);
     }
 

@@ -12,6 +12,10 @@
   <artifactId>rhq-metrics-core</artifactId>
   <name>RHQ Metrics Core</name>
 
+  <properties>
+    <test.keyspace>rhqtest</test.keyspace>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>com.datastax.cassandra</groupId>
@@ -62,6 +66,38 @@
             <version>${datastax.driver.version}</version>
           </dependency>
         </dependencies>
+        <executions>
+          <execution>
+            <id>install-schema</id>
+            <phase>test-compile</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <classpathScope>compile</classpathScope>
+              <source>src/main/script/schema.groovy</source>
+              <properties>
+                <property>
+                  <name>keyspace</name>
+                  <value>${test.keyspace}</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.17</version>
+        <configuration>
+          <systemProperties>
+            <property>
+              <name>keyspace</name>
+              <value>${test.keyspace}</value>
+            </property>
+          </systemProperties>
+        </configuration>
       </plugin>
 
       <plugin>
