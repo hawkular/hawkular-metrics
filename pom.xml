@@ -10,6 +10,9 @@
   <name>RHQ Metrics</name>
 
   <properties>
+    <test.keyspace>rhqtest</test.keyspace>
+    <nodes>127.0.0.1</nodes>
+
     <datastax.driver.version>2.0.1</datastax.driver.version>
     <joda.time.version>2.3</joda.time.version>
     <testng.version>6.8.8</testng.version>
@@ -19,10 +22,10 @@
     <vertx.testtools.version>2.0.3-final</vertx.testtools.version>
     <jackson.version>2.3.2</jackson.version>
     <guava.version>16.0.1</guava.version>
-    
   </properties>
 
   <modules>
+    <module>test-utils</module>
     <module>metrics-core</module>
     <module>metrics-rest</module>
   </modules>

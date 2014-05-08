@@ -23,6 +23,13 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>rhq-metrics-test-utils</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>rhq-metrics-core</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -189,7 +196,7 @@
           <includes>
             <include>**/*ITest.java</include>
           </includes>
-          <argLine>-Dvertx.mods=${mods.directory} -Dmodule.name=${module.name}</argLine>
+          <argLine>-Dvertx.mods=${mods.directory} -Dmodule.name=${module.name} -Dkeyspace=${test.keyspace} -Dnodes=${nodes}</argLine>
         </configuration>
         <executions>
           <execution>

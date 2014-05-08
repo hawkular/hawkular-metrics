@@ -8,6 +8,6 @@ Cluster cluster = new Cluster.Builder()
         .build()
 Session session = cluster.connect()
 
-String keyspace = System.getProperty("keyspace", "rhqtest")
+String keyspace = properties["keyspace"] ?: "rhqtest"
 SchemaManager schemaManager = new SchemaManager(session)
 schemaManager.updateSchema(keyspace)

@@ -12,11 +12,14 @@
   <artifactId>rhq-metrics-core</artifactId>
   <name>RHQ Metrics Core</name>
 
-  <properties>
-    <test.keyspace>rhqtest</test.keyspace>
-  </properties>
-
   <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>rhq-metrics-test-utils</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+
     <dependency>
       <groupId>com.datastax.cassandra</groupId>
       <artifactId>cassandra-driver-core</artifactId>
@@ -75,12 +78,9 @@
             </goals>
             <configuration>
               <classpathScope>compile</classpathScope>
-              <source>src/main/script/schema.groovy</source>
+              <source>${project.basedir}/src/main/script/schema.groovy</source>
               <properties>
-                <property>
-                  <name>keyspace</name>
-                  <value>${test.keyspace}</value>
-                </property>
+                <keyspace>${test.keyspace}</keyspace>
               </properties>
             </configuration>
           </execution>
@@ -95,6 +95,10 @@
             <property>
               <name>keyspace</name>
               <value>${test.keyspace}</value>
+            </property>
+            <property>
+              <name>nodes</name>
+              <value>${nodes}</value>
             </property>
           </systemProperties>
         </configuration>

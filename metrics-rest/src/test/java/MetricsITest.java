@@ -7,25 +7,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.Uninterruptibles;
 
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.Handler;
@@ -43,21 +37,18 @@ import org.rhq.metrics.core.DataType;
 import org.rhq.metrics.core.RawMetricMapper;
 import org.rhq.metrics.core.RawNumericMetric;
 import org.rhq.metrics.rest.MetricsServer;
+import org.rhq.metrics.test.MetricsTest;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 /**
  * @author John Sanda
  */
-public class MetricsITest {
-
-    private static final long FUTURE_TIMEOUT = 3;
+public class MetricsITest extends MetricsTest {
 
     private static final int TTL = 360;
 
     private PlatformManager platformManager;
-
-    private Session session;
 
     private DataAccess dataAccess;
 
@@ -69,7 +60,8 @@ public class MetricsITest {
         final AtomicReference<Throwable> cause = new AtomicReference<Throwable>();
 
         JsonObject config = new JsonObject()
-            .putString(MetricsServer.LOG4J_CONF_FILE, "target/test-classes/log4j.properties");
+            .putString(MetricsServer.LOG4J_CONF_FILE, "target/test-classes/log4j.properties")
+            .putString(MetricsServer.KEYSPACE, getKeyspace());
 
         platformManager = PlatformLocator.factory.createPlatformManager();
         String moduleName = System.getProperty("module.name");
@@ -85,11 +77,9 @@ public class MetricsITest {
         moduleDeployed.await();
         assertNull(cause.get(), "Deployment of " + moduleName + " failed");
 
-        Cluster cluster = new Cluster.Builder().addContactPoint("127.0.0.1").build();
-        session = cluster.connect("rhq");
+        initSession();
 
         dataAccess = new DataAccess(session);
-
         rawMapper = new RawMetricMapper();
     }
 
@@ -98,13 +88,16 @@ public class MetricsITest {
         platformManager.stop();
     }
 
+    @BeforeMethod
+    public void initMethod() {
+        resetDB();
+    }
+
     // Not sure if it is a client side bug or something I am doing wrong but we need to
     // test the GET request after the POST request. See
     // https://bugs.eclipse.org/bugs/show_bug.cgi?id=434064 for details.
     @Test(dependsOnMethods = "insertMetricsForOneId")
     public void findRawMetricsForSingleId() throws Exception {
-        session.execute("TRUNCATE metrics");
-
         String metricId = UUID.randomUUID().toString();
         long timestamp1 = System.currentTimeMillis();
         double value1 = 2.17;
@@ -220,8 +213,6 @@ public class MetricsITest {
 
     @Test(dependsOnMethods = "findRawMetricsForSingleId")
     public void findRawMetricsForMultipleIds() throws Exception {
-        session.execute("TRUNCATE metrics");
-
         long collectionTime = System.currentTimeMillis();
 
         List<RawNumericMetric> rawMetrics = ImmutableList.of(
@@ -314,8 +305,6 @@ public class MetricsITest {
 
     @Test(dependsOnMethods = "findRawMetricsForSingleId")
     public void findRawMetricsForMultipleIdsWithDateFilters() throws Exception {
-        session.execute("TRUNCATE metrics");
-
         long collectionTime = System.currentTimeMillis();
 
         List<RawNumericMetric> rawMetrics = ImmutableList.of(
@@ -392,8 +381,6 @@ public class MetricsITest {
 
     @Test
     public void insertMetricsForOneId() throws Exception {
-        session.execute("TRUNCATE metrics");
-
         String id = "111";
         final CountDownLatch responseReceived = new CountDownLatch(1);
         final AtomicInteger status = new AtomicInteger();
@@ -445,8 +432,6 @@ public class MetricsITest {
 
     @Test
     public void insertMetricsForMultipleIds() throws Exception {
-        session.execute("TRUNCATE metrics");
-
         final CountDownLatch responseReceived = new CountDownLatch(1);
         final AtomicInteger status = new AtomicInteger();
 
@@ -492,10 +477,6 @@ public class MetricsITest {
         );
 
         assertEquals(actual, expected, "The data returned from the database does not match the expected values");
-    }
-
-    private <V> V getUninterruptibly(Future<V> future) throws ExecutionException, TimeoutException {
-        return Uninterruptibles.getUninterruptibly(future, FUTURE_TIMEOUT, TimeUnit.SECONDS);
     }
 
 }
