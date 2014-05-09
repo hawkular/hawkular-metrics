@@ -70,4 +70,12 @@ public class MemoryMetricsService implements MetricsService {
     public boolean idExists(String id) {
         return storage.containsKey(id);
     }
+
+    @Override
+    public List<String> listMetrics() {
+        List<String> metrics = new ArrayList<>(storage.keySet().size());
+        metrics.addAll(storage.keySet());
+
+        return metrics;
+    }
 }

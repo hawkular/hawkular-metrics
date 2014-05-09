@@ -38,12 +38,12 @@ import static io.netty.channel.ChannelHandler.Sharable;
  * @author Heiko W. Rupp
  */
 @Sharable
-public class RsyslogHandler extends ChannelInboundHandlerAdapter {
+public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
 
 
-    private static final Logger logger = LoggerFactory.getLogger(RsyslogHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(RestForwardingHandler.class);
 
-    public RsyslogHandler() {
+    public RestForwardingHandler() {
         logger.info("RsyslogHandler init");
     }
 

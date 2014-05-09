@@ -54,7 +54,7 @@ public class Main {
                     public void initChannel(SocketChannel socketChannel) throws Exception {
                         ChannelPipeline pipeline = socketChannel.pipeline();
                         pipeline.addLast(new SyslogEventDecoder());
-                        pipeline.addLast(new RsyslogHandler());
+                        pipeline.addLast(new RestForwardingHandler());
                     }
                 })
             ;
@@ -72,7 +72,7 @@ public class Main {
                     public void initChannel(SocketChannel socketChannel) throws Exception {
                         ChannelPipeline pipeline = socketChannel.pipeline();
                         pipeline.addLast(new GraphiteEventDecoder());
-                        pipeline.addLast(new RsyslogHandler());
+                        pipeline.addLast(new RestForwardingHandler());
                     }
                 });
             ChannelFuture graphiteFuture = graphiteBootstrap.bind().sync();
@@ -91,7 +91,7 @@ public class Main {
                     public void initChannel(Channel socketChannel) throws Exception {
                         ChannelPipeline pipeline = socketChannel.pipeline();
                         pipeline.addLast(new UdpSyslogEventDecoder());
-                        pipeline.addLast(new RsyslogHandler());
+                        pipeline.addLast(new RestForwardingHandler());
                     }
                 })
             ;

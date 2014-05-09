@@ -70,7 +70,7 @@ public class MetricHandler {
 
     @GZIP
     @GET
-    @Path("/{id}")
+    @Path("values/{id}")
     @Produces({"application/json","text/json","application/xml"})
     public Response getDataForId(@PathParam("id") String id, @QueryParam("start") Long start, @QueryParam("end") Long end) {
 
@@ -101,5 +101,19 @@ public class MetricHandler {
 
         return builder.build();
 
+    }
+
+    @GZIP
+    @GET
+    @Path("/list")
+    @Produces({"application/json","text/json","application/xml"})
+    public Response listMetrics() {
+
+        List<String> names = ServiceKeeper.getInstance().service.listMetrics();
+
+        GenericEntity<List<String>> list = new GenericEntity<List<String>>(names) {} ;
+        Response.ResponseBuilder builder = Response.ok(list);
+
+        return builder.build();
     }
 }

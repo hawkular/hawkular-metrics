@@ -26,15 +26,19 @@ Endpoint is http://localhost:8080/rest/metric
 
   $ curl -i -X POST http://localhost:8080/rest/metric -d@/tmp/fooX -HContent-Type:application/xml
 
+or if the input contains a collection of metrics
+
+  $ curl -i -X POST http://localhost:8080/rest/metric/s -d@/tmp/fooX -HContent-Type:application/xml
+
 === Retrieve data
 
-Endpoint is http://localhost:8080/rest/metric/{id}
+Endpoint is http://localhost:8080/rest/metric/values/{id}
 
-  $ curl -i http://localhost:8080/rest/metric/foo?start=0\&end=2000 -HAccept:application/json
+  $ curl -i http://localhost:8080/rest/metric/values/foo?start=0\&end=2000 -HAccept:application/json
 
 or simply
 
-  $ curl -i http://localhost:8080/rest/metric/foo
+  $ curl -i http://localhost:8080/rest/metric/values/foo
 
 to receive data for the last 8 hours
 
@@ -42,6 +46,10 @@ Parameters are:
 
 * start: defaults to now-8h
 * end: defaults to now
+
+=== List metric names
+
+  $  curl -i http://localhost:8080/rest/metric/list -HAccept:application/json
 
 === Running
 

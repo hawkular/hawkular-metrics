@@ -14,7 +14,12 @@ public interface MetricsService {
 
     ResultSetFuture findData(String bucket, String id, long start, long end);
 
+    /** Find and return raw metrics for {id} that have a timestamp between {start} and {end} */
     List<NumericMetric> findData(String id, long start, long end);
 
+    /** Check if a metric with the passed {id} has been stored in the system */
     public boolean idExists(String id);
+
+    /** Return a list of all metric names */
+    List<String> listMetrics();
 }

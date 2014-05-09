@@ -95,4 +95,9 @@ public class MetricsServiceCassandra implements MetricsService {
     public boolean idExists(String id) {
         return false;  // TODO: Customise this generated block
     }
+
+    @Override
+    public List<String> listMetrics() {
+        return Collections.emptyList();
+    }
 }
