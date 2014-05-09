@@ -1,0 +1,326 @@
+# Overview
+
+This is a prototype for providing REST endpoints for rhq-metrics using Vert.x. This project depends on rhq-metrics-core and it generates a Vert.x module. The module configuration and API described below are likely to change, but I will do my best to keep the docs up to date.
+
+# Build Instructions
+
+See the link:../README.adoc[build instructions] for the parent module.
+
+The build for this Maven module currently produces a few artifacts,
+
+* rhq-metrics-rest-0.1.0-SNAPSHOT.jar
+* rhq-metrics-rest-0.1.0-SNAPSHOT-mod.zip
+* rhq-metrics-rest-0.1.0-SNAPSHOT-fat.jar
+
+rhq-metrics-rest-0.1.0-SNAPSHOT.jar contains the compiled classses and resources for this Maven module.
+
+rhq-metrics-rest-0.1.0-SNAPSHOT-mod.zip is a Vert.x module that includes the contents of rhq-metrics-rest-0.1.0-SNAPSHOT.jar as well as runtime dependencies.
+
+rhq-metrics-rest-0.1.0-SNAPSHOT-fat.jar contains both the module as well as the Vert.x runtime.
+
+# Running
+There are a few ways to run the server. Each requires the build to have completed successfully.
+
+## Maven
+`mvn vertx:runMod`
+
+This can be convenient during development, and it also frees you from having to first install Vert.x. If you want to use a custom module configuration, then do
+
+`mvn vertx:runMod -Dconf.file=path/to/conf/file`
+
+## Vert.x
+`vertx runmod org.rhq.metrics~rhq-metrics-rest~0.1.0-SNAPSHOT`
+
+This requires a separate installation of Vert.x If you want to use a custom module configuration, then do
+
+`vertx runmod org.rhq.metrics~rhq-metrics-rest~0.1.0-SNAPSHOT -conf path/to/conf/file`
+
+## Executable JAR
+`java -jar target/rhq-metrics-rest-0.1.0-SNAPSHOT-fat.jar`
+
+If you want to use a custom module configuration, then do
+
+`java -jar target/rhq-metrics-rest-0.1.0-SNAPSHOT-fat.jar -conf path/to/conf/file`
+
+# Module Configuration
+The module supports the following configuration,
+
+    {
+      "keyspace": "rhq-metrics",
+      "nodes": ["192.168.1.1, 192.168.1.2"],
+      "cqlPort": 9042,
+      "httpPort": 7474,
+      "log4jConfFile": path/to/log4j.properties
+    }
+
+`keyspace`
+
+The name of the keyspace to connecto to. Defaults to rhq.
+
+`nodes`
+
+The addresses of one or more Cassandra nodes that is needed to discover cluster topology. The value must match the value of the `listen_address` property in cassandra.yaml. Defaults to 127.0.0.1.
+
+`cqlPort`
+
+The port on which Cassandra listens for CQL/client requests. This must match the value of the `native_transport_port` property in cassandra.yaml. Defaults to 9042.
+
+`httpPort`
+
+The port on which the REST services listen for HTTP requests. Defaults to 7474.
+
+`log4jConfFile`
+
+A path to a Log4J properties file to customize logging. By default, INFO level statements are logged to the console.
+
+# API
+
+## findMetricsForId
+
+#### Description
+
+Retrieves raw metrics for a specified id.
+
+#### Method
+
+GET
+
+#### URI
+
+/rhq-metrics/:id/data
+
+#### Parameters
+
+`start`
+
+**Description:** The start date inclusive specified as a timestamp.
+
+**Type:** long
+
+**Required:** no
+
+**Default:** 8 hours ago
+
+`end`
+
+**Description:** The end data exclusive specified as a timestamp.
+
+**Type:** long
+
+**Required:** no
+
+**Default:** now
+
+#### Example
+
+`GET http://localhost:7474/rhq-metrics/100/data?start=1398911637596&end=1398891828116`
+
+    {
+      "bucket": "raw",
+      "id": "100",
+      "data": [
+        {
+          "time": 1398891828116,
+          "value":5.0
+        },
+        {
+          "time": 1398911237832,
+          "value": 7.0
+        },
+        {
+          "time": 1398911274536,
+          "value": 11.0
+        },
+        {
+          "time": 1398911637596,
+          "value": 13.0
+        }
+      ]
+    }
+
+## findMetricsForIds
+
+#### Description
+
+Retrives raw metrics for a variable number of ids.
+
+#### Method
+
+GET
+
+#### URI
+
+/rhq-metrics/data
+
+#### Parameters
+
+`start`
+
+**Description:** The start date inclusive specified as a timestamp
+
+
+**Type:** long
+
+**Required:** no
+
+**Default:** 8 hours ago
+
+`end`
+
+**Description:** The end data exclusive specified as a timestamp
+
+**Type:** long
+
+**Required:** no
+
+**Default:** now
+
+`id`
+
+**Description:** A list of ids for which to retrieve data
+
+**Type:** string
+
+**Required:** yes
+
+**Default:** N/A
+
+#### Example
+
+`GET http://7474/rhq-metrics/data?id=100&id=200&id300`
+
+```
+// The HTTP response uses chunked encoding, with each chunk containing 
+// the result set for one of the specified ids.
+
+// first chunk
+{
+  "bucket": "raw",
+  "id": "200",
+  "data": [
+    {
+      "time": 1398891828116,
+      "value":5.0
+    },
+    {
+      "time": 1398911237832,
+      "value": 7.0
+    },        
+  ]
+}
+         
+// second chunk
+{
+  "bucket": "raw",
+  "id": "100",
+  "data": [
+    {
+      "time": 1398891828116,
+      "value": 24
+    },
+    {
+      "time": 1398911237832,
+      "value": 27
+    },        
+  ]
+}
+        
+// third chunk
+{
+  "bucket": "raw",
+  "id": "300",
+  "data": [
+    {
+      "time": 1398891828116,
+      "value": 4.27
+    },
+    {
+      "time": 1398911237832,
+      "value": 3.89
+    },        
+  ]
+}
+```   
+
+## addRawMetricsForId
+
+#### Description
+
+Stores raw metrics for a particular id.
+
+#### Method
+
+POST
+
+#### URI
+
+/rhq-metrics/:id/data
+
+#### Parameters
+
+None
+
+#### Example
+
+`POST http://localhost:7474/rhq-metrics/100/data`
+
+```
+// request body
+[
+  {"value": 5, "timestamp": 1398891828116},
+  {"value": 15, "timestamp": 1398891828116},
+  {"value": 25, "timestamp": 1398891828116}
+]   
+```
+
+## addRawMetricsForIds
+
+#### Description
+
+Stores raw metrics for a set of ids.
+
+#### Method
+
+POST
+
+#### URI
+
+/rhq-metrics/data
+
+#### Parameters
+
+None
+
+#### Example
+
+`POST http://localhost:7474/rhq-metrics/data`
+
+```
+[
+  {
+    "id": 100,
+    "value": 5,
+    "timestamp": 1398891828116
+  },
+  {
+    "id": 100,
+    "value": 10,
+    "timestamp": 1398891828116
+  },    
+  {
+    "id": 100,
+    "value": 12,
+    "timestamp": 1398891828116
+  },
+  {
+    "id": 200,
+    "value": 25,
+    "timestamp": 1398891828116
+  },
+  {
+    "id": 200,
+    "value": 20,
+    "timestamp": 1398891828116
+  },
+]
+```

@@ -1,0 +1,4 @@
+{
+  "main": "org.rhq.metrics.rest.App",
+  "includes": "org.rhq.metrics~rhq-metrics-server~0.1.0-SNAPSHOT"
+}

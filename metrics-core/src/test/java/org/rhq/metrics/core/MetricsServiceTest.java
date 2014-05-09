@@ -5,35 +5,24 @@ import static org.testng.Assert.assertEquals;
 
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
-import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Uninterruptibles;
 
-import org.joda.time.DateTime;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import org.rhq.metrics.impl.cassandra.MetricsServiceCassandra;
+import org.rhq.metrics.test.MetricsTest;
 
 /**
  * @author John Sanda
  */
-public class MetricsServiceTest {
-
-    private static final long FUTURE_TIMEOUT = 3;
+public class MetricsServiceTest extends MetricsTest {
 
     private MetricsServiceCassandra metricsService;
-
-    private Session session;
 
     private DataAccess dataAccess;
 
@@ -41,8 +30,7 @@ public class MetricsServiceTest {
 
     @BeforeClass
     public void initClass() {
-        Cluster cluster = new Cluster.Builder().addContactPoint("127.0.0.1").build();
-        session = cluster.connect("rhq");
+        initSession();
         dataAccess = new DataAccess(session);
 
         metricsService = new MetricsServiceCassandra();
@@ -51,7 +39,7 @@ public class MetricsServiceTest {
 
     @BeforeMethod
     public void initMethod() {
-        session.execute("TRUNCATE metrics");
+        resetDB();
     }
 
 
@@ -74,26 +62,12 @@ public class MetricsServiceTest {
         ResultSetFuture future = metricsService.findData("raw", "1", hour(5).plusMinutes(3).getMillis(),
             hour(5).plusMinutes(4).getMillis());
 
-        ResultSet resultSet = getUniterruptibly(future);
+        ResultSet resultSet = getUninterruptibly(future);
 
         List<RawNumericMetric> actual = rawMapper.map(resultSet);
 
         assertEquals(actual.size(), expected.size(), "Expected to get back 3 raw metrics");
         assertEquals(actual, expected, "The returned raw metrics do not match the expected values");
-    }
-
-    private DateTime hour0() {
-        DateTime rightNow = now();
-        return rightNow.hourOfDay().roundFloorCopy().minusHours(
-            rightNow.hourOfDay().roundFloorCopy().hourOfDay().get());
-    }
-
-    private DateTime hour(int hourOfDay) {
-        return hour0().plusHours(hourOfDay);
-    }
-
-    private <V> V getUniterruptibly(Future<V> future) throws ExecutionException, TimeoutException {
-        return Uninterruptibles.getUninterruptibly(future, FUTURE_TIMEOUT, TimeUnit.SECONDS);
     }
 
 }
