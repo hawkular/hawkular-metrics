@@ -9,8 +9,8 @@
     <version>0.1.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>rhq-metrics-rest</artifactId>
-  <name>RHQ Metrics REST Server</name>
+  <artifactId>rhq-metrics-server</artifactId>
+  <name>RHQ Metrics Server Vert.x Module</name>
 
   <properties>
     <module.name>${project.groupId}~${project.artifactId}~${project.version}</module.name>
@@ -52,21 +52,18 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-log4j12</artifactId>
       <version>${slf4j.version}</version>
-      <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>${slf4j.version}</version>
-      <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>log4j</groupId>
       <artifactId>log4j</artifactId>
       <version>${log4j.version}</version>
-      <scope>provided</scope>
     </dependency>
 
     <dependency>
@@ -84,10 +81,21 @@
     </dependency>
 
     <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <version>${slf4j.version}</version>
+    </dependency>
+ 
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>${log4j.version}</version>
+    </dependency>
+
+    <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-core</artifactId>
       <version>2.3.2</version>
-      <scope>provided</scope>
     </dependency>
   </dependencies>
 
@@ -116,70 +124,70 @@
         </executions>
       </plugin>
 
-      <!--<plugin>-->
-        <!--<artifactId>maven-dependency-plugin</artifactId>-->
-        <!--<version>2.8</version>-->
-        <!--<executions>-->
-          <!--<execution>-->
-            <!--<id>copy-mod-deps</id>-->
-            <!--<phase>prepare-package</phase>-->
-            <!--<goals>-->
-              <!--<goal>copy</goal>-->
-            <!--</goals>-->
-            <!--<configuration>-->
-              <!--<outputDirectory>${mods.directory}/${module.name}/lib</outputDirectory>-->
-              <!--<artifactItems>-->
-                <!--<artifactItem>-->
-                  <!--<groupId>${project.groupId}</groupId>-->
-                  <!--<artifactId>rhq-metrics-core</artifactId>-->
-                <!--</artifactItem>-->
-                <!--<artifactItem>-->
-                  <!--<groupId>com.google.guava</groupId>-->
-                  <!--<artifactId>guava</artifactId>-->
-                  <!--<version>${guava.version}</version>-->
-                <!--</artifactItem>-->
-                <!--<artifactItem>-->
-                  <!--<groupId>com.datastax.cassandra</groupId>-->
-                  <!--<artifactId>cassandra-driver-core</artifactId>-->
-                  <!--<version>${datastax.driver.version}</version>-->
-                <!--</artifactItem>-->
-                <!--<artifactItem>-->
-                  <!--<groupId>io.netty</groupId>-->
-                  <!--<artifactId>netty</artifactId>-->
-                  <!--<version>3.7.0.Final</version>-->
-                <!--</artifactItem>-->
-                <!--<artifactItem>-->
-                  <!--<groupId>com.codahale.metrics</groupId>-->
-                  <!--<artifactId>metrics-core</artifactId>-->
-                  <!--<version>3.0.2</version>-->
-                <!--</artifactItem>-->
-                <!--<artifactItem>-->
-                  <!--<groupId>com.fasterxml.jackson.core</groupId>-->
-                  <!--<artifactId>jackson-core</artifactId>-->
-                <!--</artifactItem>-->
-                <!--<artifactItem>-->
-                  <!--<groupId>org.slf4j</groupId>-->
-                  <!--<artifactId>slf4j-log4j12</artifactId>-->
-                <!--</artifactItem>-->
-                <!--<artifactItem>-->
-                  <!--<groupId>org.slf4j</groupId>-->
-                  <!--<artifactId>slf4j-api</artifactId>-->
-                  <!--<version>${slf4j.version}</version>-->
-                <!--</artifactItem>-->
-                <!--<artifactItem>-->
-                  <!--<groupId>log4j</groupId>-->
-                  <!--<artifactId>log4j</artifactId>-->
-                <!--</artifactItem>-->
-                <!--<artifactItem>-->
-                  <!--<groupId>joda-time</groupId>-->
-                  <!--<artifactId>joda-time</artifactId>-->
-                  <!--<version>${joda.time.version}</version>-->
-                <!--</artifactItem>-->
-              <!--</artifactItems>-->
-            <!--</configuration>-->
-          <!--</execution>-->
-        <!--</executions>-->
-      <!--</plugin>-->
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>2.8</version>
+        <executions>
+          <execution>
+            <id>copy-mod-deps</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${mods.directory}/${module.name}/lib</outputDirectory>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>rhq-metrics-core</artifactId>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>com.google.guava</groupId>
+                  <artifactId>guava</artifactId>
+                  <version>${guava.version}</version>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>com.datastax.cassandra</groupId>
+                  <artifactId>cassandra-driver-core</artifactId>
+                  <version>${datastax.driver.version}</version>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>io.netty</groupId>
+                  <artifactId>netty</artifactId>
+                  <version>3.7.0.Final</version>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>com.codahale.metrics</groupId>
+                  <artifactId>metrics-core</artifactId>
+                  <version>3.0.2</version>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>com.fasterxml.jackson.core</groupId>
+                  <artifactId>jackson-core</artifactId>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.slf4j</groupId>
+                  <artifactId>slf4j-log4j12</artifactId>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.slf4j</groupId>
+                  <artifactId>slf4j-api</artifactId>
+                  <version>${slf4j.version}</version>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>log4j</groupId>
+                  <artifactId>log4j</artifactId>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>joda-time</groupId>
+                  <artifactId>joda-time</artifactId>
+                  <version>${joda.time.version}</version>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
 
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
@@ -243,17 +251,6 @@
             <groupId>io.vertx</groupId>
             <artifactId>vertx-hazelcast</artifactId>
             <version>${vertx.version}</version>
-          </dependency>
-          <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-            <version>${slf4j.version}</version>
-          </dependency>
-
-          <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-            <version>${log4j.version}</version>
           </dependency>
         </dependencies>
         <configuration>

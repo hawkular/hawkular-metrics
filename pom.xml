@@ -27,6 +27,7 @@
   <modules>
     <module>test-utils</module>
     <module>metrics-core</module>
+    <module>metrics-server</module>
     <module>metrics-rest</module>
   </modules>
 

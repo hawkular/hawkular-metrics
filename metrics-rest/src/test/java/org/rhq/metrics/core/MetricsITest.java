@@ -1,3 +1,5 @@
+package org.rhq.metrics.core;
+
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
 
@@ -32,10 +34,6 @@ import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.platform.PlatformLocator;
 import org.vertx.java.platform.PlatformManager;
 
-import org.rhq.metrics.core.DataAccess;
-import org.rhq.metrics.core.DataType;
-import org.rhq.metrics.core.RawMetricMapper;
-import org.rhq.metrics.core.RawNumericMetric;
 import org.rhq.metrics.rest.MetricsServer;
 import org.rhq.metrics.test.MetricsTest;
 
