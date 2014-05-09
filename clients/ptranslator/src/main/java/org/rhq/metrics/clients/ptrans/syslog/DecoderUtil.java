@@ -2,6 +2,8 @@ package org.rhq.metrics.clients.ptrans.syslog;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.util.CharsetUtil;
@@ -16,6 +18,8 @@ import org.rhq.metrics.clients.ptrans.SingleMetric;
  * The expected payload format is
  * in the form "type=metric thread.count=5 thread.active=2 heap.permgen.size=25000000"
  *
+ * Also supports statsd key=value|type format
+ *
  * TODO Needs to support more formats.
  *
  * @author Heiko W. Rupp
@@ -23,6 +27,7 @@ import org.rhq.metrics.clients.ptrans.SingleMetric;
 public class DecoderUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(DecoderUtil.class);
+    private static Pattern statsDPattern = Pattern.compile("([A-Za-z\\.]+):([0-9\\.]+)\\|[a-z]");
 
     public static void decodeTheBuffer(ByteBuf data, List<Object> out) {
 
@@ -31,18 +36,24 @@ public class DecoderUtil {
         }
 
         String s = data.toString(CharsetUtil.UTF_8).trim();
+
+        Matcher matcher = statsDPattern.matcher(s);
+        if (matcher.matches()) {
+            // StatsD packet
+            String source = matcher.group(1);
+            String val = matcher.group(2);
+            List<SingleMetric> metrics = new ArrayList<>(1);
+            SingleMetric metric = new SingleMetric(source,System.currentTimeMillis(),Double.valueOf(val));
+            metrics.add(metric);
+            return;
+        }
+
+        // Not statsD, so consider syslog. But first check if the message has the right format
         if (!s.contains("type=metric")) {
             return;
         }
 
-        int i = data.indexOf(0, data.readableBytes(),
-            (byte) '>');
-        ByteBuf buf = data.slice(i + 1, data.readableBytes());
-        ByteBuf dateBuf = data.slice(i+1,i+13);
-
-        i = data.indexOf(i+16,data.readableBytes(),(byte)':');
-        buf = data.slice(i+2,data.readableBytes());
-        String text = buf.toString(CharsetUtil.UTF_8);
+        String text = extractPayload(s);
 
         if (text.contains("type=metric")) {
 
@@ -82,5 +93,29 @@ public class DecoderUtil {
             }
             out.add(metrics);
         }
+    }
+
+    /**
+     * Skips over the header fields of a syslog message and extracts the payload
+     * @param s Raw message (a line in syslog)
+     * @return The payload part
+     */
+    private static String extractPayload(String s) {
+
+        int i = s.indexOf('>')+1;
+        if (s.indexOf(' ',i)==i+3) {
+            // Old date in old syslog has 3 chars month and then a space
+            i = s.indexOf(' ', i + 5); // Day
+            i = s.indexOf(' ', i+1); // Date
+            i = s.indexOf(':', i+1); // job etc. TODO we may need that
+            return s.substring(i+1);
+        }
+        else {
+            // New date in syslog
+            i = s.indexOf(' ',i+1); // Skip over date
+            i = s.indexOf(':',i)+1; // Job etc. TODO we may need that
+            return s.substring(i);
+        }
+
     }
 }

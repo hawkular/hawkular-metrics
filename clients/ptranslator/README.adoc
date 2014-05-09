@@ -1,6 +1,16 @@
-== Syslog - rhq-metrics restServlet proxy
+== ptranslator - rhq-metrics restServlet proxy
 
-This module contains a simple proxy server that listens on UDP port 5140
+This is a proxy server taking in metrics data in one format and emitting
+them as rest-requests into rhq-metrics backend.
+
+You can configure ports to use in a `ptrans.properties` file. Default
+for TCP is port 5140.
+
+=== Formats
+
+==== Syslog
+
+This module contains a simple proxy server that also listens on UDP port 5140
 for syslog messages. If a message is of the format
 
   type=metric thread.count=7 thread.active=5 heap.permgen.size=20000000
@@ -8,6 +18,8 @@ for syslog messages. If a message is of the format
 Then it is taken and the individual key-value-pairs are broken apart and
 sent as individual metrics to a rhq-metrics rest server. The timestamp
 is the current time on the proxy when the udp packet was received.
+
+==== Graphite
 
 The converter also accepts Graphite plaintext format
 
@@ -18,7 +30,17 @@ or with multiple entries per message
     path1 value1 timestamp_in_s1
     path2 value2 timestamp_in_s2
 
-Here the converter is waiting on standard TCP port 2003
+==== StatsD
+
+The converter accepts statsD packets sent via UDP (to the UDP port).
+Format is
+
+  key:value|type
+
+
+Where only key and value are accepted and the type is ignored (for now).
+
+
 
 === running
 
