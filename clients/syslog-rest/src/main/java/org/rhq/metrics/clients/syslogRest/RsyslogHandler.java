@@ -50,7 +50,7 @@ public class RsyslogHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) throws Exception {
 
-        final List<SyslogMetricEvent> in = (List<SyslogMetricEvent>) msg;
+        final List<SingleMetric> in = (List<SingleMetric>) msg;
         logger.debug("Received some metrics :[" + in + "]");
 
         ChannelFuture cf = connectRestServer(ctx.channel().eventLoop().parent());
@@ -115,11 +115,11 @@ public class RsyslogHandler extends ChannelInboundHandlerAdapter {
         return clientFuture;
     }
 
-    private String eventsToJson(List<SyslogMetricEvent> events) {
+    private String eventsToJson(List<SingleMetric> events) {
         StringBuilder builder = new StringBuilder("[");
-        Iterator<SyslogMetricEvent> iter = events.iterator();
+        Iterator<SingleMetric> iter = events.iterator();
         while (iter.hasNext()) {
-            SyslogMetricEvent event = iter.next();
+            SingleMetric event = iter.next();
             builder.append(event.toJson());
             if (iter.hasNext()) {
                 builder.append(',');

@@ -9,6 +9,16 @@ Then it is taken and the individual key-value-pairs are broken apart and
 sent as individual metrics to a rhq-metrics rest server. The timestamp
 is the current time on the proxy when the udp packet was received.
 
+The converter also accepts Graphite plaintext format
+
+    path value timestamp_in_s
+
+or with multiple entries per message
+
+    path1 value1 timestamp_in_s1
+    path2 value2 timestamp_in_s2
+
+Here the converter is waiting on standard TCP port 2003
 
 === running
 

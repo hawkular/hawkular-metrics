@@ -25,7 +25,8 @@ import org.slf4j.LoggerFactory;
  */
 public class Main {
 
-    int syslogPort = 5140; // UDP port to listen on
+    int syslogPort = 5140; // Default UDP & TCP port to listen on for syslog messages
+    private int graphitePlaintextPort = 2003 ;
 
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
@@ -43,7 +44,6 @@ public class Main {
         try {
 
             // The syslog TCP socket server
-
             ServerBootstrap tcpBootstrap = new ServerBootstrap();
             tcpBootstrap
                 .group(group)
@@ -61,6 +61,23 @@ public class Main {
             ChannelFuture tcpFuture = tcpBootstrap.bind().sync();
             logger.info("Syslogd listening on tcp" + tcpFuture.channel().localAddress());
             tcpFuture.channel().closeFuture();
+
+            // The graphite TCP socket server
+            ServerBootstrap graphiteBootstrap = new ServerBootstrap();
+                graphiteBootstrap.group(group)
+                .channel(NioServerSocketChannel.class)
+                .localAddress(graphitePlaintextPort)
+                .childHandler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    public void initChannel(SocketChannel socketChannel) throws Exception {
+                        ChannelPipeline pipeline = socketChannel.pipeline();
+                        pipeline.addLast(new GraphiteEventDecoder());
+                        pipeline.addLast(new RsyslogHandler());
+                    }
+                });
+            ChannelFuture graphiteFuture = graphiteBootstrap.bind().sync();
+            logger.info("Syslogd listening on tcp" + graphiteFuture.channel().localAddress());
+            graphiteFuture.channel().closeFuture();
 
 
             // The syslog UPD socket server

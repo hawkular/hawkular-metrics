@@ -1,11 +1,11 @@
 package org.rhq.metrics.clients.syslogRest;
 
 /**
- * A syslog metric message.
- * In the form "type=metric thread.count=5 thread.active=2 heap.permgen.size=25000000"
+ * One single metric
+ *
  * @author Heiko W. Rupp
  */
-public class SyslogMetricEvent {
+public class SingleMetric {
 
     String jsonTemplate = "{\"id\":\"%1\"," +
      "\"timestamp\":%2,"+
@@ -16,10 +16,10 @@ public class SyslogMetricEvent {
     private String source;
     private Double value;
 
-    public SyslogMetricEvent() {
+    public SingleMetric() {
     }
 
-    public SyslogMetricEvent(String source, long timestamp, Double value) {
+    public SingleMetric(String source, long timestamp, Double value) {
         this.timestamp = timestamp;
         this.source = source;
         this.value = value;

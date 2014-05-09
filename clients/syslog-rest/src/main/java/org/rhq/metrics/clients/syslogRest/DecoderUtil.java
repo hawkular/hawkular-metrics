@@ -11,8 +11,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Do the actual decoding of the syslog line.
+ * The expected payload format is
+ * in the form "type=metric thread.count=5 thread.active=2 heap.permgen.size=25000000"
  *
- * Needs to support more formats.
+ * TODO Needs to support more formats.
  *
  * @author Heiko W. Rupp
  */
@@ -51,7 +53,7 @@ public class DecoderUtil {
 
             String[] entries = text.split(" ");
 
-            List<SyslogMetricEvent> eventList = new ArrayList<>(entries.length);
+            List<SingleMetric> metrics = new ArrayList<>(entries.length);
 
             for (String entry: entries) {
                 if (entry.equals("type=metric")) {
@@ -64,10 +66,10 @@ public class DecoderUtil {
                 } catch (NumberFormatException e) {
                     e.printStackTrace();  // TODO: Customise this generated block
                 }
-                SyslogMetricEvent event = new SyslogMetricEvent(keyVal[0],now, value);
-                eventList.add(event);
+                SingleMetric metric = new SingleMetric(keyVal[0],now, value);
+                metrics.add(metric);
             }
-            out.add(eventList);
+            out.add(metrics);
         }
     }
 }
