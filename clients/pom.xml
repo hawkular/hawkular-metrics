@@ -13,7 +13,7 @@
   <packaging>pom</packaging>
 
   <modules>
-    <module>syslog-rest</module>
+    <module>ptranslator</module>
   </modules>
 
 </project>

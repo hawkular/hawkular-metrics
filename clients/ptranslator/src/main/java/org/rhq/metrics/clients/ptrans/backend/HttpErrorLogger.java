@@ -1,4 +1,4 @@
-package org.rhq.metrics.clients.syslogRest;
+package org.rhq.metrics.clients.ptrans.backend;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;

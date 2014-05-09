@@ -1,4 +1,4 @@
-package org.rhq.metrics.clients.syslogRest;
+package org.rhq.metrics.clients.ptrans.backend;
 
 
 import java.util.Iterator;
@@ -29,6 +29,8 @@ import io.netty.util.CharsetUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.rhq.metrics.clients.ptrans.SingleMetric;
 
 import static io.netty.channel.ChannelHandler.Sharable;
 

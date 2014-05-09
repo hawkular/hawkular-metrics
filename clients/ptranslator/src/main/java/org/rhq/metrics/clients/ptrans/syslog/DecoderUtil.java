@@ -1,4 +1,4 @@
-package org.rhq.metrics.clients.syslogRest;
+package org.rhq.metrics.clients.ptrans.syslog;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,6 +8,8 @@ import io.netty.util.CharsetUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.rhq.metrics.clients.ptrans.SingleMetric;
 
 /**
  * Do the actual decoding of the syslog line.
@@ -28,10 +30,7 @@ public class DecoderUtil {
             return ; // Nothing to do
         }
 
-        String s = data.toString(CharsetUtil.UTF_8);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Incoming: >>" + s + "<<");
-        }
+        String s = data.toString(CharsetUtil.UTF_8).trim();
         if (!s.contains("type=metric")) {
             return;
         }
@@ -55,19 +54,31 @@ public class DecoderUtil {
 
             List<SingleMetric> metrics = new ArrayList<>(entries.length);
 
+            String cartName=null;
+            if (text.contains("cart=")) {
+                int pos = text.indexOf("cart=");
+                cartName = text.substring(pos+5,text.indexOf(' ',pos));
+            }
+
             for (String entry: entries) {
-                if (entry.equals("type=metric")) {
+                if (entry.equals("type=metric") || entry.startsWith("cart=")) {
                     continue;
                 }
                 String[] keyVal = entry.split("=");
                 double value = 0;
                 try {
                     value = Double.parseDouble(keyVal[1]);
+                    String source = keyVal[0];
+                    if (cartName!=null) {
+                        source = cartName + "." + source;
+                    }
+                    SingleMetric metric = new SingleMetric(source,now, value);
+                    metrics.add(metric);
                 } catch (NumberFormatException e) {
-                    e.printStackTrace();  // TODO: Customise this generated block
+                    if (logger.isTraceEnabled()) {
+                        logger.debug("Unknown number format for " + entry + ", skipping");
+                    }
                 }
-                SingleMetric metric = new SingleMetric(keyVal[0],now, value);
-                metrics.add(metric);
             }
             out.add(metrics);
         }

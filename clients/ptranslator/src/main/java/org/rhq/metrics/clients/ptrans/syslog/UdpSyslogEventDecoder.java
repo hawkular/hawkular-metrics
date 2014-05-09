@@ -1,4 +1,4 @@
-package org.rhq.metrics.clients.syslogRest;
+package org.rhq.metrics.clients.ptrans.syslog;
 
 import java.util.List;
 

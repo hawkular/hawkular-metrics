@@ -1,4 +1,4 @@
-package org.rhq.metrics.clients.syslogRest;
+package org.rhq.metrics.clients.ptrans.graphite;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +10,8 @@ import io.netty.util.CharsetUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.rhq.metrics.clients.ptrans.SingleMetric;
 
 /**
  * Decoder for plaintext metric data sent from Graphite
@@ -32,9 +34,6 @@ public class GraphiteEventDecoder extends MessageToMessageDecoder<ByteBuf> {
 
         String data = msg.toString(CharsetUtil.UTF_8);
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("Incoming: >>" + data + "<<");
-        }
         data = data.trim();
 
         String[] lines = data.split("\\n");
