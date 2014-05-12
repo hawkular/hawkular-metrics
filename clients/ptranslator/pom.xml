@@ -21,7 +21,12 @@
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-all</artifactId>
-      <version>4.0.14.Final</version>
+      <version>4.0.19.Final</version>
+    </dependency>
+    <dependency>
+      <groupId>org.acplt</groupId>
+      <artifactId>oncrpc</artifactId>
+      <version>1.0.7</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>

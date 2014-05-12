@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.rhq.metrics.clients.ptrans.backend.RestForwardingHandler;
+import org.rhq.metrics.clients.ptrans.ganglia.GangliaDecoderUtil;
+import org.rhq.metrics.clients.ptrans.ganglia.TcpGangliaDecoder;
 import org.rhq.metrics.clients.ptrans.graphite.GraphiteEventDecoder;
 import org.rhq.metrics.clients.ptrans.syslog.SyslogEventDecoder;
 
@@ -26,6 +28,20 @@ public class DemuxHandler extends ByteToMessageDecoder {
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List out) throws Exception {
 
+        if (msg.readableBytes()<5) {
+            msg.clear();
+            ctx.close();
+            return;
+        }
+        ChannelPipeline pipeline = ctx.pipeline();
+
+        if (msg.getByte(0)==0 && msg.getByte(1)==0 && msg.getByte(2)==0&&msg.getByte(3)==133) {
+            pipeline.addLast(new TcpGangliaDecoder());
+            pipeline.addLast(new RestForwardingHandler());
+            pipeline.remove(this);
+            return;
+        }
+
         String data = msg.toString(CharsetUtil.UTF_8);
         if (logger.isDebugEnabled()) {
             logger.debug("Incoming: [" + data + "]");
@@ -33,7 +49,7 @@ public class DemuxHandler extends ByteToMessageDecoder {
 
         boolean done = false;
 
-        ChannelPipeline pipeline = ctx.pipeline();
+
         if (data.contains("type=metric")) {
             pipeline.addLast(new SyslogEventDecoder());
             pipeline.addLast("forwarder", new RestForwardingHandler());
