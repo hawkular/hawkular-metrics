@@ -14,7 +14,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
 import org.rhq.metrics.test.MetricsTest;
 
 /**
@@ -47,7 +46,8 @@ public class DataAccessTest extends MetricsTest {
         ResultSetFuture insert3Future = dataAccess.insertData("raw", metricId, hour(4).plusMinutes(12).getMillis(),
             ImmutableMap.of(DataType.RAW.ordinal(), 1.57), ttl);
 
-        ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insert1Future, insert2Future,
+        @SuppressWarnings("unchecked")
+		ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insert1Future, insert2Future,
             insert3Future);
 
         getUninterruptibly(insertsFuture);

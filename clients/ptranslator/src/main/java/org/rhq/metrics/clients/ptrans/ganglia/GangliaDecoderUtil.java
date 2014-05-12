@@ -9,7 +9,6 @@ import io.netty.channel.ChannelHandlerContext;
 
 import org.acplt.oncrpc.OncRpcException;
 import org.acplt.oncrpc.XdrBufferDecodingStream;
-
 import org.rhq.metrics.clients.ptrans.SingleMetric;
 
 /**
@@ -18,7 +17,8 @@ import org.rhq.metrics.clients.ptrans.SingleMetric;
  */
 public class GangliaDecoderUtil {
 
-    static void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws OncRpcException, IOException {
+    @SuppressWarnings("unused")
+	static void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws OncRpcException, IOException {
         if (msg.readableBytes()<5) {
             msg.clear();
             ctx.close();

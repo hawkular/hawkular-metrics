@@ -10,7 +10,6 @@ import io.netty.util.CharsetUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.rhq.metrics.clients.ptrans.backend.RestForwardingHandler;
 import org.rhq.metrics.clients.ptrans.ganglia.TcpGangliaDecoder;
 import org.rhq.metrics.clients.ptrans.graphite.GraphiteEventDecoder;
@@ -25,7 +24,7 @@ public class DemuxHandler extends ByteToMessageDecoder {
     private static final Logger logger = LoggerFactory.getLogger(DemuxHandler.class);
 
     @Override
-    protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List out) throws Exception {
+    protected void decode(ChannelHandlerContext ctx, ByteBuf msg, @SuppressWarnings("rawtypes") List out) throws Exception {
 
         if (msg.readableBytes()<5) {
             msg.clear();

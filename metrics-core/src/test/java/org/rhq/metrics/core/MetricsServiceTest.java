@@ -1,6 +1,5 @@
 package org.rhq.metrics.core;
 
-import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 
 import java.util.List;

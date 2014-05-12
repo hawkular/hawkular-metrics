@@ -29,7 +29,6 @@ import io.netty.util.CharsetUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.rhq.metrics.clients.ptrans.SingleMetric;
 
 import static io.netty.channel.ChannelHandler.Sharable;
@@ -52,7 +51,8 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) throws Exception {
 
-        final List<SingleMetric> in = (List<SingleMetric>) msg;
+        @SuppressWarnings("unchecked")
+		final List<SingleMetric> in = (List<SingleMetric>) msg;
         logger.debug("Received some metrics :[" + in + "]");
 
         ChannelFuture cf = connectRestServer(ctx.channel().eventLoop().parent());

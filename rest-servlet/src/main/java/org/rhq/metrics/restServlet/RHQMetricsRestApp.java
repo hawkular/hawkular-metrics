@@ -7,7 +7,6 @@ import javax.ws.rs.core.Context;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.rhq.metrics.core.MetricsService;
 
 /**
@@ -30,7 +29,8 @@ public class RHQMetricsRestApp extends Application {
 
         MetricsService theService = null;
         try {
-            Class clazz = Class.forName(backendClassName);
+            @SuppressWarnings("rawtypes")
+			Class clazz = Class.forName(backendClassName);
 
             theService = (MetricsService) clazz.newInstance();
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {

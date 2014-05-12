@@ -23,7 +23,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.oio.OioDatagramChannel;
-import io.netty.util.NetUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
