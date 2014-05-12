@@ -58,8 +58,8 @@ public class MetricsITest extends MetricsTest {
         final AtomicReference<Throwable> cause = new AtomicReference<Throwable>();
 
         JsonObject config = new JsonObject()
-            .putString(MetricsServer.LOG4J_CONF_FILE, "target/test-classes/log4j.properties")
-            .putString(MetricsServer.KEYSPACE, getKeyspace());
+            .putString("log4jConfFile", "target/test-classes/log4j.properties")
+            .putString("keyspace", getKeyspace());
 
         platformManager = PlatformLocator.factory.createPlatformManager();
         String moduleName = System.getProperty("module.name");
