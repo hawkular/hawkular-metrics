@@ -20,30 +20,10 @@ import io.netty.handler.codec.http.HttpResponseStatus;
  */
 public class MetricsServer extends Verticle {
 
-    public static final String NODE_ADDRESSES = "nodes";
-
-    public static final String KEYSPACE = "keyspace";
-
-    public static final String CQL_PORT = "cqlPort";
-
     public static final String HTTP_PORT = "httpPort";
-
-    public static final String LOG4J_CONF_FILE = "log4jConfFile";
-
-//    public final Logger logger = LoggerFactory.getLogger(MetricsServer.class);
 
     @Override
     public void start() {
-//        String log4jConfFile = container.config().getString(LOG4J_CONF_FILE);
-//        LogManager.resetConfiguration();
-//        if (log4jConfFile == null) {
-//            PropertyConfigurator.configure(getClass().getResourceAsStream("/default.log4j.properties"));
-//        } else {
-//            PropertyConfigurator.configure(log4jConfFile);
-//        }
-//
-//        logger.info("Starting metrics server...");
-
         RouteMatcher routeMatcher = new RouteMatcher();
         routeMatcher.get("/rhq-metrics/:id/data", new Handler<HttpServerRequest>() {
             @Override
