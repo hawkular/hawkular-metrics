@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.rhq.metrics.clients.ptrans.backend.RestForwardingHandler;
-import org.rhq.metrics.clients.ptrans.ganglia.GangliaDecoderUtil;
 import org.rhq.metrics.clients.ptrans.ganglia.TcpGangliaDecoder;
 import org.rhq.metrics.clients.ptrans.graphite.GraphiteEventDecoder;
 import org.rhq.metrics.clients.ptrans.syslog.SyslogEventDecoder;

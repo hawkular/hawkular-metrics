@@ -5,7 +5,5 @@ target/
 .metadata/
 *.ipr
 .DS_Store/
-.classpath
 .settings
-.project
 .idea/
