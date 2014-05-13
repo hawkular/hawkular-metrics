@@ -30,7 +30,7 @@ import org.rhq.metrics.core.RawNumericMetric;
  * @author Heiko W. Rupp
  */
 @Stateless
-@Path("metric")
+@Path("/rhq-metrics")
 public class MetricHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(MetricHandler.class);
@@ -41,9 +41,9 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/")
+    @Path("/{id}/data")
     @Consumes({"application/json","application/xml"})
-    public void addMetric(IdDataPoint dataPoint) {
+    public void addMetric(@PathParam("id)") String id, IdDataPoint dataPoint) {
 
 
         RawNumericMetric rawMetric = new RawNumericMetric(dataPoint.getId(),dataPoint.getValue(),dataPoint.getTimestamp());
@@ -54,7 +54,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/s")
+    @Path("/data")
     @Consumes({"application/json","application/xml"})
     public void addMetrics(Collection<IdDataPoint> dataPoints) {
 
@@ -70,7 +70,7 @@ public class MetricHandler {
 
     @GZIP
     @GET
-    @Path("values/{id}")
+    @Path("/{id}/data")
     @Produces({"application/json","text/json","application/xml"})
     public Response getDataForId(@PathParam("id") String id, @QueryParam("start") Long start, @QueryParam("end") Long end) {
 

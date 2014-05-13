@@ -22,13 +22,13 @@ Example input as XML
 
 === Add data
 
-Endpoint is http://localhost:8080/rest/metric
+Endpoint is http://localhost:8080/rhq-metrics/{id}
 
-  $ curl -i -X POST http://localhost:8080/rest/metric -d@/tmp/fooX -HContent-Type:application/xml
+  $ curl -i -X POST http://localhost:8080/rhq-metrics/ -d@/tmp/fooX -HContent-Type:application/xml
 
 or if the input contains a collection of metrics
 
-  $ curl -i -X POST http://localhost:8080/rest/metric/s -d@/tmp/fooX -HContent-Type:application/xml
+  $ curl -i -X POST http://localhost:8080/rhq-metrics -d@/tmp/fooX -HContent-Type:application/xml
 
 === Retrieve data
 

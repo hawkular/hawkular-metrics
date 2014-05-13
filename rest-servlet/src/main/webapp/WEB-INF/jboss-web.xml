@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jboss-web>
-      <context-root>rest</context-root>
+      <context-root>/</context-root>
       <!--<security-domain>RHQRESTSecurityDomain</security-domain>  TODO -->
 
       <!-- see https://community.jboss.org/wiki/JBossAS7SecurityAuditing for the next tag -->

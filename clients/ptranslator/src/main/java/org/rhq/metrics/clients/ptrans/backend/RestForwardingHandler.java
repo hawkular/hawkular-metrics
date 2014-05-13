@@ -68,7 +68,7 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
                     String payload = eventsToJson(in);
                     ByteBuf content = Unpooled.copiedBuffer(payload, CharsetUtil.UTF_8);
                     final Channel ch = future.channel();
-                    FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/rest/metric/s", content);
+                    FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/rhq-metrics/data", content);
                     HttpHeaders.setContentLength(request, content.readableBytes());
                     HttpHeaders.setKeepAlive(request, true);
                     HttpHeaders.setHeader(request, HttpHeaders.Names.CONTENT_TYPE, "application/json;charset=utf-8");
