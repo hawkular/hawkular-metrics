@@ -15,6 +15,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.GenericEntity;
+import javax.ws.rs.core.Link;
 import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
@@ -111,7 +112,14 @@ public class MetricHandler {
 
         List<String> names = ServiceKeeper.getInstance().service.listMetrics();
 
-        GenericEntity<List<String>> list = new GenericEntity<List<String>>(names) {} ;
+        final List<SimpleLink> listWithLinks = new ArrayList<>(names.size());
+        for (String name : names) {
+            SimpleLink link = new SimpleLink("metrics","/rhq-metrics/" + name + "/data");
+
+            listWithLinks.add(link);
+        }
+
+        GenericEntity<List<SimpleLink>> list = new GenericEntity<List<SimpleLink>>(listWithLinks) {} ;
         Response.ResponseBuilder builder = Response.ok(list);
 
         return builder.build();
