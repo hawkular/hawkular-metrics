@@ -38,8 +38,10 @@ import org.rhq.metrics.clients.ptrans.syslog.UdpSyslogEventDecoder;
  */
 public class Main {
 
-    int tcpPort = 5140; // Default UDP & TCP port to listen on for syslog messages
-    int udpPort = 5140; // Default UDP & TCP port to listen on for syslog messages
+    private static final int DEFAULT_PORT = 5140;
+    public static final String CONFIG_PROPERTIES_FILE_NAME = "ptrans.properties";
+    int tcpPort = DEFAULT_PORT;
+    int udpPort = DEFAULT_PORT;
 
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
@@ -49,8 +51,7 @@ public class Main {
     }
 
     public Main(String[] args) {
-        InputStream inputStream = ClassLoader.getSystemResourceAsStream("ptrans.properties");
-        loadPortsFromProperties(inputStream);
+        loadPortsFromProperties();
     }
 
     private void run() throws Exception {
@@ -137,26 +138,26 @@ public class Main {
             logger.info("Joined the group");
             channel.closeFuture();
         } catch (SocketException |InterruptedException e) {
-            logger.warn("Seup of udp multicast for Ganglia failed");
+            logger.warn("Setup of udp multicast for Ganglia failed");
             e.printStackTrace();
         }
     }
 
-    private void loadPortsFromProperties(InputStream inputStream) {
+    private void loadPortsFromProperties() {
         Properties properties;
-        try {
+        try (InputStream inputStream = ClassLoader.getSystemResourceAsStream(CONFIG_PROPERTIES_FILE_NAME)) {
+            if (inputStream==null) {
+                logger.warn("Can not load properties from '"+ CONFIG_PROPERTIES_FILE_NAME +"', using defaults");
+                return;
+            }
             properties = new Properties();
             properties.load(inputStream);
-        } catch (IOException e) {
-            logger.warn("Can not load properties from 'ptrans.properties'");
-            return;
-        }
 
-        if (properties.containsKey("port.udp")) {
-            udpPort = Integer.parseInt(properties.getProperty("port.udp"));
-        }
-        if (properties.containsKey("port.tcp")) {
-            tcpPort = Integer.parseInt(properties.getProperty("port.tcp"));
+            udpPort = Integer.parseInt(properties.getProperty("port.udp", String.valueOf(DEFAULT_PORT)));
+            tcpPort = Integer.parseInt(properties.getProperty("port.tcp", String.valueOf(DEFAULT_PORT)));
+
+        } catch (IOException e) {
+            logger.warn("Can not load properties from '" + CONFIG_PROPERTIES_FILE_NAME + "'");
         }
     }
 }

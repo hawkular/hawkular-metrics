@@ -1,8 +1,11 @@
 package org.rhq.metrics.clients.ptrans.backend;
 
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -29,6 +32,8 @@ import io.netty.util.CharsetUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.rhq.metrics.clients.ptrans.Main;
 import org.rhq.metrics.clients.ptrans.SingleMetric;
 
 import static io.netty.channel.ChannelHandler.Sharable;
@@ -42,10 +47,16 @@ import static io.netty.channel.ChannelHandler.Sharable;
 public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
 
 
+    private static final String RHQ_METRICS_ENDPOINT = "/rhq-metrics";
+    private String restHost = "localhost";
+    private int restPort = 7474;
+    private String restPrefix = RHQ_METRICS_ENDPOINT;
+
     private static final Logger logger = LoggerFactory.getLogger(RestForwardingHandler.class);
 
     public RestForwardingHandler() {
-        logger.info("RsyslogHandler init");
+        logger.debug("RsyslogHandler init");
+        loadRestEndpointInfoFromProperties();
     }
 
     @Override
@@ -68,7 +79,8 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
                     String payload = eventsToJson(in);
                     ByteBuf content = Unpooled.copiedBuffer(payload, CharsetUtil.UTF_8);
                     final Channel ch = future.channel();
-                    FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/rhq-metrics/data", content);
+                    FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST,
+                        restPrefix+"/data", content);
                     HttpHeaders.setContentLength(request, content.readableBytes());
                     HttpHeaders.setKeepAlive(request, true);
                     HttpHeaders.setHeader(request, HttpHeaders.Names.CONTENT_TYPE, "application/json;charset=utf-8");
@@ -98,7 +110,7 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
         clientBootstrap
             .group(group)
             .channel(NioSocketChannel.class)
-            .remoteAddress("localhost", 8080)
+            .remoteAddress(restHost, restPort)
             .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 protected void initChannel(SocketChannel ch) throws Exception {
@@ -131,4 +143,25 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
 
         return builder.toString();
     }
+
+    private void loadRestEndpointInfoFromProperties() {
+        Properties properties;
+        try (InputStream inputStream = ClassLoader.getSystemResourceAsStream(Main.CONFIG_PROPERTIES_FILE_NAME)) {
+            if (inputStream==null) {
+                logger.warn("Can not load properties from '"+ Main.CONFIG_PROPERTIES_FILE_NAME +"', using defaults");
+                return;
+            }
+
+            properties = new Properties();
+            properties.load(inputStream);
+
+            restHost = properties.getProperty("rest.host", "localhost");
+            restPort = Integer.parseInt(properties.getProperty("rest.port","7474"));
+            restPrefix = properties.getProperty("rest.prefix", RHQ_METRICS_ENDPOINT);
+
+        } catch (IOException e) {
+            logger.warn("Can not load properties from '"+ Main.CONFIG_PROPERTIES_FILE_NAME +"', using defaults");
+        }
+    }
+
 }
