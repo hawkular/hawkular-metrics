@@ -3,9 +3,12 @@ package org.rhq.metrics.clients.ptrans;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Properties;
 
 import io.netty.bootstrap.Bootstrap;
@@ -17,12 +20,10 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.oio.OioEventLoopGroup;
 import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.channel.socket.oio.OioDatagramChannel;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,10 +41,15 @@ public class Main {
 
     private static final int DEFAULT_PORT = 5140;
     public static final String CONFIG_PROPERTIES_FILE_NAME = "ptrans.properties";
+    private static final int GANGLIA_DEFAULT_PORT = 8649;
     int tcpPort = DEFAULT_PORT;
     int udpPort = DEFAULT_PORT;
 
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
+    private static final String GANGLIA_DEFAULT_GROUP = "239.2.11.71";
+    private String gangliaGroup = GANGLIA_DEFAULT_GROUP;
+    private int gangliaPort = GANGLIA_DEFAULT_PORT;
+    private String multicastIfOverride;
 
     public static void main(String[] args) throws Exception {
         Main main = new Main(args);
@@ -56,7 +62,6 @@ public class Main {
 
     private void run() throws Exception {
         EventLoopGroup group = new NioEventLoopGroup();
-        EventLoopGroup oiogroup = new OioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
 
@@ -96,29 +101,38 @@ public class Main {
             logger.info("Syslogd listening on udp " + udpFuture.channel().localAddress());
 
             // Try to set up an upd listener for Ganglia Messages
-            setupGangliaUdp(oiogroup);
+            setupGangliaUdp(group);
 
             udpFuture.channel().closeFuture().sync();
         } finally {
             group.shutdownGracefully().sync();
-            oiogroup.shutdownGracefully().sync();
+            group.shutdownGracefully().sync();
         }
     }
 
-    private void setupGangliaUdp(EventLoopGroup oiogroup) {
+    private void setupGangliaUdp(EventLoopGroup group) {
         // The ganglia UPD socket server
-        // TODO there is something fishy still wrt reception of packets
-        InetSocketAddress gangliaSocket = new InetSocketAddress("239.2.11.71",8649);
 
         try {
-            NetworkInterface mcIf = NetworkInterface.getByName("en5");  // TODO determine from main address
+
+
+            NetworkInterface mcIf;
+            if (multicastIfOverride ==null) {
+                Inet4Address hostAddr = (Inet4Address) InetAddress.getLocalHost();
+                mcIf = NetworkInterface.getByInetAddress(hostAddr);
+            }
+            else {
+                mcIf = NetworkInterface.getByName(multicastIfOverride);
+            }
+
+            InetSocketAddress gangliaSocket = new InetSocketAddress(gangliaGroup, gangliaPort);
 
             Bootstrap gangliaBootstrap = new Bootstrap();
             gangliaBootstrap
-                .group(oiogroup)
-                .channel(OioDatagramChannel.class)
-                .option(ChannelOption.IP_MULTICAST_IF, mcIf)
+                .group(group)
+                .channel(NioDatagramChannel.class)
                 .option(ChannelOption.SO_REUSEADDR, true)
+                .option(ChannelOption.IP_MULTICAST_IF,mcIf)
                 .localAddress(gangliaSocket)
                 .handler(new ChannelInitializer<Channel>() {
                     @Override
@@ -134,10 +148,10 @@ public class Main {
             ChannelFuture gangliaFuture = gangliaBootstrap.bind().sync();
             logger.info("Ganglia listening on udp " + gangliaFuture.channel().localAddress());
             DatagramChannel channel = (DatagramChannel) gangliaFuture.channel();
-            channel.joinGroup(gangliaSocket, mcIf).sync();
+            channel.joinGroup(gangliaSocket,mcIf).sync();
             logger.info("Joined the group");
             channel.closeFuture();
-        } catch (SocketException |InterruptedException e) {
+        } catch (InterruptedException|SocketException | UnknownHostException e) {
             logger.warn("Setup of udp multicast for Ganglia failed");
             e.printStackTrace();
         }
@@ -155,6 +169,9 @@ public class Main {
 
             udpPort = Integer.parseInt(properties.getProperty("port.udp", String.valueOf(DEFAULT_PORT)));
             tcpPort = Integer.parseInt(properties.getProperty("port.tcp", String.valueOf(DEFAULT_PORT)));
+            gangliaGroup = properties.getProperty("ganglia.group",GANGLIA_DEFAULT_GROUP);
+            gangliaPort = Integer.parseInt(properties.getProperty("ganglia.port", String.valueOf(GANGLIA_DEFAULT_PORT)));
+            multicastIfOverride = properties.getProperty("multicast.interface");
 
         } catch (IOException e) {
             logger.warn("Can not load properties from '" + CONFIG_PROPERTIES_FILE_NAME + "'");

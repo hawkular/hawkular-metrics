@@ -74,7 +74,7 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
                 if (!future.isSuccess()) {
                     // something went wrong
 //                    packet.release(); TODO what do we need to do?
-                    logger.warn("something went wrong");
+                    logger.warn("something went wrong: ", future.cause());
                 } else {
                     String payload = eventsToJson(in);
                     ByteBuf content = Unpooled.copiedBuffer(payload, CharsetUtil.UTF_8);

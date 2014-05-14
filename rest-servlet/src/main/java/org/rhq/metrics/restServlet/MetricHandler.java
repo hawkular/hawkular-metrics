@@ -38,7 +38,9 @@ public class MetricHandler {
     private static final long EIGHT_HOURS = 8L*60L*60L*1000L; // 8 Hours in milliseconds
 
     public MetricHandler() {
-        logger.info("MetricHandler instantiated");
+        if (logger.isDebugEnabled()) {
+            logger.debug("MetricHandler instantiated");
+        }
     }
 
     @POST

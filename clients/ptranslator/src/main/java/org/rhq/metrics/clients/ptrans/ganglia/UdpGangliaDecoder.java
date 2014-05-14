@@ -19,9 +19,4 @@ public class UdpGangliaDecoder extends MessageToMessageDecoder<DatagramPacket> {
         GangliaDecoderUtil.decode(ctx, msg, out);
 
     }
-
-    @Override
-    public boolean acceptInboundMessage(Object msg) throws Exception {
-        return true;
-    }
 }
