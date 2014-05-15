@@ -42,6 +42,14 @@ If you want to use a custom module configuration, then do
 
 `java -jar target/rhq-metrics-rest-0.1.0-SNAPSHOT-fat.jar -conf path/to/conf/file`
 
+## Development Mode
+
+Install inotify-tools and then run the following commands in two terminals. Everytime a change is saved it automatically gets deployed to the vert.x instance.
+
+`while inotifywait -e close_write -r src/main/java/org/rhq/metrics/*; do mvn install -DskipTests; done`
+
+`mvn vertx:runMod`
+
 # Module Configuration
 The module supports the following configuration,
 
