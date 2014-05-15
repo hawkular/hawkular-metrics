@@ -22,7 +22,7 @@ Example input as XML
 
 === Add data
 
-Endpoint is http://localhost:8080/rhq-metrics/{id}
+Endpoint is http://localhost:8080/rhq-metrics/{id}/data for a single data item
 
   $ curl -i -X POST http://localhost:8080/rhq-metrics/ -d@/tmp/fooX -HContent-Type:application/xml
 
@@ -32,13 +32,13 @@ or if the input contains a collection of metrics
 
 === Retrieve data
 
-Endpoint is http://localhost:8080/rest/metric/values/{id}
+Endpoint is http://localhost:8080/rhq-metric/{id}/data
 
-  $ curl -i http://localhost:8080/rest/metric/values/foo?start=0\&end=2000 -HAccept:application/json
+  $ curl -i http://localhost:8080/rhq-metric/foo/data?start=0\&end=2000 -HAccept:application/json
 
 or simply
 
-  $ curl -i http://localhost:8080/rest/metric/values/foo
+  $ curl -i http://localhost:8080/rhq-metric/values/foo
 
 to receive data for the last 8 hours
 
@@ -49,7 +49,7 @@ Parameters are:
 
 === List metric names
 
-  $  curl -i http://localhost:8080/rest/metric/list -HAccept:application/json
+  $  curl -i http://localhost:8080/rhq-metric/list -HAccept:application/json
 
 === Running
 
