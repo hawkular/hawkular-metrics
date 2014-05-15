@@ -15,7 +15,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.GenericEntity;
-import javax.ws.rs.core.Link;
 import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
@@ -31,7 +30,7 @@ import org.rhq.metrics.core.RawNumericMetric;
  * @author Heiko W. Rupp
  */
 @Stateless
-@Path("/rhq-metrics")
+@Path("/")
 public class MetricHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(MetricHandler.class);
@@ -110,15 +109,16 @@ public class MetricHandler {
     @GET
     @Path("/list")
     @Produces({"application/json","text/json","application/xml"})
-    public Response listMetrics() {
+    public Response listMetrics(@QueryParam("q") String filter) {
 
         List<String> names = ServiceKeeper.getInstance().service.listMetrics();
 
         final List<SimpleLink> listWithLinks = new ArrayList<>(names.size());
         for (String name : names) {
-            SimpleLink link = new SimpleLink("metrics","/rhq-metrics/" + name + "/data");
-
-            listWithLinks.add(link);
+            if ((filter == null || filter.isEmpty()) || (name.contains(filter))) {
+                SimpleLink link = new SimpleLink("metrics", "/rhq-metrics/" + name + "/data", name);
+                listWithLinks.add(link);
+            }
         }
 
         GenericEntity<List<SimpleLink>> list = new GenericEntity<List<SimpleLink>>(listWithLinks) {} ;

@@ -5,27 +5,25 @@ package org.rhq.metrics.restServlet;
  * @author Heiko W. Rupp
  */
 public class SimpleLink {
-    private String rel;
-    private String href;
+    private final String rel;
+    private final String href;
+    private final String title;
 
-    public SimpleLink(String rel, String href) {
+    public SimpleLink(String rel, String href, String title) {
         this.rel = rel;
         this.href = href;
+        this.title = title;
     }
 
     public String getRel() {
         return rel;
     }
 
-    public void setRel(String rel) {
-        this.rel = rel;
-    }
-
     public String getHref() {
         return href;
     }
 
-    public void setHref(String href) {
-        this.href = href;
+    public String getTitle() {
+        return title;
     }
 }

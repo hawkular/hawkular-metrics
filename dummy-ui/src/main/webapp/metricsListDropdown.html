@@ -1,0 +1,12 @@
+<span class="dropdown">
+    <a class="dropdown-toggle">Select a metric</a>
+    <ul class="dropdown-menu">
+        <li ng-repeat="item in metrics">
+            <i
+                style="cursor: pointer;"
+                ng-mouseover="graph(item,'graph')"
+                ng-click="graph(item,'graph')"
+            >{{item.title}}</i>
+        </li>
+    </ul>
+</span>
