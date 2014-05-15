@@ -46,7 +46,7 @@ If you want to use a custom module configuration, then do
 
 Install inotify-tools and then run the following commands in two terminals. Everytime a change is saved it automatically gets deployed to the vert.x instance.
 
-`while inotifywait -e close_write -r src/main/java/org/rhq/metrics/*; do mvn install -DskipTests; done`
+`while inotifywait -e close_write -r src/main/java/org/rhq/metrics/rest/*; do mvn install -Pfast -DskipTests; done`
 
 `mvn vertx:runMod`
 
