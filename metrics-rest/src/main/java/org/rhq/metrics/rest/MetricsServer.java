@@ -1,5 +1,6 @@
 package org.rhq.metrics.rest;
 
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -25,6 +26,16 @@ public class MetricsServer extends Verticle {
     @Override
     public void start() {
         RouteMatcher routeMatcher = new RouteMatcher();
+
+        routeMatcher.all("/", new Handler<HttpServerRequest>() {
+			@Override
+			public void handle(HttpServerRequest request) {
+				 JsonObject responseBody = new JsonObject()
+                 .putValue("pong", new Date().toString());
+				 request.response().end(responseBody.toString());
+			}
+        });
+
         routeMatcher.get("/rhq-metrics/:id/data", new Handler<HttpServerRequest>() {
             @Override
             public void handle(final HttpServerRequest request) {
