@@ -1,5 +1,7 @@
 package org.rhq.metrics.rest;
 
+import io.netty.handler.codec.http.HttpResponseStatus;
+
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -14,12 +16,45 @@ import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.streams.Pump;
 import org.vertx.java.platform.Verticle;
 
-import io.netty.handler.codec.http.HttpResponseStatus;
-
 /**
  * @author John Sanda
  */
 public class MetricsServer extends Verticle {
+
+	/**
+	 * CORS Handler
+	 * 
+	 */
+	public class CORSHandler extends RouteMatcher {
+
+		public CORSHandler(final RouteMatcher routeMatcher) {
+			this.all(".*", new Handler<HttpServerRequest>() {
+				@Override
+				public void handle(HttpServerRequest request) {
+					setCORS(request);
+
+					if (request.method().equals("OPTIONS")) {
+						request.response().end();
+					} else {
+						routeMatcher.handle(request);
+					}
+				}
+			});
+		}
+
+		private void setCORS(HttpServerRequest req) {
+			String origin = req.headers().get("origin");
+			if (origin == null || "null".equals(origin)) {
+				origin = "*";
+			}
+			req.response().headers().set("Access-Control-Allow-Origin", origin);
+			req.response().headers().set("Access-Control-Allow-Credentials", "true");
+			String hdr = req.headers().get("Access-Control-Request-Headers");
+			if (hdr != null) {
+				req.response().headers().set("Access-Control-Allow-Headers", hdr);
+			}
+		}
+	}
 
     public static final String HTTP_PORT = "httpPort";
 
@@ -27,12 +62,13 @@ public class MetricsServer extends Verticle {
     public void start() {
         RouteMatcher routeMatcher = new RouteMatcher();
 
-        routeMatcher.all("/", new Handler<HttpServerRequest>() {
+        routeMatcher.all("/ping", new Handler<HttpServerRequest>() {
 			@Override
 			public void handle(HttpServerRequest request) {
-				 JsonObject responseBody = new JsonObject()
-                 .putValue("pong", new Date().toString());
-				 request.response().end(responseBody.toString());
+				JsonObject responseBody = new JsonObject()
+                .putValue("pong", new Date().toString());
+
+				request.response().end(responseBody.toString());
 			}
         });
 
@@ -167,7 +203,7 @@ public class MetricsServer extends Verticle {
             }
         });
 
-        vertx.createHttpServer().requestHandler(routeMatcher).listen(container.config().getNumber(HTTP_PORT,
+        vertx.createHttpServer().requestHandler(new CORSHandler(routeMatcher)).listen(container.config().getNumber(HTTP_PORT,
             7474).intValue());
     }
 
