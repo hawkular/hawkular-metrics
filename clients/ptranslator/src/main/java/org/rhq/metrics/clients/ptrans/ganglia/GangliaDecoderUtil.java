@@ -14,7 +14,7 @@ import org.acplt.oncrpc.XdrBufferDecodingStream;
 import org.rhq.metrics.clients.ptrans.SingleMetric;
 
 /**
- * // TODO: Document this
+ * Decode Ganglia packets that contain metrics
  * @author Heiko W. Rupp
  */
 public class GangliaDecoderUtil {
@@ -28,7 +28,6 @@ public class GangliaDecoderUtil {
         }
 
         short magic = msg.getUnsignedByte(3);
-        System.out.println("Magic: " + magic);
         if (msg.getByte(0)==0 && msg.getByte(1)==0 && msg.getByte(2)==0&& magic ==134) {
 
             // We have an UnsafeSuperDuperBuffer, so we need to "manually" pull the bytes from it.
