@@ -52,11 +52,11 @@ public class Main {
     private String multicastIfOverride;
 
     public static void main(String[] args) throws Exception {
-        Main main = new Main(args);
+        Main main = new Main();
         main.run();
     }
 
-    public Main(String[] args) {
+    public Main() {
         loadPortsFromProperties();
     }
 
@@ -115,7 +115,6 @@ public class Main {
 
         try {
 
-
             NetworkInterface mcIf;
             if (multicastIfOverride ==null) {
                 Inet4Address hostAddr = (Inet4Address) InetAddress.getLocalHost();
@@ -139,6 +138,7 @@ public class Main {
                     public void initChannel(Channel socketChannel) throws Exception {
                         ChannelPipeline pipeline = socketChannel.pipeline();
                         pipeline.addLast(new UdpGangliaDecoder());
+                        pipeline.addLast(new MetricBatcher());
                         pipeline.addLast(new RestForwardingHandler());
                     }
                 })

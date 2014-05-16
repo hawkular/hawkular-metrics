@@ -11,7 +11,6 @@ import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.rhq.metrics.clients.ptrans.backend.RestForwardingHandler;
-import org.rhq.metrics.clients.ptrans.ganglia.TcpGangliaDecoder;
 import org.rhq.metrics.clients.ptrans.graphite.GraphiteEventDecoder;
 import org.rhq.metrics.clients.ptrans.syslog.SyslogEventDecoder;
 
@@ -33,12 +32,6 @@ public class DemuxHandler extends ByteToMessageDecoder {
         }
         ChannelPipeline pipeline = ctx.pipeline();
 
-        if (msg.getByte(0)==0 && msg.getByte(1)==0 && msg.getByte(2)==0&&msg.getByte(3)==133) {
-            pipeline.addLast(new TcpGangliaDecoder());
-            pipeline.addLast(new RestForwardingHandler());
-            pipeline.remove(this);
-            return;
-        }
 
         String data = msg.toString(CharsetUtil.UTF_8);
         if (logger.isDebugEnabled()) {
