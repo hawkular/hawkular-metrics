@@ -32,7 +32,6 @@ import io.netty.util.CharsetUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.Marker;
 
 import org.rhq.metrics.clients.ptrans.Main;
 import org.rhq.metrics.clients.ptrans.SingleMetric;
@@ -47,15 +46,19 @@ import static io.netty.channel.ChannelHandler.Sharable;
 @Sharable
 public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
 
-
     private static final String RHQ_METRICS_ENDPOINT = "/rhq-metrics";
     private String restHost = "localhost";
     private int restPort = 7474;
     private String restPrefix = RHQ_METRICS_ENDPOINT;
 
+    private static final int CLOSE_AFTER_REQUESTS = 200;
+
+
     private Channel senderChannel;
+    private int sendCounter = 0;
 
     private static final Logger logger = LoggerFactory.getLogger(RestForwardingHandler.class);
+    private int closeAfterRequests = CLOSE_AFTER_REQUESTS;
 
     public RestForwardingHandler() {
         logger.debug("RsyslogHandler init");
@@ -110,6 +113,15 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
                     ch.close();
                     senderChannel=null;
                     logger.error("Sending to the rhq-metrics server failed: " + future.cause());
+                }
+                else {
+                    sendCounter++;
+                    if (sendCounter >= closeAfterRequests) {
+                        logger.info("Doing a periodic close after "+ closeAfterRequests+" requests");
+                        ch.close();
+                        senderChannel=null;
+                        sendCounter=0;
+                    }
                 }
             }
         });
@@ -174,6 +186,8 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
             restHost = properties.getProperty("rest.host", "localhost");
             restPort = Integer.parseInt(properties.getProperty("rest.port","7474"));
             restPrefix = properties.getProperty("rest.prefix", RHQ_METRICS_ENDPOINT);
+            closeAfterRequests = Integer.parseInt(
+                properties.getProperty("rest.close-after", String.valueOf(CLOSE_AFTER_REQUESTS)));
 
         } catch (IOException e) {
             logger.warn("Can not load properties from '"+ Main.CONFIG_PROPERTIES_FILE_NAME +"', using defaults");
