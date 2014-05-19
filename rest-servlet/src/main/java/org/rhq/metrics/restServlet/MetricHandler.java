@@ -3,8 +3,10 @@ package org.rhq.metrics.restServlet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.ejb.Stateless;
@@ -43,10 +45,11 @@ public class MetricHandler {
 
 	@GET
 	@Path("/ping")
-	@Consumes({ "application/json" })
-	@Produces({ "application/json" })
+	@Consumes({ "application/json", "application/xml" })
+	@Produces({ "application/json", "application/xml" })
 	public Response ping() {
-		String reply = "{ \"pong\": \"" + new Date().toString() + "\" }";
+		Map<String, String> reply = new HashMap<String, String>();
+		reply.put("pong", new Date().toString());
 
 		Response.ResponseBuilder builder = Response.ok(reply);
 		return builder.build();
