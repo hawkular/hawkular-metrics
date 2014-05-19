@@ -44,16 +44,14 @@ Where only key and value are accepted and the type is ignored (for now).
 
 === running
 
-  $ java  -cp ~/.m2/repository/io/netty/netty-all/4.0.19.Final/netty-all-4.0.19.Final.jar:target/syslog-rest-0.1.0-SNAPSHOT.jar\
-        :~/.m2/repository/org/slf4j/slf4j-log4j12/1.7.7/slf4j-log4j12-1.7.7.jar:/.m2/repository/org/slf4j/slf4j-api/1.7.7/slf4j-api-1.7.7.jar\
-        :~/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar org.rhq.metrics.clients.ptrans.Main
+You can use the provided `start.sh` script to start the server
 
 Before you start the proxy, make sure the rest-server is running.
 
 === Configuring syslog
 
 You need to configure syslog to forward you the messages.
-For this you need to edit `/etc/syslog.conf` and add a line like this:
+For this you need to edit `/ec/syslog.conf` and add a line like this:
 
   *.info          @127.0.0.1:5140
 
