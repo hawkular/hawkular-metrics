@@ -1,19 +1,20 @@
 package org.rhq.metrics.impl.memory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import gnu.trove.map.TLongDoubleMap;
-import gnu.trove.map.hash.TLongDoubleHashMap;
-
-import com.datastax.driver.core.ResultSetFuture;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import org.rhq.metrics.core.MetricsService;
-import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.RawNumericMetric;
+
+import gnu.trove.map.TLongDoubleMap;
+import gnu.trove.map.hash.TLongDoubleHashMap;
 
 /**
  * A memory based storage backend for rapid prototyping
@@ -24,7 +25,7 @@ public class MemoryMetricsService implements MetricsService {
     private Map<String,TLongDoubleMap> storage = new HashMap<>();
 
     @Override
-    public void addData(Set<RawNumericMetric> data) {
+    public ListenableFuture<Map<RawNumericMetric, Throwable>> addData(Set<RawNumericMetric> data) {
 
         TLongDoubleMap map ;
         for (RawNumericMetric metric : data) {
@@ -39,31 +40,30 @@ public class MemoryMetricsService implements MetricsService {
 
             // TODO expire an old entry
         }
-
+        Map<RawNumericMetric, Throwable> errors = Collections.emptyMap();
+        return Futures.immediateFuture(errors);
     }
 
     @Override
-    public ResultSetFuture findData(String bucket, String id, long start, long end) {
-        // Bucket is always raw for this.
-        // We don't implement this here.
-        return null;
+    public ListenableFuture<List<RawNumericMetric>> findData(String bucket, String id, long start, long end) {
+        return findData(id, start, end);
     }
 
     @Override
-    public List<NumericMetric> findData(String id, long start, long end) {
-        List<NumericMetric> metrics = new ArrayList<>();
+    public ListenableFuture<List<RawNumericMetric>> findData(String id, long start, long end) {
+        List<RawNumericMetric> metrics = new ArrayList<>();
 
         if (storage.containsKey(id)) {
             TLongDoubleMap map = storage.get(id);
             for (long ts : map.keys()) {
                 if (ts>=start && ts<=end) {
-                    NumericMetric metric = new RawNumericMetric(id,map.get(ts),ts);
+                    RawNumericMetric metric = new RawNumericMetric(id,map.get(ts),ts);
                     metrics.add(metric);
                 }
 
             }
         }
-        return metrics;
+        return Futures.immediateFuture(metrics);
     }
 
     @Override

@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-import javax.ejb.Stateless;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -16,6 +16,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.Response;
+
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +32,7 @@ import org.rhq.metrics.core.RawNumericMetric;
  * Interface to deal with metrics
  * @author Heiko W. Rupp
  */
-@Stateless
+//@Stateless
 @Path("/")
 public class MetricHandler {
 
@@ -51,8 +54,7 @@ public class MetricHandler {
         RawNumericMetric rawMetric = new RawNumericMetric(dataPoint.getId(),dataPoint.getValue(),dataPoint.getTimestamp());
         Set<RawNumericMetric> rawSet = new HashSet<>(1);
         rawSet.add(rawMetric);
-
-        ServiceKeeper.getInstance().service.addData(rawSet);
+        addData(rawSet);
     }
 
     @POST
@@ -67,7 +69,14 @@ public class MetricHandler {
             rawSet.add(rawMetric);
         }
 
-        ServiceKeeper.getInstance().service.addData(rawSet);
+        addData(rawSet);
+    }
+
+    private void addData(Set<RawNumericMetric> rawData) {
+        // The Futures.getUnchecked call is only being used temporarily until the REST
+        // stuff is wired up to work with a Cassandra backend.
+        ListenableFuture<Map<RawNumericMetric,Throwable>> future = ServiceKeeper.getInstance().service.addData(rawData);
+        Futures.getUnchecked(future);
     }
 
     @GZIP
@@ -91,7 +100,11 @@ public class MetricHandler {
             end = now;
         }
 
-        final List<NumericMetric> data = ServiceKeeper.getInstance().service.findData(id,start,end);
+        final ListenableFuture<List<RawNumericMetric>> future = ServiceKeeper.getInstance().service.findData(id, start,
+            end);
+        // The Futures.getUnchecked call is only being used temporarily until the REST
+        // stuff is wired up to work with a Cassandra backend.
+        List<RawNumericMetric> data = Futures.getUnchecked(future);
         final List<DataPoint> points = new ArrayList<>(data.size());
         for (NumericMetric item : data) {
             DataPoint point = new DataPoint(item.getTimestamp(),item.getAvg());

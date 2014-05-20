@@ -5,9 +5,8 @@ import static org.testng.Assert.assertEquals;
 import java.util.List;
 import java.util.Set;
 
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -58,12 +57,10 @@ public class MetricsServiceTest extends MetricsTest {
         );
 
         metricsService.addData(data);
-        ResultSetFuture future = metricsService.findData("raw", "1", hour(5).plusMinutes(3).getMillis(),
-            hour(5).plusMinutes(4).getMillis());
+        ListenableFuture<List<RawNumericMetric>> future = metricsService.findData("raw", "1",
+            hour(5).plusMinutes(3).getMillis(), hour(5).plusMinutes(4).getMillis());
 
-        ResultSet resultSet = getUninterruptibly(future);
-
-        List<RawNumericMetric> actual = rawMapper.map(resultSet);
+        List<RawNumericMetric> actual = getUninterruptibly(future);
 
         assertEquals(actual.size(), expected.size(), "Expected to get back 3 raw metrics");
         assertEquals(actual, expected, "The returned raw metrics do not match the expected values");

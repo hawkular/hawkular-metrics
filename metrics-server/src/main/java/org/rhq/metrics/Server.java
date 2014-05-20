@@ -1,19 +1,17 @@
 package org.rhq.metrics;
 
 import java.io.IOException;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import org.vertx.java.core.Context;
 import org.vertx.java.core.Handler;
@@ -23,7 +21,6 @@ import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.platform.Verticle;
 
 import org.rhq.metrics.core.DataAccess;
-import org.rhq.metrics.core.DataType;
 import org.rhq.metrics.core.RawNumericMetric;
 import org.rhq.metrics.core.SchemaManager;
 import org.rhq.metrics.impl.cassandra.MetricsServiceCassandra;
@@ -72,19 +69,18 @@ public class Server extends Verticle {
 
                     final Context context = vertx.currentContext();
 
-                    ResultSetFuture future = metricsService.findData("raw", id, start, end);
-                    Futures.addCallback(future, new FutureCallback<ResultSet>() {
-                        public void onSuccess(ResultSet resultSet) {
+                    ListenableFuture<List<RawNumericMetric>> future = metricsService.findData("raw", id, start, end);
+                    Futures.addCallback(future, new FutureCallback<List<RawNumericMetric>>() {
+                        public void onSuccess(List<RawNumericMetric> metrics) {
                             final JsonObject result = new JsonObject();
                             result.putString("bucket", "raw");
                             result.putString("id", id);
                             JsonArray data = new JsonArray();
 
-                            for (Row row : resultSet) {
-                                Map<Integer, Double> map = row.getMap(2, Integer.class, Double.class);
+                            for (RawNumericMetric metric : metrics) {
                                 JsonObject jsonRow = new JsonObject();
-                                jsonRow.putNumber("time", row.getDate(1).getTime());
-                                jsonRow.putNumber("value", map.get(DataType.RAW.ordinal()));
+                                jsonRow.putNumber("time", metric.getTimestamp());
+                                jsonRow.putNumber("value", metric.getValue());
                                 data.addObject(jsonRow);
                             }
                             result.putArray("data", data);
