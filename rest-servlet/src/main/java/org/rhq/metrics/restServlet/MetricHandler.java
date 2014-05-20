@@ -49,6 +49,7 @@ public class MetricHandler {
     }
 
 	@GET
+	@POST
 	@Path("/ping")
 	@Consumes({ "application/json", "application/xml" })
 	@Produces({ "application/json", "application/xml" })
