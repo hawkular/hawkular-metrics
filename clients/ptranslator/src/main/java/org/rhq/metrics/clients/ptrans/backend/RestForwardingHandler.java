@@ -47,8 +47,9 @@ import static io.netty.channel.ChannelHandler.Sharable;
 public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
 
     private static final String RHQ_METRICS_ENDPOINT = "/rhq-metrics";
+    private static final String DEFAULT_REST_PORT = "8080";
     private String restHost = "localhost";
-    private int restPort = 7474;
+    private int restPort = 8080;
     private String restPrefix = RHQ_METRICS_ENDPOINT;
 
     private static final int CLOSE_AFTER_REQUESTS = 200;
@@ -184,7 +185,7 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
             properties.load(inputStream);
 
             restHost = properties.getProperty("rest.host", "localhost");
-            restPort = Integer.parseInt(properties.getProperty("rest.port","7474"));
+            restPort = Integer.parseInt(properties.getProperty("rest.port", DEFAULT_REST_PORT));
             restPrefix = properties.getProperty("rest.prefix", RHQ_METRICS_ENDPOINT);
             closeAfterRequests = Integer.parseInt(
                 properties.getProperty("rest.close-after", String.valueOf(CLOSE_AFTER_REQUESTS)));

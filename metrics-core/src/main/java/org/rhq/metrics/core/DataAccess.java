@@ -7,6 +7,7 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.Statement;
 
 /**
  * @author John Sanda

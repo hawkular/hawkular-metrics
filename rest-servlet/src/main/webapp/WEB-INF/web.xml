@@ -15,7 +15,20 @@
 
   <context-param>
      <param-name>rhq-metrics.backend</param-name>
-     <param-value>org.rhq.metrics.impl.memory.MemoryMetricsService</param-value>
+     <param-value>org.rhq.metrics.impl.cassandra.MetricsServiceCassandra</param-value>
+    <!--<param-value>org.rhq.metrics.impl.memory.MemoryMetricsService</param-value>-->
+  </context-param>
+
+  <context-param>
+    <description>key space for Cassandra. Only used with C* backend</description>
+    <param-name>keyspace</param-name>
+    <param-value>rhq</param-value>
+  </context-param>
+
+  <context-param>
+    <description>Port to reach the Cassandra database. Only used with C* backend</description>
+    <param-name>cqlport</param-name>
+    <param-value>9042</param-value>
   </context-param>
 
 

@@ -1,6 +1,11 @@
 package org.rhq.metrics.restServlet;
 
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.servlet.ServletConfig;
+import javax.servlet.ServletContext;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
@@ -23,7 +28,8 @@ public class RHQMetricsRestApp extends Application {
 
         logger.info("RHQ Metrics starting ..");
 
-        String backendClassName = servletConfig.getServletContext().getInitParameter("rhq-metrics.backend");
+        ServletContext servletContext = servletConfig.getServletContext();
+        String backendClassName = servletContext.getInitParameter("rhq-metrics.backend");
 
         logger.info(".. using a backend of  " + backendClassName);
 
@@ -33,6 +39,13 @@ public class RHQMetricsRestApp extends Application {
 			Class clazz = Class.forName(backendClassName);
 
             theService = (MetricsService) clazz.newInstance();
+            Map<String,String> params = new HashMap<>();
+            Enumeration<String> initParameterNames = servletContext.getInitParameterNames();
+            while (initParameterNames.hasMoreElements()) {
+                String name = initParameterNames.nextElement();
+                params.put(name, servletContext.getInitParameter(name));
+            }
+            theService.startUp(params);
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
             logger.error("Can not start the backend:", e);
             throw new RuntimeException("Startup failed");

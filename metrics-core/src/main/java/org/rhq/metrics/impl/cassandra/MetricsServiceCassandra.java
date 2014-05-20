@@ -1,16 +1,18 @@
 package org.rhq.metrics.impl.cassandra;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Session;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.FutureFallback;
@@ -30,6 +32,7 @@ import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
 import org.rhq.metrics.core.RawMetricMapper;
 import org.rhq.metrics.core.RawNumericMetric;
+import org.rhq.metrics.core.SchemaManager;
 
 /**
  * @author John Sanda
@@ -52,6 +55,39 @@ public class MetricsServiceCassandra implements MetricsService {
     private ListeningExecutorService metricsTasks = MoreExecutors
         .listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
 
+    // temporary until we have a better solution
+    Set<String> ids = new TreeSet<>();
+
+    @Override
+    public void startUp(Map<String, String> params) {
+
+        String tmp = params.get("cqlport");
+        int port = 9042;
+        try {
+            port = Integer.parseInt(tmp);
+        } catch (NumberFormatException nfe) {
+            logger.warn("Invalid context param 'cqlport', not a number. Will use a default of 9042");
+        }
+
+        Cluster cluster = new Cluster.Builder()
+            .addContactPoints(getContactPoints())
+            .withPort(port)
+            .build();
+
+        updateSchemaIfNecessary(cluster);
+
+        String keyspace = params.get("keyspace");
+        if (keyspace==null||keyspace.isEmpty()) {
+            logger.info("No explicit keyspace given, will default to 'rhq'");
+            keyspace="rhq";
+        }
+        Session session = cluster.connect(keyspace);
+
+        dataAccess = new DataAccess(session);
+
+
+    }
+
     public void setDataAccess(DataAccess dataAccess) {
         this.dataAccess = dataAccess;
     }
@@ -67,6 +103,7 @@ public class MetricsServiceCassandra implements MetricsService {
                 ImmutableMap.of(DataType.RAW.ordinal(), metric.getAvg()), RAW_TTL);
             Futures.withFallback(future, new RawDataFallback(errors, metric));
             futures.add(future);
+            ids.add(metric.getId());
         }
         ListenableFuture<List<ResultSet>> insertsFuture = Futures.successfulAsList(futures);
 
@@ -91,12 +128,12 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public boolean idExists(String id) {
-        return false;  // TODO: Customise this generated block
+        return ids.contains(id);
     }
 
     @Override
     public List<String> listMetrics() {
-        return Collections.emptyList();
+        return new ArrayList<>(ids);
     }
 
     private class RawDataFallback implements FutureFallback<ResultSet> {
@@ -126,4 +163,18 @@ public class MetricsServiceCassandra implements MetricsService {
             return mapper.map(resultSet);
         }
     }
+
+
+    private void updateSchemaIfNecessary(Cluster cluster) {
+        try (Session session = cluster.connect("system")) {
+            SchemaManager schemaManager = new SchemaManager(session);
+//            schemaManager.updateSchema(container.config().getString(KEYSPACE, "rhq"));
+            schemaManager.updateSchema("rhq");
+        }
+    }
+
+    private String[] getContactPoints() {
+        return new String[] {"127.0.0.1"};
+    }
+
 }

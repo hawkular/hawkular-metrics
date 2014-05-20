@@ -25,6 +25,11 @@ public class MemoryMetricsService implements MetricsService {
     private Map<String,TLongDoubleMap> storage = new HashMap<>();
 
     @Override
+    public void startUp(Map<String, String> params) {
+        // Nothing to do for now.
+    }
+
+    @Override
     public ListenableFuture<Map<RawNumericMetric, Throwable>> addData(Set<RawNumericMetric> data) {
 
         TLongDoubleMap map ;
