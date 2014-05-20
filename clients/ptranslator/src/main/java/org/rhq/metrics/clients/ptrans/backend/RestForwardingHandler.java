@@ -32,6 +32,7 @@ import io.netty.util.CharsetUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
 
 import org.rhq.metrics.clients.ptrans.Main;
 import org.rhq.metrics.clients.ptrans.SingleMetric;
@@ -52,6 +53,8 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
     private int restPort = 7474;
     private String restPrefix = RHQ_METRICS_ENDPOINT;
 
+    private Channel senderChannel;
+
     private static final Logger logger = LoggerFactory.getLogger(RestForwardingHandler.class);
 
     public RestForwardingHandler() {
@@ -66,34 +69,47 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
 		final List<SingleMetric> in = (List<SingleMetric>) msg;
         logger.debug("Received some metrics :[" + in + "]");
 
+        if (senderChannel!=null ) {
+            sendToChannel(senderChannel,in);
+            return;
+        }
+
         ChannelFuture cf = connectRestServer(ctx.channel().eventLoop().parent());
 
         cf.addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
                 if (!future.isSuccess()) {
-                    // something went wrong
-//                    packet.release(); TODO what do we need to do?
                     logger.warn("something went wrong: ", future.cause());
+                    // TODO at this point we may consider buffering the data until
+                    //   the remote is back up again.
                 } else {
-                    String payload = eventsToJson(in);
-                    ByteBuf content = Unpooled.copiedBuffer(payload, CharsetUtil.UTF_8);
-                    final Channel ch = future.channel();
-                    FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST,
-                        restPrefix+"/data", content);
-                    HttpHeaders.setContentLength(request, content.readableBytes());
-                    HttpHeaders.setKeepAlive(request, true);
-                    HttpHeaders.setHeader(request, HttpHeaders.Names.CONTENT_TYPE, "application/json;charset=utf-8");
-                    ch.writeAndFlush(request).addListener(new ChannelFutureListener() {
-                        @Override
-                        public void operationComplete(ChannelFuture future) throws Exception {
-                            if (!future.isSuccess()) {
-                                // and remove from connection pool if you have one etc...
-                                ch.close();
-                                logger.error("op not complete: " + future.cause());
-                            }
-                        }
-                    });
+                    senderChannel = future.channel();
+                    sendToChannel(senderChannel, in);
+                }
+            }
+        });
+    }
+
+    private void sendToChannel(final Channel ch, List<SingleMetric> in) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Sending to channel " +ch );
+        }
+        String payload = eventsToJson(in);
+        ByteBuf content = Unpooled.copiedBuffer(payload, CharsetUtil.UTF_8);
+        FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST,
+            restPrefix+"/data", content);
+        HttpHeaders.setContentLength(request, content.readableBytes());
+        HttpHeaders.setKeepAlive(request, true);
+        HttpHeaders.setHeader(request, HttpHeaders.Names.CONTENT_TYPE, "application/json;charset=utf-8");
+        ch.writeAndFlush(request).addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture future) throws Exception {
+                if (!future.isSuccess()) {
+                    // and remove from connection pool if you have one etc...
+                    ch.close();
+                    senderChannel=null;
+                    logger.error("Sending to the rhq-metrics server failed: " + future.cause());
                 }
             }
         });

@@ -8,7 +8,7 @@ drawGraph: function(metric,divId) {
                 var w = svg.attr("width");
                 var h = svg.attr("height");
 
-                var points = jsondata;
+                var points = jsondata.sort(function(a,b) { return b.timestamp - a.timestamp});
                 var minVal = d3.min(jsondata, function(d) {return d.value});
                 var maxVal = d3.max(jsondata, function(d) {return d.value});
                 var minTs = d3.min(jsondata, function(d) {return d.timestamp});
@@ -29,6 +29,7 @@ drawGraph: function(metric,divId) {
 
                 // Remove old stuff -- we should perhaps animate that
                 svg.selectAll("g").remove();
+                svg.selectAll("path").remove();
 
 
                 // Prepare axes
@@ -64,6 +65,19 @@ drawGraph: function(metric,divId) {
                 var currX = function(d) {
                     return x(new Date(d.timestamp))
                 };
+
+                var linesFunction = d3.svg.line()
+                        .x(function(d,i) { return x(new Date(d.timestamp)); })
+                        .y(function(d) { return  h-y(d.value); })
+                        .interpolate("linear");
+
+                svg.append("path")
+                        .attr("d",linesFunction(points))
+                        .attr("stroke","lightblue")
+                        .attr("stroke-width",".5")
+                        .attr("stroke-dasharray","2,2")
+                        .attr("stroke-linecap","round")
+                        .attr("fill","none");
 
 
                 var group = bars.enter().append("svg:g");

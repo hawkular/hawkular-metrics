@@ -1,0 +1,74 @@
+<html ng-app="app">
+
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.16/angular.min.js">
+</script>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.16/angular-resource.min.js">
+</script>
+
+<script>
+  var m = angular.module('app', [
+    'ngResource'
+  ]);
+
+  m.factory('Ping', function($resource) {
+    return $resource('http://:server\::port/ping', {server: '@server', port: '@port'});
+  });
+
+  m.controller('Controller', function($scope, Ping){
+    $scope.server = localStorage.getItem('server') || 'localhost';
+    $scope.port = localStorage.getItem('port') || '7474'
+
+    $scope.ping= function() {
+      localStorage.setItem('server', $scope.server);
+      localStorage.setItem('port', $scope.port);
+
+      Ping.save({server: $scope.server, port: $scope.port}).
+      $promise
+      .then(function(result){
+        delete $scope.error;
+        $scope.reply = result;
+      }, function(err){
+        delete $scope.reply;
+        $scope.error = err;
+      });
+    };
+  });
+</script>
+</head>
+
+<body ng-controller="Controller">
+  <div >
+    <div>
+      Server:
+      <input type="text" ng-model="server"></input>
+    </div>
+    <div>
+      Port:
+      <input type="text" ng-model="port"></input>
+    </div>
+    <button ng-click="ping()">Ping Server</button>
+  </div>
+
+  <div style="margin-top:20px;" ng-show="error || reply">
+    <h3>Ping Result: {{reply? 'Success' : 'Error' }}</h3>
+
+    <div ng-show="reply">
+      Server Reply:
+      <div>{{reply}}</div>
+    </div>
+
+    <div ng-show="error">
+      <div>
+        Status:
+        <span>{{error.status}}</span>
+      </div>
+      <div>
+        Error:
+        <div>{{error.data}}</div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

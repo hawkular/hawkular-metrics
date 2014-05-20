@@ -2,6 +2,8 @@ package org.rhq.metrics.restServlet;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -24,9 +26,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.jboss.resteasy.annotations.GZIP;
-
 import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.RawNumericMetric;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Interface to deal with metrics
@@ -45,11 +48,22 @@ public class MetricHandler {
         }
     }
 
+	@GET
+	@Path("/ping")
+	@Consumes({ "application/json", "application/xml" })
+	@Produces({ "application/json", "application/xml" })
+	public Response ping() {
+		Map<String, String> reply = new HashMap<String, String>();
+		reply.put("pong", new Date().toString());
+
+		Response.ResponseBuilder builder = Response.ok(reply);
+		return builder.build();
+	}
+
     @POST
     @Path("/{id}/data")
     @Consumes({"application/json","application/xml"})
     public void addMetric(@PathParam("id)") String id, IdDataPoint dataPoint) {
-
 
         RawNumericMetric rawMetric = new RawNumericMetric(dataPoint.getId(),dataPoint.getValue(),dataPoint.getTimestamp());
         Set<RawNumericMetric> rawSet = new HashSet<>(1);
