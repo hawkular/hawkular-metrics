@@ -17,7 +17,7 @@
 
   m.controller('Controller', function($scope, Ping){
     $scope.server = localStorage.getItem('server') || 'localhost';
-    $scope.port = localStorage.getItem('port') || '7474'
+    $scope.port = localStorage.getItem('port') || '8080'
 
     $scope.ping= function() {
       localStorage.setItem('server', $scope.server);
