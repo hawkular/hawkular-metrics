@@ -53,5 +53,13 @@ Parameters are:
 
 === Running
 
+==== Method 1 (easy)
+`mvm clean install`
+
+`mvn wildfly:run`
+
+==== Method 2
 run `mvn install` to create the servlet and then drop it into a WildFly 8
 instance into `standalone/deploy/` and start the server with `bin/standalone.sh`
+
+
