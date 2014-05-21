@@ -30,6 +30,10 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
+    public void shutdown() {
+    }
+
+    @Override
     public ListenableFuture<Map<RawNumericMetric, Throwable>> addData(Set<RawNumericMetric> data) {
 
         TLongDoubleMap map ;

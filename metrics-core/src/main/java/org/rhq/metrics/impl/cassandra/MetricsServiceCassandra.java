@@ -48,6 +48,8 @@ public class MetricsServiceCassandra implements MetricsService {
     private RateLimiter permits = RateLimiter.create(Double.parseDouble(
         System.getProperty(REQUEST_LIMIT, "30000")), 3, TimeUnit.MINUTES);
 
+    private Session session;
+
     private DataAccess dataAccess;
 
     private MapQueryResultSet mapQueryResultSet = new MapQueryResultSet();
@@ -69,8 +71,15 @@ public class MetricsServiceCassandra implements MetricsService {
             logger.warn("Invalid context param 'cqlport', not a number. Will use a default of 9042");
         }
 
+        String[] nodes;
+        if (params.containsKey("nodes")) {
+            nodes = params.get("nodes").split(",");
+        } else {
+            nodes = new String[] {"127.0.0.1"};
+        }
+
         Cluster cluster = new Cluster.Builder()
-            .addContactPoints(getContactPoints())
+            .addContactPoints(nodes)
             .withPort(port)
             .build();
 
@@ -81,11 +90,14 @@ public class MetricsServiceCassandra implements MetricsService {
             logger.info("No explicit keyspace given, will default to 'rhq'");
             keyspace="rhq";
         }
-        Session session = cluster.connect(keyspace);
-
+        session = cluster.connect(keyspace);
         dataAccess = new DataAccess(session);
+    }
 
-
+    @Override
+    public void shutdown() {
+        session.close();
+        session.getCluster().close();
     }
 
     public void setDataAccess(DataAccess dataAccess) {
@@ -168,13 +180,8 @@ public class MetricsServiceCassandra implements MetricsService {
     private void updateSchemaIfNecessary(Cluster cluster) {
         try (Session session = cluster.connect("system")) {
             SchemaManager schemaManager = new SchemaManager(session);
-//            schemaManager.updateSchema(container.config().getString(KEYSPACE, "rhq"));
             schemaManager.updateSchema("rhq");
         }
-    }
-
-    private String[] getContactPoints() {
-        return new String[] {"127.0.0.1"};
     }
 
 }

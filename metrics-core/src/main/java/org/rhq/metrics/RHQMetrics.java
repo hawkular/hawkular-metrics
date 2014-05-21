@@ -1,0 +1,97 @@
+package org.rhq.metrics;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import com.google.common.util.concurrent.ListenableFuture;
+
+import org.rhq.metrics.core.MetricsService;
+import org.rhq.metrics.core.RawNumericMetric;
+import org.rhq.metrics.impl.cassandra.MetricsServiceCassandra;
+import org.rhq.metrics.impl.memory.MemoryMetricsService;
+
+/**
+ * @author John Sanda
+ */
+public class RHQMetrics {
+
+    public static class Builder {
+
+        private boolean usingCassandra;
+
+        private Map<String, String> options;
+
+        public Builder() {
+            options = new HashMap<>();
+            options.put("cqlport", "9042");
+            options.put("nodes", "127.0.0.1");
+            options.put("keyspace", "rhq-metrics");
+        }
+
+        public Builder withInMemoryDataStore() {
+            usingCassandra = false;
+            return this;
+        }
+
+        public Builder withCassandraDataStore() {
+            usingCassandra = true;
+            return this;
+        }
+
+        public Builder withCQLPort(int port) {
+            options.put("cqlport", Integer.toString(port));
+            return this;
+        }
+
+        public Builder withKeyspace(String keyspace) {
+            options.put("keyspace", keyspace);
+            return this;
+        }
+
+        public Builder withNodes(String... nodes) {
+            StringBuilder buffer = new StringBuilder();
+            for (String node : nodes) {
+                buffer.append(node).append(",");
+            }
+            if (buffer.length() > 0) {
+                buffer.deleteCharAt(buffer.length() - 1);
+            }
+            return this;
+        }
+
+        public RHQMetrics build() {
+            MetricsService metricsService;
+
+            if (usingCassandra) {
+                metricsService = new MetricsServiceCassandra();
+            } else {
+                metricsService = new MemoryMetricsService();
+            }
+            metricsService.startUp(options);
+
+            return new RHQMetrics(metricsService);
+        }
+
+    }
+
+    private MetricsService metricsService;
+
+    private RHQMetrics(MetricsService metricsService) {
+        this.metricsService = metricsService;
+    }
+
+    public ListenableFuture<Map<RawNumericMetric, Throwable>> addData(Set<RawNumericMetric> data) {
+        return metricsService.addData(data);
+    }
+
+    public ListenableFuture<List<RawNumericMetric>> findData(String id, long start, long end) {
+        return metricsService.findData(id, start, end);
+    }
+
+    public void shutdown() {
+        metricsService.shutdown();
+    }
+
+}

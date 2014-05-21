@@ -16,6 +16,8 @@ public interface MetricsService {
      * @param params from e.g. servlet context */
     void startUp(Map<String, String> params);
 
+    void shutdown();
+
     ListenableFuture<Map<RawNumericMetric, Throwable>> addData(Set<RawNumericMetric> data);
 
     ListenableFuture<List<RawNumericMetric>> findData(String bucket, String id, long start, long end);
