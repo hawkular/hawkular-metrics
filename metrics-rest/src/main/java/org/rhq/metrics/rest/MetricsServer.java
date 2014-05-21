@@ -23,7 +23,6 @@ public class MetricsServer extends Verticle {
 
 	/**
 	 * CORS Handler
-	 * 
 	 */
 	public class CORSHandler extends RouteMatcher {
 
@@ -56,13 +55,30 @@ public class MetricsServer extends Verticle {
 		}
 	}
 
+    /**
+     * JSON Content-Type Handler
+     */
+    public class JSONHandler extends RouteMatcher {
+        public JSONHandler(final RouteMatcher routeMatcher) {
+            this.all(".*", new Handler<HttpServerRequest>() {
+                @Override
+                public void handle(HttpServerRequest request) {
+                    request.response().putHeader("Content-Type",
+                            "application/json");
+
+                    routeMatcher.handle(request);
+                }
+            });
+        }
+    }
+
     public static final String HTTP_PORT = "httpPort";
 
     @Override
     public void start() {
         RouteMatcher routeMatcher = new RouteMatcher();
 
-        routeMatcher.all("/ping", new Handler<HttpServerRequest>() {
+        routeMatcher.all("/rhq-metrics/ping", new Handler<HttpServerRequest>() {
 			@Override
 			public void handle(HttpServerRequest request) {
 				JsonObject responseBody = new JsonObject()
@@ -203,8 +219,10 @@ public class MetricsServer extends Verticle {
             }
         });
 
-        vertx.createHttpServer().requestHandler(new CORSHandler(routeMatcher)).listen(container.config().getNumber(HTTP_PORT,
-            7474).intValue());
+        vertx.createHttpServer()
+                .requestHandler(new CORSHandler(new JSONHandler(routeMatcher)))
+                .listen(container.config().getNumber(HTTP_PORT,
+            8080).intValue());
     }
 
 }
