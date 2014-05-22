@@ -32,13 +32,13 @@ or if the input contains a collection of metrics
 
 === Retrieve data
 
-Endpoint is http://localhost:8080/rhq-metric/{id}/data
+Endpoint is http://localhost:8080/rhq-metrics/{id}/data
 
-  $ curl -i http://localhost:8080/rhq-metric/foo/data?start=0\&end=2000 -HAccept:application/json
+  $ curl -i http://localhost:8080/rhq-metrics/foo/data?start=0\&end=2000 -HAccept:application/json
 
 or simply
 
-  $ curl -i http://localhost:8080/rhq-metric/values/foo
+  $ curl -i http://localhost:8080/rhq-metrics/values/foo
 
 to receive data for the last 8 hours
 
@@ -49,7 +49,7 @@ Parameters are:
 
 === List metric names
 
-  $  curl -i http://localhost:8080/rhq-metric/list -HAccept:application/json
+  $  curl -i http://localhost:8080/rhq-metrics/list -HAccept:application/json
 
 === Running
 
