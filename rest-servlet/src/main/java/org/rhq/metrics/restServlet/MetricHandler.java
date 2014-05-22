@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -16,9 +17,14 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.container.AsyncResponse;
+import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.GenericEntity;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -26,10 +32,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.jboss.resteasy.annotations.GZIP;
+
+import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.RawNumericMetric;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Interface to deal with metrics
@@ -41,6 +47,9 @@ public class MetricHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(MetricHandler.class);
     private static final long EIGHT_HOURS = 8L*60L*60L*1000L; // 8 Hours in milliseconds
+
+    @Inject
+    private MetricsService metricsService;
 
     public MetricHandler() {
         if (logger.isDebugEnabled()) {
@@ -64,18 +73,18 @@ public class MetricHandler {
     @POST
     @Path("/{id}/data")
     @Consumes({"application/json","application/xml"})
-    public void addMetric(@PathParam("id)") String id, IdDataPoint dataPoint) {
-
+    public void addMetric(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id, IdDataPoint dataPoint) {
         RawNumericMetric rawMetric = new RawNumericMetric(dataPoint.getId(),dataPoint.getValue(),dataPoint.getTimestamp());
         Set<RawNumericMetric> rawSet = new HashSet<>(1);
         rawSet.add(rawMetric);
-        addData(rawSet);
+        addData(asyncResponse, ImmutableSet.of(new RawNumericMetric(dataPoint.getId(), dataPoint.getValue(),
+            dataPoint.getTimestamp())));
     }
 
     @POST
     @Path("/data")
     @Consumes({"application/json","application/xml"})
-    public void addMetrics(Collection<IdDataPoint> dataPoints) {
+    public void addMetrics(@Suspended AsyncResponse asyncResponse, Collection<IdDataPoint> dataPoints) {
 
         Set<RawNumericMetric> rawSet = new HashSet<>(dataPoints.size());
         for (IdDataPoint dataPoint : dataPoints) {
@@ -84,28 +93,43 @@ public class MetricHandler {
             rawSet.add(rawMetric);
         }
 
-        addData(rawSet);
+        addData(asyncResponse, rawSet);
     }
 
-    private void addData(Set<RawNumericMetric> rawData) {
-        // The Futures.getUnchecked call is only being used temporarily until the REST
-        // stuff is wired up to work with a Cassandra backend.
-        ListenableFuture<Map<RawNumericMetric,Throwable>> future = ServiceKeeper.getInstance().service.addData(rawData);
-        Futures.getUnchecked(future);
+    private void addData(final AsyncResponse asyncResponse, Set<RawNumericMetric> rawData) {
+        ListenableFuture<Map<RawNumericMetric,Throwable>> future = metricsService.addData(rawData);
+        Futures.addCallback(future, new FutureCallback<Map<RawNumericMetric, Throwable>>() {
+            @Override
+            public void onSuccess(Map<RawNumericMetric, Throwable> errors) {
+                Response jaxrs = Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build();
+                asyncResponse.resume(jaxrs);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
     }
 
     @GZIP
     @GET
     @Path("/{id}/data")
     @Produces({"application/json","text/json","application/xml"})
-    public Response getDataForId(@PathParam("id") String id, @QueryParam("start") Long start, @QueryParam("end") Long end) {
+    public void getDataForId(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
+        @QueryParam("start") Long start, @QueryParam("end") Long end) {
 
-        Response.ResponseBuilder builder;
-
-        if (!ServiceKeeper.getInstance().service.idExists(id)) {
-            builder = Response.status(404).entity("Id [" + id + "] not found. ");
-            return builder.build();
-        }
+        // The idExists call is commented out since the Cassandra based impl is a no-op. We
+        // need to decided whether or not this check is really necessary. There isn't really
+        // an efficient way to do this in Cassandra unless we either query all keys or
+        // introduce new schema to support this method.
+        //
+        // jsanda
+//        if (!metricsService.idExists(id)) {
+//            asyncResponse.resume(Response.status(404).entity("Id [" + id + "] not found. ").build());
+////            builder = Response.status(404).entity("Id [" + id + "] not found. ");
+////            return builder.build();
+//        }
 
         long now = System.currentTimeMillis();
         if (start==null) {
@@ -115,22 +139,27 @@ public class MetricHandler {
             end = now;
         }
 
-        final ListenableFuture<List<RawNumericMetric>> future = ServiceKeeper.getInstance().service.findData(id, start,
-            end);
-        // The Futures.getUnchecked call is only being used temporarily until the REST
-        // stuff is wired up to work with a Cassandra backend.
-        List<RawNumericMetric> data = Futures.getUnchecked(future);
-        final List<DataPoint> points = new ArrayList<>(data.size());
-        for (NumericMetric item : data) {
-            DataPoint point = new DataPoint(item.getTimestamp(),item.getAvg());
-            points.add(point);
-        }
+        final ListenableFuture<List<RawNumericMetric>> future = metricsService.findData(id, start, end);
 
-        GenericEntity<List<DataPoint>> list = new GenericEntity<List<DataPoint>>(points) { };
-        builder = Response.ok(list);
+        Futures.addCallback(future, new FutureCallback<List<RawNumericMetric>>() {
+            @Override
+            public void onSuccess(List<RawNumericMetric> metrics) {
+                List<DataPoint> points = new ArrayList<>(metrics.size());
+                for (NumericMetric item : metrics) {
+                    DataPoint point = new DataPoint(item.getTimestamp(),item.getAvg());
+                    points.add(point);
+                }
 
-        return builder.build();
+                GenericEntity<List<DataPoint>> list = new GenericEntity<List<DataPoint>>(points) {};
+                Response jaxrs = Response.ok(list).type(MediaType.APPLICATION_JSON_TYPE).build();
+                asyncResponse.resume(jaxrs);
+            }
 
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
     }
 
     @GZIP
