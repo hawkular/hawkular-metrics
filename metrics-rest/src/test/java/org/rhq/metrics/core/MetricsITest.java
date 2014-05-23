@@ -117,7 +117,7 @@ public class MetricsITest extends MetricsTest {
         final Buffer buffer = new Buffer();
 
         HttpClient httpClient = platformManager.vertx().createHttpClient().setPort(7474);
-        httpClient.getNow("/rhq-metrics/" + metricId + "/data", new Handler<HttpClientResponse>() {
+        httpClient.getNow("/rhq-metrics/metrics" + metricId, new Handler<HttpClientResponse>() {
             public void handle(HttpClientResponse response) {
                 response.bodyHandler(new Handler<Buffer>() {
                     public void handle(Buffer content) {
@@ -178,7 +178,7 @@ public class MetricsITest extends MetricsTest {
         final CountDownLatch responseReceived = new CountDownLatch(1);
         final Buffer buffer = new Buffer();
 
-        String uri = "/rhq-metrics/" + metricId + "/data?start=" + timestamp3 + "&end=" + timestamp1;
+        String uri = "/rhq-metrics/metrics/" + metricId + "?start=" + timestamp3 + "&end=" + timestamp1;
         HttpClient httpClient = platformManager.vertx().createHttpClient().setPort(7474);
         httpClient.getNow(uri, new Handler<HttpClientResponse>() {
             public void handle(HttpClientResponse response) {
@@ -236,7 +236,7 @@ public class MetricsITest extends MetricsTest {
         final Map<String, JsonObject> results = new HashMap<String, JsonObject>();
 
 
-        String uri = "/rhq-metrics/data?id=100&id=200&id=300";
+        String uri = "/rhq-metrics/metrics?id=100&id=200&id=300";
         HttpClient httpClient = platformManager.vertx().createHttpClient().setPort(7474);
         HttpClientRequest request = httpClient.get(uri, new Handler<HttpClientResponse>() {
             public void handle(HttpClientResponse response) {
@@ -327,7 +327,7 @@ public class MetricsITest extends MetricsTest {
         final CountDownLatch responseReceived = new CountDownLatch(1);
         final Map<String, JsonObject> results = new HashMap<String, JsonObject>();
 
-        String uri = "/rhq-metrics/data?id=100&id=200&&start=" + (collectionTime - 300) + "&end=" +
+        String uri = "/rhq-metrics/metrics?id=100&id=200&&start=" + (collectionTime - 300) + "&end=" +
             (collectionTime - 100);
         HttpClient httpClient = platformManager.vertx().createHttpClient().setPort(7474);
         HttpClientRequest request = httpClient.get(uri, new Handler<HttpClientResponse>() {
@@ -397,7 +397,7 @@ public class MetricsITest extends MetricsTest {
         int contentLength = json.toString().length();
 
         HttpClient httpClient = platformManager.vertx().createHttpClient().setPort(7474);
-        HttpClientRequest request = httpClient.post("/rhq-metrics/" + id + "/data", new Handler<HttpClientResponse>() {
+        HttpClientRequest request = httpClient.post("/rhq-metrics/metrics/" + id, new Handler<HttpClientResponse>() {
             public void handle(HttpClientResponse response) {
                 status.set(response.statusCode());
                 responseReceived.countDown();
@@ -451,7 +451,7 @@ public class MetricsITest extends MetricsTest {
         int contentLength = json.toString().length();
 
         HttpClient httpClient = platformManager.vertx().createHttpClient().setPort(7474);
-        HttpClientRequest request = httpClient.post("/rhq-metrics/data", new Handler<HttpClientResponse>() {
+        HttpClientRequest request = httpClient.post("/rhq-metrics/metrics", new Handler<HttpClientResponse>() {
             public void handle(HttpClientResponse response) {
                 status.set(response.statusCode());
                 responseReceived.countDown();

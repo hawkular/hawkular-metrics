@@ -88,7 +88,7 @@ public class MetricsServer extends Verticle {
 			}
         });
 
-        routeMatcher.get("/rhq-metrics/:id/data", new Handler<HttpServerRequest>() {
+        routeMatcher.get("/rhq-metrics/metrics/:id/", new Handler<HttpServerRequest>() {
             @Override
             public void handle(final HttpServerRequest request) {
                 final String id = request.params().get("id");
@@ -123,7 +123,7 @@ public class MetricsServer extends Verticle {
             }
         });
 
-        routeMatcher.post("/rhq-metrics/:id/data", new Handler<HttpServerRequest>() {
+        routeMatcher.post("/rhq-metrics/metrics/:id", new Handler<HttpServerRequest>() {
             public void handle(final HttpServerRequest request) {
                 request.bodyHandler(new Handler<Buffer>() {
                     public void handle(Buffer body) {
@@ -149,7 +149,7 @@ public class MetricsServer extends Verticle {
             }
         });
 
-        routeMatcher.get("/rhq-metrics/data", new Handler<HttpServerRequest>() {
+        routeMatcher.get("/rhq-metrics/metrics", new Handler<HttpServerRequest>() {
             public void handle(final HttpServerRequest request) {
                 final List<String> ids = request.params().getAll("id");
                 if (ids.isEmpty()) {
@@ -197,7 +197,7 @@ public class MetricsServer extends Verticle {
             }
         });
 
-        routeMatcher.post("/rhq-metrics/data", new Handler<HttpServerRequest>() {
+        routeMatcher.post("/rhq-metrics/metrics", new Handler<HttpServerRequest>() {
             public void handle(final HttpServerRequest request) {
                 request.bodyHandler(new Handler<Buffer>() {
                     public void handle(Buffer body) {

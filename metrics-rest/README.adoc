@@ -99,7 +99,7 @@ GET
 
 #### URI
 
-/rhq-metrics/:id/data
+/rhq-metrics/metrics/:id
 
 #### Parameters
 
@@ -125,7 +125,7 @@ GET
 
 #### Example
 
-`GET http://localhost:7474/rhq-metrics/100/data?start=1398911637596&end=1398891828116`
+`GET http://localhost:7474/rhq-metrics/metrics/100?start=1398911637596&end=1398891828116`
 
     {
       "bucket": "raw",
@@ -162,7 +162,7 @@ GET
 
 #### URI
 
-/rhq-metrics/data
+/rhq-metrics/metrics
 
 #### Parameters
 
@@ -199,7 +199,7 @@ GET
 
 #### Example
 
-`GET http://7474/rhq-metrics/data?id=100&id=200&id300`
+`GET http://7474/rhq-metrics/metrics?id=100&id=200&id300`
 
 ```
 // The HTTP response uses chunked encoding, with each chunk containing 
@@ -266,7 +266,7 @@ POST
 
 #### URI
 
-/rhq-metrics/:id/data
+/rhq-metrics/metrics/:id
 
 #### Parameters
 
@@ -274,7 +274,7 @@ None
 
 #### Example
 
-`POST http://localhost:7474/rhq-metrics/100/data`
+`POST http://localhost:7474/rhq-metrics/metrics/100`
 
 ```
 // request body
@@ -297,7 +297,7 @@ POST
 
 #### URI
 
-/rhq-metrics/data
+/rhq-metrics/metrics
 
 #### Parameters
 
@@ -305,7 +305,7 @@ None
 
 #### Example
 
-`POST http://localhost:7474/rhq-metrics/data`
+`POST http://localhost:7474/rhq-metrics/metrics`
 
 ```
 [
