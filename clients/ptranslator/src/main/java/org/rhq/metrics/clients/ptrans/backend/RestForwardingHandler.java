@@ -46,7 +46,7 @@ import static io.netty.channel.ChannelHandler.Sharable;
 @Sharable
 public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
 
-    private static final String RHQ_METRICS_ENDPOINT = "/rhq-metrics";
+    private static final String RHQ_METRICS_ENDPOINT = "/rhq-metrics/metrics";
     private static final String DEFAULT_REST_PORT = "8080";
     private String restHost = "localhost";
     private int restPort = 8080;
@@ -102,7 +102,7 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
         String payload = eventsToJson(in);
         ByteBuf content = Unpooled.copiedBuffer(payload, CharsetUtil.UTF_8);
         FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST,
-            restPrefix+"/data", content);
+            restPrefix, content);
         HttpHeaders.setContentLength(request, content.readableBytes());
         HttpHeaders.setKeepAlive(request, true);
         HttpHeaders.setHeader(request, HttpHeaders.Names.CONTENT_TYPE, "application/json;charset=utf-8");

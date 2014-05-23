@@ -1,4 +1,4 @@
-== Servlet that exposes a rest endpoint to add / retrive data
+== Servlet that exposes a rest endpoint to add / retrieve data
 
 Example input as JSON
 [source,json]
@@ -22,23 +22,23 @@ Example input as XML
 
 === Add data
 
-Endpoint is http://localhost:8080/rhq-metrics/{id}/data for a single data item
+Endpoint is http://localhost:8080/rhq-metrics/metrics/{id} for a single data item
 
-  $ curl -i -X POST http://localhost:8080/rhq-metrics/ -d@/tmp/fooX -HContent-Type:application/xml
+  $ curl -i -X POST http://localhost:8080/rhq-metrics/metrics -d@/tmp/fooX -HContent-Type:application/json
 
 or if the input contains a collection of metrics
 
-  $ curl -i -X POST http://localhost:8080/rhq-metrics -d@/tmp/fooX -HContent-Type:application/xml
+  $ curl -i -X POST http://localhost:8080/rhq-metrics/metrics -d@/tmp/fooX -HContent-Type:application/json
 
 === Retrieve data
 
-Endpoint is http://localhost:8080/rhq-metrics/{id}/data
+Endpoint is http://localhost:8080/rhq-metrics/metrics/{id}
 
-  $ curl -i http://localhost:8080/rhq-metrics/foo/data?start=0\&end=2000 -HAccept:application/json
+  $ curl -i http://localhost:8080/rhq-metrics/metrics/foo?start=0\&end=2000 -HAccept:application/json
 
 or simply
 
-  $ curl -i http://localhost:8080/rhq-metrics/values/foo
+  $ curl -i http://localhost:8080/rhq-metrics/metrics/foo
 
 to receive data for the last 8 hours
 
@@ -49,7 +49,7 @@ Parameters are:
 
 === List metric names
 
-  $  curl -i http://localhost:8080/rhq-metrics/list -HAccept:application/json
+  $  curl -i http://localhost:8080/rhq-metrics/metrics
 
 === Running
 
@@ -60,6 +60,6 @@ Parameters are:
 
 ==== Method 2
 run `mvn install` to create the servlet and then drop it into a WildFly 8
-instance into `standalone/deploy/` and start the server with `bin/standalone.sh`
+instance into `standalone/deployments/` and start the server with `bin/standalone.sh`
 
 

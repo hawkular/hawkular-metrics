@@ -58,7 +58,7 @@ public class MetricHandler {
     }
 
 	@GET
-	@POST
+    @POST
 	@Path("/ping")
 	@Consumes({ "application/json", "application/xml" })
 	@Produces({ "application/json", "application/xml" })
@@ -71,7 +71,7 @@ public class MetricHandler {
 	}
 
     @POST
-    @Path("/{id}/data")
+    @Path("/metrics/{id}")
     @Consumes({"application/json","application/xml"})
     public void addMetric(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id, IdDataPoint dataPoint) {
         RawNumericMetric rawMetric = new RawNumericMetric(dataPoint.getId(),dataPoint.getValue(),dataPoint.getTimestamp());
@@ -82,7 +82,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/data")
+    @Path("/metrics")
     @Consumes({"application/json","application/xml"})
     public void addMetrics(@Suspended AsyncResponse asyncResponse, Collection<IdDataPoint> dataPoints) {
 
@@ -114,7 +114,7 @@ public class MetricHandler {
 
     @GZIP
     @GET
-    @Path("/{id}/data")
+    @Path("/metrics/{id}")
     @Produces({"application/json","text/json","application/xml"})
     public void getDataForId(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
         @QueryParam("start") Long start, @QueryParam("end") Long end) {
@@ -164,7 +164,7 @@ public class MetricHandler {
 
     @GZIP
     @GET
-    @Path("/list")
+    @Path("/metrics")
     @Produces({"application/json","text/json","application/xml"})
     public Response listMetrics(@QueryParam("q") String filter) {
 
@@ -173,7 +173,7 @@ public class MetricHandler {
         final List<SimpleLink> listWithLinks = new ArrayList<>(names.size());
         for (String name : names) {
             if ((filter == null || filter.isEmpty()) || (name.contains(filter))) {
-                SimpleLink link = new SimpleLink("metrics", "/rhq-metrics/" + name + "/data", name);
+                SimpleLink link = new SimpleLink("metrics", "/rhq-metrics/metrics/" + name + "/", name);
                 listWithLinks.add(link);
             }
         }
