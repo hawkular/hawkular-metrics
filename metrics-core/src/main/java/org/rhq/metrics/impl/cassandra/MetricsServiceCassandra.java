@@ -45,6 +45,13 @@ public class MetricsServiceCassandra implements MetricsService {
 
     private static final int RAW_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
+    private static final Function<ResultSet, Void> TO_VOID = new Function<ResultSet, Void>() {
+        @Override
+        public Void apply(ResultSet resultSet) {
+            return null;
+        }
+    };
+
     private RateLimiter permits = RateLimiter.create(Double.parseDouble(
         System.getProperty(REQUEST_LIMIT, "30000")), 3, TimeUnit.MINUTES);
 
@@ -102,6 +109,14 @@ public class MetricsServiceCassandra implements MetricsService {
 
     public void setDataAccess(DataAccess dataAccess) {
         this.dataAccess = dataAccess;
+    }
+
+
+    public ListenableFuture<Void> addData(RawNumericMetric data) {
+        permits.acquire();
+        ResultSetFuture future = dataAccess.insertData(data.getBucket(), data.getId(), data.getTimestamp(),
+            ImmutableMap.of(DataType.RAW.ordinal(), data.getValue()), RAW_TTL);
+        return Futures.transform(future, TO_VOID);
     }
 
     @Override
@@ -175,7 +190,6 @@ public class MetricsServiceCassandra implements MetricsService {
             return mapper.map(resultSet);
         }
     }
-
 
     private void updateSchemaIfNecessary(Cluster cluster) {
         try (Session session = cluster.connect("system")) {

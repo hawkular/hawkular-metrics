@@ -22,6 +22,8 @@ import gnu.trove.map.hash.TLongDoubleHashMap;
  */
 public class MemoryMetricsService implements MetricsService {
 
+    private static final ListenableFuture<Void> VOID_FUTURE = Futures.immediateFuture(null);
+
     private Map<String,TLongDoubleMap> storage = new HashMap<>();
 
     @Override
@@ -34,23 +36,34 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
+    public ListenableFuture<Void> addData(RawNumericMetric data) {
+        addMetric(data);
+        return VOID_FUTURE;
+    }
+
+    @Override
     public ListenableFuture<Map<RawNumericMetric, Throwable>> addData(Set<RawNumericMetric> data) {
 
         TLongDoubleMap map ;
         for (RawNumericMetric metric : data) {
-            String metricId = metric.getId();
-            if (storage.containsKey(metricId)) {
-                map = storage.get(metricId);
-            } else {
-                map = new TLongDoubleHashMap();
-                storage.put(metricId,map);
-            }
-            map.put(metric.getTimestamp(), metric.getAvg()); // TODO getAvg() may be wrong in future
+            addMetric(metric);
 
             // TODO expire an old entry
         }
         Map<RawNumericMetric, Throwable> errors = Collections.emptyMap();
         return Futures.immediateFuture(errors);
+    }
+
+    private void addMetric(RawNumericMetric metric) {
+        TLongDoubleMap map;
+        String metricId = metric.getId();
+        if (storage.containsKey(metricId)) {
+            map = storage.get(metricId);
+        } else {
+            map = new TLongDoubleHashMap();
+            storage.put(metricId,map);
+        }
+        map.put(metric.getTimestamp(), metric.getAvg()); // TODO getAvg() may be wrong in future
     }
 
     @Override

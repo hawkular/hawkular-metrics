@@ -18,6 +18,8 @@ public interface MetricsService {
 
     void shutdown();
 
+    ListenableFuture<Void> addData(RawNumericMetric data);
+
     ListenableFuture<Map<RawNumericMetric, Throwable>> addData(Set<RawNumericMetric> data);
 
     ListenableFuture<List<RawNumericMetric>> findData(String bucket, String id, long start, long end);

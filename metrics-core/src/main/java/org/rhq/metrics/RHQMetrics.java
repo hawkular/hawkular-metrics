@@ -82,6 +82,10 @@ public class RHQMetrics {
         this.metricsService = metricsService;
     }
 
+    public ListenableFuture<Void> addData(RawNumericMetric data) {
+        return metricsService.addData(data);
+    }
+
     public ListenableFuture<Map<RawNumericMetric, Throwable>> addData(Set<RawNumericMetric> data) {
         return metricsService.addData(data);
     }
