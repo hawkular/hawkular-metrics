@@ -3,6 +3,7 @@ package org.rhq.metrics.core;
 import static org.testng.Assert.assertEquals;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
@@ -56,7 +57,8 @@ public class MetricsServiceTest extends MetricsTest {
             new RawNumericMetric("1", 23.32, hour(5).plusMinutes(3).plusSeconds(15).getMillis())
         );
 
-        metricsService.addData(data);
+        ListenableFuture<Map<RawNumericMetric, Throwable>> insertFuture =  metricsService.addData(data);
+        getUninterruptibly(insertFuture);
         ListenableFuture<List<RawNumericMetric>> future = metricsService.findData("raw", "1",
             hour(5).plusMinutes(3).getMillis(), hour(5).plusMinutes(4).getMillis());
 
