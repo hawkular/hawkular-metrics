@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -27,8 +28,13 @@ public class MemoryMetricsService implements MetricsService {
     private Map<String,TLongDoubleMap> storage = new HashMap<>();
 
     @Override
+    public void startUp(Session session) {
+        throw new IllegalArgumentException("Not supported");
+    }
+
+    @Override
     public void startUp(Map<String, String> params) {
-        // Nothing to do for now.
+
     }
 
     @Override

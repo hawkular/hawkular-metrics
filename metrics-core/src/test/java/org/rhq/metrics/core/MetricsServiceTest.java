@@ -23,17 +23,13 @@ public class MetricsServiceTest extends MetricsTest {
 
     private MetricsServiceCassandra metricsService;
 
-    private DataAccess dataAccess;
-
     private RawMetricMapper rawMapper = new RawMetricMapper();
 
     @BeforeClass
     public void initClass() {
         initSession();
-        dataAccess = new DataAccess(session);
-
         metricsService = new MetricsServiceCassandra();
-        metricsService.setDataAccess(dataAccess);
+        metricsService.startUp(session);
     }
 
     @BeforeMethod

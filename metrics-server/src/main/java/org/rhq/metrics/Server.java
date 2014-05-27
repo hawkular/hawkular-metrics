@@ -57,7 +57,7 @@ public class Server extends Verticle {
             final DataAccess dataAccess = new DataAccess(session);
 
             final MetricsServiceCassandra metricsService = new MetricsServiceCassandra();
-            metricsService.setDataAccess(dataAccess);
+            metricsService.startUp(session);
 
             vertx.eventBus().registerHandler("rhq.metrics.get", new Handler<Message<JsonObject>>() {
                 @Override
