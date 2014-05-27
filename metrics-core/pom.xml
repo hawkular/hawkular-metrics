@@ -16,7 +16,7 @@
 
       <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>rhq-metrics-core-api</artifactId>
+          <artifactId>rhq-metrics-api</artifactId>
           <version>${project.version}</version>
       </dependency>
 

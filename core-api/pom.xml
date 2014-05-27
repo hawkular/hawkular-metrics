@@ -9,8 +9,8 @@
     <version>0.1.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>rhq-metrics-core-api</artifactId>
-  <name>RHQ Metrics Core API</name>
+  <artifactId>rhq-metrics-api</artifactId>
+  <name>RHQ Metrics API</name>
 
   <dependencies>
     <dependency>
@@ -19,6 +19,12 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
+
+      <dependency>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+          <version>${guava.version}</version>
+      </dependency>
 
     <dependency>
       <groupId>joda-time</groupId>
