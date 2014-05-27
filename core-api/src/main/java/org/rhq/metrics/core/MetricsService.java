@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.ListenableFuture;
 
 /**
@@ -15,6 +16,12 @@ public interface MetricsService {
     /** called to start the service up if needed
      * @param params from e.g. servlet context */
     void startUp(Map<String, String> params);
+
+    /**
+     * Startup with a given cassandra session
+     * @param session
+     */
+    void startUp(Session session);
 
     void shutdown();
 
@@ -42,4 +49,6 @@ public interface MetricsService {
     //
     // jsanda
     List<String> listMetrics();
+
+
 }

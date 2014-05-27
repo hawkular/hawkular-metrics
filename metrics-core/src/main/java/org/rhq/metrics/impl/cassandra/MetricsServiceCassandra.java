@@ -14,6 +14,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.FutureFallback;
 import com.google.common.util.concurrent.Futures;
@@ -55,7 +56,7 @@ public class MetricsServiceCassandra implements MetricsService {
     private RateLimiter permits = RateLimiter.create(Double.parseDouble(
         System.getProperty(REQUEST_LIMIT, "30000")), 3, TimeUnit.MINUTES);
 
-    private Session session;
+    private Optional<Session> session;
 
     private DataAccess dataAccess;
 
@@ -66,6 +67,13 @@ public class MetricsServiceCassandra implements MetricsService {
 
     // temporary until we have a better solution
     Set<String> ids = new TreeSet<>();
+
+    @Override
+    public void startUp(Session s) {
+        // the session is managed externally
+        this.session = Optional.absent();
+        this.dataAccess = new DataAccess(s);
+    }
 
     @Override
     public void startUp(Map<String, String> params) {
@@ -97,20 +105,18 @@ public class MetricsServiceCassandra implements MetricsService {
             logger.info("No explicit keyspace given, will default to 'rhq'");
             keyspace="rhq";
         }
-        session = cluster.connect(keyspace);
-        dataAccess = new DataAccess(session);
+        session = Optional.of(cluster.connect(keyspace));
+        dataAccess = new DataAccess(session.get());
     }
 
     @Override
     public void shutdown() {
-        session.close();
-        session.getCluster().close();
+        if(session.isPresent()) {
+            Session s = session.get();
+            s.close();
+            s.getCluster().close();
+        }
     }
-
-    public void setDataAccess(DataAccess dataAccess) {
-        this.dataAccess = dataAccess;
-    }
-
 
     public ListenableFuture<Void> addData(RawNumericMetric data) {
         permits.acquire();
