@@ -1,4 +1,10 @@
 = rhq-metrics
+:source-language: java
+
+ifdef::env-github[]
+[link=https://travis-ci.org/rhq-project/rhq-metrics]
+image::https://travis-ci.org/rhq-project/rhq-metrics.svg?branch=master[Build Status,70,18]
+endif::[]
 
 Project to implement a MaaS and CaaS
 
