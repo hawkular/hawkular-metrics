@@ -9,17 +9,10 @@
     <version>0.1.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>rhq-metrics-core</artifactId>
-  <name>RHQ Metrics Core</name>
+  <artifactId>rhq-metrics-core-api</artifactId>
+  <name>RHQ Metrics Core API</name>
 
   <dependencies>
-
-      <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>rhq-metrics-core-api</artifactId>
-          <version>${project.version}</version>
-      </dependency>
-
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>rhq-metrics-test-utils</artifactId>
@@ -28,22 +21,9 @@
     </dependency>
 
     <dependency>
-      <groupId>com.datastax.cassandra</groupId>
-      <artifactId>cassandra-driver-core</artifactId>
-      <version>${datastax.driver.version}</version>
-    </dependency>
-
-    <dependency>
       <groupId>joda-time</groupId>
       <artifactId>joda-time</artifactId>
       <version>${joda.time.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.testng</groupId>
-      <artifactId>testng</artifactId>
-      <version>${testng.version}</version>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
@@ -58,11 +38,6 @@
       <version>${log4j.version}</version>
     </dependency>
 
-    <dependency>
-      <groupId>net.sf.trove4j</groupId>
-      <artifactId>trove4j</artifactId>
-      <version>${trove4j.version}</version>
-    </dependency>
   </dependencies>
 
   <profiles>
@@ -78,38 +53,6 @@
 
       <build>
         <plugins>
-          <plugin>
-            <groupId>org.codehaus.gmaven</groupId>
-            <artifactId>groovy-maven-plugin</artifactId>
-            <dependencies>
-              <dependency>
-                <groupId>org.codehaus.groovy</groupId>
-                <artifactId>groovy-all</artifactId>
-                <version>2.0.6</version>
-              </dependency>
-              <dependency>
-                <groupId>com.datastax.cassandra</groupId>
-                <artifactId>cassandra-driver-core</artifactId>
-                <version>${datastax.driver.version}</version>
-              </dependency>
-            </dependencies>
-            <executions>
-              <execution>
-                <id>install-schema</id>
-                <phase>test-compile</phase>
-                <goals>
-                  <goal>execute</goal>
-                </goals>
-                <configuration>
-                  <classpathScope>compile</classpathScope>
-                  <source>${project.basedir}/src/main/script/schema.groovy</source>
-                  <properties>
-                    <keyspace>${test.keyspace}</keyspace>
-                  </properties>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
 
           <plugin>
             <artifactId>maven-surefire-plugin</artifactId>
