@@ -1,4 +1,4 @@
-== Servlet that exposes a rest endpoint to add / retrieve data
+== JAX-RS (RESTEasy) Servlet Endpoint that provides ability to add / retrieve data
 
 Example input as JSON
 [source,json]
@@ -24,9 +24,9 @@ Example input as XML
 
 Endpoint is http://localhost:8080/rhq-metrics/metrics/{id} for a single data item
 
-  $ curl -i -X POST http://localhost:8080/rhq-metrics/metrics -d@/tmp/fooX -HContent-Type:application/json
+  $ curl -i -X POST http://localhost:8080/rhq-metrics/metrics/foo -d@/tmp/fooX -HContent-Type:application/json
 
-or if the input contains a collection of metrics
+or if the input contains a collection of metrics (now you need to provide ids for each element in the array)
 
   $ curl -i -X POST http://localhost:8080/rhq-metrics/metrics -d@/tmp/fooX -HContent-Type:application/json
 
