@@ -41,7 +41,6 @@ import org.rhq.metrics.core.RawNumericMetric;
  * Interface to deal with metrics
  * @author Heiko W. Rupp
  */
-//@Stateless
 @Path("/")
 public class MetricHandler {
 
@@ -74,9 +73,6 @@ public class MetricHandler {
     @Path("/metrics/{id}")
     @Consumes({"application/json","application/xml"})
     public void addMetric(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id, IdDataPoint dataPoint) {
-        RawNumericMetric rawMetric = new RawNumericMetric(dataPoint.getId(),dataPoint.getValue(),dataPoint.getTimestamp());
-        Set<RawNumericMetric> rawSet = new HashSet<>(1);
-        rawSet.add(rawMetric);
         addData(asyncResponse, ImmutableSet.of(new RawNumericMetric(dataPoint.getId(), dataPoint.getValue(),
             dataPoint.getTimestamp())));
     }
@@ -115,7 +111,7 @@ public class MetricHandler {
     @GZIP
     @GET
     @Path("/metrics/{id}")
-    @Produces({"application/json","text/json","application/xml"})
+    @Produces({"application/json","application/xml"})
     public void getDataForId(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
         @QueryParam("start") Long start, @QueryParam("end") Long end) {
 
@@ -165,7 +161,7 @@ public class MetricHandler {
     @GZIP
     @GET
     @Path("/metrics")
-    @Produces({"application/json","text/json","application/xml"})
+    @Produces({"application/json","application/xml"})
     public Response listMetrics(@QueryParam("q") String filter) {
 
         List<String> names = ServiceKeeper.getInstance().service.listMetrics();
