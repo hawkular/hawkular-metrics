@@ -34,6 +34,7 @@
     <module>metrics-rest</module>
     <module>rest-servlet</module>
     <module>clients</module>
+    <module>rest-test</module>
   </modules>
 
   <build>

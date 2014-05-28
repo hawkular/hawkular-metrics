@@ -1,0 +1,22 @@
+<arquillian xmlns="http://jboss.org/schema/arquillian"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://jboss.org/schema/arquillian
+                                http://jboss.org/schema/arquillian/arquillian_1_0.xsd">
+
+  <defaultProtocol type="Servlet 3.0" />
+
+  <container qualifier="wildfly-as-managed" default="true">
+    <protocol type="Servlet 3.0">
+      <property name="executionType">MANAGED</property>
+    </protocol>
+
+    <configuration>
+      <property name="jbossHome">${arquillian.jboss_home}</property>
+      <property name="javaVmArguments">-client -noverify -Xms64m -Xmx1024m -XX:MaxPermSize=512m -Djboss.socket.binding.port-offset=50000</property>
+      <property name="outputToConsole">true</property>
+      <property name="managementPort">59990</property>
+      <property name="serverConfig">standalone.xml</property>
+    </configuration>
+  </container>
+
+</arquillian>
