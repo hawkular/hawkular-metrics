@@ -139,14 +139,7 @@
       <artifactId>arquillian-junit-container</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.wildfly</groupId>
-      <artifactId>wildfly-dist</artifactId>
-      <version>${version.wildfly}</version>
-      <type>zip</type>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
+   <dependency>
       <groupId>org.wildfly</groupId>
       <artifactId>wildfly-arquillian-container-managed</artifactId>
       <version>${version.wildfly}</version>
