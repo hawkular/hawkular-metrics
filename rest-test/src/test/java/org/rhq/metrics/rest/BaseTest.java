@@ -4,6 +4,7 @@ import static com.jayway.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.equalTo;
 
 import java.io.File;
+import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -11,6 +12,12 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.arquillian.test.api.ArquillianResource;
+import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.jboss.shrinkwrap.resolver.api.maven.archive.importer.MavenImporter;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,17 +26,8 @@ import com.jayway.restassured.http.ContentType;
 import com.jayway.restassured.path.json.JsonPath;
 import com.jayway.restassured.response.Response;
 
-import org.jboss.arquillian.container.test.api.Deployment;
-import org.jboss.arquillian.container.test.api.RunAsClient;
-import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.jboss.shrinkwrap.resolver.api.maven.archive.importer.MavenImporter;
-
 @RunWith(Arquillian.class)
 public class BaseTest {
-
-    private static final int HTTP_PORT = 58080;
 
     @Deployment(testable=false)
     public static WebArchive createDeployment() {
@@ -48,14 +46,16 @@ public class BaseTest {
         return archive;
     }
 
+    @ArquillianResource
+    private URL baseUrl;
+
     @Test
     public void pingTest() throws Exception {
         Response jsonp = given()
-                .port(HTTP_PORT)
                 .expect()
                     .statusCode(200)
                 .when()
-                    .post("/rhq-metrics/ping")
+                    .post(new URL(baseUrl, "/rhq-metrics/ping"))
                 .then()
                     .contentType(ContentType.JSON)
                 .extract()
@@ -83,18 +83,16 @@ public class BaseTest {
         data.put("value",42d);
 
         given()
-            .port(HTTP_PORT)
             .body(data)
             .pathParam("id",id)
             .contentType(ContentType.JSON)
         .expect()
             .statusCode(200)
         .when()
-            .post("/rhq-metrics/metrics/{id}");
+            .post(new URL(baseUrl, "/rhq-metrics/metrics/{id}"));
 
 
         given()
-            .port(HTTP_PORT)
             .pathParam("id", id)
           .header("Accepts", "application/json")
         .expect()
@@ -102,6 +100,6 @@ public class BaseTest {
             .log().ifError()
             .body("timestamp[0]", equalTo(now))
         .when()
-           .get("/rhq-metrics/metrics/{id}");
+           .get(new URL(baseUrl, "/rhq-metrics/metrics/{id}"));
     }
 }
