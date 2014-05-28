@@ -31,7 +31,7 @@ public class BaseTest {
 
     private static final int HTTP_PORT = 58080;
 
-    @Deployment
+    @Deployment(testable=false)
     public static WebArchive createDeployment() {
         File pomFile = new File("../rest-servlet/pom.xml");
         System.out.println("pomfile " + pomFile.getAbsolutePath());
@@ -49,7 +49,6 @@ public class BaseTest {
     }
 
     @Test
-    @RunAsClient
     public void pingTest() throws Exception {
         Response jsonp = given()
                 .port(HTTP_PORT)
@@ -74,7 +73,6 @@ public class BaseTest {
     }
 
     @Test
-    @RunAsClient
     public void testAddGetValue() throws Exception {
 
         Map<String,Object> data = new HashMap<>();
