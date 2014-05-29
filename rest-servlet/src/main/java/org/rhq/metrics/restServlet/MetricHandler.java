@@ -73,7 +73,7 @@ public class MetricHandler {
     @Path("/metrics/{id}")
     @Consumes({"application/json","application/xml"})
     public void addMetric(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id, IdDataPoint dataPoint) {
-        addData(asyncResponse, ImmutableSet.of(new RawNumericMetric(dataPoint.getId(), dataPoint.getValue(),
+        addData(asyncResponse, ImmutableSet.of(new RawNumericMetric(id, dataPoint.getValue(),
             dataPoint.getTimestamp())));
     }
 
