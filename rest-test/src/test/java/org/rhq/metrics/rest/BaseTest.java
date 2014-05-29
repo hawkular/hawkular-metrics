@@ -57,7 +57,11 @@ public class BaseTest {
 
     @Before
     public void setupRestAssured() {
-        RestAssured.baseURI = baseUrl.toString();
+        if (baseUrl!=null) {
+            RestAssured.baseURI = baseUrl.toString();
+        } else {
+            RestAssured.baseURI = "http://localhost:8080/rhq-metrics";
+        }
         // There is no need to set RestAssured.basePath as this is already in the baseUrl,
         // set via Arquillian in the baseUrl
     }
@@ -96,6 +100,8 @@ public class BaseTest {
         given()
             .body(data)
             .pathParam("id",id)
+            .queryParam("start",now-100)
+            .queryParam("end",now+100)
             .contentType(ContentType.JSON)
         .expect()
             .statusCode(200)
@@ -138,14 +144,179 @@ public class BaseTest {
         given()
             .pathParam("id", id)
           .header("Accepts", "application/json")
-            .queryParam("start",now-15)
-            .queryParam("end",now+5)
+            .queryParam("start", now - 15)
+            .queryParam("end", now + 5)
         .expect()
            .statusCode(200)
             .log().ifError()
             .body("", hasSize(2))
         .when()
            .get("/metrics/{id}");
+    }
+
+    @Test
+    public void testAddGetBucketValues() throws Exception {
+
+        List<Map<String,Object>> data = new ArrayList<>();
+        String id = "bla";
+        long now = System.currentTimeMillis();
+
+        Map<String,Object> data1 = createDataPoint(id,now-12,42d);
+        Map<String,Object> data2 = createDataPoint(id,now,4242d);
+        data.add(data1);
+        data.add(data2);
+
+        given()
+            .body(data)
+            .contentType(ContentType.JSON)
+        .expect()
+            .statusCode(200)
+        .when()
+            .post("/metrics");
+
+
+        given()
+            .pathParam("id", id)
+            .header("Accepts", "application/json")
+            .queryParam("buckets", 3)
+            .queryParam("start",now-15)
+            .queryParam("end",now+15)
+        .expect()
+           .statusCode(200)
+            .log().everything()
+            .body("", hasSize(3))
+        .when()
+           .get("/metrics/{id}");
+    }
+
+    @Test
+    public void testAddGetBucketValues2() throws Exception {
+
+        List<Map<String,Object>> data = new ArrayList<>();
+        String id = "bla2";
+        long now = System.currentTimeMillis();
+
+        Map<String,Object> data1 = createDataPoint(id,now-12,42d);
+        Map<String,Object> data2 = createDataPoint(id,now,4242d);
+        data.add(data1);
+        data.add(data2);
+
+        given()
+            .body(data)
+            .contentType(ContentType.JSON)
+        .expect()
+            .statusCode(200)
+        .when()
+            .post("/metrics");
+
+
+        given()
+            .pathParam("id", id)
+            .header("Accepts", "application/json")
+            .queryParam("buckets", 3)
+            .queryParam("bucketWidthSeconds",10)
+            .queryParam("start",now-15)
+            .queryParam("end",now+15)
+        .expect()
+           .statusCode(200)
+            .log().everything()
+            .body("", hasSize(3))
+        .when()
+           .get("/metrics/{id}");
+    }
+
+    @Test
+    public void testAddGetBucketValues3() throws Exception {
+
+        List<Map<String,Object>> data = new ArrayList<>();
+        String id = "bla3";
+        long now = System.currentTimeMillis();
+
+        Map<String,Object> data1;
+
+        data1 = createDataPoint(id,now-26000,26d);
+        data.add(data1);
+
+        data1 = createDataPoint(id,now-25000,25d);
+        data.add(data1);
+
+        data1 = createDataPoint(id,now-16000,16d);
+        data.add(data1);
+
+        data1 = createDataPoint(id,now-15000,15d);
+        data.add(data1);
+
+        data1 = createDataPoint(id,now-6000,6d);
+        data.add(data1);
+
+        data1 = createDataPoint(id,now-5000,5d);
+        data.add(data1);
+
+
+        given()
+            .body(data)
+            .contentType(ContentType.JSON)
+        .expect()
+            .statusCode(200)
+        .when()
+            .post("/metrics");
+
+
+        List resultList =
+        given()
+            .pathParam("id", id)
+            .header("Accepts", "application/json")
+            .queryParam("buckets",3)
+            .queryParam("bucketWidthSeconds",10)
+            .queryParam("bucketCluster",false)
+            .queryParam("start", now - 30000)
+            .queryParam("end",now)
+        .expect()
+           .statusCode(200)
+            .log().ifError()
+            .body("", hasSize(6))
+        .when()
+           .get("/metrics/{id}")
+        .as(List.class);
+
+        assert resultList != null;
+        assert resultList.size()==6;
+        for (int i = 0; i < 6; i++) {
+            @SuppressWarnings("unchecked")
+            Map<String,Object> item = (Map<String, Object>) resultList.get(i);
+            switch (i) {
+            case 0:
+                assert Integer.valueOf(String.valueOf(item.get("timestamp"))) == 0;
+                assertDouble(item,26d,25d);
+                break;
+            case 1:
+                assert Integer.valueOf(String.valueOf(item.get("timestamp"))) == 0;
+                assertDouble(item,25d,26d);
+                break;
+            case 2:
+                assert Integer.valueOf(String.valueOf(item.get("timestamp"))) == 10000;
+                assertDouble(item,16d,15d);
+                break;
+            case 3:
+                assert Integer.valueOf(String.valueOf(item.get("timestamp"))) == 10000;
+                assertDouble(item,15d,16d);
+                break;
+            case 4:
+                assert Integer.valueOf(String.valueOf(item.get("timestamp"))) == 20000;
+                assertDouble(item,6d,5d);
+                break;
+            case 5:
+                assert Integer.valueOf(String.valueOf(item.get("timestamp"))) == 20000;
+                assertDouble(item,5d,6d);
+                break;
+            }
+        }
+    }
+
+    private void assertDouble(Map<String, Object> item,double refVal, double refVal2) {
+        Double value = Double.valueOf(String.valueOf(item.get("value")));
+        boolean expr = value.compareTo(refVal) == 0 || value.compareTo(refVal2)==0;
+        assert expr : "Value was " + value + " but should be " + refVal + " or " + refVal2;
     }
 
     private Map<String, Object> createDataPoint(String id, long time, Double value) {

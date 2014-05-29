@@ -5,12 +5,26 @@
 </head>
 <body>
 
-<div ng-controller="MetricsController" ng-init="init()">
+<div ng-controller="MetricsController" ng-init="init('graph')">
 
     <form class="search-field" ng-submit="submitSearch()" ng-cloak>
         <img src="images/rhq_logo_28px.png"/>
 
-        <rhq-metrics-picker style="vertical-align: baseline; float: right"></rhq-metrics-picker>
+        <span class="label label-success">{{scheduleName}}</span>
+        <rhq-metrics-picker style="vertical-align: middle; float: right"></rhq-metrics-picker>
+        <div class="btn-group" data-toggle="buttons-radio" style="float: right">
+            <!-- btn-radio is the value to be evaluated -->
+            <button type="button" class="btn btn-primary" ng-model="displayMode" btn-radio="'Raw'">Raw</button>
+            <button type="button" class="btn btn-primary" ng-model="displayMode" btn-radio="'Bucket60'">60 Buckets</button>
+            <button type="button" class="btn btn-primary" ng-model="displayMode" btn-radio="'BucketDay'">Hour Bucket</button>
+            <button type="button" class="btn btn-primary" ng-model="displayMode" btn-radio="'ClusterDay'">Hour Cluster</button>
+        </div>
+        <div style="float: right; padding-right: 15px; padding-left: 15px;">
+        <button type="button" class="btn btn-primary" ng-click="reload()"
+                ng-disabled="!schedule"
+                >Reload</button>
+        </div>
+
     </form>
 
     <table>

@@ -11,7 +11,7 @@ app.factory('metricSearchService', function($http) {
      */
     service.findMetrics = function(keyword, callback) {
 
-        $http.get('../rhq-metrics/list.json',
+        $http.get('../rhq-metrics/metrics/.json',
                 { params :
                     {q : keyword}
                 })
@@ -24,7 +24,7 @@ app.factory('metricSearchService', function($http) {
     };
 
     service.loadMetrics = function(callback) {
-        $http.get('../rhq-metrics/list.json')
+        $http.get('../rhq-metrics/metrics/.json')
                 .success(function(data) {
                     callback(data);
                 })

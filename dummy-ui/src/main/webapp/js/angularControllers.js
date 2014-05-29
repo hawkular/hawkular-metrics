@@ -3,10 +3,22 @@ function MetricsController($scope, metricSearchService) {
 
 //     use strict;
 
-    $scope.init = function() {
+    $scope.displayMode = "Raw";
+    $scope.$watch('displayMode', function() {
+
+        // redraw if a metric was already selected
+        if ($scope.schedule) {
+            $scope.graph($scope.schedule,$scope.divId);
+        }
+    });
+
+
+    $scope.init = function(divId) {
         metricSearchService.loadMetrics(function (metrics) {
             $scope.metrics = metrics;
-        })
+            $scope.displayMode = "Raw";
+        });
+        $scope.divId = divId;
     };
 
     $scope.submitSearch = function() {
@@ -18,13 +30,42 @@ function MetricsController($scope, metricSearchService) {
 
     }
 
+    $scope.reload = function() {
+        if ($scope.schedule) {
+            $scope.graph($scope.schedule,$scope.divId);
+        }
+    };
 
-
-    $scope.graph = function(schedule,divId) {
+    $scope.graph = function(schedule) {
 
         $scope.scheduleName = schedule.title;
+        $scope.schedule = schedule;
         // show actual graph
-        rhq.drawGraph(schedule,divId);
+
+        switch ($scope.displayMode) {
+        case "Raw":
+            rhq.drawRawGraph(schedule, $scope.divId, false);
+
+            break;
+
+        case "Bucket60":
+            rhq.drawWhisker(schedule, $scope.divId);
+
+            break;
+
+        case "BucketDay":
+            rhq.drawWhisker2(schedule, $scope.divId);
+
+            break;
+        case "ClusterDay":
+            rhq.drawRawGraph(schedule, $scope.divId, true);
+
+            break;
+        default:
+            console.log("Unknown selector " + $scope.displayMode);
+
+            break;
+        }
     }
 
 

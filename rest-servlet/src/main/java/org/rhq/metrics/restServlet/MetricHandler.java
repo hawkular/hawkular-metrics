@@ -11,6 +11,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -22,6 +23,9 @@ import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import gnu.trove.map.TLongObjectMap;
+import gnu.trove.map.hash.TLongObjectHashMap;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.FutureCallback;
@@ -36,6 +40,8 @@ import org.jboss.resteasy.annotations.GZIP;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.RawNumericMetric;
+
+import static java.lang.Double.NaN;
 
 /**
  * Interface to deal with metrics
@@ -112,8 +118,11 @@ public class MetricHandler {
     @GET
     @Path("/metrics/{id}")
     @Produces({"application/json","application/xml"})
-    public void getDataForId(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
-        @QueryParam("start") Long start, @QueryParam("end") Long end) {
+    public void getDataForId(@Suspended final AsyncResponse asyncResponse, @PathParam("id") final String id,
+        @QueryParam("start") Long start, @QueryParam("end") Long end, @QueryParam("buckets") final int numberOfBuckets,
+        @QueryParam("bucketWidthSeconds") final int bucketWidthSeconds,
+        @QueryParam("skipEmpty") @DefaultValue("false") final boolean skipEmpty,
+        @QueryParam("bucketCluster") @DefaultValue("true") final boolean bucketCluster) {
 
         // The idExists call is commented out since the Cassandra based impl is a no-op. We
         // need to decided whether or not this check is really necessary. There isn't really
@@ -137,18 +146,107 @@ public class MetricHandler {
 
         final ListenableFuture<List<RawNumericMetric>> future = metricsService.findData(id, start, end);
 
+        final Long finalStart = start;
+        final Long finalEnd = end;
         Futures.addCallback(future, new FutureCallback<List<RawNumericMetric>>() {
             @Override
             public void onSuccess(List<RawNumericMetric> metrics) {
-                List<DataPoint> points = new ArrayList<>(metrics.size());
-                for (NumericMetric item : metrics) {
-                    DataPoint point = new DataPoint(item.getTimestamp(),item.getAvg());
-                    points.add(point);
+                if (numberOfBuckets == 0) {
+                    // Normal case of raw metrics
+                    List<DataPoint> points = new ArrayList<>(metrics.size());
+                    for (NumericMetric item : metrics) {
+                        DataPoint point = new DataPoint(item.getTimestamp(), item.getAvg());
+                        points.add(point);
+                    }
+                    GenericEntity<List<DataPoint>> list = new GenericEntity<List<DataPoint>>(points) {};
+                    Response jaxrs = Response.ok(list).type(MediaType.APPLICATION_JSON_TYPE).build();
+                    asyncResponse.resume(jaxrs);
+
+                } else {
+                    // User wants data in buckets
+                    List<BucketDataPoint> points = new ArrayList<>(numberOfBuckets);
+                    if (bucketWidthSeconds == 0) {
+                        // we will have numberOfBuckets buckets over the whole time span
+
+                        long bucketsize = (finalEnd - finalStart) / numberOfBuckets;
+                        for (int i = 0; i < numberOfBuckets; i++) {
+                            long startTime = finalStart + i*bucketsize;
+
+                            BucketDataPoint point = createPointInSimpleBucket(id, startTime, bucketsize, metrics);
+                            if (!skipEmpty || !point.isEmpty()) {
+                                points.add(point);
+                            }
+                        }
+                    } else {
+                        // we will have numberOfBuckets buckets, but with a fixed with. Buckets will thus
+                        // be reused over time after (numberOfBuckets*bucketWidthSeconds seconds)
+                        long totalLength = numberOfBuckets * bucketWidthSeconds * 1000L ;
+
+                        // find the minimum ts
+                        long minTs = Long.MAX_VALUE;
+                        for (RawNumericMetric metric : metrics) {
+                            if (metric.getTimestamp() < minTs) {
+                                minTs = metric.getTimestamp();
+                            }
+                        }
+
+                        TLongObjectMap<List<RawNumericMetric>> buckets = new TLongObjectHashMap<>(numberOfBuckets);
+
+                        for (RawNumericMetric metric : metrics) {
+                            long bucket = metric.getTimestamp() - minTs;
+                            bucket = bucket % totalLength;
+                            bucket = bucket / (bucketWidthSeconds * 1000L);
+                            List<RawNumericMetric> tmpList = buckets.get(bucket);
+                            if (tmpList == null) {
+                                tmpList = new ArrayList<>();
+                                buckets.put(bucket, tmpList);
+                            }
+                            tmpList.add(metric);
+                        }
+                        if (bucketCluster) {
+                            // Now that stuff is in buckets - we need to "flatten" them out.
+                            // As we collapse stuff from a lot of input timestamps into some
+                            // buckets, we only use a relative time for the bucket timestamps.
+                            for (int i = 0; i < numberOfBuckets; i++) {
+                                List<RawNumericMetric> tmpList = buckets.get(i);
+                                BucketDataPoint point;
+                                if (tmpList == null) {
+                                    if (!skipEmpty) {
+                                        point = new BucketDataPoint(id, i * bucketWidthSeconds * 1000L, NaN, NaN, NaN);
+                                        points.add(point);
+                                    }
+                                } else {
+                                    point = getBucketDataPoint(tmpList.get(0).getId(),
+                                        i * bucketWidthSeconds * 1000L, tmpList);
+                                    points.add(point);
+                                }
+
+                            }
+                        } else {
+                            // We want to keep the raw values, but put them into clusters anyway
+                            // without collapsing them into a single min/avg/max tuple
+                            for (int i = 0; i < numberOfBuckets; i++) {
+                                List<RawNumericMetric> tmpList = buckets.get(i);
+                                BucketDataPoint point;
+                                if (tmpList!=null) {
+                                    for (RawNumericMetric metric : tmpList) {
+                                        point = new BucketDataPoint(id, // TODO could be simple data points
+                                            i * bucketWidthSeconds * 1000L, NaN,metric.getValue(),NaN);
+                                        point.setValue(metric.getValue());
+                                        points.add(point);
+                                    }
+                                }
+
+                            }
+
+                        }
+                    }
+
+                    GenericEntity<List<BucketDataPoint>> list = new GenericEntity<List<BucketDataPoint>>(points) {};
+                    Response jaxrs = Response.ok(list).type(MediaType.APPLICATION_JSON_TYPE).build();
+                    asyncResponse.resume(jaxrs);
                 }
 
-                GenericEntity<List<DataPoint>> list = new GenericEntity<List<DataPoint>>(points) {};
-                Response jaxrs = Response.ok(list).type(MediaType.APPLICATION_JSON_TYPE).build();
-                asyncResponse.resume(jaxrs);
             }
 
             @Override
@@ -157,6 +255,7 @@ public class MetricHandler {
             }
         });
     }
+
 
     @GZIP
     @GET
@@ -179,4 +278,43 @@ public class MetricHandler {
 
         return builder.build();
     }
+
+    private BucketDataPoint createPointInSimpleBucket(String id, long startTime, long bucketsize,
+                                                      List<RawNumericMetric> metrics) {
+        List<RawNumericMetric> bucketMetrics = new ArrayList<>(metrics.size());
+        // Find matching metrics
+        for (NumericMetric raw : metrics) {
+            if (raw.getTimestamp() >= startTime && raw.getTimestamp() < startTime + bucketsize) {
+                bucketMetrics.add((RawNumericMetric) raw);
+            }
+        }
+
+        return getBucketDataPoint(id, startTime, bucketMetrics);
+    }
+
+    private BucketDataPoint getBucketDataPoint(String id, long startTime, List<RawNumericMetric> bucketMetrics) {
+        Double min = null;
+        Double max = null;
+        double sum = 0;
+        for (RawNumericMetric raw : bucketMetrics) {
+            if (max==null || raw.getValue() > max) {
+                max = raw.getValue();
+            }
+            if (min==null || raw.getValue() < min) {
+                min = raw.getValue();
+            }
+            sum += raw.getValue();
+        }
+        double avg = bucketMetrics.size()>0 ? sum / bucketMetrics.size() : NaN;
+        if (min == null) {
+            min = NaN;
+        }
+        if (max == null) {
+            max = NaN;
+        }
+        BucketDataPoint result = new BucketDataPoint(id,startTime,min, avg,max);
+
+        return result;
+    }
+
 }
