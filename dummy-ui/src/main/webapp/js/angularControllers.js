@@ -12,12 +12,19 @@ function MetricsController($scope, metricSearchService) {
         }
     });
 
-
-    $scope.init = function(divId) {
+    function loadMetricIds() {
         metricSearchService.loadMetrics(function (metrics) {
             $scope.metrics = metrics;
-            $scope.displayMode = "Raw";
         });
+    }
+
+    $scope.init = function(divId) {
+
+        metricSearchService.populateDummy(function(data) {
+            loadMetricIds();
+        });
+
+        loadMetricIds();
         $scope.divId = divId;
     };
 
@@ -34,6 +41,7 @@ function MetricsController($scope, metricSearchService) {
         if ($scope.schedule) {
             $scope.graph($scope.schedule,$scope.divId);
         }
+        loadMetricIds();
     };
 
     $scope.graph = function(schedule) {
