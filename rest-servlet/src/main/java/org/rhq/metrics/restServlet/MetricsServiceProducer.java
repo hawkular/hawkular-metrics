@@ -11,6 +11,7 @@ import org.rhq.metrics.core.MetricsService;
 /**
  * @author John Sanda
  */
+@SuppressWarnings("unused")
 @ApplicationScoped
 public class MetricsServiceProducer {
 
@@ -23,7 +24,22 @@ public class MetricsServiceProducer {
     public MetricsService getMetricsService() {
         if (metricsService == null) {
             try {
-                String className = context.getInitParameter("rhq-metrics.backend");
+                String className = null;
+                String backend = System.getProperty("rhq-metrics.backend");
+                if (backend!=null) {
+                    switch (backend) {
+                    case "mem":
+                        className="org.rhq.metrics.impl.memory.MemoryMetricsService";
+                        break;
+                    case "cass":
+                        className="org.rhq.metrics.impl.cassandra.MetricsServiceCassandra";
+                        break;
+                    }
+                }
+
+                if (className==null) {
+                    className = context.getInitParameter("rhq-metrics.backend");
+                }
                 Class clazz = Class.forName(className);
                 metricsService = (MetricsService) clazz.newInstance();
                 // TODO passs servlet params
