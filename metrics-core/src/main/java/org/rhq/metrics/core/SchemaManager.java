@@ -27,11 +27,20 @@ public class SchemaManager {
 
         session.execute(
             "CREATE TABLE " + keyspace + ".metrics ( " +
-                "bucket varchar, " +
-                "metric_id varchar, " +
+                "bucket text, " +
+                "metric_id text, " +
                 "time timestamp, " +
                 "value map<int, double>, " +
                 "PRIMARY KEY (bucket, metric_id, time) " +
+            ")"
+        );
+
+        session.execute(
+            "CREATE TABLE " + keyspace + ".counters ( " +
+                "group text, " +
+                "c_name text, " +
+                "c_value counter, " +
+                "PRIMARY KEY (group, c_name) " +
             ")"
         );
     }

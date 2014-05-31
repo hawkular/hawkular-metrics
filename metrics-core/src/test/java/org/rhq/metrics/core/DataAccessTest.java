@@ -2,11 +2,13 @@ package org.rhq.metrics.core;
 
 import static org.testng.Assert.assertEquals;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -14,6 +16,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
 import org.rhq.metrics.test.MetricsTest;
 
 /**
@@ -47,7 +50,7 @@ public class DataAccessTest extends MetricsTest {
             ImmutableMap.of(DataType.RAW.ordinal(), 1.57), ttl);
 
         @SuppressWarnings("unchecked")
-		ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insert1Future, insert2Future,
+	ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insert1Future, insert2Future,
             insert3Future);
 
         getUninterruptibly(insertsFuture);
@@ -69,6 +72,45 @@ public class DataAccessTest extends MetricsTest {
         assertEquals(rows.get(1).getDate(1), hour(4).plusMinutes(10).toDate(), "The timestamp for row[1] is wrong");
         assertEquals(rows.get(1).getMap(2, Integer.class, Double.class), ImmutableMap.of(DataType.RAW.ordinal(), 1.29),
             "The value for row[1] is wrong");
+    }
+
+    @Test
+    public void updateCounter() throws Exception {
+        Counter expected = new Counter("simple-test", "c1", 1);
+
+        ResultSetFuture future = dataAccess.updateCounter(expected);
+        getUninterruptibly(future);
+
+        ResultSet resultSet = session.execute("SELECT * FROM counters WHERE group = '" + expected.getGroup() + "'");
+        List<Row> rows = resultSet.all();
+
+        assertEquals(rows.size(), 1, "Expected to get back 1 row");
+        assertEquals(toCounter(rows.get(0)), expected, "The returned counter does not match the expected value");
+    }
+
+    @Test
+    public void updateCounters() throws Exception {
+        String group = "batch-test";
+        List<Counter> expected = ImmutableList.of(
+            new Counter(group, "c1", 1),
+            new Counter(group, "c2", 2),
+            new Counter(group, "c3", 3)
+        );
+
+        ResultSetFuture future = dataAccess.updateCounters(expected);
+        getUninterruptibly(future);
+
+        ResultSet resultSet = session.execute("SELECT * FROM counters WHERE group = '" + group + "'");
+        List<Counter> actual = new ArrayList<>();
+        for (Row row : resultSet) {
+            actual.add(toCounter(row));
+        }
+
+        assertEquals(actual, expected, "The counters do not match the expected values");
+    }
+
+    private Counter toCounter(Row row) {
+        return new Counter(row.getString(0), row.getString(1), row.getLong(1));
     }
 
 }

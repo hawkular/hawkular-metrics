@@ -25,16 +25,20 @@ public class MetricsTest {
 
     private PreparedStatement truncateMetrics;
 
+    private PreparedStatement truncateCounters;
+
     public void initSession() {
         String nodeAddresses = System.getProperty("nodes", "127.0.0.1");
         Cluster cluster = new Cluster.Builder().addContactPoints(nodeAddresses.split(",")).build();
         session = cluster.connect(getKeyspace());
 
         truncateMetrics = session.prepare("TRUNCATE metrics");
+        truncateCounters = session.prepare("TRUNCATE counters");
     }
 
     protected void resetDB() {
         session.execute(truncateMetrics.bind());
+        session.execute(truncateCounters.bind());
     }
 
     protected String getKeyspace() {
