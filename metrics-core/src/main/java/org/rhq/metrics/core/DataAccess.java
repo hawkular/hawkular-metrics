@@ -2,6 +2,7 @@ package org.rhq.metrics.core;
 
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import com.datastax.driver.core.BatchStatement;
@@ -23,6 +24,10 @@ public class DataAccess {
 
     private PreparedStatement updateCounter;
 
+    private PreparedStatement findCountersByGroup;
+
+    private PreparedStatement findCountersByGroupAndName;
+
     private Session session;
 
     public DataAccess(Session session) {
@@ -41,6 +46,11 @@ public class DataAccess {
             "UPDATE counters " +
             "SET c_value = c_value + ? " +
             "WHERE group = ? AND c_name = ?");
+
+        findCountersByGroup = session.prepare("SELECT group, c_name, c_value FROM counters WHERE group = ?");
+
+        findCountersByGroupAndName = session.prepare(
+            "SELECT group, c_name, c_value FROM counters WHERE group = ? AND c_name IN ?");
     }
 
     public ResultSetFuture insertData(String bucket, String metricId, long timestamp, Map<Integer, Double> values,
@@ -65,6 +75,16 @@ public class DataAccess {
             batchStatement.add(updateCounter.bind(counter.getValue(), counter.getGroup(), counter.getName()));
         }
         return session.executeAsync(batchStatement);
+    }
+
+    public ResultSetFuture findCounters(String group) {
+        BoundStatement statement = findCountersByGroup.bind(group);
+        return session.executeAsync(statement);
+    }
+
+    public ResultSetFuture findCounters(String group, List<String> names) {
+        BoundStatement statement = findCountersByGroupAndName.bind(group, names);
+        return session.executeAsync(statement);
     }
 
 }

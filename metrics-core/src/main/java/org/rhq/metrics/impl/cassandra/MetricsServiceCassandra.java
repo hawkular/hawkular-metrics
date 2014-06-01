@@ -1,6 +1,7 @@
 package org.rhq.metrics.impl.cassandra;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -27,6 +29,7 @@ import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.DataAccess;
 import org.rhq.metrics.core.DataType;
 import org.rhq.metrics.core.MetricsService;
@@ -61,6 +64,17 @@ public class MetricsServiceCassandra implements MetricsService {
     private DataAccess dataAccess;
 
     private MapQueryResultSet mapQueryResultSet = new MapQueryResultSet();
+
+    private Function<ResultSet, List<Counter>> mapCounters = new Function<ResultSet, List<Counter>>() {
+        @Override
+        public List<Counter> apply(ResultSet resultSet) {
+            List<Counter> counters = new ArrayList<>();
+            for (Row row : resultSet) {
+                counters.add(new Counter(row.getString(0), row.getString(1), row.getLong(2)));
+            }
+            return counters;
+        }
+    };
 
     private ListeningExecutorService metricsTasks = MoreExecutors
         .listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
@@ -149,9 +163,32 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
+    public ListenableFuture<Void> updateCounter(Counter counter) {
+        return Futures.transform(dataAccess.updateCounter(counter), TO_VOID);
+    }
+
+    @Override
+    public ListenableFuture<Void> updateCounters(Collection<Counter> counters) {
+        ResultSetFuture future = dataAccess.updateCounters(counters);
+        return Futures.transform(future, TO_VOID);
+    }
+
+    @Override
+    public ListenableFuture<List<Counter>> findCounters(String group) {
+        ResultSetFuture future = dataAccess.findCounters(group);
+        return Futures.transform(future, mapCounters, metricsTasks);
+    }
+
+    @Override
+    public ListenableFuture<List<Counter>> findCounters(String group, List<String> counterNames) {
+        ResultSetFuture future = dataAccess.findCounters(group, counterNames);
+        return Futures.transform(future, mapCounters, metricsTasks);
+    }
+
+    @Override
     public ListenableFuture<List<RawNumericMetric>> findData(String bucket, String id, long start, long end) {
         ResultSetFuture future = dataAccess.findData(bucket, id, start, end);
-        return Futures.transform(future, mapQueryResultSet);
+        return Futures.transform(future, mapQueryResultSet, metricsTasks);
     }
 
     @Override

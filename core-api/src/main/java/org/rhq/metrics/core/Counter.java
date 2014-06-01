@@ -1,5 +1,7 @@
 package org.rhq.metrics.core;
 
+import com.google.common.base.Objects;
+
 /**
  * @author John Sanda
  */
@@ -62,5 +64,14 @@ public class Counter {
         int result = group.hashCode();
         result = 29 * result + name.hashCode();
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return Objects.toStringHelper(getClass().getSimpleName())
+            .add("group", group)
+            .add("name", name)
+            .add("value", value)
+            .toString();
     }
 }

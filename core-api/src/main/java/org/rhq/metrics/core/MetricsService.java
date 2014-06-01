@@ -1,5 +1,6 @@
 package org.rhq.metrics.core;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +31,14 @@ public interface MetricsService {
     ListenableFuture<Map<RawNumericMetric, Throwable>> addData(Set<RawNumericMetric> data);
 
     ListenableFuture<List<RawNumericMetric>> findData(String bucket, String id, long start, long end);
+
+    ListenableFuture<Void> updateCounter(Counter counter);
+
+    ListenableFuture<Void> updateCounters(Collection<Counter> counters);
+
+    ListenableFuture<List<Counter>> findCounters(String group);
+
+    ListenableFuture<List<Counter>> findCounters(String group, List<String> counterNames);
 
     /** Find and return raw metrics for {id} that have a timestamp between {start} and {end} */
     ListenableFuture<List<RawNumericMetric>> findData(String id, long start, long end);

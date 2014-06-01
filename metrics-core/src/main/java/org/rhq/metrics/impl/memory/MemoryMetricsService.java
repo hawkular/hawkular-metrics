@@ -1,6 +1,7 @@
 package org.rhq.metrics.impl.memory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -8,9 +9,12 @@ import java.util.Map;
 import java.util.Set;
 
 import com.datastax.driver.core.Session;
+import com.google.common.collect.Table;
+import com.google.common.collect.TreeBasedTable;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.RawNumericMetric;
 
@@ -26,6 +30,9 @@ public class MemoryMetricsService implements MetricsService {
     private static final ListenableFuture<Void> VOID_FUTURE = Futures.immediateFuture(null);
 
     private Map<String,TLongDoubleMap> storage = new HashMap<>();
+
+    Table<String, String, Long> counters = TreeBasedTable.create();
+//    private ListMultimap<String, Counter> counters = ArrayListMultimap.create();
 
     @Override
     public void startUp(Session session) {
@@ -70,6 +77,48 @@ public class MemoryMetricsService implements MetricsService {
             storage.put(metricId,map);
         }
         map.put(metric.getTimestamp(), metric.getAvg()); // TODO getAvg() may be wrong in future
+    }
+
+    @Override
+    public ListenableFuture<Void> updateCounter(Counter counter) {
+        Long value = counters.get(counter.getGroup(), counter.getName());
+        if (value == null)  {
+            counters.put(counter.getGroup(), counter.getName(), counter.getValue());
+        } else {
+            counters.put(counter.getGroup(), counter.getName(), value + counter.getValue());
+        }
+        return VOID_FUTURE;
+    }
+
+    @Override
+    public ListenableFuture<Void> updateCounters(Collection<Counter> counters) {
+        for (Counter counter : counters) {
+            updateCounter(counter);
+        }
+        return VOID_FUTURE;
+    }
+
+    @Override
+    public ListenableFuture<List<Counter>> findCounters(String group) {
+        Map<String, Long> row = counters.row(group);
+        List<Counter> counters = new ArrayList<>(row.size());
+        for (Map.Entry<String, Long> entry : row.entrySet()) {
+            counters.add(new Counter(group, entry.getKey(), entry.getValue()));
+        }
+        return Futures.immediateFuture(counters);
+    }
+
+    @Override
+    public ListenableFuture<List<Counter>> findCounters(String group, List<String> counterNames) {
+        Map<String, Long> row = counters.row(group);
+        List<Counter> counters = new ArrayList<>(counterNames.size());
+        for (String name : counterNames) {
+            Long value = row.get(name);
+            if (value != null) {
+                counters.add(new Counter(group, name, value));
+            }
+        }
+        return Futures.immediateFuture(counters);
     }
 
     @Override

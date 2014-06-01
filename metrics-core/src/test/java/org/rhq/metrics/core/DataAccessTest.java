@@ -1,5 +1,6 @@
 package org.rhq.metrics.core;
 
+import static java.util.Arrays.asList;
 import static org.testng.Assert.assertEquals;
 
 import java.util.ArrayList;
@@ -101,16 +102,60 @@ public class DataAccessTest extends MetricsTest {
         getUninterruptibly(future);
 
         ResultSet resultSet = session.execute("SELECT * FROM counters WHERE group = '" + group + "'");
-        List<Counter> actual = new ArrayList<>();
-        for (Row row : resultSet) {
-            actual.add(toCounter(row));
-        }
+        List<Counter> actual = toCounters(resultSet);
 
         assertEquals(actual, expected, "The counters do not match the expected values");
     }
 
+    @Test
+    public void findCountersByGroup() throws Exception {
+        Counter c1 = new Counter("group1", "c1", 1);
+        Counter c2 = new Counter("group1", "c2", 2);
+        Counter c3 = new Counter("group2", "c1", 1);
+        Counter c4 = new Counter("group2", "c2", 2);
+
+        ResultSetFuture future = dataAccess.updateCounters(asList(c1, c2, c3, c4));
+        getUninterruptibly(future);
+
+        ResultSetFuture queryFuture = dataAccess.findCounters(c1.getGroup());
+        ResultSet resultSet = getUninterruptibly(queryFuture);
+        List<Counter> actual = toCounters(resultSet);
+
+        List<Counter> expected = asList(c1, c2);
+
+        assertEquals(actual, expected, "The counters do not match the expected values when filtering by group");
+    }
+
+    @Test
+    public void findCountersByGroupAndName() throws Exception {
+        String group = "batch-test";
+        Counter c1 = new Counter(group, "c1", 1);
+        Counter c2 = new Counter(group, "c2", 2);
+        Counter c3 = new Counter(group, "c3", 3);
+
+        ResultSetFuture future = dataAccess.updateCounters(asList(c1, c2, c3));
+        getUninterruptibly(future);
+
+        ResultSetFuture queryFuture = dataAccess.findCounters(group, asList("c1", "c3"));
+        ResultSet resultSet = getUninterruptibly(queryFuture);
+        List<Counter> actual = toCounters(resultSet);
+
+        List<Counter> expected = asList(c1, c3);
+
+        assertEquals(actual, expected,
+            "The counters do not match the expected values when filtering by group and by counter names");
+    }
+
+    private List<Counter> toCounters(ResultSet resultSet) {
+        List<Counter> counters = new ArrayList<>();
+        for (Row row : resultSet) {
+            counters.add(toCounter(row));
+        }
+        return counters;
+    }
+
     private Counter toCounter(Row row) {
-        return new Counter(row.getString(0), row.getString(1), row.getLong(1));
+        return new Counter(row.getString(0), row.getString(1), row.getLong(2));
     }
 
 }
