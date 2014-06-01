@@ -1,5 +1,8 @@
 package org.rhq.metrics.restServlet;
 
+import static java.lang.Double.NaN;
+import static java.util.Arrays.asList;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -24,9 +27,6 @@ import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import gnu.trove.map.TLongObjectMap;
-import gnu.trove.map.hash.TLongObjectHashMap;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -37,11 +37,13 @@ import org.slf4j.LoggerFactory;
 
 import org.jboss.resteasy.annotations.GZIP;
 
+import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.RawNumericMetric;
 
-import static java.lang.Double.NaN;
+import gnu.trove.map.TLongObjectMap;
+import gnu.trove.map.hash.TLongObjectHashMap;
 
 /**
  * Interface to deal with metrics
@@ -105,6 +107,103 @@ public class MetricHandler {
             public void onSuccess(Map<RawNumericMetric, Throwable> errors) {
                 Response jaxrs = Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build();
                 asyncResponse.resume(jaxrs);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
+    }
+
+    @POST
+    @Path("/counters")
+    @Produces({"application/json"})
+    public void updateCountersForGroups(@Suspended final AsyncResponse asyncResponse, Collection<Counter> counters) {
+        updateCounters(asyncResponse, counters);
+    }
+
+    @POST
+    @Path("/counters/{group}")
+    @Produces("application/json")
+    public void updateCounterForGroup(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group,
+        Collection<Counter> counters) {
+        for (Counter counter : counters) {
+            counter.setGroup(group);
+        }
+        updateCounters(asyncResponse, counters);
+    }
+
+    private void updateCounters(final AsyncResponse asyncResponse, Collection<Counter> counters) {
+        ListenableFuture<Void> future = metricsService.updateCounters(counters);
+        Futures.addCallback(future, new FutureCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                Response jaxrs = Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build();
+                asyncResponse.resume(jaxrs);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
+    }
+
+    @POST
+    @Path("/counters/{group}/{counter}/{value}")
+    public void updateCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group,
+        @PathParam("counter") String counter, @PathParam("value") Long value) {
+        ListenableFuture<Void> future = metricsService.updateCounter(new Counter(group, counter, value));
+        Futures.addCallback(future, new FutureCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                Response jaxrs = Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build();
+                asyncResponse.resume(jaxrs);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
+    }
+
+    @GET
+    @Path("/counters/{group}")
+    @Produces("application/json")
+    public void getCountersForGroup(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group) {
+        ListenableFuture<List<Counter>> future = metricsService.findCounters(group);
+        Futures.addCallback(future, new FutureCallback<List<Counter>>() {
+            @Override
+            public void onSuccess(List<Counter> counters) {
+                Response jaxrs = Response.ok(counters).type(MediaType.APPLICATION_JSON_TYPE).build();
+                asyncResponse.resume(jaxrs);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
+    }
+
+    @GET
+    @Path("/counters/{group}/{counter}")
+    @Produces("application/json")
+    public void getCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") final String group,
+        @PathParam("counter") final String counter) {
+        ListenableFuture<List<Counter>> future = metricsService.findCounters(group, asList(counter));
+        Futures.addCallback(future, new FutureCallback<List<Counter>>() {
+            @Override
+            public void onSuccess(List<Counter> counters) {
+                if (counters.isEmpty()) {
+                    asyncResponse.resume(Response.status(404).entity("Counter[group: " + group + ", name: " +
+                        counter + "] not found").build());
+                } else {
+                    Response jaxrs = Response.ok(counters.get(0)).type(MediaType.APPLICATION_JSON_TYPE).build();
+                    asyncResponse.resume(jaxrs);
+                }
             }
 
             @Override
