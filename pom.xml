@@ -7,8 +7,11 @@
   <artifactId>rhq-metrics-parent</artifactId>
   <version>0.1.0.20140602-M1</version>
   <packaging>pom</packaging>
+
   <name>RHQ Metrics</name>
   <url>https://community.jboss.org/en/rhq/rhq-metrics</url>
+  <description>RHQ Metrics is a metrics collection, aggregation, visualization framework.</description>
+
 
   <properties>
     <test.keyspace>rhqtest</test.keyspace>
