@@ -44,8 +44,6 @@
     <module>test-utils</module>
     <module>core-api</module>
     <module>metrics-core</module>
-    <module>metrics-server</module>
-    <module>metrics-rest</module>
     <module>rest-servlet</module>
     <module>clients</module>
     <module>rest-test</module>
