@@ -6,7 +6,7 @@
   <parent>
     <groupId>org.rhq.metrics</groupId>
     <artifactId>rhq-metrics-parent</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0.20140602-M1</version>
   </parent>
 
   <artifactId>rhq-metrics-api</artifactId>
