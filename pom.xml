@@ -8,6 +8,7 @@
   <version>0.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>RHQ Metrics</name>
+  <url>https://community.jboss.org/en/rhq/rhq-metrics</url>
 
   <properties>
     <test.keyspace>rhqtest</test.keyspace>
@@ -27,6 +28,17 @@
 
     <version.wildfly>8.0.0.Final</version.wildfly>
   </properties>
+
+  <organization>
+    <name>Red Hat, Inc.</name>
+    <url>http://redhat.com/</url>
+  </organization>
+
+  <scm>
+    <connection>scm:git:ssh://github.com/rhq-project/rhq-metrics</connection>
+    <developerConnection>scm:git:ssh://github.com/rhq-project/rhq-metrics</developerConnection>
+    <url>https://github.com/rhq-project/rhq-metrics</url>
+  </scm>
 
   <modules>
     <module>test-utils</module>
