@@ -40,6 +40,23 @@
     <url>https://github.com/rhq-project/rhq-metrics</url>
   </scm>
 
+  <distributionManagement>
+
+    <snapshotRepository>
+      <id>jboss-snapshots-repository</id>
+      <name>JBoss Snapshots Repository</name>
+      <url>https://repository.jboss.org/nexus/content/repositories/snapshots/</url>
+    </snapshotRepository>
+
+    <repository>
+      <id>jboss-releases-repository</id>
+      <name>JBoss Releases Repository</name>
+      <url>https://repository.jboss.org/nexus/service/local/staging/deploy/maven2/</url>
+    </repository>
+
+  </distributionManagement>
+
+
   <modules>
     <module>test-utils</module>
     <module>core-api</module>
@@ -125,6 +142,39 @@
     </profile>
   </profiles>
 
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
 
+
+  <developers>
+    <developer>
+      <name>Heiko W. Rupp</name>
+      <email>hrupp@redhat.com</email>
+      <url>http://pilhuhn.blogspot.com/</url>
+      <timezone>+1</timezone>
+    </developer>
+    <developer>
+      <name>John Sanda</name>
+      <url>http://johnsanda.blogspot.com/</url>
+      <timezone>-5</timezone>
+    </developer>
+    <developer>
+      <name>Mike Thompson</name>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <name>Heiko Braun</name>
+      <timezone>+1</timezone>
+    </developer>
+    <developer>
+      <name>Stefan Negrea</name>
+      <timezone>-6</timezone>
+    </developer>
+  </developers>
 
 </project>
