@@ -74,7 +74,7 @@ public class MetricHandler {
     @POST
 	@Path("/ping")
 	@Consumes({ "application/json", "application/xml" })
-	@Produces({ "application/json", "application/xml" })
+	@Produces({ "application/json", "application/xml","application/vnd.rhq.wrapped+json" })
     @ApiOperation(value = "Returns the current time and serves to check for the availability of the api.", responseClass = "Map<String,String>")
 	public Response ping() {
 		Map<String, String> reply = new HashMap<>();
@@ -191,7 +191,7 @@ public class MetricHandler {
 
     @GET
     @Path("/counters/{group}")
-    @Produces("application/json")
+    @Produces({"application/json","application/vnd.rhq.wrapped+json"})
     public void getCountersForGroup(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group) {
         ListenableFuture<List<Counter>> future = metricsService.findCounters(group);
         Futures.addCallback(future, new FutureCallback<List<Counter>>() {
@@ -210,7 +210,7 @@ public class MetricHandler {
 
     @GET
     @Path("/counters/{group}/{counter}")
-    @Produces("application/json")
+    @Produces({"application/json","application/vnd.rhq.wrapped+json"})
     public void getCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") final String group,
         @PathParam("counter") final String counter) {
         ListenableFuture<List<Counter>> future = metricsService.findCounters(group, asList(counter));
@@ -238,7 +238,7 @@ public class MetricHandler {
     @Path("/metrics/{id}")
     @ApiOperation("Return metrical values for a given metric id. If no parameters are given, the raw data " +
         "for a time period of [now-8h,now] is returned.")
-    @Produces({"application/json","application/xml"})
+    @Produces({"application/json","application/xml","application/vnd.rhq.wrapped+json"})
     public void getDataForId(@Suspended final AsyncResponse asyncResponse,
         @ApiParam("Id of the metric to return data for") @PathParam("id") final String id,
         @ApiParam(value = "Start time in millis since epoch", defaultValue = "Now - 8h") @QueryParam("start") Long start,
@@ -388,7 +388,7 @@ public class MetricHandler {
     @GZIP
     @GET
     @Path("/metrics")
-    @Produces({"application/json","application/xml"})
+    @Produces({"application/json","application/xml","application/vnd.rhq.wrapped+json"})
     public Response listMetrics(@QueryParam("q") String filter) {
 
         List<String> names = ServiceKeeper.getInstance().service.listMetrics();

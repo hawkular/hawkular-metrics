@@ -97,6 +97,43 @@ public class BaseTest {
     }
 
     @Test
+    public void pingTestWithJsonP() throws Exception {
+        Response response = given()
+            .header(acceptWrappedJson)
+            .queryParam("jsonp","jsonp") // Use jsonp-wrapping e.g. for JavaScript access
+
+                .expect()
+                    .statusCode(200)
+                .when()
+                    .post("/ping")
+                .then()
+                    .contentType(ContentType.JSON)
+                .extract()
+                    .response();
+
+        String mediaType = response.getContentType();
+        assert mediaType.startsWith("application/javascript");
+
+        // check for jsonp wrapping
+        String bodyString = response.asString();
+        assert bodyString.startsWith("jsonp(");
+        assert bodyString.endsWith(");");
+
+        // extract the internal json data
+        String body = bodyString.substring(6,bodyString.length()-2);
+
+        JsonPath jsonPath = new JsonPath(body);
+
+        DateFormat df = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.US);
+        Date date = df.parse(jsonPath.getString("pong"));
+        Date now = new Date();
+
+        long timeDifference = now.getTime() - date.getTime();
+
+        Assert.assertTrue("Difference is " + timeDifference, timeDifference < 2500L);
+    }
+
+    @Test
     public void testAddGetValue() throws Exception {
 
         String id = "foo";
@@ -124,6 +161,51 @@ public class BaseTest {
             .body("timestamp[0]", equalTo(now))
         .when()
            .get(new URL(baseUrl, "/rhq-metrics/metrics/{id}"));
+    }
+
+    @Test
+    public void testAddGetValueWithJsonP() throws Exception {
+
+        String id = "foo";
+        long now = System.currentTimeMillis();
+        Map<String,Object> data = createDataPoint(id, now, 42d);
+
+        given()
+            .body(data)
+            .pathParam("id",id)
+            .queryParam("start",now-100)
+            .queryParam("end",now+100)
+            .contentType(ContentType.JSON)
+        .expect()
+            .statusCode(200)
+        .when()
+            .post("/metrics/{id}");
+
+
+        Response response =
+        given()
+            .pathParam("id", id)
+            .header(acceptWrappedJson)
+            .queryParam("jsonp","jsonp") // Use jsonp-wrapping e.g. for JavaScript access
+        .expect()
+            .statusCode(200)
+            .log().ifError()
+        .when()
+           .get(new URL(baseUrl, "/rhq-metrics/metrics/{id}"));
+
+        String mediaType = response.getContentType();
+        assert mediaType.startsWith("application/javascript");
+
+        // check for jsonp wrapping
+        String bodyString = response.asString();
+        assert bodyString.startsWith("jsonp(");
+        assert bodyString.endsWith(");");
+
+        // extract the internal json data
+        String body = bodyString.substring(6,bodyString.length()-2);
+
+        // TODO check data
+
     }
 
     @Test
