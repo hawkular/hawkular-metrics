@@ -23,7 +23,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.GenericEntity;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -31,6 +33,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +54,7 @@ import gnu.trove.map.hash.TLongObjectHashMap;
  * Interface to deal with metrics
  * @author Heiko W. Rupp
  */
+@Api(value = "Related to metrics")
 @Path("/")
 public class MetricHandler {
 
@@ -69,8 +75,9 @@ public class MetricHandler {
 	@Path("/ping")
 	@Consumes({ "application/json", "application/xml" })
 	@Produces({ "application/json", "application/xml" })
+    @ApiOperation(value = "Returns the current time and serves to check for the availability of the api.", responseClass = "Map<String,String>")
 	public Response ping() {
-		Map<String, String> reply = new HashMap<String, String>();
+		Map<String, String> reply = new HashMap<>();
 		reply.put("pong", new Date().toString());
 
 		Response.ResponseBuilder builder = Response.ok(reply);
@@ -80,6 +87,7 @@ public class MetricHandler {
     @POST
     @Path("/metrics/{id}")
     @Consumes({"application/json","application/xml"})
+    @ApiOperation("Adds a single data point for the given id.")
     public void addMetric(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id, IdDataPoint dataPoint) {
         addData(asyncResponse, ImmutableSet.of(new RawNumericMetric(id, dataPoint.getValue(),
             dataPoint.getTimestamp())));
@@ -88,6 +96,7 @@ public class MetricHandler {
     @POST
     @Path("/metrics")
     @Consumes({"application/json","application/xml"})
+    @ApiOperation("Add a collection of data. Values can be for different metric ids.")
     public void addMetrics(@Suspended AsyncResponse asyncResponse, Collection<IdDataPoint> dataPoints) {
 
         Set<RawNumericMetric> rawSet = new HashSet<>(dataPoints.size());
@@ -227,12 +236,19 @@ public class MetricHandler {
     @GZIP
     @GET
     @Path("/metrics/{id}")
+    @ApiOperation("Return metrical values for a given metric id. If no parameters are given, the raw data " +
+        "for a time period of [now-8h,now] is returned.")
     @Produces({"application/json","application/xml"})
-    public void getDataForId(@Suspended final AsyncResponse asyncResponse, @PathParam("id") final String id,
-        @QueryParam("start") Long start, @QueryParam("end") Long end, @QueryParam("buckets") final int numberOfBuckets,
+    public void getDataForId(@Suspended final AsyncResponse asyncResponse,
+        @ApiParam("Id of the metric to return data for") @PathParam("id") final String id,
+        @ApiParam(value = "Start time in millis since epoch", defaultValue = "Now - 8h") @QueryParam("start") Long start,
+        @ApiParam(value = "End time in millis since epoch",defaultValue = "Now") @QueryParam("end") Long end,
+        @ApiParam(value = "If non-zero: number of buckets to partition the data into. Raw data otherwise", defaultValue = "0")
+            @QueryParam("buckets") final int numberOfBuckets,
         @QueryParam("bucketWidthSeconds") final int bucketWidthSeconds,
-        @QueryParam("skipEmpty") @DefaultValue("false") final boolean skipEmpty,
-        @QueryParam("bucketCluster") @DefaultValue("true") final boolean bucketCluster) {
+        @ApiParam("If true, empty buckets are not returned.") @QueryParam("skipEmpty") @DefaultValue("false") final boolean skipEmpty,
+        @QueryParam("bucketCluster") @DefaultValue("true") final boolean bucketCluster,
+        @Context HttpHeaders headers) {
 
         // The idExists call is commented out since the Cassandra based impl is a no-op. We
         // need to decided whether or not this check is really necessary. There isn't really
@@ -245,6 +261,8 @@ public class MetricHandler {
 ////            builder = Response.status(404).entity("Id [" + id + "] not found. ");
 ////            return builder.build();
 //        }
+
+        final MediaType mediaType = headers.getAcceptableMediaTypes().get(0);
 
         long now = System.currentTimeMillis();
         if (start==null) {
@@ -353,7 +371,7 @@ public class MetricHandler {
                     }
 
                     GenericEntity<List<BucketDataPoint>> list = new GenericEntity<List<BucketDataPoint>>(points) {};
-                    Response jaxrs = Response.ok(list).type(MediaType.APPLICATION_JSON_TYPE).build();
+                    Response jaxrs = Response.ok(list).type(mediaType).build();
                     asyncResponse.resume(jaxrs);
                 }
 

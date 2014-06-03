@@ -12,6 +12,10 @@
   <artifactId>rest-servlet</artifactId>
   <packaging>war</packaging>
 
+  <properties>
+    <swagger-annotations.version>1.2.3</swagger-annotations.version>
+    <rest-docs-generator.version>4.11.0</rest-docs-generator.version>
+  </properties>
   <dependencies>
 
     <dependency>
@@ -69,6 +73,22 @@
       <version>6.0</version>
       <scope>provided</scope>
     </dependency>
+
+
+    <!-- documentation -->
+    <dependency>
+      <groupId>com.wordnik</groupId>
+      <artifactId>swagger-annotations_2.9.1</artifactId>
+      <version>${swagger-annotations.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.rhq.helpers</groupId>
+      <artifactId>rest-docs-generator</artifactId>
+      <version>${rest-docs-generator.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
   </dependencies>
 
   <build>
@@ -110,5 +130,163 @@
 
   </build>
 
+  <profiles>
+    <profile>
+    <id>REST doc generation</id>
+    <activation>
+      <property>
+        <name>docgen</name>
+      </property>
+    </activation>
+
+    <dependencies>
+      <dependency>
+        <groupId>org.rhq.helpers</groupId>
+        <artifactId>rest-docs-generator</artifactId>
+        <version>${rest-docs-generator.version}</version>
+      </dependency>
+    </dependencies>
+
+    <build>
+      <!-- Document generation from the Annotations on the REST-API. -->
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.0</version>
+          <configuration>
+            <annotationProcessors>
+              <processor>org.rhq.helpers.rest_docs_generator.ClassLevelProcessor</processor>
+            </annotationProcessors>
+            <proc>only</proc>
+            <compilerArguments>
+              <AtargetDirectory>${project.build.directory}/docs/xml</AtargetDirectory>
+              <AmodelPkg>org.rhq.metrics.restServlet</AmodelPkg>
+              <!--<AskipPkg>org.rhq.enterprise.server.rest.reporting</AskipPkg>-->
+              <!-- enable the next line to have the output of the processor shown on console -->
+              <!--<Averbose>true</Averbose>-->
+            </compilerArguments>
+            <!-- set the next to true to enable verbose output of the compiler plugin; default from the evn is true, but this is too noisy -->
+            <verbose>false</verbose>
+          </configuration>
+          <executions>
+            <execution>
+              <id>create-rest-api-reports</id>
+              <phase>process-classes</phase>
+              <goals>
+                <!-- We want to process the classes in src/ -->
+                <goal>compile</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>xml-maven-plugin</artifactId>
+          <executions>
+            <execution>
+              <phase>process-classes</phase>
+              <goals>
+                <goal>transform</goal>
+              </goals>
+            </execution>
+          </executions>
+          <configuration>
+            <transformationSets>
+              <transformationSet>
+                <!-- Generate a html rendering -->
+                <!-- org.rhq.helpers.rest_docs_generator.test plugin wrote to target/docs/xml (see -AtargetDirectory above) -->
+                <dir>target/docs/xml</dir>
+                <includes>
+                  <include>rest-api-out.xml</include>
+                </includes>
+                <stylesheet>src/main/xsl/apiout2html.xsl</stylesheet>
+                <parameters>
+                  <parameter>
+                    <name>basePath</name>
+                    <value>http://localhost:8080/rhq-metrics</value>
+                  </parameter>
+                </parameters>
+                <outputDir>${project.build.directory}/docs/html</outputDir>
+                <fileMappers>
+                  <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
+                    <targetExtension>.html</targetExtension>
+                  </fileMapper>
+                </fileMappers>
+              </transformationSet>
+              <transformationSet>
+                <!-- Generate a html rendering of a short form -->
+                <!-- org.rhq.helpers.rest_docs_generator.test plugin wrote to target/docs/xml (see -AtargetDirectory above) -->
+                <dir>target/docs/xml</dir>
+                <includes>
+                  <include>rest-api-out.xml</include>
+                </includes>
+                <stylesheet>src/main/xsl/apiout2html_overview.xsl</stylesheet>
+                <parameters>
+                  <parameter>
+                    <name>basePath</name>
+                    <value>http://localhost:8080/rhq-metrics</value>
+                  </parameter>
+                </parameters>
+                <outputDir>${project.build.directory}/docs/html</outputDir>
+                <fileMappers>
+                  <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.MergeFileMapper">
+                      <targetName>rest-api-overview</targetName>
+                    </fileMapper>
+                  <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
+                    <targetExtension>.html</targetExtension>
+                  </fileMapper>
+                </fileMappers>
+              </transformationSet>
+              <transformationSet>
+                <!-- Generate a docbook file as input to fop -->
+                <!-- org.rhq.helpers.rest_docs_generator.test plugin wrote to target/docs/xml (see -AtargetDirectory above) -->
+                <dir>target/docs/xml</dir>
+                <includes>
+                  <include>rest-api-out.xml</include>
+                </includes>
+                <stylesheet>src/main/xsl/apiout2docbook.xsl</stylesheet>
+                <parameters>
+                  <parameter>
+                    <name>basePath</name>
+                    <value>http://localhost:8080/rhq-metrics</value>
+                  </parameter>
+                </parameters>
+                <outputDir>${project.build.directory}/docs/xml</outputDir>
+                <fileMappers>
+                  <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
+                    <targetExtension>.dbx.xml</targetExtension>
+                  </fileMapper>
+                </fileMappers>
+              </transformationSet>
+            </transformationSets>
+          </configuration>
+        </plugin>
+
+        <plugin>
+          <groupId>com.agilejava.docbkx</groupId>
+          <artifactId>docbkx-maven-plugin</artifactId>
+          <version>2.0.14</version>
+          <executions>
+            <execution>
+              <phase>process-classes</phase>
+              <goals>
+                <goal>generate-pdf</goal>
+                <goal>generate-html</goal>
+              </goals>
+            </execution>
+          </executions>
+          <configuration>
+            <sourceDirectory>target/docs/xml</sourceDirectory> <!-- from previous plugin, 2nd transformation set -->
+            <includes>rest-api-out.dbx.xml</includes>
+            <hyphenate>true</hyphenate>
+            <generateToc>true</generateToc>
+          </configuration>
+        </plugin>
+      </plugins>
+    </build>
+  </profile>
+  </profiles>
 
 </project>

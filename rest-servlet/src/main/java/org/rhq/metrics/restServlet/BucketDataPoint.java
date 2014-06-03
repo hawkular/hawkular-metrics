@@ -2,11 +2,16 @@ package org.rhq.metrics.restServlet;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.wordnik.swagger.annotations.ApiClass;
+import com.wordnik.swagger.annotations.ApiProperty;
+
 /**
  * A point in time with some data for min/avg/max to express
  * that at this point in time multiple values were recorded.
  * @author Heiko W. Rupp
  */
+@ApiClass(description = "A bucket is a time range with multiple data items represented by min/avg/max values" +
+    "for that time span.")
 @XmlRootElement
 public class BucketDataPoint extends IdDataPoint {
 
@@ -26,6 +31,7 @@ public class BucketDataPoint extends IdDataPoint {
         this.avg = avg;
     }
 
+    @ApiProperty("Minimum value during the time span of the bucket.")
     public double getMin() {
         return min;
     }
@@ -34,6 +40,7 @@ public class BucketDataPoint extends IdDataPoint {
         this.min = min;
     }
 
+    @ApiProperty("Maximum value during the time span of the bucket.")
     public double getMax() {
         return max;
     }
@@ -42,6 +49,7 @@ public class BucketDataPoint extends IdDataPoint {
         this.max = max;
     }
 
+    @ApiProperty("Average value during the time span of the bucket.")
     public double getAvg() {
         return avg;
     }
