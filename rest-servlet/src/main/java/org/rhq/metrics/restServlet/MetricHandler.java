@@ -287,7 +287,7 @@ public class MetricHandler {
                         points.add(point);
                     }
                     GenericEntity<List<DataPoint>> list = new GenericEntity<List<DataPoint>>(points) {};
-                    Response jaxrs = Response.ok(list).type(MediaType.APPLICATION_JSON_TYPE).build();
+                    Response jaxrs = Response.ok(list).type(mediaType).build();
                     asyncResponse.resume(jaxrs);
 
                 } else {

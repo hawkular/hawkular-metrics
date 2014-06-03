@@ -29,10 +29,17 @@ import org.junit.runner.RunWith;
 import com.jayway.restassured.RestAssured;
 import com.jayway.restassured.http.ContentType;
 import com.jayway.restassured.path.json.JsonPath;
+import com.jayway.restassured.response.Header;
 import com.jayway.restassured.response.Response;
 
 @RunWith(Arquillian.class)
 public class BaseTest {
+
+    static final String APPLICATION_JSON = "application/json";
+    static final String WRAPPED_JSON = "application/vnd.rhq.wrapped+json";
+
+    static Header acceptJson = new Header("Accept", APPLICATION_JSON);
+    static Header acceptWrappedJson = new Header("Accept",WRAPPED_JSON);
 
     @Deployment(testable=false)
     public static WebArchive createDeployment() {
@@ -51,7 +58,6 @@ public class BaseTest {
         System.out.flush();
         return archive;
     }
-
     @ArquillianResource
     private URL baseUrl;
 
@@ -111,7 +117,7 @@ public class BaseTest {
 
         given()
             .pathParam("id", id)
-            .header("Accepts", "application/json")
+            .header(acceptJson)
         .expect()
             .statusCode(200)
             .log().ifError()
@@ -143,7 +149,7 @@ public class BaseTest {
 
         given()
             .pathParam("id", id)
-          .header("Accepts", "application/json")
+          .header(acceptJson)
             .queryParam("start", now - 15)
             .queryParam("end", now + 5)
         .expect()
@@ -177,10 +183,11 @@ public class BaseTest {
 
         given()
             .pathParam("id", id)
-            .header("Accepts", "application/json")
+            .header(acceptJson)
             .queryParam("buckets", 3)
             .queryParam("start",now-15)
             .queryParam("end",now+15)
+            .log().everything()
         .expect()
            .statusCode(200)
             .log().everything()
@@ -212,7 +219,7 @@ public class BaseTest {
 
         given()
             .pathParam("id", id)
-            .header("Accepts", "application/json")
+            .header(acceptJson)
             .queryParam("buckets", 3)
             .queryParam("bucketWidthSeconds",10)
             .queryParam("start",now-15)
@@ -265,7 +272,7 @@ public class BaseTest {
         List resultList =
         given()
             .pathParam("id", id)
-            .header("Accepts", "application/json")
+            .header(acceptJson)
             .queryParam("buckets",3)
             .queryParam("bucketWidthSeconds",10)
             .queryParam("bucketCluster",false)
