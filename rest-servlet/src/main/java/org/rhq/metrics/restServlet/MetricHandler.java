@@ -151,9 +151,20 @@ public class MetricHandler {
     }
 
     @POST
+    @Path("/counters/{group}/{counter}")
+    public void updateCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group,
+        @PathParam("counter") String counter) {
+        updateCounterValue(asyncResponse, group, counter, 1L);
+    }
+
+    @POST
     @Path("/counters/{group}/{counter}/{value}")
     public void updateCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group,
         @PathParam("counter") String counter, @PathParam("value") Long value) {
+        updateCounterValue(asyncResponse, group, counter, value);
+    }
+
+    private void updateCounterValue(final AsyncResponse asyncResponse, String group, String counter, Long value) {
         ListenableFuture<Void> future = metricsService.updateCounter(new Counter(group, counter, value));
         Futures.addCallback(future, new FutureCallback<Void>() {
             @Override
