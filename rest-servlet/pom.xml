@@ -82,13 +82,6 @@
       <version>${swagger-annotations.version}</version>
       <scope>provided</scope>
     </dependency>
-    <dependency>
-      <groupId>org.rhq.helpers</groupId>
-      <artifactId>rest-docs-generator</artifactId>
-      <version>${rest-docs-generator.version}</version>
-      <scope>provided</scope>
-    </dependency>
-
   </dependencies>
 
   <build>
@@ -144,6 +137,7 @@
         <groupId>org.rhq.helpers</groupId>
         <artifactId>rest-docs-generator</artifactId>
         <version>${rest-docs-generator.version}</version>
+        <scope>provided</scope>
       </dependency>
     </dependencies>
 
