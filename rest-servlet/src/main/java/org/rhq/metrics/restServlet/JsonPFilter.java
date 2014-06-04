@@ -88,8 +88,6 @@ public class JsonPFilter implements Filter {
             requestWrapper.setContentType(APPLICATION_JSON);
 
             JsonPResponseWrapper responseWrapper = new JsonPResponseWrapper(httpResponse);
-    System.out.println("request wrapper " + requestWrapper);
-    System.out.println("request wrapper " + requestWrapper.getHeader(ACCEPT));
             chain.doFilter(requestWrapper, responseWrapper);
             response.setContentType("application/javascript; charset=utf-8");
             ServletOutputStream outputStream = response.getOutputStream();
