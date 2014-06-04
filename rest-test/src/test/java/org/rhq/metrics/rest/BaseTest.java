@@ -37,6 +37,7 @@ public class BaseTest {
 
     static final String APPLICATION_JSON = "application/json";
     static final String WRAPPED_JSON = "application/vnd.rhq.wrapped+json";
+    private static final long SIXTY_SECONDS = 60*1000L;
 
     static Header acceptJson = new Header("Accept", APPLICATION_JSON);
     static Header acceptWrappedJson = new Header("Accept",WRAPPED_JSON);
@@ -93,7 +94,8 @@ public class BaseTest {
 
         long timeDifference = now.getTime() - date.getTime();
 
-        Assert.assertTrue("Difference is " + timeDifference, timeDifference < 2500L);
+        // This is a bit problematic and depends on the system where the test is executing
+        Assert.assertTrue("Difference is " + timeDifference, timeDifference < SIXTY_SECONDS);
     }
 
     @Test
@@ -120,7 +122,7 @@ public class BaseTest {
         assert bodyString.endsWith(");");
 
         // extract the internal json data
-        String body = bodyString.substring(6,bodyString.length()-2);
+        String body = bodyString.substring(6, bodyString.length() - 2);
 
         JsonPath jsonPath = new JsonPath(body);
 
@@ -130,7 +132,7 @@ public class BaseTest {
 
         long timeDifference = now.getTime() - date.getTime();
 
-        Assert.assertTrue("Difference is " + timeDifference, timeDifference < 2500L);
+        Assert.assertTrue("Difference is " + timeDifference, timeDifference < SIXTY_SECONDS);
     }
 
     @Test
@@ -172,9 +174,9 @@ public class BaseTest {
 
         given()
             .body(data)
-            .pathParam("id",id)
-            .queryParam("start",now-100)
-            .queryParam("end",now+100)
+            .pathParam("id", id)
+            .queryParam("start", now - 100)
+            .queryParam("end", now + 100)
             .contentType(ContentType.JSON)
         .expect()
             .statusCode(200)
@@ -186,7 +188,7 @@ public class BaseTest {
         given()
             .pathParam("id", id)
             .header(acceptWrappedJson)
-            .queryParam("jsonp","jsonp") // Use jsonp-wrapping e.g. for JavaScript access
+            .queryParam("jsonp", "jsonp") // Use jsonp-wrapping e.g. for JavaScript access
         .expect()
             .statusCode(200)
             .log().ifError()
@@ -204,7 +206,8 @@ public class BaseTest {
         // extract the internal json data
         String body = bodyString.substring(6,bodyString.length()-2);
 
-        // TODO check data
+        JsonPath jp = new JsonPath(body);
+        assert jp.getLong("timestamp[0]") == now;
 
     }
 
