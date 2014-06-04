@@ -15,13 +15,6 @@ then
     cd ..
 fi
 
-if [ ! -e metrics-server/target/rhq-metrics-server-*.jar ]
-then
-    cd metrics-server
-    mvn install
-    cd ..
-fi
-
 if [ ! -e dummy-ui/target/dummy-ui*.war ]
 then
     cd dummy-ui
