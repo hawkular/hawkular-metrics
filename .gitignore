@@ -7,5 +7,3 @@ target/
 .DS_Store/
 .settings
 .idea/
-.classpath
-.project
