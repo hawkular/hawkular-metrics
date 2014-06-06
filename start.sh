@@ -34,7 +34,7 @@ then
     mkdir target
 fi
 
-if [ ! -e $HOME/.m2/repository/org/wildfly/wildfly-dist/8.0.0.Final/wildfly-dist-$WFLY_VERSION.zip ]
+if [ ! -e $HOME/.m2/repository/org/wildfly/wildfly-dist/$WFLY_VERSION/wildfly-dist-$WFLY_VERSION.zip ]
 then
     echo "Downloading WildFly $WFLY_VERSION into local maven repository"
     mvn -P download_wildfly -DskipTests install
@@ -43,7 +43,7 @@ fi
 if [ ! -e target/wild* ]
 then
     cd target
-    unzip $HOME/.m2/repository/org/wildfly/wildfly-dist/8.0.0.Final/wildfly-dist-$WFLY_VERSION.zip
+    unzip $HOME/.m2/repository/org/wildfly/wildfly-dist/$WFLY_VERSION/wildfly-dist-$WFLY_VERSION.zip
     cd ..
 fi
 
