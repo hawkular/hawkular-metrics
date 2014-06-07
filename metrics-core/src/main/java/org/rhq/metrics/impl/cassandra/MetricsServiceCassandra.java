@@ -112,14 +112,30 @@ public class MetricsServiceCassandra implements MetricsService {
             .withPort(port)
             .build();
 
-        updateSchemaIfNecessary(cluster);
+
 
         String keyspace = params.get("keyspace");
         if (keyspace==null||keyspace.isEmpty()) {
-            logger.info("No explicit keyspace given, will default to 'rhq'");
+            logger.debug("No keyspace given in params, checking system properties ...");
+            keyspace = System.getProperty("cassandra.keyspace");
+        }
+
+        if (keyspace==null||keyspace.isEmpty()) {
+            logger.debug("No explicit keyspace given, will default to 'rhq'");
             keyspace="rhq";
         }
+
+        logger.info("Using a key space of '" + keyspace + "'");
+        updateSchemaIfNecessary(cluster, keyspace);
+
         session = Optional.of(cluster.connect(keyspace));
+        if (System.getProperty("cassandra.resetdb")!=null) {
+
+            logger.info("Truncating keyspace '" + keyspace +"'");
+
+            session.get().execute("TRUNCATE metrics");
+            session.get().execute("TRUNCATE counters");
+        }
         dataAccess = new DataAccess(session.get());
     }
 
@@ -234,10 +250,10 @@ public class MetricsServiceCassandra implements MetricsService {
         }
     }
 
-    private void updateSchemaIfNecessary(Cluster cluster) {
+    private void updateSchemaIfNecessary(Cluster cluster, String schemaName) {
         try (Session session = cluster.connect("system")) {
             SchemaManager schemaManager = new SchemaManager(session);
-            schemaManager.updateSchema("rhq");
+            schemaManager.updateSchema(schemaName);
         }
     }
 
