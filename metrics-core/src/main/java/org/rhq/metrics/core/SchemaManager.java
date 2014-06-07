@@ -16,7 +16,7 @@ public class SchemaManager {
 
     public void updateSchema(String keyspace) {
         ResultSet resultSet = session.execute(
-             "SELECT * FROM system.schema_keyspaces WHERE keyspace_name = '" + keyspace + "'");
+             "SELECT * FROM system.schema_keyspaces WHERE keyspace_name = '" + keyspace.toLowerCase() + "'");
 
         if (!resultSet.isExhausted()) {
             return;
