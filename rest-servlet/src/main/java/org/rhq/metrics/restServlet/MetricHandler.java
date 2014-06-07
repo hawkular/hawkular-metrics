@@ -6,7 +6,6 @@ import static java.util.Arrays.asList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -77,8 +76,8 @@ public class MetricHandler {
 	@Produces({ "application/json", "application/xml","application/vnd.rhq.wrapped+json" })
     @ApiOperation(value = "Returns the current time and serves to check for the availability of the api.", responseClass = "Map<String,String>")
 	public Response ping() {
-		Map<String, String> reply = new HashMap<>();
-		reply.put("pong", new Date().toString());
+
+        StringValue reply = new StringValue(new Date().toString());
 
 		Response.ResponseBuilder builder = Response.ok(reply);
 		return builder.build();
