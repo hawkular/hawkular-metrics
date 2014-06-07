@@ -4,7 +4,6 @@ import java.util.Collections;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
 
 import org.rhq.metrics.core.MetricsService;
 
@@ -15,8 +14,10 @@ import org.rhq.metrics.core.MetricsService;
 @ApplicationScoped
 public class MetricsServiceProducer {
 
-    @Inject
+/*
+    @Inject TODO why does this fail all of a sudden?
     private javax.servlet.ServletContext context;
+*/
 
     private MetricsService metricsService;
 
@@ -26,20 +27,36 @@ public class MetricsServiceProducer {
             try {
                 String className = null;
                 String backend = System.getProperty("rhq-metrics.backend");
-                if (backend!=null) {
+
+                if (backend != null) {
                     switch (backend) {
                     case "mem":
-                        className="org.rhq.metrics.impl.memory.MemoryMetricsService";
+                        className = "org.rhq.metrics.impl.memory.MemoryMetricsService";
                         break;
                     case "cass":
-                        className="org.rhq.metrics.impl.cassandra.MetricsServiceCassandra";
+                        className = "org.rhq.metrics.impl.cassandra.MetricsServiceCassandra";
                         break;
+                    default:
+                        className = "org.rhq.metrics.impl.memory.MemoryMetricsService";
+
                     }
                 }
 
-                if (className==null) {
-                    className = context.getInitParameter("rhq-metrics.backend");
+/*
+                if (className == null) {
+                    if (context != null) {
+                        className = context.getInitParameter("rhq-metrics.backend");
+                    }
                 }
+*/
+
+                if (className == null || className.isEmpty()) {
+                    // Fall back to memory backend
+                    className = "org.rhq.metrics.impl.memory.MemoryMetricsService";
+                }
+
+                System.out.println("Using a backend implementation of " + className);
+
                 Class clazz = Class.forName(className);
                 metricsService = (MetricsService) clazz.newInstance();
                 // TODO passs servlet params
