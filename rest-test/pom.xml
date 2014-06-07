@@ -97,6 +97,61 @@
           <maven.surefire.debug>-Xdebug -Xnoagent -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,address=8797,server=y,suspend=y</maven.surefire.debug>
        </properties>
     </profile>
+
+    <profile>
+      <id>Memory-backend</id>
+      <activation>
+        <property>
+          <name>backend</name>
+          <value>!cass</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>2.16</version>
+            <configuration>
+              <systemPropertyVariables>
+                <arquillian.launch>wildfly-as-managed</arquillian.launch>
+                <arquillian.jboss_home>${project.build.directory}/wildfly-${version.wildfly}</arquillian.jboss_home>
+              </systemPropertyVariables>
+              <environmentVariables>
+                <JBOSS_HOME>${project.build.directory}/wildfly-${version.wildfly}</JBOSS_HOME>
+              </environmentVariables>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>Cassandra-backend</id>
+      <activation>
+        <property>
+          <name>backend</name>
+          <value>cass</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>2.16</version>
+            <configuration>
+              <systemPropertyVariables>
+                <arquillian.launch>wildfly-as-managed-cassandra</arquillian.launch>
+                <arquillian.jboss_home>${project.build.directory}/wildfly-${version.wildfly}</arquillian.jboss_home>
+              </systemPropertyVariables>
+              <environmentVariables>
+                <JBOSS_HOME>${project.build.directory}/wildfly-${version.wildfly}</JBOSS_HOME>
+              </environmentVariables>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
   </profiles>
 
   <dependencies>
