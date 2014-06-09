@@ -11,6 +11,8 @@ endif::[]
 * MaaS: Metrics as a Service
 * ChaaS: Charts as a Service
 
+image::rhq-metrics-architecture.png[RHQ-Metrics Architecture Diagram]
+
 == Quickstart
 
 To get a first impression you can also run the quickstart via
