@@ -131,24 +131,31 @@ public class BaseTest {
 
     @Test
     public void pingTestWithJsonP() throws Exception {
+        System.err.println("pingTestWithJsonP");
+        System.err.flush();
         Response response = given()
             .header(acceptWrappedJson)
+            .contentType(ContentType.JSON)
             .queryParam("jsonp", "jsonp") // Use jsonp-wrapping e.g. for JavaScript access
 
                 .expect()
                     .statusCode(200)
+                    .log().everything()
                 .when()
                     .post("/ping")
                 .then()
-                    .contentType(ContentType.JSON)
                 .extract()
                     .response();
 
         String mediaType = response.getContentType();
+        assert mediaType != null : "Did not see a Content-Type header";
         assert mediaType.startsWith("application/javascript");
 
         // check for jsonp wrapping
+        assert response!=null;
         String bodyString = response.asString();
+        assert bodyString != null;
+        assert !bodyString.isEmpty();
         assert bodyString.startsWith("jsonp(");
         assert bodyString.endsWith(");");
 
@@ -231,8 +238,12 @@ public class BaseTest {
         assert now == aLong : "Timestamp was " +  aLong + " expected: " + now;
     }
 
-//    @Test // TODO re-enable when we know why the filter fails with the memory backend
+    @Test
     public void testAddGetValueWithJsonP() throws Exception {
+
+        System.err.println("getValueWithJsonP");
+        System.err.flush();
+
 
         String id = "fooJsonP";
         long now = System.currentTimeMillis();
@@ -264,6 +275,7 @@ public class BaseTest {
         // We request our custom type, but the resulting document must have
         // a content type of application/javascript
         String mediaType = response.getContentType();
+        assert mediaType != null : "Did not see a Content-Type header";
         assert mediaType.startsWith("application/javascript") : "Media type was " + mediaType;
 
         // check for jsonp wrapping

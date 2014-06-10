@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import javax.servlet.AsyncListener;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -89,12 +90,26 @@ public class JsonPFilter implements Filter {
 
             JsonPResponseWrapper responseWrapper = new JsonPResponseWrapper(httpResponse);
             chain.doFilter(requestWrapper, responseWrapper);
-            response.setContentType("application/javascript; charset=utf-8");
-            ServletOutputStream outputStream = response.getOutputStream();
-            outputStream.write((callback + "(").getBytes());
-            responseWrapper.getByteArrayOutputStream().writeTo(outputStream);
-            outputStream.write(");".getBytes());
-            outputStream.flush();
+            if (request.isAsyncStarted()) {
+                // We have an async "backend" servlet, so we need to create a listener and
+                // have it "wait" for the data.
+                AsyncListener asyncListener = request.getAsyncContext().createListener(JsonPAsyncListener.class);
+                ((JsonPAsyncListener)asyncListener).set(responseWrapper, httpResponse,
+                    callback);
+                request.getAsyncContext().addListener(asyncListener, requestWrapper, responseWrapper);
+            }
+
+            else {
+
+                // Normal case, no async processing started.
+
+                ServletOutputStream outputStream = response.getOutputStream();
+                response.setContentType("application/javascript; charset=utf-8");
+                outputStream.write((callback + "(").getBytes());
+                responseWrapper.getByteArrayOutputStream().writeTo(outputStream);
+                outputStream.write(");".getBytes());
+                outputStream.flush();
+            }
 
         } else {
             chain.doFilter(request, response);
@@ -103,8 +118,8 @@ public class JsonPFilter implements Filter {
 
     /**
      * Check if the incoming request requests jsonw wrapping and jsonp-wrapping
-     * @param httpRequest
-     * @return
+     * @param httpRequest The incoming http request
+     * @return True if json wrapping was requested
      */
     private boolean requestsJsonWrapping(HttpServletRequest httpRequest) {
 
@@ -141,7 +156,7 @@ public class JsonPFilter implements Filter {
         return parameter;
     }
 
-    private static class JsonPResponseWrapper extends HttpServletResponseWrapper {
+    static class JsonPResponseWrapper extends HttpServletResponseWrapper {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
