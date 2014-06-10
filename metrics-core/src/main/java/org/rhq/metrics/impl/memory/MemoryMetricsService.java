@@ -7,15 +7,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
 
 import com.datastax.driver.core.Session;
+import com.google.common.base.Function;
 import com.google.common.collect.Table;
 import com.google.common.collect.TreeBasedTable;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.MetricsService;
+import org.rhq.metrics.core.MetricsThreadFactory;
 import org.rhq.metrics.core.RawNumericMetric;
 
 import gnu.trove.map.TLongDoubleMap;
@@ -33,6 +38,9 @@ public class MemoryMetricsService implements MetricsService {
 
     Table<String, String, Long> counters = TreeBasedTable.create();
 //    private ListMultimap<String, Counter> counters = ArrayListMultimap.create();
+
+    private ListeningExecutorService metricsTasks = MoreExecutors
+        .listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
 
     @Override
     public void startUp(Session session) {
@@ -118,7 +126,8 @@ public class MemoryMetricsService implements MetricsService {
                 counters.add(new Counter(group, name, value));
             }
         }
-        return Futures.immediateFuture(counters);
+        ListenableFuture<List<Counter>> listListenableFuture = Futures.immediateFuture(counters);
+        return Futures.transform(listListenableFuture,new NoOpCounterMapper(),metricsTasks);
     }
 
     @Override
@@ -140,7 +149,9 @@ public class MemoryMetricsService implements MetricsService {
 
             }
         }
-        return Futures.immediateFuture(metrics);
+        ListenableFuture<List<RawNumericMetric>> listListenableFuture = Futures.immediateFuture(metrics);
+
+        return Futures.transform(listListenableFuture,new NoOpDataMapper(),metricsTasks);
     }
 
     @Override
@@ -154,5 +165,21 @@ public class MemoryMetricsService implements MetricsService {
         metrics.addAll(storage.keySet());
 
         return metrics;
+    }
+
+
+
+
+    private class NoOpDataMapper implements Function<List<RawNumericMetric>, List<RawNumericMetric>> {
+        @Override
+        public List<RawNumericMetric> apply(List<RawNumericMetric> input) {
+            return input;
+        }
+    }
+    private class NoOpCounterMapper implements Function<List<Counter>, List<Counter>> {
+        @Override
+        public List<Counter> apply(List<Counter> input) {
+            return input;
+        }
     }
 }
