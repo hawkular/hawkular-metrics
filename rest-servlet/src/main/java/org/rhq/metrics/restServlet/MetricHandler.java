@@ -261,7 +261,7 @@ public class MetricHandler {
 ////            return builder.build();
 //        }
 
-        final MediaType mediaType = headers.getAcceptableMediaTypes().get(0);
+//        final MediaType mediaType = headers.getAcceptableMediaTypes().get(0);
 
         long now = System.currentTimeMillis();
         if (start==null) {
@@ -286,7 +286,7 @@ public class MetricHandler {
                         points.add(point);
                     }
                     GenericEntity<List<DataPoint>> list = new GenericEntity<List<DataPoint>>(points) {};
-                    Response jaxrs = Response.ok(list).type(mediaType).build();
+                    Response jaxrs = Response.ok(list).build();
                     asyncResponse.resume(jaxrs);
 
                 } else {
@@ -370,7 +370,7 @@ public class MetricHandler {
                     }
 
                     GenericEntity<List<BucketDataPoint>> list = new GenericEntity<List<BucketDataPoint>>(points) {};
-                    Response jaxrs = Response.ok(list).type(mediaType).build();
+                    Response jaxrs = Response.ok(list).build();
                     asyncResponse.resume(jaxrs);
                 }
 

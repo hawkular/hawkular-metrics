@@ -131,28 +131,25 @@ public class BaseTest {
 
     @Test
     public void pingTestWithJsonP() throws Exception {
-        System.err.println("pingTestWithJsonP");
-        System.err.flush();
-        Response response = given()
-            .header(acceptWrappedJson)
-            .contentType(ContentType.JSON)
-            .queryParam("jsonp", "jsonp") // Use jsonp-wrapping e.g. for JavaScript access
-
-                .expect()
-                    .statusCode(200)
-                    .log().everything()
-                .when()
-                    .post("/ping")
-                .then()
-                .extract()
-                    .response();
+        Response response =
+            given()
+                .header(acceptWrappedJson)
+                .contentType(ContentType.JSON)
+                .queryParam("jsonp", "jsonp") // Use jsonp-wrapping e.g. for JavaScript access
+            .expect()
+                .statusCode(200)
+                .log().ifError()
+            .when()
+                .post("/ping")
+            .then()
+            .extract()
+                .response();
 
         String mediaType = response.getContentType();
         assert mediaType != null : "Did not see a Content-Type header";
         assert mediaType.startsWith("application/javascript");
 
         // check for jsonp wrapping
-        assert response!=null;
         String bodyString = response.asString();
         assert bodyString != null;
         assert !bodyString.isEmpty();
@@ -204,6 +201,36 @@ public class BaseTest {
     }
 
     @Test
+    public void testAddGetValueNoAcceptsHeaderForGet() throws Exception {
+
+        String id = "fooNC";
+        long now = System.currentTimeMillis();
+        Map<String,Object> data = createDataPoint(id, now, 42d);
+
+        given()
+            .body(data)
+            .pathParam("id", id)
+            .contentType(ContentType.JSON)
+        .expect()
+            .statusCode(200)
+        .when()
+            .post("/metrics/{id}");
+
+
+        given()
+            .pathParam("id", id)
+            .queryParam("start", now - 100)
+            .queryParam("end", now + 100)
+        .expect()
+            .statusCode(200)
+            .contentType(ContentType.JSON)
+            .log().ifError()
+            .body("timestamp[0]", equalTo(now))
+        .when()
+           .get("/metrics/{id}");
+    }
+
+    @Test
     public void testAddGetValueXml() throws Exception {
 
         String id = "fooXml1";
@@ -241,10 +268,6 @@ public class BaseTest {
     @Test
     public void testAddGetValueWithJsonP() throws Exception {
 
-        System.err.println("getValueWithJsonP");
-        System.err.flush();
-
-
         String id = "fooJsonP";
         long now = System.currentTimeMillis();
         Map<String,Object> data = createDataPoint(id, now, 42d);
@@ -268,7 +291,7 @@ public class BaseTest {
             .queryParam("end", now + 100)
         .expect()
             .statusCode(200)
-            .log().everything()
+            .log().ifError()
         .when()
            .get("/metrics/{id}");
 
