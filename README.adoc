@@ -69,4 +69,8 @@ Visit the https://community.jboss.org/en/rhq/rhq-metrics[Forums] to discuss RHQ-
 
 We love contributions and pull-requests :-)
 
-To meet the guys, join us on irc://irc.freenode.net/#rhq[Freenode IRC]
+To meet the guys, join us on irc://irc.freenode.net/#rhq[Freenode IRC] in channel #rhq.
+If you can not use the irc protocol, you can also use a web to irc gateway like
+http://webchat.freenode.net/?channels=rhq[Web chat on Freenode].
+
+RHQ-metrics is http://twitter.com/#!/rhq_Project/[@rhq-Project] on Twitter.
