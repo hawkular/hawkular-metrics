@@ -6,6 +6,11 @@ BACKEND=mem
 # uncomment the next line if you want to use an already running Cassandra server for the backend.
 # BACKEND=cass
 
+if [ x$1 == "xcass" -o x$1 == "xmem" ]
+then
+    BACKEND=$1
+fi
+
 WFLY_VERSION=`grep "<version.wildfly>" pom.xml | sed -E 's/^.*y>(8.*l)<.*$/\1/'`
 
 if [ ! -e core-api/target/rhq-metrics-api*.jar ]
