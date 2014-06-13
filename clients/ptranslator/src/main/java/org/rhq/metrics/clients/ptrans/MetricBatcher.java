@@ -19,8 +19,14 @@ import io.netty.util.AttributeKey;
 public class MetricBatcher extends MessageToMessageDecoder<SingleMetric> {
 
     private static final int THRESHOLD = 5;
+    private String subKey;
 
-    AttributeKey<List<SingleMetric>> cacheKey = AttributeKey.valueOf("cachedMetrics");
+    public MetricBatcher(String subKey) {
+        this.subKey = subKey;
+        cacheKey = AttributeKey.valueOf("cachedMetrics"+subKey);
+    }
+
+    AttributeKey<List<SingleMetric>> cacheKey;
 
     @Override
     protected void decode(ChannelHandlerContext ctx, SingleMetric msg, List<Object> out) throws Exception {

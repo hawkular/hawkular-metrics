@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import org.rhq.metrics.clients.ptrans.backend.RestForwardingHandler;
 import org.rhq.metrics.clients.ptrans.ganglia.UdpGangliaDecoder;
+import org.rhq.metrics.clients.ptrans.statsd.StatsdDecoder;
 import org.rhq.metrics.clients.ptrans.syslog.UdpSyslogEventDecoder;
 
 /**
@@ -50,6 +51,9 @@ public class Main {
     private String gangliaGroup = GANGLIA_DEFAULT_GROUP;
     private int gangliaPort = GANGLIA_DEFAULT_PORT;
     private String multicastIfOverride;
+
+    private static final int STATSD_DEFAULT_PORT = 8125;
+    private int statsDport = STATSD_DEFAULT_PORT;
 
     public static void main(String[] args) throws Exception {
         Main main = new Main();
@@ -103,11 +107,39 @@ public class Main {
             // Try to set up an upd listener for Ganglia Messages
             setupGangliaUdp(group);
 
+            // Setup statsd listener
+            setupStatsdUdp(group);
+
             udpFuture.channel().closeFuture().sync();
         } finally {
             group.shutdownGracefully().sync();
             group.shutdownGracefully().sync();
         }
+    }
+
+    private void setupStatsdUdp(EventLoopGroup group) {
+        Bootstrap statsdBootstrap = new Bootstrap();
+        statsdBootstrap
+            .group(group)
+            .channel(NioDatagramChannel.class)
+            .localAddress(statsDport)
+            .handler(new ChannelInitializer<Channel>() {
+                @Override
+                public void initChannel(Channel socketChannel) throws Exception {
+                    ChannelPipeline pipeline = socketChannel.pipeline();
+                    pipeline.addLast(new StatsdDecoder());
+                    pipeline.addLast(new MetricBatcher("statsd"));
+                    pipeline.addLast(new RestForwardingHandler());
+                }
+            })
+        ;
+        try {
+            ChannelFuture statsdFuture = statsdBootstrap.bind().sync();
+            logger.info("Statsd listening on udp " + statsdFuture.channel().localAddress());
+        } catch (InterruptedException e) {
+            e.printStackTrace();  // TODO: Customise this generated block
+        }
+
     }
 
     private void setupGangliaUdp(EventLoopGroup group) {
@@ -138,7 +170,7 @@ public class Main {
                     public void initChannel(Channel socketChannel) throws Exception {
                         ChannelPipeline pipeline = socketChannel.pipeline();
                         pipeline.addLast(new UdpGangliaDecoder());
-                        pipeline.addLast(new MetricBatcher());
+                        pipeline.addLast(new MetricBatcher("ganglia"));
                         pipeline.addLast(new RestForwardingHandler());
                     }
                 })
@@ -172,6 +204,7 @@ public class Main {
             gangliaGroup = properties.getProperty("ganglia.group",GANGLIA_DEFAULT_GROUP);
             gangliaPort = Integer.parseInt(properties.getProperty("ganglia.port", String.valueOf(GANGLIA_DEFAULT_PORT)));
             multicastIfOverride = properties.getProperty("multicast.interface");
+            statsDport = Integer.parseInt(properties.getProperty("statsd.port", String.valueOf(STATSD_DEFAULT_PORT)));
 
         } catch (IOException e) {
             logger.warn("Can not load properties from '" + CONFIG_PROPERTIES_FILE_NAME + "'");

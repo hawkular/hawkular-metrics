@@ -7,6 +7,8 @@ package org.rhq.metrics.clients.ptrans;
  */
 public class SingleMetric {
 
+    private MetricType metricType;
+
     String jsonTemplate = "{\"id\":\"%1\"," +
      "\"timestamp\":%2,"+
      "\"value\":%3}";
@@ -39,10 +41,11 @@ public class SingleMetric {
 
     @Override
     public String toString() {
-        return "SyslogMetricEvent{" +
-            "timestamp=" + timestamp +
-            ", source='" + source + '\'' +
-            ", value=" + value +
+        return "SingleMetric{" +
+            "type=" + metricType +
+            ", time=" + timestamp +
+            ", src='" + source + '\'' +
+            ", val=" + value +
             '}';
     }
 
@@ -53,5 +56,13 @@ public class SingleMetric {
 
         return payload;
 
+    }
+
+    public MetricType getMetricType() {
+        return metricType;
+    }
+
+    public void setMetricType(MetricType metricType) {
+        this.metricType = metricType;
     }
 }
