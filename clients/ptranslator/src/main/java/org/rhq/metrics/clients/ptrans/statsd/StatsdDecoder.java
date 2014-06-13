@@ -10,7 +10,6 @@ import io.netty.util.CharsetUtil;
 
 import org.rhq.metrics.clients.ptrans.MetricType;
 import org.rhq.metrics.clients.ptrans.SingleMetric;
-import org.rhq.metrics.clients.ptrans.syslog.SyslogEventDecoder;
 
 /**
  * Decoder for Stats packets that comes in the form of
@@ -48,7 +47,7 @@ public class StatsdDecoder extends MessageToMessageDecoder<DatagramPacket> {
         String name = packet.substring(0,packet.indexOf(":"));
         String remainder = packet.substring(packet.indexOf(":")+1);
         String valString;
-        String type=null;
+        String type;
         if (remainder.contains("|")) {
             valString = remainder.substring(0,remainder.indexOf("|"));
             type = remainder.substring(remainder.indexOf("|")+1);

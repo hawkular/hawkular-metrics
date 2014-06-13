@@ -1,14 +1,16 @@
-== ptranslator - rhq-metrics restServlet proxy
+= ptrans
+:type: article
 
-This is a proxy server taking in metrics data in one format and emitting
-them as rest-requests into rhq-metrics backend.
+= ptrans - rhq-metrics restServlet proxy
 
-You can configure ports to use in a `ptrans.properties` file. Default
-for TCP is port 5140.
+This is a proxy server taking in metrics data in several common formats and emitting
+them as rest-requests into rhq-metrics backend for storage.
 
-=== Formats
+You can configure ports to use in a `ptrans.properties` file.
 
-==== Syslog
+== Supported input formats
+
+=== Syslog
 
 This module contains a simple proxy server that also listens on UDP port 5140
 for syslog messages. If a message is of the format
@@ -19,7 +21,25 @@ Then it is taken and the individual key-value-pairs are broken apart and
 sent as individual metrics to a rhq-metrics rest server. The timestamp
 is the current time on the proxy when the udp packet was received.
 
-==== Graphite
+==== Configuring syslog
+
+You need to configure syslog to forward you the messages.
+For this you need to edit `/ec/syslog.conf` and add a line like this:
+
+  *.info          @127.0.0.1:5140
+
+(the facility and severity may vary depending on how your application is logging the metrics)
+
+==== Manually testing
+
+On a *nix command line you can run
+
+  $ logger -p local3.info "type=metric thread.count=7 thread.active=5 heap.permgen.size=20000000"
+
+to add entries to syslog for testing purposes.
+
+
+=== Graphite
 
 The converter also accepts Graphite plaintext format
 
@@ -30,7 +50,23 @@ or with multiple entries per message
     path1 value1 timestamp_in_s1
     path2 value2 timestamp_in_s2
 
-==== StatsD
+=== Ganglia
+
+If you have Ganglia `gmond` running, you can import its data by running the pTrans client, listening
+to `gmond` udp mlticast packets.
+For this to work, the packets from Ganglia need to have a large enough TTL to be seen on the host where you run pTrans.
+
+Excerpt from gmond.conf:
+
+----
+udp_send_channel {
+ mcast_join = 239.2.11.71
+ port = 8649
+ ttl = 4   <<--- Must be >> 1 if gmond is not on the host ptrans runs.
+}
+----
+
+=== StatsD
 
 The converter accepts statsD packets sent via UDP (to the UDP port).
 Format is
@@ -40,32 +76,17 @@ Format is
 
 Where only key and value are accepted and the type is ignored (for now).
 
+E.g.: `$ echo "my_time:100|ms" | nc -u4 localhost 8125`
 
 
-=== running
+== Running ptrans
 
 You can use the provided `start.sh` script to start the server
 
 Before you start the proxy, make sure the rest-server is running.
 
-=== Configuring syslog
 
-You need to configure syslog to forward you the messages.
-For this you need to edit `/ec/syslog.conf` and add a line like this:
-
-  *.info          @127.0.0.1:5140
-
-(the facility and severity may vary depending on how your application is logging the metrics)
-
-=== Manually testing
-
-On a *nix command line you can run
-
-  $ logger -p local3.info "type=metric thread.count=7 thread.active=5 heap.permgen.size=20000000"
-
-to add entries to syslog for testing purposes.
-
-=== Room for improvement:
+== Room for improvement:
 
 * add information about the remote to the key so make the key unique
 * reconnect to the rest server if it goes down
