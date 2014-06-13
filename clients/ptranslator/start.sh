@@ -1,5 +1,10 @@
 #!/bin/sh
 
+if [ ! -d target -o ! -f target/ptrans-0.2.0-SNAPSHOT.jar ]
+then
+    mvn install
+fi
+
 java -Djava.net.preferIPv4Stack=true \
    -cp ${HOME}/.m2/repository/io/netty/netty-all/4.0.19.Final/netty-all-4.0.19.Final.jar\
 :ptrans.properties\

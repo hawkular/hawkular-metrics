@@ -67,6 +67,7 @@
     <module>rest-servlet</module>
     <module>clients</module>
     <module>rest-test</module>
+    <module>dummy-ui</module>
   </modules>
 
   <build>
