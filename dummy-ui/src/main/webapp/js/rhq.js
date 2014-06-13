@@ -3,13 +3,24 @@ var rhq = {
 drawRawGraph: function (metric, divId, clusterValues) {
     clusterValues = clusterValues || false;
 
-    var url = metric.href + '.json';
+    // TODO allow to pass those in
+    var endTs = Date.now();
+    var startTs = endTs - 8 * 3600 * 1000; // 8h
+
+    var url = metric.href + '.json?start=' + startTs + '&end=' + endTs;
     if (clusterValues) {
-        url += "?buckets=60&bucketWidthSeconds=60&skipEmpty=true&bucketCluster=false"
+        url += "&buckets=60&bucketWidthSeconds=60&skipEmpty=true&bucketCluster=false"
     }
+
 
     d3.json(url,
             function (jsondata) {
+                if (clusterValues) {
+                    // Now adjust the time range back
+                    startTs = 0;
+                    endTs = 3600 * 1000; // 1h
+                }
+
                 var svg = d3.select("body").select("#" + divId).select("svg");
                 var w = svg.attr("width");
                 var h = svg.attr("height");
@@ -23,21 +34,11 @@ drawRawGraph: function (metric, divId, clusterValues) {
                 var maxVal = d3.max(jsondata, function (d) {
                     return d.value
                 });
-                var minTs = d3.min(jsondata, function (d) {
-                    return d.timestamp
-                });
-                var maxTs = d3.max(jsondata, function (d) {
-                    return d.timestamp
-                });
-
-                var minTsD = new Date(minTs);
-                var maxTsD = new Date(maxTs);
 
                 // X axis goes from lowest to highest timestamp
-                var x = d3.time.scale().domain([minTsD, maxTsD]).range([80, w - 5]);
+                var x = d3.time.scale().domain([startTs, endTs]).range([80, w - 5]);
                 // Y axis goes from lowest to highest value
-                var y = d3.scale.linear().domain([minVal, maxVal]).rangeRound([5, h - 20]);
-                var yAxisRange = d3.scale.linear().domain([maxVal, minVal]).rangeRound([5, h - 20]);
+                var y = d3.scale.linear().domain([maxVal, minVal]).rangeRound([5, h - 20]);
 
                 var dataFormat = d3.format(".2r");
                 var dateFormat;
@@ -61,7 +62,7 @@ drawRawGraph: function (metric, divId, clusterValues) {
                         ;
 
                 var yAxis = d3.svg.axis()
-                                .scale(yAxisRange)
+                                .scale(y)
                                 .tickSize(1, 1)
                                 .ticks(4)
                                 .orient("right")
@@ -91,7 +92,7 @@ drawRawGraph: function (metric, divId, clusterValues) {
                                 return x(new Date(d.timestamp));
                             })
                             .y(function (d) {
-                                return  h - y(d.value);
+                                return  y(d.value);
                             })
                             .interpolate("linear");
 
@@ -110,9 +111,9 @@ drawRawGraph: function (metric, divId, clusterValues) {
                 group.append("svg:circle")
                         .attr("cx", currX)
                         .attr("cy", function(d) {
-                            return h - y(d.value)
+                            return y(d.value)
                         })
-                        .attr("r", 3)
+                        .attr("r", 1.5)
                         .attr("stroke", "blue")
                         .attr("fill", "lightblue")
                         .append("title")
@@ -125,7 +126,12 @@ drawRawGraph: function (metric, divId, clusterValues) {
 
 drawWhisker :function(metric,divId) {
 
-    d3.json(metric.href +'.json' + "?buckets=60&skipEmpty=true",
+    // TODO allow to pass those in
+    var endTs = Date.now();
+    var startTs = endTs - 8 * 3600 * 1000; // 8h
+
+
+    d3.json(metric.href +'.json' + "?buckets=60&skipEmpty=true&start="+startTs+"&end=" + endTs,
             function (jsondata) {
                 var svg = d3.select("body").select("#"+divId).select("svg");
                 var w = svg.attr("width");
@@ -137,12 +143,10 @@ drawWhisker :function(metric,divId) {
                 var minTs = d3.min(jsondata, function(d) {return d.timestamp});
                 var maxTs = d3.max(jsondata, function(d) {return d.timestamp});
 
-                var minTsD = new Date(minTs);
-                var maxTsD = new Date(maxTs);
 
 
                 // X axis goes from lowest to highest timestamp
-                var x = d3.time.scale().domain([minTsD,maxTsD]).range([80,w-5]);
+                var x = d3.time.scale().domain([startTs,endTs]).range([80,w-5]);
                 // Y axis goes from lowest to highest value
                 var y = d3.scale.linear().domain([maxVal, minVal]).rangeRound([5,h-20]);
 
