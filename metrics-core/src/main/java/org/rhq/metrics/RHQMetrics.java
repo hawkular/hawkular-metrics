@@ -30,6 +30,11 @@ public class RHQMetrics {
             options.put("keyspace", "rhq-metrics");
         }
 
+        public Builder withOptions(Map<String,String> options) {
+            this.options.putAll(options);
+            return this;
+        }
+
         public Builder withInMemoryDataStore() {
             usingCassandra = false;
             return this;
