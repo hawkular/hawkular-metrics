@@ -15,8 +15,8 @@
 
   <context-param>
      <param-name>rhq-metrics.backend</param-name>
-     <!--<param-value>org.rhq.metrics.impl.cassandra.MetricsServiceCassandra</param-value>-->
-    <param-value>org.rhq.metrics.impl.memory.MemoryMetricsService</param-value>
+     <param-value>org.rhq.metrics.impl.cassandra.MetricsServiceCassandra</param-value>
+    <!--<param-value>org.rhq.metrics.impl.memory.MemoryMetricsService</param-value>-->
   </context-param>
 
   <context-param>
