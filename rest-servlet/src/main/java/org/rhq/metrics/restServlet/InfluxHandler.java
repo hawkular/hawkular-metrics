@@ -78,7 +78,7 @@ public class InfluxHandler {
 
                 int i = query.indexOf("from") + 5;
                 int j = query.indexOf(" ", i);
-                final String metric = queryString.substring(i, j);  // metric to query from backend
+                final String metric = deQuote(queryString.substring(i, j));  // metric to query from backend
 
                 i = query.indexOf("as") + 3;
                 j = query.indexOf(" ", i);
@@ -138,6 +138,31 @@ public class InfluxHandler {
                     Response.status(Response.Status.BAD_REQUEST).entity(errMsg).build());
             }
         }
+    }
+
+    /**
+     * The passed string may be surrounded by quotes, so we
+     * need to remove them.
+     * @param in String to de-quote
+     * @return De-Quoted String
+     */
+    private String deQuote(String in) {
+
+        if (in==null) {
+            return null;
+        }
+        String out ;
+        int start = 0;
+        int end = in.length();
+        if (in.startsWith("\"")) {
+            start++;
+        }
+        if (in.endsWith("\"")) {
+            end--;
+        }
+        out=in.substring(start,end);
+
+        return out;
     }
 
     /**
