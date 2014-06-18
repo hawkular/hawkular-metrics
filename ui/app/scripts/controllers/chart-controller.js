@@ -5,6 +5,7 @@
  * @ngdoc controller
  * @name ChartController
  * @param {expression} chartController
+ * @description This controller is responsible for handling activity related to the Chart tab.
  */
 angular.module('chartingApp')
     .controller('ChartController', ['$scope','$rootScope', '$http', '$log', 'BASE_URL',  function ($scope, $rootScope, $http, $log, BASE_URL ) {
@@ -15,6 +16,13 @@ angular.module('chartingApp')
             startTimeStamp: moment().subtract('hours', 8).toDate() //default time period set to 8 hours
         };
 
+        $rootScope.$on("DateRangeChanged", function (event, message) {
+            $log.debug("DateRangeChanged Fired from Chart!");
+        });
+
+//        $rootScope.$on("DateRangeMove", function (event, message) {
+//            $log.debug("DateRangeMove on chart Detected.");
+//        });
 
         $scope.refreshChartData = function () {
 

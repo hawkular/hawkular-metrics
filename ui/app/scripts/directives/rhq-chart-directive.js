@@ -114,7 +114,6 @@ angular.module('chartingApp')
             }
 
 
-
             function setupFilteredData(dataPoints) {
                 avg = d3.mean(dataPoints.map(function (d) {
                     return !d.empty ? d.avg : 0;
@@ -125,7 +124,7 @@ angular.module('chartingApp')
                 }));
 
                 min = d3.min(dataPoints.map(function (d) {
-                    return !d.empty ? d.min : undefined ;
+                    return !d.empty ? d.min : undefined;
                 }));
                 lowBound = min - (min * 0.1);
                 highBound = peak + ((peak - min) * 0.1);
@@ -159,7 +158,7 @@ angular.module('chartingApp')
                     yScale = d3.scale.linear()
                         .clamp(true)
                         .rangeRound([height, 0])
-                        .domain([lowBound,highBound]);
+                        .domain([lowBound, highBound]);
 
                     yAxis = d3.svg.axis()
                         .scale(yScale)
@@ -217,7 +216,7 @@ angular.module('chartingApp')
                     } else {
                         // aggregate with min/avg/max
                         hover = "<div class='chartHover'><div><small><span class='chartHoverLabel'>Timestamp: </span><span class='chartHoverValue'>" + formattedDateTime + "</span></small></div><hr/>" +
-                            "<div><small><span class='chartHoverLabel'>" + maxLabel + "</span><span>: </span><span class='chartHoverValue'>" + d.max + "</span></small> </div> "+
+                            "<div><small><span class='chartHoverLabel'>" + maxLabel + "</span><span>: </span><span class='chartHoverValue'>" + d.max + "</span></small> </div> " +
                             "<div><small><span class='chartHoverLabel'>" + avgLabel + "</span><span>: </span><span class='chartHoverValue'>" + d.avg + "</span></small> </div> " +
                             "<div><small><span class='chartHoverLabel'>" + minLabel + "</span><span>: </span><span class='chartHoverValue'>" + d.min + "</span></small> </div></div> ";
                     }
@@ -526,26 +525,22 @@ angular.module('chartingApp')
                 }
 
                 function brushMove() {
-                    var s = brush.extent();
-                    //publishDateRangeChangeEvent(s[0], s[1]);
+                    //useful for showing the daterange change dynamically while selecting
+                    var extent = brush.extent();
+                    scope.$emit('DateRangeMove', extent);
                 }
 
                 function brushEnd() {
-                    var s = brush.extent();
-                    var startTime = Math.round(s[0].getTime());
-                    var endTime = Math.round(s[1].getTime());
+                    var extent = brush.extent();
+                    var startTime = Math.round(extent[0].getTime());
+                    var endTime = Math.round(extent[1].getTime());
                     svg.classed("selecting", !d3.event.target.empty());
-                    // ignore selections less than 1 minute
+                    // ignore range selections less than 1 minute
                     if (endTime - startTime >= 60000) {
-                        //publishDateRangeChangeEvent(startTime, endTime);
+                        scope.$emit('DateRangeChanged', extent);
                     }
                 }
 
-                function publishDateRangeChangeEvent(startDateTime, endDateTime) {
-                    var dateRangeChangedEvent = [startDateTime, endDateTime];
-                    $emit('DateRangeChanged', dateRangeChangedEvent);
-                    $broadcast('DateRangeChanged', dateRangeChangedEvent);
-                }
             }
 
             scope.$watch('data', function (newValues) {
@@ -554,6 +549,17 @@ angular.module('chartingApp')
                     return scope.render(processedNewValues);
                 }
             }, true);
+
+            scope.$on("DateRangeChanged", function (event, extent) {
+                console.debug("Handling DateRangeChanged Fired Chart Directive: " + extent[0] + " --> " + extent[1]);
+                var dataSubset = [], dataPoints = angular.fromJson(attributes.data);
+                angular.forEach(dataPoints, function (value) {
+                    if (value.timestamp >= extent[0].getTime() && value.timestamp <= extent[1].getTime()) {
+                        dataSubset.push(value);
+                    }
+                });
+                scope.render(dataSubset);
+            });
 
 
             scope.render = function (dataPoints) {
