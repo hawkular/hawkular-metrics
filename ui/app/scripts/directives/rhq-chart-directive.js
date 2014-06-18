@@ -4,7 +4,8 @@
 /**
  * @ngdoc directive
  * @name rhqmStackedBarChart
- * @param {expression} rhqmStackedBarChart
+ * @description A d3 stacked bar chart representing time intervals.
+ *
  */
 angular.module('chartingApp')
     .directive('rhqmStackedBarChart', function () {

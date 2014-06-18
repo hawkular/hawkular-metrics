@@ -18,9 +18,10 @@ This is a standard Grunt project generated from yeoman.
 2. Install the node packages: **'npm install -g grunt-cli bower karma'**
 3. Install npm packages for tooling: **'npm install'**
 4. Install [Bower](http://bower.io) packages for UI: **'bower install'**
-5. Start the [Grunt](http://gruntjs.com)Server: **'grunt serve'**
+5. Start the [Grunt](http://gruntjs.com) Server: **'grunt serve'**
+6. Browse [http://127.0.0.1:9000/](http://127.0.0.1:9000/) and explore...
 
-Grunt will automatically launch a url for you in your browser and will reload any changes to the dev environment.
+Grunt will automatically launch a url for you in your browser and will reload any changes in real time to the browser. Feel Free to play around.
 
 ## Javascript API documentation
 

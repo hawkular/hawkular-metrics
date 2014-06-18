@@ -7,7 +7,7 @@
  * @param {expression} chartController
  */
 angular.module('chartingApp')
-    .controller('ChartController', ['$scope', '$http', '$log', 'BASE_URL',  function ($scope, $http, $log, BASE_URL ) {
+    .controller('ChartController', ['$scope','$rootScope', '$http', '$log', 'BASE_URL',  function ($scope, $rootScope, $http, $log, BASE_URL ) {
 
         $scope.restParams = {
             searchId: "",

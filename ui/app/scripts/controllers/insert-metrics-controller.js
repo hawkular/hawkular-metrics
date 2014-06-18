@@ -4,10 +4,9 @@
 /**
  * @ngdoc controller
  * @name InsertMetricsController
- * @param {expression} insertMetricsController
  */
 angular.module('chartingApp')
-    .controller('InsertMetricsController', ['$scope',  'metricDataService', function ($scope,  metricDataService) {
+    .controller('InsertMetricsController', ['$scope', '$rootScope', '$log',  'metricDataService', function ($scope, $rootScope, $log,  metricDataService) {
 
         $scope.timeIntervalInMinutes = [1, 5, 10, 15, 30, 60];
         $scope.showOpenGroup = true;
@@ -23,13 +22,12 @@ angular.module('chartingApp')
             id: "",
             jsonPayload: ""
         };
-
-
         $scope.rangeDurations = [1, 2, 5, 7];
 
         $scope.rangeInsertData = {
             timeStamp: moment().valueOf(),
             id: "",
+            selectedTimeInterval:  5,
             jsonPayload: "",
             startNumber: 1,
             endNumber: 100,
@@ -47,23 +45,51 @@ angular.module('chartingApp')
             } else {
                 computedTimestamp = moment().subtract('hours', numberOfHoursPast);
             }
-            console.log("Generated Timestamp is: " + computedTimestamp.fromNow());
+            $log.debug("Generated Timestamp is: " + computedTimestamp.fromNow());
 
             $scope.quickInsertData.jsonPayload = { timestamp: computedTimestamp.valueOf(), value: $scope.quickInsertData.value };
-            console.info("quick insert for id: " + $scope.quickInsertData.id);
+            $log.info("quick insert for id:  %s " , $scope.quickInsertData.id);
 
-            metricDataService.insertPayload($scope.quickInsertData.id,$scope.quickInsertData.jsonPayload);
+            metricDataService.insertSinglePayload($scope.quickInsertData.id,$scope.quickInsertData.jsonPayload);
+
+            $scope.quickInsertData.value = "";
 
         };
 
 
         $scope.multiInsert = function () {
-            console.info("multi insert for: " + $scope.multiInsertData.id);
-            metricDataService.insertPayload($scope.multiInsertData.id,$scope.multiInsertData.jsonPayload);
-
+            metricDataService.insertMultiplePayload($scope.multiInsertData.jsonPayload);
+            $scope.multiInsertData.jsonPayload = "";
         };
 
 
+        $scope.rangeInsert = function () {
+            var  jsonPayload,
+                currentTimeMoment = moment();
+
+            $log.debug("range insert for: " + $scope.rangeInsertData.id);
+            console.dir($scope.rangeInsertData);
+
+            jsonPayload = calculateTimestamps($scope.rangeInsertData.selectedDuration,
+                $scope.rangeInsertData.selectedIntervalInMinutes, currentTimeMoment);
+            $log.debug("JsonPayload: "+ jsonPayload);
+            metricDataService.insertMultiplePayload(jsonPayload);
+            $scope.rangeInsertData.id = "";
+
+        };
+
+        function calculateTimestamps(numberOfDays, intervalInMinutes, currentTimeMoment){
+            var intervalTimestamps = [], randomValue;
+
+            for(var i = 0; i < numberOfDays * 24 * 60 *   intervalInMinutes; i = i + intervalInMinutes ) {
+
+                var calculatedTimeInMillis =  currentTimeMoment.subtract('minutes', i).valueOf();
+                randomValue = metricDataService.createRandomValue($scope.rangeInsertData.startNumber, $scope.rangeInsertData.endNumber );
+                intervalTimestamps.push({id: $scope.rangeInsertData.id, timestamp: calculatedTimeInMillis, value : randomValue});
+            }
+            return angular.toJson(intervalTimestamps);
+
+        }
 
 
     }]);
