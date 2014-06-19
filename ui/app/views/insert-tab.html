@@ -118,7 +118,7 @@
 
             <div class="col-sm-5">
                 <select ng-model="rangeInsertData.selectedTimeInterval"
-                        ng-options="value for value in timeIntervalInMinutes"></select>
+                        ng-options="value for value in timeInterval"></select>
                 <span class="help-block"> (Time Interval In Minutes.)</span>
             </div>
             <div class="col-sm-2">
@@ -149,72 +149,72 @@
 </accordion-group>
 
 
-<accordion-group heading="Streaming Metrics" ng-controller="StreamingController">
-    <p class="text-muted">TBD. Create streaming metrics for the future that generate random numbers every X minutes </p>
+<accordion-group heading="Streaming Metrics" >
+    <p class="text-muted">Create streaming metrics for the future that generate random numbers every X minutes </p>
 
-    <!--<form class="form-horizontal" role="form">-->
-        <!--<div class="form-group">-->
-            <!--<label for="streamingInsertId" class="col-sm-2 control-label">ID</label>-->
+    <form class="form-horizontal" role="form">
+        <div class="form-group">
+            <label for="streamingInsertId" class="col-sm-2 control-label">ID</label>
 
-            <!--<div class="col-sm-4">-->
-                <!--<input type="text" class="form-control" id="streamingInsertId" ng-model="streamingInsertData.id"-->
-                       <!--placeholder="Enter Id...">-->
-                <!--<span class="help-block">Example: 100, apache3.cpu  </span>-->
-            <!--</div>-->
-        <!--</div>-->
+            <div class="col-sm-4">
+                <input type="text" class="form-control" id="streamingInsertId" ng-model="streamingInsertData.id"
+                       placeholder="Enter Id...">
+                <span class="help-block">Example: 100, apache3.cpu  </span>
+            </div>
+        </div>
 
-        <!--<h5>Random Values </h5>-->
+        <h5>Random Values </h5>
 
-        <!--<div class="form-group">-->
-            <!--<label class="col-sm-2 control-label">From </label>-->
+        <div class="form-group">
+            <label class="col-sm-2 control-label">From </label>
 
-            <!--<div class="col-sm-2">-->
-                <!--<input type="number" min="0" max="100" step="5" class="form-control" name="startNumber"-->
-                       <!--ng-model="streamingInsertData.startNumber" required>-->
-            <!--</div>-->
+            <div class="col-sm-2">
+                <input type="number" min="0" max="100" step="5" class="form-control" name="startNumber"
+                       ng-model="streamingInsertData.startNumber" required>
+            </div>
 
-            <!--<label class="col-sm-1 control-label">To</label>-->
+            <label class="col-sm-1 control-label">To</label>
 
-            <!--<div class="col-sm-2">-->
-                <!--<input type="number" min="10" max="1000" step="25" class="form-control" name="endNumber"-->
-                       <!--ng-model="streamingInsertData.endNumber" required>-->
-            <!--</div>-->
-        <!--</div>-->
+            <div class="col-sm-2">
+                <input type="number" min="10" max="1000" step="25" class="form-control" name="endNumber"
+                       ng-model="streamingInsertData.endNumber" required>
+            </div>
+        </div>
 
 
-        <!--<div class="form-group">-->
-            <!--<div class="form-group">-->
-                <!--<label class="col-sm-2 control-label">Every</label>-->
+        <div class="form-group">
+            <div class="form-group">
+                <label class="col-sm-2 control-label">Every</label>
 
-                <!--<div class="col-sm-5">-->
-                    <!--<select ng-model="selectedTimeInterval"-->
-                            <!--ng-options="value for value in timeIntervalInMinutes"></select>-->
-                    <!--<span class="help-block"> (Time Interval In Minutes.)</span>-->
-                <!--</div>-->
-                <!--<div class="col-sm-2">-->
-                <!--</div>-->
-            <!--</div>-->
+                <div class="col-sm-5">
+                    <select ng-model="streamingInsertData.selectedRefreshInterval"
+                            ng-options="value for value in timeInterval"></select>
+                    <span class="help-block"> (Time Interval In Seconds.)</span>
+                </div>
+                <div class="col-sm-2">
+                </div>
+            </div>
 
-            <!--<div class="form-group">-->
-                <!--<div class="col-sm-offset-3 col-sm-1">-->
-                    <!--<button type="button" ng-click="startStreaming()" class="btn btn-primary">Start</button>-->
-                <!--</div>-->
-                <!--<div class="col-sm-1">-->
-                    <!--<button type="button" ng-click="stopStreaming()" class="btn btn-danger">Stop</button>-->
-                <!--</div>-->
-            <!--</div>-->
+            <div class="form-group">
+                <div class="col-sm-offset-3 col-sm-1">
+                    <button type="button" ng-click="startStreaming()" class="btn btn-primary">Start</button>
+                </div>
+                <div class="col-sm-1">
+                    <button type="button" ng-click="stopStreaming()" class="btn btn-danger">Stop</button>
+                </div>
+            </div>
 
-            <!--<div class="form-group">-->
-                <!--<label class="col-sm-3 control-label">Streamed Count:</label>-->
+            <div class="form-group">
+                <label class="col-sm-3 control-label">Streamed Count:</label>
 
-                <!--&lt;!&ndash; Maybe hover over this to get tooltip of last value produced &ndash;&gt;-->
-                <!--<div class="col-sm-2">-->
-                    <!--<input type="text" class="form-control" readonly ng-model="rangeInsertData.lastStreamedValue">-->
-                <!--</div>-->
-            <!--</div>-->
-        <!--</div>-->
+                <!-- Maybe hover over this to get tooltip of last value produced -->
+                <div class="col-sm-2">
+                    <input type="text" class="form-control" readonly ng-model="streamingInsertData.count">
+                </div>
+            </div>
+        </div>
 
-    <!--</form>-->
+    </form>
 </accordion-group>
 
 </accordion>
