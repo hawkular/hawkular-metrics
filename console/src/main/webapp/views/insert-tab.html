@@ -1,0 +1,224 @@
+<div class="panel panel-default" style="width:880px" ng-controller="InsertMetricsController">
+
+<div class="panel-body">
+
+<accordion>
+<accordion-group heading="Quick Insert" is-open="showOpenGroup">
+    <p class="text-muted">Quickly add some data to rhq-metrics.</p>
+
+    <form class="form-horizontal" role="form" style="height:135px;">
+        <div class="form-group">
+            <label for="quickInsertIdText" class="col-sm-1 control-label">ID</label>
+
+            <div class="col-sm-2">
+                <input type="text" class="form-control" id="quickInsertIdText"
+                       ng-model="quickInsertData.id"
+                       placeholder="Enter Id...">
+                <span class="help-block">Example: 100, CPU1, FOO </span>
+            </div>
+
+            <label for="quickInsertValueText" class="col-sm-1 control-label">Value</label>
+
+            <div class="col-sm-3">
+                <input type="text" class="form-control" id="quickInsertValueText"
+                       ng-model="quickInsertData.value"
+                       placeholder="Enter Value...">
+                <span class="help-block">Example: 100, 5.25, 5000  </span>
+            </div>
+
+
+            <div class="col-sm-3">
+                <div class="btn-group" dropdown>
+                    <button type="button" class="btn btn-primary" ng-click="quickInsert()">Insert Data
+                    </button>
+                    <button type="button" class="btn btn-primary dropdown-toggle">
+                        <span class="caret"></span>
+                        <span class="sr-only">Insert Data</span>
+                    </button>
+                    <ul class="dropdown-menu" role="menu">
+                        <li><a href="#" ng-click="quickInsert()">Now</a></li>
+                        <li><a href="#" ng-click="quickInsert(1)">1 Hour Ago</a></li>
+                        <li><a href="#" ng-click="quickInsert(4)">4 Hours Ago</a></li>
+                        <li><a href="#" ng-click="quickInsert(8)">8 Hours Ago</a></li>
+                    </ul>
+                </div>
+                <span class="help-block">Default is Now</span>
+            </div>
+
+
+        </div>
+
+    </form>
+</accordion-group>
+
+
+<accordion-group heading="Raw Json Insert (multiple)">
+    <p class="text-muted">Bulk insert a bunch of records. [Even for multiple ids.]</p>
+
+    <form class="form-horizontal" role="form">
+
+        <div class="form-group">
+            <label for="jsonText" class="col-sm-2 control-label">Raw Json</label>
+
+            <div class="col-sm-10">
+                <textarea id="jsonText" ng-model="multiInsertData.jsonPayload" rows="6"
+                          class="form-control" placeholder="Enter Json here..."
+                        ></textarea>
+                <span class="help-block">Example: [{"id":"cluster1.machine2.cpu4","timestamp":1403050294363,"value":99},{"id":"cluster1.machine2.cpu4","timestamp":1403048494363,"value":17}]</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="col-sm-offset-2 col-sm-10">
+                <button type="button" ng-click="multiInsert()" class="btn btn-primary">Insert Data
+                </button>
+            </div>
+        </div>
+
+    </form>
+</accordion-group>
+
+
+<accordion-group heading="Advanced Range Insert">
+    <p class="text-muted">Create Historical data by inserting random values of data for a date range every X
+        minutes/hours</p>
+
+    <form class="form-horizontal" role="form">
+        <div class="form-group">
+            <label class="col-sm-2 control-label">ID</label>
+
+            <div class="col-sm-4">
+                <input type="text" class="form-control" ng-model="rangeInsertData.id"
+                       placeholder="Enter Id...">
+                <span class="help-block">Example: 100, apache3.cpu  </span>
+            </div>
+        </div>
+
+        <h5>Random Values </h5>
+
+        <div class="form-group">
+            <label class="col-sm-2 control-label">From </label>
+
+            <div class="col-sm-2">
+                <input type="number" min="0" max="100" step="5" required class="form-control"
+                       ng-model="rangeInsertData.startNumber">
+            </div>
+
+            <label class="col-sm-1 control-label">To</label>
+
+            <div class="col-sm-2">
+                <input type="number" min="10" max="1000" step="25" required class="form-control"
+                       ng-model="rangeInsertData.endNumber">
+            </div>
+        </div>
+
+
+        <div class="form-group">
+            <label class="col-sm-2 control-label">Every</label>
+
+            <div class="col-sm-5">
+                <select ng-model="rangeInsertData.selectedTimeInterval"
+                        ng-options="value for value in timeInterval"></select>
+                <span class="help-block"> (Time Interval In Minutes.)</span>
+            </div>
+            <div class="col-sm-2">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="col-sm-2 control-label">For</label>
+
+            <div class="col-sm-5">
+                <select ng-model="rangeInsertData.selectedDuration"
+                        ng-options="duration for duration in rangeDurations"></select>
+                <span class="help-block"> (In Days.)</span>
+            </div>
+            <div class="col-sm-2">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="col-sm-offset-2 col-sm-10">
+                <button type="button" ng-click="rangeInsert()" class="btn btn-primary">Insert Data
+                </button>
+            </div>
+        </div>
+
+
+    </form>
+</accordion-group>
+
+
+<accordion-group heading="Streaming Metrics" >
+    <p class="text-muted">Create streaming metrics for the future that generate random numbers every X minutes </p>
+
+    <form class="form-horizontal" role="form">
+        <div class="form-group">
+            <label for="streamingInsertId" class="col-sm-2 control-label">ID</label>
+
+            <div class="col-sm-4">
+                <input type="text" class="form-control" id="streamingInsertId" ng-model="streamingInsertData.id"
+                       placeholder="Enter Id...">
+                <span class="help-block">Example: 100, apache3.cpu  </span>
+            </div>
+        </div>
+
+        <h5>Random Values </h5>
+
+        <div class="form-group">
+            <label class="col-sm-2 control-label">From </label>
+
+            <div class="col-sm-2">
+                <input type="number" min="0" max="100" step="5" class="form-control" name="startNumber"
+                       ng-model="streamingInsertData.startNumber" required>
+            </div>
+
+            <label class="col-sm-1 control-label">To</label>
+
+            <div class="col-sm-2">
+                <input type="number" min="10" max="1000" step="25" class="form-control" name="endNumber"
+                       ng-model="streamingInsertData.endNumber" required>
+            </div>
+        </div>
+
+
+        <div class="form-group">
+            <div class="form-group">
+                <label class="col-sm-2 control-label">Every</label>
+
+                <div class="col-sm-5">
+                    <select ng-model="streamingInsertData.selectedRefreshInterval"
+                            ng-options="value for value in timeInterval"></select>
+                    <span class="help-block"> (Time Interval In Seconds.)</span>
+                </div>
+                <div class="col-sm-2">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="col-sm-offset-3 col-sm-1">
+                    <button type="button" ng-click="startStreaming()" class="btn btn-primary">Start</button>
+                </div>
+                <div class="col-sm-1">
+                    <button type="button" ng-click="stopStreaming()" class="btn btn-danger">Stop</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="col-sm-3 control-label">Streamed Count:</label>
+
+                <!-- Maybe hover over this to get tooltip of last value produced -->
+                <div class="col-sm-2">
+                    <input type="text" class="form-control" readonly ng-model="streamingInsertData.count">
+                </div>
+            </div>
+        </div>
+
+    </form>
+</accordion-group>
+
+</accordion>
+
+
+</div>
+</div>
