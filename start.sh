@@ -22,7 +22,7 @@ fi
 
 if [ ! -e dummy-ui/target/dummy-ui*.war ]
 then
-    cd dummy-ui
+    cd console
     mvn install
     cd ..
 fi
@@ -53,5 +53,5 @@ then
 fi
 
 cp rest-servlet/target/rhq-metric-rest*.war target/wildfly-$WFLY_VERSION/standalone/deployments/
-cp dummy-ui/target/dummy-ui*.war target/wildfly-$WFLY_VERSION/standalone/deployments/
+cp console/target/metrics-console-*.war target/wildfly-$WFLY_VERSION/standalone/deployments/
 target/wildfly-$WFLY_VERSION/bin/standalone.sh -Drhq-metrics.backend=$BACKEND --debug 8787
