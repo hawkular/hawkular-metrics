@@ -10,7 +10,7 @@ module.exports = function (grunt) {
   grunt.initConfig({
 
     // Project settings
-    yeoman: {
+    rhqMetrics: {
       // configurable paths
       app: require('./bower.json').appPath || '',
       dist: 'dist'
@@ -19,7 +19,7 @@ module.exports = function (grunt) {
     // Watches files for changes and runs tasks based on the changed files
     watch: {
       js: {
-        files: ['<%= yeoman.app %>/scripts/{,*/}*.js'],
+        files: ['<%= rhqMetrics.app %>/scripts/{,*/}*.js'],
         //tasks: ['newer:jshint:all'],
         options: {
           livereload: true
@@ -30,7 +30,7 @@ module.exports = function (grunt) {
         tasks: ['newer:jshint:test', 'karma']
       },
       styles: {
-        files: ['<%= yeoman.app %>/styles/{,*/}*.css'],
+        files: ['<%= rhqMetrics.app %>/styles/{,*/}*.css'],
         tasks: ['newer:copy:styles', 'autoprefixer']
       },
       gruntfile: {
@@ -41,9 +41,9 @@ module.exports = function (grunt) {
           livereload: '<%= connect.options.livereload %>'
         },
         files: [
-          '<%= yeoman.app %>/{,*/}*.html',
+          '<%= rhqMetrics.app %>/{,*/}*.html',
           '.tmp/styles/{,*/}*.css',
-          '<%= yeoman.app %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}'
+          '<%= rhqMetrics.app %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}'
         ]
       }
     },
@@ -89,7 +89,7 @@ module.exports = function (grunt) {
               open: true,
               base: [
                   '.tmp',
-                  '<%= yeoman.app %>'
+                  '<%= rhqMetrics.app %>'
               ]
           }
       },
@@ -99,13 +99,13 @@ module.exports = function (grunt) {
           base: [
             '.tmp',
             'test',
-            '<%= yeoman.app %>'
+            '<%= rhqMetrics.app %>'
           ]
         }
       },
       dist: {
         options: {
-          base: '<%= yeoman.dist %>'
+          base: '<%= rhqMetrics.dist %>'
         }
       }
     },
@@ -118,7 +118,7 @@ module.exports = function (grunt) {
       },
       all: [
         'Gruntfile.js',
-        '<%= yeoman.app %>/scripts/{,*/}*.js'
+        '<%= rhqMetrics.app %>/scripts/{,*/}*.js'
       ],
       test: {
         options: {
@@ -135,8 +135,8 @@ module.exports = function (grunt) {
           dot: true,
           src: [
             '.tmp',
-            '<%= yeoman.dist %>/*',
-            '!<%= yeoman.dist %>/.git*'
+            '<%= rhqMetrics.dist %>/*',
+            '!<%= rhqMetrics.dist %>/.git*'
           ]
         }]
       },
@@ -161,8 +161,8 @@ module.exports = function (grunt) {
     // Automatically inject Bower components into the app
     'bower-install': {
       app: {
-        html: '<%= yeoman.app %>/index.html',
-        ignorePath: '<%= yeoman.app %>/'
+        html: '<%= rhqMetrics.app %>/index.html',
+        ignorePath: '<%= rhqMetrics.app %>/'
       }
     },
 
@@ -175,10 +175,10 @@ module.exports = function (grunt) {
       dist: {
         files: {
           src: [
-            '<%= yeoman.dist %>/scripts/{,*/}*.js',
-            '<%= yeoman.dist %>/styles/{,*/}*.css',
-            '<%= yeoman.dist %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}',
-            '<%= yeoman.dist %>/styles/fonts/*'
+            '<%= rhqMetrics.dist %>/scripts/{,*/}*.js',
+            '<%= rhqMetrics.dist %>/styles/{,*/}*.css',
+            '<%= rhqMetrics.dist %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}',
+            '<%= rhqMetrics.dist %>/styles/fonts/*'
           ]
         }
       }
@@ -188,18 +188,18 @@ module.exports = function (grunt) {
     // concat, minify and revision files. Creates configurations in memory so
     // additional tasks can operate on them
     useminPrepare: {
-      html: '<%= yeoman.app %>/index.html',
+      html: '<%= rhqMetrics.app %>/index.html',
       options: {
-        dest: '<%= yeoman.dist %>'
+        dest: '<%= rhqMetrics.dist %>'
       }
     },
 
     // Performs rewrites based on rev and the useminPrepare configuration
     usemin: {
-      html: ['<%= yeoman.dist %>/{,*/}*.html'],
-      css: ['<%= yeoman.dist %>/styles/{,*/}*.css'],
+      html: ['<%= rhqMetrics.dist %>/{,*/}*.html'],
+      css: ['<%= rhqMetrics.dist %>/styles/{,*/}*.css'],
       options: {
-        assetsDirs: ['<%= yeoman.dist %>']
+        assetsDirs: ['<%= rhqMetrics.dist %>']
       }
     },
 
@@ -208,9 +208,9 @@ module.exports = function (grunt) {
       dist: {
         files: [{
           expand: true,
-          cwd: '<%= yeoman.app %>/images',
+          cwd: '<%= rhqMetrics.app %>/images',
           src: '{,*/}*.{png,jpg,jpeg,gif}',
-          dest: '<%= yeoman.dist %>/images'
+          dest: '<%= rhqMetrics.dist %>/images'
         }]
       }
     },
@@ -218,9 +218,9 @@ module.exports = function (grunt) {
       dist: {
         files: [{
           expand: true,
-          cwd: '<%= yeoman.app %>/images',
+          cwd: '<%= rhqMetrics.app %>/images',
           src: '{,*/}*.svg',
-          dest: '<%= yeoman.dist %>/images'
+          dest: '<%= rhqMetrics.dist %>/images'
         }]
       }
     },
@@ -234,9 +234,9 @@ module.exports = function (grunt) {
         },
         files: [{
           expand: true,
-          cwd: '<%= yeoman.dist %>',
+          cwd: '<%= rhqMetrics.dist %>',
           src: ['*.html', 'views/{,*/}*.html'],
-          dest: '<%= yeoman.dist %>'
+          dest: '<%= rhqMetrics.dist %>'
         }]
       }
     },
@@ -257,7 +257,7 @@ module.exports = function (grunt) {
     // Replace Google CDN references
     cdnify: {
       dist: {
-        html: ['<%= yeoman.dist %>/*.html']
+        html: ['<%= rhqMetrics.dist %>/*.html']
       }
     },
 
@@ -267,8 +267,8 @@ module.exports = function (grunt) {
         files: [{
           expand: true,
           dot: true,
-          cwd: '<%= yeoman.app %>',
-          dest: '<%= yeoman.dist %>',
+          cwd: '<%= rhqMetrics.app %>',
+          dest: '<%= rhqMetrics.dist %>',
           src: [
             '*.{ico,png,txt}',
             '.htaccess',
@@ -281,13 +281,13 @@ module.exports = function (grunt) {
         }, {
           expand: true,
           cwd: '.tmp/images',
-          dest: '<%= yeoman.dist %>/images',
+          dest: '<%= rhqMetrics.dist %>/images',
           src: ['generated/*']
         }]
       },
       styles: {
         expand: true,
-        cwd: '<%= yeoman.app %>/styles',
+        cwd: '<%= rhqMetrics.app %>/styles',
         dest: '.tmp/styles/',
         src: '{,*/}*.css'
       }
@@ -314,9 +314,9 @@ module.exports = function (grunt) {
     // cssmin: {
     //   dist: {
     //     files: {
-    //       '<%= yeoman.dist %>/styles/main.css': [
+    //       '<%= rhqMetrics.dist %>/styles/main.css': [
     //         '.tmp/styles/{,*/}*.css',
-    //         '<%= yeoman.app %>/styles/{,*/}*.css'
+    //         '<%= rhqMetrics.app %>/styles/{,*/}*.css'
     //       ]
     //     }
     //   }
@@ -324,8 +324,8 @@ module.exports = function (grunt) {
     // uglify: {
     //   dist: {
     //     files: {
-    //       '<%= yeoman.dist %>/scripts/scripts.js': [
-    //         '<%= yeoman.dist %>/scripts/scripts.js'
+    //       '<%= rhqMetrics.dist %>/scripts/scripts.js': [
+    //         '<%= rhqMetrics.dist %>/scripts/scripts.js'
     //       ]
     //     }
     //   }
