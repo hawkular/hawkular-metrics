@@ -12,6 +12,9 @@ _NOTE: The graphical chart components used here will be the same ones used in ot
 Stay tuned for future tutorials based on this data explorer.
 
 ## Install
+The standard **mvn install** will work.
+
+## Dev Install
 This is a standard Grunt project generated from yeoman. 
 
 1. Install [Node.js](http://nodejs.org)  (and npm) if not already installed
