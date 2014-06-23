@@ -6,13 +6,14 @@
 <accordion-group heading="Quick Insert" is-open="showOpenGroup">
     <p class="text-muted">Quickly add some data to rhq-metrics.</p>
 
-    <form class="form-horizontal" role="form" style="height:135px;">
+    <form class="form-horizontal" name="quickInsertForm" role="form" style="height:135px;" novalidate>
         <div class="form-group">
             <label for="quickInsertIdText" class="col-sm-1 control-label">ID</label>
 
             <div class="col-sm-2">
-                <input type="text" class="form-control" id="quickInsertIdText"
+                <input type="text" class="form-control" id="quickInsertIdText" name="quickInsertIdText"
                        ng-model="quickInsertData.id"
+                       required
                        placeholder="Enter Id...">
                 <span class="help-block">Example: 100, CPU1, FOO </span>
             </div>
@@ -20,22 +21,24 @@
             <label for="quickInsertValueText" class="col-sm-1 control-label">Value</label>
 
             <div class="col-sm-3">
-                <input type="text" class="form-control" id="quickInsertValueText"
+                <input type="number" class="form-control" id="quickInsertValueText" name="quickInsertValueText"
                        ng-model="quickInsertData.value"
+                       required
                        placeholder="Enter Value...">
                 <span class="help-block">Example: 100, 5.25, 5000  </span>
             </div>
 
 
             <div class="col-sm-3">
-                <div class="btn-group" dropdown>
-                    <button type="button" class="btn btn-primary" ng-click="quickInsert()">Insert Data
+                <div class="btn-group" ng-disabled="!quickInsertForm.$valid" dropdown>
+                    <button type="button" class="btn btn-primary" ng-disabled="!quickInsertForm.$valid"
+                            ng-click="quickInsert()">Insert Data
                     </button>
-                    <button type="button" class="btn btn-primary dropdown-toggle">
+                    <button type="button" class="btn btn-primary dropdown-toggle" ng-disabled="!quickInsertForm.$valid">
                         <span class="caret"></span>
                         <span class="sr-only">Insert Data</span>
                     </button>
-                    <ul class="dropdown-menu" role="menu">
+                    <ul class="dropdown-menu" role="menu" ng-disabled="!quickInsertForm.$valid">
                         <li><a href="#" ng-click="quickInsert()">Now</a></li>
                         <li><a href="#" ng-click="quickInsert(1)">1 Hour Ago</a></li>
                         <li><a href="#" ng-click="quickInsert(4)">4 Hours Ago</a></li>
@@ -44,7 +47,6 @@
                 </div>
                 <span class="help-block">Default is Now</span>
             </div>
-
 
         </div>
 
@@ -55,13 +57,14 @@
 <accordion-group heading="Raw Json Insert (multiple)">
     <p class="text-muted">Bulk insert a bunch of records. [Even for multiple ids.]</p>
 
-    <form class="form-horizontal" role="form">
+    <form class="form-horizontal" novalidate name="rawJsonInsertForm" role="form">
 
         <div class="form-group">
             <label for="jsonText" class="col-sm-2 control-label">Raw Json</label>
 
             <div class="col-sm-10">
-                <textarea id="jsonText" ng-model="multiInsertData.jsonPayload" rows="6"
+                <textarea id="jsonText" name="jsonText" ng-model="multiInsertData.jsonPayload"
+                          rows="6" required
                           class="form-control" placeholder="Enter Json here..."
                         ></textarea>
                 <span class="help-block">Example: [{"id":"cluster1.machine2.cpu4","timestamp":1403050294363,"value":99},{"id":"cluster1.machine2.cpu4","timestamp":1403048494363,"value":17}]</span>
@@ -70,7 +73,8 @@
 
         <div class="form-group">
             <div class="col-sm-offset-2 col-sm-10">
-                <button type="button" ng-click="multiInsert()" class="btn btn-primary">Insert Data
+                <button type="button" ng-disabled="!rawJsonInsertForm.$valid" ng-click="multiInsert()"
+                        class="btn btn-primary">Insert Data
                 </button>
             </div>
         </div>
@@ -83,12 +87,12 @@
     <p class="text-muted">Create Historical data by inserting random values of data for a date range every X
         minutes/hours</p>
 
-    <form class="form-horizontal" role="form">
+    <form class="form-horizontal" name="advancedRangeInsertForm" role="form" novalidate>
         <div class="form-group">
             <label class="col-sm-2 control-label">ID</label>
 
             <div class="col-sm-4">
-                <input type="text" class="form-control" ng-model="rangeInsertData.id"
+                <input type="text" class="form-control" ng-model="rangeInsertData.id" required
                        placeholder="Enter Id...">
                 <span class="help-block">Example: 100, apache3.cpu  </span>
             </div>
@@ -139,7 +143,8 @@
 
         <div class="form-group">
             <div class="col-sm-offset-2 col-sm-10">
-                <button type="button" ng-click="rangeInsert()" class="btn btn-primary">Insert Data
+                <button type="button" ng-click="rangeInsert()" ng-disabled="!advancedRangeInsertForm.$valid"
+                        class="btn btn-primary">Insert Data
                 </button>
             </div>
         </div>
@@ -149,10 +154,10 @@
 </accordion-group>
 
 
-<accordion-group heading="Streaming Metrics" >
+<accordion-group heading="Streaming Metrics">
     <p class="text-muted">Create streaming metrics for the future that generate random numbers every X minutes </p>
 
-    <form class="form-horizontal" role="form">
+    <form class="form-horizontal" name="streamingInsertForm" novalidate role="form">
         <div class="form-group">
             <label for="streamingInsertId" class="col-sm-2 control-label">ID</label>
 
@@ -182,7 +187,7 @@
         </div>
 
 
-        <div class="form-group">
+        <!--<div class="form-group">-->
             <div class="form-group">
                 <label class="col-sm-2 control-label">Every</label>
 
@@ -197,22 +202,30 @@
 
             <div class="form-group">
                 <div class="col-sm-offset-3 col-sm-1">
-                    <button type="button" ng-click="startStreaming()" class="btn btn-primary">Start</button>
+                    <button type="button" ng-disabled="!streamingInsertForm.$valid" ng-click="startStreaming()"
+                            class="btn btn-primary">Start
+                    </button>
                 </div>
                 <div class="col-sm-1">
-                    <button type="button" ng-click="stopStreaming()" class="btn btn-danger">Stop</button>
+                    <button type="button" ng-disabled="!streamingInsertData.isStreamingStarted"
+                            ng-click="stopStreaming()" class="btn btn-danger">Stop
+                    </button>
                 </div>
             </div>
 
             <div class="form-group">
-                <label class="col-sm-3 control-label">Streamed Count:</label>
+                <label class="col-sm-2 control-label">Count:</label>
 
-                <!-- Maybe hover over this to get tooltip of last value produced -->
                 <div class="col-sm-2">
                     <input type="text" class="form-control" readonly ng-model="streamingInsertData.count">
                 </div>
+
+                <label class="col-sm-1 control-label">Last:</label>
+                <div class="col-sm-2">
+                    <input type="text" class="form-control" readonly ng-model="streamingInsertData.lastStreamedValue">
+                </div>
             </div>
-        </div>
+        <!--</div>-->
 
     </form>
 </accordion-group>

@@ -50,6 +50,7 @@ angular.module('chartingApp')
             startNumber: 1,
             endNumber: 100,
             //refreshTimerValue: 30,
+            isStreamingStarted: false,
             lastStreamedValue: 2,
             selectedRefreshInterval: $scope.timeInterval[0]
         };
@@ -110,11 +111,15 @@ angular.module('chartingApp')
 
         $scope.startStreaming = function () {
             $log.info("Start Streaming Inserts");
+            $scope.streamingInsertData.isStreamingStarted = true;
+            $scope.streamingInsertData.count = 0;
+            $scope.streamingInsertData.lastStreamedValue = 0;
             streamingIntervalPromise = $interval(function () {
                 $log.log("Timer has Run! for seconds: " + $scope.streamingInsertData.selectedRefreshInterval);
                 $scope.streamingInsertData.count = $scope.streamingInsertData.count + 1;
                 $scope.streamingInsertData.lastStreamedValue = randomIntFromInterval($scope.streamingInsertData.startNumber, $scope.streamingInsertData.endNumber);
                 $scope.streamingInsertData.jsonPayload = { timestamp: moment().valueOf(), value: $scope.streamingInsertData.lastStreamedValue };
+
 
                 metricDataService.insertSinglePayload($scope.streamingInsertData.id, $scope.streamingInsertData.jsonPayload);
 
@@ -129,6 +134,7 @@ angular.module('chartingApp')
         $scope.stopStreaming = function () {
             toastr.info('Stop Streaming Data.');
             $log.info('Stop Streaming Data.');
+            $scope.streamingInsertData.isStreamingStarted = false;
             $interval.cancel(streamingIntervalPromise);
         };
 

@@ -3,14 +3,15 @@
         <div class="well">
             <small style="margin-left: 15px" class="graphDateTimeRangeLabel"></small>
 
-            <form class="form-horizontal" role="form">
+            <form class="form-horizontal" name="chartForm" role="form" novalidate ng-submit="refreshChartData()">
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label">ID</label>
 
                     <div class="col-sm-5">
-                        <input type="text" class="form-control" ng-model="restParams.searchId"
-                               placeholder="Enter Id...">
+                        <input type="text" class="form-control" name="searchId" ng-model="restParams.searchId"
+                               placeholder="Enter Id..." required ng-minlength="1">
+                        <span class="error-message" ng-show="chartForm.searchId.$dirty && chartForm.searchId.$error.required"> * Required.</span>
                         <span class="help-block">Example: 100, apache3.cpu  </span>
                     </div>
                 </div>
@@ -63,9 +64,7 @@
 
                 <div class="form-group">
                     <div class="col-sm-offset-2 col-sm-10">
-                        <button type="button" class="btn btn-primary"
-                                ng-click="refreshChartData()">Refresh
-                        </button>
+                        <button type="submit" class="btn btn-primary" ng-disabled="!chartForm.$valid">Refresh </button>
                     </div>
                 </div>
 
