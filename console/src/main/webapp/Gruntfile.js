@@ -56,36 +56,9 @@ module.exports = function (grunt) {
         hostname: 'localhost',
         livereload: 35729
       },
-        proxies: [
-            {
-                context: '/rhq-metrics',
-                host: 'localhost',
-                port: 8080,
-                https: false,
-                changeOrigin: false
-            }
-        ],
+
       livereload: {
           options: {
-              middleware: function (connect, options) {
-                  if (!Array.isArray(options.base)) {
-                      options.base = [options.base];
-                  }
-
-                  // Setup the proxy
-                  var middlewares = [require('grunt-connect-proxy/lib/utils').proxyRequest];
-
-                  // Serve static files.
-                  options.base.forEach(function (base) {
-                      middlewares.push(connect.static(base));
-                  });
-
-                  // Make directory browse-able.
-                  var directory = options.directory || options.base[options.base.length - 1];
-                  middlewares.push(connect.directory(directory));
-
-                  return middlewares;
-              },
               open: true,
               base: [
                   '.tmp',
@@ -308,31 +281,7 @@ module.exports = function (grunt) {
       ]
     },
 
-    // By default, your `index.html`'s <!-- Usemin block --> will take care of
-    // minification. These next options are pre-configured if you do not wish
-    // to use the Usemin blocks.
-    // cssmin: {
-    //   dist: {
-    //     files: {
-    //       '<%= rhqMetrics.dist %>/styles/main.css': [
-    //         '.tmp/styles/{,*/}*.css',
-    //         '<%= rhqMetrics.app %>/styles/{,*/}*.css'
-    //       ]
-    //     }
-    //   }
-    // },
-    // uglify: {
-    //   dist: {
-    //     files: {
-    //       '<%= rhqMetrics.dist %>/scripts/scripts.js': [
-    //         '<%= rhqMetrics.dist %>/scripts/scripts.js'
-    //       ]
-    //     }
-    //   }
-    // },
-    // concat: {
-    //   dist: {}
-    // },
+
 
     // Test settings
     karma: {
@@ -354,7 +303,6 @@ module.exports = function (grunt) {
       'bower-install',
       'concurrent:server',
       'autoprefixer',
-        'configureProxies:server',
       'connect:livereload',
       'watch'
     ]);
