@@ -3,6 +3,8 @@
 ## What does it do?
 The UI provides an easy UI way of :
 1. Inserting/creating  data in various ways
+![Inserts](rhq-metrics-console.png "Inserts")
+
 2. Viewing the data in the database both visually via a graph and a grid table
 
 
