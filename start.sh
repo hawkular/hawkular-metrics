@@ -20,16 +20,16 @@ then
     cd ..
 fi
 
-if [ ! -e dummy-ui/target/dummy-ui*.war ]
+if [ ! -e rest-servlet/target/rhq-metric-rest*.war ]
 then
-    cd console
+    cd rest-servlet
     mvn install
     cd ..
 fi
 
-if [ ! -e rest-servlet/target/rhq-metric-rest*.war ]
+if [ ! -e console/target/metrics-console*.war ]
 then
-    cd rest-servlet
+    cd console
     mvn install
     cd ..
 fi

@@ -68,6 +68,7 @@
     <module>clients</module>
     <module>rest-test</module>
     <module>dummy-ui</module>
+    <module>console</module>
   </modules>
 
   <build>
