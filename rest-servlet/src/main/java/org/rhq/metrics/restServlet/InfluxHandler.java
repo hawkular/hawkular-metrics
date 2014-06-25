@@ -1,7 +1,13 @@
 package org.rhq.metrics.restServlet;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
@@ -30,6 +36,11 @@ import org.rhq.metrics.core.RawNumericMetric;
 public class InfluxHandler {
 
     private static final String SELECT_FROM = "select ";
+
+    // TODO how often are they compiled? move those to a place where this happens only once
+    static Pattern metricSelectPattern = Pattern.compile("select +(\\S+) +as +(\\S+) +from +(\\S+) +where +(.*?) +group by time\\((\\S+)\\).*");
+    static Pattern timePattern = Pattern.compile("([0-9]+)([a-z])");
+
 
     @Inject
     private MetricsService metricsService;
@@ -68,29 +79,16 @@ public class InfluxHandler {
             asyncResponse.resume(builder.build());
 
         } else {
+            // Example query: select  mean("value") as "value_mean" from "snert.cpu_user" where  time > now() - 6h     group by time(30s)  order asc
             final String query = queryString.toLowerCase();
             if (query.startsWith(SELECT_FROM)) {
+                final InfluxQuery iq = new InfluxQuery(query);
 
-                Long start = null;
-                Long end = null;
+                Long start = iq.start;
+                Long end = iq.end;
 
-                final long EIGHT_HOURS = 8L * 60L * 60L * 1000L; // 8 Hours in milliseconds
-
-                int i = query.indexOf("from") + 5;
-                int j = query.indexOf(" ", i);
-                final String metric = deQuote(queryString.substring(i, j));  // metric to query from backend
-
-                i = query.indexOf("as") + 3;
-                j = query.indexOf(" ", i);
-                final String alias = queryString.substring(i, j);  // alias to return the data as
-
-                final long now = System.currentTimeMillis();
-                if (start == null) {
-                    start = now - EIGHT_HOURS;
-                }
-                if (end == null) {
-                    end = now;
-                }
+                final String metric = iq.metric;  // metric to query from backend
+                final String alias = iq.alias;  // alias to return the data as
 
                 final ListenableFuture<List<RawNumericMetric>> future = metricsService.findData(metric, start, end);
 
@@ -107,6 +105,8 @@ public class InfluxHandler {
                         obj.columns.add("time");
                         obj.columns.add(alias);
                         obj.points = new ArrayList<>(1);
+
+                        metrics = applyMapping(iq.mapping,metrics,iq.bucketLengthSec, finalStart, finalEnd);
 
                         for (RawNumericMetric m : metrics) {
                             List<Number> data = new ArrayList<>();
@@ -138,6 +138,84 @@ public class InfluxHandler {
                     Response.status(Response.Status.BAD_REQUEST).entity(errMsg).build());
             }
         }
+    }
+
+    /**
+     * Apply a mapping function to the incoming data
+     * @param mapping
+     * @param in
+     * @param bucketLengthSec
+     * @param startTime
+     *@param endTime @return
+     */
+    private List<RawNumericMetric> applyMapping(String mapping, final List<RawNumericMetric> in, int bucketLengthSec,
+                                                long startTime, long endTime) {
+
+        if (mapping==null || mapping.isEmpty() || mapping.equals("none")) {
+            return  in;
+        }
+
+        long timeDiff = endTime - startTime; // Millis
+        int numBuckets = (int) ((timeDiff /1000 ) / bucketLengthSec);
+        Map<Integer,List<RawNumericMetric>> tmpMap = new HashMap<>(numBuckets);
+
+        // Bucketize
+        for (RawNumericMetric rnm: in) {
+            int pos = (int) ((rnm.getTimestamp()-startTime)/1000) /bucketLengthSec;
+            List<RawNumericMetric> bucket = tmpMap.get(pos);
+            if (bucket==null) {
+                bucket = new ArrayList<>();
+                tmpMap.put(pos, bucket);
+            }
+            bucket.add(rnm);
+        }
+
+        List<RawNumericMetric> out = new ArrayList<>(numBuckets);
+        // Apply mapping to buckets to create final value
+        SortedSet<Integer> keySet = new TreeSet<>(tmpMap.keySet());
+        for (Integer pos: keySet ) {
+            List<RawNumericMetric> list = tmpMap.get(pos);
+            double retVal = 0.0;
+            if (list!=null) {
+                switch (mapping) {
+                case "mean":
+                    for (RawNumericMetric rnm : list) {
+                        retVal += rnm.getAvg();
+                    }
+                    retVal /= list.size();
+                    break;
+                case "max":
+                    retVal = Double.MIN_VALUE;
+                    for (RawNumericMetric rnm : list) {
+                        if (rnm.getAvg() > retVal) {
+                            retVal = rnm.getAvg();
+                        }
+                    }
+                    break;
+                case "min":
+                    retVal = Double.MAX_VALUE;
+                    for (RawNumericMetric rnm : list) {
+                        if (rnm.getAvg() < retVal) {
+                            retVal = rnm.getAvg();
+                        }
+                    }
+                    break;
+                case "sum":
+                    for (RawNumericMetric rnm : list) {
+                        retVal += rnm.getAvg();
+                    }
+                    break;
+                case "count":
+                    retVal = list.size();
+                    break;
+
+                }
+                RawNumericMetric outMetric = new RawNumericMetric(list.get(0).getId(),retVal,list.get(0).getTimestamp());
+                out.add(outMetric);
+            }
+        }
+
+        return out;
     }
 
     /**
@@ -206,6 +284,111 @@ public class InfluxHandler {
         public void setPoints(List<List<?>> points) {
             this.points = points;
         }
+    }
+
+    private class InfluxQuery {
+        // select  mean("value") as "value_mean" from "snert.cpu_user" where  time > now() - 6h     group by time(30s)  order asc
+        // select  mean("value") as "value_mean" from "snert.cpu_user" where  time > 1402826660s and time < 1402934869s     group by time(1m)  order asc
+        private String expr;
+        private String alias;
+        private String metric;
+
+        // e.g.  time > 1402826660s and time < 1402934869s
+        private String timeExpr;
+        private String groupExpr;
+        private String mapping;
+        private long start;
+        private long end;
+        private int bucketLengthSec;
+
+        private InfluxQuery(String query) {
+
+            Matcher m = metricSelectPattern.matcher(query.toLowerCase());
+            if (m.matches()) {
+                expr = m.group(1);
+                alias = m.group(2);
+                metric = deQuote(m.group(3));
+                timeExpr = m.group(4);
+                groupExpr = m.group(5);
+
+                if (timeExpr.contains("and")) {
+                    int i = timeExpr.indexOf(" and ");
+                    start = parseTime(timeExpr.substring(0,i));
+                    end = parseTime(timeExpr.substring(i+5,timeExpr.length()));
+                } else {
+                    end = System.currentTimeMillis();
+                    start = parseTime(timeExpr);
+                }
+
+                bucketLengthSec = (int) parseTime(groupExpr) / 1000;
+
+                if (expr.contains("(")) {
+                    mapping = expr.substring(0,expr.indexOf("("));
+                } else {
+                    mapping = expr;
+                }
+            }
+            else if (query.toLowerCase().startsWith("select * from")) {
+                // TODO
+                System.out.println("Not yet supported: " + query);
+            }
+            else {
+                throw new IllegalArgumentException("Can not parse " + query);
+            }
+        }
+
+        /**
+         * Parse the time input which looks like "time > now() - 6h"
+         * @param timeExpr Expression to parse
+         * @return Time in Milliseconds
+         */
+        private long parseTime(String timeExpr) {
+            String tmp; // Skip over "time <"
+            if (timeExpr.startsWith("time")) {
+                tmp = timeExpr.substring(7);
+            } else {
+                tmp = timeExpr;
+            }
+            if (tmp.startsWith("now()")) {
+                tmp = tmp.substring(8); // skip over "now() - "
+                Matcher m = timePattern.matcher(tmp);
+                if (m.matches()) {
+                    long convertedOffset = getTimeFromExpr(m);
+                    return System.currentTimeMillis() - convertedOffset; // Need to convert to ms -> *1000L
+                }
+
+            } else {
+                Matcher m = timePattern.matcher(tmp);
+                if (m.matches()) {
+                    long convertedOffset = getTimeFromExpr(m);
+                    return convertedOffset;
+                }
+            }
+            return 0;  // TODO: Customise this generated block
+        }
+
+        private long getTimeFromExpr(Matcher m) {
+            String val = m.group(1);
+            String unit = m.group(2);
+            long factor ;
+            switch (unit) {
+            case "h":
+                factor = 3600;
+                break;
+            case "m":
+                factor = 60;
+                break;
+            case "s":
+                factor = 1;
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown unit " + unit);
+            }
+            long offset = Long.parseLong(val);
+            return offset * factor * 1000L;
+        }
+
+
     }
 
 }
