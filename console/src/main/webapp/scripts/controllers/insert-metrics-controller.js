@@ -14,6 +14,19 @@ angular.module('chartingApp')
                 return Math.floor(Math.random() * (max - min + 1) + min);
             };
 
+        $scope.streamingTimeRanges = [
+            { "range": "1s", "rangeInSeconds": 1 },
+            { "range": "5s", "rangeInSeconds": 5 },
+            { "range": "30s", "rangeInSeconds": 30 },
+            { "range": "1m", "rangeInSeconds": 60 },
+            { "range": "5m", "rangeInSeconds": 5 * 60 },
+            { "range": "10m", "rangeInSeconds": 10 * 60 },
+            { "range": "15m", "rangeInSeconds": 15 * 60 },
+            { "range": "30m", "rangeInSeconds": 30 * 60 },
+            { "range": "1h", "rangeInSeconds": 60 * 60 }
+        ];
+
+
         $scope.timeInterval = [1, 5, 10, 15, 30, 60];
         $scope.showOpenGroup = true;
 
@@ -49,10 +62,9 @@ angular.module('chartingApp')
             count: 1,
             startNumber: 1,
             endNumber: 100,
-            //refreshTimerValue: 30,
             isStreamingStarted: false,
             lastStreamedValue: 2,
-            selectedRefreshInterval: $scope.timeInterval[0]
+            selectedRefreshInterval: $scope.streamingTimeRanges[1].range
         };
 
 
@@ -109,13 +121,20 @@ angular.module('chartingApp')
 
         }
 
+
         $scope.startStreaming = function () {
-            $log.info("Start Streaming Inserts");
+            var selectedTimeRangeInSeconds = 5;
+
+            angular.forEach($scope.streamingTimeRanges, function(value){
+              if(value.range === $scope.streamingInsertData.selectedRefreshInterval)  {
+                 selectedTimeRangeInSeconds = value.rangeInSeconds;
+              }
+            });
             $scope.streamingInsertData.isStreamingStarted = true;
             $scope.streamingInsertData.count = 0;
             $scope.streamingInsertData.lastStreamedValue = 0;
             streamingIntervalPromise = $interval(function () {
-                $log.log("Timer has Run! for seconds: " + $scope.streamingInsertData.selectedRefreshInterval);
+                $log.log("Timer has Run! for seconds: " + selectedTimeRangeInSeconds);
                 $scope.streamingInsertData.count = $scope.streamingInsertData.count + 1;
                 $scope.streamingInsertData.lastStreamedValue = randomIntFromInterval($scope.streamingInsertData.startNumber, $scope.streamingInsertData.endNumber);
                 $scope.streamingInsertData.jsonPayload = { timestamp: moment().valueOf(), value: $scope.streamingInsertData.lastStreamedValue };
@@ -123,7 +142,7 @@ angular.module('chartingApp')
 
                 metricDataService.insertSinglePayload($scope.streamingInsertData.id, $scope.streamingInsertData.jsonPayload);
 
-            }, $scope.streamingInsertData.selectedRefreshInterval * 1000);
+            }, selectedTimeRangeInSeconds * 1000);
             $scope.$on('$destroy', function () {
                 $log.debug('Destroying intervalPromise');
                 $interval.cancel(streamingIntervalPromise);
