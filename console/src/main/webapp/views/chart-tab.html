@@ -109,8 +109,9 @@
                     avg-label="Avg"></rhqm-stacked-bar-chart>
         </div>
 
+        <button class="btn btn-sm" ng-click="toggleTable()">{{restParams.tableButtonLabel}}</button>
 
-        <div ng-show="chartData.dataPoints.length > 0">
+        <div collapse="restParams.collapseTable" ng-show="chartData.dataPoints.length > 0">
             <h4>Data Points: {{chartData.dataPoints.length}}</h4>
             <table class="table table-hover" style="width:500px;">
                 <thead>

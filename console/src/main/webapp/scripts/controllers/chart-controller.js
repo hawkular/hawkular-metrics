@@ -15,7 +15,9 @@ angular.module('chartingApp')
             searchId: "",
             startTimeStamp: moment().subtract('hours', 8).toDate(), //default time period set to 8 hours
             endTimeStamp: new Date(),
-            updateEndTimeStampToNow: false
+            updateEndTimeStampToNow: false,
+            collapseTable: true,
+            tableButtonLabel: "Show Table"
         };
 
         $rootScope.$on("DateRangeChanged", function (event, message) {
@@ -38,6 +40,15 @@ angular.module('chartingApp')
                 $interval.cancel(updateLastTimeStampToNowPromise);
             }
 
+        };
+
+        $scope.toggleTable = function () {
+            $scope.restParams.collapseTable = !$scope.restParams.collapseTable;
+            if ($scope.restParams.collapseTable) {
+                $scope.restParams.tableButtonLabel = "Show Table";
+            } else {
+                $scope.restParams.tableButtonLabel = "Hide Table";
+            }
         };
 
         $scope.$on('$destroy', function () {
