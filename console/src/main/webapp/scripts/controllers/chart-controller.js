@@ -8,12 +8,14 @@
  * @description This controller is responsible for handling activity related to the Chart tab.
  */
 angular.module('chartingApp')
-    .controller('ChartController', ['$scope','$rootScope', '$http', '$log', 'BASE_URL',  function ($scope, $rootScope, $http, $log, BASE_URL ) {
+    .controller('ChartController', ['$scope', '$rootScope', '$http', '$interval', '$log', 'BASE_URL', function ($scope, $rootScope, $http, $interval, $log, BASE_URL) {
+        var updateLastTimeStampToNowPromise;
 
         $scope.restParams = {
             searchId: "",
+            startTimeStamp: moment().subtract('hours', 8).toDate(), //default time period set to 8 hours
             endTimeStamp: new Date(),
-            startTimeStamp: moment().subtract('hours', 8).toDate() //default time period set to 8 hours
+            updateEndTimeStampToNow: false
         };
 
         $rootScope.$on("DateRangeChanged", function (event, message) {
@@ -23,6 +25,24 @@ angular.module('chartingApp')
 //        $rootScope.$on("DateRangeMove", function (event, message) {
 //            $log.debug("DateRangeMove on chart Detected.");
 //        });
+
+
+        $scope.updateEndTimeStampToNow = function () {
+            $scope.restParams.updateEndTimeStampToNow = !$scope.restParams.updateEndTimeStampToNow;
+            if ($scope.restParams.updateEndTimeStampToNow) {
+                updateLastTimeStampToNowPromise = $interval(function () {
+                    $scope.restParams.endTimeStamp = new Date();
+                }, 30 * 1000);
+
+            } else {
+                $interval.cancel(updateLastTimeStampToNowPromise);
+            }
+
+        };
+
+        $scope.$on('$destroy', function () {
+            $interval.cancel(updateLastTimeStampToNowPromise);
+        });
 
         $scope.refreshChartData = function () {
 
@@ -43,7 +63,7 @@ angular.module('chartingApp')
 
                     if (bucketizedDataPoints.length !== 0) {
 
-                        $log.debug("# Transformed DataPoints: "+ bucketizedDataPoints.length);
+                        $log.debug("# Transformed DataPoints: " + bucketizedDataPoints.length);
 
                         // this is basically the DTO for the chart
                         $scope.chartData = {
@@ -66,16 +86,16 @@ angular.module('chartingApp')
                 });
         };
 
-        function formatBucketizedOutput(response){
+        function formatBucketizedOutput(response) {
             //  The schema is different for bucketized output
             return $.map(response, function (point) {
                 return {
                     timestamp: point.timestamp,
                     date: new Date(point.timestamp),
-                    value: !angular.isNumber(point.value)  ? 0 : point.value,
+                    value: !angular.isNumber(point.value) ? 0 : point.value,
                     avg: (point.empty) ? 0 : point.avg,
-                    min: !angular.isNumber(point.min)  ? 0 : point.min,
-                    max: !angular.isNumber(point.max)  ? 0 : point.max,
+                    min: !angular.isNumber(point.min) ? 0 : point.min,
+                    max: !angular.isNumber(point.max) ? 0 : point.max,
                     empty: point.empty
                 };
             });

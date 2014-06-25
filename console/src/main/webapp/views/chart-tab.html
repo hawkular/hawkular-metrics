@@ -11,8 +11,9 @@
                     <div class="col-sm-5">
                         <input type="text" class="form-control" name="searchId" ng-model="restParams.searchId"
                                placeholder="Enter Id..." required ng-minlength="1">
-                        <span class="error-message" ng-show="chartForm.searchId.$dirty && chartForm.searchId.$error.required"> * Required.</span>
-                        <span class="help-block">Example: 100, apache3.cpu  </span>
+                        <span class="error-message"
+                              ng-show="chartForm.searchId.$dirty && chartForm.searchId.$error.required"> * Required.</span>
+                        <span class="help-block">Example: 100, apache3.cpu1  </span>
                     </div>
                 </div>
 
@@ -63,8 +64,22 @@
 
 
                 <div class="form-group">
+                    <label class="col-sm-2 control-label"></label>
+
+                    <div class="col-sm-6">
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox" ng-model="restParams.updateEndTimeStampToNow"
+                                       ng-click="updateEndTimeStampToNow()"> Update End Timestamp to Now
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="form-group">
                     <div class="col-sm-offset-2 col-sm-10">
-                        <button type="submit" class="btn btn-primary" ng-disabled="!chartForm.$valid">Refresh </button>
+                        <button type="submit" class="btn btn-primary" ng-disabled="!chartForm.$valid">Refresh</button>
                     </div>
                 </div>
 
