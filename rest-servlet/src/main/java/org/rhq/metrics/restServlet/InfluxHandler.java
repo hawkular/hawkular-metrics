@@ -208,6 +208,23 @@ public class InfluxHandler {
                 case "count":
                     retVal = list.size();
                     break;
+                case "first":
+                    if (!list.isEmpty()) {
+                        retVal = list.get(0).getAvg();
+                    }
+                    break;
+                case "last":
+                    if (!list.isEmpty()) {
+                        retVal = list.get(list.size() - 1).getAvg();
+                    }
+                    break;
+                case "difference":
+                    if (!list.isEmpty()) {
+                        retVal = (list.get(list.size() - 1).getAvg()) - (list.get(0).getAvg());
+                    }
+                    break;
+                default:
+                    System.out.println("Mapping of " + mapping + " not yet supported");
 
                 }
                 RawNumericMetric outMetric = new RawNumericMetric(list.get(0).getId(),retVal,list.get(0).getTimestamp());
