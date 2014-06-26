@@ -9,7 +9,7 @@
                     <label class="col-sm-2 control-label">ID</label>
 
                     <div class="col-sm-5">
-                        <input type="text" class="form-control" name="searchId" ng-model="restParams.searchId"
+                        <input type="text" class="form-control" name="searchId" ng-model="chartParams.searchId"
                                placeholder="Enter Id..." required ng-minlength="1">
                         <span class="error-message"
                               ng-show="chartForm.searchId.$dirty && chartForm.searchId.$error.required"> * Required.</span>
@@ -26,12 +26,12 @@
                                data-target="#" href="#">
                                 <div class="input-group">
                                     <input type="text" class="form-control"
-                                           data-ng-model="restParams.startTimeStamp">
+                                           data-ng-model="chartParams.startTimeStamp">
                                     <span class="input-group-addon"><i class="glyphicon glyphicon-calendar"></i></span>
                                 </div>
                             </a>
                             <ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
-                                <datetimepicker data-ng-model="restParams.startTimeStamp"
+                                <datetimepicker data-ng-model="chartParams.startTimeStamp"
                                                 data-datetimepicker-config="{ dropdownSelector: '#dropdownStart' }"/>
                             </ul>
                         </div>
@@ -49,13 +49,13 @@
                                data-target="#" href="#">
                                 <div class="input-group">
                                     <input type="text" class="form-control"
-                                           data-ng-model="restParams.endTimeStamp">
+                                           data-ng-model="chartParams.endTimeStamp">
                                         <span class="input-group-addon"><i
                                                 class="glyphicon glyphicon-calendar"></i></span>
                                 </div>
                             </a>
                             <ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
-                                <datetimepicker data-ng-model="restParams.endTimeStamp"
+                                <datetimepicker data-ng-model="chartParams.endTimeStamp"
                                                 data-datetimepicker-config="{ dropdownSelector: '#dropdownEnd' }"/>
                             </ul>
                         </div>
@@ -69,8 +69,8 @@
                     <div class="col-sm-6">
                         <div class="checkbox">
                             <label>
-                                <input type="checkbox" ng-model="restParams.updateEndTimeStampToNow"
-                                       ng-click="updateEndTimeStampToNow()"> Refresh (every 30s)
+                                <input type="checkbox" ng-model="chartParams.updateEndTimeStampToNow"
+                                       ng-click="autoRefresh()"> Refresh (every 30s)
                             </label>
                         </div>
                     </div>
@@ -91,7 +91,7 @@
             <rhqm-stacked-bar-chart
                     data="{{chartData.dataPoints}}"
                     yaxis-units=""
-                    chart-title="{{'Metrics Id: '+restParams.searchId}}"
+                    chart-title="{{'Metrics Id: '+chartParams.searchId}}"
                     chart-height="250"
                     chart-hover-date-format="%m/%d/%y"
                     chart-hover-time-format="%I:%M:%S %p"
@@ -109,9 +109,9 @@
                     avg-label="Avg"></rhqm-stacked-bar-chart>
         </div>
 
-        <button class="btn btn-sm" ng-click="toggleTable()">{{restParams.tableButtonLabel}}</button>
+        <button class="btn btn-sm" ng-click="toggleTable()">{{chartParams.tableButtonLabel}}</button>
 
-        <div collapse="restParams.collapseTable" ng-show="chartData.dataPoints.length > 0">
+        <div collapse="chartParams.collapseTable" ng-show="chartData.dataPoints.length > 0">
             <h4>Data Points: {{chartData.dataPoints.length}}</h4>
             <table class="table table-hover" style="width:500px;">
                 <thead>

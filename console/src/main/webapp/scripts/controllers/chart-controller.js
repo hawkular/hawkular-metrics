@@ -11,7 +11,7 @@ angular.module('chartingApp')
     .controller('ChartController', ['$scope', '$rootScope', '$http', '$interval', '$log', 'BASE_URL', function ($scope, $rootScope, $http, $interval, $log, BASE_URL) {
         var updateLastTimeStampToNowPromise;
 
-        $scope.restParams = {
+        $scope.chartParams = {
             searchId: "",
             startTimeStamp: moment().subtract('hours', 8).toDate(), //default time period set to 8 hours
             endTimeStamp: new Date(),
@@ -29,12 +29,12 @@ angular.module('chartingApp')
 //        });
 
 
-        $scope.updateEndTimeStampToNow = function () {
-            $scope.restParams.updateEndTimeStampToNow = !$scope.restParams.updateEndTimeStampToNow;
-            if ($scope.restParams.updateEndTimeStampToNow) {
+        $scope.autoRefresh = function () {
+            $scope.chartParams.updateEndTimeStampToNow = !$scope.chartParams.updateEndTimeStampToNow;
+            if ($scope.chartParams.updateEndTimeStampToNow) {
                 $scope.refreshChartData();
                 updateLastTimeStampToNowPromise = $interval(function () {
-                    $scope.restParams.endTimeStamp = new Date();
+                    $scope.chartParams.endTimeStamp = new Date();
                     $scope.refreshChartData();
                 }, 30 * 1000);
 
@@ -45,11 +45,11 @@ angular.module('chartingApp')
         };
 
         $scope.toggleTable = function () {
-            $scope.restParams.collapseTable = !$scope.restParams.collapseTable;
-            if ($scope.restParams.collapseTable) {
-                $scope.restParams.tableButtonLabel = "Show Table";
+            $scope.chartParams.collapseTable = !$scope.chartParams.collapseTable;
+            if ($scope.chartParams.collapseTable) {
+                $scope.chartParams.tableButtonLabel = "Show Table";
             } else {
-                $scope.restParams.tableButtonLabel = "Hide Table";
+                $scope.chartParams.tableButtonLabel = "Hide Table";
             }
         };
 
@@ -59,14 +59,14 @@ angular.module('chartingApp')
 
         $scope.refreshChartData = function () {
 
-            $log.info("Retrieving metrics data for id: " + $scope.restParams.searchId);
-            $log.info("Date Range: " + $scope.restParams.startTimeStamp + " - " + $scope.restParams.endTimeStamp);
+            $log.info("Retrieving metrics data for id: " + $scope.chartParams.searchId);
+            $log.info("Date Range: " + $scope.chartParams.startTimeStamp + " - " + $scope.chartParams.endTimeStamp);
 
-            $http.get(BASE_URL + '/' + $scope.restParams.searchId,
+            $http.get(BASE_URL + '/' + $scope.chartParams.searchId,
                 {
                     params: {
-                        start: moment($scope.restParams.startTimeStamp).valueOf(),
-                        end: moment($scope.restParams.endTimeStamp).valueOf(),
+                        start: moment($scope.chartParams.startTimeStamp).valueOf(),
+                        end: moment($scope.chartParams.endTimeStamp).valueOf(),
                         buckets: 60
                     }
                 }
@@ -80,17 +80,17 @@ angular.module('chartingApp')
 
                         // this is basically the DTO for the chart
                         $scope.chartData = {
-                            id: $scope.restParams.id,
-                            startTimeStamp: $scope.restParams.startTimeStamp,
-                            endTimeStamp: $scope.restParams.endTimeStamp,
+                            id: $scope.chartParams.id,
+                            startTimeStamp: $scope.chartParams.startTimeStamp,
+                            endTimeStamp: $scope.chartParams.endTimeStamp,
                             dataPoints: bucketizedDataPoints
                             //nvd3DataPoints: formatForNvD3(response),
                             //rickshawDataPoints: formatForRickshaw(response)
                         };
 
                     } else {
-                        $log.warn('No Data found for id: ' + $scope.restParams.searchId);
-                        toastr.warn('No Data found for id: ' + $scope.restParams.searchId);
+                        $log.warn('No Data found for id: ' + $scope.chartParams.searchId);
+                        toastr.warn('No Data found for id: ' + $scope.chartParams.searchId);
                     }
 
                 }).error(function (response, status) {
