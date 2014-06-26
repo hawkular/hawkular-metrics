@@ -44,20 +44,12 @@ public interface MetricsService {
     ListenableFuture<List<RawNumericMetric>> findData(String id, long start, long end);
 
     /** Check if a metric with the passed {id} has been stored in the system */
-    // TODO Do we really need this method?
-    // The C* based impl for this may very well require additional schema so I want us to
-    // be careful about about introducing new query operations.
-    //
-    // jsanda
     public boolean idExists(String id);
 
     /** Return a list of all metric names */
-    // TODO Do we really need this method?
-    // The C* based impl for this may very well require additional schema so I want us to
-    // be careful about about introducin new query operations.
-    //
-    // jsanda
     List<String> listMetrics();
 
+    /** Delete the metric with the passed id */
+    ListenableFuture<Void> deleteMetric(String id);
 
 }

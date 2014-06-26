@@ -13,6 +13,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -249,19 +250,10 @@ public class MetricHandler {
         @QueryParam("bucketCluster") @DefaultValue("true") final boolean bucketCluster,
         @Context HttpHeaders headers) {
 
-        // The idExists call is commented out since the Cassandra based impl is a no-op. We
-        // need to decided whether or not this check is really necessary. There isn't really
-        // an efficient way to do this in Cassandra unless we either query all keys or
-        // introduce new schema to support this method.
-        //
-        // jsanda
-//        if (!metricsService.idExists(id)) {
-//            asyncResponse.resume(Response.status(404).entity("Id [" + id + "] not found. ").build());
-////            builder = Response.status(404).entity("Id [" + id + "] not found. ");
-////            return builder.build();
-//        }
-
-//        final MediaType mediaType = headers.getAcceptableMediaTypes().get(0);
+        if (!metricsService.idExists(id)) {
+            StringValue val = new StringValue("Metric with id [" + id + "] not found. ");
+            asyncResponse.resume(Response.status(404).entity(val).build());
+        }
 
         long now = System.currentTimeMillis();
         if (start==null) {
@@ -404,6 +396,32 @@ public class MetricHandler {
         Response.ResponseBuilder builder = Response.ok(list);
 
         return builder.build();
+    }
+
+    @DELETE
+    @Path("/metrics/{id}")
+    @Produces({"application/json","application/xml"})
+    public void deleteMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") final String id) {
+
+        if (!metricsService.idExists(id)) {
+            StringValue val = new StringValue("Metric with id [" + id + "] not found. ");
+            asyncResponse.resume(Response.status(404).entity(val).build());
+        }
+
+        ListenableFuture<Void> future = metricsService.deleteMetric(id);
+        Futures.addCallback(future, new FutureCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                StringValue deleted = new StringValue("Metric with id " + id + " deleted");
+                asyncResponse.resume(Response.ok(deleted).build());
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
+
     }
 
     private BucketDataPoint createPointInSimpleBucket(String id, long startTime, long bucketsize,

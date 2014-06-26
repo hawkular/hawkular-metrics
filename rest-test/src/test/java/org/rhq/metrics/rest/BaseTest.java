@@ -510,6 +510,59 @@ public class BaseTest {
         }
     }
 
+    @Test
+    public void testDeleteMetric() throws Exception {
+
+        String id = "fooDelete";
+        long now = System.currentTimeMillis();
+        Map<String,Object> data = createDataPoint(id, now, 42d);
+
+        given()
+            .body(data)
+            .pathParam("id", id)
+            .contentType(ContentType.JSON)
+        .expect()
+            .statusCode(200)
+        .when()
+            .post("/metrics/{id}");
+
+
+        given()
+            .pathParam("id", id)
+            .header(acceptJson)
+            .queryParam("start", now - 100)
+            .queryParam("end", now + 100)
+        .expect()
+            .statusCode(200)
+            .log().ifError()
+            .body("timestamp[0]", equalTo(now))
+        .when()
+           .get("/metrics/{id}");
+
+        given()
+            .pathParam("id", id)
+            .header(acceptJson)
+        .expect()
+            .statusCode(200)
+            .log().ifError()
+        .when()
+            .delete("/metrics/{id}");
+
+        given()
+            .pathParam("id", id)
+            .header(acceptJson)
+            .queryParam("start", now - 100)
+            .queryParam("end", now + 100)
+        .expect()
+            .statusCode(404)
+            .log().ifError()
+        .when()
+           .get("/metrics/{id}");
+
+
+
+    }
+
     private void assertDouble(Map<String, Object> item,double refVal, double refVal2) {
         Double value = Double.valueOf(String.valueOf(item.get("value")));
         boolean expr = value.compareTo(refVal) == 0 || value.compareTo(refVal2)==0;

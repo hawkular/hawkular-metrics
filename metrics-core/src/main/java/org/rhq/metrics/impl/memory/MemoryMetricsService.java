@@ -167,8 +167,11 @@ public class MemoryMetricsService implements MetricsService {
         return metrics;
     }
 
-
-
+    @Override
+    public ListenableFuture<Void> deleteMetric(String id) {
+        storage.remove(id);
+        return VOID_FUTURE;
+    }
 
     private class NoOpDataMapper implements Function<List<RawNumericMetric>, List<RawNumericMetric>> {
         @Override

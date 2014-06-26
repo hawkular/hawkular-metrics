@@ -18,6 +18,7 @@ import com.datastax.driver.core.Session;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.FutureFallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -135,12 +136,32 @@ public class MetricsServiceCassandra implements MetricsService {
 
             session.get().execute("TRUNCATE metrics");
             session.get().execute("TRUNCATE counters");
+            session.get().execute("TRUNCATE metric_names");
         }
         dataAccess = new DataAccess(session.get());
+
+        // Populate the set of metric names
+        ResultSetFuture future = dataAccess.findMetricNames();
+        Futures.addCallback(future, new FutureCallback<ResultSet>() {
+            @Override
+            public void onSuccess(ResultSet result) {
+                for (Row row : result.all()) {
+                    String name = row.getString("name");
+                    ids.add(name);
+                }
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                logger.error("Load of metric names", t);
+            }
+        });
     }
 
     @Override
     public void shutdown() {
+
+
         if(session.isPresent()) {
             Session s = session.get();
             s.close();
@@ -152,6 +173,7 @@ public class MetricsServiceCassandra implements MetricsService {
         permits.acquire();
         ResultSetFuture future = dataAccess.insertData(data.getBucket(), data.getId(), data.getTimestamp(),
             ImmutableMap.of(DataType.RAW.ordinal(), data.getValue()), RAW_TTL);
+        addIdIfNeeded(data.getId());
         return Futures.transform(future, TO_VOID);
     }
 
@@ -166,7 +188,7 @@ public class MetricsServiceCassandra implements MetricsService {
                 ImmutableMap.of(DataType.RAW.ordinal(), metric.getAvg()), RAW_TTL);
             Futures.withFallback(future, new RawDataFallback(errors, metric));
             futures.add(future);
-            ids.add(metric.getId());
+            addIdIfNeeded(metric.getId());
         }
         ListenableFuture<List<ResultSet>> insertsFuture = Futures.successfulAsList(futures);
 
@@ -222,6 +244,21 @@ public class MetricsServiceCassandra implements MetricsService {
         return new ArrayList<>(ids);
     }
 
+    @Override
+    public ListenableFuture<Void> deleteMetric(String id) {
+        ids.remove(id);
+        dataAccess.removeData(id);
+        dataAccess.removeMetricsName(id); // TODO do we want to collect possible errors?
+        return Futures.immediateFuture(null);
+    }
+
+    private void addIdIfNeeded(String id) {
+        if (!ids.contains(id)) {
+            ids.add(id);
+            dataAccess.insertMetricName(id);
+        }
+    }
+
     private class RawDataFallback implements FutureFallback<ResultSet> {
 
         private Map<RawNumericMetric, Throwable> errors;
@@ -253,7 +290,11 @@ public class MetricsServiceCassandra implements MetricsService {
     private void updateSchemaIfNecessary(Cluster cluster, String schemaName) {
         try (Session session = cluster.connect("system")) {
             SchemaManager schemaManager = new SchemaManager(session);
-            schemaManager.updateSchema(schemaName);
+            try {
+                schemaManager.updateSchema(schemaName);
+            } catch (Exception e) {
+               logger.error("Schema update failed: " + e);
+            }
         }
     }
 

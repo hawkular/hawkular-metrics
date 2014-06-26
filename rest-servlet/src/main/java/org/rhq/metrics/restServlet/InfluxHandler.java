@@ -67,13 +67,6 @@ public class InfluxHandler {
                 objects.add(obj);
             }
 
-            InfluxObject obj = new InfluxObject("bla");
-            obj.columns = new ArrayList<>(2);
-            obj.columns.add("time");
-            obj.columns.add("sequence_number");
-            obj.points = new ArrayList<>(1);
-            objects.add(obj);
-
             Response.ResponseBuilder builder = Response.ok(objects);
 
             asyncResponse.resume(builder.build());
@@ -89,6 +82,12 @@ public class InfluxHandler {
 
                 final String metric = iq.metric;  // metric to query from backend
                 final String alias = iq.alias;  // alias to return the data as
+
+                if (!metricsService.idExists(metric)) {
+                    StringValue val = new StringValue("Metric with Id [" + metric + "] not found. ");
+                    asyncResponse.resume(Response.status(404).entity(val).build());
+                }
+
 
                 final ListenableFuture<List<RawNumericMetric>> future = metricsService.findData(metric, start, end);
 
@@ -141,12 +140,15 @@ public class InfluxHandler {
     }
 
     /**
-     * Apply a mapping function to the incoming data
-     * @param mapping
-     * @param in
-     * @param bucketLengthSec
-     * @param startTime
-     *@param endTime @return
+     * Apply a mapping function to the incoming data. This can return the input if no
+     * mapping is requested, but can also be a much shorter list of data if aggregation of
+     * many data points into buckets happens.
+     * @param mapping Name of the mapping
+     * @param in Incoming list of raw data
+     * @param bucketLengthSec Length of a bucket for aggregation
+     * @param startTime Start time of the data, used for bucketing
+     * @param endTime  End time of the data, used for bucketing
+     * @return List of computed metrics, possibly the input if no mapping needed
      */
     private List<RawNumericMetric> applyMapping(String mapping, final List<RawNumericMetric> in, int bucketLengthSec,
                                                 long startTime, long endTime) {
