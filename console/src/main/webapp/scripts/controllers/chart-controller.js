@@ -32,8 +32,10 @@ angular.module('chartingApp')
         $scope.updateEndTimeStampToNow = function () {
             $scope.restParams.updateEndTimeStampToNow = !$scope.restParams.updateEndTimeStampToNow;
             if ($scope.restParams.updateEndTimeStampToNow) {
+                $scope.refreshChartData();
                 updateLastTimeStampToNowPromise = $interval(function () {
                     $scope.restParams.endTimeStamp = new Date();
+                    $scope.refreshChartData();
                 }, 30 * 1000);
 
             } else {
