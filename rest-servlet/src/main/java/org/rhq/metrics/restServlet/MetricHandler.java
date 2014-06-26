@@ -251,10 +251,10 @@ public class MetricHandler {
         @Context HttpHeaders headers) {
 
         long now = System.currentTimeMillis();
-        if (start==null) {
-            start= now -EIGHT_HOURS;
+        if (start == null) {
+            start = now - EIGHT_HOURS;
         }
-        if (end==null) {
+        if (end == null) {
             end = now;
         }
         final Long finalStart = start;
@@ -387,7 +387,6 @@ public class MetricHandler {
         });
     }
 
-
     @GZIP
     @GET
     @Path("/metrics")
@@ -418,7 +417,6 @@ public class MetricHandler {
                 asyncResponse.resume(t);
             }
         });
-
     }
 
     @DELETE
@@ -430,7 +428,6 @@ public class MetricHandler {
         Futures.addCallback(idExistsFuture, new FutureCallback<Boolean>() {
             @Override
             public void onSuccess(Boolean result) {
-
                 ListenableFuture<Boolean> future = metricsService.deleteMetric(id);
                 Futures.addCallback(future, new FutureCallback<Boolean>() {
                     @Override

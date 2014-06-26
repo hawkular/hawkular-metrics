@@ -95,7 +95,6 @@ public class DataAccess {
         return session.executeAsync(statement);
     }
 
-
     public ResultSetFuture listMetricNames() {
         BoundStatement statement = listNames.bind();
         return session.executeAsync(statement);
@@ -105,6 +104,5 @@ public class DataAccess {
         BoundStatement statement = removeMetricData.bind(id);
         return session.executeAsync(statement);
     }
-
 
 }

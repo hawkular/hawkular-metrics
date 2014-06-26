@@ -84,8 +84,6 @@ public class InfluxHandler {
 
                 final String metric = iq.getMetric();  // metric to query from backend
 
-
-
                 ListenableFuture<Boolean> idExistsFuture = metricsService.idExists(metric);
                 Futures.addCallback(idExistsFuture, new FutureCallback<Boolean>() {
                     @Override
@@ -95,8 +93,8 @@ public class InfluxHandler {
                             asyncResponse.resume(Response.status(404).entity(val).build());
                         }
 
-                        final ListenableFuture<List<RawNumericMetric>> future = metricsService.findData(metric, iq.getStart(),
-                            iq.getEnd());
+                        final ListenableFuture<List<RawNumericMetric>> future = metricsService.findData(metric,
+                            iq.getStart(), iq.getEnd());
 
                         Futures.addCallback(future, new FutureCallback<List<RawNumericMetric>>() {
                             @Override
@@ -110,7 +108,6 @@ public class InfluxHandler {
                                 obj.points = new ArrayList<>(1);
 
                                 metrics = applyMapping(iq,metrics, iq.getBucketLengthSec(), iq.getStart(), iq.getEnd());
-
 
                                 for (RawNumericMetric m : metrics) {
                                     List<Number> data = new ArrayList<>();
@@ -130,7 +127,6 @@ public class InfluxHandler {
                             public void onFailure(Throwable t) {
                                 asyncResponse.resume(t);
                             }
-
                         });
                     }
 

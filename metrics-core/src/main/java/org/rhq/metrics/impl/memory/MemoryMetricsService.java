@@ -65,7 +65,6 @@ public class MemoryMetricsService implements MetricsService {
     @Override
     public ListenableFuture<Map<RawNumericMetric, Throwable>> addData(Set<RawNumericMetric> data) {
 
-        TLongDoubleMap map ;
         for (RawNumericMetric metric : data) {
             addMetric(metric);
 
@@ -181,12 +180,14 @@ public class MemoryMetricsService implements MetricsService {
             return input;
         }
     }
+
     private class NoOpCounterMapper implements Function<List<Counter>, List<Counter>> {
         @Override
         public List<Counter> apply(List<Counter> input) {
             return input;
         }
     }
+
     private class NoOpStringListMapper implements Function<List<String >, List<String>> {
         @Override
         public List<String> apply(List<String> input) {

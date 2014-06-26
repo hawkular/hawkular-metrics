@@ -257,6 +257,25 @@ public class MetricsServiceCassandra implements MetricsService {
         });
     }
 
+    private void updateSchemaIfNecessary(Cluster cluster, String schemaName) {
+        try (Session session = cluster.connect("system")) {
+            SchemaManager schemaManager = new SchemaManager(session);
+            try {
+                schemaManager.updateSchema(schemaName);
+            } catch (Exception e) {
+                logger.error("Schema update failed: " + e);
+                throw e;
+            }
+        }
+    }
+
+    private void dropKeyspace(Cluster cluster, String keyspace) {
+        try (Session session = cluster.connect("system")) {
+            logger.info("Removing keyspace '" + keyspace + "'");
+            session.execute("DROP KEYSPACE IF EXISTS " + keyspace);
+        }
+    }
+
 
     private class RawDataFallback implements FutureFallback<ResultSet> {
 
@@ -283,25 +302,6 @@ public class MetricsServiceCassandra implements MetricsService {
         @Override
         public List<RawNumericMetric> apply(ResultSet resultSet) {
             return mapper.map(resultSet);
-        }
-    }
-
-    private void updateSchemaIfNecessary(Cluster cluster, String schemaName) {
-        try (Session session = cluster.connect("system")) {
-            SchemaManager schemaManager = new SchemaManager(session);
-            try {
-                schemaManager.updateSchema(schemaName);
-            } catch (Exception e) {
-                logger.error("Schema update failed: " + e);
-                throw e;
-            }
-        }
-    }
-
-    private void dropKeyspace(Cluster cluster, String keyspace) {
-        try (Session session = cluster.connect("system")) {
-            logger.info("Removing keyspace '" + keyspace + "'");
-            session.execute("DROP KEYSPACE IF EXISTS " + keyspace);
         }
     }
 
