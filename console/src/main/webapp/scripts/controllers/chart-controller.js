@@ -21,6 +21,18 @@ angular.module('chartingApp')
             tableButtonLabel: "Show Table"
         };
 
+        $scope.dateTimeRanges = [
+            { "range": "1h", "rangeInSeconds": 60 * 60 } ,
+            { "range": "4h", "rangeInSeconds": 4 * 60 * 60 } ,
+            { "range": "8h", "rangeInSeconds": 8 * 60 * 60 },
+            { "range": "12h", "rangeInSeconds": 12 * 60 * 60 },
+            { "range": "1d", "rangeInSeconds": 24 * 60 * 60 },
+            { "range": "5d", "rangeInSeconds": 5 * 24 * 60 * 60 },
+            { "range": "1m", "rangeInSeconds": 30 * 24 * 60 * 60 },
+            { "range": "3m", "rangeInSeconds": 3 * 30 * 24 * 60 * 60 },
+            { "range": "6m", "rangeInSeconds": 6 * 30 * 24 * 60 * 60 }
+        ];
+
         $rootScope.$on("DateRangeChanged", function (event, message) {
             $log.debug("DateRangeChanged Fired from Chart!");
         });

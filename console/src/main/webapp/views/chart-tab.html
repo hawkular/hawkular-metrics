@@ -18,6 +18,16 @@
                 </div>
 
                 <div class="form-group">
+                    <label class="col-sm-2 control-label">Range:</label>
+
+                    <div class="col-sm-5">
+
+                    </div>
+                </div>
+
+
+
+                <div class="form-group">
                     <label class="col-sm-2 control-label">Start</label>
 
                     <div class="col-sm-6">
@@ -64,7 +74,7 @@
 
 
                 <div class="form-group">
-                    <label class="col-sm-2 control-label">Time Range:</label>
+                    <label class="col-sm-2 control-label">Time Period:</label>
 
                     <div class="col-sm-6">
                         <input type="text" ng-model="chartParams.dateRange" readonly disbabled /></p>
@@ -94,6 +104,8 @@
 
             </form>
         </div>
+
+        <date-time-range-button-bar></date-time-range-button-bar>
 
         <div id="stackedBarChart" style="height:270px">
             <rhqm-stacked-bar-chart
