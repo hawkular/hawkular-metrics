@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('chartingApp')
-    .directive('dateTimeRangeButtonBar', function () {
+    .directive('relativeTimeRangeButtonBar', function () {
         return {
             templateUrl: '../views/directives/date-time-range-selection.tpl.html',
             controller: function ($scope) {
