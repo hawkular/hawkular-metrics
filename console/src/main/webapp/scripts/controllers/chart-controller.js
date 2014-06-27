@@ -15,6 +15,7 @@ angular.module('chartingApp')
             searchId: "",
             startTimeStamp: moment().subtract('hours', 8).toDate(), //default time period set to 8 hours
             endTimeStamp: new Date(),
+            dateRange: moment().subtract('hours', 8).from(moment(),true),
             updateEndTimeStampToNow: false,
             collapseTable: true,
             tableButtonLabel: "Show Table"

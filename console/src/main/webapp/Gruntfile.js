@@ -30,7 +30,7 @@ module.exports = function (grunt) {
         tasks: ['newer:jshint:test', 'karma']
       },
       styles: {
-        files: ['<%= rhqMetrics.app %>/styles/{,*/}*.css'],
+        files: ['<%= rhqMetrics.app %>/css/{,*/}*.css'],
         tasks: ['newer:copy:styles', 'autoprefixer']
       },
       gruntfile: {
@@ -42,7 +42,7 @@ module.exports = function (grunt) {
         },
         files: [
           '<%= rhqMetrics.app %>/{,*/}*.html',
-          '.tmp/styles/{,*/}*.css',
+          '.tmp/css/{,*/}*.css',
           '<%= rhqMetrics.app %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}'
         ]
       }
@@ -124,9 +124,9 @@ module.exports = function (grunt) {
       dist: {
         files: [{
           expand: true,
-          cwd: '.tmp/styles/',
+          cwd: '.tmp/css/',
           src: '{,*/}*.css',
-          dest: '.tmp/styles/'
+          dest: '.tmp/css/'
         }]
       }
     },
@@ -149,9 +149,9 @@ module.exports = function (grunt) {
         files: {
           src: [
             '<%= rhqMetrics.dist %>/scripts/{,*/}*.js',
-            '<%= rhqMetrics.dist %>/styles/{,*/}*.css',
+            '<%= rhqMetrics.dist %>/css/{,*/}*.css',
             '<%= rhqMetrics.dist %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}',
-            '<%= rhqMetrics.dist %>/styles/fonts/*'
+            '<%= rhqMetrics.dist %>/css/fonts/*'
           ]
         }
       }
@@ -170,7 +170,7 @@ module.exports = function (grunt) {
     // Performs rewrites based on rev and the useminPrepare configuration
     usemin: {
       html: ['<%= rhqMetrics.dist %>/{,*/}*.html'],
-      css: ['<%= rhqMetrics.dist %>/styles/{,*/}*.css'],
+      css: ['<%= rhqMetrics.dist %>/css/{,*/}*.css'],
       options: {
         assetsDirs: ['<%= rhqMetrics.dist %>']
       }
@@ -260,8 +260,8 @@ module.exports = function (grunt) {
       },
       styles: {
         expand: true,
-        cwd: '<%= rhqMetrics.app %>/styles',
-        dest: '.tmp/styles/',
+        cwd: '<%= rhqMetrics.app %>/css',
+        dest: '.tmp/css/',
         src: '{,*/}*.css'
       }
     },

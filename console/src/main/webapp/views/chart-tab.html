@@ -64,6 +64,14 @@
 
 
                 <div class="form-group">
+                    <label class="col-sm-2 control-label">Time Range:</label>
+
+                    <div class="col-sm-6">
+                        <input type="text" ng-model="chartParams.dateRange" readonly disbabled /></p>
+                    </div>
+                </div>
+
+                <div class="form-group">
                     <label class="col-sm-2 control-label"></label>
 
                     <div class="col-sm-6">
@@ -125,9 +133,9 @@
                 <tbody>
                 <tr ng-repeat="chartPoint in chartData.dataPoints | orderBy:timestamp:true">
                     <td>{{chartPoint.date | date: 'medium'}}</td>
-                    <td style="float:right;">{{chartPoint.avg|number:2}}</td>
-                    <td style="float:right;">{{chartPoint.min|number:2}}</td>
-                    <td style="float:right;">{{chartPoint.max|number:2}}</td>
+                    <td >{{chartPoint.avg|number:2}}</td>
+                    <td >{{chartPoint.min|number:2}}</td>
+                    <td >{{chartPoint.max|number:2}}</td>
                 </tr>
 
                 </tbody>
