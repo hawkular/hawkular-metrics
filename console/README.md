@@ -6,6 +6,7 @@ The UI provides an easy UI way of :
 ![Inserts](rhq-metrics-console.png "Inserts")
 
 2. Viewing the data in the database both visually via a graph and a grid table
+![Charts](rhq-chart.png "Charts")
 
 
 ## Purpose
