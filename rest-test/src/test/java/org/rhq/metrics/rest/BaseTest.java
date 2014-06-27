@@ -616,7 +616,6 @@ public class BaseTest {
             .queryParam("end", now + 100)
         .expect()
             .statusCode(404)
-            .log().ifError()
         .when()
            .get("/metrics/{id}");
     }

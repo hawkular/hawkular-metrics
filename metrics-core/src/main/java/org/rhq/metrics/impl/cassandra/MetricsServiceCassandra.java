@@ -304,5 +304,4 @@ public class MetricsServiceCassandra implements MetricsService {
             return mapper.map(resultSet);
         }
     }
-
 }
