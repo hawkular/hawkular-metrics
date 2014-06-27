@@ -37,7 +37,8 @@ public class SchemaManager {
                 "metric_id text, " +
                 "time timestamp, " +
                 "value map<int, double>, " +
-                "PRIMARY KEY (bucket, metric_id, time) " +
+                // ( bucket, metric_id ) are a composite partition key
+                "PRIMARY KEY ( (bucket, metric_id) , time) " +
             ")"
         );
 
@@ -50,13 +51,6 @@ public class SchemaManager {
             ")"
         );
 
-        session2.execute(
-            "CREATE TABLE IF NOT EXISTS metric_names (" +
-                "   name text," +
-                "   type text," +
-                "   PRIMARY KEY (name, type)" +
-                ")"
-        );
     }
 
 }

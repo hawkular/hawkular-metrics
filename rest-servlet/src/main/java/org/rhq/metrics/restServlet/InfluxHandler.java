@@ -53,23 +53,32 @@ public class InfluxHandler {
         if (queryString.equals("list series")) {
 
             // Copied from MetricsHandler
-            List<String> names = ServiceKeeper.getInstance().service.listMetrics();
+            ListenableFuture<List<String>> future = ServiceKeeper.getInstance().service.listMetrics();
+            Futures.addCallback(future, new FutureCallback<List<String>>() {
+                @Override
+                public void onSuccess(List<String> result) {
+                    List<InfluxObject> objects = new ArrayList<>(result.size());
 
-            List<InfluxObject> objects = new ArrayList<>(names.size() + 2);
+                    for (String name : result) {
+                        InfluxObject obj = new InfluxObject(name);
+                        obj.columns = new ArrayList<>(2);
+                        obj.columns.add("time");
+                        obj.columns.add("sequence_number");
+                        obj.columns.add("val");
+                        obj.points = new ArrayList<>(1);
+                        objects.add(obj);
+                    }
 
-            for (String name : names) {
-                InfluxObject obj = new InfluxObject(name);
-                obj.columns = new ArrayList<>(2);
-                obj.columns.add("time");
-                obj.columns.add("sequence_number");
-                obj.columns.add("val");
-                obj.points = new ArrayList<>(1);
-                objects.add(obj);
-            }
+                    Response.ResponseBuilder builder = Response.ok(objects);
+                    asyncResponse.resume(builder.build());
+                }
 
-            Response.ResponseBuilder builder = Response.ok(objects);
+                @Override
+                public void onFailure(Throwable t) {
+                    asyncResponse.resume(t);
+                }
+            });
 
-            asyncResponse.resume(builder.build());
 
         } else {
             // Example query: select  mean("value") as "value_mean" from "snert.cpu_user" where  time > now() - 6h     group by time(30s)  order asc
@@ -83,52 +92,62 @@ public class InfluxHandler {
                 final String metric = iq.metric;  // metric to query from backend
                 final String alias = iq.alias;  // alias to return the data as
 
-                if (!metricsService.idExists(metric)) {
-                    StringValue val = new StringValue("Metric with Id [" + metric + "] not found. ");
-                    asyncResponse.resume(Response.status(404).entity(val).build());
-                }
-
-
-                final ListenableFuture<List<RawNumericMetric>> future = metricsService.findData(metric, start, end);
-
                 final Long finalStart = start;
                 final Long finalEnd = end;
-                Futures.addCallback(future, new FutureCallback<List<RawNumericMetric>>() {
+
+                ListenableFuture<Boolean> idExistsFuture = metricsService.idExists(metric);
+                Futures.addCallback(idExistsFuture, new FutureCallback<Boolean>() {
                     @Override
-                    public void onSuccess(List<RawNumericMetric> metrics) {
-
-                        List<InfluxObject> objects = new ArrayList<>(1);
-
-                        InfluxObject obj = new InfluxObject(metric);
-                        obj.columns = new ArrayList<>(1);
-                        obj.columns.add("time");
-                        obj.columns.add(alias);
-                        obj.points = new ArrayList<>(1);
-
-                        metrics = applyMapping(iq.mapping,metrics,iq.bucketLengthSec, finalStart, finalEnd);
-
-                        for (RawNumericMetric m : metrics) {
-                            List<Number> data = new ArrayList<>();
-                            data.add(m.getTimestamp()/1000);  // query param "time_precision
-                            data.add(m.getAvg());
-                            obj.points.add(data);
+                    public void onSuccess(Boolean result) {
+                        if (!result) {
+                            StringValue val = new StringValue("Metric with id [" + metric + "] not found. ");
+                            asyncResponse.resume(Response.status(404).entity(val).build());
                         }
 
+                        final ListenableFuture<List<RawNumericMetric>> future = metricsService.findData(metric, finalStart,
+                            finalEnd);
 
-                        objects.add(obj);
+                        Futures.addCallback(future, new FutureCallback<List<RawNumericMetric>>() {
+                            @Override
+                            public void onSuccess(List<RawNumericMetric> metrics) {
 
-                        Response.ResponseBuilder builder = Response.ok(objects);
+                                List<InfluxObject> objects = new ArrayList<>(1);
 
-                        asyncResponse.resume(builder.build());
+                                InfluxObject obj = new InfluxObject(metric);
+                                obj.columns = new ArrayList<>(1);
+                                obj.columns.add("time");
+                                obj.columns.add(alias);
+                                obj.points = new ArrayList<>(1);
+
+                                metrics = applyMapping(iq.mapping, metrics, iq.bucketLengthSec, finalStart, finalEnd);
+
+                                for (RawNumericMetric m : metrics) {
+                                    List<Number> data = new ArrayList<>();
+                                    data.add(m.getTimestamp() / 1000);  // query param "time_precision
+                                    data.add(m.getAvg());
+                                    obj.points.add(data);
+                                }
+
+                                objects.add(obj);
+
+                                Response.ResponseBuilder builder = Response.ok(objects);
+
+                                asyncResponse.resume(builder.build());
+                            }
+
+                            @Override
+                            public void onFailure(Throwable t) {
+                                asyncResponse.resume(t);
+                            }
+
+                        });
                     }
 
                     @Override
                     public void onFailure(Throwable t) {
                         asyncResponse.resume(t);
                     }
-
                 });
-
             }
             else {
                 // Fallback if nothing matched
@@ -389,6 +408,9 @@ public class InfluxHandler {
         private long getTimeFromExpr(Matcher m) {
             String val = m.group(1);
             String unit = m.group(2);
+            if (unit.length()>1) {
+                unit = unit.substring(0,1);
+            }
             long factor ;
             switch (unit) {
             case "h":

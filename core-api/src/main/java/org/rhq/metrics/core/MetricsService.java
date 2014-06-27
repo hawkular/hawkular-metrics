@@ -44,12 +44,12 @@ public interface MetricsService {
     ListenableFuture<List<RawNumericMetric>> findData(String id, long start, long end);
 
     /** Check if a metric with the passed {id} has been stored in the system */
-    public boolean idExists(String id);
+    ListenableFuture<Boolean> idExists(String id);
 
     /** Return a list of all metric names */
-    List<String> listMetrics();
+    ListenableFuture<List<String>> listMetrics();
 
     /** Delete the metric with the passed id */
-    ListenableFuture<Void> deleteMetric(String id);
+    ListenableFuture<Boolean> deleteMetric(String id);
 
 }

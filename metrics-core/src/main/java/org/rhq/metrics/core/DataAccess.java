@@ -28,11 +28,7 @@ public class DataAccess {
 
     private PreparedStatement findCountersByGroupAndName;
 
-    private PreparedStatement insertName;
-
-    private PreparedStatement findName;
-
-    private PreparedStatement deleteName;
+    private PreparedStatement listNames;
 
     private PreparedStatement removeMetricData;
 
@@ -60,15 +56,9 @@ public class DataAccess {
         findCountersByGroupAndName = session.prepare(
             "SELECT group, c_name, c_value FROM counters WHERE group = ? AND c_name IN ?");
 
-        insertName = session.prepare(
-            "INSERT INTO metric_names (name, type) VALUES (? , ?)"); // TODO ttl ?
+        listNames = session.prepare("SELECT DISTINCT bucket, metric_id FROM metrics ");
 
-        findName = session.prepare(
-            "SELECT name, type FROM metric_names WHERE type = ? ALLOW FILTERING");
-
-        deleteName = session.prepare("DELETE FROM metric_names WHERE name = ?");
-
-        removeMetricData = session.prepare("DELETE FROM metrics WHERE metric_id = ?");
+        removeMetricData = session.prepare("DELETE FROM metrics WHERE bucket = 'raw' AND metric_id = ?"); // TODO all buckets
     }
 
     public ResultSetFuture insertData(String bucket, String metricId, long timestamp, Map<Integer, Double> values,
@@ -105,13 +95,9 @@ public class DataAccess {
         return session.executeAsync(statement);
     }
 
-    public ResultSetFuture insertMetricName(String name) {
-        BoundStatement statement = insertName.bind(name,"metric");
-        return session.executeAsync(statement);
-    }
 
-    public ResultSetFuture findMetricNames() {
-        BoundStatement statement = findName.bind("metric");
+    public ResultSetFuture listMetricNames() {
+        BoundStatement statement = listNames.bind();
         return session.executeAsync(statement);
     }
 
@@ -120,9 +106,5 @@ public class DataAccess {
         return session.executeAsync(statement);
     }
 
-    public ResultSetFuture removeMetricsName(String name) {
-        BoundStatement statement = deleteName.bind(name);
-        return session.executeAsync(statement);
-    }
 
 }
