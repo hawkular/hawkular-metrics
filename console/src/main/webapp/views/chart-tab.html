@@ -97,7 +97,7 @@
             </form>
         </div>
 
-        <relative-time-range-button-bar></relative-time-range-button-bar>
+        <relative-time-range-button-bar start-time-stamp="chartParams.startTimestamp" end-time-stamp="chartParms.endTimeStamp"></relative-time-range-button-bar>
 
         <div id="stackedBarChart" style="height:270px">
             <rhqm-stacked-bar-chart
@@ -120,6 +120,11 @@
                     max-label="Max"
                     avg-label="Avg"></rhqm-stacked-bar-chart>
         </div>
+
+        <button class="btn btn-sm" ng-click="showPreviousTimeRange()">Prev.</button>
+        <button class="btn btn-sm" ng-click="showNextTimeRange()">Next</button>
+        <br/>
+        <br/>
 
         <button class="btn btn-sm" ng-click="toggleTable()">{{chartParams.tableButtonLabel}}</button>
 

@@ -57,6 +57,46 @@ angular.module('chartingApp')
 
         };
 
+        $scope.showPreviousTimeRange = function () {
+            var previousTimeRange;
+            previousTimeRange = calculatePreviousTimeRange($scope.chartParams.startTimeStamp, $scope.chartParams.endTimeStamp);
+
+            $scope.chartParams.startTimeStamp = previousTimeRange[0];
+            $scope.chartParams.endTimeStamp = previousTimeRange[1];
+            $scope.refreshChartData();
+
+        };
+
+        function calculatePreviousTimeRange (startDate, endDate){
+            var previousTimeRange =[];
+            var intervalInMillis = endDate - startDate;
+
+            previousTimeRange.push(new Date(startDate.getTime() - intervalInMillis));
+            previousTimeRange.push(startDate);
+           return previousTimeRange;
+        }
+
+        function calculateNextTimeRange (startDate, endDate){
+            var nextTimeRange =[];
+            var intervalInMillis = endDate - startDate;
+
+            nextTimeRange.push(endDate);
+            nextTimeRange.push(new Date(endDate.getTime() + intervalInMillis));
+            return nextTimeRange;
+        }
+
+
+        $scope.showNextTimeRange = function () {
+            var nextTimeRange;
+            nextTimeRange = calculateNextTimeRange($scope.chartParams.startTimeStamp, $scope.chartParams.endTimeStamp);
+
+            $scope.chartParams.startTimeStamp = nextTimeRange[0];
+            $scope.chartParams.endTimeStamp = nextTimeRange[1];
+            $scope.refreshChartData();
+
+        };
+
+
         $scope.toggleTable = function () {
             $scope.chartParams.collapseTable = !$scope.chartParams.collapseTable;
             if ($scope.chartParams.collapseTable) {
