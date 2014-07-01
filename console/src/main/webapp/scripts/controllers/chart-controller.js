@@ -8,14 +8,14 @@
  * @description This controller is responsible for handling activity related to the Chart tab.
  */
 angular.module('chartingApp')
-    .controller('ChartController', ['$scope', '$rootScope', '$http', '$interval', '$log', 'BASE_URL', function ($scope, $rootScope, $http, $interval, $log, BASE_URL) {
+    .controller('ChartController', ['$scope', '$rootScope', '$interval', '$log', 'metricDataService', function ($scope, $rootScope, $interval, $log, metricDataService) {
         var updateLastTimeStampToNowPromise;
 
         $scope.chartParams = {
             searchId: "",
             startTimeStamp: moment().subtract('hours', 8).toDate(), //default time period set to 8 hours
             endTimeStamp: new Date(),
-            dateRange: moment().subtract('hours', 8).from(moment(),true),
+            dateRange: moment().subtract('hours', 8).from(moment(), true),
             updateEndTimeStampToNow: false,
             collapseTable: true,
             tableButtonLabel: "Show Table"
@@ -67,17 +67,17 @@ angular.module('chartingApp')
 
         };
 
-        function calculatePreviousTimeRange (startDate, endDate){
-            var previousTimeRange =[];
+        function calculatePreviousTimeRange(startDate, endDate) {
+            var previousTimeRange = [];
             var intervalInMillis = endDate - startDate;
 
             previousTimeRange.push(new Date(startDate.getTime() - intervalInMillis));
             previousTimeRange.push(startDate);
-           return previousTimeRange;
+            return previousTimeRange;
         }
 
-        function calculateNextTimeRange (startDate, endDate){
-            var nextTimeRange =[];
+        function calculateNextTimeRange(startDate, endDate) {
+            var nextTimeRange = [];
             var intervalInMillis = endDate - startDate;
 
             nextTimeRange.push(endDate);
@@ -112,18 +112,8 @@ angular.module('chartingApp')
 
         $scope.refreshChartData = function () {
 
-            $log.info("Retrieving metrics data for id: " + $scope.chartParams.searchId);
-            $log.info("Date Range: " + $scope.chartParams.startTimeStamp + " - " + $scope.chartParams.endTimeStamp);
-
-            $http.get(BASE_URL + '/' + $scope.chartParams.searchId,
-                {
-                    params: {
-                        start: moment($scope.chartParams.startTimeStamp).valueOf(),
-                        end: moment($scope.chartParams.endTimeStamp).valueOf(),
-                        buckets: 60
-                    }
-                }
-            ).success(function (response) {
+            metricDataService.getMetricsForTimeRange($scope.chartParams.searchId, $scope.chartParams.startTimeStamp, $scope.chartParams.endTimeStamp)
+                .success(function (response) {
                     // we want to isolate the response from the data we are feeding to the chart
                     var bucketizedDataPoints = formatBucketizedOutput(response);
 
