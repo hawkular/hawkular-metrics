@@ -24,6 +24,7 @@
                 <input type="number" class="form-control" id="quickInsertValueText" name="quickInsertValueText"
                        ng-model="quickInsertData.value"
                        required
+                       ng-enter="quickInsert();"
                        placeholder="Enter Value...">
                 <span class="help-block">Example: 100, 5.25, 5000  </span>
             </div>

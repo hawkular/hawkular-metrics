@@ -9,10 +9,7 @@
  */
 angular.module('chartingApp')
     .controller('InsertMetricsController', ['$scope', '$rootScope', '$log','$interval', 'metricDataService', function ($scope, $rootScope, $log, $interval, metricDataService) {
-        var streamingIntervalPromise,
-            randomIntFromInterval = function (min, max) {
-                return Math.floor(Math.random() * (max - min + 1) + min);
-            };
+        var streamingIntervalPromise;
 
         $scope.streamingTimeRanges = [
             { "range": "1s", "rangeInSeconds": 1 },
@@ -136,7 +133,7 @@ angular.module('chartingApp')
             streamingIntervalPromise = $interval(function () {
                 $log.log("Timer has Run! for seconds: " + selectedTimeRangeInSeconds);
                 $scope.streamingInsertData.count = $scope.streamingInsertData.count + 1;
-                $scope.streamingInsertData.lastStreamedValue = randomIntFromInterval($scope.streamingInsertData.startNumber, $scope.streamingInsertData.endNumber);
+                $scope.streamingInsertData.lastStreamedValue = metricDataService.createRandomValue($scope.streamingInsertData.startNumber, $scope.streamingInsertData.endNumber);
                 $scope.streamingInsertData.jsonPayload = { timestamp: moment().valueOf(), value: $scope.streamingInsertData.lastStreamedValue };
 
 
