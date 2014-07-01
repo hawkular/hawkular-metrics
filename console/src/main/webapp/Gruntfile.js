@@ -12,7 +12,8 @@ module.exports = function (grunt) {
     // Project settings
     rhqMetrics: {
       // configurable paths
-      app: require('./bower.json').appPath || '',
+      //app: require('./bower.json').appPath || '',
+      app: './',
       dist: 'dist'
     },
 
