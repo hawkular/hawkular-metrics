@@ -121,12 +121,12 @@
                     avg-label="Avg"></rhqm-stacked-bar-chart>
         </div>
 
-        <button class="btn btn-sm" ng-click="showPreviousTimeRange()" style="margin-left:90px;">&lt; Prev.</button>
-        <button class="btn btn-sm" style="float:right;margin-right: 90px;" ng-click="showNextTimeRange()">Next &gt;</button>
+        <button class="btn btn-sm" ng-click="showPreviousTimeRange()" style="margin-left:90px;" ng-show="chartData.dataPoints.length > 0">&lt; Prev.</button>
+        <button class="btn btn-sm" style="float:right;margin-right: 90px;" ng-click="showNextTimeRange()" ng-show="chartData.dataPoints.length > 0">Next &gt;</button>
         <br/>
         <br/>
 
-        <button class="btn btn-sm" ng-click="toggleTable()">{{chartParams.tableButtonLabel}}</button>
+        <button class="btn btn-sm" ng-click="toggleTable()" ng-show="chartData.dataPoints.length > 0">{{chartParams.tableButtonLabel}}</button>
 
         <div collapse="chartParams.collapseTable" ng-show="chartData.dataPoints.length > 0">
             <h4>Data Points: {{chartData.dataPoints.length}}</h4>

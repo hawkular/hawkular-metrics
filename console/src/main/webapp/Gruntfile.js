@@ -141,8 +141,6 @@ module.exports = function (grunt) {
 
 
 
-
-
     // Renames files for browser caching purposes
     rev: {
       dist: {
@@ -157,82 +155,8 @@ module.exports = function (grunt) {
       }
     },
 
-    // Reads HTML for usemin blocks to enable smart builds that automatically
-    // concat, minify and revision files. Creates configurations in memory so
-    // additional tasks can operate on them
-    useminPrepare: {
-      html: '<%= rhqMetrics.app %>/index.html',
-      options: {
-        dest: '<%= rhqMetrics.dist %>'
-      }
-    },
 
-    // Performs rewrites based on rev and the useminPrepare configuration
-    usemin: {
-      html: ['<%= rhqMetrics.dist %>/{,*/}*.html'],
-      css: ['<%= rhqMetrics.dist %>/css/{,*/}*.css'],
-      options: {
-        assetsDirs: ['<%= rhqMetrics.dist %>']
-      }
-    },
 
-    // The following *-min tasks produce minified files in the dist folder
-    imagemin: {
-      dist: {
-        files: [{
-          expand: true,
-          cwd: '<%= rhqMetrics.app %>/images',
-          src: '{,*/}*.{png,jpg,jpeg,gif}',
-          dest: '<%= rhqMetrics.dist %>/images'
-        }]
-      }
-    },
-    svgmin: {
-      dist: {
-        files: [{
-          expand: true,
-          cwd: '<%= rhqMetrics.app %>/images',
-          src: '{,*/}*.svg',
-          dest: '<%= rhqMetrics.dist %>/images'
-        }]
-      }
-    },
-    htmlmin: {
-      dist: {
-        options: {
-          collapseWhitespace: true,
-          collapseBooleanAttributes: true,
-          removeCommentsFromCDATA: true,
-          removeOptionalTags: true
-        },
-        files: [{
-          expand: true,
-          cwd: '<%= rhqMetrics.dist %>',
-          src: ['*.html', 'views/{,*/}*.html'],
-          dest: '<%= rhqMetrics.dist %>'
-        }]
-      }
-    },
-
-    // Allow the use of non-minsafe AngularJS files. Automatically makes it
-    // minsafe compatible so Uglify does not destroy the ng references
-    ngmin: {
-      dist: {
-        files: [{
-          expand: true,
-          cwd: '.tmp/concat/scripts',
-          src: '*.js',
-          dest: '.tmp/concat/scripts'
-        }]
-      }
-    },
-
-    // Replace Google CDN references
-    cdnify: {
-      dist: {
-        html: ['<%= rhqMetrics.dist %>/*.html']
-      }
-    },
 
     // Copies remaining files to places other tasks can use
     copy: {
@@ -327,19 +251,12 @@ module.exports = function (grunt) {
     'useminPrepare',
     'concurrent:dist',
     'autoprefixer',
-    'concat',
-    'ngmin',
     'copy:dist',
-    'cdnify',
-    'cssmin',
-    'uglify',
-    'rev',
-    'usemin',
-    'htmlmin'
+    'rev'
   ]);
 
   grunt.registerTask('default', [
-    //'newer:jshint',
+    'newer:jshint',
     'test',
     'build'
   ]);
