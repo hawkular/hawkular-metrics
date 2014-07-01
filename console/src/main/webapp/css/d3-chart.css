@@ -115,6 +115,13 @@ rect.low {
     stroke-opacity: 0.7;
 }
 
+.prevRangeAvgLine {
+    fill: none;
+    stroke: #ff1a13;
+    stroke-width: 3;
+    stroke-opacity: 0.4;
+}
+
 .titleName {
     font-size: 12;
     font-weight: bold;
