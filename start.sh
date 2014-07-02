@@ -13,6 +13,14 @@ fi
 
 WFLY_VERSION=`grep "<version.wildfly>" pom.xml | sed -E 's/^.*y>(8.*l)<.*$/\1/'`
 
+if [ ! -e metrics-core/target/rhq-metrics-core*.jar ]
+then
+    cd metrics-core
+    mvn install -DskipTests
+    cd ..
+fi
+
+
 if [ ! -e core-api/target/rhq-metrics-api*.jar ]
 then
     cd core-api
