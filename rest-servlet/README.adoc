@@ -46,6 +46,7 @@ Parameters are:
 
 * start: defaults to now-8h
 * end: defaults to now
+* buckets: number of intervals (buckets) to divide the time range. buckets=60 will return 60 equally spaced intervals for the time period between start and end time, having min, avg, and max calculated for each interval.
 
 === List metric names
 
