@@ -101,11 +101,11 @@ svg {
 }
 
 rect.high {
-    fill: #1794bc;
+    fill: #0099d3;
 }
 
 rect.low {
-    fill: #70c4e2;
+    fill: #ffeb90;
 }
 
 .barAvgLine {
