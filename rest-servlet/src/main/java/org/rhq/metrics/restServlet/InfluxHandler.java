@@ -1,6 +1,7 @@
 package org.rhq.metrics.restServlet;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -106,7 +107,7 @@ public class InfluxHandler {
                         obj.columns.add(alias);
                         obj.points = new ArrayList<>(1);
 
-                        metrics = applyMapping(iq.mapping,metrics,iq.bucketLengthSec, finalStart, finalEnd);
+                        metrics = applyMapping(iq,metrics,iq.bucketLengthSec, finalStart, finalEnd);
 
                         for (RawNumericMetric m : metrics) {
                             List<Number> data = new ArrayList<>();
@@ -142,15 +143,16 @@ public class InfluxHandler {
 
     /**
      * Apply a mapping function to the incoming data
-     * @param mapping
+     * @param query
      * @param in
      * @param bucketLengthSec
      * @param startTime
-     *@param endTime @return
+     * @param endTime @return
      */
-    private List<RawNumericMetric> applyMapping(String mapping, final List<RawNumericMetric> in, int bucketLengthSec,
+    private List<RawNumericMetric> applyMapping(InfluxQuery query, final List<RawNumericMetric> in, int bucketLengthSec,
                                                 long startTime, long endTime) {
 
+        String mapping = query.mapping;
         if (mapping==null || mapping.isEmpty() || mapping.equals("none")) {
             return  in;
         }
@@ -223,8 +225,21 @@ public class InfluxHandler {
                         retVal = (list.get(list.size() - 1).getAvg()) - (list.get(0).getAvg());
                     }
                     break;
+                case "derivative":
+                    if (!list.isEmpty()) {
+                        double y = (list.get(list.size() - 1).getAvg()) - (list.get(0).getAvg());
+                        double t = (list.get(list.size() -1).getTimestamp() - (list.get(0).getTimestamp())) / 1000; // sec
+                        retVal = y/t;
+                    }
+                    break;
+                case "median":
+                    retVal = quantil(list,50.0);
+                    break;
+                case "percentile":
+                    retVal = quantil(list,Double.valueOf(query.mappingArgs));
+                    break;
                 default:
-                    System.out.println("Mapping of " + mapping + " not yet supported");
+                    System.out.println("Mapping of " + query + " not yet supported");
 
                 }
                 RawNumericMetric outMetric = new RawNumericMetric(list.get(0).getId(),retVal,list.get(0).getTimestamp());
@@ -233,6 +248,30 @@ public class InfluxHandler {
         }
 
         return out;
+    }
+
+    /**
+     * Determine the quantil of the data
+     * @param in data for computation
+     * @param val a value between 0 and 100 to determine the <i>val</i>th quantil
+     * @return quantil from data
+     */
+    public double quantil (List<RawNumericMetric> in, double val) {
+        int n = in.size();
+        List<Double> bla = new ArrayList<>(n);
+        for (RawNumericMetric rnm : in) {
+            bla.add(rnm.getAvg());
+        }
+        Collections.sort(bla);
+
+        float x = (float) (n * (val/100));
+        if (Math.floor(x)==x) {
+            return 0.5*(bla.get((int) x-1) +  bla.get((int) (x)));
+        }
+        else {
+            return bla.get((int) Math.ceil(x-1));
+        }
+
     }
 
     /**
@@ -314,6 +353,7 @@ public class InfluxHandler {
         private String timeExpr;
         private String groupExpr;
         private String mapping;
+        private String mappingArgs = null;
         private long start;
         private long end;
         private int bucketLengthSec;
@@ -340,7 +380,14 @@ public class InfluxHandler {
                 bucketLengthSec = (int) parseTime(groupExpr) / 1000;
 
                 if (expr.contains("(")) {
-                    mapping = expr.substring(0,expr.indexOf("("));
+                    int parPos = expr.indexOf("(");
+                    mapping = expr.substring(0, parPos);
+                    if (expr.contains(",")) {
+                        String tmp = expr.substring(parPos +1);
+                        tmp = tmp.substring(tmp.indexOf(",")+1);
+                        tmp = tmp.substring(0,tmp.length()-1);
+                        mappingArgs = tmp.trim();
+                    }
                 } else {
                     mapping = expr;
                 }
