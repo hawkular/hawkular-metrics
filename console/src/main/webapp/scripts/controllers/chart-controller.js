@@ -9,7 +9,8 @@
  */
 angular.module('chartingApp')
     .controller('ChartController', ['$scope', '$rootScope', '$interval', '$log', 'metricDataService', function ($scope, $rootScope, $interval, $log, metricDataService) {
-        var updateLastTimeStampToNowPromise;
+        var updateLastTimeStampToNowPromise,
+        bucketizedDataPoints;
 
         $scope.chartParams = {
             searchId: "",
@@ -87,14 +88,23 @@ angular.module('chartingApp')
 
 
         $scope.showNextTimeRange = function () {
-            var nextTimeRange;
-            nextTimeRange = calculateNextTimeRange($scope.chartParams.startTimeStamp, $scope.chartParams.endTimeStamp);
+            var nextTimeRange = calculateNextTimeRange($scope.chartParams.startTimeStamp, $scope.chartParams.endTimeStamp);
 
             $scope.chartParams.startTimeStamp = nextTimeRange[0];
             $scope.chartParams.endTimeStamp = nextTimeRange[1];
             $scope.refreshChartData();
 
         };
+
+
+        $scope.hasNext = function() {
+            var nextTimeRange = calculateNextTimeRange($scope.chartParams.startTimeStamp, $scope.chartParams.endTimeStamp);
+            // unsophisticated test to see if there is a next; without actually querying.
+            return nextTimeRange[1].getTime() < moment().valueOf();
+        };
+
+
+
 
 
         $scope.toggleTable = function () {
@@ -115,7 +125,7 @@ angular.module('chartingApp')
             metricDataService.getMetricsForTimeRange($scope.chartParams.searchId, $scope.chartParams.startTimeStamp, $scope.chartParams.endTimeStamp)
                 .success(function (response) {
                     // we want to isolate the response from the data we are feeding to the chart
-                    var bucketizedDataPoints = formatBucketizedOutput(response);
+                    bucketizedDataPoints = formatBucketizedOutput(response);
 
                     if (bucketizedDataPoints.length !== 0) {
 
@@ -143,6 +153,56 @@ angular.module('chartingApp')
         };
 
         function formatBucketizedOutput(response) {
+            //  The schema is different for bucketized output
+            return $.map(response, function (point) {
+                return {
+                    timestamp: point.timestamp,
+                    date: new Date(point.timestamp),
+                    value: !angular.isNumber(point.value) ? 0 : point.value,
+                    avg: (point.empty) ? 0 : point.avg,
+                    min: !angular.isNumber(point.min) ? 0 : point.min,
+                    max: !angular.isNumber(point.max) ? 0 : point.max,
+                    empty: point.empty
+                };
+            });
+
+        }
+        $scope.overlayPreviousRangeData = function(){
+            $log.debug("OverlayPreviousRangeData") ;
+            var previousTimeRange = calculatePreviousTimeRange($scope.chartParams.startTimeStamp, $scope.chartParams.endTimeStamp);
+
+            metricDataService.getMetricsForTimeRange($scope.chartParams.searchId, previousTimeRange[0], previousTimeRange[1])
+                .success(function (response) {
+                    // we want to isolate the response from the data we are feeding to the chart
+                    var prevTimeRangeBucketizedDataPoints = formatPreviousBucketizedOutput(response);
+
+                    if (prevTimeRangeBucketizedDataPoints.length !== 0) {
+
+                        $log.debug("# Transformed Prev DataPoints: " + prevTimeRangeBucketizedDataPoints.length);
+
+                        // this is basically the DTO for the chart
+                        $scope.chartData = {
+                            id: $scope.chartParams.id,
+                            prevStartTimeStamp: previousTimeRange[0],
+                            prevEndTimeStamp: previousTimeRange[1],
+                            prevDataPoints: prevTimeRangeBucketizedDataPoints,
+                            dataPoints: bucketizedDataPoints
+                            //nvd3DataPoints: formatForNvD3(response),
+                            //rickshawDataPoints: formatForRickshaw(response)
+                        };
+
+                    } else {
+                        $log.warn('No Prev Range Data found for id: ' + $scope.chartParams.searchId);
+                        toastr.warn('No Prev Range Data found for id: ' + $scope.chartParams.searchId);
+                    }
+
+                }).error(function (response, status) {
+                    $log.error('Error loading Prev Range graph data: ' + response);
+                    toastr.error('Error loading Prev Range graph data', 'Status: ' + status);
+                });
+        };
+
+        function formatPreviousBucketizedOutput(response) {
             //  The schema is different for bucketized output
             return $.map(response, function (point) {
                 return {
