@@ -30,6 +30,7 @@
     <trove4j.version>3.0.3</trove4j.version>
 
     <version.wildfly>8.0.0.Final</version.wildfly>
+    <junit.version>4.8.2</junit.version>
   </properties>
 
   <organization>
