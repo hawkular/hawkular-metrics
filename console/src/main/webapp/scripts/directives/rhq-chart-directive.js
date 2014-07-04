@@ -14,6 +14,7 @@ angular.module('chartingApp')
         function link(scope, element, attributes) {
 
             var dataPoints,
+                previousRangeDataPoints,
                 chartHeight = +attributes.chartHeight || 250,
                 timeLabel = attributes.timeLabel || "Time",
                 dateLabel = attributes.dateLabel || "Date",
@@ -69,8 +70,8 @@ angular.module('chartingApp')
                 processedNewData,
                 processedPreviousRangeData ;
 
-
             dataPoints = attributes.data;
+            previousRangeDataPoints = attributes.previousRangeData;
 
 
             function getChartWidth() {
@@ -573,8 +574,6 @@ angular.module('chartingApp')
 
             }
 
-
-
             scope.$watch('data', function (newData) {
                 if (angular.isDefined(newData)) {
                     processedNewData = angular.fromJson(newData);
@@ -582,14 +581,13 @@ angular.module('chartingApp')
                 }
             }, true);
 
-
             scope.$watch('previousRangeData', function (newPreviousRangeValues) {
+                console.info("Previous Range data changed");
                 if (angular.isDefined(newPreviousRangeValues)) {
                     processedPreviousRangeData = angular.fromJson(newPreviousRangeValues);
                     return scope.render(processedNewData, processedPreviousRangeData);
                 }
             }, true);
-
 
             scope.$on("DateRangeChanged", function (event, extent) {
                 console.debug("Handling DateRangeChanged Fired Chart Directive: " + extent[0] + " --> " + extent[1]);
