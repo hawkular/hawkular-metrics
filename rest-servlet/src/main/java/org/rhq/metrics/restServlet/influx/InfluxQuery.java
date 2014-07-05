@@ -81,7 +81,10 @@ public class InfluxQuery {
      * @return Time in Milliseconds
      */
     private long parseTime(String timeExpr) {
+        timeExpr = timeExpr.trim();
+
         String tmp; // Skip over "time <"
+        // TODO we may be called twice with 'time > now() -x'
         if (timeExpr.startsWith("time")) {
             tmp = timeExpr.substring(7);
         } else {

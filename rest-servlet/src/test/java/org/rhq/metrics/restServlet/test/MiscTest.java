@@ -10,6 +10,7 @@ import org.rhq.metrics.restServlet.influx.InfluxHandler;
 import org.rhq.metrics.restServlet.influx.InfluxQuery;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Some testing ..
@@ -80,4 +81,16 @@ public class MiscTest {
 
     }
 
+    @Test
+    public void testInflux4() throws Exception {
+        String query = "select  mean(\"value\") as \"value_mean\" from \"snert.bytes_out\" where time > now() - 1h and  time > now() - 1h     group by time(5m)  order asc";
+
+        InfluxQuery iq = new InfluxQuery(query);
+
+        assertEquals("mean", iq.getMapping());
+        assertEquals("snert.bytes_out", iq.getMetric());
+        assertEquals("value_mean",iq.getAlias());
+        assertNotNull(iq.getEnd());
+
+    }
 }

@@ -15,7 +15,6 @@ public class AveragingMetricBatcher extends MetricBatcher {
 
     }
 
-    @Override
     protected List<SingleMetric> process(List<SingleMetric> toForward) {
         List<SingleMetric> ret = new ArrayList<>(1);
 

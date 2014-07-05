@@ -2,6 +2,8 @@ package org.rhq.metrics.rest;
 
 import static com.jayway.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.Matchers.emptyCollectionOf;
 import static org.hamcrest.Matchers.hasSize;
 
 import java.io.File;
@@ -198,6 +200,65 @@ public class BaseTest {
             .body("timestamp[0]", equalTo(now))
         .when()
            .get("/metrics/{id}");
+    }
+
+    @Test
+    public void testGetValueUnknownId() throws Exception {
+
+        String id = "- fooDoesNotExist- ";
+        long now = System.currentTimeMillis();
+
+        given()
+            .pathParam("id", id)
+            .header(acceptJson)
+            .queryParam("start", now - 100)
+            .queryParam("end", now + 100)
+        .expect()
+            .statusCode(404)
+            .log().status()
+        .when()
+           .get("/metrics/{id}");
+    }
+
+    @Test
+    public void testListIds() throws Exception {
+
+        String id = "fooListIds";
+        long now = System.currentTimeMillis();
+        Map<String,Object> data = createDataPoint(id, now, 42d);
+
+        given()
+            .body(data)
+            .pathParam("id", id)
+            .contentType(ContentType.JSON)
+        .expect()
+            .statusCode(200)
+        .when()
+            .post("/metrics/{id}");
+
+        String id2 = "fooListIds2";
+        Map<String,Object> data2 = createDataPoint(id2, now, 42d);
+
+        given()
+            .body(data2)
+            .pathParam("id", id2)
+            .contentType(ContentType.JSON)
+        .expect()
+            .statusCode(200)
+        .when()
+            .post("/metrics/{id}");
+
+
+        given()
+            .header(acceptJson)
+        .expect()
+            .statusCode(200)
+            .body(not(emptyCollectionOf(String.class)))
+        .log().everything()
+        .when()
+            .get("/metrics");
+
+
     }
 
     @Test
@@ -508,6 +569,58 @@ public class BaseTest {
                 break;
             }
         }
+    }
+
+    @Test
+    public void testDeleteMetric() throws Exception {
+
+        String id = "fooDelete";
+        long now = System.currentTimeMillis();
+        Map<String,Object> data = createDataPoint(id, now, 42d);
+
+        given()
+            .body(data)
+            .pathParam("id", id)
+            .contentType(ContentType.JSON)
+        .expect()
+            .statusCode(200)
+        .when()
+            .post("/metrics/{id}");
+
+
+        given()
+            .pathParam("id", id)
+            .header(acceptJson)
+            .queryParam("start", now - 100)
+            .queryParam("end", now + 100)
+        .expect()
+            .statusCode(200)
+            .log().ifError()
+            .body("timestamp[0]", equalTo(now))
+        .when()
+           .get("/metrics/{id}");
+
+        given()
+            .pathParam("id", id)
+            .header(acceptJson)
+        .expect()
+            .statusCode(200)
+            .log().ifError()
+        .when()
+            .delete("/metrics/{id}");
+
+        given()
+            .pathParam("id", id)
+            .header(acceptJson)
+            .queryParam("start", now - 100)
+            .queryParam("end", now + 100)
+        .expect()
+            .statusCode(404)
+        .when()
+           .get("/metrics/{id}");
+
+
+
     }
 
     private void assertDouble(Map<String, Object> item,double refVal, double refVal2) {

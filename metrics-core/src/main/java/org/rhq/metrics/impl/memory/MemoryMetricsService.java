@@ -155,20 +155,25 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public boolean idExists(String id) {
-        return storage.containsKey(id);
+    public ListenableFuture<Boolean> idExists(String id) {
+        Boolean containsKey = storage.containsKey(id);
+        return Futures.immediateFuture(containsKey);
     }
 
     @Override
-    public List<String> listMetrics() {
+    public ListenableFuture<List<String>> listMetrics() {
         List<String> metrics = new ArrayList<>(storage.keySet().size());
         metrics.addAll(storage.keySet());
 
-        return metrics;
+        ListenableFuture<List<String>> future = Futures.immediateFuture(metrics);
+        return Futures.transform(future, new NoOpStringListMapper(), metricsTasks);
     }
 
-
-
+    @Override
+    public ListenableFuture<Boolean> deleteMetric(String id) {
+        storage.remove(id);
+        return Futures.immediateFuture(true);
+    }
 
     private class NoOpDataMapper implements Function<List<RawNumericMetric>, List<RawNumericMetric>> {
         @Override
@@ -179,6 +184,12 @@ public class MemoryMetricsService implements MetricsService {
     private class NoOpCounterMapper implements Function<List<Counter>, List<Counter>> {
         @Override
         public List<Counter> apply(List<Counter> input) {
+            return input;
+        }
+    }
+    private class NoOpStringListMapper implements Function<List<String >, List<String>> {
+        @Override
+        public List<String> apply(List<String> input) {
             return input;
         }
     }
