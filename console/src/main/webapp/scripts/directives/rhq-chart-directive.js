@@ -65,7 +65,9 @@ angular.module('chartingApp')
                 highBound,
                 avg,
                 peak,
-                min;
+                min,
+                processedNewData,
+                processedPreviousRangeData ;
 
 
             dataPoints = attributes.data;
@@ -543,12 +545,51 @@ angular.module('chartingApp')
 
             }
 
-            scope.$watch('data', function (newValues) {
-                if (angular.isDefined(newValues)) {
-                    var processedNewValues = angular.fromJson(newValues);
-                    return scope.render(processedNewValues);
+            function createPreviousRangeOverlay(prevRangeData){
+                var showBarAvgTrendline = true,
+                    prevRangeLine = d3.svg.line()
+                        .interpolate("linear")
+                        .defined(function (d) {
+                            return !d.empty;
+                        })
+                        .x(function (d) {
+                            return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                        })
+                        .y(function (d) {
+                            if (showBarAvgTrendline) {
+                                return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
+                            }
+                            else {
+                                return NaN;
+                            }
+                        });
+
+                // Bar avg line
+                svg.append("path")
+                    .datum(prevRangeData)
+                    .attr("class", "prevRangeAvgLine")
+                    .style("stroke-dasharray", ("9,3"))
+                    .attr("d", prevRangeLine);
+
+            }
+
+
+
+            scope.$watch('data', function (newData) {
+                if (angular.isDefined(newData)) {
+                    processedNewData = angular.fromJson(newData);
+                    return scope.render(processedNewData, processedPreviousRangeData);
                 }
             }, true);
+
+
+            scope.$watch('previousRangeData', function (newPreviousRangeValues) {
+                if (angular.isDefined(newPreviousRangeValues)) {
+                    processedPreviousRangeData = angular.fromJson(newPreviousRangeValues);
+                    return scope.render(processedNewData, processedPreviousRangeData);
+                }
+            }, true);
+
 
             scope.$on("DateRangeChanged", function (event, extent) {
                 console.debug("Handling DateRangeChanged Fired Chart Directive: " + extent[0] + " --> " + extent[1]);
@@ -558,11 +599,11 @@ angular.module('chartingApp')
                         dataSubset.push(value);
                     }
                 });
-                scope.render(dataSubset);
+                scope.render(dataSubset,null);
             });
 
 
-            scope.render = function (dataPoints) {
+            scope.render = function (dataPoints, previousRangeDataPoints) {
                 if (angular.isDefined(dataPoints)) {
                     oneTimeChartSetup();
                     determineScale(dataPoints);
@@ -570,6 +611,9 @@ angular.module('chartingApp')
                     createYAxisGridLines();
                     createXAxisBrush();
                     createStackedBars(lowBound, highBound);
+                    if(angular.isDefined(previousRangeDataPoints)){
+                        createPreviousRangeOverlay();
+                    }
                     createXandYAxes();
                     createAvgLines();
                 }
@@ -582,6 +626,7 @@ angular.module('chartingApp')
             replace: true,
             scope: {
                 data: '@',
+                previousRangeData: '@',
                 chartHeight: '@',
                 yAxisUnits: '@',
                 buttonbarDatetimeFormat: '@',

@@ -12,7 +12,7 @@ module.exports = function (grunt) {
     // Project settings
     rhqMetrics: {
       // configurable paths
-      app: require('./bower.json').appPath || '',
+      app: './',
       dist: 'dist'
     },
 
@@ -30,7 +30,7 @@ module.exports = function (grunt) {
         tasks: ['newer:jshint:test', 'karma']
       },
       styles: {
-        files: ['<%= rhqMetrics.app %>/styles/{,*/}*.css'],
+        files: ['<%= rhqMetrics.app %>/css/{,*/}*.css'],
         tasks: ['newer:copy:styles', 'autoprefixer']
       },
       gruntfile: {
@@ -42,7 +42,7 @@ module.exports = function (grunt) {
         },
         files: [
           '<%= rhqMetrics.app %>/{,*/}*.html',
-          '.tmp/styles/{,*/}*.css',
+          '.tmp/css/{,*/}*.css',
           '<%= rhqMetrics.app %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}'
         ]
       }
@@ -56,36 +56,9 @@ module.exports = function (grunt) {
         hostname: 'localhost',
         livereload: 35729
       },
-        proxies: [
-            {
-                context: '/rhq-metrics',
-                host: 'localhost',
-                port: 8080,
-                https: false,
-                changeOrigin: false
-            }
-        ],
+
       livereload: {
           options: {
-              middleware: function (connect, options) {
-                  if (!Array.isArray(options.base)) {
-                      options.base = [options.base];
-                  }
-
-                  // Setup the proxy
-                  var middlewares = [require('grunt-connect-proxy/lib/utils').proxyRequest];
-
-                  // Serve static files.
-                  options.base.forEach(function (base) {
-                      middlewares.push(connect.static(base));
-                  });
-
-                  // Make directory browse-able.
-                  var directory = options.directory || options.base[options.base.length - 1];
-                  middlewares.push(connect.directory(directory));
-
-                  return middlewares;
-              },
               open: true,
               base: [
                   '.tmp',
@@ -151,9 +124,9 @@ module.exports = function (grunt) {
       dist: {
         files: [{
           expand: true,
-          cwd: '.tmp/styles/',
+          cwd: '.tmp/css/',
           src: '{,*/}*.css',
-          dest: '.tmp/styles/'
+          dest: '.tmp/css/'
         }]
       }
     },
@@ -168,98 +141,22 @@ module.exports = function (grunt) {
 
 
 
-
-
     // Renames files for browser caching purposes
     rev: {
       dist: {
         files: {
           src: [
             '<%= rhqMetrics.dist %>/scripts/{,*/}*.js',
-            '<%= rhqMetrics.dist %>/styles/{,*/}*.css',
+            '<%= rhqMetrics.dist %>/css/{,*/}*.css',
             '<%= rhqMetrics.dist %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}',
-            '<%= rhqMetrics.dist %>/styles/fonts/*'
+            '<%= rhqMetrics.dist %>/css/fonts/*'
           ]
         }
       }
     },
 
-    // Reads HTML for usemin blocks to enable smart builds that automatically
-    // concat, minify and revision files. Creates configurations in memory so
-    // additional tasks can operate on them
-    useminPrepare: {
-      html: '<%= rhqMetrics.app %>/index.html',
-      options: {
-        dest: '<%= rhqMetrics.dist %>'
-      }
-    },
 
-    // Performs rewrites based on rev and the useminPrepare configuration
-    usemin: {
-      html: ['<%= rhqMetrics.dist %>/{,*/}*.html'],
-      css: ['<%= rhqMetrics.dist %>/styles/{,*/}*.css'],
-      options: {
-        assetsDirs: ['<%= rhqMetrics.dist %>']
-      }
-    },
 
-    // The following *-min tasks produce minified files in the dist folder
-    imagemin: {
-      dist: {
-        files: [{
-          expand: true,
-          cwd: '<%= rhqMetrics.app %>/images',
-          src: '{,*/}*.{png,jpg,jpeg,gif}',
-          dest: '<%= rhqMetrics.dist %>/images'
-        }]
-      }
-    },
-    svgmin: {
-      dist: {
-        files: [{
-          expand: true,
-          cwd: '<%= rhqMetrics.app %>/images',
-          src: '{,*/}*.svg',
-          dest: '<%= rhqMetrics.dist %>/images'
-        }]
-      }
-    },
-    htmlmin: {
-      dist: {
-        options: {
-          collapseWhitespace: true,
-          collapseBooleanAttributes: true,
-          removeCommentsFromCDATA: true,
-          removeOptionalTags: true
-        },
-        files: [{
-          expand: true,
-          cwd: '<%= rhqMetrics.dist %>',
-          src: ['*.html', 'views/{,*/}*.html'],
-          dest: '<%= rhqMetrics.dist %>'
-        }]
-      }
-    },
-
-    // Allow the use of non-minsafe AngularJS files. Automatically makes it
-    // minsafe compatible so Uglify does not destroy the ng references
-    ngmin: {
-      dist: {
-        files: [{
-          expand: true,
-          cwd: '.tmp/concat/scripts',
-          src: '*.js',
-          dest: '.tmp/concat/scripts'
-        }]
-      }
-    },
-
-    // Replace Google CDN references
-    cdnify: {
-      dist: {
-        html: ['<%= rhqMetrics.dist %>/*.html']
-      }
-    },
 
     // Copies remaining files to places other tasks can use
     copy: {
@@ -287,8 +184,8 @@ module.exports = function (grunt) {
       },
       styles: {
         expand: true,
-        cwd: '<%= rhqMetrics.app %>/styles',
-        dest: '.tmp/styles/',
+        cwd: '<%= rhqMetrics.app %>/css',
+        dest: '.tmp/css/',
         src: '{,*/}*.css'
       }
     },
@@ -308,31 +205,7 @@ module.exports = function (grunt) {
       ]
     },
 
-    // By default, your `index.html`'s <!-- Usemin block --> will take care of
-    // minification. These next options are pre-configured if you do not wish
-    // to use the Usemin blocks.
-    // cssmin: {
-    //   dist: {
-    //     files: {
-    //       '<%= rhqMetrics.dist %>/styles/main.css': [
-    //         '.tmp/styles/{,*/}*.css',
-    //         '<%= rhqMetrics.app %>/styles/{,*/}*.css'
-    //       ]
-    //     }
-    //   }
-    // },
-    // uglify: {
-    //   dist: {
-    //     files: {
-    //       '<%= rhqMetrics.dist %>/scripts/scripts.js': [
-    //         '<%= rhqMetrics.dist %>/scripts/scripts.js'
-    //       ]
-    //     }
-    //   }
-    // },
-    // concat: {
-    //   dist: {}
-    // },
+
 
     // Test settings
     karma: {
@@ -354,7 +227,6 @@ module.exports = function (grunt) {
       'bower-install',
       'concurrent:server',
       'autoprefixer',
-        'configureProxies:server',
       'connect:livereload',
       'watch'
     ]);
@@ -379,19 +251,12 @@ module.exports = function (grunt) {
     'useminPrepare',
     'concurrent:dist',
     'autoprefixer',
-    'concat',
-    'ngmin',
     'copy:dist',
-    'cdnify',
-    'cssmin',
-    'uglify',
-    'rev',
-    'usemin',
-    'htmlmin'
+    'rev'
   ]);
 
   grunt.registerTask('default', [
-    //'newer:jshint',
+    'newer:jshint',
     'test',
     'build'
   ]);

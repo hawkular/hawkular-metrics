@@ -3,7 +3,10 @@
 ## What does it do?
 The UI provides an easy UI way of :
 1. Inserting/creating  data in various ways
+![Inserts](rhq-metrics-console.png "Inserts")
+
 2. Viewing the data in the database both visually via a graph and a grid table
+![Charts](rhq-chart.png "Charts")
 
 
 ## Purpose
@@ -27,7 +30,7 @@ Grunt is a build tool for javscript webapps just like maven is for java. The bui
 (if you get an EACESS permission errors you may need to use sudo to the do the install)
 3. Install npm packages for tooling: **'npm install'**
 4. Optional: Install [Bower](http://bower.io) packages for UI: **'bower install'**
-5. Start the [Grunt](http://gruntjs.com) Server: **'grunt serve --force'**
+5. Start the [Grunt](http://gruntjs.com) Server: **'grunt serve'**
 6. Browse [http://127.0.0.1:9000/](http://127.0.0.1:9000/) and explore...
 
 Grunt will automatically launch a url for you in your browser and will reload any changes in real time to the browser. Feel Free to play around.

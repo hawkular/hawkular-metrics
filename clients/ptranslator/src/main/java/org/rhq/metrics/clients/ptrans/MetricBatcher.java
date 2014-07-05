@@ -19,14 +19,21 @@ import io.netty.util.AttributeKey;
 public class MetricBatcher extends MessageToMessageDecoder<SingleMetric> {
 
     private static final int THRESHOLD = 5;
+    private int threshold;
     private String subKey;
 
     public MetricBatcher(String subKey) {
         this.subKey = subKey;
+        this.threshold = THRESHOLD;
         cacheKey = AttributeKey.valueOf("cachedMetrics"+subKey);
     }
 
     AttributeKey<List<SingleMetric>> cacheKey;
+
+    public MetricBatcher(String subKey, int threshold) {
+        this(subKey);
+        this.threshold = threshold;
+    }
 
     @Override
     protected void decode(ChannelHandlerContext ctx, SingleMetric msg, List<Object> out) throws Exception {
@@ -37,7 +44,7 @@ public class MetricBatcher extends MessageToMessageDecoder<SingleMetric> {
             ctx.attr(cacheKey).set(cached);
         }
 
-        if (cached.size()  >= THRESHOLD) {
+        if (cached.size()  >= threshold) {
             List<SingleMetric> toForward = new ArrayList<>(6);
             toForward.addAll(cached);
             toForward.add(msg);

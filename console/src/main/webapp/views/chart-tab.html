@@ -9,12 +9,15 @@
                     <label class="col-sm-2 control-label">ID</label>
 
                     <div class="col-sm-5">
-                        <input type="text" class="form-control" name="searchId" ng-model="restParams.searchId"
+                        <input type="text" class="form-control" name="searchId" ng-model="chartParams.searchId"
                                placeholder="Enter Id..." required ng-minlength="1">
-                        <span class="error-message" ng-show="chartForm.searchId.$dirty && chartForm.searchId.$error.required"> * Required.</span>
-                        <span class="help-block">Example: 100, apache3.cpu  </span>
+                        <span class="error-message"
+                              ng-show="chartForm.searchId.$dirty && chartForm.searchId.$error.required"> * Required.</span>
+                        <span class="help-block">Example: 100, apache3.cpu1  </span>
                     </div>
                 </div>
+
+
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label">Start</label>
@@ -25,12 +28,12 @@
                                data-target="#" href="#">
                                 <div class="input-group">
                                     <input type="text" class="form-control"
-                                           data-ng-model="restParams.startTimeStamp">
+                                           data-ng-model="chartParams.startTimeStamp">
                                     <span class="input-group-addon"><i class="glyphicon glyphicon-calendar"></i></span>
                                 </div>
                             </a>
                             <ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
-                                <datetimepicker data-ng-model="restParams.startTimeStamp"
+                                <datetimepicker data-ng-model="chartParams.startTimeStamp"
                                                 data-datetimepicker-config="{ dropdownSelector: '#dropdownStart' }"/>
                             </ul>
                         </div>
@@ -48,13 +51,13 @@
                                data-target="#" href="#">
                                 <div class="input-group">
                                     <input type="text" class="form-control"
-                                           data-ng-model="restParams.endTimeStamp">
+                                           data-ng-model="chartParams.endTimeStamp">
                                         <span class="input-group-addon"><i
                                                 class="glyphicon glyphicon-calendar"></i></span>
                                 </div>
                             </a>
                             <ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
-                                <datetimepicker data-ng-model="restParams.endTimeStamp"
+                                <datetimepicker data-ng-model="chartParams.endTimeStamp"
                                                 data-datetimepicker-config="{ dropdownSelector: '#dropdownEnd' }"/>
                             </ul>
                         </div>
@@ -63,8 +66,30 @@
 
 
                 <div class="form-group">
+                    <label class="col-sm-2 control-label">Time Period:</label>
+
+                    <div class="col-sm-6">
+                        <input type="text" ng-model="chartParams.dateRange" readonly disbabled /></p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-2 control-label"></label>
+
+                    <div class="col-sm-6">
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox" ng-model="chartParams.updateEndTimeStampToNow"
+                                       ng-click="autoRefresh()"> Refresh (every 30s)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="form-group">
                     <div class="col-sm-offset-2 col-sm-10">
-                        <button type="submit" class="btn btn-primary" ng-disabled="!chartForm.$valid">Refresh </button>
+                        <button type="submit" class="btn btn-primary" ng-disabled="!chartForm.$valid">Refresh</button>
                     </div>
                 </div>
 
@@ -72,11 +97,13 @@
             </form>
         </div>
 
+        <relative-time-range-button-bar start-time-stamp="chartParams.startTimestamp" end-time-stamp="chartParms.endTimeStamp"></relative-time-range-button-bar>
+
         <div id="stackedBarChart" style="height:270px">
             <rhqm-stacked-bar-chart
                     data="{{chartData.dataPoints}}"
                     yaxis-units=""
-                    chart-title="{{'Metrics Id: '+restParams.searchId}}"
+                    chart-title="{{'Metrics Id: '+chartParams.searchId}}"
                     chart-height="250"
                     chart-hover-date-format="%m/%d/%y"
                     chart-hover-time-format="%I:%M:%S %p"
@@ -94,8 +121,14 @@
                     avg-label="Avg"></rhqm-stacked-bar-chart>
         </div>
 
+        <button class="btn btn-sm" ng-click="showPreviousTimeRange()" style="margin-left:90px;" ng-show="chartData.dataPoints.length > 0">&lt; Prev.</button>
+        <button class="btn btn-sm" style="float:right;margin-right: 90px;" ng-click="showNextTimeRange()" ng-show="chartData.dataPoints.length > 0">Next &gt;</button>
+        <br/>
+        <br/>
 
-        <div ng-show="chartData.dataPoints.length > 0">
+        <button class="btn btn-sm" ng-click="toggleTable()" ng-show="chartData.dataPoints.length > 0">{{chartParams.tableButtonLabel}}</button>
+
+        <div collapse="chartParams.collapseTable" ng-show="chartData.dataPoints.length > 0">
             <h4>Data Points: {{chartData.dataPoints.length}}</h4>
             <table class="table table-hover" style="width:500px;">
                 <thead>
@@ -109,9 +142,9 @@
                 <tbody>
                 <tr ng-repeat="chartPoint in chartData.dataPoints | orderBy:timestamp:true">
                     <td>{{chartPoint.date | date: 'medium'}}</td>
-                    <td style="float:right;">{{chartPoint.avg|number:2}}</td>
-                    <td style="float:right;">{{chartPoint.min|number:2}}</td>
-                    <td style="float:right;">{{chartPoint.max|number:2}}</td>
+                    <td >{{chartPoint.avg|number:2}}</td>
+                    <td >{{chartPoint.min|number:2}}</td>
+                    <td >{{chartPoint.max|number:2}}</td>
                 </tr>
 
                 </tbody>
