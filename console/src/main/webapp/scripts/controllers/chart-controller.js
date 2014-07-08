@@ -9,8 +9,8 @@
  */
 angular.module('chartingApp')
     .controller('ChartController', ['$scope', '$rootScope', '$interval', '$log', 'metricDataService', function ($scope, $rootScope, $interval, $log, metricDataService) {
-        var updateLastTimeStampToNowPromise,
-        bucketizedDataPoints;
+        var updateLastTimeStampToNowPromise;
+        $rootScope.bucketizedDataPoints = [];
 
         $scope.chartParams = {
             searchId: "",
@@ -97,14 +97,11 @@ angular.module('chartingApp')
         };
 
 
-        $scope.hasNext = function() {
+        $scope.hasNext = function () {
             var nextTimeRange = calculateNextTimeRange($scope.chartParams.startTimeStamp, $scope.chartParams.endTimeStamp);
             // unsophisticated test to see if there is a next; without actually querying.
             return nextTimeRange[1].getTime() < moment().valueOf();
         };
-
-
-
 
 
         $scope.toggleTable = function () {
@@ -125,18 +122,18 @@ angular.module('chartingApp')
             metricDataService.getMetricsForTimeRange($scope.chartParams.searchId, $scope.chartParams.startTimeStamp, $scope.chartParams.endTimeStamp)
                 .success(function (response) {
                     // we want to isolate the response from the data we are feeding to the chart
-                    bucketizedDataPoints = formatBucketizedOutput(response);
+                    $rootScope.bucketizedDataPoints = formatBucketizedOutput(response);
 
-                    if (bucketizedDataPoints.length !== 0) {
+                    if ($rootScope.bucketizedDataPoints.length !== 0) {
 
-                        $log.debug("# Transformed DataPoints: " + bucketizedDataPoints.length);
+                        $log.debug("# Transformed DataPoints: " + $rootScope.bucketizedDataPoints.length);
 
                         // this is basically the DTO for the chart
                         $scope.chartData = {
                             id: $scope.chartParams.id,
                             startTimeStamp: $scope.chartParams.startTimeStamp,
                             endTimeStamp: $scope.chartParams.endTimeStamp,
-                            dataPoints: bucketizedDataPoints
+                            dataPoints: $rootScope.bucketizedDataPoints
                             //nvd3DataPoints: formatForNvD3(response),
                             //rickshawDataPoints: formatForRickshaw(response)
                         };
@@ -167,8 +164,9 @@ angular.module('chartingApp')
             });
 
         }
-        $scope.overlayPreviousRangeData = function(){
-            $log.debug("OverlayPreviousRangeData") ;
+
+        $scope.overlayPreviousRangeData = function () {
+            $log.debug("pushed Overlay Previous RangeData");
             var previousTimeRange = calculatePreviousTimeRange($scope.chartParams.startTimeStamp, $scope.chartParams.endTimeStamp);
 
             metricDataService.getMetricsForTimeRange($scope.chartParams.searchId, previousTimeRange[0], previousTimeRange[1])
@@ -176,7 +174,7 @@ angular.module('chartingApp')
                     // we want to isolate the response from the data we are feeding to the chart
                     var prevTimeRangeBucketizedDataPoints = formatPreviousBucketizedOutput(response);
 
-                    if (prevTimeRangeBucketizedDataPoints.length !== 0) {
+                    if (!angular.isUndefined(prevTimeRangeBucketizedDataPoints) && prevTimeRangeBucketizedDataPoints.length !== 0) {
 
                         $log.debug("# Transformed Prev DataPoints: " + prevTimeRangeBucketizedDataPoints.length);
 
@@ -186,7 +184,7 @@ angular.module('chartingApp')
                             prevStartTimeStamp: previousTimeRange[0],
                             prevEndTimeStamp: previousTimeRange[1],
                             prevDataPoints: prevTimeRangeBucketizedDataPoints,
-                            dataPoints: bucketizedDataPoints
+                            dataPoints: $rootScope.bucketizedDataPoints
                             //nvd3DataPoints: formatForNvD3(response),
                             //rickshawDataPoints: formatForRickshaw(response)
                         };
@@ -204,10 +202,10 @@ angular.module('chartingApp')
 
         function formatPreviousBucketizedOutput(response) {
             //  The schema is different for bucketized output
-            return $.map(response, function (point) {
+            var mappedNew = $.map(response, function (point, i) {
                 return {
-                    timestamp: point.timestamp,
-                    date: new Date(point.timestamp),
+                    timestamp: $rootScope.bucketizedDataPoints[i].timestamp,
+                    originalTimestamp: point.timestamp,
                     value: !angular.isNumber(point.value) ? 0 : point.value,
                     avg: (point.empty) ? 0 : point.avg,
                     min: !angular.isNumber(point.min) ? 0 : point.min,
@@ -215,7 +213,9 @@ angular.module('chartingApp')
                     empty: point.empty
                 };
             });
-
+            console.warn("Overlay Data");
+            console.dir(mappedNew);
+            return mappedNew;
         }
 
 //        function formatForNvD3(dataPoints) {

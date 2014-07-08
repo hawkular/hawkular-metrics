@@ -534,12 +534,14 @@ angular.module('chartingApp')
                 }
 
                 function brushEnd() {
-                    var extent = brush.extent();
-                    var startTime = Math.round(extent[0].getTime());
-                    var endTime = Math.round(extent[1].getTime());
+                    var extent = brush.extent(),
+                    startTime = Math.round(extent[0].getTime()),
+                    endTime = Math.round(extent[1].getTime()),
+                    dragSelectionDelta = endTime - startTime >= 60000;
+
                     svg.classed("selecting", !d3.event.target.empty());
                     // ignore range selections less than 1 minute
-                    if (endTime - startTime >= 60000) {
+                    if (dragSelectionDelta) {
                         scope.$emit('DateRangeChanged', extent);
                     }
                 }
@@ -547,6 +549,7 @@ angular.module('chartingApp')
             }
 
             function createPreviousRangeOverlay(prevRangeData){
+                console.info("Running PreviousRangeOverlay");
                 var showBarAvgTrendline = true,
                     prevRangeLine = d3.svg.line()
                         .interpolate("linear")
@@ -585,7 +588,8 @@ angular.module('chartingApp')
                 console.info("Previous Range data changed");
                 if (angular.isDefined(newPreviousRangeValues)) {
                     processedPreviousRangeData = angular.fromJson(newPreviousRangeValues);
-                    return scope.render(processedNewData, processedPreviousRangeData);
+                    console.info("ReRender with Prev Range data");
+                    scope.render(processedNewData, processedPreviousRangeData);
                 }
             }, true);
 
@@ -602,6 +606,7 @@ angular.module('chartingApp')
 
 
             scope.render = function (dataPoints, previousRangeDataPoints) {
+                console.info("Render");
                 if (angular.isDefined(dataPoints)) {
                     oneTimeChartSetup();
                     determineScale(dataPoints);
@@ -610,7 +615,8 @@ angular.module('chartingApp')
                     createXAxisBrush();
                     createStackedBars(lowBound, highBound);
                     if(angular.isDefined(previousRangeDataPoints)){
-                        createPreviousRangeOverlay();
+                        console.info("A1");
+                        createPreviousRangeOverlay(previousRangeDataPoints);
                     }
                     createXandYAxes();
                     createAvgLines();
