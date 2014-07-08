@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('chartingApp')
+angular.module('rhqm.services')
     .factory('metricDataService', ['$http', '$log', 'BASE_URL', function ($http, $log, BASE_URL) {
 
         return {
