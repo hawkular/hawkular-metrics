@@ -10,7 +10,7 @@
 angular.module('chartingApp')
     .controller('ChartController', ['$scope', '$rootScope', '$interval', '$log', 'metricDataService', function ($scope, $rootScope, $interval, $log, metricDataService) {
         var updateLastTimeStampToNowPromise;
-        $rootScope.bucketizedDataPoints = [];
+        $rootScope.bucketedDataPoints = [];
 
         $scope.chartParams = {
             searchId: "",
@@ -122,18 +122,18 @@ angular.module('chartingApp')
             metricDataService.getMetricsForTimeRange($scope.chartParams.searchId, $scope.chartParams.startTimeStamp, $scope.chartParams.endTimeStamp)
                 .success(function (response) {
                     // we want to isolate the response from the data we are feeding to the chart
-                    $rootScope.bucketizedDataPoints = formatBucketizedOutput(response);
+                    $rootScope.bucketedDataPoints = formatBucketizedOutput(response);
 
-                    if ($rootScope.bucketizedDataPoints.length !== 0) {
+                    if ($rootScope.bucketedDataPoints.length !== 0) {
 
-                        $log.debug("# Transformed DataPoints: " + $rootScope.bucketizedDataPoints.length);
+                        $log.debug("# Transformed DataPoints: " + $rootScope.bucketedDataPoints.length);
 
                         // this is basically the DTO for the chart
                         $scope.chartData = {
                             id: $scope.chartParams.id,
                             startTimeStamp: $scope.chartParams.startTimeStamp,
                             endTimeStamp: $scope.chartParams.endTimeStamp,
-                            dataPoints: $rootScope.bucketizedDataPoints
+                            dataPoints: $rootScope.bucketedDataPoints
                             //nvd3DataPoints: formatForNvD3(response),
                             //rickshawDataPoints: formatForRickshaw(response)
                         };
@@ -184,7 +184,7 @@ angular.module('chartingApp')
                             prevStartTimeStamp: previousTimeRange[0],
                             prevEndTimeStamp: previousTimeRange[1],
                             prevDataPoints: prevTimeRangeBucketizedDataPoints,
-                            dataPoints: $rootScope.bucketizedDataPoints
+                            dataPoints: $rootScope.bucketedDataPoints
                             //nvd3DataPoints: formatForNvD3(response),
                             //rickshawDataPoints: formatForRickshaw(response)
                         };
@@ -204,7 +204,7 @@ angular.module('chartingApp')
             //  The schema is different for bucketized output
             var mappedNew = $.map(response, function (point, i) {
                 return {
-                    timestamp: $rootScope.bucketizedDataPoints[i].timestamp,
+                    timestamp: $rootScope.bucketedDataPoints[i].timestamp,
                     originalTimestamp: point.timestamp,
                     value: !angular.isNumber(point.value) ? 0 : point.value,
                     avg: (point.empty) ? 0 : point.avg,
