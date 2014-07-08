@@ -7,7 +7,7 @@
  * @description A d3 stacked bar chart representing time intervals.
  *
  */
-angular.module('chartingApp')
+angular.module('rhqm.directives')
     .directive('rhqmStackedBarChart', function () {
 
 
