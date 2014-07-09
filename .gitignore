@@ -2,8 +2,11 @@ target/
 .idea/
 *.iml
 *.swp
+*.patch
 .metadata/
 *.ipr
 .DS_Store/
 .settings
 .idea/
+*node_modules/
+*.tmp/
