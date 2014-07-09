@@ -17,8 +17,6 @@
                     </div>
                 </div>
 
-
-
                 <div class="form-group">
                     <label class="col-sm-2 control-label">Start</label>
 
@@ -102,27 +100,14 @@
             <rhqm-stacked-bar-chart
                     data="{{chartData.dataPoints}}"
                     data="{{chartData.prevDataPoints}}"
-                    yaxis-units=""
                     chart-title="{{'Metrics Id: '+chartParams.searchId}}"
-                    chart-height="250"
-                    chart-hover-date-format="%m/%d/%y"
-                    chart-hover-time-format="%I:%M:%S %p"
-                    time-label="Time"
-                    date-label="Date"
-                    buttonbar-datetime-format="MM/DD/YYYY h:mm a"
-                    single-value-label="Raw Value"
-                    no-data-label="No Data"
-                    aggregate-label="Aggregate"
-                    start-label="Start"
-                    end-label="End"
-                    duration-label="Duration"
-                    min-label="Min"
-                    max-label="Max"
-                    avg-label="Avg"></rhqm-stacked-bar-chart>
+                    chart-height="250"></rhqm-stacked-bar-chart>
         </div>
 
+        <div>
         <button class="btn btn-sm" ng-click="showPreviousTimeRange()" style="margin-left:90px;" ng-show="chartData.dataPoints.length > 0">&lt;&lt; Prev.</button>
         <button class="btn btn-sm" style="float:right;margin-right: 90px;" ng-click="showNextTimeRange()" ng-show="chartData.dataPoints.length > 0" ng-disabled="!hasNext();">Next &gt;&gt;</button>
+        </div>
         <br/>
         <br/>
 
