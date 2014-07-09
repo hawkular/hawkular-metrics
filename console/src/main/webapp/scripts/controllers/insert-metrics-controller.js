@@ -41,7 +41,7 @@ angular.module('chartingApp')
         $scope.rangeDurations = [1, 2, 5, 7];
 
         $scope.rangeInsertData = {
-            timeStamp: moment().valueOf(),
+            timeStamp: _.now(),
             id: "",
             selectedTimeInterval: 5,
             jsonPayload: "",
@@ -53,7 +53,7 @@ angular.module('chartingApp')
 
 
         $scope.streamingInsertData = {
-            timeStamp: moment().valueOf(),
+            timeStamp: _.now(),
             id: "",
             jsonPayload: "",
             count: 1,
@@ -92,32 +92,30 @@ angular.module('chartingApp')
 
 
         $scope.rangeInsert = function () {
-            var jsonPayload,
-                currentTimeMoment = moment();
+            var jsonPayload;
 
-            $log.debug("range insert for: " + $scope.rangeInsertData.id);
-
-            jsonPayload = calculateRangeTimestamps($scope.rangeInsertData.selectedDuration,
-                $scope.rangeInsertData.selectedIntervalInMinutes, currentTimeMoment);
+            jsonPayload = calculateRangeTimestamps($scope.rangeInsertData.id, $scope.rangeInsertData.selectedDuration,
+                $scope.rangeInsertData.selectedIntervalInMinutes, $scope.rangeInsertData.startNumber,
+                $scope.rangeInsertData.endNumber);
             $log.debug("JsonPayload: " + jsonPayload);
             metricDataService.insertMultiplePayload(jsonPayload);
             $scope.rangeInsertData.id = "";
 
         };
 
-        function calculateRangeTimestamps(numberOfDays, intervalInMinutes, currentTimeMoment) {
-            var intervalTimestamps = [], randomValue;
+        function calculateRangeTimestamps(id, numberOfDays, intervalInMinutes, randomStart, randomEnd) {
+            var intervalTimestamps = [],
+                startDate = moment().subtract('days', numberOfDays).valueOf(),
+                endDate = _.now(),
+                step = intervalInMinutes * 60 * 1000,
+                dbData = [];
 
-            for (var i = 0; i < numberOfDays * 24 * 60 * intervalInMinutes; i = i + intervalInMinutes) {
+            intervalTimestamps = _.range(startDate, endDate, step);
+            dbData = _.map(intervalTimestamps, function(ts){return {id: id, timestamp: ts, value: _.random(randomStart, randomEnd)};});
 
-                var calculatedTimeInMillis = currentTimeMoment.subtract('minutes', i).valueOf();
-                randomValue = metricDataService.createRandomValue($scope.rangeInsertData.startNumber, $scope.rangeInsertData.endNumber);
-                intervalTimestamps.push({id: $scope.rangeInsertData.id, timestamp: calculatedTimeInMillis, value: randomValue});
-            }
-            return angular.toJson(intervalTimestamps);
+            return angular.toJson(dbData);
 
         }
-
 
         $scope.startStreaming = function () {
             var selectedTimeRangeInSeconds = 5;
@@ -133,8 +131,8 @@ angular.module('chartingApp')
             streamingIntervalPromise = $interval(function () {
                 $log.log("Timer has Run! for seconds: " + selectedTimeRangeInSeconds);
                 $scope.streamingInsertData.count = $scope.streamingInsertData.count + 1;
-                $scope.streamingInsertData.lastStreamedValue = metricDataService.createRandomValue($scope.streamingInsertData.startNumber, $scope.streamingInsertData.endNumber);
-                $scope.streamingInsertData.jsonPayload = { timestamp: moment().valueOf(), value: $scope.streamingInsertData.lastStreamedValue };
+                $scope.streamingInsertData.lastStreamedValue = _.random($scope.streamingInsertData.startNumber, $scope.streamingInsertData.endNumber);
+                $scope.streamingInsertData.jsonPayload = { timestamp: _.now(), value: $scope.streamingInsertData.lastStreamedValue };
 
 
                 metricDataService.insertSinglePayload($scope.streamingInsertData.id, $scope.streamingInsertData.jsonPayload);

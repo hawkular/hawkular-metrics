@@ -549,7 +549,7 @@ angular.module('rhqm.directives')
             }
 
             function createPreviousRangeOverlay(prevRangeData){
-                console.info("Running PreviousRangeOverlay");
+                console.debug("Running PreviousRangeOverlay");
                 var showBarAvgTrendline = true,
                     prevRangeLine = d3.svg.line()
                         .interpolate("linear")
@@ -585,10 +585,10 @@ angular.module('rhqm.directives')
             }, true);
 
             scope.$watch('previousRangeData', function (newPreviousRangeValues) {
-                console.info("Previous Range data changed");
+                console.debug("Previous Range data changed");
                 if (angular.isDefined(newPreviousRangeValues)) {
                     processedPreviousRangeData = angular.fromJson(newPreviousRangeValues);
-                    console.info("ReRender with Prev Range data");
+                    console.debug("ReRender with Prev Range data");
                     scope.render(processedNewData, processedPreviousRangeData);
                 }
             }, true);
@@ -606,7 +606,7 @@ angular.module('rhqm.directives')
 
 
             scope.render = function (dataPoints, previousRangeDataPoints) {
-                console.info("Render");
+                console.debug("Render");
                 if (angular.isDefined(dataPoints)) {
                     oneTimeChartSetup();
                     determineScale(dataPoints);
@@ -615,7 +615,6 @@ angular.module('rhqm.directives')
                     createXAxisBrush();
                     createStackedBars(lowBound, highBound);
                     if(angular.isDefined(previousRangeDataPoints)){
-                        console.info("A1");
                         createPreviousRangeOverlay(previousRangeDataPoints);
                     }
                     createXandYAxes();
