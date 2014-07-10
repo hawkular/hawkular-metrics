@@ -100,7 +100,7 @@
             <!-- HINT: colors for the chart can be changed in the d3-chart.css -->
             <rhqm-stacked-bar-chart
                     data="{{vm.chartData.dataPoints}}"
-                    data="{{vm.chartData.prevDataPoints}}"
+                    previous-range-data="{{vm.chartData.prevDataPoints}}"
                     chart-title="{{'Metrics Id: '+vm.chartParams.searchId}}"
                     chart-height="250"></rhqm-stacked-bar-chart>
         </div>
@@ -118,7 +118,7 @@
         <button class="btn btn-sm" ng-click="vm.toggleTable()" ng-show="vm.chartData.dataPoints.length > 0">
             {{vm.chartParams.tableButtonLabel}}
         </button>
-        <button class="btn btn-sm" ng-click="vm.overlayPreviousRangeData()" ng-show="vm.chartData.dataPoints.length > 0">
+        <button class="btn btn-sm" ng-click="vm.togglePreviousRangeDataOverlay()" ng-show="vm.chartData.dataPoints.length > 0">
             Overlay Previous Range
         </button>
 
