@@ -20,6 +20,7 @@ angular.module('chartingApp')
             dateRange: moment().subtract('hours', 24).from(moment(), true),
             updateEndTimeStampToNow: false,
             collapseTable: true,
+            showPreviousRangeDataOverlay: true,
             tableButtonLabel: "Show Table"
         };
 
@@ -166,7 +167,16 @@ angular.module('chartingApp')
 
         }
 
-        vm.overlayPreviousRangeData = function () {
+        vm.togglePreviousRangeDataOverlay = function () {
+            vm.chartParams.showPreviousRangeDataOverlay = !vm.chartParams.showPreviousRangeDataOverlay;
+            if(vm.chartParams.showPreviousRangeDataOverlay){
+                vm.chartData.prevDataPoints = [];
+            } else {
+                overlayPreviousRangeData();
+            }
+        };
+
+        function overlayPreviousRangeData () {
             $log.debug("pushed Overlay Previous RangeData");
             var previousTimeRange = calculatePreviousTimeRange(vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp);
 
@@ -175,7 +185,7 @@ angular.module('chartingApp')
                     // we want to isolate the response from the data we are feeding to the chart
                     var prevTimeRangeBucketizedDataPoints = formatPreviousBucketizedOutput(response);
 
-                    if (!angular.isUndefined(prevTimeRangeBucketizedDataPoints) && prevTimeRangeBucketizedDataPoints.length !== 0) {
+                    if (angular.isDefined(prevTimeRangeBucketizedDataPoints) && prevTimeRangeBucketizedDataPoints.length !== 0) {
 
                         $log.debug("# Transformed Prev DataPoints: " + prevTimeRangeBucketizedDataPoints.length);
 
@@ -199,7 +209,7 @@ angular.module('chartingApp')
                     $log.error('Error loading Prev Range graph data: ' + response);
                     toastr.error('Error loading Prev Range graph data', 'Status: ' + status);
                 });
-        };
+        }
 
         function formatPreviousBucketizedOutput(response) {
             //  The schema is different for bucketized output
