@@ -67,7 +67,7 @@
                     <label class="col-sm-2 control-label">Time Period:</label>
 
                     <div class="col-sm-6">
-                        <input type="text" ng-model="chartParams.dateRange" readonly disbabled /></p>
+                        <input type="text" ng-model="chartParams.dateRange" readonly disbabled/></p>
                     </div>
                 </div>
 
@@ -105,14 +105,21 @@
         </div>
 
         <div>
-        <button class="btn btn-sm" ng-click="showPreviousTimeRange()" style="margin-left:90px;" ng-show="chartData.dataPoints.length > 0">&lt;&lt; Prev.</button>
-        <button class="btn btn-sm" style="float:right;margin-right: 90px;" ng-click="showNextTimeRange()" ng-show="chartData.dataPoints.length > 0" ng-disabled="!hasNext();">Next &gt;&gt;</button>
+            <button class="btn btn-sm" ng-click="showPreviousTimeRange()" style="margin-left:90px;"
+                    ng-show="chartData.dataPoints.length > 0">&lt;&lt; Prev.
+            </button>
+            <button class="btn btn-sm" style="float:right;margin-right: 90px;" ng-click="showNextTimeRange()"
+                    ng-show="chartData.dataPoints.length > 0" ng-disabled="!hasNext();">Next &gt;&gt;</button>
         </div>
         <br/>
         <br/>
 
-        <button class="btn btn-sm" ng-click="toggleTable()" ng-show="chartData.dataPoints.length > 0">{{chartParams.tableButtonLabel}}</button>
-        <button class="btn btn-sm" ng-click="overlayPreviousRangeData()" ng-show="chartData.dataPoints.length > 0">Overlay Previous Range</button>
+        <button class="btn btn-sm" ng-click="toggleTable()" ng-show="chartData.dataPoints.length > 0">
+            {{chartParams.tableButtonLabel}}
+        </button>
+        <button class="btn btn-sm" ng-click="overlayPreviousRangeData()" ng-show="chartData.dataPoints.length > 0">
+            Overlay Previous Range
+        </button>
 
         <div collapse="chartParams.collapseTable" ng-show="chartData.dataPoints.length > 0">
             <h4>Data Points: {{chartData.dataPoints.length}}</h4>
@@ -128,9 +135,9 @@
                 <tbody>
                 <tr ng-repeat="chartPoint in chartData.dataPoints | orderBy:timestamp:true">
                     <td>{{chartPoint.date | date: 'medium'}}</td>
-                    <td >{{chartPoint.avg|number:2}}</td>
-                    <td >{{chartPoint.min|number:2}}</td>
-                    <td >{{chartPoint.max|number:2}}</td>
+                    <td>{{chartPoint.avg|number:2}}</td>
+                    <td>{{chartPoint.min|number:2}}</td>
+                    <td>{{chartPoint.max|number:2}}</td>
                 </tr>
 
                 </tbody>
