@@ -10,6 +10,7 @@
 
                     <div class="col-sm-5">
                         <input type="text" class="form-control" name="searchId" ng-model="chartParams.searchId"
+                               ng-enter="refreshChartData();"
                                placeholder="Enter Id..." required ng-minlength="1">
                         <span class="error-message"
                               ng-show="chartForm.searchId.$dirty && chartForm.searchId.$error.required"> * Required.</span>
