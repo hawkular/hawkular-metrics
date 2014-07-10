@@ -37,11 +37,6 @@ angular.module('rhqm.services')
                         console.error("Error: " + status + " --> " + response);
                         toastr.error('An issue with inserting data has occurred. Please see the console logs. Status: ' + status);
                     });
-            },
-
-            createRandomValue: function (min, max) {
-                return Math.floor(Math.random() * (max - min + 1) + min);
             }
-
         };
     }]);

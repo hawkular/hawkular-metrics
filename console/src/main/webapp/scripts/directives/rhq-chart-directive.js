@@ -35,6 +35,7 @@ angular.module('rhqm.directives')
                 avgLineColor = attributes.avgLineColor || "#2e376a",
                 chartHoverDateFormat = attributes.chartHoverDateFormat || "%m/%d/%y",
                 chartHoverTimeFormat = attributes.chartHoverTimeFormat || "%I:%M:%S %p",
+                allowDragDateSelections = attributes.allowDragDateSelections || true,
                 buttonBarDateTimeFormat = attributes.buttonbarDatetimeFormat || "MM/DD/YYYY h:mm a";
 
             // chart specific vars
@@ -612,7 +613,10 @@ angular.module('rhqm.directives')
                     determineScale(dataPoints);
                     createHeader(attributes.chartTitle);
                     createYAxisGridLines();
-                    createXAxisBrush();
+                    if(allowDragDateSelections){
+                        console.debug("Allowing DragDateSelections");
+                        createXAxisBrush();
+                    }
                     createStackedBars(lowBound, highBound);
                     if(angular.isDefined(previousRangeDataPoints)){
                         createPreviousRangeOverlay(previousRangeDataPoints);
@@ -652,6 +656,7 @@ angular.module('rhqm.directives')
                 leaderBarColor: '@',
                 rawValueBarColor: '@',
                 avgLineColor: '@',
+                allowDragDateSelections: '@',
                 chartTitle: '@'}
         };
     });
