@@ -9,9 +9,12 @@
  */
 angular.module('chartingApp')
     .controller('InsertMetricsController', ['$scope', '$rootScope', '$log','$interval', 'metricDataService', function ($scope, $rootScope, $log, $interval, metricDataService) {
-        var streamingIntervalPromise;
+        var streamingIntervalPromise, 
+            vm = this;
 
-        $scope.streamingTimeRanges = [
+        $rootScope.showOpenGroup = true;
+
+        vm.streamingTimeRanges = [
             { "range": "1s", "rangeInSeconds": 1 },
             { "range": "5s", "rangeInSeconds": 5 },
             { "range": "30s", "rangeInSeconds": 30 },
@@ -24,35 +27,34 @@ angular.module('chartingApp')
         ];
 
 
-        $scope.timeInterval = [1, 5, 10, 15, 30, 60];
-        $scope.showOpenGroup = true;
+        vm.timeInterval = [1, 5, 10, 15, 30, 60];
 
-        $scope.quickInsertData = {
-            timeStamp: moment().valueOf(),
+        vm.quickInsertData = {
+            timeStamp: _.now(),
             id: "",
             jsonPayload: "",
             value: ""
         };
 
-        $scope.multiInsertData = {
+        vm.multiInsertData = {
             id: "",
             jsonPayload: ""
         };
-        $scope.rangeDurations = [1, 2, 5, 7];
+        vm.rangeDurations = [1, 2, 5, 7];
 
-        $scope.rangeInsertData = {
+        vm.rangeInsertData = {
             timeStamp: _.now(),
             id: "",
             selectedTimeInterval: 5,
             jsonPayload: "",
             startNumber: 1,
             endNumber: 100,
-            selectedIntervalInMinutes: $scope.timeInterval[2],
-            selectedDuration: $scope.rangeDurations[1]
+            selectedIntervalInMinutes: vm.timeInterval[2],
+            selectedDuration: vm.rangeDurations[1]
         };
 
 
-        $scope.streamingInsertData = {
+        vm.streamingInsertData = {
             timeStamp: _.now(),
             id: "",
             jsonPayload: "",
@@ -61,11 +63,11 @@ angular.module('chartingApp')
             endNumber: 100,
             isStreamingStarted: false,
             lastStreamedValue: 2,
-            selectedRefreshInterval: $scope.streamingTimeRanges[1].range
+            selectedRefreshInterval: vm.streamingTimeRanges[1].range
         };
 
 
-        $scope.quickInsert = function (numberOfHoursPast) {
+        vm.quickInsert = function (numberOfHoursPast) {
             var computedTimestamp;
 
             if (angular.isUndefined(numberOfHoursPast)) {
@@ -75,31 +77,31 @@ angular.module('chartingApp')
             }
             $log.debug("Generated Timestamp is: " + computedTimestamp.fromNow());
 
-            $scope.quickInsertData.jsonPayload = { timestamp: computedTimestamp.valueOf(), value: $scope.quickInsertData.value };
-            $log.info("quick insert for id:  %s ", $scope.quickInsertData.id);
+            vm.quickInsertData.jsonPayload = { timestamp: computedTimestamp.valueOf(), value: vm.quickInsertData.value };
+            $log.info("quick insert for id:  %s ", vm.quickInsertData.id);
 
-            metricDataService.insertSinglePayload($scope.quickInsertData.id, $scope.quickInsertData.jsonPayload);
+            metricDataService.insertSinglePayload(vm.quickInsertData.id, vm.quickInsertData.jsonPayload);
 
-            $scope.quickInsertData.value = "";
+            vm.quickInsertData.value = "";
 
         };
 
 
-        $scope.multiInsert = function () {
-            metricDataService.insertMultiplePayload($scope.multiInsertData.jsonPayload);
-            $scope.multiInsertData.jsonPayload = "";
+        vm.multiInsert = function () {
+            metricDataService.insertMultiplePayload(vm.multiInsertData.jsonPayload);
+            vm.multiInsertData.jsonPayload = "";
         };
 
 
-        $scope.rangeInsert = function () {
+        vm.rangeInsert = function () {
             var jsonPayload;
 
-            jsonPayload = calculateRangeTimestamps($scope.rangeInsertData.id, $scope.rangeInsertData.selectedDuration,
-                $scope.rangeInsertData.selectedIntervalInMinutes, $scope.rangeInsertData.startNumber,
-                $scope.rangeInsertData.endNumber);
+            jsonPayload = calculateRangeTimestamps(vm.rangeInsertData.id, vm.rangeInsertData.selectedDuration,
+                vm.rangeInsertData.selectedIntervalInMinutes, vm.rangeInsertData.startNumber,
+                vm.rangeInsertData.endNumber);
             $log.debug("JsonPayload: " + jsonPayload);
             metricDataService.insertMultiplePayload(jsonPayload);
-            $scope.rangeInsertData.id = "";
+            vm.rangeInsertData.id = "";
 
         };
 
@@ -117,25 +119,25 @@ angular.module('chartingApp')
 
         }
 
-        $scope.startStreaming = function () {
+        vm.startStreaming = function () {
             var selectedTimeRangeInSeconds = 5;
 
-            angular.forEach($scope.streamingTimeRanges, function(value){
-              if(value.range === $scope.streamingInsertData.selectedRefreshInterval)  {
+            angular.forEach(vm.streamingTimeRanges, function(value){
+              if(value.range === vm.streamingInsertData.selectedRefreshInterval)  {
                  selectedTimeRangeInSeconds = value.rangeInSeconds;
               }
             });
-            $scope.streamingInsertData.isStreamingStarted = true;
-            $scope.streamingInsertData.count = 0;
-            $scope.streamingInsertData.lastStreamedValue = 0;
+            vm.streamingInsertData.isStreamingStarted = true;
+            vm.streamingInsertData.count = 0;
+            vm.streamingInsertData.lastStreamedValue = 0;
             streamingIntervalPromise = $interval(function () {
                 $log.log("Timer has Run! for seconds: " + selectedTimeRangeInSeconds);
-                $scope.streamingInsertData.count = $scope.streamingInsertData.count + 1;
-                $scope.streamingInsertData.lastStreamedValue = _.random($scope.streamingInsertData.startNumber, $scope.streamingInsertData.endNumber);
-                $scope.streamingInsertData.jsonPayload = { timestamp: _.now(), value: $scope.streamingInsertData.lastStreamedValue };
+                vm.streamingInsertData.count = vm.streamingInsertData.count + 1;
+                vm.streamingInsertData.lastStreamedValue = _.random(vm.streamingInsertData.startNumber, vm.streamingInsertData.endNumber);
+                vm.streamingInsertData.jsonPayload = { timestamp: _.now(), value: vm.streamingInsertData.lastStreamedValue };
 
 
-                metricDataService.insertSinglePayload($scope.streamingInsertData.id, $scope.streamingInsertData.jsonPayload);
+                metricDataService.insertSinglePayload(vm.streamingInsertData.id, vm.streamingInsertData.jsonPayload);
 
             }, selectedTimeRangeInSeconds * 1000);
             $scope.$on('$destroy', function () {
@@ -145,10 +147,10 @@ angular.module('chartingApp')
 
         };
 
-        $scope.stopStreaming = function () {
+        vm.stopStreaming = function () {
             toastr.info('Stop Streaming Data.');
             $log.info('Stop Streaming Data.');
-            $scope.streamingInsertData.isStreamingStarted = false;
+            vm.streamingInsertData.isStreamingStarted = false;
             $interval.cancel(streamingIntervalPromise);
         };
 

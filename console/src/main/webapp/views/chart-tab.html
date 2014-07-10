@@ -1,16 +1,16 @@
-<div class="panel panel-default" style="width:880px" ng-controller="ChartController">
+<div class="panel panel-default" style="width:880px" ng-controller="ChartController as vm">
     <div class="panel-body">
         <div class="well">
             <small style="margin-left: 15px" class="graphDateTimeRangeLabel"></small>
 
-            <form class="form-horizontal" name="chartForm" role="form" novalidate ng-submit="refreshChartData()">
+            <form class="form-horizontal" name="chartForm" role="form" novalidate ng-submit="vm.refreshChartData()">
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label">ID</label>
 
                     <div class="col-sm-5">
-                        <input type="text" class="form-control" name="searchId" ng-model="chartParams.searchId"
-                               ng-enter="refreshChartData();"
+                        <input type="text" class="form-control" name="searchId" ng-model="vm.chartParams.searchId"
+                               ng-enter="vm.refreshChartData();"
                                placeholder="Enter Id..." required ng-minlength="1">
                         <span class="error-message"
                               ng-show="chartForm.searchId.$dirty && chartForm.searchId.$error.required"> * Required.</span>
@@ -27,12 +27,12 @@
                                data-target="#" href="#">
                                 <div class="input-group">
                                     <input type="text" class="form-control"
-                                           data-ng-model="chartParams.startTimeStamp">
+                                           data-ng-model="vm.chartParams.startTimeStamp">
                                     <span class="input-group-addon"><i class="glyphicon glyphicon-calendar"></i></span>
                                 </div>
                             </a>
                             <ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
-                                <datetimepicker data-ng-model="chartParams.startTimeStamp"
+                                <datetimepicker data-ng-model="vm.chartParams.startTimeStamp"
                                                 data-datetimepicker-config="{ dropdownSelector: '#dropdownStart' }"/>
                             </ul>
                         </div>
@@ -50,13 +50,13 @@
                                data-target="#" href="#">
                                 <div class="input-group">
                                     <input type="text" class="form-control"
-                                           data-ng-model="chartParams.endTimeStamp">
+                                           data-ng-model="vm.chartParams.endTimeStamp">
                                         <span class="input-group-addon"><i
                                                 class="glyphicon glyphicon-calendar"></i></span>
                                 </div>
                             </a>
                             <ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
-                                <datetimepicker data-ng-model="chartParams.endTimeStamp"
+                                <datetimepicker data-ng-model="vm.chartParams.endTimeStamp"
                                                 data-datetimepicker-config="{ dropdownSelector: '#dropdownEnd' }"/>
                             </ul>
                         </div>
@@ -68,7 +68,7 @@
                     <label class="col-sm-2 control-label">Time Period:</label>
 
                     <div class="col-sm-6">
-                        <input type="text" ng-model="chartParams.dateRange" readonly disbabled/></p>
+                        <input type="text" ng-model="vm.chartParams.dateRange" readonly disbabled/></p>
                     </div>
                 </div>
 
@@ -78,8 +78,8 @@
                     <div class="col-sm-6">
                         <div class="checkbox">
                             <label>
-                                <input type="checkbox" ng-model="chartParams.updateEndTimeStampToNow"
-                                       ng-click="autoRefresh()"> Refresh (every 30s)
+                                <input type="checkbox" ng-model="vm.chartParams.updateEndTimeStampToNow"
+                                       ng-click="vm.autoRefresh()"> Refresh (every 10s)
                             </label>
                         </div>
                     </div>
@@ -94,36 +94,36 @@
             </form>
         </div>
 
-        <!--<relative-time-range-button-bar start-time-stamp="chartParams.startTimestamp" end-time-stamp="chartParms.endTimeStamp"></relative-time-range-button-bar>-->
+        <!--<relative-time-range-button-bar start-time-stamp="vm.chartParams.startTimestamp" end-time-stamp="chartParms.endTimeStamp"></relative-time-range-button-bar>-->
 
         <div id="stackedBarChart" style="height:270px">
             <!-- HINT: colors for the chart can be changed in the d3-chart.css -->
             <rhqm-stacked-bar-chart
-                    data="{{chartData.dataPoints}}"
-                    data="{{chartData.prevDataPoints}}"
-                    chart-title="{{'Metrics Id: '+chartParams.searchId}}"
+                    data="{{vm.chartData.dataPoints}}"
+                    data="{{vm.chartData.prevDataPoints}}"
+                    chart-title="{{'Metrics Id: '+vm.chartParams.searchId}}"
                     chart-height="250"></rhqm-stacked-bar-chart>
         </div>
 
         <div>
-            <button class="btn btn-sm" ng-click="showPreviousTimeRange()" style="margin-left:90px;"
-                    ng-show="chartData.dataPoints.length > 0">&lt;&lt; Prev.
+            <button class="btn btn-sm" ng-click="vm.showPreviousTimeRange()" style="margin-left:90px;"
+                    ng-show="vm.chartData.dataPoints.length > 0">&lt;&lt; Prev.
             </button>
-            <button class="btn btn-sm" style="float:right;margin-right: 90px;" ng-click="showNextTimeRange()"
-                    ng-show="chartData.dataPoints.length > 0" ng-disabled="!hasNext();">Next &gt;&gt;</button>
+            <button class="btn btn-sm" style="float:right;margin-right: 90px;" ng-click="vm.showNextTimeRange()"
+                    ng-show="vm.chartData.dataPoints.length > 0" ng-disabled="!vm.hasNext();">Next &gt;&gt;</button>
         </div>
         <br/>
         <br/>
 
-        <button class="btn btn-sm" ng-click="toggleTable()" ng-show="chartData.dataPoints.length > 0">
-            {{chartParams.tableButtonLabel}}
+        <button class="btn btn-sm" ng-click="vm.toggleTable()" ng-show="vm.chartData.dataPoints.length > 0">
+            {{vm.chartParams.tableButtonLabel}}
         </button>
-        <button class="btn btn-sm" ng-click="overlayPreviousRangeData()" ng-show="chartData.dataPoints.length > 0">
+        <button class="btn btn-sm" ng-click="vm.overlayPreviousRangeData()" ng-show="vm.chartData.dataPoints.length > 0">
             Overlay Previous Range
         </button>
 
-        <div collapse="chartParams.collapseTable" ng-show="chartData.dataPoints.length > 0">
-            <h4>Data Points: {{chartData.dataPoints.length}}</h4>
+        <div collapse="vm.chartParams.collapseTable" ng-show="vm.chartData.dataPoints.length > 0">
+            <h4>Data Points: {{vm.chartData.dataPoints.length}}</h4>
             <table class="table table-hover" style="width:500px;">
                 <thead>
                 <tr>
@@ -134,7 +134,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr ng-repeat="chartPoint in chartData.dataPoints | orderBy:timestamp:true">
+                <tr ng-repeat="chartPoint in vm.chartData.dataPoints | orderBy:timestamp:true">
                     <td>{{chartPoint.date | date: 'medium'}}</td>
                     <td>{{chartPoint.avg|number:2}}</td>
                     <td>{{chartPoint.min|number:2}}</td>

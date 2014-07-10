@@ -9,10 +9,11 @@
  */
 angular.module('chartingApp')
     .controller('ChartController', ['$scope', '$rootScope', '$interval', '$log', 'metricDataService', function ($scope, $rootScope, $interval, $log, metricDataService) {
-        var updateLastTimeStampToNowPromise;
+        var updateLastTimeStampToNowPromise,
+            vm = this;
         $rootScope.bucketedDataPoints = [];
 
-        $scope.chartParams = {
+        vm.chartParams = {
             searchId: "",
             startTimeStamp: moment().subtract('hours', 24).toDate(), //default time period set to 24 hours
             endTimeStamp: new Date(),
@@ -22,7 +23,7 @@ angular.module('chartingApp')
             tableButtonLabel: "Show Table"
         };
 
-        $scope.dateTimeRanges = [
+        vm.dateTimeRanges = [
             { "range": "1h", "rangeInSeconds": 60 * 60 } ,
             { "range": "4h", "rangeInSeconds": 4 * 60 * 60 } ,
             { "range": "8h", "rangeInSeconds": 8 * 60 * 60 },
@@ -43,14 +44,14 @@ angular.module('chartingApp')
 //        });
 
 
-        $scope.autoRefresh = function () {
-            $scope.chartParams.updateEndTimeStampToNow = !$scope.chartParams.updateEndTimeStampToNow;
-            if ($scope.chartParams.updateEndTimeStampToNow) {
-                $scope.refreshChartData();
+        vm.autoRefresh = function () {
+            vm.chartParams.updateEndTimeStampToNow = !vm.chartParams.updateEndTimeStampToNow;
+            if (vm.chartParams.updateEndTimeStampToNow) {
+                vm.refreshChartData();
                 updateLastTimeStampToNowPromise = $interval(function () {
-                    $scope.chartParams.endTimeStamp = new Date();
-                    $scope.refreshChartData();
-                }, 30 * 1000);
+                    vm.chartParams.endTimeStamp = new Date();
+                    vm.refreshChartData();
+                }, 10 * 1000);
 
             } else {
                 $interval.cancel(updateLastTimeStampToNowPromise);
@@ -58,13 +59,13 @@ angular.module('chartingApp')
 
         };
 
-        $scope.showPreviousTimeRange = function () {
+        vm.showPreviousTimeRange = function () {
             var previousTimeRange;
-            previousTimeRange = calculatePreviousTimeRange($scope.chartParams.startTimeStamp, $scope.chartParams.endTimeStamp);
+            previousTimeRange = calculatePreviousTimeRange(vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp);
 
-            $scope.chartParams.startTimeStamp = previousTimeRange[0];
-            $scope.chartParams.endTimeStamp = previousTimeRange[1];
-            $scope.refreshChartData();
+            vm.chartParams.startTimeStamp = previousTimeRange[0];
+            vm.chartParams.endTimeStamp = previousTimeRange[1];
+            vm.refreshChartData();
 
         };
 
@@ -87,29 +88,29 @@ angular.module('chartingApp')
         }
 
 
-        $scope.showNextTimeRange = function () {
-            var nextTimeRange = calculateNextTimeRange($scope.chartParams.startTimeStamp, $scope.chartParams.endTimeStamp);
+        vm.showNextTimeRange = function () {
+            var nextTimeRange = calculateNextTimeRange(vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp);
 
-            $scope.chartParams.startTimeStamp = nextTimeRange[0];
-            $scope.chartParams.endTimeStamp = nextTimeRange[1];
-            $scope.refreshChartData();
+            vm.chartParams.startTimeStamp = nextTimeRange[0];
+            vm.chartParams.endTimeStamp = nextTimeRange[1];
+            vm.refreshChartData();
 
         };
 
 
-        $scope.hasNext = function () {
-            var nextTimeRange = calculateNextTimeRange($scope.chartParams.startTimeStamp, $scope.chartParams.endTimeStamp);
+        vm.hasNext = function () {
+            var nextTimeRange = calculateNextTimeRange(vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp);
             // unsophisticated test to see if there is a next; without actually querying.
-            return nextTimeRange[1].getTime() < moment().valueOf();
+            return nextTimeRange[1].getTime() < _.now();
         };
 
 
-        $scope.toggleTable = function () {
-            $scope.chartParams.collapseTable = !$scope.chartParams.collapseTable;
-            if ($scope.chartParams.collapseTable) {
-                $scope.chartParams.tableButtonLabel = "Show Table";
+        vm.toggleTable = function () {
+            vm.chartParams.collapseTable = !vm.chartParams.collapseTable;
+            if (vm.chartParams.collapseTable) {
+                vm.chartParams.tableButtonLabel = "Show Table";
             } else {
-                $scope.chartParams.tableButtonLabel = "Hide Table";
+                vm.chartParams.tableButtonLabel = "Hide Table";
             }
         };
 
@@ -117,9 +118,9 @@ angular.module('chartingApp')
             $interval.cancel(updateLastTimeStampToNowPromise);
         });
 
-        $scope.refreshChartData = function () {
+        vm.refreshChartData = function () {
 
-            metricDataService.getMetricsForTimeRange($scope.chartParams.searchId, $scope.chartParams.startTimeStamp, $scope.chartParams.endTimeStamp)
+            metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp)
                 .success(function (response) {
                     // we want to isolate the response from the data we are feeding to the chart
                     $rootScope.bucketedDataPoints = formatBucketizedOutput(response);
@@ -129,18 +130,18 @@ angular.module('chartingApp')
                         $log.debug("# Transformed DataPoints: " + $rootScope.bucketedDataPoints.length);
 
                         // this is basically the DTO for the chart
-                        $scope.chartData = {
-                            id: $scope.chartParams.id,
-                            startTimeStamp: $scope.chartParams.startTimeStamp,
-                            endTimeStamp: $scope.chartParams.endTimeStamp,
+                        vm.chartData = {
+                            id: vm.chartParams.id,
+                            startTimeStamp: vm.chartParams.startTimeStamp,
+                            endTimeStamp: vm.chartParams.endTimeStamp,
                             dataPoints: $rootScope.bucketedDataPoints
                             //nvd3DataPoints: formatForNvD3(response),
                             //rickshawDataPoints: formatForRickshaw(response)
                         };
 
                     } else {
-                        $log.warn('No Data found for id: ' + $scope.chartParams.searchId);
-                        toastr.warn('No Data found for id: ' + $scope.chartParams.searchId);
+                        $log.warn('No Data found for id: ' + vm.chartParams.searchId);
+                        toastr.warn('No Data found for id: ' + vm.chartParams.searchId);
                     }
 
                 }).error(function (response, status) {
@@ -151,7 +152,7 @@ angular.module('chartingApp')
 
         function formatBucketizedOutput(response) {
             //  The schema is different for bucketized output
-            return $.map(response, function (point) {
+            return _.map(response, function (point) {
                 return {
                     timestamp: point.timestamp,
                     date: new Date(point.timestamp),
@@ -165,11 +166,11 @@ angular.module('chartingApp')
 
         }
 
-        $scope.overlayPreviousRangeData = function () {
+        vm.overlayPreviousRangeData = function () {
             $log.debug("pushed Overlay Previous RangeData");
-            var previousTimeRange = calculatePreviousTimeRange($scope.chartParams.startTimeStamp, $scope.chartParams.endTimeStamp);
+            var previousTimeRange = calculatePreviousTimeRange(vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp);
 
-            metricDataService.getMetricsForTimeRange($scope.chartParams.searchId, previousTimeRange[0], previousTimeRange[1])
+            metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, previousTimeRange[0], previousTimeRange[1])
                 .success(function (response) {
                     // we want to isolate the response from the data we are feeding to the chart
                     var prevTimeRangeBucketizedDataPoints = formatPreviousBucketizedOutput(response);
@@ -179,8 +180,8 @@ angular.module('chartingApp')
                         $log.debug("# Transformed Prev DataPoints: " + prevTimeRangeBucketizedDataPoints.length);
 
                         // this is basically the DTO for the chart
-                        $scope.chartData = {
-                            id: $scope.chartParams.id,
+                        vm.chartData = {
+                            id: vm.chartParams.id,
                             prevStartTimeStamp: previousTimeRange[0],
                             prevEndTimeStamp: previousTimeRange[1],
                             prevDataPoints: prevTimeRangeBucketizedDataPoints,
@@ -190,8 +191,8 @@ angular.module('chartingApp')
                         };
 
                     } else {
-                        $log.warn('No Prev Range Data found for id: ' + $scope.chartParams.searchId);
-                        toastr.warn('No Prev Range Data found for id: ' + $scope.chartParams.searchId);
+                        $log.warn('No Prev Range Data found for id: ' + vm.chartParams.searchId);
+                        toastr.warn('No Prev Range Data found for id: ' + vm.chartParams.searchId);
                     }
 
                 }).error(function (response, status) {
@@ -202,7 +203,7 @@ angular.module('chartingApp')
 
         function formatPreviousBucketizedOutput(response) {
             //  The schema is different for bucketized output
-            var mappedNew = $.map(response, function (point, i) {
+            var mappedNew = _.map(response, function (point, i) {
                 return {
                     timestamp: $rootScope.bucketedDataPoints[i].timestamp,
                     originalTimestamp: point.timestamp,
