@@ -1,4 +1,4 @@
-<div class="panel panel-default" style="width:880px" ng-controller="InsertMetricsController">
+<div class="panel panel-default" style="width:880px" ng-controller="InsertMetricsController as vm">
 
 <div class="panel-body">
 
@@ -12,7 +12,7 @@
 
             <div class="col-sm-2">
                 <input type="text" class="form-control" id="quickInsertIdText" name="quickInsertIdText"
-                       ng-model="quickInsertData.id"
+                       ng-model="vm.quickInsertData.id"
                        required
                        placeholder="Enter Id...">
                 <span class="help-block">Example: 100, SERVER2.CPU1 </span>
@@ -22,9 +22,9 @@
 
             <div class="col-sm-3">
                 <input type="number" class="form-control" id="quickInsertValueText" name="quickInsertValueText"
-                       ng-model="quickInsertData.value"
+                       ng-model="vm.quickInsertData.value"
                        required
-                       ng-enter="quickInsert();"
+                       ng-enter="vm.quickInsert();"
                        placeholder="Enter Value...">
                 <span class="help-block">Example: 100, 5.25, 5000  </span>
             </div>
@@ -33,17 +33,17 @@
             <div class="col-sm-3">
                 <div class="btn-group" ng-disabled="!quickInsertForm.$valid" dropdown>
                     <button type="button" class="btn btn-primary" ng-disabled="!quickInsertForm.$valid"
-                            ng-click="quickInsert()">Insert Data
+                            ng-click="vm.quickInsert()">Insert Data
                     </button>
                     <button type="button" class="btn btn-primary dropdown-toggle" ng-disabled="!quickInsertForm.$valid">
                         <span class="caret"></span>
                         <span class="sr-only">Insert Data</span>
                     </button>
                     <ul class="dropdown-menu" role="menu" ng-disabled="!quickInsertForm.$valid">
-                        <li><a href="#" ng-click="quickInsert()">Now</a></li>
-                        <li><a href="#" ng-click="quickInsert(1)">1 Hour Ago</a></li>
-                        <li><a href="#" ng-click="quickInsert(4)">4 Hours Ago</a></li>
-                        <li><a href="#" ng-click="quickInsert(8)">8 Hours Ago</a></li>
+                        <li><a href="#" ng-click="vm.quickInsert()">Now</a></li>
+                        <li><a href="#" ng-click="vm.quickInsert(1)">1 Hour Ago</a></li>
+                        <li><a href="#" ng-click="vm.quickInsert(4)">4 Hours Ago</a></li>
+                        <li><a href="#" ng-click="vm.quickInsert(8)">8 Hours Ago</a></li>
                     </ul>
                 </div>
                 <span class="help-block">Default is Now</span>
@@ -64,7 +64,7 @@
             <label for="jsonText" class="col-sm-2 control-label">Raw Json</label>
 
             <div class="col-sm-10">
-                <textarea id="jsonText" name="jsonText" ng-model="multiInsertData.jsonPayload"
+                <textarea id="jsonText" name="jsonText" ng-model="vm.multiInsertData.jsonPayload"
                           rows="6" required
                           class="form-control" placeholder="Enter Json here..."
                         ></textarea>
@@ -74,7 +74,7 @@
 
         <div class="form-group">
             <div class="col-sm-offset-2 col-sm-10">
-                <button type="button" ng-disabled="!rawJsonInsertForm.$valid" ng-click="multiInsert()"
+                <button type="button" ng-disabled="!rawJsonInsertForm.$valid" ng-click="vm.multiInsert()"
                         class="btn btn-primary">Insert Data
                 </button>
             </div>
@@ -93,8 +93,8 @@
             <label class="col-sm-2 control-label">ID</label>
 
             <div class="col-sm-4">
-                <input type="text" class="form-control" ng-model="rangeInsertData.id" required
-                       ng-enter="rangeInsert();"
+                <input type="text" class="form-control" ng-model="vm.rangeInsertData.id" required
+                       ng-enter="vm.rangeInsert();"
                        placeholder="Enter Id...">
                 <span class="help-block">Example: 100, apache3.cpu  </span>
             </div>
@@ -107,14 +107,14 @@
 
             <div class="col-sm-2">
                 <input type="number" min="0" max="100" step="5" required class="form-control"
-                       ng-model="rangeInsertData.startNumber">
+                       ng-model="vm.rangeInsertData.startNumber">
             </div>
 
             <label class="col-sm-1 control-label">To</label>
 
             <div class="col-sm-2">
                 <input type="number" min="10" max="1000" step="25" required class="form-control"
-                       ng-model="rangeInsertData.endNumber">
+                       ng-model="vm.rangeInsertData.endNumber">
             </div>
         </div>
 
@@ -123,8 +123,8 @@
             <label class="col-sm-2 control-label">Every</label>
 
             <div class="col-sm-5">
-                <select ng-model="rangeInsertData.selectedTimeInterval"
-                        ng-options="value for value in timeInterval"></select>
+                <select ng-model="vm.rangeInsertData.selectedTimeInterval"
+                        ng-options="value for value in vm.timeInterval"></select>
                 <span class="help-block"> (Time Interval In Minutes.)</span>
             </div>
             <div class="col-sm-2">
@@ -135,8 +135,8 @@
             <label class="col-sm-2 control-label">For</label>
 
             <div class="col-sm-5">
-                <select ng-model="rangeInsertData.selectedDuration"
-                        ng-options="duration for duration in rangeDurations"></select>
+                <select ng-model="vm.rangeInsertData.selectedDuration"
+                        ng-options="duration for duration in vm.rangeDurations"></select>
                 <span class="help-block"> (In Days.)</span>
             </div>
             <div class="col-sm-2">
@@ -145,7 +145,7 @@
 
         <div class="form-group">
             <div class="col-sm-offset-2 col-sm-10">
-                <button type="button" ng-click="rangeInsert()" ng-disabled="!advancedRangeInsertForm.$valid"
+                <button type="button" ng-click="vm.rangeInsert()" ng-disabled="!advancedRangeInsertForm.$valid"
                         class="btn btn-primary">Insert Data
                 </button>
             </div>
@@ -165,9 +165,9 @@
 
             <div class="col-sm-4">
                 <input type="text" class="form-control" id="streamingInsertId"
-                       name="streamingInsetId" ng-model="streamingInsertData.id"
+                       name="streamingInsetId" ng-model="vm.streamingInsertData.id"
                        required
-                       ng-enter="startStreaming();"
+                       ng-enter="vm.startStreaming();"
                        placeholder="Enter Id...">
                 <span class="help-block">Example: 100, apache3.cpu  </span>
             </div>
@@ -180,14 +180,14 @@
 
             <div class="col-sm-2">
                 <input type="number" min="0" max="100" step="5" class="form-control" name="startNumber"
-                       ng-model="streamingInsertData.startNumber" required>
+                       ng-model="vm.streamingInsertData.startNumber" required>
             </div>
 
             <label class="col-sm-1 control-label">To</label>
 
             <div class="col-sm-2">
                 <input type="number" min="10" max="1000" step="25" class="form-control" name="endNumber"
-                       ng-model="streamingInsertData.endNumber" required>
+                       ng-model="vm.streamingInsertData.endNumber" required>
             </div>
         </div>
 
@@ -199,8 +199,8 @@
 
                     <div class="btn-group">
                         <button type="button" class="btn btn-default"
-                                ng-model="streamingInsertData.selectedRefreshInterval" btn-radio="value.range"
-                                ng-repeat="value in streamingTimeRanges"
+                                ng-model="vm.streamingInsertData.selectedRefreshInterval" btn-radio="value.range"
+                                ng-repeat="value in vm.streamingTimeRanges"
                                 >{{value.range}}
                         </button>
                     </div>
@@ -212,13 +212,13 @@
 
             <div class="form-group">
                 <div class="col-sm-offset-3 col-sm-1">
-                    <button type="button" ng-disabled="!streamingInsertForm.$valid" ng-click="startStreaming()"
+                    <button type="button" ng-disabled="!streamingInsertForm.$valid" ng-click="vm.startStreaming()"
                             class="btn btn-primary">Start
                     </button>
                 </div>
                 <div class="col-sm-1">
-                    <button type="button" ng-disabled="!streamingInsertData.isStreamingStarted"
-                            ng-click="stopStreaming()" class="btn btn-danger">Stop
+                    <button type="button" ng-disabled="!vm.streamingInsertData.isStreamingStarted"
+                            ng-click="vm.stopStreaming()" class="btn btn-danger">Stop
                     </button>
                 </div>
             </div>
@@ -227,12 +227,12 @@
                 <label class="col-sm-2 control-label">Count:</label>
 
                 <div class="col-sm-2">
-                    <input type="text" class="form-control" readonly ng-model="streamingInsertData.count">
+                    <input type="text" class="form-control" readonly ng-model="vm.streamingInsertData.count">
                 </div>
 
                 <label class="col-sm-1 control-label">Last:</label>
                 <div class="col-sm-2">
-                    <input type="text" class="form-control" readonly ng-model="streamingInsertData.lastStreamedValue">
+                    <input type="text" class="form-control" readonly ng-model="vm.streamingInsertData.lastStreamedValue">
                 </div>
             </div>
 
