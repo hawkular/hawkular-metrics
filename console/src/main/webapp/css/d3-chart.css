@@ -122,6 +122,27 @@ rect.low {
     stroke-opacity: 0.4;
 }
 
+.avgLine {
+    fill: none;
+    stroke: #2e376a;
+    stroke-width: 1.5;
+    stroke-opacity: 0.9;
+}
+
+.highLine {
+    fill: none;
+    stroke: #ff1a13;
+    stroke-width: 1.5;
+    stroke-opacity: 0.9;
+}
+
+.lowLine {
+    fill: none;
+    stroke: #70c4e2;
+    stroke-width: 1.5;
+    stroke-opacity: 0.9;
+}
+
 .titleName {
     font-size: 12;
     font-weight: bold;
