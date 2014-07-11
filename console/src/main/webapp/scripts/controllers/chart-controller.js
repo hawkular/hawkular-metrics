@@ -128,8 +128,6 @@ angular.module('chartingApp')
 
                     if ($rootScope.bucketedDataPoints.length !== 0) {
 
-                        $log.debug("# Transformed DataPoints: " + $rootScope.bucketedDataPoints.length);
-
                         // this is basically the DTO for the chart
                         vm.chartData = {
                             id: vm.chartParams.id,
@@ -177,7 +175,6 @@ angular.module('chartingApp')
         };
 
         function overlayPreviousRangeData () {
-            $log.debug("pushed Overlay Previous RangeData");
             var previousTimeRange = calculatePreviousTimeRange(vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp);
 
             metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, previousTimeRange[0], previousTimeRange[1])
@@ -186,8 +183,6 @@ angular.module('chartingApp')
                     var prevTimeRangeBucketizedDataPoints = formatPreviousBucketizedOutput(response);
 
                     if (angular.isDefined(prevTimeRangeBucketizedDataPoints) && prevTimeRangeBucketizedDataPoints.length !== 0) {
-
-                        $log.debug("# Transformed Prev DataPoints: " + prevTimeRangeBucketizedDataPoints.length);
 
                         // this is basically the DTO for the chart
                         vm.chartData = {
@@ -224,8 +219,6 @@ angular.module('chartingApp')
                     empty: point.empty
                 };
             });
-            console.warn("Overlay Data");
-            console.dir(mappedNew);
             return mappedNew;
         }
 
