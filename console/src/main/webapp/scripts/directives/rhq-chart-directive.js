@@ -9,6 +9,7 @@
  */
 angular.module('rhqm.directives')
     .directive('rhqmStackedBarChart', function () {
+        var chartTypes = ['bar', 'line', 'area'];
 
 
         function link(scope, element, attributes) {
@@ -16,6 +17,7 @@ angular.module('rhqm.directives')
             var dataPoints,
                 previousRangeDataPoints,
                 chartHeight = +attributes.chartHeight || 250,
+                chartType = attributes.chartType || "bar",
                 timeLabel = attributes.timeLabel || "Time",
                 dateLabel = attributes.dateLabel || "Date",
                 singleValueLabel = attributes.singleValueLabel || "Raw Value",
@@ -69,7 +71,7 @@ angular.module('rhqm.directives')
                 peak,
                 min,
                 processedNewData,
-                processedPreviousRangeData ;
+                processedPreviousRangeData;
 
             dataPoints = attributes.data;
             previousRangeDataPoints = attributes.previousRangeData;
@@ -436,6 +438,59 @@ angular.module('rhqm.directives')
                     });
             }
 
+            function createLineChart() {
+                var avgLine = d3.svg.line()
+                        .interpolate("linear")
+                        .defined(function (d) {
+                            return !d.empty;
+                        })
+                        .x(function (d) {
+                            return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                        })
+                        .y(function (d) {
+                            return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
+                        }),
+                    highLine = d3.svg.line()
+                        .interpolate("linear")
+                        .defined(function (d) {
+                            return !d.empty;
+                        })
+                        .x(function (d) {
+                            return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                        })
+                        .y(function (d) {
+                            return isRawMetric(d) ? yScale(d.value) : yScale(d.max);
+                        }),
+                    lowLine = d3.svg.line()
+                        .interpolate("linear")
+                        .defined(function (d) {
+                            return !d.empty;
+                        })
+                        .x(function (d) {
+                            return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                        })
+                        .y(function (d) {
+                            return isRawMetric(d) ? yScale(d.value) : yScale(d.min);
+                        });
+
+                // Bar avg line
+                svg.append("path")
+                    .datum(chartData)
+                    .attr("class", "avgLine")
+                    .attr("d", avgLine);
+
+                svg.append("path")
+                    .datum(chartData)
+                    .attr("class", "highLine")
+                    .attr("d", highLine);
+
+                svg.append("path")
+                    .datum(chartData)
+                    .attr("class", "lowLine")
+                    .attr("d", lowLine);
+
+            }
+
             function createYAxisGridLines() {
                 // create the y axis grid lines
                 svg.append("g").classed("grid y_grid", true)
@@ -536,9 +591,9 @@ angular.module('rhqm.directives')
 
                 function brushEnd() {
                     var extent = brush.extent(),
-                    startTime = Math.round(extent[0].getTime()),
-                    endTime = Math.round(extent[1].getTime()),
-                    dragSelectionDelta = endTime - startTime >= 60000;
+                        startTime = Math.round(extent[0].getTime()),
+                        endTime = Math.round(extent[1].getTime()),
+                        dragSelectionDelta = endTime - startTime >= 60000;
 
                     svg.classed("selecting", !d3.event.target.empty());
                     // ignore range selections less than 1 minute
@@ -549,7 +604,7 @@ angular.module('rhqm.directives')
 
             }
 
-            function createPreviousRangeOverlay(prevRangeData){
+            function createPreviousRangeOverlay(prevRangeData) {
                 console.debug("Running PreviousRangeOverlay");
                 var showBarAvgTrendline = true,
                     prevRangeLine = d3.svg.line()
@@ -579,7 +634,7 @@ angular.module('rhqm.directives')
             }
 
             scope.$watch('data', function (newData) {
-                if (angular.isDefined(newData)) {
+                if (angular.isDefined(newData) && newData.length > 0) {
                     processedNewData = angular.fromJson(newData);
                     return scope.render(processedNewData, processedPreviousRangeData);
                 }
@@ -587,7 +642,7 @@ angular.module('rhqm.directives')
 
             scope.$watch('previousRangeData', function (newPreviousRangeValues) {
                 console.debug("Previous Range data changed");
-                if (angular.isDefined(newPreviousRangeValues)) {
+                if (angular.isDefined(newPreviousRangeValues) && newPreviousRangeValues.length > 0) {
                     processedPreviousRangeData = angular.fromJson(newPreviousRangeValues);
                     console.debug("ReRender with Prev Range data");
                     scope.render(processedNewData, processedPreviousRangeData);
@@ -602,7 +657,7 @@ angular.module('rhqm.directives')
                         dataSubset.push(value);
                     }
                 });
-                scope.render(dataSubset,null);
+                scope.render(dataSubset, null);
             });
 
 
@@ -613,12 +668,17 @@ angular.module('rhqm.directives')
                     determineScale(dataPoints);
                     createHeader(attributes.chartTitle);
                     createYAxisGridLines();
-                    if(allowDragDateSelections){
+                    if (allowDragDateSelections) {
                         console.debug("Allowing DragDateSelections");
                         createXAxisBrush();
                     }
-                    createStackedBars(lowBound, highBound);
-                    if(angular.isDefined(previousRangeDataPoints)){
+                    if (chartType === 'bar') {
+                        createStackedBars(lowBound, highBound);
+                    } else {
+                        createLineChart();
+
+                    }
+                    if (angular.isDefined(previousRangeDataPoints)) {
                         createPreviousRangeOverlay(previousRangeDataPoints);
                     }
                     createXandYAxes();
@@ -635,6 +695,7 @@ angular.module('rhqm.directives')
                 data: '@',
                 previousRangeData: '@',
                 chartHeight: '@',
+                chartType: '@',
                 yAxisUnits: '@',
                 buttonbarDatetimeFormat: '@',
                 timeLabel: '@',
