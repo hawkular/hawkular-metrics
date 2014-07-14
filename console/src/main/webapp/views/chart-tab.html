@@ -96,6 +96,21 @@
 
         <!--<relative-time-range-button-bar start-time-stamp="vm.chartParams.startTimestamp" end-time-stamp="chartParms.endTimeStamp"></relative-time-range-button-bar>-->
 
+        <div class="form-group">
+
+            <div class="col-sm-10">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-default"
+                            ng-model="vm.chartParams.chartType" btn-radio="value"
+                            ng-repeat="value in vm.chartParams.chartTypes"
+                            >{{value}}
+                    </button>
+                </div>
+
+            </div>
+            <div class="col-sm-2">
+            </div>
+        </div>
 
 
         <div id="stackedBarChart" style="height:270px">
@@ -108,7 +123,7 @@
                     chart-height="250"></rhqm-stacked-bar-chart>
         </div>
 
-        <div>
+        <div style="margin-top: 30px;">
             <button class="btn btn-sm" ng-click="vm.showPreviousTimeRange()" style="margin-left:90px;"
                     ng-show="vm.chartData.dataPoints.length > 0">&lt;&lt; Prev.
             </button>
@@ -121,19 +136,14 @@
         <button class="btn btn-sm" ng-click="vm.toggleTable()" ng-show="vm.chartData.dataPoints.length > 0">
             {{vm.chartParams.tableButtonLabel}}
         </button>
-        <button class="btn btn-sm" ng-click="vm.togglePreviousRangeDataOverlay()" ng-show="vm.chartData.dataPoints.length > 0">
+        <button class="btn btn-sm" ng-click="vm.togglePreviousRangeDataOverlay()"
+                ng-show="vm.chartData.dataPoints.length > 0">
             Overlay Previous Range
         </button>
-        <div class="form-group">
-            <label class="col-sm-2 control-label">Chart Type:</label>
 
-            <div class="col-sm-5">
-                <select ng-model="vm.chartParams.chartType"
-                        ng-options="value for value in vm.chartParams.chartTypes"></select>
-            </div>
-            <div class="col-sm-2">
-            </div>
-        </div>
+
+
+
 
         <div collapse="vm.chartParams.collapseTable" ng-show="vm.chartData.dataPoints.length > 0">
             <h4>Data Points: {{vm.chartData.dataPoints.length}}</h4>

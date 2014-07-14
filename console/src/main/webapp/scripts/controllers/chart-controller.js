@@ -126,7 +126,7 @@ angular.module('chartingApp')
             metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp)
                 .success(function (response) {
                     // we want to isolate the response from the data we are feeding to the chart
-                    $rootScope.bucketedDataPoints = formatBucketizedOutput(response);
+                    $rootScope.bucketedDataPoints = formatBucketedOutput(response);
 
                     if ($rootScope.bucketedDataPoints.length !== 0) {
 
@@ -151,7 +151,7 @@ angular.module('chartingApp')
                 });
         };
 
-        function formatBucketizedOutput(response) {
+        function formatBucketedOutput(response) {
             //  The schema is different for bucketized output
             return _.map(response, function (point) {
                 return {
@@ -182,7 +182,7 @@ angular.module('chartingApp')
             metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, previousTimeRange[0], previousTimeRange[1])
                 .success(function (response) {
                     // we want to isolate the response from the data we are feeding to the chart
-                    var prevTimeRangeBucketizedDataPoints = formatPreviousBucketizedOutput(response);
+                    var prevTimeRangeBucketizedDataPoints = formatPreviousBucketedOutput(response);
 
                     if (angular.isDefined(prevTimeRangeBucketizedDataPoints) && prevTimeRangeBucketizedDataPoints.length !== 0) {
 
@@ -208,7 +208,7 @@ angular.module('chartingApp')
                 });
         }
 
-        function formatPreviousBucketizedOutput(response) {
+        function formatPreviousBucketedOutput(response) {
             //  The schema is different for bucketized output
             var mappedNew = _.map(response, function (point, i) {
                 return {
@@ -224,32 +224,5 @@ angular.module('chartingApp')
             return mappedNew;
         }
 
-//        function formatForNvD3(dataPoints) {
-//
-//            // do this for nvd3
-//            var nvd3ValuesArray = [];
-//            dataPoints.forEach(function (myPoint) {
-//                nvd3ValuesArray.push(new Array(myPoint.timestamp, myPoint.value));
-//            });
-//
-//            var nvd3Data = {
-//                "key": "Metrics",
-//                "values": nvd3ValuesArray
-//            };
-//
-//            return nvd3Data;
-//
-//        }
-//
-//        function formatForRickshaw(dataPoints) {
-//
-//            var rickshawData = $.map(dataPoints, function (point) {
-//                return {
-//                    "x": point.timestamp,
-//                    "y": point.value,
-//                };
-//            });
-//            return rickshawData;
-//        }
 
     }]);
