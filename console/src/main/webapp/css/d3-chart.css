@@ -100,6 +100,7 @@ svg {
 
 }
 
+/* Bar Chart */
 rect.high {
     fill: #1794bc;
 }
@@ -150,6 +151,7 @@ rect.low {
     fill: #003168;
 }
 
+/* Tooltip */
 .d3-tip {
     line-height: 1;
     font-weight: bold;
@@ -192,6 +194,7 @@ rect.low {
     color: #d3d3d3;
 }
 
+/* Area Chart */
 .highArea {
     fill: red;
     opacity: 0.3;
@@ -211,6 +214,26 @@ rect.low {
     opacity: 0.2;
     stroke-width: 2;
     stroke: #9b9c0e;
+}
+
+
+/* Scatter chart */
+.highDot {
+    fill: #ff1a13;
+    stroke-width: 1;
+    stroke: black;
+}
+
+.avgDot {
+    fill: gray;
+    stroke-width: 1;
+    stroke: black;
+}
+
+.lowDot {
+    fill: #70c4e2;
+    stroke-width: 1;
+    stroke: black;
 }
 
 

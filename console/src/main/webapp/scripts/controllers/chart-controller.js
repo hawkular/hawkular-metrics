@@ -22,8 +22,8 @@ angular.module('chartingApp')
             collapseTable: true,
             showPreviousRangeDataOverlay: true,
             tableButtonLabel: "Show Table",
-            chartType: "bar",
-            chartTypes:  ["bar","line", "area"]
+            chartType: "scatter",
+            chartTypes:  ["bar","line", "area","scatter"]
         };
 
         vm.dateTimeRanges = [
