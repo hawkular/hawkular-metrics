@@ -11,7 +11,6 @@ angular.module('rhqm.directives')
     .directive('rhqmStackedBarChart', function () {
         var chartTypes = ['bar', 'line', 'area'];
 
-
         function link(scope, element, attributes) {
 
             var dataPoints,
@@ -648,6 +647,13 @@ angular.module('rhqm.directives')
                     scope.render(processedNewData, processedPreviousRangeData);
                 }
             }, true);
+
+            scope.$watch('chartType', function (newData) {
+                if (angular.isDefined(newData) && newData.length > 0) {
+                    chartType = newData;
+                    scope.render(processedNewData, processedPreviousRangeData);
+                }
+            });
 
             scope.$on("DateRangeChanged", function (event, extent) {
                 console.debug("Handling DateRangeChanged Fired Chart Directive: " + extent[0] + " --> " + extent[1]);
