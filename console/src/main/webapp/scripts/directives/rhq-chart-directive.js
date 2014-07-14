@@ -492,21 +492,21 @@ angular.module('rhqm.directives')
 
             function createAreaChart() {
                 var highArea = d3.svg.area()
-                    .interpolate("linear")
-                    .defined(function (d) {
-                        return !d.empty;
-                    })
-                    .x(function (d) {
-                        return timeScale(d.timestamp) + (calcBarWidth() / 2);
-                    })
-                    .y(function (d) {
-                        return isRawMetric(d) ? yScale(d.value) : yScale(d.max);
-                    })
-                    .y0(function (d) {
+                        .interpolate("linear")
+                        .defined(function (d) {
+                            return !d.empty;
+                        })
+                        .x(function (d) {
+                            return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                        })
+                        .y(function (d) {
+                            return isRawMetric(d) ? yScale(d.value) : yScale(d.max);
+                        })
+                        .y0(function (d) {
                             return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
-                    }),
+                        }),
 
-                avgArea = d3.svg.area()
+                    avgArea = d3.svg.area()
                         .interpolate("linear")
                         .defined(function (d) {
                             return !d.empty;
@@ -518,7 +518,7 @@ angular.module('rhqm.directives')
                             return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
                         }).
                         y0(function (d) {
-                        return isRawMetric(d) ? yScale(d.value) : yScale(d.min);
+                            return isRawMetric(d) ? yScale(d.value) : yScale(d.min);
                         }),
 
                     lowArea = d3.svg.area()
@@ -553,6 +553,54 @@ angular.module('rhqm.directives')
                     .attr("d", lowArea);
 
             }
+
+            function createScatterChart() {
+                svg.selectAll(".highDot")
+                    .data(chartData)
+                    .enter().append("circle")
+                    .attr("class", "highDot")
+                    .attr("r", 3)
+                    .attr("cx", function (d) {
+                        return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                    })
+                    .attr("cy", function (d) {
+                        return isRawMetric(d) ? yScale(d.value) : yScale(d.max);
+                    })
+                    .style("fill", function (d) {
+                        return "#ff1a13";
+                    });
+
+                svg.selectAll(".avgDot")
+                    .data(chartData)
+                    .enter().append("circle")
+                    .attr("class", "avgDot")
+                    .attr("r", 3)
+                    .attr("cx", function (d) {
+                        return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                    })
+                    .attr("cy", function (d) {
+                        return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
+                    })
+                    .style("fill", function (d) {
+                        return "#FFF";
+                    });
+
+                svg.selectAll(".lowDot")
+                    .data(chartData)
+                    .enter().append("circle")
+                    .attr("class", "lowDot")
+                    .attr("r", 3)
+                    .attr("cx", function (d) {
+                        return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                    })
+                    .attr("cy", function (d) {
+                        return isRawMetric(d) ? yScale(d.value) : yScale(d.min);
+                    })
+                    .style("fill", function (d) {
+                        return "#70c4e2";
+                    });
+            }
+
 
             function createYAxisGridLines() {
                 // create the y axis grid lines
@@ -749,6 +797,8 @@ angular.module('rhqm.directives')
                         createLineChart();
                     } else if (chartType === 'area') {
                         createAreaChart();
+                    } else if (chartType === 'scatter') {
+                        createScatterChart();
                     } else {
                         console.warn("chart-type is not valid. Must be in [bar,area,line]");
                     }
