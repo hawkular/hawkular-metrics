@@ -490,6 +490,70 @@ angular.module('rhqm.directives')
 
             }
 
+            function createAreaChart() {
+                var highArea = d3.svg.area()
+                    .interpolate("linear")
+                    .defined(function (d) {
+                        return !d.empty;
+                    })
+                    .x(function (d) {
+                        return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                    })
+                    .y(function (d) {
+                        return isRawMetric(d) ? yScale(d.value) : yScale(d.max);
+                    })
+                    .y0(function (d) {
+                            return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
+                    }),
+
+                avgArea = d3.svg.area()
+                        .interpolate("linear")
+                        .defined(function (d) {
+                            return !d.empty;
+                        })
+                        .x(function (d) {
+                            return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                        })
+                        .y(function (d) {
+                            return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
+                        }).
+                        y0(function (d) {
+                        return isRawMetric(d) ? yScale(d.value) : yScale(d.min);
+                        }),
+
+                    lowArea = d3.svg.area()
+                        .interpolate("linear")
+                        .defined(function (d) {
+                            return !d.empty;
+                        })
+                        .x(function (d) {
+                            return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                        })
+                        .y(function (d) {
+                            return isRawMetric(d) ? yScale(d.value) : yScale(d.min);
+                        })
+                        .y0(function (d) {
+                            return height;
+                        });
+
+                // Bar avg line
+                svg.append("path")
+                    .datum(chartData)
+                    .attr("class", "avgArea")
+                    .attr("d", avgArea);
+
+                svg.append("path")
+                    .datum(chartData)
+                    .attr("class", "highArea")
+                    .attr("d", highArea);
+
+                svg.append("path")
+                    .datum(chartData)
+                    .attr("class", "lowArea")
+                    .attr("d", lowArea);
+
+            }
+
             function createYAxisGridLines() {
                 // create the y axis grid lines
                 svg.append("g").classed("grid y_grid", true)
@@ -678,12 +742,17 @@ angular.module('rhqm.directives')
                         console.debug("Allowing DragDateSelections");
                         createXAxisBrush();
                     }
+
                     if (chartType === 'bar') {
                         createStackedBars(lowBound, highBound);
-                    } else {
+                    } else if (chartType === 'line') {
                         createLineChart();
-
+                    } else if (chartType === 'area') {
+                        createAreaChart();
+                    } else {
+                        console.warn("chart-type is not valid. Must be in [bar,area,line]");
                     }
+
                     if (angular.isDefined(previousRangeDataPoints)) {
                         createPreviousRangeOverlay(previousRangeDataPoints);
                     }
@@ -726,4 +795,6 @@ angular.module('rhqm.directives')
                 allowDragDateSelections: '@',
                 chartTitle: '@'}
         };
-    });
+    }
+)
+;

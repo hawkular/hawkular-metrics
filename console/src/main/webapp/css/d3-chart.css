@@ -192,4 +192,25 @@ rect.low {
     color: #d3d3d3;
 }
 
+.highArea {
+    fill: red;
+    opacity: 0.3;
+    stroke-width: 2;
+    stroke: darkgray;
+}
+
+.avgArea {
+    fill: orange;
+    opacity: 0.4;
+    stroke-width: 2;
+    stroke: rgba(255, 93, 7, 0.99);
+}
+
+.lowArea {
+    fill: #fdff80;
+    opacity: 0.2;
+    stroke-width: 2;
+    stroke: #9b9c0e;
+}
+
 
