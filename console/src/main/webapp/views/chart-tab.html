@@ -96,12 +96,14 @@
 
         <!--<relative-time-range-button-bar start-time-stamp="vm.chartParams.startTimestamp" end-time-stamp="chartParms.endTimeStamp"></relative-time-range-button-bar>-->
 
+
+
         <div id="stackedBarChart" style="height:270px">
             <!-- HINT: colors for the chart can be changed in the d3-chart.css -->
             <rhqm-stacked-bar-chart
                     data="{{vm.chartData.dataPoints}}"
                     previous-range-data="{{vm.chartData.prevDataPoints}}"
-                    chart-type="line"
+                    chart-type="{{vm.chartParams.chartType}}"
                     chart-title="{{'Metrics Id: '+vm.chartParams.searchId}}"
                     chart-height="250"></rhqm-stacked-bar-chart>
         </div>
@@ -122,6 +124,16 @@
         <button class="btn btn-sm" ng-click="vm.togglePreviousRangeDataOverlay()" ng-show="vm.chartData.dataPoints.length > 0">
             Overlay Previous Range
         </button>
+        <div class="form-group">
+            <label class="col-sm-2 control-label">Chart Type:</label>
+
+            <div class="col-sm-5">
+                <select ng-model="vm.chartParams.chartType"
+                        ng-options="value for value in vm.chartParams.chartTypes"></select>
+            </div>
+            <div class="col-sm-2">
+            </div>
+        </div>
 
         <div collapse="vm.chartParams.collapseTable" ng-show="vm.chartData.dataPoints.length > 0">
             <h4>Data Points: {{vm.chartData.dataPoints.length}}</h4>
