@@ -20,10 +20,10 @@ angular.module('chartingApp')
             dateRange: moment().subtract('hours', 24).from(moment(), true),
             updateEndTimeStampToNow: false,
             collapseTable: true,
-            showPreviousRangeDataOverlay: true,
             tableButtonLabel: "Show Table",
             showAvgLine: true,
-            chartType: "scatter",
+            showPreviousRangeDataOverlay: false,
+            chartType: "bar",
             chartTypes:  ["bar","line", "area","scatter"]
         };
 
@@ -118,14 +118,6 @@ angular.module('chartingApp')
             }
         };
 
-//        vm.toggleShowAvgLine = function () {
-//            vm.chartParams.showAvgLine = !vm.chartParams.showAvgLine;
-//            if (vm.chartParams.showAvgLine) {
-//                vm.chartParams.tableButtonLabel = "Show Table";
-//            } else {
-//                vm.chartParams.tableButtonLabel = "Hide Table";
-//            }
-//        };
 
         $scope.$on('$destroy', function () {
             $interval.cancel(updateLastTimeStampToNowPromise);
@@ -176,7 +168,7 @@ angular.module('chartingApp')
         }
 
         vm.togglePreviousRangeDataOverlay = function () {
-            vm.chartParams.showPreviousRangeDataOverlay = !vm.chartParams.showPreviousRangeDataOverlay;
+            //vm.chartParams.showPreviousRangeDataOverlay = !vm.chartParams.showPreviousRangeDataOverlay;
             if(vm.chartParams.showPreviousRangeDataOverlay){
                 vm.chartData.prevDataPoints = [];
             } else {
