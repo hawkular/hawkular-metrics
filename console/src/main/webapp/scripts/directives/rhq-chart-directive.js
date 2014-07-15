@@ -9,7 +9,6 @@
  */
 angular.module('rhqm.directives')
     .directive('rhqmStackedBarChart', function () {
-        var chartTypes = ['bar', 'line', 'area'];
 
         function link(scope, element, attributes) {
 
@@ -34,6 +33,7 @@ angular.module('rhqm.directives')
                 leaderBarColor = attributes.leaderBarColor || "#d3d3d6",
                 rawValueBarColor = attributes.rawValueBarColor || "#50505a",
                 avgLineColor = attributes.avgLineColor || "#2e376a",
+                showAvgLine = true,
                 chartHoverDateFormat = attributes.chartHoverDateFormat || "%m/%d/%y",
                 chartHoverTimeFormat = attributes.chartHoverTimeFormat || "%I:%M:%S %p",
                 allowDragDateSelections = attributes.allowDragDateSelections || true,
@@ -767,6 +767,13 @@ angular.module('rhqm.directives')
                 }
             });
 
+            scope.$watch('showAvgLine', function (newData) {
+                if (angular.isDefined(newData) && newData.length > 0) {
+                    showAvgLine = newData;
+                    scope.render(processedNewData, processedPreviousRangeData);
+                }
+            });
+
             scope.$on("DateRangeChanged", function (event, extent) {
                 console.debug("Handling DateRangeChanged Fired Chart Directive: " + extent[0] + " --> " + extent[1]);
                 var dataSubset = [], dataPoints = angular.fromJson(attributes.data);
@@ -780,14 +787,13 @@ angular.module('rhqm.directives')
 
 
             scope.render = function (dataPoints, previousRangeDataPoints) {
-                console.debug("Render");
                 if (angular.isDefined(dataPoints)) {
+                    console.debug("Render");
                     oneTimeChartSetup();
                     determineScale(dataPoints);
                     createHeader(attributes.chartTitle);
                     createYAxisGridLines();
                     if (allowDragDateSelections) {
-                        console.debug("Allowing DragDateSelections");
                         createXAxisBrush();
                     }
 
@@ -807,7 +813,9 @@ angular.module('rhqm.directives')
                         createPreviousRangeOverlay(previousRangeDataPoints);
                     }
                     createXandYAxes();
-                    createAvgLines();
+                    if (showAvgLine === 'true') {
+                        createAvgLines();
+                    }
                 }
             };
         }
@@ -842,6 +850,7 @@ angular.module('rhqm.directives')
                 leaderBarColor: '@',
                 rawValueBarColor: '@',
                 avgLineColor: '@',
+                showAvgLine: '@',
                 allowDragDateSelections: '@',
                 chartTitle: '@'}
         };

@@ -22,6 +22,7 @@ angular.module('chartingApp')
             collapseTable: true,
             showPreviousRangeDataOverlay: true,
             tableButtonLabel: "Show Table",
+            showAvgLine: true,
             chartType: "scatter",
             chartTypes:  ["bar","line", "area","scatter"]
         };
@@ -117,6 +118,15 @@ angular.module('chartingApp')
             }
         };
 
+//        vm.toggleShowAvgLine = function () {
+//            vm.chartParams.showAvgLine = !vm.chartParams.showAvgLine;
+//            if (vm.chartParams.showAvgLine) {
+//                vm.chartParams.tableButtonLabel = "Show Table";
+//            } else {
+//                vm.chartParams.tableButtonLabel = "Hide Table";
+//            }
+//        };
+
         $scope.$on('$destroy', function () {
             $interval.cancel(updateLastTimeStampToNowPromise);
         });
@@ -136,8 +146,6 @@ angular.module('chartingApp')
                             startTimeStamp: vm.chartParams.startTimeStamp,
                             endTimeStamp: vm.chartParams.endTimeStamp,
                             dataPoints: $rootScope.bucketedDataPoints
-                            //nvd3DataPoints: formatForNvD3(response),
-                            //rickshawDataPoints: formatForRickshaw(response)
                         };
 
                     } else {

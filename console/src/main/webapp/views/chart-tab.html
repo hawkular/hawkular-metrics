@@ -96,7 +96,7 @@
 
         <!--<relative-time-range-button-bar start-time-stamp="vm.chartParams.startTimestamp" end-time-stamp="chartParms.endTimeStamp"></relative-time-range-button-bar>-->
 
-        <div class="form-group">
+        <div class="form-group" ng-show="vm.chartData.dataPoints.length > 0">
 
             <div class="col-sm-10">
                 <div class="btn-group">
@@ -119,6 +119,7 @@
                     data="{{vm.chartData.dataPoints}}"
                     previous-range-data="{{vm.chartData.prevDataPoints}}"
                     chart-type="{{vm.chartParams.chartType}}"
+                    show-avg-line="{{vm.chartParams.showAvgLine}}"
                     chart-title="{{'Metrics Id: '+vm.chartParams.searchId}}"
                     chart-height="250"></rhqm-stacked-bar-chart>
         </div>
@@ -136,14 +137,18 @@
         <button class="btn btn-sm" ng-click="vm.toggleTable()" ng-show="vm.chartData.dataPoints.length > 0">
             {{vm.chartParams.tableButtonLabel}}
         </button>
+
+        <button type="button" class="btn btn-sm" ng-model="vm.chartParams.showAvgLine"
+                ng-show="vm.chartData.dataPoints.length > 0"
+                btn-checkbox btn-checkbox-true="true" btn-checkbox-false="false">
+           Show Avg. Line
+        </button>
+
+
         <button class="btn btn-sm" ng-click="vm.togglePreviousRangeDataOverlay()"
                 ng-show="vm.chartData.dataPoints.length > 0">
             Overlay Previous Range
         </button>
-
-
-
-
 
         <div collapse="vm.chartParams.collapseTable" ng-show="vm.chartData.dataPoints.length > 0">
             <h4>Data Points: {{vm.chartData.dataPoints.length}}</h4>
