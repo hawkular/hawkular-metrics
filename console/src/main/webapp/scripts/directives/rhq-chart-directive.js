@@ -755,7 +755,6 @@ angular.module('rhqm.directives')
                 console.debug("Previous Range data changed");
                 if (angular.isDefined(newPreviousRangeValues) && newPreviousRangeValues.length > 0) {
                     processedPreviousRangeData = angular.fromJson(newPreviousRangeValues);
-                    console.debug("ReRender with Prev Range data");
                     scope.render(processedNewData, processedPreviousRangeData);
                 }
             }, true);
@@ -774,15 +773,15 @@ angular.module('rhqm.directives')
                 }
             });
 
-            scope.$on("DateRangeChanged", function (event, extent) {
-                console.debug("Handling DateRangeChanged Fired Chart Directive: " + extent[0] + " --> " + extent[1]);
+            scope.$on("DateRangeDragChanged", function (event, extent) {
+                console.debug("Handling DateRangeDragChanged Fired Chart Directive: " + extent[0] + " --> " + extent[1]);
                 var dataSubset = [], dataPoints = angular.fromJson(attributes.data);
                 angular.forEach(dataPoints, function (value) {
                     if (value.timestamp >= extent[0].getTime() && value.timestamp <= extent[1].getTime()) {
                         dataSubset.push(value);
                     }
                 });
-                scope.render(dataSubset, null);
+                scope.$emit('GraphTimeRangeChangedEvent', dataSubset);
             });
 
 
