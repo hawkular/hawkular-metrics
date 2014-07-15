@@ -19,36 +19,27 @@ angular.module('rhqm.directives')
                 ];
 
                 $scope.dateTimeRangeButtonBarModel = {
-                    graphTimeRangeSelection:  '8h'// also sets the default range value
+                    graphTimeRangeSelection: '1d'// also sets the default range value
                 };
 
 
-                $scope.startDateTime = moment().subtract('hours', 8).toDate();
-                $scope.endDateTime = new Date();
+                $scope.$watch('dateTimeRangeButtonBarModel.graphTimeRangeSelection', function (newValue, oldValue) {
+                    var startDateMoment,
+                        endDateMoment,
+                        startEndArray = [];
+                    endDateMoment = moment();
+                    for (var i = 0; i < $scope.dateTimeRanges.length; i++) {
+                        var dateTimeRange = $scope.dateTimeRanges[i];
+                        if (dateTimeRange.range === $scope.dateTimeRangeButtonBarModel.graphTimeRangeSelection) {
+                            startDateMoment = endDateMoment.subtract('seconds', dateTimeRange.rangeInSeconds);
+                            break;
+                        }
+                    }
 
-
-                $scope.handleGraphTimeRangeSelection = function () {
-                    console.debug("Button click: " + $scope.dateTimeRangeButtonBarModel.graphTimeRangeSelection);
-                    $scope.endTimeStamp = new Date();
-                    $scope.startTimeStamp = moment().subtract('seconds', $scope.dateTimeRangeButtonBarModel.graphTimeRangeSelection).toDate();
-                };
-
-//                $scope.$watch('dateTimeRangeButtonBarModel.graphTimeRangeSelection', function (newValue, oldValue) {
-//                    var startDateMoment,
-//                        endDateMoment;
-//                    $scope.$emit('graphTimeRangeChangedEvent', newValue, oldValue);
-//                    $scope.endDateTime = new Date();
-//                    endDateMoment = moment();
-//                    for (var i = 0; i < $scope.dateTimeRanges.length; i++) {
-//                        var dateTimeRange = $scope.dateTimeRanges[i];
-//                        if (dateTimeRange.range === $scope.dateTimeRangeButtonBarModel.graphTimeRangeSelection) {
-//                            console.debug('dateTimeRangeSelection in seconds: '+ dateTimeRange.rangeInSeconds);
-//                            startDateMoment = endDateMoment.subtract('seconds', dateTimeRange.rangeInSeconds);
-//                            break;
-//                        }
-//                    }
-//                    $scope.startDateTime = startDateMoment.toDate();
-//                });
+                    startEndArray.push(startDateMoment.toDate());
+                    startEndArray.push(new Date());
+                    $scope.$emit('GraphTimeRangeChangedEvent', startEndArray);
+                });
 
             },
             replace: true,
