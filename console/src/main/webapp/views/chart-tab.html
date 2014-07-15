@@ -94,98 +94,100 @@
             </form>
         </div>
 
-        <!--<relative-time-range-button-bar start-time-stamp="vm.chartParams.startTimestamp" end-time-stamp="chartParms.endTimeStamp"></relative-time-range-button-bar>-->
+        <div ng-show="vm.chartData.dataPoints.length > 2">
+
+            <div class="well well-sm" style="margin-right:10px">
+                <div class="row">
+                    <div class="col-md-12">
+                        <relative-time-range-button-bar start-time-stamp="vm.chartParams.startTimestamp"
+                                                        end-time-stamp="chartParms.endTimeStamp"></relative-time-range-button-bar>
+
+                    </div>
+                </div>
+            </div>
+
+            <div id="stackedBarChart" style="height:270px">
+                <!-- HINT: colors for the chart can be changed in the d3-chart.css -->
+                <rhqm-stacked-bar-chart
+                        data="{{vm.chartData.dataPoints}}"
+                        previous-range-data="{{vm.chartData.prevDataPoints}}"
+                        chart-type="{{vm.chartParams.chartType}}"
+                        show-avg-line="{{vm.chartParams.showAvgLine}}"
+                        chart-title="{{'Metrics Id: '+vm.chartParams.searchId}}"
+                        chart-height="250"></rhqm-stacked-bar-chart>
+            </div>
+
+            <div style="margin-top: 30px;">
+                <button class="btn btn-sm" ng-click="vm.showPreviousTimeRange()" style="margin-left:90px;"
+                        ng-show="vm.chartData.dataPoints.length > 2">&lt;&lt; Prev.
+                </button>
+                <button class="btn btn-sm" style="float:right;margin-right: 90px;" ng-click="vm.showNextTimeRange()"
+                        ng-show="vm.chartData.dataPoints.length > 2" ng-disabled="!vm.hasNext();">Next &gt;&gt;</button>
+            </div>
+            <br/>
+            <br/>
+
+            <div class="form-group">
+
+                <label class="col-sm-2 control-label">Chart Type:</label>
+
+                <div class="col-sm-10">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-primary btn-sm"
+                                ng-model="vm.chartParams.chartType" btn-radio="value"
+                                ng-repeat="value in vm.chartParams.chartTypes"
+                                >{{value}}
+                        </button>
+                    </div>
+                </div>
+
+            </div>
 
 
-        <div id="stackedBarChart" style="height:270px">
-            <!-- HINT: colors for the chart can be changed in the d3-chart.css -->
-            <rhqm-stacked-bar-chart
-                    data="{{vm.chartData.dataPoints}}"
-                    previous-range-data="{{vm.chartData.prevDataPoints}}"
-                    chart-type="{{vm.chartParams.chartType}}"
-                    show-avg-line="{{vm.chartParams.showAvgLine}}"
-                    chart-title="{{'Metrics Id: '+vm.chartParams.searchId}}"
-                    chart-height="250"></rhqm-stacked-bar-chart>
-        </div>
+            <div class="form-group" style="margin-top: 15px;">
+                <label class="col-sm-2 control-label">Features:</label>
 
-        <div style="margin-top: 30px;">
-            <button class="btn btn-sm" ng-click="vm.showPreviousTimeRange()" style="margin-left:90px;"
-                    ng-show="vm.chartData.dataPoints.length > 0">&lt;&lt; Prev.
+                <div class="col-sm-10">
+                    <div class="btn-group">
+                        <label class="btn btn-primary btn-sm" ng-model="vm.chartParams.showAvgLine" btn-checkbox>Show
+                            Avg.
+                            Line</label>
+                        <label class="btn btn-primary btn-sm" ng-model="vm.chartParams.showPreviousRangeDataOverlay"
+                               btn-checkbox
+                               ng-click="vm.togglePreviousRangeDataOverlay()">Overlay Prev. Range</label>
+                    </div>
+
+                </div>
+            </div>
+
+            <button class="btn btn-sm" ng-click="vm.toggleTable()">
+                {{vm.chartParams.tableButtonLabel}}
             </button>
-            <button class="btn btn-sm" style="float:right;margin-right: 90px;" ng-click="vm.showNextTimeRange()"
-                    ng-show="vm.chartData.dataPoints.length > 0" ng-disabled="!vm.hasNext();">Next &gt;&gt;</button>
-        </div>
-        <br/>
-        <br/>
 
-        <div class="form-group" ng-show="vm.chartData.dataPoints.length > 0">
 
-            <label class="col-sm-2 control-label">Chart Type:</label>
+            <div collapse="vm.chartParams.collapseTable">
+                <h4>Data Points: {{vm.chartData.dataPoints.length}}</h4>
+                <table class="table table-hover" style="width:500px;">
+                    <thead>
+                    <tr>
+                        <th> Time</th>
+                        <th> Avg</th>
+                        <th> Min</th>
+                        <th> Max</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr ng-repeat="chartPoint in vm.chartData.dataPoints | orderBy:timestamp:true">
+                        <td>{{chartPoint.date | date: 'medium'}}</td>
+                        <td>{{chartPoint.avg|number:2}}</td>
+                        <td>{{chartPoint.min|number:2}}</td>
+                        <td>{{chartPoint.max|number:2}}</td>
+                    </tr>
 
-            <div class="col-sm-10">
-                <div class="btn-group">
-                    <button type="button" class="btn btn-primary btn-sm"
-                            ng-model="vm.chartParams.chartType" btn-radio="value"
-                            ng-repeat="value in vm.chartParams.chartTypes"
-                            >{{value}}
-                    </button>
-                </div>
+                    </tbody>
+
+                </table>
             </div>
-
-        </div>
-
-
-        <div class="form-group" ng-show="vm.chartData.dataPoints.length > 0" style="margin-top: 15px;">
-            <label class="col-sm-2 control-label">Features:</label>
-
-            <div class="col-sm-10">
-                <div class="btn-group" ng-show="vm.chartData.dataPoints.length > 0">
-                    <label class="btn btn-primary btn-sm" ng-model="vm.chartParams.showAvgLine" btn-checkbox>Show Avg.
-                        Line</label>
-                    <label class="btn btn-primary btn-sm" ng-model="vm.chartParams.showPreviousRangeDataOverlay" btn-checkbox
-                           ng-click="vm.togglePreviousRangeDataOverlay()">Overlay Prev. Range</label>
-                </div>
-
-            </div>
-        </div>
-
-        <button class="btn btn-sm" ng-click="vm.toggleTable()" ng-show="vm.chartData.dataPoints.length > 0">
-            {{vm.chartParams.tableButtonLabel}}
-        </button>
-
-        <!--<button type="button" class="btn btn-sm" ng-model="vm.chartParams.showAvgLine"-->
-        <!--ng-show="vm.chartData.dataPoints.length > 0" btn-checkbox >-->
-        <!--Show Avg. Line-->
-        <!--</button>-->
-
-
-        <!--<button class="btn btn-sm" ng-click="vm.togglePreviousRangeDataOverlay()"-->
-        <!--ng-show="vm.chartData.dataPoints.length > 0">-->
-        <!--Overlay Previous Range-->
-        <!--</button>-->
-
-        <div collapse="vm.chartParams.collapseTable" ng-show="vm.chartData.dataPoints.length > 0">
-            <h4>Data Points: {{vm.chartData.dataPoints.length}}</h4>
-            <table class="table table-hover" style="width:500px;">
-                <thead>
-                <tr>
-                    <th> Time</th>
-                    <th> Avg</th>
-                    <th> Min</th>
-                    <th> Max</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr ng-repeat="chartPoint in vm.chartData.dataPoints | orderBy:timestamp:true">
-                    <td>{{chartPoint.date | date: 'medium'}}</td>
-                    <td>{{chartPoint.avg|number:2}}</td>
-                    <td>{{chartPoint.min|number:2}}</td>
-                    <td>{{chartPoint.max|number:2}}</td>
-                </tr>
-
-                </tbody>
-
-            </table>
         </div>
     </div>
 </div>

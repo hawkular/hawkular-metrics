@@ -24,7 +24,7 @@ angular.module('chartingApp')
             showAvgLine: true,
             showPreviousRangeDataOverlay: false,
             chartType: "bar",
-            chartTypes:  ["bar","line", "area","scatter"]
+            chartTypes: ["bar", "line", "area", "scatter"]
         };
 
         vm.dateTimeRanges = [
@@ -39,29 +39,20 @@ angular.module('chartingApp')
             { "range": "6m", "rangeInSeconds": 6 * 30 * 24 * 60 * 60 }
         ];
 
-        $rootScope.$on("DateRangeChanged", function (event, message) {
-            $log.debug("DateRangeChanged Fired from Chart!");
-        });
-
 //        $rootScope.$on("DateRangeMove", function (event, message) {
 //            $log.debug("DateRangeMove on chart Detected.");
 //        });
 
+        $rootScope.$on("GraphTimeRangeChangedEvent", function (event, message) {
+            var timeRange = message;
 
-        vm.autoRefresh = function () {
-            vm.chartParams.updateEndTimeStampToNow = !vm.chartParams.updateEndTimeStampToNow;
-            if (vm.chartParams.updateEndTimeStampToNow) {
-                vm.refreshChartData();
-                updateLastTimeStampToNowPromise = $interval(function () {
-                    vm.chartParams.endTimeStamp = new Date();
-                    vm.refreshChartData();
-                }, 10 * 1000);
+            // set to the new published time range
+            vm.chartParams.startTimeStamp = timeRange[0];
+            vm.chartParams.endTimeStamp = timeRange[1];
+            vm.chartParams.dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
+            vm.refreshChartData();
+        });
 
-            } else {
-                $interval.cancel(updateLastTimeStampToNowPromise);
-            }
-
-        };
 
         vm.showPreviousTimeRange = function () {
             var previousTimeRange;
@@ -123,6 +114,22 @@ angular.module('chartingApp')
             $interval.cancel(updateLastTimeStampToNowPromise);
         });
 
+
+        vm.autoRefresh = function () {
+            vm.chartParams.updateEndTimeStampToNow = !vm.chartParams.updateEndTimeStampToNow;
+            if (vm.chartParams.updateEndTimeStampToNow) {
+                vm.refreshChartData();
+                updateLastTimeStampToNowPromise = $interval(function () {
+                    vm.chartParams.endTimeStamp = new Date();
+                    vm.refreshChartData();
+                }, 10 * 1000);
+
+            } else {
+                $interval.cancel(updateLastTimeStampToNowPromise);
+            }
+
+        };
+
         vm.refreshChartData = function () {
 
             metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp)
@@ -168,15 +175,14 @@ angular.module('chartingApp')
         }
 
         vm.togglePreviousRangeDataOverlay = function () {
-            //vm.chartParams.showPreviousRangeDataOverlay = !vm.chartParams.showPreviousRangeDataOverlay;
-            if(vm.chartParams.showPreviousRangeDataOverlay){
+            if (vm.chartParams.showPreviousRangeDataOverlay) {
                 vm.chartData.prevDataPoints = [];
             } else {
                 overlayPreviousRangeData();
             }
         };
 
-        function overlayPreviousRangeData () {
+        function overlayPreviousRangeData() {
             var previousTimeRange = calculatePreviousTimeRange(vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp);
 
             metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, previousTimeRange[0], previousTimeRange[1])
@@ -193,8 +199,6 @@ angular.module('chartingApp')
                             prevEndTimeStamp: previousTimeRange[1],
                             prevDataPoints: prevTimeRangeBucketizedDataPoints,
                             dataPoints: $rootScope.bucketedDataPoints
-                            //nvd3DataPoints: formatForNvD3(response),
-                            //rickshawDataPoints: formatForRickshaw(response)
                         };
 
                     } else {
