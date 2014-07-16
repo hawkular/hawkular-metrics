@@ -108,13 +108,13 @@
 
             <div id="stackedBarChart" style="height:270px">
                 <!-- HINT: colors for the chart can be changed in the d3-chart.css -->
-                <rhqm-stacked-bar-chart
+                <rhqm-chart
                         data="{{vm.chartData.dataPoints}}"
                         previous-range-data="{{vm.chartData.prevDataPoints}}"
                         chart-type="{{vm.chartParams.chartType}}"
                         show-avg-line="{{vm.chartParams.showAvgLine}}"
                         chart-title="{{'Metrics Id: '+vm.chartParams.searchId}}"
-                        chart-height="250"></rhqm-stacked-bar-chart>
+                        chart-height="250"></rhqm-chart>
             </div>
 
             <div style="margin-top: 30px;">

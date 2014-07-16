@@ -11,12 +11,12 @@ describe('Controller: ChartControllerCtrl', function () {
     // Initialize the controller and a mock scope
     beforeEach(inject(function ($controller, $rootScope) {
         scope = $rootScope.$new();
-        ChartControllerCtrl = $controller('ChartControllerCtrl', {
+        ChartControllerCtrl = $controller('ChartController', {
             $scope: scope
         });
     }));
 
-    it('should attach a list of awesomeThings to the scope', function () {
-        expect(scope.awesomeThings.length).toBe(3);
+    it('should have this variable in scope', function () {
+        expect(scope.vm.dateTimeRanges).toBeDefined();
     });
 });
