@@ -3,12 +3,12 @@
 
 /**
  * @ngdoc directive
- * @name rhqmStackedBarChart
- * @description A d3 stacked bar chart representing time intervals.
+ * @name rhqmChart
+ * @description A d3 based charting direction to provide charting using various styles of charts like: bar, area, line, scatter.
  *
  */
 angular.module('rhqm.directives')
-    .directive('rhqmStackedBarChart', function () {
+    .directive('rhqmChart', function () {
 
         function link(scope, element, attributes) {
 
@@ -775,13 +775,7 @@ angular.module('rhqm.directives')
 
             scope.$on("DateRangeDragChanged", function (event, extent) {
                 console.debug("Handling DateRangeDragChanged Fired Chart Directive: " + extent[0] + " --> " + extent[1]);
-                var dataSubset = [], dataPoints = angular.fromJson(attributes.data);
-                angular.forEach(dataPoints, function (value) {
-                    if (value.timestamp >= extent[0].getTime() && value.timestamp <= extent[1].getTime()) {
-                        dataSubset.push(value);
-                    }
-                });
-                scope.$emit('GraphTimeRangeChangedEvent', dataSubset);
+                scope.$emit('GraphTimeRangeChangedEvent', extent);
             });
 
 
