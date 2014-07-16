@@ -3,7 +3,7 @@
 describe('Directive: rhqChart', function () {
 
   // load the directive's module
-  beforeEach(module('rhqApp'));
+    beforeEach(module('chartingApp'));
 
   var element,
     scope;
@@ -12,9 +12,9 @@ describe('Directive: rhqChart', function () {
     scope = $rootScope.$new();
   }));
 
-  it('should make hidden element visible', inject(function ($compile) {
-    element = angular.element('<rhq-chart></rhq-chart>');
+    it('should have a chart element visible', inject(function ($compile) {
+        element = angular.element('<rhqm-chart></rhqm-chart>');
     element = $compile(element)(scope);
-    expect(element.text()).toBe('this is the rhqChart directive');
+        //expect(element.text()).toBeTruthy('<svg>');
   }));
 });

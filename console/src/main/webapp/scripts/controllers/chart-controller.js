@@ -130,9 +130,17 @@ angular.module('chartingApp')
 
         };
 
-        vm.refreshChartData = function () {
+        vm.refreshChartData = function (startTime, endTime) {
+            // calling refreshChartData without params use the model values
+            if (angular.isUndefined(endTime)) {
+                endTime = vm.chartParams.endTimeStamp;
+            }
+            if (angular.isUndefined(startTime)) {
+                startTime = vm.chartParams.startTimeStamp;
+            }
 
-            metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp)
+
+            metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, startTime, endTime)
                 .success(function (response) {
                     // we want to isolate the response from the data we are feeding to the chart
                     $rootScope.bucketedDataPoints = formatBucketedOutput(response);
