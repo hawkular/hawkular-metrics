@@ -1,19 +1,29 @@
 # RHQ-Metrics Console
 
+
+## Why?
+I want to start using the rhq-metrics project in my own work. How do I start?
+The console is a quick and easy way to populate and view the rhq-metrics datastore (either in-Memory or Cassandra).
+
+
 ## What does it do?
-The UI provides an easy UI way of :
+The console provides a simple UI for:
 1. Inserting/creating  data in various ways
 ![Inserts](rhq-metrics-console.png "Inserts")
 
 2. Viewing the data in the database both visually via a graph and a grid table
-![Charts](rhq-chart.png "Charts")
+![Charts](rhqm-chart.png "Charts")
 
+3. An example of the capabilities of rhq-metrics and the Angular.js charting components.
 
 ## Purpose
-This UI is a stripped down version of the forthcoming  metrics UI that will provide dashboards and insights into metric data patterns. This data explorer allows to easily insert and view data put into the rhq-metric datastore. The focus on simplicity provides an example to easily incorporate the angular directives into other applications without the complexity of a full blown management UI
-(and understanding its many accompanying libraries). Although stripped down, it is still very functional at populating a datastore and viewing its results graphically as well as a learning tool for working with the *rhq-metrics*.
+This console showcases the capabilities of rhq-metrics and the complementary UI components used to visualize the metric data in meaningful ways.
 
-_NOTE: The graphical chart components used here will be the same ones used in other more advanced scenarios._
+The console is very functional at populating a datastore and viewing its results graphically as well as a learning tool for working with the *rhq-metrics* suite.
+
+The visual UI [Angular.js](https://angularjs.org/) components provided by the rhq-metrics project are the primary deliverable of the console/UI module and are intended to be plug-n-play components for quickly creating dashboards for the rhq-metrics backend.
+
+The Angular.js components will be published as [bower](http://bower.io) packaged components(think maven repo) and published to the bower repository to be easily installed and consumed in other javascript applications.
 
 
 ## Install
@@ -40,11 +50,9 @@ Tip: Make sure that you have a rest backend running so that the UI console can c
 1. **'cd rest-servlet'**
 2. **'mvn wildfly:run'**
 
-## Javascript API documentation
-
-. To generate the jsdoc documentation for the project: **'grunt ngdocs'**
-
-. To view documentation run **'grunt ngdocs:view'** and peruse documentation at [http://localhost:8000/](http://localhost:8000/)
 
 ## More Resources
 1. Check out the RHQ charts documentation which is what the charting component is originally based on: [RHQ Charts](https://docs.jboss.org/author/display/RHQ/d3+Charts)
+2. The charting functionality is based on the [d3](http://d3js.org) javascipt library. Examples shown [here](https://github.com/mbostock/d3/wiki/Gallery)
+
+_Note: this project is very active so expect rapid changes_
