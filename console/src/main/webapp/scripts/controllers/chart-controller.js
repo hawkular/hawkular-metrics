@@ -43,8 +43,7 @@ angular.module('chartingApp')
 //            $log.debug("DateRangeMove on chart Detected.");
 //        });
 
-        $rootScope.$on("GraphTimeRangeChangedEvent", function (event, message) {
-            var timeRange = message;
+        $rootScope.$on("GraphTimeRangeChangedEvent", function (event, timeRange) {
 
             // set to the new published time range
             vm.chartParams.startTimeStamp = timeRange[0];
@@ -152,7 +151,8 @@ angular.module('chartingApp')
                             id: vm.chartParams.id,
                             startTimeStamp: vm.chartParams.startTimeStamp,
                             endTimeStamp: vm.chartParams.endTimeStamp,
-                            dataPoints: $rootScope.bucketedDataPoints
+                            dataPoints: $rootScope.bucketedDataPoints,
+                            annotationData: []
                         };
 
                     } else {
