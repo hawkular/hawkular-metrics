@@ -18,6 +18,17 @@
                     </div>
                 </div>
 
+                <div class="row">
+                    <div class="col-md-12">
+                        <relative-time-range-button-bar style="margin-left: 140px;"
+                                                        start-time-stamp="vm.chartParams.startTimestamp"
+                                                        end-time-stamp="chartParms.endTimeStamp"></relative-time-range-button-bar>
+
+                        <input type="text" style="margin-left: 20px;" ng-model="vm.chartParams.dateRange" readonly
+                               disbabled/></p>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label class="col-sm-2 control-label">Start</label>
 
@@ -65,14 +76,6 @@
 
 
                 <div class="form-group">
-                    <label class="col-sm-2 control-label">Time Period:</label>
-
-                    <div class="col-sm-6">
-                        <input type="text" ng-model="vm.chartParams.dateRange" readonly disbabled/></p>
-                    </div>
-                </div>
-
-                <div class="form-group">
                     <label class="col-sm-2 control-label"></label>
 
                     <div class="col-sm-6">
@@ -94,23 +97,13 @@
             </form>
         </div>
 
-        <div ng-show="vm.chartData.dataPoints.length > 2">
-
-            <div class="well well-sm" style="margin-right:10px">
-                <div class="row">
-                    <div class="col-md-12">
-                        <relative-time-range-button-bar start-time-stamp="vm.chartParams.startTimestamp"
-                                                        end-time-stamp="chartParms.endTimeStamp"></relative-time-range-button-bar>
-
-                    </div>
-                </div>
-            </div>
-
-            <div id="stackedBarChart" style="height:270px">
+        <div ng-show="vm.chartData.dataPoints.length > 4">
+        <div id="stackedBarChart" style="height:270px">
                 <!-- HINT: colors for the chart can be changed in the d3-chart.css -->
                 <rhqm-chart
                         data="{{vm.chartData.dataPoints}}"
                         previous-range-data="{{vm.chartData.prevDataPoints}}"
+                        annotation-data="{{vm.chartData.annotationData}}"
                         chart-type="{{vm.chartParams.chartType}}"
                         show-avg-line="{{vm.chartParams.showAvgLine}}"
                         chart-title="{{'Metrics Id: '+vm.chartParams.searchId}}"

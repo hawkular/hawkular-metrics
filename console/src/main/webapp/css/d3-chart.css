@@ -216,7 +216,6 @@ rect.low {
     stroke: #9b9c0e;
 }
 
-
 /* Scatter chart */
 .highDot {
     fill: #ff1a13;
@@ -236,4 +235,10 @@ rect.low {
     stroke: black;
 }
 
+.annotationDot {
+    fill: yellow;
+    opacity: 0.6;
+    stroke-width: 1;
+    stroke: black;
 
+}
