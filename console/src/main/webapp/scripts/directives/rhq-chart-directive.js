@@ -14,6 +14,7 @@ angular.module('rhqm.directives')
 
             var dataPoints,
                 previousRangeDataPoints,
+                annotationData = [],
                 chartHeight = +attributes.chartHeight || 250,
                 chartType = attributes.chartType || "bar",
                 timeLabel = attributes.timeLabel || "Time",
@@ -74,6 +75,7 @@ angular.module('rhqm.directives')
 
             dataPoints = attributes.data;
             previousRangeDataPoints = attributes.previousRangeData;
+            annotationData = attributes.annotationData;
 
 
             function getChartWidth() {
@@ -716,8 +718,10 @@ angular.module('rhqm.directives')
             }
 
             function createPreviousRangeOverlay(prevRangeData) {
-                console.debug("Running PreviousRangeOverlay");
                 var showBarAvgTrendline = true,
+                    prevRangeLine;
+                if (angular.isDefined(previousRangeDataPoints) && previousRangeDataPoints.length > 0) {
+                    console.debug("Running PreviousRangeOverlay");
                     prevRangeLine = d3.svg.line()
                         .interpolate("linear")
                         .defined(function (d) {
@@ -735,13 +739,40 @@ angular.module('rhqm.directives')
                             }
                         });
 
-                // Bar avg line
-                svg.append("path")
-                    .datum(prevRangeData)
-                    .attr("class", "prevRangeAvgLine")
-                    .style("stroke-dasharray", ("9,3"))
-                    .attr("d", prevRangeLine);
+                    // Bar avg line
+                    svg.append("path")
+                        .datum(prevRangeData)
+                        .attr("class", "prevRangeAvgLine")
+                        .style("stroke-dasharray", ("9,3"))
+                        .attr("d", prevRangeLine);
+                }
 
+            }
+
+            function annotateChart(annotationData) {
+                if (angular.isDefined(annotationData) && annotationData.length > 1) {
+                    console.debug("Running AnnotateChart");
+                    svg.selectAll(".annotationDot")
+                        .data(annotationData)
+                        .enter().append("circle")
+                        .attr("class", "annotationDot")
+                        .attr("r", 5)
+                        .attr("cx", function (d) {
+                            return timeScale(d.timestamp);
+                        })
+                        .attr("cy", function () {
+                            return  height - yScale(highBound);
+                        })
+                        .style("fill", function (d) {
+                            if (d.severity === '1') {
+                                return "red";
+                            } else if (d.severity === '2') {
+                                return "yellow";
+                            } else {
+                                return "white";
+                            }
+                        });
+                }
             }
 
             scope.$watch('data', function (newData) {
@@ -756,6 +787,13 @@ angular.module('rhqm.directives')
                 if (angular.isDefined(newPreviousRangeValues) && newPreviousRangeValues.length > 0) {
                     processedPreviousRangeData = angular.fromJson(newPreviousRangeValues);
                     scope.render(processedNewData, processedPreviousRangeData);
+                }
+            }, true);
+
+            scope.$watch('annotationData', function (newAnnotationData) {
+                if (angular.isDefined(newAnnotationData) && newAnnotationData.length > 0) {
+                    annotationData = angular.fromJson(newAnnotationData);
+                    return scope.render(processedNewData, processedPreviousRangeData);
                 }
             }, true);
 
@@ -780,8 +818,9 @@ angular.module('rhqm.directives')
 
 
             scope.render = function (dataPoints, previousRangeDataPoints) {
-                if (angular.isDefined(dataPoints)) {
-                    console.debug("Render");
+                if (angular.isDefined(dataPoints) && dataPoints.length > 0) {
+                    console.debug("Render Chart");
+                    //NOTE: layering order is important!
                     oneTimeChartSetup();
                     determineScale(dataPoints);
                     createHeader(attributes.chartTitle);
@@ -801,14 +840,12 @@ angular.module('rhqm.directives')
                     } else {
                         console.warn("chart-type is not valid. Must be in [bar,area,line]");
                     }
-
-                    if (angular.isDefined(previousRangeDataPoints)) {
-                        createPreviousRangeOverlay(previousRangeDataPoints);
-                    }
+                    createPreviousRangeOverlay(previousRangeDataPoints);
                     createXandYAxes();
                     if (showAvgLine === 'true') {
                         createAvgLines();
                     }
+                    annotateChart(annotationData);
                 }
             };
         }
@@ -820,6 +857,7 @@ angular.module('rhqm.directives')
             scope: {
                 data: '@',
                 previousRangeData: '@',
+                annotationData: '@',
                 chartHeight: '@',
                 chartType: '@',
                 yAxisUnits: '@',
