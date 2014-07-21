@@ -8,7 +8,7 @@
  *
  */
 angular.module('rhqm.directives', ['d3'])
-    .directive('rhqmChart', ['d3Service', function (d3service) {
+    .directive('rhqmChart', ['d3Service', '$log', function (d3service, $log) {
 
         function link(scope, element, attributes) {
 
@@ -723,7 +723,7 @@ angular.module('rhqm.directives', ['d3'])
                 var showBarAvgTrendline = true,
                     prevRangeLine;
                 if (angular.isDefined(previousRangeDataPoints) && previousRangeDataPoints.length > 0) {
-                    console.debug("Running PreviousRangeOverlay");
+                    $log.debug("Running PreviousRangeOverlay");
                     prevRangeLine = d3.svg.line()
                         .interpolate("linear")
                         .defined(function (d) {
@@ -753,7 +753,7 @@ angular.module('rhqm.directives', ['d3'])
 
             function annotateChart(annotationData) {
                 if (angular.isDefined(annotationData) && annotationData.length > 1) {
-                    console.debug("Running AnnotateChart");
+                    $log.debug("Running AnnotateChart");
                     svg.selectAll(".annotationDot")
                         .data(annotationData)
                         .enter().append("circle")
@@ -779,14 +779,15 @@ angular.module('rhqm.directives', ['d3'])
 
             scope.$watch('data', function (newData) {
                 if (angular.isDefined(newData) && newData.length > 0) {
+                    $log.debug("Data Changed");
                     processedNewData = angular.fromJson(newData);
                     return scope.render(processedNewData, processedPreviousRangeData);
                 }
             }, true);
 
             scope.$watch('previousRangeData', function (newPreviousRangeValues) {
-                console.debug("Previous Range data changed");
                 if (angular.isDefined(newPreviousRangeValues) && newPreviousRangeValues.length > 0) {
+                    $log.debug("Previous Range data changed");
                     processedPreviousRangeData = angular.fromJson(newPreviousRangeValues);
                     scope.render(processedNewData, processedPreviousRangeData);
                 }
@@ -814,14 +815,14 @@ angular.module('rhqm.directives', ['d3'])
             });
 
             scope.$on("DateRangeDragChanged", function (event, extent) {
-                console.debug("Handling DateRangeDragChanged Fired Chart Directive: " + extent[0] + " --> " + extent[1]);
+                $log.debug("Handling DateRangeDragChanged Fired Chart Directive: " + extent[0] + " --> " + extent[1]);
                 scope.$emit('GraphTimeRangeChangedEvent', extent);
             });
 
 
             scope.render = function (dataPoints, previousRangeDataPoints) {
                 if (angular.isDefined(dataPoints) && dataPoints.length > 0) {
-                    console.debug("Render Chart");
+                    $log.debug("Render Chart");
                     //NOTE: layering order is important!
                     oneTimeChartSetup();
                     determineScale(dataPoints);
@@ -840,7 +841,7 @@ angular.module('rhqm.directives', ['d3'])
                     } else if (chartType === 'scatter') {
                         createScatterChart();
                     } else {
-                        console.warn("chart-type is not valid. Must be in [bar,area,line]");
+                        $log.warn("chart-type is not valid. Must be in [bar,area,line]");
                     }
                     createPreviousRangeOverlay(previousRangeDataPoints);
                     createXandYAxes();
