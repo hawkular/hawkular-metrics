@@ -138,36 +138,38 @@ angular.module('chartingApp')
                 startTime = vm.chartParams.startTimeStamp;
             }
 
+            if (vm.chartParams.searchId !== "") {
 
-            metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, startTime, endTime)
-                .success(function (response) {
-                    // we want to isolate the response from the data we are feeding to the chart
-                    $rootScope.bucketedDataPoints = formatBucketedOutput(response);
+                metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, startTime, endTime)
+                    .success(function (response) {
+                        // we want to isolate the response from the data we are feeding to the chart
+                        $rootScope.bucketedDataPoints = formatBucketedOutput(response);
 
-                    if ($rootScope.bucketedDataPoints.length !== 0) {
+                        if ($rootScope.bucketedDataPoints.length !== 0) {
 
-                        // this is basically the DTO for the chart
-                        vm.chartData = {
-                            id: vm.chartParams.id,
-                            startTimeStamp: vm.chartParams.startTimeStamp,
-                            endTimeStamp: vm.chartParams.endTimeStamp,
-                            dataPoints: $rootScope.bucketedDataPoints,
-                            annotationData: []
-                        };
+                            // this is basically the DTO for the chart
+                            vm.chartData = {
+                                id: vm.chartParams.searchId,
+                                startTimeStamp: vm.chartParams.startTimeStamp,
+                                endTimeStamp: vm.chartParams.endTimeStamp,
+                                dataPoints: $rootScope.bucketedDataPoints,
+                                annotationData: []
+                            };
 
-                    } else {
-                        $log.warn('No Data found for id: ' + vm.chartParams.searchId);
-                        toastr.warn('No Data found for id: ' + vm.chartParams.searchId);
-                    }
+                        } else {
+                            $log.warn('No Data found for id: ' + vm.chartParams.searchId);
+                            toastr.warn('No Data found for id: ' + vm.chartParams.searchId);
+                        }
 
-                }).error(function (response, status) {
-                    $log.error('Error loading graph data: ' + response);
-                    toastr.error('Error loading graph data', 'Status: ' + status);
-                });
+                    }).error(function (response, status) {
+                        $log.error('Error loading graph data: ' + response);
+                        toastr.error('Error loading graph data', 'Status: ' + status);
+                    });
+            }
         };
 
         function formatBucketedOutput(response) {
-            //  The schema is different for bucketized output
+            //  The schema is different for bucketed output
             return _.map(response, function (point) {
                 return {
                     timestamp: point.timestamp,
@@ -193,35 +195,37 @@ angular.module('chartingApp')
         function overlayPreviousRangeData() {
             var previousTimeRange = calculatePreviousTimeRange(vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp);
 
-            metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, previousTimeRange[0], previousTimeRange[1])
-                .success(function (response) {
-                    // we want to isolate the response from the data we are feeding to the chart
-                    var prevTimeRangeBucketizedDataPoints = formatPreviousBucketedOutput(response);
+            if (vm.chartParams.searchId !== "") {
+                metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, previousTimeRange[0], previousTimeRange[1])
+                    .success(function (response) {
+                        // we want to isolate the response from the data we are feeding to the chart
+                        var prevTimeRangeBucketedDataPoints = formatPreviousBucketedOutput(response);
 
-                    if (angular.isDefined(prevTimeRangeBucketizedDataPoints) && prevTimeRangeBucketizedDataPoints.length !== 0) {
+                        if (angular.isDefined(prevTimeRangeBucketedDataPoints) && prevTimeRangeBucketedDataPoints.length > 0) {
 
-                        // this is basically the DTO for the chart
-                        vm.chartData = {
-                            id: vm.chartParams.id,
-                            prevStartTimeStamp: previousTimeRange[0],
-                            prevEndTimeStamp: previousTimeRange[1],
-                            prevDataPoints: prevTimeRangeBucketizedDataPoints,
-                            dataPoints: $rootScope.bucketedDataPoints
-                        };
+                            // this is basically the DTO for the chart
+                            vm.chartData = {
+                                id: vm.chartParams.id,
+                                prevStartTimeStamp: previousTimeRange[0],
+                                prevEndTimeStamp: previousTimeRange[1],
+                                prevDataPoints: prevTimeRangeBucketedDataPoints,
+                                dataPoints: $rootScope.bucketedDataPoints
+                            };
 
-                    } else {
-                        $log.warn('No Prev Range Data found for id: ' + vm.chartParams.searchId);
-                        toastr.warn('No Prev Range Data found for id: ' + vm.chartParams.searchId);
-                    }
+                        } else {
+                            $log.warn('No Prev Range Data found for id: ' + vm.chartParams.searchId);
+                            toastr.warn('No Prev Range Data found for id: ' + vm.chartParams.searchId);
+                        }
 
-                }).error(function (response, status) {
-                    $log.error('Error loading Prev Range graph data: ' + response);
-                    toastr.error('Error loading Prev Range graph data', 'Status: ' + status);
-                });
+                    }).error(function (response, status) {
+                        $log.error('Error loading Prev Range graph data: ' + response);
+                        toastr.error('Error loading Prev Range graph data', 'Status: ' + status);
+                    });
+            }
         }
 
         function formatPreviousBucketedOutput(response) {
-            //  The schema is different for bucketized output
+            //  The schema is different for bucketed output
             var mappedNew = _.map(response, function (point, i) {
                 return {
                     timestamp: $rootScope.bucketedDataPoints[i].timestamp,
