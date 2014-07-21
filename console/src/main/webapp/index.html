@@ -35,7 +35,6 @@
 <!-- bower:js -->
 <script src="bower_components/jquery/dist/jquery.js"></script>
 <script src="bower_components/angular/angular.js"></script>
-<script src="bower_components/lodash/dist/lodash.js"></script>
 <script src="bower_components/bootstrap/dist/js/bootstrap.js"></script>
 <script src="bower_components/d3/d3.js"></script>
 <script src="bower_components/moment/moment.js"></script>
@@ -43,11 +42,13 @@
 <script src="bower_components/angular-bootstrap-datetimepicker/src/js/datetimepicker.js"></script>
 <script src="bower_components/angular-bootstrap/ui-bootstrap-tpls.js"></script>
 <script src="bower_components/toastr/toastr.js"></script>
+<script src="bower_components/lodash/dist/lodash.compat.js"></script>
 <!-- endbower -->
 <!-- endbuild -->
 
 <!-- build:js({.tmp,app}) scripts/scripts.js -->
 <script src="scripts/app.js"></script>
+<script src="scripts/services/d3-service.js"></script>
 <script src="scripts/services/metric-data-service.js"></script>
 <script src="scripts/directives/rhq-chart-directive.js"></script>
 <script src="scripts/directives/date-time-range-selection-directive.js"></script>

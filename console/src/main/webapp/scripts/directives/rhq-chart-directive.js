@@ -7,10 +7,12 @@
  * @description A d3 based charting direction to provide charting using various styles of charts like: bar, area, line, scatter.
  *
  */
-angular.module('rhqm.directives')
-    .directive('rhqmChart', function () {
+angular.module('rhqm.directives', ['d3'])
+    .directive('rhqmChart', ['d3Service', function (d3service) {
 
         function link(scope, element, attributes) {
+
+            d3service.d3().then(function (d3) {
 
             var dataPoints,
                 previousRangeDataPoints,
@@ -98,12 +100,12 @@ angular.module('rhqm.directives')
 
                 createSvgDefs(chart);
 
-                tip = d3.tip()
-                    .attr('class', 'd3-tip')
-                    .offset([-10, 0])
-                    .html(function (d) {
-                        return buildHover(d);
-                    });
+//                tip = d3.tip()
+//                    .attr('class', 'd3-tip')
+//                    .offset([-10, 0])
+//                    .html(function (d) {
+//                        return buildHover(d);
+//                    });
 
                 svg = chart.append("g")
                     .attr("width", width + margin.left + margin.right)
@@ -116,7 +118,7 @@ angular.module('rhqm.directives')
                     .attr("height", chartHeight)
                     .attr("transform", "translate(" + contextMargin.left + "," + (adjustedChartHeight2 + 90) + ")");
 
-                svg.call(tip);
+                //svg.call(tip);
 
             }
 
@@ -329,9 +331,9 @@ angular.module('rhqm.directives')
                             return  leaderBarColor;
                         }
                     }).on("mouseover", function (d) {
-                        tip.show(d);
+                        //tip.show(d);
                     }).on("mouseout", function () {
-                        tip.hide();
+                        //tip.hide();
                     });
 
 
@@ -362,9 +364,9 @@ angular.module('rhqm.directives')
                     })
                     .attr("opacity", 0.9)
                     .on("mouseover", function (d) {
-                        tip.show(d);
+                        //tip.show(d);
                     }).on("mouseout", function () {
-                        tip.hide();
+                        //tip.hide();
                     });
 
 
@@ -392,9 +394,9 @@ angular.module('rhqm.directives')
                     })
                     .attr("opacity", 0.9)
                     .on("mouseover", function (d) {
-                        tip.show(d);
+                        //tip.show(d);
                     }).on("mouseout", function () {
-                        tip.hide();
+                        //tip.hide();
                     });
 
                 // if high == low put a "cap" on the bar to show raw value, non-aggregated bar
@@ -433,9 +435,9 @@ angular.module('rhqm.directives')
                             return  "#70c4e2";
                         }
                     }).on("mouseover", function (d) {
-                        tip.show(d);
+                        //tip.show(d);
                     }).on("mouseout", function () {
-                        tip.hide();
+                        //tip.hide();
                     });
             }
 
@@ -848,6 +850,7 @@ angular.module('rhqm.directives')
                     annotateChart(annotationData);
                 }
             };
+            });
         }
 
         return {
@@ -885,6 +888,6 @@ angular.module('rhqm.directives')
                 allowDragDateSelections: '@',
                 chartTitle: '@'}
         };
-    }
+    }]
 )
 ;
