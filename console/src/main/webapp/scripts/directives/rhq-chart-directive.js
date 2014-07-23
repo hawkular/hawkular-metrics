@@ -7,16 +7,16 @@
  * @description A d3 based charting direction to provide charting using various styles of charts like: bar, area, line, scatter.
  *
  */
-angular.module('rhqm.directives', ['d3'])
-    .directive('rhqmChart', ['d3Service', '$log', function (d3service, $log) {
+angular.module('rhqm.directives', [])
+    .directive('rhqmChart', ['$log', function ($log) {
 
         function link(scope, element, attributes) {
 
-            d3service.d3().then(function (d3) {
 
             var dataPoints,
                 previousRangeDataPoints,
                 annotationData = [],
+                contextData = [],
                 chartHeight = +attributes.chartHeight || 250,
                 chartType = attributes.chartType || "bar",
                 timeLabel = attributes.timeLabel || "Time",
@@ -63,6 +63,7 @@ angular.module('rhqm.directives', ['d3'])
                 brush,
                 brushGroup,
                 timeScaleForBrush,
+                timeScaleForContext,
                 chart,
                 chartParent,
                 context,
@@ -78,6 +79,7 @@ angular.module('rhqm.directives', ['d3'])
             dataPoints = attributes.data;
             previousRangeDataPoints = attributes.previousRangeData;
             annotationData = attributes.annotationData;
+            contextData = attributes.contextData;
 
 
             function getChartWidth() {
@@ -100,12 +102,12 @@ angular.module('rhqm.directives', ['d3'])
 
                 createSvgDefs(chart);
 
-//                tip = d3.tip()
-//                    .attr('class', 'd3-tip')
-//                    .offset([-10, 0])
-//                    .html(function (d) {
-//                        return buildHover(d);
-//                    });
+                tip = d3.tip()
+                    .attr('class', 'd3-tip')
+                    .offset([-10, 0])
+                    .html(function (d) {
+                        return buildHover(d);
+                    });
 
                 svg = chart.append("g")
                     .attr("width", width + margin.left + margin.right)
@@ -118,7 +120,7 @@ angular.module('rhqm.directives', ['d3'])
                     .attr("height", chartHeight)
                     .attr("transform", "translate(" + contextMargin.left + "," + (adjustedChartHeight2 + 90) + ")");
 
-                //svg.call(tip);
+                svg.call(tip);
 
             }
 
@@ -183,11 +185,21 @@ angular.module('rhqm.directives', ['d3'])
                             return d.timestamp;
                         }));
 
-                    timeScaleForBrush = d3.time.scale()
-                        .range([0, width])
-                        .domain(d3.extent(chartData, function (d) {
-                            return d.timestamp;
-                        }));
+                    if (angular.isDefined(contextData) && contextData.length > 0) {
+                        timeScaleForContext = d3.time.scale()
+                            .range([0, width])
+                            .domain(d3.extent(contextData, function (d) {
+                                return d.timestamp;
+                            }));
+                    } else {
+                        timeScaleForBrush = d3.time.scale()
+                            .range([0, width])
+                            .domain(d3.extent(chartData, function (d) {
+                                return d.timestamp;
+                            }));
+
+
+                    }
 
                     xAxis = d3.svg.axis()
                         .scale(timeScale)
@@ -331,9 +343,9 @@ angular.module('rhqm.directives', ['d3'])
                             return  leaderBarColor;
                         }
                     }).on("mouseover", function (d) {
-                        //tip.show(d);
+                        tip.show(d);
                     }).on("mouseout", function () {
-                        //tip.hide();
+                        tip.hide();
                     });
 
 
@@ -364,9 +376,9 @@ angular.module('rhqm.directives', ['d3'])
                     })
                     .attr("opacity", 0.9)
                     .on("mouseover", function (d) {
-                        //tip.show(d);
+                        tip.show(d);
                     }).on("mouseout", function () {
-                        //tip.hide();
+                        tip.hide();
                     });
 
 
@@ -394,9 +406,9 @@ angular.module('rhqm.directives', ['d3'])
                     })
                     .attr("opacity", 0.9)
                     .on("mouseover", function (d) {
-                        //tip.show(d);
+                        tip.show(d);
                     }).on("mouseout", function () {
-                        //tip.hide();
+                        tip.hide();
                     });
 
                 // if high == low put a "cap" on the bar to show raw value, non-aggregated bar
@@ -435,9 +447,9 @@ angular.module('rhqm.directives', ['d3'])
                             return  "#70c4e2";
                         }
                     }).on("mouseover", function (d) {
-                        //tip.show(d);
+                        tip.show(d);
                     }).on("mouseout", function () {
-                        //tip.hide();
+                        tip.hide();
                     });
             }
 
@@ -572,6 +584,10 @@ angular.module('rhqm.directives', ['d3'])
                     })
                     .style("fill", function (d) {
                         return "#ff1a13";
+                    }).on("mouseover", function (d) {
+                        tip.show(d);
+                    }).on("mouseout", function () {
+                        tip.hide();
                     });
 
                 svg.selectAll(".avgDot")
@@ -587,6 +603,10 @@ angular.module('rhqm.directives', ['d3'])
                     })
                     .style("fill", function (d) {
                         return "#FFF";
+                    }).on("mouseover", function (d) {
+                        tip.show(d);
+                    }).on("mouseout", function () {
+                        tip.hide();
                     });
 
                 svg.selectAll(".lowDot")
@@ -602,6 +622,10 @@ angular.module('rhqm.directives', ['d3'])
                     })
                     .style("fill", function (d) {
                         return "#70c4e2";
+                    }).on("mouseover", function (d) {
+                        tip.show(d);
+                    }).on("mouseout", function () {
+                        tip.hide();
                     });
             }
 
@@ -677,6 +701,48 @@ angular.module('rhqm.directives', ['d3'])
             }
 
 
+            function createContextBrush() {
+
+                brush = d3.svg.brush()
+                    .x(timeScaleForContext)
+                    .on("brushstart", brushStart)
+                    .on("brush", brushMove)
+                    .on("brushend", brushEnd);
+
+                brushGroup = svg.append("g")
+                    .attr("class", "brush")
+                    .call(brush);
+
+                brushGroup.selectAll(".resize").append("path");
+
+                brushGroup.selectAll("rect")
+                    .attr("height", height);
+
+                function brushStart() {
+                    svg.classed("selecting", true);
+                }
+
+                function brushMove() {
+                    //useful for showing the daterange change dynamically while selecting
+                    var extent = brush.extent();
+                    scope.$emit('DateRangeMove', extent);
+                }
+
+                function brushEnd() {
+                    var extent = brush.extent(),
+                        startTime = Math.round(extent[0].getTime()),
+                        endTime = Math.round(extent[1].getTime()),
+                        dragSelectionDelta = endTime - startTime >= 60000;
+
+                    svg.classed("selecting", !d3.event.target.empty());
+                    // ignore range selections less than 1 minute
+                    if (dragSelectionDelta) {
+                        scope.$emit('DateRangeChanged', extent);
+                    }
+                }
+
+            }
+
             function createXAxisBrush() {
 
                 brush = d3.svg.brush()
@@ -722,7 +788,7 @@ angular.module('rhqm.directives', ['d3'])
             function createPreviousRangeOverlay(prevRangeData) {
                 var showBarAvgTrendline = true,
                     prevRangeLine;
-                if (angular.isDefined(previousRangeDataPoints) && previousRangeDataPoints.length > 0) {
+                if (angular.isDefined(prevRangeData) && prevRangeData.length > 0) {
                     $log.debug("Running PreviousRangeOverlay");
                     prevRangeLine = d3.svg.line()
                         .interpolate("linear")
@@ -753,7 +819,6 @@ angular.module('rhqm.directives', ['d3'])
 
             function annotateChart(annotationData) {
                 if (angular.isDefined(annotationData) && annotationData.length > 1) {
-                    $log.debug("Running AnnotateChart");
                     svg.selectAll(".annotationDot")
                         .data(annotationData)
                         .enter().append("circle")
@@ -781,7 +846,7 @@ angular.module('rhqm.directives', ['d3'])
                 if (angular.isDefined(newData) && newData.length > 0) {
                     $log.debug("Data Changed");
                     processedNewData = angular.fromJson(newData);
-                    return scope.render(processedNewData, processedPreviousRangeData);
+                    scope.render(processedNewData, processedPreviousRangeData);
                 }
             }, true);
 
@@ -796,7 +861,14 @@ angular.module('rhqm.directives', ['d3'])
             scope.$watch('annotationData', function (newAnnotationData) {
                 if (angular.isDefined(newAnnotationData) && newAnnotationData.length > 0) {
                     annotationData = angular.fromJson(newAnnotationData);
-                    return scope.render(processedNewData, processedPreviousRangeData);
+                    scope.render(processedNewData, processedPreviousRangeData);
+                }
+            }, true);
+
+            scope.$watch('contextData', function (newContextData) {
+                if (angular.isDefined(newContextData) && newContextData.length > 0) {
+                    contextData = angular.fromJson(newContextData);
+                    scope.render(processedNewData, processedPreviousRangeData);
                 }
             }, true);
 
@@ -841,7 +913,7 @@ angular.module('rhqm.directives', ['d3'])
                     } else if (chartType === 'scatter') {
                         createScatterChart();
                     } else {
-                        $log.warn("chart-type is not valid. Must be in [bar,area,line]");
+                        $log.warn("chart-type is not valid. Must be in [bar,area,line,scatter]");
                     }
                     createPreviousRangeOverlay(previousRangeDataPoints);
                     createXandYAxes();
@@ -851,7 +923,6 @@ angular.module('rhqm.directives', ['d3'])
                     annotateChart(annotationData);
                 }
             };
-            });
         }
 
         return {
@@ -862,6 +933,7 @@ angular.module('rhqm.directives', ['d3'])
                 data: '@',
                 previousRangeData: '@',
                 annotationData: '@',
+                contextData: '@',
                 chartHeight: '@',
                 chartType: '@',
                 yAxisUnits: '@',
