@@ -13,6 +13,7 @@
   <properties>
     <arquillian.version>1.1.4.Final</arquillian.version>
     <shrinkwrap-resolver.version>2.1.0</shrinkwrap-resolver.version>
+    <rest-assured.version>2.3.1</rest-assured.version>
   </properties>
 
   <artifactId>rhq-metrics-rest-test</artifactId>
@@ -159,13 +160,13 @@
     <dependency>
       <groupId>com.jayway.restassured</groupId>
       <artifactId>rest-assured</artifactId>
-      <version>2.3.1</version>
+      <version>${rest-assured.version}</version>
     </dependency>
 
     <dependency>
       <groupId>com.jayway.restassured</groupId>
       <artifactId>json-path</artifactId>
-      <version>2.3.1</version>
+      <version>${rest-assured.version}</version>
     </dependency>
 
     <dependency>

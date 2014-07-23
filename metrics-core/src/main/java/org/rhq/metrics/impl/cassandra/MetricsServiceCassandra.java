@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -79,8 +78,6 @@ public class MetricsServiceCassandra implements MetricsService {
     private ListeningExecutorService metricsTasks = MoreExecutors
         .listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
 
-    // temporary until we have a better solution
-    Set<String> ids = new TreeSet<>();
 
     @Override
     public void startUp(Session s) {
@@ -126,17 +123,18 @@ public class MetricsServiceCassandra implements MetricsService {
         }
 
         logger.info("Using a key space of '" + keyspace + "'");
+
+        if (System.getProperty("cassandra.resetdb")!=null) {
+            // We want a fresh DB -- mostly used for tests
+            dropKeyspace(cluster, keyspace);
+        }
+
+        // This creates/updates the keyspace + tables if needed
         updateSchemaIfNecessary(cluster, keyspace);
 
         session = Optional.of(cluster.connect(keyspace));
-        if (System.getProperty("cassandra.resetdb")!=null) {
-
-            logger.info("Truncating keyspace '" + keyspace +"'");
-
-            session.get().execute("TRUNCATE metrics");
-            session.get().execute("TRUNCATE counters");
-        }
         dataAccess = new DataAccess(session.get());
+
     }
 
     @Override
@@ -155,7 +153,7 @@ public class MetricsServiceCassandra implements MetricsService {
         return Futures.transform(future, TO_VOID);
     }
 
-    @Override
+            @Override
     public ListenableFuture<Map<RawNumericMetric, Throwable>> addData(Set<RawNumericMetric> data) {
         final Map<RawNumericMetric, Throwable> errors = new HashMap<>();
         List<ResultSetFuture> futures = new ArrayList<>(data.size());
@@ -166,7 +164,6 @@ public class MetricsServiceCassandra implements MetricsService {
                 ImmutableMap.of(DataType.RAW.ordinal(), metric.getAvg()), RAW_TTL);
             Futures.withFallback(future, new RawDataFallback(errors, metric));
             futures.add(future);
-            ids.add(metric.getId());
         }
         ListenableFuture<List<ResultSet>> insertsFuture = Futures.successfulAsList(futures);
 
@@ -178,10 +175,10 @@ public class MetricsServiceCassandra implements MetricsService {
         });
     }
 
-    @Override
+            @Override
     public ListenableFuture<Void> updateCounter(Counter counter) {
         return Futures.transform(dataAccess.updateCounter(counter), TO_VOID);
-    }
+            }
 
     @Override
     public ListenableFuture<Void> updateCounters(Collection<Counter> counters) {
@@ -213,14 +210,76 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public boolean idExists(String id) {
-        return ids.contains(id);
+    public ListenableFuture<Boolean> idExists(final String id) {
+        ResultSetFuture rsf = dataAccess.listMetricNames();
+        return Futures.transform(rsf, new Function<ResultSet, Boolean>() {
+            @Override
+            public Boolean apply(ResultSet input) {
+                boolean found = false;
+                for (Row row : input.all()) {
+                    String name = row.getString("metric_id");
+                    if (name.equals(id)) {
+                        found = true;
+                        break;
+                    }
+                }
+                return found;
+            }
+        });
     }
 
     @Override
-    public List<String> listMetrics() {
-        return new ArrayList<>(ids);
+    public ListenableFuture<List<String>> listMetrics() {
+        ResultSetFuture rsf = dataAccess.listMetricNames();
+        return Futures.transform(rsf, new Function<ResultSet, List<String>>() {
+            @Override
+            public List<String> apply(ResultSet input) {
+                List<String> result = new ArrayList<String>();
+                for (Row row : input.all()) {
+                    String name = row.getString("metric_id");
+                    result.add(name);
+                }
+                return result;
+            }
+        });
     }
+
+    @Override
+    public ListenableFuture<Boolean> deleteMetric(String id) {
+        ResultSetFuture future = dataAccess.removeData(id);
+        return Futures.transform(future, new Function<ResultSet, Boolean>() {
+            @Override
+            public Boolean apply(ResultSet input) {
+                return input.isExhausted();
+            }
+        });
+    }
+
+
+    private void dropKeyspace(Cluster cluster, String keyspace) {
+        try (Session session = cluster.connect("system")) {
+            logger.info("Removing keyspace '" + keyspace + "'");
+            session.execute("DROP KEYSPACE IF EXISTS " + keyspace);
+        }
+    }
+
+
+
+
+
+    private void updateSchemaIfNecessary(Cluster cluster, String schemaName) {
+        try (Session session = cluster.connect("system")) {
+            SchemaManager schemaManager = new SchemaManager(session);
+            try {
+                schemaManager.updateSchema(schemaName);
+            } catch (Exception e) {
+                logger.error("Schema update failed: " + e);
+                throw e;
+            }
+        }
+    }
+
+
 
     private class RawDataFallback implements FutureFallback<ResultSet> {
 
@@ -249,12 +308,4 @@ public class MetricsServiceCassandra implements MetricsService {
             return mapper.map(resultSet);
         }
     }
-
-    private void updateSchemaIfNecessary(Cluster cluster, String schemaName) {
-        try (Session session = cluster.connect("system")) {
-            SchemaManager schemaManager = new SchemaManager(session);
-            schemaManager.updateSchema(schemaName);
-        }
-    }
-
 }

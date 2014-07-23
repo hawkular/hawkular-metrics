@@ -28,6 +28,20 @@ then
     cd ..
 fi
 
+if [ ! -e metrics-core/target/rhq-metrics-core*.jar ]
+then
+    cd metrics-core
+    mvn install
+    cd ..
+fi
+
+if [ ! -e metrics-core/target/rhq-metrics-core*.jar ]
+then
+    cd metrics-core
+    mvn install
+    cd ..
+fi
+
 if [ ! -e rest-servlet/target/rhq-metric-rest*.war ]
 then
     cd rest-servlet
