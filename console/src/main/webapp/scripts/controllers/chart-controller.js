@@ -12,6 +12,8 @@ angular.module('chartingApp')
         var updateLastTimeStampToNowPromise,
             vm = this;
         $rootScope.bucketedDataPoints = [];
+        // for the little range graph to select a subrange for the graph
+        $rootScope.contextDataPoints = [];
 
         vm.chartParams = {
             searchId: "",
@@ -95,6 +97,7 @@ angular.module('chartingApp')
         vm.hasNext = function () {
             var nextTimeRange = calculateNextTimeRange(vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp);
             // unsophisticated test to see if there is a next; without actually querying.
+            //@fixme: pay the price, do the query!
             return nextTimeRange[1].getTime() < _.now();
         };
 
@@ -201,11 +204,11 @@ angular.module('chartingApp')
                         // we want to isolate the response from the data we are feeding to the chart
                         var prevTimeRangeBucketedDataPoints = formatPreviousBucketedOutput(response);
 
-                        if (angular.isDefined(prevTimeRangeBucketedDataPoints) && prevTimeRangeBucketedDataPoints.length > 0) {
+                        if (angular.isDefined(prevTimeRangeBucketedDataPoints) && prevTimeRangeBucketedDataPoints.length !== 0) {
 
                             // this is basically the DTO for the chart
                             vm.chartData = {
-                                id: vm.chartParams.id,
+                                id: vm.chartParams.searchId,
                                 prevStartTimeStamp: previousTimeRange[0],
                                 prevEndTimeStamp: previousTimeRange[1],
                                 prevDataPoints: prevTimeRangeBucketedDataPoints,
@@ -238,6 +241,46 @@ angular.module('chartingApp')
                 };
             });
             return mappedNew;
+        }
+
+
+        function refreshContextChart() {
+            // unsophisticated default time range to avoid DB checking right now
+            // @fixme: add a real service to determine unbounded range
+            var startTime = _.now(),
+                endTime = moment().subtract('years', 2).valueOf();
+
+            if (vm.chartParams.searchId !== "") {
+
+                metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, startTime, endTime)
+                    .success(function (response) {
+
+                        if ($rootScope.contextData.length !== 0) {
+                            $rootScope.contextData = formatContextOutput(response);
+
+                        } else {
+                            $log.warn('No Context Data found for id: ' + vm.chartParams.searchId);
+                            toastr.warn('No Context Data found for id: ' + vm.chartParams.searchId);
+                        }
+
+                    }).error(function (response, status) {
+                        $log.error('Error loading Context graph data: ' + response);
+                        toastr.error('Error loading Context graph data', 'Status: ' + status);
+                    });
+            }
+
+            function formatContextOutput(response) {
+                //  The schema is different for bucketed output
+                return _.map(response, function (point) {
+                    return {
+                        timestamp: point.timestamp,
+                        value: !angular.isNumber(point.value) ? 0 : point.value,
+                        avg: (point.empty) ? 0 : point.avg,
+                        empty: point.empty
+                    };
+                });
+
+            }
         }
 
 
