@@ -19,9 +19,11 @@ To get a first impression you can also run the quickstart via
 
   ./start.sh
 
-in the root directory. This will build and start RHQ-metrics with the memory backend. After starting you can
- navigate to http://localhost:8080/[http://localhost:8080/] to a (temporary) UI that uses the service and comes
- pre-populated with some dummy data.
+in the root directory. This will build and start RHQ-metrics with the in-memory backend. After starting you can
+ navigate to http://localhost:8080/[http://localhost:8080/] to an UI console that allows quick population of data into either
+ datastore and immediate graphing of that data for quick feedback.
+
+[RHQ-Metrics UI Quickstart Video](https://vimeo.com/101576357)   _Length - 8:33_
 
 By modifying the start parameter in the script you can also use the (already running) Cassandra backend - see below.
 
