@@ -1,4 +1,7 @@
-# RHQ-Metrics Console
+# RHQ-Metrics UI Console
+
+## Quickstart
+Show me what the UI Console does: [RHQ-Metrics UI Quickstart Video](https://vimeo.com/101576357)   _Length - 8:33_
 
 
 ## Why?
