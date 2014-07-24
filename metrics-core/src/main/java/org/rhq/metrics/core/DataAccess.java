@@ -28,6 +28,10 @@ public class DataAccess {
 
     private PreparedStatement findCountersByGroupAndName;
 
+    private PreparedStatement listNames;
+
+    private PreparedStatement removeMetricData;
+
     private Session session;
 
     public DataAccess(Session session) {
@@ -51,6 +55,10 @@ public class DataAccess {
 
         findCountersByGroupAndName = session.prepare(
             "SELECT group, c_name, c_value FROM counters WHERE group = ? AND c_name IN ?");
+
+        listNames = session.prepare("SELECT DISTINCT bucket, metric_id FROM metrics ");
+
+        removeMetricData = session.prepare("DELETE FROM metrics WHERE bucket = 'raw' AND metric_id = ?"); // TODO all buckets
     }
 
     public ResultSetFuture insertData(String bucket, String metricId, long timestamp, Map<Integer, Double> values,
@@ -84,6 +92,16 @@ public class DataAccess {
 
     public ResultSetFuture findCounters(String group, List<String> names) {
         BoundStatement statement = findCountersByGroupAndName.bind(group, names);
+        return session.executeAsync(statement);
+    }
+
+    public ResultSetFuture listMetricNames() {
+        BoundStatement statement = listNames.bind();
+        return session.executeAsync(statement);
+    }
+
+    public ResultSetFuture removeData(String id) {
+        BoundStatement statement = removeMetricData.bind(id);
         return session.executeAsync(statement);
     }
 
