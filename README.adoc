@@ -65,6 +65,12 @@ sh start.sh
 
 For this to work, the packets from Ganglia need to have a large enough TTL to be seen on the host where you run pTrans.
 
+= Tests
+
+There are some unit tests in the project as well as integration tests in the `rest-test/` directory.
+You can select the backend implementation (Cassandra, Memory) by passing the parameter `-Dbackend=mem` or
+`-Dbackend=cass` to the Maven command line. If the parameter is omitted, the Memory backend is selected.
+
 # Forums, hacking, irc
 
 Visit the https://community.jboss.org/en/rhq/rhq-metrics[Forums] to discuss RHQ-metrics.

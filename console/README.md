@@ -9,6 +9,12 @@ I want to start using the rhq-metrics project in my own work. How do I start?
 The console is a quick and easy way to populate and view the rhq-metrics datastore (either in-Memory or Cassandra).
 
 
+
+## Why?
+I want to start using the rhq-metrics project in my own work. How do I start?
+The console is a quick and easy way to populate and view the rhq-metrics datastore (either in-Memory or Cassandra).
+
+
 ## What does it do?
 The console provides a simple UI for:
 1. Inserting/creating  data in various ways
