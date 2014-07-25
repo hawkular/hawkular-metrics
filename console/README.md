@@ -1,4 +1,4 @@
-# RHQ-Metrics UI Console
+# RHQ-Metrics Console (and UI Components)
 
 ## Quickstart
 Show me what the UI Console does: [RHQ-Metrics UI Quickstart Video](https://vimeo.com/101576357)   _Length - 8:33_
@@ -7,6 +7,8 @@ Show me what the UI Console does: [RHQ-Metrics UI Quickstart Video](https://vime
 ## Why?
 I want to start using the rhq-metrics project in my own work. How do I start?
 The console is a quick and easy way to populate and view the rhq-metrics datastore (either in-Memory or Cassandra).
+Less intended as a console, but more as a component provider to your own projects. The UI components serve as high level
+building blocks to create your own projects more quickly and with additional capability that continue to be added into the future.
 
 
 ## What does it do?

@@ -23,7 +23,7 @@ in the root directory. This will build and start RHQ-metrics with the in-memory 
  navigate to http://localhost:8080/[http://localhost:8080/] to an UI console that allows quick population of data into either
  datastore and immediate graphing of that data for quick feedback.
 
-[RHQ-Metrics UI Quickstart Video](https://vimeo.com/101576357)   _Length - 8:33_
+https://vimeo.com/101576357[RHQ Metrics UI Video]   _Length - 8:33_
 
 By modifying the start parameter in the script you can also use the (already running) Cassandra backend - see below.
 
@@ -75,4 +75,4 @@ To meet the guys, join us on irc://irc.freenode.net/#rhq[Freenode IRC] in channe
 If you can not use the irc protocol, you can also use a web to irc gateway like
 http://webchat.freenode.net/?channels=rhq[Web chat on Freenode].
 
-RHQ-metrics is http://twitter.com/#!/rhq_Project/[@rhq-Project] on Twitter.
+RHQ-metrics is http://twitter.com/#!/rhq_Project/[@rhq_Project] on Twitter.
