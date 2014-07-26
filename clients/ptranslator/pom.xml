@@ -7,12 +7,12 @@
   <parent>
     <groupId>org.rhq.metrics</groupId>
     <artifactId>clients</artifactId>
-    <version>0.2.2.20140726-M3</version>
+    <version>0.2.3-SNAPSHOT</version>
   </parent>
 
   <groupId>org.rhq.metrics</groupId>
   <artifactId>ptrans</artifactId>
-  <version>0.2.2.20140726-M3</version>
+  <version>0.2.3-SNAPSHOT</version>
   <name>Protocol Translator</name>
   <packaging>jar</packaging>
 
