@@ -4,16 +4,22 @@ angular.module('rhqm.services')
     .factory('metricDataService', ['$http', '$log', 'BASE_URL', function ($http, $log, BASE_URL) {
 
         return {
-            getMetricsForTimeRange: function (id, startDate, endDate) {
+            getMetricsForTimeRange: function (id, startDate, endDate, buckets) {
                 $log.info("Retrieving metrics data for id: " + id);
-                $log.info("Date Range: " + startDate + " - " + endDate);
+                $log.info("Date Range: " + new Date(startDate) + " - " + new Date(endDate));
+                var numBuckets = buckets || 60;
+
+                if(startDate >= endDate){
+                    $log.warn("Start date was after end date");
+                    return;
+                }
 
                 return $http.get(BASE_URL + '/' + id,
                     {
                         params: {
                             start: startDate.getTime(),
                             end: endDate.getTime(),
-                            buckets: 60
+                            buckets: numBuckets
                         }
                     }
                 );

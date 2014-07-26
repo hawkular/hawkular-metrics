@@ -22,10 +22,11 @@
                     <div class="col-md-12">
                         <relative-time-range-button-bar style="margin-left: 140px;"
                                                         start-time-stamp="vm.chartParams.startTimestamp"
-                                                        end-time-stamp="chartParms.endTimeStamp"></relative-time-range-button-bar>
+                                                        end-time-stamp="chartParms.endTimeStamp">
+                        </relative-time-range-button-bar>
 
-                        <input type="text" style="margin-left: 20px;" ng-model="vm.chartParams.dateRange" readonly
-                               disbabled/></p>
+                        <input type="text" style="margin-left: 20px;text-align: center;" ng-model="vm.chartParams.dateRange" readonly disbabled/>
+                        <p></p>
                     </div>
                 </div>
 
@@ -102,8 +103,9 @@
                 <!-- HINT: colors for the chart can be changed in the d3-chart.css -->
                 <rhqm-chart
                         data="{{vm.chartData.dataPoints}}"
-                        annotation-data="{{vm.chartData.annotationData}}"
+                        annotation-data="{{vm.chartData.annotationDataPoints}}"
                         previous-range-data="{{vm.chartData.prevDataPoints}}"
+                        context-data="{{vm.chartData.contextDataPoints}}"
                         chart-type="{{vm.chartParams.chartType}}"
                         show-avg-line="{{vm.chartParams.showAvgLine}}"
                         chart-title="{{'Metrics Id: '+vm.chartParams.searchId}}"
@@ -142,12 +144,10 @@
 
                 <div class="col-sm-10">
                     <div class="btn-group">
-                        <label class="btn btn-primary btn-sm" ng-model="vm.chartParams.showAvgLine" btn-checkbox>Show
-                            Avg.
-                            Line</label>
-                        <label class="btn btn-primary btn-sm" ng-model="vm.chartParams.showPreviousRangeDataOverlay"
-                               btn-checkbox
+                        <label class="btn btn-primary btn-sm" ng-model="vm.chartParams.showAvgLine" btn-checkbox>Show Avg. Line</label>
+                        <label class="btn btn-primary btn-sm" ng-model="vm.chartParams.showPreviousRangeDataOverlay" btn-checkbox
                                ng-click="vm.togglePreviousRangeDataOverlay()">Overlay Prev. Range</label>
+                        <label class="btn btn-primary btn-sm" ng-model="vm.chartParams.showContextZoom" btn-checkbox ng-click="vm.toggleContextZoom()">Show Context Zoom</label>
                     </div>
 
                 </div>

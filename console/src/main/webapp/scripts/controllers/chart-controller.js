@@ -25,6 +25,7 @@ angular.module('chartingApp')
             tableButtonLabel: "Show Table",
             showAvgLine: true,
             showPreviousRangeDataOverlay: false,
+            showContextZoom: true,
             chartType: "bar",
             chartTypes: ["bar", "line", "area", "scatter"]
         };
@@ -141,6 +142,12 @@ angular.module('chartingApp')
                 startTime = vm.chartParams.startTimeStamp;
             }
 
+
+            if (startTime >= endTime) {
+                $log.warn("Start Date was after End Date");
+                return;
+            }
+
             if (vm.chartParams.searchId !== "") {
 
                 metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, startTime, endTime)
@@ -156,7 +163,8 @@ angular.module('chartingApp')
                                 startTimeStamp: vm.chartParams.startTimeStamp,
                                 endTimeStamp: vm.chartParams.endTimeStamp,
                                 dataPoints: $rootScope.bucketedDataPoints,
-                                annotationData: []
+                                contextDataPoints: $rootScope.contextDataPoints,
+                                annotationDataPoints: []
                             };
 
                         } else {
@@ -187,6 +195,7 @@ angular.module('chartingApp')
 
         }
 
+
         vm.togglePreviousRangeDataOverlay = function () {
             if (vm.chartParams.showPreviousRangeDataOverlay) {
                 vm.chartData.prevDataPoints = [];
@@ -212,7 +221,9 @@ angular.module('chartingApp')
                                 prevStartTimeStamp: previousTimeRange[0],
                                 prevEndTimeStamp: previousTimeRange[1],
                                 prevDataPoints: prevTimeRangeBucketedDataPoints,
-                                dataPoints: $rootScope.bucketedDataPoints
+                                dataPoints: $rootScope.bucketedDataPoints,
+                                contextDataPoints: $rootScope.contextDataPoints,
+                                annotationDataPoints: []
                             };
 
                         } else {
@@ -244,21 +255,33 @@ angular.module('chartingApp')
         }
 
 
+        vm.toggleContextZoom = function () {
+            if (vm.chartParams.showContextZoom) {
+                vm.chartData.contextDataPoints = [];
+            } else {
+                refreshContextChart();
+            }
+        };
+
         function refreshContextChart() {
             // unsophisticated default time range to avoid DB checking right now
             // @fixme: add a real service to determine unbounded range
-            var startTime = _.now(),
-                endTime = moment().subtract('years', 2).valueOf();
+            var endTime = _.now(),
+                startTime = moment().subtract('months', 24).valueOf();
 
+            console.debug("refreshChartContext");
             if (vm.chartParams.searchId !== "") {
+                if (startTime >= endTime) {
+                    $log.warn("Start Date was >= End Date");
+                    return;
+                }
 
-                metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, startTime, endTime)
+                metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, new Date(startTime), new Date(endTime), 300)
                     .success(function (response) {
 
-                        if ($rootScope.contextData.length !== 0) {
-                            $rootScope.contextData = formatContextOutput(response);
+                        vm.chartData.contextDataPoints = formatContextOutput(response);
 
-                        } else {
+                        if (angular.isUndefined(vm.chartData.contextDataPoints) || vm.chartData.contextDataPoints.length === 0) {
                             $log.warn('No Context Data found for id: ' + vm.chartParams.searchId);
                             toastr.warn('No Context Data found for id: ' + vm.chartParams.searchId);
                         }

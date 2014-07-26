@@ -12,7 +12,6 @@ angular.module('rhqm.directives', [])
 
         function link(scope, element, attributes) {
 
-
             var dataPoints,
                 previousRangeDataPoints,
                 annotationData = [],
@@ -45,6 +44,7 @@ angular.module('rhqm.directives', [])
             // chart specific vars
             var margin = {top: 10, right: 5, bottom: 5, left: 90},
                 contextMargin = {top: 150, right: 5, bottom: 5, left: 90},
+                contextMargin2 = {top: 190, right: 5, bottom: 5, left: 90},
                 width = 750 - margin.left - margin.right,
                 adjustedChartHeight = chartHeight - 50,
                 height = adjustedChartHeight - margin.top - margin.bottom,
@@ -67,6 +67,7 @@ angular.module('rhqm.directives', [])
                 chart,
                 chartParent,
                 context,
+                contextArea,
                 svg,
                 lowBound,
                 highBound,
@@ -115,6 +116,12 @@ angular.module('rhqm.directives', [])
                     .attr("transform", "translate(" + margin.left + "," + (adjustedChartHeight2) + ")");
 
                 context = svg.append("g")
+                    .attr("class", "context")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", chartHeight)
+                    .attr("transform", "translate(" + contextMargin.left + "," + (adjustedChartHeight2 + 90) + ")");
+
+                contextArea = svg.append("g")
                     .attr("class", "context")
                     .attr("width", width + margin.left + margin.right)
                     .attr("height", chartHeight)
@@ -548,7 +555,7 @@ angular.module('rhqm.directives', [])
                         .y(function (d) {
                             return isRawMetric(d) ? yScale(d.value) : yScale(d.min);
                         })
-                        .y0(function (d) {
+                        .y0(function () {
                             return height;
                         });
 
@@ -864,6 +871,7 @@ angular.module('rhqm.directives', [])
                     scope.render(processedNewData, processedPreviousRangeData);
                 }
             }, true);
+
 
             scope.$watch('contextData', function (newContextData) {
                 if (angular.isDefined(newContextData) && newContextData.length > 0) {
