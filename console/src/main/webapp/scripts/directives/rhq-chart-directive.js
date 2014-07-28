@@ -17,29 +17,29 @@ angular.module('rhqm.directives', [])
                 annotationData = [],
                 contextData = [],
                 chartHeight = +attributes.chartHeight || 250,
-                chartType = attributes.chartType || "bar",
-                timeLabel = attributes.timeLabel || "Time",
-                dateLabel = attributes.dateLabel || "Date",
-                singleValueLabel = attributes.singleValueLabel || "Raw Value",
-                noDataLabel = attributes.noDataLabel || "No Data",
-                aggregateLabel = attributes.aggregateLabel || "Aggregate",
-                startLabel = attributes.startLabel || "Start",
-                endLabel = attributes.endLabel || "End",
-                durationLabel = attributes.durationLabel || "Duration",
-                minLabel = attributes.minLabel || "Min",
-                maxLabel = attributes.maxLabel || "Max",
-                avgLabel = attributes.avgLabel || "Avg",
-                timestampLabel = attributes.timestampLabel || "Timestamp",
-                highBarColor = attributes.highBarColor || "#1794bc",
-                lowBarColor = attributes.lowBarColor || "#70c4e2",
-                leaderBarColor = attributes.leaderBarColor || "#d3d3d6",
-                rawValueBarColor = attributes.rawValueBarColor || "#50505a",
-                avgLineColor = attributes.avgLineColor || "#2e376a",
+                chartType = attributes.chartType || 'bar',
+                timeLabel = attributes.timeLabel || 'Time',
+                dateLabel = attributes.dateLabel || 'Date',
+                singleValueLabel = attributes.singleValueLabel || 'Raw Value',
+                noDataLabel = attributes.noDataLabel || 'No Data',
+                aggregateLabel = attributes.aggregateLabel || 'Aggregate',
+                startLabel = attributes.startLabel || 'Start',
+                endLabel = attributes.endLabel || 'End',
+                durationLabel = attributes.durationLabel || 'Duration',
+                minLabel = attributes.minLabel || 'Min',
+                maxLabel = attributes.maxLabel || 'Max',
+                avgLabel = attributes.avgLabel || 'Avg',
+                timestampLabel = attributes.timestampLabel || 'Timestamp',
+                highBarColor = attributes.highBarColor || '#1794bc',
+                lowBarColor = attributes.lowBarColor || '#70c4e2',
+                leaderBarColor = attributes.leaderBarColor || '#d3d3d6',
+                rawValueBarColor = attributes.rawValueBarColor || '#50505a',
+                avgLineColor = attributes.avgLineColor || '#2e376a',
                 showAvgLine = true,
-                chartHoverDateFormat = attributes.chartHoverDateFormat || "%m/%d/%y",
-                chartHoverTimeFormat = attributes.chartHoverTimeFormat || "%I:%M:%S %p",
+                chartHoverDateFormat = attributes.chartHoverDateFormat || '%m/%d/%y',
+                chartHoverTimeFormat = attributes.chartHoverTimeFormat || '%I:%M:%S %p',
                 allowDragDateSelections = attributes.allowDragDateSelections || true,
-                buttonBarDateTimeFormat = attributes.buttonbarDatetimeFormat || "MM/DD/YYYY h:mm a";
+                buttonBarDateTimeFormat = attributes.buttonbarDatetimeFormat || 'MM/DD/YYYY h:mm a';
 
             // chart specific vars
             var margin = {top: 10, right: 5, bottom: 5, left: 90},
@@ -115,17 +115,6 @@ angular.module('rhqm.directives', [])
                     .attr("height", innerChartHeight)
                     .attr("transform", "translate(" + margin.left + "," + (adjustedChartHeight2) + ")");
 
-                context = svg.append("g")
-                    .attr("class", "context")
-                    .attr("width", width + margin.left + margin.right)
-                    .attr("height", chartHeight)
-                    .attr("transform", "translate(" + contextMargin.left + "," + (adjustedChartHeight2 + 90) + ")");
-
-                contextArea = svg.append("g")
-                    .attr("class", "context")
-                    .attr("width", width + margin.left + margin.right)
-                    .attr("height", chartHeight)
-                    .attr("transform", "translate(" + contextMargin.left + "," + (adjustedChartHeight2 + 90) + ")");
 
                 svg.call(tip);
 
@@ -192,7 +181,7 @@ angular.module('rhqm.directives', [])
                             return d.timestamp;
                         }));
 
-                    if (angular.isDefined(contextData) && contextData.length > 0) {
+                    if (isDefinedAndHasValues(contextData)) {
                         timeScaleForContext = d3.time.scale()
                             .range([0, width])
                             .domain(d3.extent(contextData, function (d) {
@@ -266,7 +255,7 @@ angular.module('rhqm.directives', [])
                     .attr("class", "titleName")
                     .attr("x", 40)
                     .attr("y", 37)
-                    .text(titleName)
+                    .text(titleName);
 
                 return title;
 
@@ -311,7 +300,6 @@ angular.module('rhqm.directives', [])
 
 
             function createStackedBars(lowBound, highBound) {
-                var pixelsOffHeight = 0;
 
                 // The gray bars at the bottom leading up
                 svg.selectAll("rect.leaderBar")
@@ -331,10 +319,10 @@ angular.module('rhqm.directives', [])
                     })
                     .attr("height", function (d) {
                         if (isEmptyDataBar(d)) {
-                            return height - yScale(highBound) - pixelsOffHeight;
+                            return height - yScale(highBound);
                         }
                         else {
-                            return height - yScale(d.min) - pixelsOffHeight;
+                            return height - yScale(d.min);
                         }
                     })
                     .attr("width", function () {
@@ -458,6 +446,91 @@ angular.module('rhqm.directives', [])
                     }).on("mouseout", function () {
                         tip.hide();
                     });
+            }
+
+            function createCandleStickChart() {
+
+                console.dir(chartData);
+                // upper portion representing avg to high
+                svg.selectAll("rect.candlestick.up")
+                    .data(chartData)
+                    .enter().append("rect")
+                    .attr("class", "candleStickUp")
+                    .attr("x", function (d) {
+                        return timeScale(d.timestamp);
+                    })
+                    .attr("y", function (d) {
+                        return isNaN(d.max) ? yScale(lowBound) : yScale(d.max);
+                    })
+                    .attr("height", function (d) {
+                        if (isEmptyDataBar(d)) {
+                            return 0;
+                        }
+                        else {
+                            return  yScale(d.avg) - yScale(d.max);
+                        }
+                    })
+                    .attr("width", function () {
+                        return  calcBarWidth();
+                    })
+                    .attr("data-rhq-value", function (d) {
+                        return d.max;
+                    })
+                    .style("fill", function(d,i) {
+                        return fillCandleChart (d, i);
+                    } )
+
+                    .on("mouseover", function (d) {
+                        tip.show(d);
+                    }).on("mouseout", function () {
+                        tip.hide();
+                    });
+
+
+                // lower portion representing avg to low
+                svg.selectAll("rect.candlestick.down")
+                    .data(chartData)
+                    .enter().append("rect")
+                    .attr("class", "candleStickDown")
+                    .attr("x", function (d) {
+                        return timeScale(d.timestamp);
+                    })
+                    .attr("y", function (d) {
+                        return isNaN(d.avg) ? height : yScale(d.avg);
+                    })
+                    .attr("height", function (d) {
+                        if (isEmptyDataBar(d)) {
+                            return 0;
+                        }
+                        else {
+                            return  yScale(d.min) - yScale(d.avg);
+                        }
+                    })
+                    .attr("width", function () {
+                        return  calcBarWidth();
+                    })
+                    .attr("data-rhq-value", function (d) {
+                        return d.min;
+                    })
+                    .style("fill", function(d,i) {
+                        return fillCandleChart (d, i);
+                    })
+                    .on("mouseover", function (d) {
+                        tip.show(d);
+                    }).on("mouseout", function () {
+                        tip.hide();
+                    });
+
+                function fillCandleChart(d, i){
+                    if (i > 0 && chartData[i].avg > chartData[i - 1].avg) {
+                        return "green";
+                    } else if (i === 0) {
+                        return "none";
+                    } else {
+                        return "#ff0705";
+                    }
+                }
+
             }
 
             function createLineChart() {
@@ -709,6 +782,14 @@ angular.module('rhqm.directives', [])
 
 
             function createContextBrush() {
+                console.debug("Create Context Brush");
+
+                context = svg.append("g")
+                    .attr("class", "context")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", chartHeight)
+                    .attr("transform", "translate(" + contextMargin.left + "," + (adjustedChartHeight2 + 130) + ")");
+
 
                 brush = d3.svg.brush()
                     .x(timeScaleForContext)
@@ -795,7 +876,7 @@ angular.module('rhqm.directives', [])
             function createPreviousRangeOverlay(prevRangeData) {
                 var showBarAvgTrendline = true,
                     prevRangeLine;
-                if (angular.isDefined(prevRangeData) && prevRangeData.length > 0) {
+                if (isDefinedAndHasValues(prevRangeData)) {
                     $log.debug("Running PreviousRangeOverlay");
                     prevRangeLine = d3.svg.line()
                         .interpolate("linear")
@@ -825,7 +906,7 @@ angular.module('rhqm.directives', [])
             }
 
             function annotateChart(annotationData) {
-                if (angular.isDefined(annotationData) && annotationData.length > 1) {
+                if (isDefinedAndHasValues(annotationData)) {
                     svg.selectAll(".annotationDot")
                         .data(annotationData)
                         .enter().append("circle")
@@ -849,16 +930,20 @@ angular.module('rhqm.directives', [])
                 }
             }
 
+            function isDefinedAndHasValues(list) {
+                return angular.isDefined(list) && list.length > 0;
+            }
+
             scope.$watch('data', function (newData) {
-                if (angular.isDefined(newData) && newData.length > 0) {
-                    $log.debug("Data Changed");
+                if (isDefinedAndHasValues(newData)) {
+                    $log.debug('Data Changed');
                     processedNewData = angular.fromJson(newData);
                     scope.render(processedNewData, processedPreviousRangeData);
                 }
             }, true);
 
             scope.$watch('previousRangeData', function (newPreviousRangeValues) {
-                if (angular.isDefined(newPreviousRangeValues) && newPreviousRangeValues.length > 0) {
+                if (isDefinedAndHasValues(newPreviousRangeValues)) {
                     $log.debug("Previous Range data changed");
                     processedPreviousRangeData = angular.fromJson(newPreviousRangeValues);
                     scope.render(processedNewData, processedPreviousRangeData);
@@ -866,7 +951,7 @@ angular.module('rhqm.directives', [])
             }, true);
 
             scope.$watch('annotationData', function (newAnnotationData) {
-                if (angular.isDefined(newAnnotationData) && newAnnotationData.length > 0) {
+                if (isDefinedAndHasValues(newAnnotationData)) {
                     annotationData = angular.fromJson(newAnnotationData);
                     scope.render(processedNewData, processedPreviousRangeData);
                 }
@@ -874,35 +959,35 @@ angular.module('rhqm.directives', [])
 
 
             scope.$watch('contextData', function (newContextData) {
-                if (angular.isDefined(newContextData) && newContextData.length > 0) {
+                if (isDefinedAndHasValues(newContextData)) {
                     contextData = angular.fromJson(newContextData);
                     scope.render(processedNewData, processedPreviousRangeData);
                 }
             }, true);
 
-            scope.$watch('chartType', function (newData) {
-                if (angular.isDefined(newData) && newData.length > 0) {
-                    chartType = newData;
+            scope.$watch('chartType', function (newChartType) {
+                if (isDefinedAndHasValues(newChartType)) {
+                    chartType = newChartType;
                     scope.render(processedNewData, processedPreviousRangeData);
                 }
             });
 
-            scope.$watch('showAvgLine', function (newData) {
-                if (angular.isDefined(newData) && newData.length > 0) {
-                    showAvgLine = newData;
+            scope.$watch('showAvgLine', function (newShowAvgLine) {
+                if (isDefinedAndHasValues(newShowAvgLine)) {
+                    showAvgLine = newShowAvgLine;
                     scope.render(processedNewData, processedPreviousRangeData);
                 }
             });
 
-            scope.$on("DateRangeDragChanged", function (event, extent) {
-                $log.debug("Handling DateRangeDragChanged Fired Chart Directive: " + extent[0] + " --> " + extent[1]);
+            scope.$on('DateRangeDragChanged', function (event, extent) {
+                $log.debug('Handling DateRangeDragChanged Fired Chart Directive: ' + extent[0] + ' --> ' + extent[1]);
                 scope.$emit('GraphTimeRangeChangedEvent', extent);
             });
 
 
             scope.render = function (dataPoints, previousRangeDataPoints) {
-                if (angular.isDefined(dataPoints) && dataPoints.length > 0) {
-                    $log.debug("Render Chart");
+                if (isDefinedAndHasValues(dataPoints)) {
+                    $log.debug('Render Chart');
                     //NOTE: layering order is important!
                     oneTimeChartSetup();
                     determineScale(dataPoints);
@@ -920,8 +1005,10 @@ angular.module('rhqm.directives', [])
                         createAreaChart();
                     } else if (chartType === 'scatter') {
                         createScatterChart();
+                    } else if (chartType === 'candlestick') {
+                        createCandleStickChart();
                     } else {
-                        $log.warn("chart-type is not valid. Must be in [bar,area,line,scatter]");
+                        $log.warn('chart-type is not valid. Must be in [bar,area,line,scatter]');
                     }
                     createPreviousRangeOverlay(previousRangeDataPoints);
                     createXandYAxes();

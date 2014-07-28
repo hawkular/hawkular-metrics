@@ -22,12 +22,12 @@ angular.module('chartingApp')
             dateRange: moment().subtract('hours', 24).from(moment(), true),
             updateEndTimeStampToNow: false,
             collapseTable: true,
-            tableButtonLabel: "Show Table",
+            tableButtonLabel: 'Show Table',
             showAvgLine: true,
             showPreviousRangeDataOverlay: false,
             showContextZoom: true,
-            chartType: "bar",
-            chartTypes: ["bar", "line", "area", "scatter"]
+            chartType: 'bar',
+            chartTypes: ['bar', 'line', 'area', 'scatter','candlestick']
         };
 
         vm.dateTimeRanges = [
@@ -42,11 +42,11 @@ angular.module('chartingApp')
             { "range": "6m", "rangeInSeconds": 6 * 30 * 24 * 60 * 60 }
         ];
 
-//        $rootScope.$on("DateRangeMove", function (event, message) {
-//            $log.debug("DateRangeMove on chart Detected.");
+//        $rootScope.$on('DateRangeMove', function (event, message) {
+//            $log.debug('DateRangeMove on chart Detected.');
 //        });
 
-        $rootScope.$on("GraphTimeRangeChangedEvent", function (event, timeRange) {
+        $rootScope.$on('GraphTimeRangeChangedEvent', function (event, timeRange) {
 
             // set to the new published time range
             vm.chartParams.startTimeStamp = timeRange[0];
@@ -106,9 +106,9 @@ angular.module('chartingApp')
         vm.toggleTable = function () {
             vm.chartParams.collapseTable = !vm.chartParams.collapseTable;
             if (vm.chartParams.collapseTable) {
-                vm.chartParams.tableButtonLabel = "Show Table";
+                vm.chartParams.tableButtonLabel = 'Show Table';
             } else {
-                vm.chartParams.tableButtonLabel = "Hide Table";
+                vm.chartParams.tableButtonLabel = 'Hide Table';
             }
         };
 
@@ -144,7 +144,7 @@ angular.module('chartingApp')
 
 
             if (startTime >= endTime) {
-                $log.warn("Start Date was after End Date");
+                $log.warn('Start Date was >= End Date');
                 return;
             }
 
@@ -269,10 +269,10 @@ angular.module('chartingApp')
             var endTime = _.now(),
                 startTime = moment().subtract('months', 24).valueOf();
 
-            console.debug("refreshChartContext");
+            console.debug('refreshChartContext');
             if (vm.chartParams.searchId !== "") {
                 if (startTime >= endTime) {
-                    $log.warn("Start Date was >= End Date");
+                    $log.warn('Start Date was >= End Date');
                     return;
                 }
 
