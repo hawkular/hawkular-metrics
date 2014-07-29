@@ -38,7 +38,6 @@ angular.module('rhqm.directives', [])
                 showAvgLine = true,
                 chartHoverDateFormat = attributes.chartHoverDateFormat || '%m/%d/%y',
                 chartHoverTimeFormat = attributes.chartHoverTimeFormat || '%I:%M:%S %p',
-                allowDragDateSelections = attributes.allowDragDateSelections || true,
                 buttonBarDateTimeFormat = attributes.buttonbarDatetimeFormat || 'MM/DD/YYYY h:mm a';
 
             // chart specific vars
@@ -567,12 +566,26 @@ angular.module('rhqm.directives', [])
                             return height - yScale(d.avg);
                         }
                     })
-                    .attr("fill", function (d) {
+                    .attr("fill", function (d,i) {
                         if (isEmptyDataBar(d)) {
                             return  'url(#noDataStripes)';
                         }
+                        else if(i % 5 === 0){
+                            return  '#D8D8D8';
+                        }
                         else {
                             return  '#EEE';
+                        }
+                    })
+                    .attr("stroke", function (d) {
+                        return '#777';
+                    })
+                    .attr("stroke-width", function (d) {
+                        if (isEmptyDataBar(d)) {
+                            return  '0';
+                        }
+                        else {
+                            return  '0';
                         }
                     })
                     .attr("data-rhq-value", function (d) {
@@ -640,7 +653,7 @@ angular.module('rhqm.directives', [])
 
             function createAreaChart() {
                 var highArea = d3.svg.area()
-                        .interpolate("linear")
+                        .interpolate("step-before")
                         .defined(function (d) {
                             return !d.empty;
                         })
@@ -655,7 +668,7 @@ angular.module('rhqm.directives', [])
                         }),
 
                     avgArea = d3.svg.area()
-                        .interpolate("linear")
+                        .interpolate("step-before")
                         .defined(function (d) {
                             return !d.empty;
                         })
@@ -670,7 +683,7 @@ angular.module('rhqm.directives', [])
                         }),
 
                     lowArea = d3.svg.area()
-                        .interpolate("linear")
+                        .interpolate("step-before")
                         .defined(function (d) {
                             return !d.empty;
                         })
@@ -714,7 +727,7 @@ angular.module('rhqm.directives', [])
                     .attr("cy", function (d) {
                         return isRawMetric(d) ? yScale(d.value) : yScale(d.max);
                     })
-                    .style("fill", function (d) {
+                    .style("fill", function () {
                         return "#ff1a13";
                     }).on("mouseover", function (d) {
                         tip.show(d);
@@ -733,7 +746,7 @@ angular.module('rhqm.directives', [])
                     .attr("cy", function (d) {
                         return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
                     })
-                    .style("fill", function (d) {
+                    .style("fill", function () {
                         return "#FFF";
                     }).on("mouseover", function (d) {
                         tip.show(d);
@@ -752,7 +765,7 @@ angular.module('rhqm.directives', [])
                     .attr("cy", function (d) {
                         return isRawMetric(d) ? yScale(d.value) : yScale(d.min);
                     })
-                    .style("fill", function (d) {
+                    .style("fill", function () {
                         return "#70c4e2";
                     }).on("mouseover", function (d) {
                         tip.show(d);
@@ -806,29 +819,46 @@ angular.module('rhqm.directives', [])
             }
 
             function createAvgLines() {
-                var showBarAvgTrendline = true,
-                    barAvgLine = d3.svg.line()
-                        .interpolate("linear")
-                        .defined(function (d) {
-                            return !d.empty;
-                        })
-                        .x(function (d) {
-                            return timeScale(d.timestamp) + (calcBarWidth() / 2);
-                        })
-                        .y(function (d) {
-                            if (showBarAvgTrendline) {
-                                return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
-                            }
-                            else {
-                                return NaN;
-                            }
-                        });
+                var barAvgLine = d3.svg.line()
+                    .interpolate("monotone")
+                    .defined(function (d) {
+                        return !d.empty;
+                    })
+                    .x(function (d) {
+                        return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                    })
+                    .y(function (d) {
+                        return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
+                    });
 
                 // Bar avg line
                 svg.append("path")
                     .datum(chartData)
                     .attr("class", "barAvgLine")
                     .attr("d", barAvgLine);
+
+            }
+
+            function createMomemtumAvgLines() {
+                var momentumAvgLine = d3.svg.line()
+                    .interpolate("monotone")
+                    .defined(function (d) {
+                        return !d.empty;
+                    })
+                    .x(function (d) {
+                        return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                    })
+                    .y(function (d) {
+                        return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
+                    }).attr("stroke", function (d, i) {
+                        return "red";
+                    });
+
+                // Bar avg line
+                svg.append("path")
+                    .datum(chartData)
+                    .attr("class", "momentumAvgLine")
+                    .attr("d", momentumAvgLine);
 
             }
 
@@ -1045,9 +1075,7 @@ angular.module('rhqm.directives', [])
                     determineScale(dataPoints);
                     createHeader(attributes.chartTitle);
                     createYAxisGridLines();
-                    if (allowDragDateSelections) {
-                        createXAxisBrush();
-                    }
+                    createXAxisBrush();
 
                     if (chartType === 'bar') {
                         createStackedBars(lowBound, highBound);
@@ -1062,7 +1090,7 @@ angular.module('rhqm.directives', [])
                     } else if (chartType === 'candlestick') {
                         createCandleStickChart();
                     } else {
-                        $log.warn('chart-type is not valid. Must be in [bar,area,line,scatter]');
+                        $log.warn('chart-type is not valid. Must be in [bar,area,line,scatter,candlestick,histogram]');
                     }
                     createPreviousRangeOverlay(previousRangeDataPoints);
                     createXandYAxes();
@@ -1107,7 +1135,6 @@ angular.module('rhqm.directives', [])
                 rawValueBarColor: '@',
                 avgLineColor: '@',
                 showAvgLine: '@',
-                allowDragDateSelections: '@',
                 chartTitle: '@'}
         };
     }]

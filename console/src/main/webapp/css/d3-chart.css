@@ -198,7 +198,7 @@ rect.low {
 .highArea {
     fill: red;
     opacity: 0.6;
-    stroke-width: 2;
+    stroke-width: 1;
     stroke: #1008a9;
 }
 
@@ -206,13 +206,13 @@ rect.low {
     fill: orange;
     opacity: 0.6;
     stroke-width: 2;
-    stroke: rgba(255, 93, 7, 0.99);
+    stroke: #000;
 }
 
 .lowArea {
     fill: #fdff80;
     opacity: 0.6;
-    stroke-width: 2;
+    stroke-width: 1;
     stroke: #9b9c0e;
 }
 
@@ -235,12 +235,14 @@ rect.low {
     stroke: black;
 }
 
+/* Modified Candlestick Chart */
 .candleStickUp {
     stroke-width: 1.5;
     stroke-opacity: 0.9;
     stroke: black;
     opacity: 0.6;
 }
+
 .candleStickDown {
     stroke-width: 1.5;
     stroke-opacity: 0.9;
