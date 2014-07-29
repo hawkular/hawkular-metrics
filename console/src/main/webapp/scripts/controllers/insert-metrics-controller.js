@@ -110,10 +110,13 @@ angular.module('chartingApp')
                 startDate = moment().subtract('days', numberOfDays).valueOf(),
                 endDate = _.now(),
                 step = intervalInMinutes * 60 * 1000,
+                startSeed = _.random(randomStart, randomEnd),
                 dbData = [];
 
             intervalTimestamps = _.range(startDate, endDate, step);
-            dbData = _.map(intervalTimestamps, function(ts){return {id: id, timestamp: ts, value: _.random(randomStart, randomEnd)};});
+            dbData = _.map(intervalTimestamps, function(ts){
+                return {id: id, timestamp: ts, value: startSeed + _.random(-5, 5)};
+            });
 
             return angular.toJson(dbData);
 
@@ -135,7 +138,6 @@ angular.module('chartingApp')
                 vm.streamingInsertData.count = vm.streamingInsertData.count + 1;
                 vm.streamingInsertData.lastStreamedValue = _.random(vm.streamingInsertData.startNumber, vm.streamingInsertData.endNumber);
                 vm.streamingInsertData.jsonPayload = { timestamp: _.now(), value: vm.streamingInsertData.lastStreamedValue };
-
 
                 metricDataService.insertSinglePayload(vm.streamingInsertData.id, vm.streamingInsertData.jsonPayload);
 
