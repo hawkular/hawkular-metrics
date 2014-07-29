@@ -26,8 +26,8 @@ angular.module('chartingApp')
             showAvgLine: true,
             showPreviousRangeDataOverlay: false,
             showContextZoom: true,
-            chartType: 'bar',
-            chartTypes: ['bar', 'line', 'area', 'scatter','candlestick']
+            chartType: 'histogram',
+            chartTypes: ['bar', 'line', 'area', 'scatter','candlestick','histogram']
         };
 
         vm.dateTimeRanges = [

@@ -367,7 +367,7 @@ angular.module('rhqm.directives', [])
                         return  calcBarWidth();
                     })
                     .attr("data-rhq-value", function (d) {
-                        return d.avg;
+                        return d.max;
                     })
                     .attr("opacity", 0.9)
                     .on("mouseover", function (d) {
@@ -400,6 +400,9 @@ angular.module('rhqm.directives', [])
                         return  calcBarWidth();
                     })
                     .attr("opacity", 0.9)
+                    .attr("data-rhq-value", function (d) {
+                        return d.min;
+                    })
                     .on("mouseover", function (d) {
                         tip.show(d);
                     }).on("mouseout", function () {
@@ -434,6 +437,9 @@ angular.module('rhqm.directives', [])
                         return  calcBarWidth();
                     })
                     .attr("opacity", 0.9)
+                    .attr("data-rhq-value", function (d) {
+                        return d.value;
+                    })
                     .attr("fill", function (d) {
                         if (d.min === d.max) {
                             return  rawValueBarColor;
@@ -450,7 +456,6 @@ angular.module('rhqm.directives', [])
 
             function createCandleStickChart() {
 
-                console.dir(chartData);
                 // upper portion representing avg to high
                 svg.selectAll("rect.candlestick.up")
                     .data(chartData)
@@ -476,9 +481,9 @@ angular.module('rhqm.directives', [])
                     .attr("data-rhq-value", function (d) {
                         return d.max;
                     })
-                    .style("fill", function(d,i) {
-                        return fillCandleChart (d, i);
-                    } )
+                    .style("fill", function (d, i) {
+                        return fillCandleChart(d, i);
+                    })
 
                     .on("mouseover", function (d) {
                         tip.show(d);
@@ -512,8 +517,8 @@ angular.module('rhqm.directives', [])
                     .attr("data-rhq-value", function (d) {
                         return d.min;
                     })
-                    .style("fill", function(d,i) {
-                        return fillCandleChart (d, i);
+                    .style("fill", function (d, i) {
+                        return fillCandleChart(d, i);
                     })
                     .on("mouseover", function (d) {
                         tip.show(d);
@@ -521,7 +526,7 @@ angular.module('rhqm.directives', [])
                         tip.hide();
                     });
 
-                function fillCandleChart(d, i){
+                function fillCandleChart(d, i) {
                     if (i > 0 && chartData[i].avg > chartData[i - 1].avg) {
                         return "green";
                     } else if (i === 0) {
@@ -530,6 +535,53 @@ angular.module('rhqm.directives', [])
                         return "#ff0705";
                     }
                 }
+
+            }
+
+            function createHistogramChart() {
+
+                // upper portion representing avg to high
+                svg.selectAll("rect.histogram")
+                    .data(chartData)
+                    .enter().append("rect")
+                    .attr("class", "histogram")
+                    .attr("x", function (d) {
+                        return timeScale(d.timestamp);
+                    })
+                    .attr("width", function () {
+                        return  calcBarWidth();
+                    })
+                    .attr("y", function (d) {
+                        if (!isEmptyDataBar(d)) {
+                            return yScale(d.avg);
+                        }
+                        else {
+                            return 0;
+                        }
+                    })
+                    .attr("height", function (d) {
+                        if (isEmptyDataBar(d)) {
+                            return height - yScale(highBound);
+                        }
+                        else {
+                            return height - yScale(d.avg);
+                        }
+                    })
+                    .attr("fill", function (d) {
+                        if (isEmptyDataBar(d)) {
+                            return  'url(#noDataStripes)';
+                        }
+                        else {
+                            return  '#EEE';
+                        }
+                    })
+                    .attr("data-rhq-value", function (d) {
+                        return d.avg;
+                    }).on("mouseover", function (d) {
+                        tip.show(d);
+                    }).on("mouseout", function () {
+                        tip.hide();
+                    });
 
             }
 
@@ -999,6 +1051,8 @@ angular.module('rhqm.directives', [])
 
                     if (chartType === 'bar') {
                         createStackedBars(lowBound, highBound);
+                    } else if (chartType === 'histogram') {
+                        createHistogramChart();
                     } else if (chartType === 'line') {
                         createLineChart();
                     } else if (chartType === 'area') {
