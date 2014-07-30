@@ -81,6 +81,9 @@ angular.module('rhqm.directives', [])
             annotationData = attributes.annotationData;
             contextData = attributes.contextData;
 
+            function xStartPosition(d) {
+                return timeScale(d.timestamp) + (calcBarWidth() / 2);
+            }
 
             function getChartWidth() {
                 //return angular.element("#" + chartContext.chartHandle).width();
@@ -566,11 +569,11 @@ angular.module('rhqm.directives', [])
                             return height - yScale(d.avg);
                         }
                     })
-                    .attr("fill", function (d,i) {
+                    .attr("fill", function (d, i) {
                         if (isEmptyDataBar(d)) {
                             return  'url(#noDataStripes)';
                         }
-                        else if(i % 5 === 0){
+                        else if (i % 5 === 0) {
                             return  '#D8D8D8';
                         }
                         else {
@@ -605,7 +608,7 @@ angular.module('rhqm.directives', [])
                             return !d.empty;
                         })
                         .x(function (d) {
-                            return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                            return xStartPosition(d);
                         })
                         .y(function (d) {
                             return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
@@ -616,7 +619,7 @@ angular.module('rhqm.directives', [])
                             return !d.empty;
                         })
                         .x(function (d) {
-                            return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                            return xStartPosition(d);
                         })
                         .y(function (d) {
                             return isRawMetric(d) ? yScale(d.value) : yScale(d.max);
@@ -627,7 +630,7 @@ angular.module('rhqm.directives', [])
                             return !d.empty;
                         })
                         .x(function (d) {
-                            return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                            return xStartPosition(d);
                         })
                         .y(function (d) {
                             return isRawMetric(d) ? yScale(d.value) : yScale(d.min);
@@ -658,7 +661,7 @@ angular.module('rhqm.directives', [])
                             return !d.empty;
                         })
                         .x(function (d) {
-                            return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                            return xStartPosition(d);
                         })
                         .y(function (d) {
                             return isRawMetric(d) ? yScale(d.value) : yScale(d.max);
@@ -673,7 +676,7 @@ angular.module('rhqm.directives', [])
                             return !d.empty;
                         })
                         .x(function (d) {
-                            return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                            return xStartPosition(d);
                         })
                         .y(function (d) {
                             return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
@@ -688,7 +691,7 @@ angular.module('rhqm.directives', [])
                             return !d.empty;
                         })
                         .x(function (d) {
-                            return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                            return xStartPosition(d);
                         })
                         .y(function (d) {
                             return isRawMetric(d) ? yScale(d.value) : yScale(d.min);
@@ -722,7 +725,7 @@ angular.module('rhqm.directives', [])
                     .attr("class", "highDot")
                     .attr("r", 3)
                     .attr("cx", function (d) {
-                        return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                        return xStartPosition(d);
                     })
                     .attr("cy", function (d) {
                         return isRawMetric(d) ? yScale(d.value) : yScale(d.max);
@@ -741,7 +744,7 @@ angular.module('rhqm.directives', [])
                     .attr("class", "avgDot")
                     .attr("r", 3)
                     .attr("cx", function (d) {
-                        return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                        return xStartPosition(d);
                     })
                     .attr("cy", function (d) {
                         return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
@@ -760,7 +763,7 @@ angular.module('rhqm.directives', [])
                     .attr("class", "lowDot")
                     .attr("r", 3)
                     .attr("cx", function (d) {
-                        return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                        return xStartPosition(d);
                     })
                     .attr("cy", function (d) {
                         return isRawMetric(d) ? yScale(d.value) : yScale(d.min);
@@ -772,6 +775,120 @@ angular.module('rhqm.directives', [])
                     }).on("mouseout", function () {
                         tip.hide();
                     });
+            }
+
+            function createScatterLineChart() {
+
+
+                svg.selectAll(".scatterline.top.stem")
+                    .data(chartData)
+                    .enter().append("svg:line")
+                    .attr("class", "scatterLineTopStem")
+                    .attr("x1", function (d) {
+                        return xStartPosition(d);
+                    })
+                    .attr("x2", function (d) {
+                        return xStartPosition(d);
+                    })
+                    .attr("y1", function (d) {
+                        return yScale(d.max);
+                    })
+                    .attr("y2", function (d) {
+                        return yScale(d.avg);
+                    })
+                    .attr("stroke", function (d) {
+                        return "#000";
+                    });
+
+                svg.selectAll(".scatterline.bottom.stem")
+                    .data(chartData)
+                    .enter().append("svg:line")
+                    .attr("class", "scatterLineBottomStem")
+                    .attr("x1", function (d) {
+                        return xStartPosition(d);
+                    })
+                    .attr("x2", function (d) {
+                        return xStartPosition(d);
+                    })
+                    .attr("y1", function (d) {
+                        return yScale(d.avg);
+                    })
+                    .attr("y2", function (d) {
+                        return yScale(d.min);
+                    })
+                    .attr("stroke", function (d) {
+                        return "#000";
+                    });
+
+                svg.selectAll(".scatterline.top.cross")
+                    .data(chartData)
+                    .enter().append("line")
+                    .attr("class", "scatterLineTopCross")
+                    .attr("x1", function (d) {
+                        return xStartPosition(d) - 3;
+                    })
+                    .attr("x2", function (d) {
+                        return xStartPosition(d) + 3;
+                    })
+                    .attr("y1", function (d) {
+                        return yScale(d.max);
+                    })
+                    .attr("y2", function (d) {
+                        return yScale(d.max);
+                    })
+                    .attr("stroke", function (d) {
+                        return "#000";
+                    })
+                    .attr("stroke-width", function (d) {
+                        return "0.5";
+                    });
+
+                svg.selectAll(".scatterline.bottom.cross")
+                    .data(chartData)
+                    .enter().append("line")
+                    .attr("class", "scatterLineBottomCross")
+                    .attr("x1", function (d) {
+                        return xStartPosition(d) - 3;
+                    })
+                    .attr("x2", function (d) {
+                        return xStartPosition(d) + 3;
+                    })
+                    .attr("y1", function (d) {
+                        return yScale(d.min);
+                    })
+                    .attr("y2", function (d) {
+                        return yScale(d.min);
+                    })
+                    .attr("stroke", function (d) {
+                        return "#000";
+                    })
+                    .attr("stroke-width", function (d) {
+                        return "0.5";
+                    });
+
+                svg.selectAll(".scatterDot")
+                    .data(chartData)
+                    .enter().append("circle")
+                    .attr("class", "avgDot")
+                    .attr("r", 3)
+                    .attr("cx", function (d) {
+                        return xStartPosition(d);
+                    })
+                    .attr("cy", function (d) {
+                        return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
+                    })
+                    .style("fill", function () {
+                        return "#70c4e2";
+                    })
+                    .style("opacity", function () {
+                        return "1";
+                    }).on("mouseover", function (d) {
+                        tip.show(d);
+                    }).on("mouseout", function () {
+                        tip.hide();
+                    });
+
+
             }
 
 
@@ -966,7 +1083,7 @@ angular.module('rhqm.directives', [])
                             return !d.empty;
                         })
                         .x(function (d) {
-                            return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                            return xStartPosition(d);
                         })
                         .y(function (d) {
                             if (showBarAvgTrendline) {
@@ -1087,6 +1204,8 @@ angular.module('rhqm.directives', [])
                         createAreaChart();
                     } else if (chartType === 'scatter') {
                         createScatterChart();
+                    } else if (chartType === 'scatterline') {
+                        createScatterLineChart();
                     } else if (chartType === 'candlestick') {
                         createCandleStickChart();
                     } else {
