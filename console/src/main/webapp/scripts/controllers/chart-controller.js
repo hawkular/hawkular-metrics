@@ -52,7 +52,7 @@ angular.module('chartingApp')
             vm.chartParams.startTimeStamp = timeRange[0];
             vm.chartParams.endTimeStamp = timeRange[1];
             vm.chartParams.dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
-            vm.refreshChartData();
+            vm.refreshHistoricalChartData(vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp);
         });
 
 
@@ -62,7 +62,7 @@ angular.module('chartingApp')
 
             vm.chartParams.startTimeStamp = previousTimeRange[0];
             vm.chartParams.endTimeStamp = previousTimeRange[1];
-            vm.refreshChartData();
+            vm.refreshHistoricalChartData(vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp);
 
         };
 
@@ -90,7 +90,7 @@ angular.module('chartingApp')
 
             vm.chartParams.startTimeStamp = nextTimeRange[0];
             vm.chartParams.endTimeStamp = nextTimeRange[1];
-            vm.refreshChartData();
+            vm.refreshHistoricalChartData(vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp);
 
         };
 
@@ -118,14 +118,14 @@ angular.module('chartingApp')
         });
 
 
-        vm.autoRefresh = function () {
+        vm.autoRefresh = function (intervalInSeconds) {
             vm.chartParams.updateEndTimeStampToNow = !vm.chartParams.updateEndTimeStampToNow;
             if (vm.chartParams.updateEndTimeStampToNow) {
-                vm.refreshChartData();
+                vm.refreshHistoricalChartData();
                 updateLastTimeStampToNowPromise = $interval(function () {
                     vm.chartParams.endTimeStamp = new Date();
-                    vm.refreshChartData();
-                }, 10 * 1000);
+                    vm.refreshHistoricalChartData();
+                }, intervalInSeconds * 1000);
 
             } else {
                 $interval.cancel(updateLastTimeStampToNowPromise);
@@ -133,7 +133,12 @@ angular.module('chartingApp')
 
         };
 
-        vm.refreshChartData = function (startTime, endTime) {
+        vm.refreshChartDataNow = function (startTime) {
+            vm.chartParams.endTimeStamp = new Date();
+            vm.refreshHistoricalChartData(startTime, new Date());
+        };
+
+        vm.refreshHistoricalChartData = function (startTime, endTime) {
             // calling refreshChartData without params use the model values
             if (angular.isUndefined(endTime)) {
                 endTime = vm.chartParams.endTimeStamp;

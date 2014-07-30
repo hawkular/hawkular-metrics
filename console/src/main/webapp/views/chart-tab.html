@@ -3,14 +3,14 @@
         <div class="well">
             <small style="margin-left: 15px" class="graphDateTimeRangeLabel"></small>
 
-            <form class="form-horizontal" name="chartForm" role="form" novalidate ng-submit="vm.refreshChartData()">
+            <form class="form-horizontal" name="chartForm" role="form" novalidate >
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label">ID</label>
 
                     <div class="col-sm-5">
                         <input type="text" class="form-control" name="searchId" ng-model="vm.chartParams.searchId"
-                               ng-enter="vm.refreshChartData();"
+                               ng-enter="vm.refreshChartDataNow();"
                                placeholder="Enter Id..." required ng-minlength="1">
                         <span class="error-message"
                               ng-show="chartForm.searchId.$dirty && chartForm.searchId.$error.required"> * Required.</span>
@@ -75,24 +75,24 @@
                     </div>
                 </div>
 
-
-                <div class="form-group">
-                    <label class="col-sm-2 control-label"></label>
-
-                    <div class="col-sm-6">
-                        <div class="checkbox">
-                            <label>
-                                <input type="checkbox" ng-model="vm.chartParams.updateEndTimeStampToNow"
-                                       ng-click="vm.autoRefresh()"> Refresh (every 10s)
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-
                 <div class="form-group">
                     <div class="col-sm-offset-2 col-sm-10">
-                        <button type="submit" class="btn btn-primary" ng-disabled="!chartForm.$valid">Refresh</button>
+                        <div class="btn-group" ng-disabled="!chartForm.$valid" dropdown>
+                            <button type="button" class="btn btn-primary" ng-disabled="!chartForm.$valid"
+                                    ng-click="vm.refreshChartDataNow()">Refresh
+                            </button>
+                            <button type="button" class="btn btn-primary dropdown-toggle" ng-disabled="!chartForm.$valid">
+                                <span class="caret"></span>
+                                <span class="sr-only">Refresh</span>
+                            </button>
+                            <ul class="dropdown-menu" role="menu" ng-disabled="!chartForm.$valid">
+                                <li><a href="#" ng-click="vm.refreshHistoricalChartData()">Refresh from History</a></li>
+                                <li><a href="#" ng-click="vm.autoRefresh(5)">Auto Refresh (every 5s)</a></li>
+                                <li><a href="#" ng-click="vm.autoRefresh(30)">Auto Refresh (every 30s)</a></li>
+                                <li><a href="#" ng-click="vm.autoRefresh(60)">Auto Refresh (every 1m)</a></li>
+                            </ul>
+                        </div>
+                        <span class="help-block">Default is Refresh to Now</span>
                     </div>
                 </div>
             </form>
