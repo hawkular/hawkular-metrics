@@ -10,10 +10,10 @@
 angular.module('chartingApp')
     .controller('ChartController', ['$scope', '$rootScope', '$interval', '$log', 'metricDataService', function ($scope, $rootScope, $interval, $log, metricDataService) {
         var updateLastTimeStampToNowPromise,
+            bucketedDataPoints = [],
+            contextDataPoints = [],
             vm = this;
-        $rootScope.bucketedDataPoints = [];
         // for the little range graph to select a subrange for the graph
-        $rootScope.contextDataPoints = [];
 
         vm.chartParams = {
             searchId: "",
@@ -153,17 +153,17 @@ angular.module('chartingApp')
                 metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, startTime, endTime)
                     .success(function (response) {
                         // we want to isolate the response from the data we are feeding to the chart
-                        $rootScope.bucketedDataPoints = formatBucketedOutput(response);
+                        bucketedDataPoints = formatBucketedOutput(response);
 
-                        if ($rootScope.bucketedDataPoints.length !== 0) {
+                        if (bucketedDataPoints.length !== 0) {
 
                             // this is basically the DTO for the chart
                             vm.chartData = {
                                 id: vm.chartParams.searchId,
                                 startTimeStamp: vm.chartParams.startTimeStamp,
                                 endTimeStamp: vm.chartParams.endTimeStamp,
-                                dataPoints: $rootScope.bucketedDataPoints,
-                                contextDataPoints: $rootScope.contextDataPoints,
+                                dataPoints: bucketedDataPoints,
+                                contextDataPoints: contextDataPoints,
                                 annotationDataPoints: []
                             };
 
@@ -221,8 +221,8 @@ angular.module('chartingApp')
                                 prevStartTimeStamp: previousTimeRange[0],
                                 prevEndTimeStamp: previousTimeRange[1],
                                 prevDataPoints: prevTimeRangeBucketedDataPoints,
-                                dataPoints: $rootScope.bucketedDataPoints,
-                                contextDataPoints: $rootScope.contextDataPoints,
+                                dataPoints: bucketedDataPoints,
+                                contextDataPoints: contextDataPoints,
                                 annotationDataPoints: []
                             };
 
@@ -242,7 +242,7 @@ angular.module('chartingApp')
             //  The schema is different for bucketed output
             var mappedNew = _.map(response, function (point, i) {
                 return {
-                    timestamp: $rootScope.bucketedDataPoints[i].timestamp,
+                    timestamp: bucketedDataPoints[i].timestamp,
                     originalTimestamp: point.timestamp,
                     value: !angular.isNumber(point.value) ? 0 : point.value,
                     avg: (point.empty) ? 0 : point.avg,
