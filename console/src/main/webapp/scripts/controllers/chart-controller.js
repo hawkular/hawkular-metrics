@@ -26,6 +26,7 @@ angular.module('chartingApp')
             showAvgLine: true,
             showPreviousRangeDataOverlay: false,
             showContextZoom: true,
+            showAutoRefreshCancel: false,
             chartType: 'bar',
             chartTypes: ['bar', 'line', 'area', 'scatter','scatterline','candlestick','histogram']
         };
@@ -117,11 +118,19 @@ angular.module('chartingApp')
             $interval.cancel(updateLastTimeStampToNowPromise);
         });
 
+        vm.cancelAutoRefresh = function () {
+            vm.chartParams.showAutoRefreshCancel = !vm.chartParams.showAutoRefreshCancel;
+            $interval.cancel(updateLastTimeStampToNowPromise);
+            toastr.info('Canceling Auto Refresh');
+        };
 
         vm.autoRefresh = function (intervalInSeconds) {
+            toastr.info('Auto Refresh Mode started');
             vm.chartParams.updateEndTimeStampToNow = !vm.chartParams.updateEndTimeStampToNow;
+            vm.chartParams.showAutoRefreshCancel = true;
             if (vm.chartParams.updateEndTimeStampToNow) {
                 vm.refreshHistoricalChartData();
+                vm.showAutoRefreshCancel = true;
                 updateLastTimeStampToNowPromise = $interval(function () {
                     vm.chartParams.endTimeStamp = new Date();
                     vm.refreshHistoricalChartData();

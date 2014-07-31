@@ -92,6 +92,7 @@
                                 <li><a href="#" ng-click="vm.autoRefresh(60)">Auto Refresh (every 1m)</a></li>
                             </ul>
                         </div>
+                        <button style="margin-left: 15px" type="button" class="btn-small btn-danger" ng-hide="!vm.chartParams.showAutoRefreshCancel" ng-click="vm.cancelAutoRefresh()">Stop</button>
                         <span class="help-block">Default is Refresh to Now</span>
                     </div>
                 </div>
