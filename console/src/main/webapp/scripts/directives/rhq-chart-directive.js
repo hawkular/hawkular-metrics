@@ -541,6 +541,7 @@ angular.module('rhqm.directives', [])
             }
 
             function createHistogramChart() {
+                var strokeOpacity = "0.6";
 
                 // upper portion representing avg to high
                 svg.selectAll("rect.histogram")
@@ -574,10 +575,10 @@ angular.module('rhqm.directives', [])
                             return  'url(#noDataStripes)';
                         }
                         else if (i % 5 === 0) {
-                            return  '#D8D8D8';
+                            return  '#989898';
                         }
                         else {
-                            return  '#EEE';
+                            return  '#C0C0C0';
                         }
                     })
                     .attr("stroke", function (d) {
@@ -598,6 +599,104 @@ angular.module('rhqm.directives', [])
                     }).on("mouseout", function () {
                         tip.hide();
                     });
+
+                svg.selectAll(".histogram.top.stem")
+                    .data(chartData)
+                    .enter().append("line")
+                    .attr("class", "histogramTopStem")
+                    .attr("x1", function (d) {
+                        return xStartPosition(d);
+                    })
+                    .attr("x2", function (d) {
+                        return xStartPosition(d);
+                    })
+                    .attr("y1", function (d) {
+                        return yScale(d.max);
+                    })
+                    .attr("y2", function (d) {
+                        return yScale(d.avg);
+                    })
+                    .attr("stroke", function (d) {
+                        return "red";
+                    })
+                    .attr("stroke-opacity", function (d) {
+                        return strokeOpacity;
+                    });
+
+                svg.selectAll(".histogram.bottom.stem")
+                    .data(chartData)
+                    .enter().append("line")
+                    .attr("class", "histogramBottomStem")
+                    .attr("x1", function (d) {
+                        return xStartPosition(d);
+                    })
+                    .attr("x2", function (d) {
+                        return xStartPosition(d);
+                    })
+                    .attr("y1", function (d) {
+                        return yScale(d.avg);
+                    })
+                    .attr("y2", function (d) {
+                        return yScale(d.min);
+                    })
+                    .attr("stroke", function (d) {
+                        return "red";
+                    }).attr("stroke-opacity", function (d) {
+                        return strokeOpacity;
+                    });
+
+                svg.selectAll(".histogram.top.cross")
+                    .data(chartData)
+                    .enter().append("line")
+                    .attr("class", "histogramTopCross")
+                    .attr("x1", function (d) {
+                        return xStartPosition(d) - 3;
+                    })
+                    .attr("x2", function (d) {
+                        return xStartPosition(d) + 3;
+                    })
+                    .attr("y1", function (d) {
+                        return yScale(d.max);
+                    })
+                    .attr("y2", function (d) {
+                        return yScale(d.max);
+                    })
+                    .attr("stroke", function (d) {
+                        return "red";
+                    })
+                    .attr("stroke-width", function (d) {
+                        return "0.5";
+                    })
+                    .attr("stroke-opacity", function (d) {
+                        return strokeOpacity;
+                    });
+
+                svg.selectAll(".histogram.bottom.cross")
+                    .data(chartData)
+                    .enter().append("line")
+                    .attr("class", "histogramBottomCross")
+                    .attr("x1", function (d) {
+                        return xStartPosition(d) - 3;
+                    })
+                    .attr("x2", function (d) {
+                        return xStartPosition(d) + 3;
+                    })
+                    .attr("y1", function (d) {
+                        return yScale(d.min);
+                    })
+                    .attr("y2", function (d) {
+                        return yScale(d.min);
+                    })
+                    .attr("stroke", function (d) {
+                        return "red";
+                    })
+                    .attr("stroke-width", function (d) {
+                        return "0.5";
+                    })
+                    .attr("stroke-opacity", function (d) {
+                        return strokeOpacity;
+                    });
+
 
             }
 
@@ -782,7 +881,7 @@ angular.module('rhqm.directives', [])
 
                 svg.selectAll(".scatterline.top.stem")
                     .data(chartData)
-                    .enter().append("svg:line")
+                    .enter().append("line")
                     .attr("class", "scatterLineTopStem")
                     .attr("x1", function (d) {
                         return xStartPosition(d);
@@ -802,7 +901,7 @@ angular.module('rhqm.directives', [])
 
                 svg.selectAll(".scatterline.bottom.stem")
                     .data(chartData)
-                    .enter().append("svg:line")
+                    .enter().append("line")
                     .attr("class", "scatterLineBottomStem")
                     .attr("x1", function (d) {
                         return xStartPosition(d);

@@ -77,11 +77,11 @@
 
                 <div class="form-group">
                     <div class="col-sm-offset-2 col-sm-10">
-                        <div class="btn-group" ng-disabled="!chartForm.$valid" dropdown>
-                            <button type="button" class="btn btn-primary" ng-disabled="!chartForm.$valid"
+                        <div class="btn-group" ng-disabled="!chartForm.$valid || vm.chartParams.showAutoRefreshCancel" dropdown>
+                            <button type="button" class="btn btn-primary" ng-disabled="!chartForm.$valid || vm.chartParams.showAutoRefreshCancel"
                                     ng-click="vm.refreshChartDataNow()">Refresh
                             </button>
-                            <button type="button" class="btn btn-primary dropdown-toggle" ng-disabled="!chartForm.$valid">
+                            <button type="button" class="btn btn-primary dropdown-toggle" ng-disabled="!chartForm.$valid || vm.chartParams.showAutoRefreshCancel">
                                 <span class="caret"></span>
                                 <span class="sr-only">Refresh</span>
                             </button>
