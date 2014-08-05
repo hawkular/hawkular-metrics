@@ -1,11 +1,12 @@
 'use strict';
 
 angular.module('rhqm.services')
-    .factory('metricDataService', ['$http', '$log', '$localStorage', 'BASE_URL', function ($http, $log, $localStorage, BASE_URL) {
+    .factory('metricDataService', ['$rootScope','$http', '$log', '$localStorage', 'BASE_URL', function ($rootScope, $http, $log, $localStorage, BASE_URL) {
 
         function makeBaseUrl () {
-            $log.debug('hMakeurl: '+ 'http://' + this.$storage.server + ':' + this.$storage.port + '/' + BASE_URL);
-            return encodeUri('http://' + $localStorage.server + ':' + $localStorage.port + '/' + BASE_URL);
+            var baseUrl = 'http://' + $rootScope.$storage.server + ':' + $rootScope.$storage.port +  BASE_URL;
+            $log.debug('MakeUrl: '+ baseUrl);
+            return baseUrl;
         }
 
         return {
@@ -32,7 +33,8 @@ angular.module('rhqm.services')
             },
 
             insertSinglePayload: function (id, jsonPayload) {
-                $http.post(makeBaseUrl() + '/' + id, jsonPayload
+                var url = makeBaseUrl();
+                $http.post(url + '/' + id, jsonPayload
                 ).success(function () {
                         toastr.success('Inserted value for ID: ' + id, 'Success');
                     }).error(function (response, status) {
@@ -42,7 +44,8 @@ angular.module('rhqm.services')
             },
 
             insertMultiplePayload: function (jsonPayload) {
-                $http.post(makeBaseUrl + '/', jsonPayload
+                var url = makeBaseUrl();
+                $http.post(url + '/', jsonPayload
                 ).success(function () {
                         toastr.success('Inserted Multiple values Successfully.', 'Success');
                     }).error(function (response, status) {

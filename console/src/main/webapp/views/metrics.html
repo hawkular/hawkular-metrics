@@ -29,12 +29,12 @@
     <div style="float:right">
 
         <label for="serverText" class="server-label">Backend Server:</label>
-        <input id="serverText" type="text" style="width:20em;"
-               ng-model="globalController.$storage.server">
+        <input id="serverText" type="text" style="width:20em;" required
+               ng-model="$storage.server">
 
         <label for="portText" class="server-label">Port:</label>
-        <input id="portText" type="text" style="width:5em;"
-               ng-model="globalController.$storage.port">
+        <input id="portText" type="text" style="width:5em;" required
+               ng-model="$storage.port">
         <button type="button" ng-click="globalController.saveServerPort()" class="btn btn-sm btn-default">Save</button>
     </div>
 

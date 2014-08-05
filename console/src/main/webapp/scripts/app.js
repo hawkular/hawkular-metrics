@@ -8,6 +8,12 @@ angular.module('chartingApp', [ 'ui.bootstrap', 'ui.bootstrap.datetimepicker', '
         $httpProvider.defaults.useXDomain = true;
         // just a good security precaution to delete this
         delete $httpProvider.defaults.headers.common['X-Requested-With'];
+    }).run(function ($rootScope, $localStorage) {
+
+        $rootScope.$storage = $localStorage.$default({
+            server: 'localhost',
+            port: '8080'
+        });
     });
 
 angular.module('rhqm.directives', [ 'ui.bootstrap', 'd3' ]);
