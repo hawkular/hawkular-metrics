@@ -1,20 +1,26 @@
 'use strict';
 
 angular.module('rhqm.services')
-    .factory('metricDataService', ['$http', '$log', 'BASE_URL', function ($http, $log, BASE_URL) {
+    .factory('metricDataService', ['$http', '$log', '$localStorage', 'BASE_URL', function ($http, $log, $localStorage, BASE_URL) {
+
+        function makeBaseUrl () {
+            $log.debug('hMakeurl: '+ 'http://' + this.$storage.server + ':' + this.$storage.port + '/' + BASE_URL);
+            return encodeUri('http://' + $localStorage.server + ':' + $localStorage.port + '/' + BASE_URL);
+        }
 
         return {
             getMetricsForTimeRange: function (id, startDate, endDate, buckets) {
                 $log.info("Retrieving metrics data for id: " + id);
                 $log.info("Date Range: " + new Date(startDate) + " - " + new Date(endDate));
-                var numBuckets = buckets || 60;
+                var numBuckets = buckets || 60,
+                    base = makeBaseUrl();
 
-                if(startDate >= endDate){
+                if (startDate >= endDate) {
                     $log.warn("Start date was after end date");
                     return;
                 }
 
-                return $http.get(BASE_URL + '/' + id,
+                return $http.get(base + '/' + id,
                     {
                         params: {
                             start: startDate.getTime(),
@@ -26,7 +32,7 @@ angular.module('rhqm.services')
             },
 
             insertSinglePayload: function (id, jsonPayload) {
-                $http.post(BASE_URL + '/' + id, jsonPayload
+                $http.post(makeBaseUrl() + '/' + id, jsonPayload
                 ).success(function () {
                         toastr.success('Inserted value for ID: ' + id, 'Success');
                     }).error(function (response, status) {
@@ -36,7 +42,7 @@ angular.module('rhqm.services')
             },
 
             insertMultiplePayload: function (jsonPayload) {
-                $http.post(BASE_URL + '/', jsonPayload
+                $http.post(makeBaseUrl + '/', jsonPayload
                 ).success(function () {
                         toastr.success('Inserted Multiple values Successfully.', 'Success');
                     }).error(function (response, status) {

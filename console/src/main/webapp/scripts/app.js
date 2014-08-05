@@ -1,7 +1,7 @@
 'use strict';
 
-angular.module('chartingApp', [ 'ui.bootstrap', 'ui.bootstrap.datetimepicker', 'rhqm.directives', 'rhqm.services'])
-    .constant('BASE_URL', 'http://localhost:8080/rhq-metrics/metrics')
+angular.module('chartingApp', [ 'ui.bootstrap', 'ui.bootstrap.datetimepicker', 'ngStorage', 'rhqm.directives', 'rhqm.services'])
+    .constant('BASE_URL', '/rhq-metrics/metrics')
     .constant('DATE_TIME_FORMAT', 'MM/DD/YYYY h:mm a')
     .config(function ($httpProvider) {
         // enable CORS
@@ -11,4 +11,4 @@ angular.module('chartingApp', [ 'ui.bootstrap', 'ui.bootstrap.datetimepicker', '
     });
 
 angular.module('rhqm.directives', [ 'ui.bootstrap', 'd3' ]);
-angular.module('rhqm.services', [  ]);
+angular.module('rhqm.services', [ 'ngStorage' ]);

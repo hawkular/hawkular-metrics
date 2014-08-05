@@ -24,7 +24,7 @@
 
 </head>
 <body ng-app="chartingApp">
-<div class="container" ng-include="'views/metrics.html'"></div>
+<div class="container" ng-controller="GlobalController as globalController"  ng-include="'views/metrics.html'"></div>
 
 <!--[if lt IE 9]>
 <script src="bower_components/es5-shim/es5-shim.js"></script>
@@ -43,6 +43,7 @@
 <script src="bower_components/angular-bootstrap/ui-bootstrap-tpls.js"></script>
 <script src="bower_components/toastr/toastr.js"></script>
 <script src="bower_components/lodash/dist/lodash.compat.js"></script>
+<script src="bower_components/ngstorage/ngStorage.js"></script>
 <!-- endbower -->
 <!-- endbuild -->
 
@@ -53,6 +54,7 @@
 <script src="scripts/directives/date-time-range-selection-directive.js"></script>
 <script src="scripts/directives/enter-key-directive.js"></script>
 <script src="scripts/controllers/chart-controller.js"></script>
+<script src="scripts/controllers/global-controller.js"></script>
 <script src="scripts/controllers/insert-metrics-controller.js"></script>
 <!-- endbuild -->
 </body>
