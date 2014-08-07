@@ -25,7 +25,7 @@ angular.module('rhqm.directives', [])
                 aggregateLabel = attributes.aggregateLabel || 'Aggregate',
                 startLabel = attributes.startLabel || 'Start',
                 endLabel = attributes.endLabel || 'End',
-                durationLabel = attributes.durationLabel || 'Duration',
+                durationLabel = attributes.durationLabel || 'Bar Duration',
                 minLabel = attributes.minLabel || 'Min',
                 maxLabel = attributes.maxLabel || 'Max',
                 avgLabel = attributes.avgLabel || 'Avg',
@@ -108,8 +108,9 @@ angular.module('rhqm.directives', [])
                 tip = d3.tip()
                     .attr('class', 'd3-tip')
                     .offset([-10, 0])
-                    .html(function (d) {
-                        return buildHover(d);
+                    .html(function (d, i) {
+                        console.warn("i = " + i);
+                        return buildHover(d, i);
                     });
 
                 svg = chart.append("g")
@@ -219,22 +220,36 @@ angular.module('rhqm.directives', [])
             }
 
 
-            function buildHover(d) {
+            function buildHover(d, i) {
                 var hover,
+                    prevTimestamp,
+                    currentTimestamp = d.timestamp,
+                    barDuration,
                     formattedDateTime = moment(d.timestamp).format(buttonBarDateTimeFormat);
+
+                if (i > 0) {
+                    prevTimestamp = chartData[i - 1].timestamp;
+                    barDuration = moment(currentTimestamp).from(moment(prevTimestamp), true);
+                }
 
                 if (isEmptyDataBar(d)) {
                     // nodata
-                    hover = "<div class='chartHover'><small class='chartHoverLabel'>" + noDataLabel + "</small><hr/>" +
-                        "<div><small><span class='chartHoverLabel'>Timestamp: </span><span class='chartHoverValue'>" + formattedDateTime + "</span></small></div></div>";
+                    hover = "<div class='chartHover'><small class='chartHoverLabel'>" + noDataLabel + "</small>" +
+                        "<div><small><span class='chartHoverLabel'>" + durationLabel + "</span><span>: </span><span class='chartHoverValue'>" + barDuration + "</span></small> </div>" +
+                        "<hr/>" +
+                        "<div><small><span class='chartHoverLabel'>" + timestampLabel + "</span><span>: </span><span class='chartHoverValue'>" + formattedDateTime + "</span></small></div></div>";
                 } else {
                     if (isRawMetric(d)) {
                         // raw single value from raw table
-                        hover = "<div class='chartHover'><div><small><span class='chartHoverLabel'>Timestamp: </span><span class='chartHoverValue'>" + formattedDateTime + "</span></small></div><hr/>" +
+                        hover = "<div class='chartHover'><div><small><span class='chartHoverLabel'>" + timestampLabel + "</span><span>: </span><span class='chartHoverValue'>" + formattedDateTime + "</span></small></div>" +
+                            "<div><small><span class='chartHoverLabel'>" + durationLabel + "</span><span>: </span><span class='chartHoverValue'>" + barDuration + "</span></small> </div>" +
+                            "<hr/>" +
                             "<div><small><span class='chartHoverLabel'>" + singleValueLabel + "</span><span>: </span><span class='chartHoverValue'>" + d.value + "</span></small> </div></div> ";
                     } else {
                         // aggregate with min/avg/max
-                        hover = "<div class='chartHover'><div><small><span class='chartHoverLabel'>Timestamp: </span><span class='chartHoverValue'>" + formattedDateTime + "</span></small></div><hr/>" +
+                        hover = "<div class='chartHover'><div><small><span class='chartHoverLabel'>" + timestampLabel + "</span><span>: </span><span class='chartHoverValue'>" + formattedDateTime + "</span></small></div>" +
+                            "<div><small><span class='chartHoverLabel'>" + durationLabel + "</span><span>: </span><span class='chartHoverValue'>" + barDuration + "</span></small> </div>" +
+                            "<hr/>" +
                             "<div><small><span class='chartHoverLabel'>" + maxLabel + "</span><span>: </span><span class='chartHoverValue'>" + d.max + "</span></small> </div> " +
                             "<div><small><span class='chartHoverLabel'>" + avgLabel + "</span><span>: </span><span class='chartHoverValue'>" + d.avg + "</span></small> </div> " +
                             "<div><small><span class='chartHoverLabel'>" + minLabel + "</span><span>: </span><span class='chartHoverValue'>" + d.min + "</span></small> </div></div> ";
@@ -339,8 +354,8 @@ angular.module('rhqm.directives', [])
                         else {
                             return  leaderBarColor;
                         }
-                    }).on("mouseover", function (d) {
-                        tip.show(d);
+                    }).on("mouseover", function (d, i) {
+                        tip.show(d, i);
                     }).on("mouseout", function () {
                         tip.hide();
                     });
@@ -372,8 +387,8 @@ angular.module('rhqm.directives', [])
                         return d.max;
                     })
                     .attr("opacity", 0.9)
-                    .on("mouseover", function (d) {
-                        tip.show(d);
+                    .on("mouseover", function (d, i) {
+                        tip.show(d, i);
                     }).on("mouseout", function () {
                         tip.hide();
                     });
@@ -405,8 +420,8 @@ angular.module('rhqm.directives', [])
                     .attr("data-rhq-value", function (d) {
                         return d.min;
                     })
-                    .on("mouseover", function (d) {
-                        tip.show(d);
+                    .on("mouseover", function (d, i) {
+                        tip.show(d, i);
                     }).on("mouseout", function () {
                         tip.hide();
                     });
@@ -449,8 +464,8 @@ angular.module('rhqm.directives', [])
                         else {
                             return  "#70c4e2";
                         }
-                    }).on("mouseover", function (d) {
-                        tip.show(d);
+                    }).on("mouseover", function (d, i) {
+                        tip.show(d, i);
                     }).on("mouseout", function () {
                         tip.hide();
                     });
@@ -487,8 +502,8 @@ angular.module('rhqm.directives', [])
                         return fillCandleChart(d, i);
                     })
 
-                    .on("mouseover", function (d) {
-                        tip.show(d);
+                    .on("mouseover", function (d, i) {
+                        tip.show(d, i);
                     }).on("mouseout", function () {
                         tip.hide();
                     });
@@ -522,8 +537,8 @@ angular.module('rhqm.directives', [])
                     .style("fill", function (d, i) {
                         return fillCandleChart(d, i);
                     })
-                    .on("mouseover", function (d) {
-                        tip.show(d);
+                    .on("mouseover", function (d, i) {
+                        tip.show(d, i);
                     }).on("mouseout", function () {
                         tip.hide();
                     });
@@ -594,8 +609,8 @@ angular.module('rhqm.directives', [])
                     })
                     .attr("data-rhq-value", function (d) {
                         return d.avg;
-                    }).on("mouseover", function (d) {
-                        tip.show(d);
+                    }).on("mouseover", function (d, i) {
+                        tip.show(d, i);
                     }).on("mouseout", function () {
                         tip.hide();
                     });
@@ -831,8 +846,8 @@ angular.module('rhqm.directives', [])
                     })
                     .style("fill", function () {
                         return "#ff1a13";
-                    }).on("mouseover", function (d) {
-                        tip.show(d);
+                    }).on("mouseover", function (d, i) {
+                        tip.show(d, i);
                     }).on("mouseout", function () {
                         tip.hide();
                     });
@@ -850,8 +865,8 @@ angular.module('rhqm.directives', [])
                     })
                     .style("fill", function () {
                         return "#FFF";
-                    }).on("mouseover", function (d) {
-                        tip.show(d);
+                    }).on("mouseover", function (d, i) {
+                        tip.show(d, i);
                     }).on("mouseout", function () {
                         tip.hide();
                     });
@@ -869,8 +884,8 @@ angular.module('rhqm.directives', [])
                     })
                     .style("fill", function () {
                         return "#70c4e2";
-                    }).on("mouseover", function (d) {
-                        tip.show(d);
+                    }).on("mouseover", function (d, i) {
+                        tip.show(d, i);
                     }).on("mouseout", function () {
                         tip.hide();
                     });
@@ -981,8 +996,8 @@ angular.module('rhqm.directives', [])
                     })
                     .style("opacity", function () {
                         return "1";
-                    }).on("mouseover", function (d) {
-                        tip.show(d);
+                    }).on("mouseover", function (d, i) {
+                        tip.show(d, i);
                     }).on("mouseout", function () {
                         tip.hide();
                     });
