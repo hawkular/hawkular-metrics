@@ -36,6 +36,7 @@ angular.module('rhqm.directives', [])
                 rawValueBarColor = attributes.rawValueBarColor || '#50505a',
                 avgLineColor = attributes.avgLineColor || '#2e376a',
                 showAvgLine = true,
+                hideHighLowValues = false,
                 chartHoverDateFormat = attributes.chartHoverDateFormat || '%m/%d/%y',
                 chartHoverTimeFormat = attributes.chartHoverTimeFormat || '%I:%M:%S %p',
                 buttonBarDateTimeFormat = attributes.buttonbarDatetimeFormat || 'MM/DD/YYYY h:mm a';
@@ -109,7 +110,6 @@ angular.module('rhqm.directives', [])
                     .attr('class', 'd3-tip')
                     .offset([-10, 0])
                     .html(function (d, i) {
-                        console.warn("i = " + i);
                         return buildHover(d, i);
                     });
 
@@ -615,103 +615,106 @@ angular.module('rhqm.directives', [])
                         tip.hide();
                     });
 
-                svg.selectAll(".histogram.top.stem")
-                    .data(chartData)
-                    .enter().append("line")
-                    .attr("class", "histogramTopStem")
-                    .attr("x1", function (d) {
-                        return xStartPosition(d);
-                    })
-                    .attr("x2", function (d) {
-                        return xStartPosition(d);
-                    })
-                    .attr("y1", function (d) {
-                        return yScale(d.max);
-                    })
-                    .attr("y2", function (d) {
-                        return yScale(d.avg);
-                    })
-                    .attr("stroke", function (d) {
-                        return "red";
-                    })
-                    .attr("stroke-opacity", function (d) {
-                        return strokeOpacity;
-                    });
+                if (hideHighLowValues === 'false') {
 
-                svg.selectAll(".histogram.bottom.stem")
-                    .data(chartData)
-                    .enter().append("line")
-                    .attr("class", "histogramBottomStem")
-                    .attr("x1", function (d) {
-                        return xStartPosition(d);
-                    })
-                    .attr("x2", function (d) {
-                        return xStartPosition(d);
-                    })
-                    .attr("y1", function (d) {
-                        return yScale(d.avg);
-                    })
-                    .attr("y2", function (d) {
-                        return yScale(d.min);
-                    })
-                    .attr("stroke", function (d) {
-                        return "red";
-                    }).attr("stroke-opacity", function (d) {
-                        return strokeOpacity;
-                    });
+                    svg.selectAll(".histogram.top.stem")
+                        .data(chartData)
+                        .enter().append("line")
+                        .attr("class", "histogramTopStem")
+                        .attr("x1", function (d) {
+                            return xStartPosition(d);
+                        })
+                        .attr("x2", function (d) {
+                            return xStartPosition(d);
+                        })
+                        .attr("y1", function (d) {
+                            return yScale(d.max);
+                        })
+                        .attr("y2", function (d) {
+                            return yScale(d.avg);
+                        })
+                        .attr("stroke", function (d) {
+                            return "red";
+                        })
+                        .attr("stroke-opacity", function (d) {
+                            return strokeOpacity;
+                        });
 
-                svg.selectAll(".histogram.top.cross")
-                    .data(chartData)
-                    .enter().append("line")
-                    .attr("class", "histogramTopCross")
-                    .attr("x1", function (d) {
-                        return xStartPosition(d) - 3;
-                    })
-                    .attr("x2", function (d) {
-                        return xStartPosition(d) + 3;
-                    })
-                    .attr("y1", function (d) {
-                        return yScale(d.max);
-                    })
-                    .attr("y2", function (d) {
-                        return yScale(d.max);
-                    })
-                    .attr("stroke", function (d) {
-                        return "red";
-                    })
-                    .attr("stroke-width", function (d) {
-                        return "0.5";
-                    })
-                    .attr("stroke-opacity", function (d) {
-                        return strokeOpacity;
-                    });
+                    svg.selectAll(".histogram.bottom.stem")
+                        .data(chartData)
+                        .enter().append("line")
+                        .attr("class", "histogramBottomStem")
+                        .attr("x1", function (d) {
+                            return xStartPosition(d);
+                        })
+                        .attr("x2", function (d) {
+                            return xStartPosition(d);
+                        })
+                        .attr("y1", function (d) {
+                            return yScale(d.avg);
+                        })
+                        .attr("y2", function (d) {
+                            return yScale(d.min);
+                        })
+                        .attr("stroke", function (d) {
+                            return "red";
+                        }).attr("stroke-opacity", function (d) {
+                            return strokeOpacity;
+                        });
 
-                svg.selectAll(".histogram.bottom.cross")
-                    .data(chartData)
-                    .enter().append("line")
-                    .attr("class", "histogramBottomCross")
-                    .attr("x1", function (d) {
-                        return xStartPosition(d) - 3;
-                    })
-                    .attr("x2", function (d) {
-                        return xStartPosition(d) + 3;
-                    })
-                    .attr("y1", function (d) {
-                        return yScale(d.min);
-                    })
-                    .attr("y2", function (d) {
-                        return yScale(d.min);
-                    })
-                    .attr("stroke", function (d) {
-                        return "red";
-                    })
-                    .attr("stroke-width", function (d) {
-                        return "0.5";
-                    })
-                    .attr("stroke-opacity", function (d) {
-                        return strokeOpacity;
-                    });
+                    svg.selectAll(".histogram.top.cross")
+                        .data(chartData)
+                        .enter().append("line")
+                        .attr("class", "histogramTopCross")
+                        .attr("x1", function (d) {
+                            return xStartPosition(d) - 3;
+                        })
+                        .attr("x2", function (d) {
+                            return xStartPosition(d) + 3;
+                        })
+                        .attr("y1", function (d) {
+                            return yScale(d.max);
+                        })
+                        .attr("y2", function (d) {
+                            return yScale(d.max);
+                        })
+                        .attr("stroke", function (d) {
+                            return "red";
+                        })
+                        .attr("stroke-width", function (d) {
+                            return "0.5";
+                        })
+                        .attr("stroke-opacity", function (d) {
+                            return strokeOpacity;
+                        });
 
+                    svg.selectAll(".histogram.bottom.cross")
+                        .data(chartData)
+                        .enter().append("line")
+                        .attr("class", "histogramBottomCross")
+                        .attr("x1", function (d) {
+                            return xStartPosition(d) - 3;
+                        })
+                        .attr("x2", function (d) {
+                            return xStartPosition(d) + 3;
+                        })
+                        .attr("y1", function (d) {
+                            return yScale(d.min);
+                        })
+                        .attr("y2", function (d) {
+                            return yScale(d.min);
+                        })
+                        .attr("stroke", function (d) {
+                            return "red";
+                        })
+                        .attr("stroke-width", function (d) {
+                            return "0.5";
+                        })
+                        .attr("stroke-opacity", function (d) {
+                            return strokeOpacity;
+                        });
+
+                }
 
             }
 
@@ -756,15 +759,19 @@ angular.module('rhqm.directives', [])
                     .attr("class", "avgLine")
                     .attr("d", avgLine);
 
-                svg.append("path")
-                    .datum(chartData)
-                    .attr("class", "highLine")
-                    .attr("d", highLine);
 
-                svg.append("path")
-                    .datum(chartData)
-                    .attr("class", "lowLine")
-                    .attr("d", lowLine);
+                if (hideHighLowValues === 'false') {
+
+                    svg.append("path")
+                        .datum(chartData)
+                        .attr("class", "highLine")
+                        .attr("d", highLine);
+
+                    svg.append("path")
+                        .datum(chartData)
+                        .attr("class", "lowLine")
+                        .attr("d", lowLine);
+                }
 
             }
 
@@ -814,43 +821,69 @@ angular.module('rhqm.directives', [])
                             return height;
                         });
 
-                // Bar avg line
+
+                if (hideHighLowValues === 'false') {
+
+                    svg.append("path")
+                        .datum(chartData)
+                        .attr("class", "highArea")
+                        .attr("d", highArea);
+
+                    svg.append("path")
+                        .datum(chartData)
+                        .attr("class", "lowArea")
+                        .attr("d", lowArea);
+                }
+
                 svg.append("path")
                     .datum(chartData)
                     .attr("class", "avgArea")
                     .attr("d", avgArea);
 
-                svg.append("path")
-                    .datum(chartData)
-                    .attr("class", "highArea")
-                    .attr("d", highArea);
-
-                svg.append("path")
-                    .datum(chartData)
-                    .attr("class", "lowArea")
-                    .attr("d", lowArea);
-
             }
 
             function createScatterChart() {
-                svg.selectAll(".highDot")
-                    .data(chartData)
-                    .enter().append("circle")
-                    .attr("class", "highDot")
-                    .attr("r", 3)
-                    .attr("cx", function (d) {
-                        return xStartPosition(d);
-                    })
-                    .attr("cy", function (d) {
-                        return isRawMetric(d) ? yScale(d.value) : yScale(d.max);
-                    })
-                    .style("fill", function () {
-                        return "#ff1a13";
-                    }).on("mouseover", function (d, i) {
-                        tip.show(d, i);
-                    }).on("mouseout", function () {
-                        tip.hide();
-                    });
+                if (hideHighLowValues === 'false') {
+
+                    svg.selectAll(".highDot")
+                        .data(chartData)
+                        .enter().append("circle")
+                        .attr("class", "highDot")
+                        .attr("r", 3)
+                        .attr("cx", function (d) {
+                            return xStartPosition(d);
+                        })
+                        .attr("cy", function (d) {
+                            return isRawMetric(d) ? yScale(d.value) : yScale(d.max);
+                        })
+                        .style("fill", function () {
+                            return "#ff1a13";
+                        }).on("mouseover", function (d, i) {
+                            tip.show(d, i);
+                        }).on("mouseout", function () {
+                            tip.hide();
+                        });
+
+
+                    svg.selectAll(".lowDot")
+                        .data(chartData)
+                        .enter().append("circle")
+                        .attr("class", "lowDot")
+                        .attr("r", 3)
+                        .attr("cx", function (d) {
+                            return xStartPosition(d);
+                        })
+                        .attr("cy", function (d) {
+                            return isRawMetric(d) ? yScale(d.value) : yScale(d.min);
+                        })
+                        .style("fill", function () {
+                            return "#70c4e2";
+                        }).on("mouseover", function (d, i) {
+                            tip.show(d, i);
+                        }).on("mouseout", function () {
+                            tip.hide();
+                        });
+                }
 
                 svg.selectAll(".avgDot")
                     .data(chartData)
@@ -865,25 +898,6 @@ angular.module('rhqm.directives', [])
                     })
                     .style("fill", function () {
                         return "#FFF";
-                    }).on("mouseover", function (d, i) {
-                        tip.show(d, i);
-                    }).on("mouseout", function () {
-                        tip.hide();
-                    });
-
-                svg.selectAll(".lowDot")
-                    .data(chartData)
-                    .enter().append("circle")
-                    .attr("class", "lowDot")
-                    .attr("r", 3)
-                    .attr("cx", function (d) {
-                        return xStartPosition(d);
-                    })
-                    .attr("cy", function (d) {
-                        return isRawMetric(d) ? yScale(d.value) : yScale(d.min);
-                    })
-                    .style("fill", function () {
-                        return "#70c4e2";
                     }).on("mouseover", function (d, i) {
                         tip.show(d, i);
                     }).on("mouseout", function () {
@@ -1292,6 +1306,20 @@ angular.module('rhqm.directives', [])
                 }
             });
 
+            scope.$watch('avgLineColor', function (newAvgLineColor) {
+                if (isDefinedAndHasValues(newAvgLineColor)) {
+                    avgLineColor = newAvgLineColor;
+                    scope.render(processedNewData, processedPreviousRangeData);
+                }
+            });
+
+            scope.$watch('hideHighLowValues', function (newHideHighLowValues) {
+                if (isDefinedAndHasValues(newHideHighLowValues)) {
+                    hideHighLowValues = newHideHighLowValues;
+                    scope.render(processedNewData, processedPreviousRangeData);
+                }
+            });
+
             scope.$on('DateRangeDragChanged', function (event, extent) {
                 $log.debug('Handling DateRangeDragChanged Fired Chart Directive: ' + extent[0] + ' --> ' + extent[1]);
                 scope.$emit('GraphTimeRangeChangedEvent', extent);
@@ -1368,6 +1396,7 @@ angular.module('rhqm.directives', [])
                 rawValueBarColor: '@',
                 avgLineColor: '@',
                 showAvgLine: '@',
+                hideHighLowValues: '@',
                 chartTitle: '@'}
         };
     }]

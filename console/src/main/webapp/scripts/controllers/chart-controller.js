@@ -22,6 +22,7 @@ function ChartController ($scope, $rootScope, $interval, $log, metricDataService
         collapseTable: true,
         tableButtonLabel: 'Show Table',
         showAvgLine: true,
+        hideHighLowValues: false,
         showPreviousRangeDataOverlay: false,
         showContextZoom: true,
         showAutoRefreshCancel: false,

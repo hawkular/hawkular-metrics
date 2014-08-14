@@ -109,6 +109,7 @@
                         context-data="{{vm.chartData.contextDataPoints}}"
                         chart-type="{{vm.chartParams.chartType}}"
                         show-avg-line="{{vm.chartParams.showAvgLine}}"
+                        hide-high-low-values="{{vm.chartParams.hideHighLowValues}}"
                         chart-title="{{'Metrics Id: '+vm.chartParams.searchId}}"
                         chart-height="250"></rhqm-chart>
             </div>
@@ -146,6 +147,7 @@
                 <div class="col-sm-10">
                     <div class="btn-group">
                         <label class="btn btn-primary btn-sm" ng-model="vm.chartParams.showAvgLine" btn-checkbox>Show Avg. Line</label>
+                        <label class="btn btn-primary btn-sm" ng-model="vm.chartParams.hideHighLowValues" btn-checkbox>Hide High/Low Values</label>
                         <label class="btn btn-primary btn-sm" ng-model="vm.chartParams.showPreviousRangeDataOverlay" btn-checkbox
                                ng-click="vm.togglePreviousRangeDataOverlay()">Overlay Prev. Range</label>
                         <label class="btn btn-primary btn-sm" ng-model="vm.chartParams.showContextZoom" btn-checkbox ng-click="vm.toggleContextZoom()">Show Context Zoom</label>
@@ -158,30 +160,8 @@
                 {{vm.chartParams.tableButtonLabel}}
             </button>
 
+            <ng-include src="'views/chart-tabular-data.html'"></ng-include>
 
-            <div collapse="vm.chartParams.collapseTable">
-                <h4>Data Points: {{vm.chartData.dataPoints.length}}</h4>
-                <table class="table table-hover" style="width:500px;">
-                    <thead>
-                    <tr>
-                        <th> Time</th>
-                        <th> Avg</th>
-                        <th> Min</th>
-                        <th> Max</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr ng-repeat="chartPoint in vm.chartData.dataPoints | orderBy:timestamp:true">
-                        <td>{{chartPoint.date | date: 'medium'}}</td>
-                        <td>{{chartPoint.avg|number:2}}</td>
-                        <td>{{chartPoint.min|number:2}}</td>
-                        <td>{{chartPoint.max|number:2}}</td>
-                    </tr>
-
-                    </tbody>
-
-                </table>
-            </div>
         </div>
     </div>
 </div>
