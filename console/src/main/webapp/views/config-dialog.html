@@ -11,7 +11,7 @@
 
                     <div class="col-sm-4">
                         <input type="text" class="form-control" ng-model="$storage.server" required
-                               placeholder="Enter Server...">
+                               ng-minlength="3" placeholder="Enter Server...">
                         <span class="help-block">Example: localhost, 10.15.23.71  </span>
                     </div>
                 </div>
@@ -21,7 +21,7 @@
 
                     <div class="col-sm-4">
                         <input type="text" class="form-control" ng-model="$storage.port" required
-                               placeholder="Enter Port...">
+                               ng-minlength="2" placeholder="Enter Port...">
                         <span class="help-block">Example: 8080, 80  </span>
                     </div>
                 </div>

@@ -3,8 +3,12 @@
 /**
  * @ngdoc controller
  * @name ChartController
- * @param {expression} chartController
  * @description This controller is responsible for handling activity related to the Chart tab.
+ * @param $scope
+ * @param $rootScope
+ * @param $interval
+ * @param $log
+ * @param metricDataService
  */
 function ChartController ($scope, $rootScope, $interval, $log, metricDataService) {
     var updateLastTimeStampToNowPromise,
