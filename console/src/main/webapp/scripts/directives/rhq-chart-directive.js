@@ -1,5 +1,10 @@
 'use strict';
 
+var OverlayData = function (name, dataPoints) {
+    this.name = name;
+    this.dataPoints = dataPoints;
+
+};
 
 /**
  * @ngdoc directive
@@ -16,6 +21,7 @@ angular.module('rhqm.directives', [])
                 previousRangeDataPoints,
                 annotationData = [],
                 contextData = [],
+                multiChartOverlayData = [],
                 chartHeight = +attributes.chartHeight || 250,
                 chartType = attributes.chartType || 'bar',
                 timeLabel = attributes.timeLabel || 'Time',
@@ -1063,9 +1069,10 @@ angular.module('rhqm.directives', [])
 
             }
 
-            function createAvgLines() {
-                var barAvgLine = d3.svg.line()
-                    .interpolate("monotone")
+            function createCenteredLine(newInterpolation){
+                var interpolate = newInterpolation || 'monotone',
+                line = d3.svg.line()
+                    .interpolate(interpolate)
                     .defined(function (d) {
                         return !d.empty;
                     })
@@ -1076,11 +1083,14 @@ angular.module('rhqm.directives', [])
                         return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
                     });
 
-                // Bar avg line
+                return line;
+            }
+
+            function createAvgLines() {
                 svg.append("path")
                     .datum(chartData)
                     .attr("class", "barAvgLine")
-                    .attr("d", barAvgLine);
+                    .attr("d", createCenteredLine("monotone"));
 
             }
 
@@ -1201,33 +1211,28 @@ angular.module('rhqm.directives', [])
             }
 
             function createPreviousRangeOverlay(prevRangeData) {
-                var showBarAvgTrendline = true,
-                    prevRangeLine;
                 if (isDefinedAndHasValues(prevRangeData)) {
                     $log.debug("Running PreviousRangeOverlay");
-                    prevRangeLine = d3.svg.line()
-                        .interpolate("linear")
-                        .defined(function (d) {
-                            return !d.empty;
-                        })
-                        .x(function (d) {
-                            return xStartPosition(d);
-                        })
-                        .y(function (d) {
-                            if (showBarAvgTrendline) {
-                                return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
-                            }
-                            else {
-                                return NaN;
-                            }
-                        });
-
-                    // Bar avg line
                     svg.append("path")
                         .datum(prevRangeData)
                         .attr("class", "prevRangeAvgLine")
                         .style("stroke-dasharray", ("9,3"))
-                        .attr("d", prevRangeLine);
+                        .attr("d", createCenteredLine("linear"));
+                }
+
+            }
+
+            function createMultiMetricOverlay(multiChartOverlayData) {
+                var multiLine,
+                    colorScale = $wnd.d3.scale.category20();
+
+                $log.warn("Running MultiChartOverlay");
+                if (isDefinedAndHasValues(multiChartOverlayData)) {
+                    svg.append("path")
+                        .datum(multiChartOverlayData)
+                        .attr("class", "prevRangeAvgLine")
+                        .style("stroke-dasharray", ("9,3"))
+                        .attr("d", createCenteredLine("monotone"));
                 }
 
             }
@@ -1292,6 +1297,15 @@ angular.module('rhqm.directives', [])
                 }
             }, true);
 
+
+            scope.$watch('multiChartOverlayData', function (newOverLayData) {
+                if (isDefinedAndHasValues(newOverLayData)) {
+                    multiChartOverlayData = angular.fromJson(newOverLayData);
+                    scope.render(processedNewData, processedPreviousRangeData);
+                }
+            }, true);
+
+
             scope.$watch('chartType', function (newChartType) {
                 if (isDefinedAndHasValues(newChartType)) {
                     chartType = newChartType;
@@ -1350,6 +1364,8 @@ angular.module('rhqm.directives', [])
                         createScatterLineChart();
                     } else if (chartType === 'candlestick') {
                         createCandleStickChart();
+                    } else if (chartType === 'multimetric') {
+                        createMultiMetricOverlay();
                     } else {
                         $log.warn('chart-type is not valid. Must be in [bar,area,line,scatter,candlestick,histogram]');
                     }
@@ -1372,6 +1388,7 @@ angular.module('rhqm.directives', [])
                 previousRangeData: '@',
                 annotationData: '@',
                 contextData: '@',
+                multiChartOverlayData: '@',
                 chartHeight: '@',
                 chartType: '@',
                 yAxisUnits: '@',
