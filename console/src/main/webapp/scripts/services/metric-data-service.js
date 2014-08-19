@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('rhqm.services')
-    .factory('metricDataService', ['$rootScope','$http', '$log', '$localStorage', 'BASE_URL', function ($rootScope, $http, $log, $localStorage, BASE_URL) {
+    .factory('metricDataService', ['$q', '$rootScope','$http', '$log', '$localStorage', 'BASE_URL', function ($q, $rootScope, $http, $log, $localStorage, BASE_URL) {
 
         function makeBaseUrl () {
             var baseUrl = 'http://' + $rootScope.$storage.server + ':' + $rootScope.$storage.port +  BASE_URL;
@@ -14,7 +14,8 @@ angular.module('rhqm.services')
                 $log.info("Retrieving metrics data for id: " + id);
                 $log.info("Date Range: " + new Date(startDate) + " - " + new Date(endDate));
                 var numBuckets = buckets || 60,
-                    base = makeBaseUrl();
+                    base = makeBaseUrl(),
+                    promise = $q.defer();
 
                 if (startDate >= endDate) {
                     $log.warn("Start date was after end date");

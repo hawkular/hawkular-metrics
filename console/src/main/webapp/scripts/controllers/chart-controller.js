@@ -15,10 +15,9 @@ function ChartController ($scope, $rootScope, $interval, $log, metricDataService
         bucketedDataPoints = [],
         contextDataPoints = [],
         vm = this;
-    // for the little range graph to select a subrange for the graph
 
     vm.chartParams = {
-        searchId: "",
+        searchId: '',
         startTimeStamp: moment().subtract('hours', 24).toDate(), //default time period set to 24 hours
         endTimeStamp: new Date(),
         dateRange: moment().subtract('hours', 24).from(moment(), true),
@@ -35,15 +34,15 @@ function ChartController ($scope, $rootScope, $interval, $log, metricDataService
     };
 
     vm.dateTimeRanges = [
-        { "range": "1h", "rangeInSeconds": 60 * 60 } ,
-        { "range": "4h", "rangeInSeconds": 4 * 60 * 60 } ,
-        { "range": "8h", "rangeInSeconds": 8 * 60 * 60 },
-        { "range": "12h", "rangeInSeconds": 12 * 60 * 60 },
-        { "range": "1d", "rangeInSeconds": 24 * 60 * 60 },
-        { "range": "5d", "rangeInSeconds": 5 * 24 * 60 * 60 },
-        { "range": "1m", "rangeInSeconds": 30 * 24 * 60 * 60 },
-        { "range": "3m", "rangeInSeconds": 3 * 30 * 24 * 60 * 60 },
-        { "range": "6m", "rangeInSeconds": 6 * 30 * 24 * 60 * 60 }
+        { 'range': '1h', 'rangeInSeconds': 60 * 60 } ,
+        { 'range': '4h', 'rangeInSeconds': 4 * 60 * 60 } ,
+        { 'range': '8h', 'rangeInSeconds': 8 * 60 * 60 },
+        { 'range': '12h', 'rangeInSeconds': 12 * 60 * 60 },
+        { 'range': '1d', 'rangeInSeconds': 24 * 60 * 60 },
+        { 'range': '5d', 'rangeInSeconds': 5 * 24 * 60 * 60 },
+        { 'range': '1m', 'rangeInSeconds': 30 * 24 * 60 * 60 },
+        { 'range': '3m', 'rangeInSeconds': 3 * 30 * 24 * 60 * 60 },
+        { 'range': '6m', 'rangeInSeconds': 6 * 30 * 24 * 60 * 60 }
     ];
 
 //        $rootScope.$on('DateRangeMove', function (event, message) {
@@ -224,7 +223,7 @@ function ChartController ($scope, $rootScope, $interval, $log, metricDataService
     function overlayPreviousRangeData() {
         var previousTimeRange = calculatePreviousTimeRange(vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp);
 
-        if (vm.chartParams.searchId !== "") {
+        if (vm.chartParams.searchId !== '') {
             metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, previousTimeRange[0], previousTimeRange[1])
                 .success(function (response) {
                     // we want to isolate the response from the data we are feeding to the chart
@@ -287,7 +286,7 @@ function ChartController ($scope, $rootScope, $interval, $log, metricDataService
             startTime = moment().subtract('months', 24).valueOf();
 
         console.debug('refreshChartContext');
-        if (vm.chartParams.searchId !== "") {
+        if (vm.chartParams.searchId !== '') {
             if (startTime >= endTime) {
                 $log.warn('Start Date was >= End Date');
                 return;

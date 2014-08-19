@@ -1,9 +1,9 @@
 'use strict';
 
-var MetricItem = function(name){
+var MetricItem = function (name) {
     this.name = name;
     this.enabled = true;
-    this.color = "#FF5D07";
+    this.color = '#FF5D07';
 };
 
 
@@ -17,8 +17,9 @@ var MetricItem = function(name){
  * @param $log
  * @param metricDataService
  */
-function MetricOverlayController ($scope, $rootScope, $interval, $log, metricDataService) {
-    var  vm = this;
+function MetricOverlayController($q, $scope, $rootScope, $interval, $log, metricDataService) {
+    var vm = this,
+        promises = [];
 
     vm.multiChart = {
         newMetric: ''
@@ -29,12 +30,12 @@ function MetricOverlayController ($scope, $rootScope, $interval, $log, metricDat
     vm.metricList.push(new MetricItem("200"));
     vm.metricList.push(new MetricItem("300"));
 
-    vm.toggleEnabled = function(i) {
+    vm.toggleEnabled = function (i) {
 
     };
 
     vm.deleteMetric = function (i) {
-        vm.metricList.splice(i,1);
+        vm.metricList.splice(i, 1);
     };
 
     vm.addMetric = function () {
@@ -43,7 +44,26 @@ function MetricOverlayController ($scope, $rootScope, $interval, $log, metricDat
         vm.multiChart.newMetric = '';
     };
 
+    function queryMetrics() {
+        var promise;
+
+        angular.forEach(vm.metricList, function (metricItem) {
+            promise = $q.defer();
+
+        });
+
+    }
+
+    function queryOneMetric() {
+        var promise = $q.defer(),
+            metricItem = vm.metricList.pop();
+
+        $log.debug('Metric Item: ' + metricItem.name);
+
+
+    }
+
 }
 
 angular.module('chartingApp')
-    .controller('MetricOverlayController', ['$scope', '$rootScope', '$interval', '$log', 'metricDataService', MetricOverlayController]);
+    .controller('MetricOverlayController', ['$q', '$scope', '$rootScope', '$interval', '$log', 'metricDataService', MetricOverlayController]);
