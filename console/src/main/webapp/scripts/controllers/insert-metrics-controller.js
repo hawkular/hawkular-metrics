@@ -77,18 +77,25 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
         $log.debug('Generated Timestamp is: ' + computedTimestamp.fromNow());
 
         vm.quickInsertData.jsonPayload = { timestamp: computedTimestamp.valueOf(), value: vm.quickInsertData.value };
-        $log.info('quick insert for id:  %s ', vm.quickInsertData.id);
 
-        metricDataService.insertSinglePayload(vm.quickInsertData.id, vm.quickInsertData.jsonPayload);
+        metricDataService.insertSinglePayload(vm.quickInsertData.id, vm.quickInsertData.jsonPayload).then(function (success) {
+            toastr.success('Inserted value: ' + vm.quickInsertData.value + ' for ID: ' + vm.quickInsertData.id, 'Success');
+            vm.quickInsertData.value = '';
+        }, function (error) {
+            toastr.error('An issue with inserting data has occurred. Please see the console logs. Status: ' + error);
+        });
 
-        vm.quickInsertData.value = '';
 
     };
 
 
     vm.multiInsert = function () {
-        metricDataService.insertMultiplePayload(vm.multiInsertData.jsonPayload);
-        vm.multiInsertData.jsonPayload = "";
+        metricDataService.insertMultiplePayload(vm.multiInsertData.jsonPayload).then(function (success) {
+            toastr.success('Inserted Multiple values Successfully.', 'Success');
+            vm.multiInsertData.jsonPayload = "";
+        }, function (error) {
+            insertError(error);
+        });
     };
 
 
@@ -99,10 +106,18 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
             vm.rangeInsertData.selectedIntervalInMinutes, vm.rangeInsertData.startNumber,
             vm.rangeInsertData.endNumber);
         $log.debug("JsonPayload: " + jsonPayload);
-        metricDataService.insertMultiplePayload(jsonPayload);
-        vm.rangeInsertData.id = "";
+        metricDataService.insertMultiplePayload(jsonPayload).then(function (success) {
+            toastr.success('Advanced Range Inserted Multiple values Successfully.', 'Success');
+            vm.rangeInsertData.id = "";
+        }, function (error) {
+            insertError(error);
+        });
 
     };
+
+    function insertError(error) {
+        toastr.error('An issue with inserting data has occurred. Please see the console logs. Status: ' + error);
+    }
 
     function calculateRangeTimestamps(id, numberOfDays, intervalInMinutes, randomStart, randomEnd) {
         var intervalTimestamps = [],
@@ -113,7 +128,7 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
             dbData = [];
 
         intervalTimestamps = _.range(startDate, endDate, step);
-        dbData = _.map(intervalTimestamps, function(ts){
+        dbData = _.map(intervalTimestamps, function (ts) {
             return {id: id, timestamp: ts, value: startSeed + _.random(-5, 5)};
         });
 
@@ -124,8 +139,8 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
     vm.startStreaming = function () {
         var selectedTimeRangeInSeconds = 5;
 
-        angular.forEach(vm.streamingTimeRanges, function(value){
-            if(value.range === vm.streamingInsertData.selectedRefreshInterval)  {
+        angular.forEach(vm.streamingTimeRanges, function (value) {
+            if (value.range === vm.streamingInsertData.selectedRefreshInterval) {
                 selectedTimeRangeInSeconds = value.rangeInSeconds;
             }
         });
@@ -138,7 +153,11 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
             vm.streamingInsertData.lastStreamedValue = _.random(vm.streamingInsertData.startNumber, vm.streamingInsertData.endNumber);
             vm.streamingInsertData.jsonPayload = { timestamp: _.now(), value: vm.streamingInsertData.lastStreamedValue };
 
-            metricDataService.insertSinglePayload(vm.streamingInsertData.id, vm.streamingInsertData.jsonPayload);
+            metricDataService.insertSinglePayload(vm.streamingInsertData.id, vm.streamingInsertData.jsonPayload).then(function (success) {
+                toastr.success('Successfully inserted: ' + vm.streamingInsertData.lastStreamedValue, 'Streaming Insert');
+            }, function (error) {
+                insertError(error);
+            });
 
         }, selectedTimeRangeInSeconds * 1000);
         $scope.$on('$destroy', function () {
@@ -158,4 +177,4 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
 
 }
 angular.module('chartingApp')
-    .controller('InsertMetricsController', ['$scope', '$rootScope', '$log','$interval', 'metricDataService', InsertMetricsController ]);
+    .controller('InsertMetricsController', ['$scope', '$rootScope', '$log', '$interval', 'metricDataService', InsertMetricsController ]);

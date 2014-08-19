@@ -41,25 +41,29 @@ angular.module('rhqm.services')
             },
 
             insertSinglePayload: function (id, jsonPayload) {
-                var url = makeBaseUrl();
+                var url = makeBaseUrl(),
+                deferred = $q.defer();
                 $http.post(url + '/' + id, jsonPayload
                 ).success(function () {
-                        toastr.success('Inserted value for ID: ' + id, 'Success');
+                        deferred.resolve("Success");
                     }).error(function (response, status) {
                         console.error("Error: " + status + " --> " + response);
-                        toastr.error('An issue with inserting data has occurred. Please see the console logs. Status: ' + status);
+                        deferred.reject(status);
                     });
+                return deferred.promise;
             },
 
             insertMultiplePayload: function (jsonPayload) {
-                var url = makeBaseUrl();
+                var url = makeBaseUrl(),
+                    deferred = $q.defer();
                 $http.post(url + '/', jsonPayload
                 ).success(function () {
-                        toastr.success('Inserted Multiple values Successfully.', 'Success');
+                        deferred.resolve("Success");
                     }).error(function (response, status) {
                         console.error("Error: " + status + " --> " + response);
-                        toastr.error('An issue with inserting data has occurred. Please see the console logs. Status: ' + status);
+                        deferred.reject(status);
                     });
+                return deferred.promise;
             }
         };
     }]);
