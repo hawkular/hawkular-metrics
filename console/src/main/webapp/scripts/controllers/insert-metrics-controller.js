@@ -14,15 +14,15 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
     $rootScope.showOpenGroup = true;
 
     vm.streamingTimeRanges = [
-        { "range": "1s", "rangeInSeconds": 1 },
-        { "range": "5s", "rangeInSeconds": 5 },
-        { "range": "30s", "rangeInSeconds": 30 },
-        { "range": "1m", "rangeInSeconds": 60 },
-        { "range": "5m", "rangeInSeconds": 5 * 60 },
-        { "range": "10m", "rangeInSeconds": 10 * 60 },
-        { "range": "15m", "rangeInSeconds": 15 * 60 },
-        { "range": "30m", "rangeInSeconds": 30 * 60 },
-        { "range": "1h", "rangeInSeconds": 60 * 60 }
+        { 'range': '1s', 'rangeInSeconds': 1 },
+        { 'range': '5s', 'rangeInSeconds': 5 },
+        { 'range': '30s', 'rangeInSeconds': 30 },
+        { 'range': '1m', 'rangeInSeconds': 60 },
+        { 'range': '5m', 'rangeInSeconds': 5 * 60 },
+        { 'range': '10m', 'rangeInSeconds': 10 * 60 },
+        { 'range': '15m', 'rangeInSeconds': 15 * 60 },
+        { 'range': '30m', 'rangeInSeconds': 30 * 60 },
+        { 'range': '1h', 'rangeInSeconds': 60 * 60 }
     ];
 
 
@@ -30,22 +30,22 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
 
     vm.quickInsertData = {
         timeStamp: _.now(),
-        id: "",
-        jsonPayload: "",
-        value: ""
+        id: '',
+        jsonPayload: '',
+        value: ''
     };
 
     vm.multiInsertData = {
-        id: "",
-        jsonPayload: ""
+        id: '',
+        jsonPayload: ''
     };
     vm.rangeDurations = [1, 2, 5, 7];
 
     vm.rangeInsertData = {
         timeStamp: _.now(),
-        id: "",
+        id: '',
         selectedTimeInterval: 5,
-        jsonPayload: "",
+        jsonPayload: '',
         startNumber: 1,
         endNumber: 100,
         selectedIntervalInMinutes: vm.timeInterval[2],
@@ -55,8 +55,8 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
 
     vm.streamingInsertData = {
         timeStamp: _.now(),
-        id: "",
-        jsonPayload: "",
+        id: '',
+        jsonPayload: '',
         count: 1,
         startNumber: 1,
         endNumber: 100,
@@ -74,14 +74,14 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
         } else {
             computedTimestamp = moment().subtract('hours', numberOfHoursPast);
         }
-        $log.debug("Generated Timestamp is: " + computedTimestamp.fromNow());
+        $log.debug('Generated Timestamp is: ' + computedTimestamp.fromNow());
 
         vm.quickInsertData.jsonPayload = { timestamp: computedTimestamp.valueOf(), value: vm.quickInsertData.value };
-        $log.info("quick insert for id:  %s ", vm.quickInsertData.id);
+        $log.info('quick insert for id:  %s ', vm.quickInsertData.id);
 
         metricDataService.insertSinglePayload(vm.quickInsertData.id, vm.quickInsertData.jsonPayload);
 
-        vm.quickInsertData.value = "";
+        vm.quickInsertData.value = '';
 
     };
 
