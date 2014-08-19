@@ -10,7 +10,7 @@
  * @param $log
  * @param metricDataService
  */
-function ChartController ($scope, $rootScope, $interval, $log, metricDataService) {
+function ChartController($scope, $rootScope, $interval, $log, metricDataService) {
     var updateLastTimeStampToNowPromise,
         bucketedDataPoints = [],
         contextDataPoints = [],
@@ -30,7 +30,7 @@ function ChartController ($scope, $rootScope, $interval, $log, metricDataService
         showContextZoom: true,
         showAutoRefreshCancel: false,
         chartType: 'bar',
-        chartTypes: ['bar', 'line', 'area', 'scatter','scatterline','candlestick','histogram']
+        chartTypes: ['bar', 'line', 'area', 'scatter', 'scatterline', 'candlestick', 'histogram']
     };
 
     vm.dateTimeRanges = [
@@ -58,6 +58,10 @@ function ChartController ($scope, $rootScope, $interval, $log, metricDataService
         vm.refreshHistoricalChartData(vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp);
     });
 
+    function noDataFoundForId(id) {
+        $log.warn('No Data found for id: ' + id);
+        toastr.warn('No Data found for id: ' + id);
+    }
 
     vm.showPreviousTimeRange = function () {
         var previousTimeRange;
@@ -158,16 +162,16 @@ function ChartController ($scope, $rootScope, $interval, $log, metricDataService
             startTime = vm.chartParams.startTimeStamp;
         }
 
+//
+//        if (startTime >= endTime) {
+//            $log.warn('Start Date was >= End Date');
+//            return;
+//        }
 
-        if (startTime >= endTime) {
-            $log.warn('Start Date was >= End Date');
-            return;
-        }
-
-        if (vm.chartParams.searchId !== "") {
+        if (vm.chartParams.searchId !== '') {
 
             metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, startTime, endTime)
-                .success(function (response) {
+                .then(function (response) {
                     // we want to isolate the response from the data we are feeding to the chart
                     bucketedDataPoints = formatBucketedOutput(response);
 
@@ -184,13 +188,11 @@ function ChartController ($scope, $rootScope, $interval, $log, metricDataService
                         };
 
                     } else {
-                        $log.warn('No Data found for id: ' + vm.chartParams.searchId);
-                        toastr.warn('No Data found for id: ' + vm.chartParams.searchId);
+                        noDataFoundForId(vm.chartParams.searchId);
                     }
 
-                }).error(function (response, status) {
-                    $log.error('Error loading graph data: ' + response);
-                    toastr.error('Error loading graph data', 'Status: ' + status);
+                }, function (error) {
+                    toastr.error('Error Loading Chart Data: ' + error);
                 });
         }
     };
@@ -220,12 +222,13 @@ function ChartController ($scope, $rootScope, $interval, $log, metricDataService
         }
     };
 
+
     function overlayPreviousRangeData() {
         var previousTimeRange = calculatePreviousTimeRange(vm.chartParams.startTimeStamp, vm.chartParams.endTimeStamp);
 
         if (vm.chartParams.searchId !== '') {
             metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, previousTimeRange[0], previousTimeRange[1])
-                .success(function (response) {
+                .then(function (response) {
                     // we want to isolate the response from the data we are feeding to the chart
                     var prevTimeRangeBucketedDataPoints = formatPreviousBucketedOutput(response);
 
@@ -243,13 +246,11 @@ function ChartController ($scope, $rootScope, $interval, $log, metricDataService
                         };
 
                     } else {
-                        $log.warn('No Prev Range Data found for id: ' + vm.chartParams.searchId);
-                        toastr.warn('No Prev Range Data found for id: ' + vm.chartParams.searchId);
+                        noDataFoundForId(vm.chartParams.searchId);
                     }
 
-                }).error(function (response, status) {
-                    $log.error('Error loading Prev Range graph data: ' + response);
-                    toastr.error('Error loading Prev Range graph data', 'Status: ' + status);
+                }, function (error) {
+                    toastr.error('Error loading Prev Range graph data', 'Status: ' + error);
                 });
         }
     }
@@ -293,18 +294,16 @@ function ChartController ($scope, $rootScope, $interval, $log, metricDataService
             }
 
             metricDataService.getMetricsForTimeRange(vm.chartParams.searchId, new Date(startTime), new Date(endTime), 300)
-                .success(function (response) {
+                .then(function (response) {
 
                     vm.chartData.contextDataPoints = formatContextOutput(response);
 
                     if (angular.isUndefined(vm.chartData.contextDataPoints) || vm.chartData.contextDataPoints.length === 0) {
-                        $log.warn('No Context Data found for id: ' + vm.chartParams.searchId);
-                        toastr.warn('No Context Data found for id: ' + vm.chartParams.searchId);
+                        noDataFoundForId(vm.chartParams.searchId);
                     }
 
-                }).error(function (response, status) {
-                    $log.error('Error loading Context graph data: ' + response);
-                    toastr.error('Error loading Context graph data', 'Status: ' + status);
+                }, function (error) {
+                    toastr.error('Error loading Context graph data', 'Status: ' + error);
                 });
         }
 
