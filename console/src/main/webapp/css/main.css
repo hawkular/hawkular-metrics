@@ -44,6 +44,14 @@ input.ng-valid.ng-dirty {
     color: red;
 }
 
+.gridStyle {
+    border: 1px solid rgb(212,212,212);
+    width: 400px;
+    height: 200px
+}
+
+
+
 /* Customize container */
 @media (min-width: 768px) {
     .container {

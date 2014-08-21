@@ -1,69 +1,74 @@
 'use strict';
 
-var MetricItem = function (name) {
-    this.name = name;
-    this.enabled = true;
-    this.color = '#FF5D07';
-};
-
 
 /**
  * @ngdoc controller
  * @name MetricOverlayController
  * @description This controller is
- * @param $scope
- * @param $rootScope
- * @param $interval
  * @param $log
  * @param metricDataService
  */
-function MetricOverlayController($q, $scope, $rootScope, $interval, $log, metricDataService) {
+function MetricOverlayController($q, $log, metricDataService) {
     var vm = this,
-        promises = [];
+        data = [];
 
     vm.multiChart = {
-        newMetric: ''
+        newMetric: '',
+        combinedData: []
     };
+
+
     vm.metricList = [];
 
-    vm.metricList.push(new MetricItem("100"));
-    vm.metricList.push(new MetricItem("200"));
-    vm.metricList.push(new MetricItem("300"));
+    vm.metricList.push("100");
+    vm.metricList.push("200");
+    vm.metricList.push("apache.server2");
 
-    vm.toggleEnabled = function (i) {
-
-    };
+    vm.gridOptions = {data: 'mc.metricList', headerRowHeight: 0 };
 
     vm.deleteMetric = function (i) {
         vm.metricList.splice(i, 1);
     };
 
     vm.addMetric = function () {
-        var metricItem = new MetricItem(vm.newMetric);
-        vm.metricList.push(metricItem);
-        vm.multiChart.newMetric = '';
+        if (_.contains(vm.metriclist, vm.multiChart.newMetric)) {
+            vm.metricList.push(vm.multiChart.newMetric);
+            vm.multiChart.newMetric = '';
+            queryMetrics(vm.metricList);
+        }
     };
 
-    function queryMetrics() {
-        var promise;
+    function queryMetrics(metricList) {
+        var promise,
+            all,
+            promises = [];
 
-        angular.forEach(vm.metricList, function (metricItem) {
-            promise = $q.defer();
-
+        console.time('multiMetrics');
+        angular.forEach(metricList, function (metricItem) {
+            //@todo: remove fixed 8 hr period
+            promise = metricDataService.getMetricsForTimeRange(metricItem, moment().subtract('hours', 8).toDate(), moment().toDate());
+            promise.then(function (successData) {
+                console.dir(successData);
+                data.push(successData);
+                console.debug('Added %s', metricItem);
+            }, function (error) {
+                console.log(error);
+                toastr.error('Error loading Context graph data: ' + error);
+            });
+            promises.push(promise);
         });
 
-    }
-
-    function queryOneMetric() {
-        var promise = $q.defer(),
-            metricItem = vm.metricList.pop();
-
-        $log.debug('Metric Item: ' + metricItem.name);
-
+        all = $q.all(promises);
+        all.then(function (data) {
+            $log.debug("Finished querying all metrics");
+            console.dir(data);
+            vm.multiChart.combinedData = data;
+            console.timeEnd('multiMetrics');
+        });
 
     }
 
 }
 
 angular.module('chartingApp')
-    .controller('MetricOverlayController', ['$q', '$scope', '$rootScope', '$interval', '$log', 'metricDataService', MetricOverlayController]);
+    .controller('MetricOverlayController', ['$q', '$log', 'metricDataService', MetricOverlayController]);
