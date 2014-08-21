@@ -8,21 +8,15 @@
  * @param $log
  * @param metricDataService
  */
-function MetricOverlayController($q, $log, metricDataService) {
+function MetricOverlayController($q, $log, $rootScope, metricDataService) {
     var vm = this,
         data = [];
 
     vm.multiChart = {
-        newMetric: '',
-        combinedData: []
+        newMetric: ''
     };
 
-
     vm.metricList = [];
-
-    vm.metricList.push("100");
-    vm.metricList.push("200");
-    vm.metricList.push("apache.server2");
 
     vm.gridOptions = {data: 'mc.metricList', headerRowHeight: 0 };
 
@@ -31,11 +25,11 @@ function MetricOverlayController($q, $log, metricDataService) {
     };
 
     vm.addMetric = function () {
-        if (_.contains(vm.metriclist, vm.multiChart.newMetric)) {
+        //if (_.contains(vm.metriclist, vm.multiChart.newMetric)) {
             vm.metricList.push(vm.multiChart.newMetric);
             vm.multiChart.newMetric = '';
             queryMetrics(vm.metricList);
-        }
+        //}
     };
 
     function queryMetrics(metricList) {
@@ -50,7 +44,6 @@ function MetricOverlayController($q, $log, metricDataService) {
             promise.then(function (successData) {
                 console.dir(successData);
                 data.push(successData);
-                console.debug('Added %s', metricItem);
             }, function (error) {
                 console.log(error);
                 toastr.error('Error loading Context graph data: ' + error);
@@ -60,9 +53,8 @@ function MetricOverlayController($q, $log, metricDataService) {
 
         all = $q.all(promises);
         all.then(function (data) {
-            $log.debug("Finished querying all metrics");
-            console.dir(data);
-            vm.multiChart.combinedData = data;
+            $log.debug('Finished querying all metrics');
+            $rootScope.$broadcast('MultiChartOverlayDataChanged', data);
             console.timeEnd('multiMetrics');
         });
 
@@ -71,4 +63,4 @@ function MetricOverlayController($q, $log, metricDataService) {
 }
 
 angular.module('chartingApp')
-    .controller('MetricOverlayController', ['$q', '$log', 'metricDataService', MetricOverlayController]);
+    .controller('MetricOverlayController', ['$q', '$log','$rootScope', 'metricDataService', MetricOverlayController]);

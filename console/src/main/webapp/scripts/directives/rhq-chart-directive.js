@@ -1065,19 +1065,19 @@ angular.module('rhqm.directives', [])
 
             }
 
-            function createCenteredLine(newInterpolation){
+            function createCenteredLine(newInterpolation) {
                 var interpolate = newInterpolation || 'monotone',
-                line = d3.svg.line()
-                    .interpolate(interpolate)
-                    .defined(function (d) {
-                        return !d.empty;
-                    })
-                    .x(function (d) {
-                        return timeScale(d.timestamp) + (calcBarWidth() / 2);
-                    })
-                    .y(function (d) {
-                        return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
-                    });
+                    line = d3.svg.line()
+                        .interpolate(interpolate)
+                        .defined(function (d) {
+                            return !d.empty;
+                        })
+                        .x(function (d) {
+                            return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                        })
+                        .y(function (d) {
+                            return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
+                        });
 
                 return line;
             }
@@ -1089,7 +1089,6 @@ angular.module('rhqm.directives', [])
                     .attr("d", createCenteredLine("monotone"));
 
             }
-
 
 
             function createContextBrush() {
@@ -1196,7 +1195,7 @@ angular.module('rhqm.directives', [])
 
             }
 
-            function createMultiMetricOverlay(multiChartOverlayData) {
+            function createMultiMetricOverlay() {
                 var multiLine,
                     i = 0,
                     colorScale = d3.scale.category20();
@@ -1205,18 +1204,20 @@ angular.module('rhqm.directives', [])
                 console.dir(multiChartOverlayData);
 
                 if (isDefinedAndHasValues(multiChartOverlayData)) {
-                    $log.warn("Running MultiChartOverlay for %i metrics",multiChartOverlayData.length);
+                    $log.warn("Running MultiChartOverlay for %i metrics", multiChartOverlayData.length);
 
                     angular.forEach(multiChartOverlayData, function (singleChartData) {
 
-                    svg.append("path")
-                        .datum(singleChartData)
-                        .attr("class", "multiLine")
-                        .attr("fill", "none")
-                        .attr("stroke", function(){ return colorScale(i);})
-                        .attr("stroke-width", "1")
-                        .attr("stroke-opacity", ".8")
-                        .attr("d", createCenteredLine("monotone"));
+                        svg.append("path")
+                            .datum(singleChartData)
+                            .attr("class", "multiLine")
+                            .attr("fill", "none")
+                            .attr("stroke", function () {
+                                return colorScale(i);
+                            })
+                            .attr("stroke-width", "1")
+                            .attr("stroke-opacity", ".8")
+                            .attr("d", createCenteredLine("monotone"));
                     });
                     i++;
                 }
@@ -1283,13 +1284,17 @@ angular.module('rhqm.directives', [])
                 }
             }, true);
 
-
-            scope.$watch('multiChartOverlayData', function (newOverLayData) {
-                if (isDefinedAndHasValues(newOverLayData)) {
-                    multiChartOverlayData = angular.fromJson(newOverLayData);
-                    scope.render(processedNewData, processedPreviousRangeData);
+            scope.$on('MultiChartOverlayDataChanged', function (event, newMultiChartData) {
+                $log.log('Handling MultiChartOverlayDataChanged in Chart Directive');
+                if (angular.isUndefined(newMultiChartData)) {
+                    // same event is sent with no data to clear it
+                    multiChartOverlayData = [];
+                } else {
+                    multiChartOverlayData = angular.fromJson(newMultiChartData);
+                    console.dir(multiChartOverlayData);
                 }
-            }, true);
+                scope.render(processedNewData, processedPreviousRangeData);
+            });
 
 
             scope.$watch('chartType', function (newChartType) {
@@ -1351,13 +1356,11 @@ angular.module('rhqm.directives', [])
                         createScatterLineChart();
                     } else if (chartType === 'candlestick') {
                         createCandleStickChart();
-                    } else if (chartType === 'multimetric') {
-                        createMultiMetricOverlay();
                     } else {
                         $log.warn('chart-type is not valid. Must be in [bar,area,line,scatter,candlestick,histogram]');
                     }
                     createPreviousRangeOverlay(previousRangeDataPoints);
-                    createMultiMetricOverlay(multiChartOverlayData);
+                    createMultiMetricOverlay();
                     createXandYAxes();
                     if (showAvgLine === 'true') {
                         createAvgLines();
