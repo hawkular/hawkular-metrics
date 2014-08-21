@@ -33,7 +33,7 @@ function ChartController($scope, $rootScope, $interval, $log, metricDataService)
         chartTypes: ['bar', 'line', 'area', 'scatter', 'scatterline', 'candlestick', 'histogram']
     };
 
-    vm.multiChartOverlayDataPoints = [];
+    //vm.multiChartOverlayDataPoints = [];
 
     vm.dateTimeRanges = [
         { 'range': '1h', 'rangeInSeconds': 60 * 60 } ,
@@ -151,6 +151,7 @@ function ChartController($scope, $rootScope, $interval, $log, metricDataService)
     };
 
     vm.refreshChartDataNow = function (startTime) {
+        $rootScope.$broadcast('MultiChartOverlayDataChanged' );
         vm.chartParams.endTimeStamp = new Date();
         vm.refreshHistoricalChartData(startTime, new Date());
     };
