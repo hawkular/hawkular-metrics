@@ -5,7 +5,6 @@ angular.module('rhqm.services')
 
         function makeBaseUrl() {
             var baseUrl = 'http://' + $rootScope.$storage.server + ':' + $rootScope.$storage.port + BASE_URL;
-            $log.debug('MakeUrl: ' + baseUrl);
             return baseUrl;
         }
 

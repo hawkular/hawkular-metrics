@@ -1,10 +1,5 @@
 'use strict';
 
-var OverlayData = function (name, dataPoints) {
-    this.name = name;
-    this.dataPoints = dataPoints;
-
-};
 
 /**
  * @ngdoc directive
@@ -50,7 +45,7 @@ angular.module('rhqm.directives', [])
             // chart specific vars
             var margin = {top: 10, right: 5, bottom: 5, left: 90},
                 contextMargin = {top: 150, right: 5, bottom: 5, left: 90},
-                contextMargin2 = {top: 190, right: 5, bottom: 5, left: 90},
+                xAxisContextMargin = {top: 190, right: 5, bottom: 5, left: 90},
                 width = 750 - margin.left - margin.right,
                 adjustedChartHeight = chartHeight - 50,
                 height = adjustedChartHeight - margin.top - margin.bottom,
@@ -85,6 +80,7 @@ angular.module('rhqm.directives', [])
 
             dataPoints = attributes.data;
             previousRangeDataPoints = attributes.previousRangeData;
+            multiChartOverlayData = attributes.multiChartOverlayData;
             annotationData = attributes.annotationData;
             contextData = attributes.contextData;
 
@@ -1094,28 +1090,6 @@ angular.module('rhqm.directives', [])
 
             }
 
-            function createMomemtumAvgLines() {
-                var momentumAvgLine = d3.svg.line()
-                    .interpolate("monotone")
-                    .defined(function (d) {
-                        return !d.empty;
-                    })
-                    .x(function (d) {
-                        return timeScale(d.timestamp) + (calcBarWidth() / 2);
-                    })
-                    .y(function (d) {
-                        return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
-                    }).attr("stroke", function (d, i) {
-                        return "red";
-                    });
-
-                // Bar avg line
-                svg.append("path")
-                    .datum(chartData)
-                    .attr("class", "momentumAvgLine")
-                    .attr("d", momentumAvgLine);
-
-            }
 
 
             function createContextBrush() {
@@ -1224,15 +1198,27 @@ angular.module('rhqm.directives', [])
 
             function createMultiMetricOverlay(multiChartOverlayData) {
                 var multiLine,
-                    colorScale = $wnd.d3.scale.category20();
+                    i = 0,
+                    colorScale = d3.scale.category20();
 
-                $log.warn("Running MultiChartOverlay");
+                console.warn("Inside createMultiMetricOverlay");
+                console.dir(multiChartOverlayData);
+
                 if (isDefinedAndHasValues(multiChartOverlayData)) {
+                    $log.warn("Running MultiChartOverlay for %i metrics",multiChartOverlayData.length);
+
+                    angular.forEach(multiChartOverlayData, function (singleChartData) {
+
                     svg.append("path")
-                        .datum(multiChartOverlayData)
-                        .attr("class", "prevRangeAvgLine")
-                        .style("stroke-dasharray", ("9,3"))
+                        .datum(singleChartData)
+                        .attr("class", "multiLine")
+                        .attr("fill", "none")
+                        .attr("stroke", function(){ return colorScale(i);})
+                        .attr("stroke-width", "1")
+                        .attr("stroke-opacity", ".8")
                         .attr("d", createCenteredLine("monotone"));
+                    });
+                    i++;
                 }
 
             }
@@ -1342,7 +1328,8 @@ angular.module('rhqm.directives', [])
 
             scope.render = function (dataPoints, previousRangeDataPoints) {
                 if (isDefinedAndHasValues(dataPoints)) {
-                    $log.debug('Render Chart');
+                    $log.log('Render Chart');
+                    console.dir(multiChartOverlayData);
                     //NOTE: layering order is important!
                     oneTimeChartSetup();
                     determineScale(dataPoints);
@@ -1370,6 +1357,7 @@ angular.module('rhqm.directives', [])
                         $log.warn('chart-type is not valid. Must be in [bar,area,line,scatter,candlestick,histogram]');
                     }
                     createPreviousRangeOverlay(previousRangeDataPoints);
+                    createMultiMetricOverlay(multiChartOverlayData);
                     createXandYAxes();
                     if (showAvgLine === 'true') {
                         createAvgLines();
