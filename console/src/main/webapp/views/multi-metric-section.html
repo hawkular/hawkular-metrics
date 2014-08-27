@@ -6,28 +6,11 @@
         <div class="input-group input-group-sm">
             <input type="text" class="form-control" name="newMetric" ng-model="mc.multiChart.newMetric"
                    ng-enter="mc.addMetric();"
-                   placeholder="Add Metric..." required ng-minlength="1">
+                   placeholder="Add comma separated Metrics..." required ng-minlength="1">
         <span class="input-group-btn">
         <button type="button" class="btn btn-primary" ng-click="mc.addMetric()">
             <i class="glyphicon glyphicon-plus"></i></button>
             </span>
         </div>
-    </div>
-
-    <label class="col-sm-2 control-label"></label>
-
-    <div class="col-sm-9">
-        <div class="gridStyle" ng-grid="mc.gridOptions"></div>
-
-        <!--<div class="list-group">-->
-            <!--<a ng-repeat="item in mc.metricList" href="#" class="list-group-item">-->
-                <!--<span style="width:130px;">{{item.name}}</span>-->
-                <!--<button type="button" class="btn btn-default btn-xs pull-right" ng-click="mc.deleteMetric($index)"><i-->
-                        <!--class="glyphicon glyphicon-remove"></i></button>-->
-            <!--</a>-->
-        <!--</div>-->
-
-
-
     </div>
 </div>

@@ -25,11 +25,13 @@ function MetricOverlayController($q, $log, $rootScope, metricDataService) {
     };
 
     vm.addMetric = function () {
-        //if (_.contains(vm.metriclist, vm.multiChart.newMetric)) {
-            vm.metricList.push(vm.multiChart.newMetric);
-            vm.multiChart.newMetric = '';
-            queryMetrics(vm.metricList);
-        //}
+        var metrics = vm.multiChart.newMetric.split(',');
+        vm.metricList = [];
+        _.each(metrics, function (metric) {
+            vm.metricList.push(metric);
+        });
+        console.dir(vm.metricList);
+        queryMetrics(vm.metricList);
     };
 
     function queryMetrics(metricList) {
@@ -63,4 +65,4 @@ function MetricOverlayController($q, $log, $rootScope, metricDataService) {
 }
 
 angular.module('chartingApp')
-    .controller('MetricOverlayController', ['$q', '$log','$rootScope', 'metricDataService', MetricOverlayController]);
+    .controller('MetricOverlayController', ['$q', '$log', '$rootScope', 'metricDataService', MetricOverlayController]);
