@@ -33,8 +33,6 @@ function ChartController($scope, $rootScope, $interval, $log, metricDataService)
         chartTypes: ['bar', 'line', 'area', 'scatter', 'scatterline', 'candlestick', 'histogram']
     };
 
-    //vm.multiChartOverlayDataPoints = [];
-
     vm.dateTimeRanges = [
         { 'range': '1h', 'rangeInSeconds': 60 * 60 } ,
         { 'range': '4h', 'rangeInSeconds': 4 * 60 * 60 } ,

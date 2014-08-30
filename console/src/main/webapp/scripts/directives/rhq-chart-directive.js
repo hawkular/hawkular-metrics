@@ -12,8 +12,8 @@ angular.module('rhqm.directives', [])
 
         function link(scope, element, attributes) {
 
-            var dataPoints,
-                previousRangeDataPoints,
+            var dataPoints = [],
+                previousRangeDataPoints = [],
                 annotationData = [],
                 contextData = [],
                 multiChartOverlayData = [],
@@ -126,10 +126,40 @@ angular.module('rhqm.directives', [])
             }
 
 
+
+
+
             function setupFilteredData(dataPoints) {
+                function determineMultiMetricMinMax() {
+                    var currentMax, currentMin, seriesMax, seriesMin, maxList = [], minList = [];
+                    angular.forEach(multiChartOverlayData, function(series){
+                        console.warn("Series: "+series.length);
+                        currentMax = d3.max(series.map(function (d) {
+                            return !d.empty ? d.avg : 0;
+                        }));
+                        maxList.push(currentMax);
+                        currentMin = d3.min(series.map(function (d) {
+                            return !d.empty ? d.avg : Number.MAX_VALUE;
+                        }));
+                        minList.push(currentMin);
+
+                    });
+                    seriesMax = d3.max(maxList);
+                    seriesMin = d3.min(minList);
+                    console.debug("Series max: "+seriesMax);
+                    console.debug("Series min: "+seriesMin);
+                    return [seriesMin, seriesMax];
+                }
+
                 avg = d3.mean(dataPoints.map(function (d) {
                     return !d.empty ? d.avg : 0;
                 }));
+
+                if(angular.isDefined(multiChartOverlayData)){
+                   var minMax = determineMultiMetricMinMax();
+                    peak = minMax[1];
+                    min = minMax[0];
+                }
 
                 peak = d3.max(dataPoints.map(function (d) {
                     return !d.empty ? d.max : 0;
@@ -138,6 +168,7 @@ angular.module('rhqm.directives', [])
                 min = d3.min(dataPoints.map(function (d) {
                     return !d.empty ? d.min : undefined;
                 }));
+
                 lowBound = min - (min * 0.1);
                 highBound = peak + ((peak - min) * 0.1);
             }
@@ -1073,7 +1104,7 @@ angular.module('rhqm.directives', [])
                             return !d.empty;
                         })
                         .x(function (d) {
-                            return timeScale(d.timestamp) + (calcBarWidth() / 2);
+                            return timeScale(d.timestamp);
                         })
                         .y(function (d) {
                             return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
@@ -1197,7 +1228,7 @@ angular.module('rhqm.directives', [])
 
             function createMultiMetricOverlay() {
                 var multiLine,
-                    i = 0,
+                    g = 0,
                     colorScale = d3.scale.category20();
 
                 console.warn("Inside createMultiMetricOverlay");
@@ -1211,15 +1242,17 @@ angular.module('rhqm.directives', [])
                         svg.append("path")
                             .datum(singleChartData)
                             .attr("class", "multiLine")
-                            .attr("fill", "none")
-                            .attr("stroke", function () {
+                            .attr("fill", function (d,i) {
+                                return colorScale(i);
+                            })
+                            .attr("stroke", function (d,i) {
                                 return colorScale(i);
                             })
                             .attr("stroke-width", "1")
                             .attr("stroke-opacity", ".8")
-                            .attr("d", createCenteredLine("monotone"));
+                            .attr("d", createCenteredLine("linear"));
                     });
-                    i++;
+                    g++;
                 }
 
             }
