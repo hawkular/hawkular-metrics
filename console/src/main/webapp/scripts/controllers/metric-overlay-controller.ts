@@ -1,14 +1,18 @@
 /// <reference path="../../vendor/vendor.d.ts" />
+
 'use strict';
+
+
 /**
-* @ngdoc controller
-* @name MetricOverlayController
-* @description This controller is
-* @param $log
-* @param metricDataService
-*/
+ * @ngdoc controller
+ * @name MetricOverlayController
+ * @description This controller is
+ * @param $log
+ * @param metricDataService
+ */
 function MetricOverlayController($q, $log, $rootScope, metricDataService) {
-    var vm = this, data = [];
+    var vm = this,
+        data = [];
 
     vm.multiChart = {
         newMetric: ''
@@ -16,7 +20,7 @@ function MetricOverlayController($q, $log, $rootScope, metricDataService) {
 
     vm.metricList = [];
 
-    vm.gridOptions = { data: 'mc.metricList', headerRowHeight: 0 };
+    vm.gridOptions = {data: 'mc.metricList', headerRowHeight: 0 };
 
     vm.deleteMetric = function (i) {
         vm.metricList.splice(i, 1);
@@ -33,7 +37,9 @@ function MetricOverlayController($q, $log, $rootScope, metricDataService) {
     };
 
     function queryMetrics(metricList) {
-        var promise, all, promises = [];
+        var promise,
+            all,
+            promises = [];
 
         console.time('multiMetrics');
         angular.forEach(metricList, function (metricItem) {
@@ -55,8 +61,10 @@ function MetricOverlayController($q, $log, $rootScope, metricDataService) {
             $rootScope.$broadcast('MultiChartOverlayDataChanged', data);
             console.timeEnd('multiMetrics');
         });
+
     }
+
 }
 
-angular.module('chartingApp').controller('MetricOverlayController', ['$q', '$log', '$rootScope', 'metricDataService', MetricOverlayController]);
-//# sourceMappingURL=metric-overlay-controller.js.map
+angular.module('chartingApp')
+    .controller('MetricOverlayController', ['$q', '$log', '$rootScope', 'metricDataService', MetricOverlayController]);

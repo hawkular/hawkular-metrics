@@ -1,13 +1,16 @@
 /// <reference path="../../vendor/vendor.d.ts" />
 'use strict';
+
+
 /**
-* @ngdoc controller
-* @name InsertMetricsController
-* @description A controller for inserting metrics into the rhq-metrics data store (either in-memory or Cassandra).
-*
-*/
-function InsertMetricsController($scope, $rootScope, $log, $interval, metricDataService) {
-    var streamingIntervalPromise, vm = this;
+ * @ngdoc controller
+ * @name InsertMetricsController
+ * @description A controller for inserting metrics into the rhq-metrics data store (either in-memory or Cassandra).
+ *
+ */
+function InsertMetricsController($scope:ng.IScope, $rootScope, $log, $interval, metricDataService) {
+    var streamingIntervalPromise,
+        vm = this;
 
     $rootScope.showOpenGroup = true;
 
@@ -22,6 +25,7 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
         { 'range': '30m', 'rangeInSeconds': 30 * 60 },
         { 'range': '1h', 'rangeInSeconds': 60 * 60 }
     ];
+
 
     vm.timeInterval = [1, 5, 10, 15, 30, 60];
 
@@ -49,6 +53,7 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
         selectedDuration: vm.rangeDurations[1]
     };
 
+
     vm.streamingInsertData = {
         timeStamp: _.now(),
         id: '',
@@ -60,6 +65,7 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
         lastStreamedValue: 2,
         selectedRefreshInterval: vm.streamingTimeRanges[1].range
     };
+
 
     vm.quickInsert = function (numberOfHoursPast) {
         var computedTimestamp;
@@ -79,7 +85,10 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
         }, function (error) {
             toastr.error('An issue with inserting data has occurred. Please see the console logs. Status: ' + error);
         });
+
+
     };
+
 
     vm.multiInsert = function () {
         metricDataService.insertMultiplePayload(vm.multiInsertData.jsonPayload).then(function (success) {
@@ -90,10 +99,13 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
         });
     };
 
+
     vm.rangeInsert = function () {
         var jsonPayload;
 
-        jsonPayload = calculateRangeTimestamps(vm.rangeInsertData.id, vm.rangeInsertData.selectedDuration, vm.rangeInsertData.selectedIntervalInMinutes, vm.rangeInsertData.startNumber, vm.rangeInsertData.endNumber);
+        jsonPayload = calculateRangeTimestamps(vm.rangeInsertData.id, vm.rangeInsertData.selectedDuration,
+            vm.rangeInsertData.selectedIntervalInMinutes, vm.rangeInsertData.startNumber,
+            vm.rangeInsertData.endNumber);
         $log.debug("JsonPayload: " + jsonPayload);
         metricDataService.insertMultiplePayload(jsonPayload).then(function (success) {
             toastr.success('Advanced Range Inserted Multiple values Successfully.', 'Success');
@@ -101,6 +113,7 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
         }, function (error) {
             insertError(error);
         });
+
     };
 
     function insertError(error) {
@@ -108,14 +121,20 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
     }
 
     function calculateRangeTimestamps(id, numberOfDays, intervalInMinutes, randomStart, randomEnd) {
-        var intervalTimestamps = [], startDate = moment().subtract('days', numberOfDays).valueOf(), endDate = _.now(), step = intervalInMinutes * 60 * 1000, startSeed = _.random(randomStart, randomEnd), dbData = [];
+        var intervalTimestamps = [],
+            startDate = moment().subtract('days', numberOfDays).valueOf(),
+            endDate = _.now(),
+            step = intervalInMinutes * 60 * 1000,
+            startSeed = _.random(randomStart, randomEnd),
+            dbData = [];
 
         intervalTimestamps = _.range(startDate, endDate, step);
         dbData = _.map(intervalTimestamps, function (ts) {
-            return { id: id, timestamp: ts, value: startSeed + _.random(-5, 5) };
+            return {id: id, timestamp: ts, value: startSeed + _.random(-5, 5)};
         });
 
         return angular.toJson(dbData);
+
     }
 
     vm.startStreaming = function () {
@@ -140,11 +159,13 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
             }, function (error) {
                 insertError(error);
             });
+
         }, selectedTimeRangeInSeconds * 1000);
         $scope.$on('$destroy', function () {
             $log.debug('Destroying intervalPromise');
             $interval.cancel(streamingIntervalPromise);
         });
+
     };
 
     vm.stopStreaming = function () {
@@ -153,6 +174,8 @@ function InsertMetricsController($scope, $rootScope, $log, $interval, metricData
         vm.streamingInsertData.isStreamingStarted = false;
         $interval.cancel(streamingIntervalPromise);
     };
+
+
 }
-angular.module('chartingApp').controller('InsertMetricsController', ['$scope', '$rootScope', '$log', '$interval', 'metricDataService', InsertMetricsController]);
-//# sourceMappingURL=insert-metrics-controller.js.map
+angular.module('chartingApp')
+    .controller('InsertMetricsController', ['$scope', '$rootScope', '$log', '$interval', 'metricDataService', InsertMetricsController ]);
