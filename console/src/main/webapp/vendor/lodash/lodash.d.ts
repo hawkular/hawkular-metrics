@@ -6210,6 +6210,14 @@ declare module _ {
         noop(): void;
     }
 
+    //_.now
+    interface LoDashStatic {
+        /**
+         * A date
+         **/
+        now(): number;
+    }
+
     //_.create
     interface LoDashStatic {
         /**
