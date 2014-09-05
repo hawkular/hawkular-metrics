@@ -1,7 +1,8 @@
 /// <reference path="../../vendor/vendor.d.ts" />
 'use strict';
 angular.module('rhqm.services').factory('metricDataService', [
-    '$q', '$rootScope', '$http', '$log', '$localStorage', 'BASE_URL', function ($q, $rootScope, $http, $log, $localStorage, BASE_URL) {
+    '$q', '$rootScope', '$http', '$log', '$localStorage', 'BASE_URL',
+    function ($q, $rootScope, $http, $log, $localStorage, BASE_URL) {
         function makeBaseUrl() {
             var baseUrl = 'http://' + $rootScope.$storage.server + ':' + $rootScope.$storage.port + BASE_URL;
             return baseUrl;

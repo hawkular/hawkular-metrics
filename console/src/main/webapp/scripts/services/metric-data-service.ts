@@ -2,7 +2,8 @@
 'use strict';
 
 angular.module('rhqm.services')
-    .factory('metricDataService', ['$q', '$rootScope', '$http', '$log', '$localStorage', 'BASE_URL', function ($q, $rootScope, $http, $log, $localStorage, BASE_URL) {
+    .factory('metricDataService', ['$q', '$rootScope', '$http', '$log', '$localStorage', 'BASE_URL',
+        function ($q:ng.IQService, $rootScope:ng.IRootScopeService, $http:ng.IHttpService, $log:ng.ILogService, $localStorage, BASE_URL:string) {
 
         function makeBaseUrl() {
             var baseUrl = 'http://' + $rootScope.$storage.server + ':' + $rootScope.$storage.port + BASE_URL;

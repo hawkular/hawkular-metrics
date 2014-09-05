@@ -11,6 +11,24 @@ interface IBucketDataPoints {
     empty: boolean;
 }
 
+interface IChartParams {
+    searchId: string;
+    startTimeStamp: Date;
+    endTimeStamp: Date;
+    dateRange: number;
+    updateEndTimeStampToNow: boolean;
+    collapseTable: boolean;
+    tableButtonLabel:  string;
+    showAvgLine: boolean;
+    hideHighLowValues:boolean;
+    showPreviousRangeDataOverlay: boolean;
+    showContextZoom: boolean;
+    showAutoRefreshCancel:boolean;
+    chartType: string;
+    chartTypes: string[];
+}
+
+
 /**
  * @ngdoc controller
  * @name ChartController
@@ -24,14 +42,22 @@ interface IBucketDataPoints {
 class ChartController {
     static  $inject = ['$scope', '$rootScope', '$interval', '$log', 'metricDataService' ];
 
-    constructor($scope, $rootScope:ng.IRootScopeService, $interval:ng.IIntervalService, $log:ng.ILogService, metricDataService) {
-        $scope.vm = this;
-    }
-    updateLastTimeStampToNowPromise;
-    bucketedDataPoints = [];
-    contextDataPoints = [];
+    $log:ng.ILogService;
 
-    chartParams = {
+    constructor(private $scope:any,
+                private $rootScope:ng.IRootScopeService,
+                private $interval:ng.IIntervalService,
+                $log:ng.ILogService,
+                private metricDataService) {
+        $scope.vm = this;
+        this.$log = $log;
+    }
+
+    private updateLastTimeStampToNowPromise:ng.IPromise<number>;
+    bucketedDataPoints:IBucketDataPoints[] = [];
+    contextDataPoints:IBucketDataPoints[] = [];
+
+    chartParams:any = {
         searchId: '',
         startTimeStamp: moment().subtract('hours', 24).toDate(), //default time period set to 24 hours
         endTimeStamp: new Date(),
@@ -64,23 +90,35 @@ class ChartController {
 //            $log.debug('DateRangeMove on chart Detected.');
 //        });
 
-//    $rootScope . $on(  'GraphTimeRangeChangedEvent' , function(event, timeRange) {
+//    $scope.$on('Mike',
+//    function(event, timeRange) {
+//        console.log("Got Message");
+//    });
+//
+//    $rootScope.$on(  'GraphTimeRangeChangedEvent' , function(event, timeRange) {
 //
 //        // set to the new published time range
 //        chartParams.startTimeStamp = timeRange[0];
 //        chartParams.endTimeStamp = timeRange[1];
 //        chartParams.dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
 //        refreshHistoricalChartData(chartParams.startTimeStamp, chartParams.endTimeStamp);
-//    }
-//
-//);
+//    });
 
-    private noDataFoundForId(id):void {
+    public noDataFoundForId(id:string):void {
         $log.warn('No Data found for id: ' + id);
         toastr.warning('No Data found for id: ' + id);
     }
 
-    showPreviousTimeRange () {
+    calculatePreviousTimeRange(startDate:Date, endDate:Date):any {
+        var previousTimeRange:Date[] = [];
+        var intervalInMillis = endDate.getTime() - startDate.getTime();
+
+        previousTimeRange.push(new Date(startDate.getTime() - intervalInMillis));
+        previousTimeRange.push(startDate);
+        return previousTimeRange;
+    }
+
+    showPreviousTimeRange() {
         var previousTimeRange = calculatePreviousTimeRange(chartParams.startTimeStamp, chartParams.endTimeStamp);
 
         chartParams.startTimeStamp = previousTimeRange[0];
@@ -89,18 +127,10 @@ class ChartController {
 
     }
 
-    private calculatePreviousTimeRange(startDate, endDate) {
-        var previousTimeRange = [];
-        var intervalInMillis = endDate - startDate;
 
-        previousTimeRange.push(new Date(startDate.getTime() - intervalInMillis));
-        previousTimeRange.push(startDate);
-        return previousTimeRange;
-    }
-
-    private calculateNextTimeRange(startDate, endDate) {
+    calculateNextTimeRange(startDate:Date, endDate:Date):any {
         var nextTimeRange = [];
-        var intervalInMillis = endDate - startDate;
+        var intervalInMillis = endDate.getTime() - startDate.getTime();
 
         nextTimeRange.push(endDate);
         nextTimeRange.push(new Date(endDate.getTime() + intervalInMillis));
@@ -109,7 +139,7 @@ class ChartController {
 
 
     showNextTimeRange():void {
-        nextTimeRange = calculateNextTimeRange(chartParams.startTimeStamp, chartParams.endTimeStamp);
+        var nextTimeRange = calculateNextTimeRange(chartParams.startTimeStamp, chartParams.endTimeStamp);
 
         chartParams.startTimeStamp = nextTimeRange[0];
         chartParams.endTimeStamp = nextTimeRange[1];
@@ -119,7 +149,7 @@ class ChartController {
 
 
     hasNext():boolean {
-        nextTimeRange = calculateNextTimeRange(chartParams.startTimeStamp, chartParams.endTimeStamp);
+        var nextTimeRange = calculateNextTimeRange(chartParams.startTimeStamp, chartParams.endTimeStamp);
         // unsophisticated test to see if there is a next; without actually querying.
         //@fixme: pay the price, do the query!
         return nextTimeRange[1].getTime() < _.now();
@@ -127,7 +157,7 @@ class ChartController {
 
 
     toggleTable():void {
-        chartParams.collapseTable = !chartParams.collapseTable;
+         chartParams.collapseTable = !chartParams.collapseTable;
         if (chartParams.collapseTable) {
             chartParams.tableButtonLabel = 'Show Table';
         } else {
@@ -170,7 +200,12 @@ class ChartController {
         refreshHistoricalChartData(startTime, new Date());
     }
 
-    refreshHistoricalChartData(startTime, endTime):void {
+    refreshHistoricalChartData(startDate:Date, endDate:Date):void {
+        this.refreshHistoricalChartData(startDate.getTime(), endDate.getTime());
+    }
+
+
+    refreshHistoricalChartData(startTime:number, endTime:number):void {
         // calling refreshChartData without params use the model values
         if (angular.isUndefined(endTime)) {
             endTime = chartParams.endTimeStamp;
@@ -215,7 +250,7 @@ class ChartController {
 
     }
 
-    private formatBucketedOutput(response): IBucketDataPoints[] {
+    private formatBucketedOutput(response):IBucketDataPoints[] {
         //  The schema is different for bucketed output
         return _.map(response, function (point) {
             return {

@@ -12,6 +12,10 @@
 */
 var ChartController = (function () {
     function ChartController($scope, $rootScope, $interval, $log, metricDataService) {
+        this.$scope = $scope;
+        this.$rootScope = $rootScope;
+        this.$interval = $interval;
+        this.metricDataService = metricDataService;
         this.bucketedDataPoints = [];
         this.contextDataPoints = [];
         this.chartParams = {
@@ -42,23 +46,32 @@ var ChartController = (function () {
             { 'range': '6m', 'rangeInSeconds': 6 * 30 * 24 * 60 * 60 }
         ];
         $scope.vm = this;
+        this.$log = $log;
     }
     //        $rootScope.$on('DateRangeMove', function (event, message) {
     //            $log.debug('DateRangeMove on chart Detected.');
     //        });
-    //    $rootScope . $on(  'GraphTimeRangeChangedEvent' , function(event, timeRange) {
-    //
-    //        // set to the new published time range
-    //        chartParams.startTimeStamp = timeRange[0];
-    //        chartParams.endTimeStamp = timeRange[1];
-    //        chartParams.dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
-    //        refreshHistoricalChartData(chartParams.startTimeStamp, chartParams.endTimeStamp);
-    //    }
-    //
-    //);
+
+        $rootScope.$on(  'GraphTimeRangeChangedEvent' , function(event, timeRange) {
+
+            // set to the new published time range
+            chartParams.startTimeStamp = timeRange[0];
+            chartParams.endTimeStamp = timeRange[1];
+            chartParams.dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
+            refreshHistoricalChartData(chartParams.startTimeStamp, chartParams.endTimeStamp);
+        });
     ChartController.prototype.noDataFoundForId = function (id) {
         $log.warn('No Data found for id: ' + id);
         toastr.warning('No Data found for id: ' + id);
+    };
+
+    ChartController.prototype.calculatePreviousTimeRange = function (startDate, endDate) {
+        var previousTimeRange = [];
+        var intervalInMillis = endDate.getTime() - startDate.getTime();
+
+        previousTimeRange.push(new Date(startDate.getTime() - intervalInMillis));
+        previousTimeRange.push(startDate);
+        return previousTimeRange;
     };
 
     ChartController.prototype.showPreviousTimeRange = function () {
@@ -69,18 +82,9 @@ var ChartController = (function () {
         refreshHistoricalChartData(chartParams.startTimeStamp, chartParams.endTimeStamp);
     };
 
-    ChartController.prototype.calculatePreviousTimeRange = function (startDate, endDate) {
-        var previousTimeRange = [];
-        var intervalInMillis = endDate - startDate;
-
-        previousTimeRange.push(new Date(startDate.getTime() - intervalInMillis));
-        previousTimeRange.push(startDate);
-        return previousTimeRange;
-    };
-
     ChartController.prototype.calculateNextTimeRange = function (startDate, endDate) {
         var nextTimeRange = [];
-        var intervalInMillis = endDate - startDate;
+        var intervalInMillis = endDate.getTime() - startDate.getTime();
 
         nextTimeRange.push(endDate);
         nextTimeRange.push(new Date(endDate.getTime() + intervalInMillis));
@@ -88,7 +92,7 @@ var ChartController = (function () {
     };
 
     ChartController.prototype.showNextTimeRange = function () {
-        nextTimeRange = calculateNextTimeRange(chartParams.startTimeStamp, chartParams.endTimeStamp);
+        var nextTimeRange = calculateNextTimeRange(chartParams.startTimeStamp, chartParams.endTimeStamp);
 
         chartParams.startTimeStamp = nextTimeRange[0];
         chartParams.endTimeStamp = nextTimeRange[1];
@@ -96,7 +100,7 @@ var ChartController = (function () {
     };
 
     ChartController.prototype.hasNext = function () {
-        nextTimeRange = calculateNextTimeRange(chartParams.startTimeStamp, chartParams.endTimeStamp);
+        var nextTimeRange = calculateNextTimeRange(chartParams.startTimeStamp, chartParams.endTimeStamp);
 
         // unsophisticated test to see if there is a next; without actually querying.
         //@fixme: pay the price, do the query!
@@ -141,6 +145,10 @@ var ChartController = (function () {
         $rootScope.$broadcast('MultiChartOverlayDataChanged');
         chartParams.endTimeStamp = new Date();
         refreshHistoricalChartData(startTime, new Date());
+    };
+
+    ChartController.prototype.refreshHistoricalChartData = function (startDate, endDate) {
+        this.refreshHistoricalChartData(startDate.getTime(), endDate.getTime());
     };
 
     ChartController.prototype.refreshHistoricalChartData = function (startTime, endTime) {

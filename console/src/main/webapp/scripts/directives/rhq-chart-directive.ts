@@ -10,7 +10,7 @@
  *
  */
 angular.module('rhqm.directives', [])
-    .directive('rhqmChart', ['$log', function ($log) {
+    .directive('rhqmChart', ['$log', function ($log:ng.ILogService): ng.IDirective {
 
         function link(scope, element, attributes) {
 
