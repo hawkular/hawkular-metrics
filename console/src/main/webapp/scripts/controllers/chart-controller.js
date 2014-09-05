@@ -47,18 +47,18 @@ var ChartController = (function () {
             { 'range': '6m', 'rangeInSeconds': 6 * 30 * 24 * 60 * 60 }
         ];
         $scope.vm = this;
+
+        $rootScope.$on('GraphTimeRangeChangedEvent', function (event, timeRange) {
+            // set to the new published time range
+            this.chartParams.startTimeStamp = timeRange[0];
+            this.chartParams.endTimeStamp = timeRange[1];
+            this.chartParams.dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
+            this.refreshHistoricalChartData(this.chartParams.startTimeStamp, this.chartParams.endTimeStamp);
+        });
     }
     //        $rootScope.$on('DateRangeMove', function (event, message) {
     //            $log.debug('DateRangeMove on chart Detected.');
     //        });
-    //    $rootScope.$on(  'GraphTimeRangeChangedEvent' , function(event, timeRange) {
-    //
-    //        // set to the new published time range
-    //        chartParams.startTimeStamp = timeRange[0];
-    //        chartParams.endTimeStamp = timeRange[1];
-    //        chartParams.dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
-    //        refreshHistoricalChartData(chartParams.startTimeStamp, chartParams.endTimeStamp);
-    //    });
     ChartController.prototype.noDataFoundForId = function (id) {
         this.$log.warn('No Data found for id: ' + id);
         toastr.warning('No Data found for id: ' + id);
@@ -115,9 +115,6 @@ var ChartController = (function () {
         }
     };
 
-    //    this.$scope.$on(  '$destroy' , function() {
-    //        $interval.cancel(updateLastTimeStampToNowPromise);
-    //    } );
     ChartController.prototype.cancelAutoRefresh = function () {
         this.chartParams.showAutoRefreshCancel = !this.chartParams.showAutoRefreshCancel;
         this.$interval.cancel(this.updateLastTimeStampToNowPromise);
@@ -129,8 +126,8 @@ var ChartController = (function () {
         this.chartParams.updateEndTimeStampToNow = !this.chartParams.updateEndTimeStampToNow;
         this.chartParams.showAutoRefreshCancel = true;
         if (this.chartParams.updateEndTimeStampToNow) {
-            this.refreshHistoricalChartData();
-            this.showAutoRefreshCancel = true;
+            this.refreshHistoricalChartDataForTimestamp();
+            this.chartParams.showAutoRefreshCancel = true;
             this.updateLastTimeStampToNowPromise = this.$interval(function () {
                 this.chartParams.endTimeStamp = new Date();
                 this.refreshHistoricalChartData();
@@ -138,6 +135,10 @@ var ChartController = (function () {
         } else {
             this.$interval.cancel(this.updateLastTimeStampToNowPromise);
         }
+
+        this.$scope.$on('$destroy', function () {
+            this.$interval.cancel(this.updateLastTimeStampToNowPromise);
+        });
     };
 
     ChartController.prototype.refreshChartDataNow = function (startTime) {
@@ -167,7 +168,7 @@ var ChartController = (function () {
         if (this.chartParams.searchId !== '') {
             this.metricDataService.getMetricsForTimeRange(this.chartParams.searchId, startTime, endTime).then(function (response) {
                 // we want to isolate the response from the data we are feeding to the chart
-                this.bucketedDataPoints = this.formatBucketedOutput(response);
+                this.bucketedDataPoints = this.formatBucketedChartOutput(response);
 
                 if (this.bucketedDataPoints.length !== 0) {
                     // this is basically the DTO for the chart
@@ -188,7 +189,7 @@ var ChartController = (function () {
         }
     };
 
-    ChartController.prototype.formatBucketedOutput = function (response) {
+    ChartController.prototype.formatBucketedChartOutput = function (response) {
         //  The schema is different for bucketed output
         return _.map(response, function (point) {
             return {

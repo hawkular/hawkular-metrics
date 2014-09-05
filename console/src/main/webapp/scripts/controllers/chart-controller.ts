@@ -1,7 +1,7 @@
 /// <reference path="../../vendor/vendor.d.ts" />
 'use strict';
 
-interface IBucketDataPoint {
+interface IChartDataPoint {
     timestamp:number;
     date: Date;
     value: number;
@@ -11,7 +11,7 @@ interface IBucketDataPoint {
     empty: boolean;
 }
 
-interface IChartParams {
+interface IChartParams extends ng.IScope {
     searchId: string;
     startTimeStamp: Date;
     endTimeStamp: Date;
@@ -26,6 +26,7 @@ interface IChartParams {
     showAutoRefreshCancel:boolean;
     chartType: string;
     chartTypes: string[];
+    vm: ChartController;
 }
 
 
@@ -49,11 +50,20 @@ class ChartController {
                 private $log:ng.ILogService,
                 private metricDataService) {
         $scope.vm = this;
+
+        $rootScope.$on(  'GraphTimeRangeChangedEvent' , function(event, timeRange) {
+
+            // set to the new published time range
+            this.chartParams.startTimeStamp = timeRange[0];
+            this.chartParams.endTimeStamp = timeRange[1];
+            this.chartParams.dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
+            this.refreshHistoricalChartData(this.chartParams.startTimeStamp, this.chartParams.endTimeStamp);
+        });
     }
 
     private updateLastTimeStampToNowPromise:ng.IPromise<number>;
-    private bucketedDataPoints:IBucketDataPoint[] = [];
-    private contextDataPoints:IBucketDataPoint[] = [];
+    private bucketedDataPoints:IChartDataPoint[] = [];
+    private contextDataPoints:IChartDataPoint[] = [];
     private chartData: any;
 
     chartParams: any = {
@@ -90,14 +100,7 @@ class ChartController {
 //        });
 
 
-//    $rootScope.$on(  'GraphTimeRangeChangedEvent' , function(event, timeRange) {
-//
-//        // set to the new published time range
-//        chartParams.startTimeStamp = timeRange[0];
-//        chartParams.endTimeStamp = timeRange[1];
-//        chartParams.dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
-//        refreshHistoricalChartData(chartParams.startTimeStamp, chartParams.endTimeStamp);
-//    });
+
 
     noDataFoundForId(id:string):void {
         this.$log.warn('No Data found for id: ' + id);
@@ -161,23 +164,19 @@ class ChartController {
     }
 
 
-//    this.$scope.$on(  '$destroy' , function() {
-//        $interval.cancel(updateLastTimeStampToNowPromise);
-//    } );
-
     cancelAutoRefresh():void {
         this.chartParams.showAutoRefreshCancel = !this.chartParams.showAutoRefreshCancel;
         this.$interval.cancel(this.updateLastTimeStampToNowPromise);
         toastr.info('Canceling Auto Refresh');
     }
 
-    autoRefresh(intervalInSeconds):void {
+    autoRefresh(intervalInSeconds:number):void {
         toastr.info('Auto Refresh Mode started');
         this.chartParams.updateEndTimeStampToNow = !this.chartParams.updateEndTimeStampToNow;
         this.chartParams.showAutoRefreshCancel = true;
         if (this.chartParams.updateEndTimeStampToNow) {
-            this.refreshHistoricalChartData();
-            this.showAutoRefreshCancel = true;
+            this.refreshHistoricalChartDataForTimestamp();
+            this.chartParams.showAutoRefreshCancel = true;
             this.updateLastTimeStampToNowPromise = this.$interval(function () {
                 this.chartParams.endTimeStamp = new Date();
                 this.refreshHistoricalChartData();
@@ -187,9 +186,12 @@ class ChartController {
             this.$interval.cancel(this.updateLastTimeStampToNowPromise);
         }
 
+        this.$scope.$on(  '$destroy' , function() {
+            this.$interval.cancel(this.updateLastTimeStampToNowPromise);
+        } );
     }
 
-    refreshChartDataNow(startTime):void {
+    refreshChartDataNow(startTime:Date):void {
         this.$rootScope.$broadcast('MultiChartOverlayDataChanged');
         this.chartParams.endTimeStamp = new Date();
         this.refreshHistoricalChartData(startTime, new Date());
@@ -200,7 +202,7 @@ class ChartController {
     }
 
 
-    refreshHistoricalChartDataForTimestamp(startTime:number, endTime:number):void {
+    refreshHistoricalChartDataForTimestamp(startTime?:number, endTime?:number):void {
         // calling refreshChartData without params use the model values
         if (angular.isUndefined(endTime)) {
             endTime = this.chartParams.endTimeStamp;
@@ -220,7 +222,7 @@ class ChartController {
             this.metricDataService.getMetricsForTimeRange(this.chartParams.searchId, startTime, endTime)
                 .then(function (response) {
                     // we want to isolate the response from the data we are feeding to the chart
-                    this.bucketedDataPoints = this.formatBucketedOutput(response);
+                    this.bucketedDataPoints = this.formatBucketedChartOutput(response);
 
                     if (this.bucketedDataPoints.length !== 0) {
 
@@ -245,9 +247,9 @@ class ChartController {
 
     }
 
-    private formatBucketedOutput(response):IBucketDataPoint[] {
+    private formatBucketedChartOutput(response):IChartDataPoint[] {
         //  The schema is different for bucketed output
-        return _.map(response, function (point:IBucketDataPoint) {
+        return _.map(response, function (point:IChartDataPoint) {
             return {
                 timestamp: point.timestamp,
                 date: new Date(point.timestamp),
@@ -302,9 +304,9 @@ class ChartController {
         }
     }
 
-    private formatPreviousBucketedOutput(response) {
+    private formatPreviousBucketedOutput(response)  {
         //  The schema is different for bucketed output
-        var mappedNew = _.map(response, function (point: IBucketDataPoint, i:number) {
+        var mappedNew = _.map(response, function (point: IChartDataPoint, i:number) {
             return {
                 timestamp: this.bucketedDataPoints[i].timestamp,
                 originalTimestamp: point.timestamp,
@@ -357,7 +359,7 @@ class ChartController {
 
     private formatContextOutput(response) {
         //  The schema is different for bucketed output
-        return _.map(response, function (point: IBucketDataPoint) {
+        return _.map(response, function (point: IChartDataPoint) {
             return {
                 timestamp: point.timestamp,
                 value: !angular.isNumber(point.value) ? 0 : point.value,
