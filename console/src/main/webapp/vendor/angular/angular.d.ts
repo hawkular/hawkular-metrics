@@ -239,6 +239,10 @@ declare module ng {
             dot: number;
             codename: string;
         };
+
+        // RHQ-metrics custom additions
+        $storage: any;
+        vm : any;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -524,6 +528,10 @@ declare module ng {
         // Hidden members
         $$isolateBindings: any;
         $$phase: any;
+
+        // RHQ-Metrics custom
+        $storage: any;
+        vm: any;
     }
 
     interface IScope extends IRootScopeService {
