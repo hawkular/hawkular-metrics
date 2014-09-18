@@ -46,18 +46,16 @@ var ChartController = (function () {
         ];
         $scope.vm = this;
     }
-    //        $rootScope.$on('DateRangeMove', function (event, message) {
+    //       $rootScope.$on('DateRangeMove', function (event, message) {
     //            $log.debug('DateRangeMove on chart Detected.');
     //        });
     //
     //    $rootScope.$on('GraphTimeRangeChangedEvent', function (event, timeRange) {
-    //
-    //    // set to the new published time range
-    //    this.startTimeStamp = timeRange[0];
-    //    this.endTimeStamp = timeRange[1];
-    //    this.dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
-    //    this.refreshHistoricalChartData(this.startTimeStamp, this.endTimeStamp);
-    //});
+    // set to the new published time range
+    //    startTimeStamp = timeRange[0];
+    //    endTimeStamp = timeRange[1];
+    //    dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
+    //refreshHistoricalChartData(startTimeStamp, endTimeStamp);
     ChartController.prototype.noDataFoundForId = function (id) {
         this.$log.warn('No Data found for id: ' + id);
         toastr.warning('No Data found for id: ' + id);

@@ -1,10 +1,5 @@
 /// <reference path="../../vendor/vendor.d.ts" />
 "use strict";
-var Mike = (function () {
-    function Mike() {
-    }
-    return Mike;
-})();
 angular.module('rhqm.directives').directive('ngEnter', function () {
     return function (scope, element, attrs) {
         element.bind("keydown keypress", function (event) {

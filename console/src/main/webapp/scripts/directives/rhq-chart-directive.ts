@@ -1,8 +1,7 @@
 /// <reference path="../../vendor/vendor.d.ts" />
-/// <reference path="../../vendor/d3/d3.d.ts" />
 'use strict';
 
-
+declare var d3:any;
 /**
  * @ngdoc directive
  * @name rhqmChart
@@ -215,20 +214,20 @@ angular.module('rhqm.directives', [])
 
                     timeScale = d3.time.scale()
                         .range([0, width])
-                        .domain(d3.extent(chartData, function (d) {
+                        .domain(d3.extent(chartData, function (d:any) {
                             return d.timestamp;
                         }));
 
                     if (isDefinedAndHasValues(contextData)) {
                         timeScaleForContext = d3.time.scale()
                             .range([0, width])
-                            .domain(d3.extent(contextData, function (d) {
+                            .domain(d3.extent(contextData, function (d:any) {
                                 return d.timestamp;
                             }));
                     } else {
                         timeScaleForBrush = d3.time.scale()
                             .range([0, width])
-                            .domain(d3.extent(chartData, function (d) {
+                            .domain(d3.extent(chartData, function (d:any) {
                                 return d.timestamp;
                             }));
 
@@ -650,7 +649,7 @@ angular.module('rhqm.directives', [])
                         tip.hide();
                     });
 
-                if (hideHighLowValues === 'false') {
+                if (hideHighLowValues === false) {
 
                     svg.selectAll(".histogram.top.stem")
                         .data(chartData)
@@ -795,7 +794,7 @@ angular.module('rhqm.directives', [])
                     .attr("d", avgLine);
 
 
-                if (hideHighLowValues === 'false') {
+                if (hideHighLowValues === false) {
 
                     svg.append("path")
                         .datum(chartData)
@@ -857,7 +856,7 @@ angular.module('rhqm.directives', [])
                         });
 
 
-                if (hideHighLowValues === 'false') {
+                if (hideHighLowValues === false) {
 
                     svg.append("path")
                         .datum(chartData)
@@ -878,7 +877,7 @@ angular.module('rhqm.directives', [])
             }
 
             function createScatterChart() {
-                if (hideHighLowValues === 'false') {
+                if (hideHighLowValues === false) {
 
                     svg.selectAll(".highDot")
                         .data(chartData)
@@ -1397,7 +1396,7 @@ angular.module('rhqm.directives', [])
                     createPreviousRangeOverlay(previousRangeDataPoints);
                     createMultiMetricOverlay();
                     createXandYAxes();
-                    if (showAvgLine === 'true') {
+                    if (showAvgLine === true) {
                         createAvgLines();
                     }
                     annotateChart(annotationData);

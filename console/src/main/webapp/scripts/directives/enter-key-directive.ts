@@ -1,9 +1,6 @@
 /// <reference path="../../vendor/vendor.d.ts" />
 "use strict";
 
-class Mike {
-
-}
 angular.module('rhqm.directives')
 .directive('ngEnter', function () {
     return function (scope, element, attrs) {

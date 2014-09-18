@@ -14,6 +14,13 @@ interface IInsertMetricsController {
     stopStreaming ():void;
 }
 
+interface IQuickInsertData {
+    timeStamp:number;
+    id:string;
+    jsonPayload:any;
+    value:any;
+}
+
 /**
  * @ngdoc controller
  * @name InsertMetricsController
@@ -22,12 +29,18 @@ interface IInsertMetricsController {
  */
 class InsertMetricsController implements IInsertMetricsController{
 
-    constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $log:ng.ILogService, private $interval:ng.IIntervalService, private metricDataService:any) {
+    showOpenGroup = true;
+
+    constructor(private $scope:ng.IScope,
+                private $rootScope:ng.IRootScopeService,
+                private $log:ng.ILogService,
+                private $interval:ng.IIntervalService,
+                private metricDataService:any) {
         $scope.vm = this;
+
     }
         private streamingIntervalPromise: ng.IPromise<number>;
 
-        this.$rootScope.showOpenGroup = true;
 
         streamingTimeRanges = [
             { 'range': '1s', 'rangeInSeconds': 1 },
@@ -44,7 +57,7 @@ class InsertMetricsController implements IInsertMetricsController{
 
         timeInterval :number[] = [1, 5, 10, 15, 30, 60];
 
-        quickInsertData = {
+        quickInsertData:IQuickInsertData = {
             timeStamp: _.now(),
             id: '',
             jsonPayload: '',
@@ -83,20 +96,20 @@ class InsertMetricsController implements IInsertMetricsController{
 
 
         quickInsert (numberOfHoursPast:number): void {
-            computedTimestamp:Moment;
+            var computedTimestamp:number;
 
             if (angular.isUndefined(numberOfHoursPast)) {
-                computedTimestamp = moment();
+                computedTimestamp = moment().unix();
             } else {
-                computedTimestamp = moment().subtract('hours', numberOfHoursPast);
+                computedTimestamp = moment().subtract('hours', numberOfHoursPast).unix();
             }
-            this.$log.debug('Generated Timestamp is: ' + computedTimestamp.fromNow());
+            this.$log.debug('Generated Timestamp is: ' + computedTimestamp);
 
-            quickInsertData.jsonPayload = { timestamp: computedTimestamp.valueOf(), value: this.quickInsertData.value };
+            this.quickInsertData.jsonPayload = { timestamp: computedTimestamp, value: this.quickInsertData.value };
 
             this.metricDataService.insertSinglePayload(this.quickInsertData.id, this.quickInsertData.jsonPayload).then(function (success) {
-                toastr.success('Inserted value: ' + quickInsertData.value + ' for ID: ' + quickInsertData.id, 'Success');
-                quickInsertData.value = '';
+                toastr.success('Inserted value: ' + this.quickInsertData.value + ' for ID: ' + this.quickInsertData.id, 'Success');
+                this.quickInsertData.value = '';
             }, function (error) {
                 toastr.error('An issue with inserting data has occurred. Please see the console logs. Status: ' + error);
             });
@@ -116,7 +129,7 @@ class InsertMetricsController implements IInsertMetricsController{
 
 
         rangeInsert():void {
-             jsonPayload = this.calculateRangeTimestamps(this.rangeInsertData.id, this.rangeInsertData.selectedDuration,
+             var jsonPayload = this.calculateRangeTimestamps(this.rangeInsertData.id, this.rangeInsertData.selectedDuration,
                 this.rangeInsertData.selectedIntervalInMinutes, this.rangeInsertData.startNumber,
                 this.rangeInsertData.endNumber);
             this.$log.debug("JsonPayload: " + jsonPayload);
@@ -135,14 +148,13 @@ class InsertMetricsController implements IInsertMetricsController{
         }
 
         private  calculateRangeTimestamps(id:string, numberOfDays:number, intervalInMinutes:number, randomStart:number, randomEnd:number):any {
-            intervalTimestamps = [],
+            var intervalTimestamps = [],
                 startDate = moment().subtract('days', numberOfDays).valueOf(),
                 endDate = _.now(),
                 step = intervalInMinutes * 60 * 1000,
                 startSeed = _.random(randomStart, randomEnd),
                 dbData = [];
 
-            this.$log.warn("*** Mike *** id: "+ id+ ", days: "+ numberOfDays);
             intervalTimestamps = _.range(startDate, endDate, step);
             dbData = _.map(intervalTimestamps, function (ts) {
                 return {id: id, timestamp: ts, value: startSeed + _.random(-5, 5)};
@@ -153,7 +165,7 @@ class InsertMetricsController implements IInsertMetricsController{
         }
 
         startStreaming ():void {
-            selectedTimeRangeInSeconds = 5;
+            var selectedTimeRangeInSeconds = 5;
 
             angular.forEach(this.streamingTimeRanges, function (value) {
                 if (value.range === this.streamingInsertData.selectedRefreshInterval) {

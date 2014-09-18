@@ -64,13 +64,13 @@ var InsertMetricsController = (function () {
         var computedTimestamp;
 
         if (angular.isUndefined(numberOfHoursPast)) {
-            computedTimestamp = moment();
+            computedTimestamp = moment().unix();
         } else {
-            computedTimestamp = moment().subtract('hours', numberOfHoursPast);
+            computedTimestamp = moment().subtract('hours', numberOfHoursPast).unix();
         }
-        this.$log.debug('Generated Timestamp is: ' + computedTimestamp.fromNow());
+        this.$log.debug('Generated Timestamp is: ' + computedTimestamp);
 
-        this.quickInsertData.jsonPayload = { timestamp: computedTimestamp.valueOf(), value: this.quickInsertData.value };
+        this.quickInsertData.jsonPayload = { timestamp: computedTimestamp, value: this.quickInsertData.value };
 
         this.metricDataService.insertSinglePayload(this.quickInsertData.id, this.quickInsertData.jsonPayload).then(function (success) {
             toastr.success('Inserted value: ' + this.quickInsertData.value + ' for ID: ' + this.quickInsertData.id, 'Success');
@@ -90,10 +90,9 @@ var InsertMetricsController = (function () {
     };
 
     InsertMetricsController.prototype.rangeInsert = function () {
-        var jsonPayload;
-
-        jsonPayload = this.calculateRangeTimestamps(this.rangeInsertData.id, this.rangeInsertData.selectedDuration, this.rangeInsertData.selectedIntervalInMinutes, this.rangeInsertData.startNumber, this.rangeInsertData.endNumber);
+        var jsonPayload = this.calculateRangeTimestamps(this.rangeInsertData.id, this.rangeInsertData.selectedDuration, this.rangeInsertData.selectedIntervalInMinutes, this.rangeInsertData.startNumber, this.rangeInsertData.endNumber);
         this.$log.debug("JsonPayload: " + jsonPayload);
+        this.$log.warn("About to rangeInsert: " + this.rangeInsertData.id);
         this.metricDataService.insertMultiplePayload(jsonPayload).then(function (success) {
             toastr.success('Advanced Range Inserted Multiple values Successfully.', 'Success');
             this.rangeInsertData.id = "";

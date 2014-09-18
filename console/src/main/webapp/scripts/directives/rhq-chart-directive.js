@@ -1,5 +1,4 @@
 /// <reference path="../../vendor/vendor.d.ts" />
-/// <reference path="../../vendor/d3/d3.d.ts" />
 'use strict';
 /**
 * @ngdoc directive
@@ -396,7 +395,7 @@ angular.module('rhqm.directives', []).directive('rhqmChart', [
                     tip.hide();
                 });
 
-                if (hideHighLowValues === 'false') {
+                if (hideHighLowValues === false) {
                     svg.selectAll(".histogram.top.stem").data(chartData).enter().append("line").attr("class", "histogramTopStem").attr("x1", function (d) {
                         return xStartPosition(d);
                     }).attr("x2", function (d) {
@@ -483,7 +482,7 @@ angular.module('rhqm.directives', []).directive('rhqmChart', [
                 // Bar avg line
                 svg.append("path").datum(chartData).attr("class", "avgLine").attr("d", avgLine);
 
-                if (hideHighLowValues === 'false') {
+                if (hideHighLowValues === false) {
                     svg.append("path").datum(chartData).attr("class", "highLine").attr("d", highLine);
 
                     svg.append("path").datum(chartData).attr("class", "lowLine").attr("d", lowLine);
@@ -517,7 +516,7 @@ angular.module('rhqm.directives', []).directive('rhqmChart', [
                     return height;
                 });
 
-                if (hideHighLowValues === 'false') {
+                if (hideHighLowValues === false) {
                     svg.append("path").datum(chartData).attr("class", "highArea").attr("d", highArea);
 
                     svg.append("path").datum(chartData).attr("class", "lowArea").attr("d", lowArea);
@@ -527,7 +526,7 @@ angular.module('rhqm.directives', []).directive('rhqmChart', [
             }
 
             function createScatterChart() {
-                if (hideHighLowValues === 'false') {
+                if (hideHighLowValues === false) {
                     svg.selectAll(".highDot").data(chartData).enter().append("circle").attr("class", "highDot").attr("r", 3).attr("cx", function (d) {
                         return xStartPosition(d);
                     }).attr("cy", function (d) {
@@ -891,7 +890,7 @@ angular.module('rhqm.directives', []).directive('rhqmChart', [
                     createPreviousRangeOverlay(previousRangeDataPoints);
                     createMultiMetricOverlay();
                     createXandYAxes();
-                    if (showAvgLine === 'true') {
+                    if (showAvgLine === true) {
                         createAvgLines();
                     }
                     annotateChart(annotationData);
