@@ -36,7 +36,6 @@
     "commit": "4959d2a20faa9ffb58f02c1117f59371c2e86a2e"
   },
   "_source": "git://github.com/angular-ui/ng-grid.git",
-  "_target": "~2.0.12",
-  "_originalSource": "ng-grid",
-  "_direct": true
+  "_target": "2.0.12",
+  "_originalSource": "ng-grid"
 }

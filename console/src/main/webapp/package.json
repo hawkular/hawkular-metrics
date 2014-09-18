@@ -1,9 +1,9 @@
 {
   "name": "charting",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "dependencies": {},
   "devDependencies": {
-    "grunt": "~0.4.1",
+    "grunt": "~0.4.5",
     "grunt-autoprefixer": "~0.4.0",
     "grunt-bower-install": "~0.7.0",
     "grunt-concurrent": "~0.4.1",
@@ -21,9 +21,9 @@
     "grunt-contrib-watch": "~0.5.2",
     "grunt-google-cdn": "~0.2.0",
     "grunt-newer": "~0.5.4",
+    "grunt-ts" : "~1.1.7",
     "grunt-ngmin": "~0.0.2",
     "grunt-rev": "~0.1.0",
-    "grunt-ts": "~0.1.7",
     "grunt-svgmin": "~0.2.0",
     "grunt-usemin": "~2.0.0",
     "jshint-stylish": "~0.1.3",
