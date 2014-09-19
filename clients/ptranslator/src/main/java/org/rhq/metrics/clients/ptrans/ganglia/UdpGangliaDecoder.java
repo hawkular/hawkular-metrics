@@ -37,10 +37,10 @@ public class UdpGangliaDecoder extends MessageToMessageDecoder<DatagramPacket> {
 
             XdrBufferDecodingStream stream = new XdrBufferDecodingStream(bytes);
             stream.beginDecoding();
-            int id = stream.xdrDecodeInt(); // Packet id , should be 134 as in above magic => type of value
+            stream.xdrDecodeInt(); // Packet id , should be 134 as in above magic => type of value
             String host = stream.xdrDecodeString();
             String metricName = stream.xdrDecodeString();
-            int spoof = stream.xdrDecodeInt();
+            stream.xdrDecodeInt();
             String format = stream.xdrDecodeString(); // e.g. .0f for a number
             String value;
             if (format.endsWith("f")) {
