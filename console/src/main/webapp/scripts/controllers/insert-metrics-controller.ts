@@ -2,44 +2,48 @@
 'use strict';
 
 
+module Controllers {
 
-interface IInsertMetricsController {
-    showOpenGroup: boolean;
-    timeInterval :number[];
+    export interface IInsertMetricsController {
+        showOpenGroup: boolean;
+        timeInterval :number[];
 
-    quickInsert (numberOfHoursPast:number): void;
-    multiInsert():void;
-    rangeInsert():void;
-    startStreaming ():void;
-    stopStreaming ():void;
-}
-
-interface IQuickInsertData {
-    timeStamp:number;
-    id:string;
-    jsonPayload:any;
-    value:any;
-}
-
-/**
- * @ngdoc controller
- * @name InsertMetricsController
- * @description A controller for inserting metrics into the rhq-metrics data store (either in-memory or Cassandra).
- *
- */
-class InsertMetricsController implements IInsertMetricsController{
-
-    showOpenGroup = true;
-
-    constructor(private $scope:ng.IScope,
-                private $rootScope:ng.IRootScopeService,
-                private $log:ng.ILogService,
-                private $interval:ng.IIntervalService,
-                private metricDataService:any) {
-        $scope.vm = this;
-
+        quickInsert (numberOfHoursPast:number): void;
+        multiInsert():void;
+        rangeInsert():void;
+        startStreaming ():void;
+        stopStreaming ():void;
     }
-        private streamingIntervalPromise: ng.IPromise<number>;
+
+    export interface IQuickInsertData {
+        timeStamp:number;
+        id:string;
+        jsonPayload:any;
+        value:any;
+    }
+
+    /**
+     * @ngdoc controller
+     * @name InsertMetricsController
+     * @description A controller for inserting metrics into the rhq-metrics data store (either in-memory or Cassandra).
+     *
+     */
+    export class InsertMetricsController implements IInsertMetricsController {
+
+        public static  $inject = ['$scope', '$rootScope',  '$log', '$interval', '$metricDataService' ];
+
+        showOpenGroup = true;
+
+        constructor(private $scope:ng.IScope,
+                    private $rootScope:ng.IRootScopeService,
+                    private $log:ng.ILogService,
+                    private $interval:ng.IIntervalService,
+                    private metricDataService:any) {
+            $scope.vm = this;
+
+        }
+
+        private streamingIntervalPromise:ng.IPromise<number>;
 
 
         streamingTimeRanges = [
@@ -55,7 +59,7 @@ class InsertMetricsController implements IInsertMetricsController{
         ];
 
 
-        timeInterval :number[] = [1, 5, 10, 15, 30, 60];
+        timeInterval:number[] = [1, 5, 10, 15, 30, 60];
 
         quickInsertData:IQuickInsertData = {
             timeStamp: _.now(),
@@ -68,7 +72,7 @@ class InsertMetricsController implements IInsertMetricsController{
             id: '',
             jsonPayload: ''
         };
-        rangeDurations: number[] = [1, 2, 5, 7];
+        rangeDurations:number[] = [1, 2, 5, 7];
 
         rangeInsertData = {
             timeStamp: _.now(),
@@ -95,7 +99,7 @@ class InsertMetricsController implements IInsertMetricsController{
         };
 
 
-        quickInsert (numberOfHoursPast:number): void {
+        quickInsert(numberOfHoursPast:number):void {
             var computedTimestamp:number;
 
             if (angular.isUndefined(numberOfHoursPast)) {
@@ -129,11 +133,11 @@ class InsertMetricsController implements IInsertMetricsController{
 
 
         rangeInsert():void {
-             var jsonPayload = this.calculateRangeTimestamps(this.rangeInsertData.id, this.rangeInsertData.selectedDuration,
+            var jsonPayload = this.calculateRangeTimestamps(this.rangeInsertData.id, this.rangeInsertData.selectedDuration,
                 this.rangeInsertData.selectedIntervalInMinutes, this.rangeInsertData.startNumber,
                 this.rangeInsertData.endNumber);
             this.$log.debug("JsonPayload: " + jsonPayload);
-            this.$log.warn("About to rangeInsert: "+ this.rangeInsertData.id);
+            this.$log.warn("About to rangeInsert: " + this.rangeInsertData.id);
             this.metricDataService.insertMultiplePayload(jsonPayload).then(function (success) {
                 toastr.success('Advanced Range Inserted Multiple values Successfully.', 'Success');
                 this.rangeInsertData.id = "";
@@ -143,7 +147,7 @@ class InsertMetricsController implements IInsertMetricsController{
 
         }
 
-        private  insertError(error:string):void {
+        private static  insertError(error:string):void {
             toastr.error('An issue with inserting data has occurred. Please see the console logs. Status: ' + error);
         }
 
@@ -164,7 +168,7 @@ class InsertMetricsController implements IInsertMetricsController{
 
         }
 
-        startStreaming ():void {
+        startStreaming():void {
             var selectedTimeRangeInSeconds = 5;
 
             angular.forEach(this.streamingTimeRanges, function (value) {
@@ -195,14 +199,15 @@ class InsertMetricsController implements IInsertMetricsController{
 
         }
 
-        stopStreaming ():void {
+        stopStreaming():void {
             toastr.info('Stop Streaming Data.');
             this.$log.info('Stop Streaming Data.');
             this.streamingInsertData.isStreamingStarted = false;
-           this.$interval.cancel(this.streamingIntervalPromise);
+            this.$interval.cancel(this.streamingIntervalPromise);
         }
 
-}
+    }
 
-angular.module('chartingApp')
-    .controller('InsertMetricsController', ['$scope', '$rootScope', '$log', '$interval', 'metricDataService', InsertMetricsController ]);
+    angular.module('chartingApp')
+        .controller('InsertMetricsController',  InsertMetricsController );
+}
