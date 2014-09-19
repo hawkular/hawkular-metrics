@@ -126,7 +126,7 @@ public class MemoryMetricsService implements MetricsService {
             }
         }
         ListenableFuture<List<Counter>> listListenableFuture = Futures.immediateFuture(counters);
-        return Futures.transform(listListenableFuture,new NoOpCounterMapper(),metricsTasks);
+        return Futures.transform(listListenableFuture,new NoOpMapper<List<Counter>>(),metricsTasks);
     }
 
     @Override
@@ -150,7 +150,7 @@ public class MemoryMetricsService implements MetricsService {
         }
         ListenableFuture<List<RawNumericMetric>> listListenableFuture = Futures.immediateFuture(metrics);
 
-        return Futures.transform(listListenableFuture,new NoOpDataMapper(),metricsTasks);
+        return Futures.transform(listListenableFuture,new NoOpMapper<List<RawNumericMetric>>(),metricsTasks);
     }
 
     @Override
@@ -165,7 +165,7 @@ public class MemoryMetricsService implements MetricsService {
         metrics.addAll(storage.keySet());
 
         ListenableFuture<List<String>> future = Futures.immediateFuture(metrics);
-        return Futures.transform(future, new NoOpStringListMapper(), metricsTasks);
+        return Futures.transform(future, new NoOpMapper<List<String>>(), metricsTasks);
     }
 
     @Override
@@ -174,24 +174,11 @@ public class MemoryMetricsService implements MetricsService {
         return Futures.immediateFuture(true);
     }
 
-    private class NoOpDataMapper implements Function<List<RawNumericMetric>, List<RawNumericMetric>> {
-        @Override
-        public List<RawNumericMetric> apply(List<RawNumericMetric> input) {
-            return input;
-        }
-    }
+    private static class NoOpMapper<T> implements Function<T,T> {
 
-    private class NoOpCounterMapper implements Function<List<Counter>, List<Counter>> {
-        @Override
-        public List<Counter> apply(List<Counter> input) {
+        public T apply(T input) {
             return input;
         }
-    }
 
-    private class NoOpStringListMapper implements Function<List<String >, List<String>> {
-        @Override
-        public List<String> apply(List<String> input) {
-            return input;
-        }
     }
 }

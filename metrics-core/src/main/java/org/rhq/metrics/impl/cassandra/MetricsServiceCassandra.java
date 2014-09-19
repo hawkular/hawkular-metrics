@@ -234,7 +234,7 @@ public class MetricsServiceCassandra implements MetricsService {
         return Futures.transform(rsf, new Function<ResultSet, List<String>>() {
             @Override
             public List<String> apply(ResultSet input) {
-                List<String> result = new ArrayList<String>();
+                List<String> result = new ArrayList<>();
                 for (Row row : input.all()) {
                     String name = row.getString("metric_id");
                     result.add(name);
@@ -281,7 +281,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
 
 
-    private class RawDataFallback implements FutureFallback<ResultSet> {
+    private static class RawDataFallback implements FutureFallback<ResultSet> {
 
         private Map<RawNumericMetric, Throwable> errors;
 
@@ -299,7 +299,7 @@ public class MetricsServiceCassandra implements MetricsService {
         }
     }
 
-    private class MapQueryResultSet implements Function<ResultSet, List<RawNumericMetric>> {
+    private static class MapQueryResultSet implements Function<ResultSet, List<RawNumericMetric>> {
 
         RawMetricMapper mapper = new RawMetricMapper();
 
