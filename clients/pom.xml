@@ -12,6 +12,8 @@
   <artifactId>clients</artifactId>
   <packaging>pom</packaging>
 
+  <name>RHQ Metrics clients</name>
+
   <modules>
     <module>ptranslator</module>
   </modules>
