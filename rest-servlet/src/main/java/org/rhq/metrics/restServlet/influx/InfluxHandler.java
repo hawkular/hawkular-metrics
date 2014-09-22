@@ -240,8 +240,8 @@ public class InfluxHandler {
                 case "derivative":
                     if (!list.isEmpty()) {
                         double y = (lastElementInList.getAvg()) - (firstElementInList.getAvg());
-                        double t = (lastElementInList.getTimestamp() - (firstElementInList.getTimestamp())) / 1000; // sec
-                        retVal = y/t;
+                        long t = (lastElementInList.getTimestamp() - (firstElementInList.getTimestamp())) / 1000; // sec
+                        retVal = y/(double)t;
                     }
                     break;
                 case "median":
