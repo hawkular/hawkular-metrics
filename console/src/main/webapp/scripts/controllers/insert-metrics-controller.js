@@ -63,7 +63,7 @@ var Controllers;
             $scope.vm = this;
         }
         InsertMetricsController.prototype.quickInsert = function (numberOfHoursPast) {
-            var computedTimestamp;
+            var computedTimestamp, that = this;
 
             if (angular.isUndefined(numberOfHoursPast)) {
                 computedTimestamp = moment().unix();
@@ -75,54 +75,40 @@ var Controllers;
             this.quickInsertData.jsonPayload = { timestamp: computedTimestamp, value: this.quickInsertData.value };
 
             this.metricDataService.insertSinglePayload(this.quickInsertData.id, this.quickInsertData.jsonPayload).then(function (success) {
-                toastr.success('Inserted value: ' + this.quickInsertData.value + ' for ID: ' + this.quickInsertData.id, 'Success');
-                this.quickInsertData.value = '';
+                toastr.success('Inserted value: ' + that.quickInsertData.value + ' for ID: ' + that.quickInsertData.id, 'Success');
+                that.quickInsertData.value = '';
             }, function (error) {
                 toastr.error('An issue with inserting data has occurred. Please see the console logs. Status: ' + error);
             });
         };
 
         InsertMetricsController.prototype.multiInsert = function () {
+            var that = this;
             this.metricDataService.insertMultiplePayload(this.multiInsertData.jsonPayload).then(function (success) {
                 toastr.success('Inserted Multiple values Successfully.', 'Success');
-                this.multiInsertData.jsonPayload = "";
+                that.multiInsertData.jsonPayload = "";
             }, function (error) {
                 this.insertError(error);
             });
         };
 
         InsertMetricsController.prototype.rangeInsert = function () {
-            var jsonPayload = this.calculateRangeTimestamps(this.rangeInsertData.id, this.rangeInsertData.selectedDuration, this.rangeInsertData.selectedIntervalInMinutes, this.rangeInsertData.startNumber, this.rangeInsertData.endNumber);
+            var that = this, jsonPayload = this.calculateRangeTimestamps(this.rangeInsertData.id, this.rangeInsertData.selectedDuration, this.rangeInsertData.selectedIntervalInMinutes, this.rangeInsertData.startNumber, this.rangeInsertData.endNumber);
             this.$log.debug("JsonPayload: " + jsonPayload);
             this.$log.warn("About to rangeInsert: " + this.rangeInsertData.id);
             this.metricDataService.insertMultiplePayload(jsonPayload).then(function (success) {
                 toastr.success('Advanced Range Inserted Multiple values Successfully.', 'Success');
-                this.rangeInsertData.id = "";
+                that.rangeInsertData.id = "";
             }, function (error) {
                 this.insertError(error);
             });
         };
 
-        InsertMetricsController.insertError = function (error) {
-            toastr.error('An issue with inserting data has occurred. Please see the console logs. Status: ' + error);
-        };
-
-        InsertMetricsController.prototype.calculateRangeTimestamps = function (id, numberOfDays, intervalInMinutes, randomStart, randomEnd) {
-            var intervalTimestamps = [], startDate = moment().subtract('days', numberOfDays).valueOf(), endDate = _.now(), step = intervalInMinutes * 60 * 1000, startSeed = _.random(randomStart, randomEnd), dbData = [];
-
-            intervalTimestamps = _.range(startDate, endDate, step);
-            dbData = _.map(intervalTimestamps, function (ts) {
-                return { id: id, timestamp: ts, value: startSeed + _.random(-5, 5) };
-            });
-
-            return angular.toJson(dbData);
-        };
-
         InsertMetricsController.prototype.startStreaming = function () {
-            var selectedTimeRangeInSeconds = 5;
+            var selectedTimeRangeInSeconds = 5, that = this;
 
             angular.forEach(this.streamingTimeRanges, function (value) {
-                if (value.range === this.streamingInsertData.selectedRefreshInterval) {
+                if (value.range === that.streamingInsertData.selectedRefreshInterval) {
                     selectedTimeRangeInSeconds = value.rangeInSeconds;
                 }
             });
@@ -130,13 +116,13 @@ var Controllers;
             this.streamingInsertData.count = 0;
             this.streamingInsertData.lastStreamedValue = 0;
             this.streamingIntervalPromise = this.$interval(function () {
-                this.$log.log("Timer has Run! for seconds: " + selectedTimeRangeInSeconds);
-                this.streamingInsertData.count = this.streamingInsertData.count + 1;
-                this.streamingInsertData.lastStreamedValue = _.random(this.streamingInsertData.startNumber, this.streamingInsertData.endNumber);
-                this.streamingInsertData.jsonPayload = { timestamp: _.now(), value: this.streamingInsertData.lastStreamedValue };
+                that.$log.log("Timer has Run! for seconds: " + selectedTimeRangeInSeconds);
+                that.streamingInsertData.count = that.streamingInsertData.count + 1;
+                that.streamingInsertData.lastStreamedValue = _.random(that.streamingInsertData.startNumber, that.streamingInsertData.endNumber);
+                that.streamingInsertData.jsonPayload = { timestamp: _.now(), value: that.streamingInsertData.lastStreamedValue };
 
-                this.metricDataService.insertSinglePayload(this.streamingInsertData.id, this.streamingInsertData.jsonPayload).then(function (success) {
-                    toastr.success('Successfully inserted: ' + this.streamingInsertData.lastStreamedValue, 'Streaming Insert');
+                that.metricDataService.insertSinglePayload(that.streamingInsertData.id, that.streamingInsertData.jsonPayload).then(function (success) {
+                    toastr.success('Successfully inserted: ' + that.streamingInsertData.lastStreamedValue, 'Streaming Insert');
                 }, function (error) {
                     this.insertError(error);
                 });
@@ -153,7 +139,22 @@ var Controllers;
             this.streamingInsertData.isStreamingStarted = false;
             this.$interval.cancel(this.streamingIntervalPromise);
         };
-        InsertMetricsController.$inject = ['$scope', '$rootScope', '$log', '$interval', '$metricDataService'];
+
+        InsertMetricsController.insertError = function (error) {
+            toastr.error('An issue with inserting data has occurred. Please see the console logs. Status: ' + error);
+        };
+
+        InsertMetricsController.prototype.calculateRangeTimestamps = function (id, numberOfDays, intervalInMinutes, randomStart, randomEnd) {
+            var intervalTimestamps = [], startDate = moment().subtract('days', numberOfDays).valueOf(), endDate = _.now(), step = intervalInMinutes * 60 * 1000, startSeed = _.random(randomStart, randomEnd), dbData = [];
+
+            intervalTimestamps = _.range(startDate, endDate, step);
+            dbData = _.map(intervalTimestamps, function (ts) {
+                return { id: id, timestamp: ts, value: startSeed + _.random(-5, 5) };
+            });
+
+            return angular.toJson(dbData);
+        };
+        InsertMetricsController.$inject = ['$scope', '$rootScope', '$log', '$interval', 'metricDataService'];
         return InsertMetricsController;
     })();
     Controllers.InsertMetricsController = InsertMetricsController;
