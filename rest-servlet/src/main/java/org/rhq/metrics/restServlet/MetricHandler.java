@@ -304,7 +304,7 @@ public class MetricHandler {
                             } else {
                                 // we will have numberOfBuckets buckets, but with a fixed with. Buckets will thus
                                 // be reused over time after (numberOfBuckets*bucketWidthSeconds seconds)
-                                long totalLength = numberOfBuckets * bucketWidthSeconds * 1000L ;
+                                long totalLength = (long)numberOfBuckets * bucketWidthSeconds * 1000L ;
 
                                 // find the minimum ts
                                 long minTs = Long.MAX_VALUE;

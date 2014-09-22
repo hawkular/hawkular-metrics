@@ -1,6 +1,6 @@
 /*
  * RHQ Management Platform
- * Copyright (C) 2005-2013 Red Hat, Inc.
+ * Copyright (C) 2005-2014 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -25,6 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -105,7 +106,7 @@ public class JsonPFilter implements Filter {
 
                 ServletOutputStream outputStream = response.getOutputStream();
                 response.setContentType("application/javascript; charset=utf-8");
-                outputStream.write((callback + "(").getBytes());
+                outputStream.write((callback + "(").getBytes(StandardCharsets.UTF_8));
                 responseWrapper.getByteArrayOutputStream().writeTo(outputStream);
                 outputStream.write(");".getBytes());
                 outputStream.flush();
@@ -188,7 +189,7 @@ public class JsonPFilter implements Filter {
         int contentLength;
         BufferedReader reader;
         ByteArrayInputStream bais;
-        Map<String, String> headers = new HashMap<String, String>();
+        Map<String, String> headers = new HashMap<>();
 
 
         public JsonPRequestWrapper(HttpServletRequest request) {
@@ -218,7 +219,7 @@ public class JsonPFilter implements Filter {
 
         @Override
         public BufferedReader getReader() throws IOException {
-            reader = new BufferedReader(new InputStreamReader(bais));
+            reader = new BufferedReader(new InputStreamReader(bais,StandardCharsets.UTF_8));
             return reader;
         }
 

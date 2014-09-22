@@ -2,6 +2,7 @@ package org.rhq.metrics.restServlet;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
@@ -34,10 +35,10 @@ public class JsonPAsyncListener implements AsyncListener {
 
         ServletOutputStream outputStream = response.getOutputStream();
         origResponse.setContentType("application/javascript; charset=utf-8");
-        origResponse.getOutputStream().write((callback + "(").getBytes());
+        origResponse.getOutputStream().write((callback + "(").getBytes(StandardCharsets.UTF_8));
         ByteArrayOutputStream outputStream1 = ((JsonPFilter.JsonPResponseWrapper)responseWrapper).getByteArrayOutputStream();
         outputStream1.writeTo(origResponse.getOutputStream());
-        origResponse.getOutputStream().write(");".getBytes());
+        origResponse.getOutputStream().write(");".getBytes(StandardCharsets.UTF_8));
         outputStream.flush();
 
     }
