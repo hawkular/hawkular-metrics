@@ -9,6 +9,8 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
+  <name>RHQ Metrics REST-api</name>
+
   <artifactId>rest-servlet</artifactId>
   <packaging>war</packaging>
 
