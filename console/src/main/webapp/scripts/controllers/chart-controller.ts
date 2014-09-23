@@ -16,6 +16,23 @@ module Controllers {
         max: number;
     }
 
+//    export interface IChartParams {
+//        searchId: string;
+//        startTimeStamp: Date;
+//        endTimeStamp: Date;
+//        dateRange: string;
+//        updateEndTimeStampToNow: boolean;
+//        collapseTable: boolean;
+//        tableButtonLabel:  string;
+//        showAvgLine: boolean;
+//        hideHighLowValues:boolean;
+//        showPreviousRangeDataOverlay: boolean;
+//        showContextZoom: boolean;
+//        showAutoRefreshCancel:boolean;
+//        chartType: string;
+//        chartTypes: string[];
+//
+//    }
     export interface IChartController {
         searchId: string;
         startTimeStamp: Date;
@@ -79,6 +96,10 @@ module Controllers {
         private contextDataPoints:IChartDataPoint[] = [];
         private chartData:any;
 
+
+        //@todo: refactor out vars to I/F object
+        //chartInputParams:IChartInputParams ;
+
         searchId = '';
         startTimeStamp:Date = moment().subtract('hours', 24).toDate(); //default time period set to 24 hours
         endTimeStamp:Date = new Date();
@@ -111,12 +132,12 @@ module Controllers {
 //        });
 //
 //    $rootScope.$on('GraphTimeRangeChangedEvent', function (event, timeRange) {
-
-        // set to the new published time range
-//    startTimeStamp = timeRange[0];
-//    endTimeStamp = timeRange[1];
-//    dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
-        //refreshHistoricalChartData(startTimeStamp, endTimeStamp);
+//
+//        startTimeStamp = timeRange[0];
+//        endTimeStamp = timeRange[1];
+//        dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
+//        refreshHistoricalChartData(startTimeStamp, endTimeStamp);
+//    });
 
         private noDataFoundForId(id:string):void {
             this.$log.warn('No Data found for id: ' + id);
@@ -208,9 +229,10 @@ module Controllers {
         }
 
         refreshChartDataNow(startTime:Date):void {
+            var adjStartTimeStamp:Date = moment().subtract('hours', 24).toDate(); //default time period set to 24 hours
             this.$rootScope.$broadcast('MultiChartOverlayDataChanged');
             this.endTimeStamp = new Date();
-            this.refreshHistoricalChartData(startTime, new Date());
+            this.refreshHistoricalChartData(angular.isUndefined(startTime) ? adjStartTimeStamp : startTime, this.endTimeStamp);
         }
 
         refreshHistoricalChartData(startDate:Date, endDate:Date):void {
@@ -219,6 +241,7 @@ module Controllers {
 
 
         refreshHistoricalChartDataForTimestamp(startTime?:number, endTime?:number):void {
+            var that = this;
             // calling refreshChartData without params use the model values
             if (angular.isUndefined(endTime)) {
                 endTime = this.endTimeStamp.getTime();
@@ -235,25 +258,25 @@ module Controllers {
 
             if (this.searchId !== '') {
 
-                this.metricDataService.getMetricsForTimeRange(this.searchId, startTime, endTime)
+                this.metricDataService.getMetricsForTimeRange(this.searchId, new Date(startTime), new Date(endTime))
                     .then(function (response) {
                         // we want to isolate the response from the data we are feeding to the chart
-                        this.bucketedDataPoints = this.formatBucketedChartOutput(response);
+                        that.bucketedDataPoints = that.formatBucketedChartOutput(response);
 
-                        if (this.bucketedDataPoints.length !== 0) {
+                        if (that.bucketedDataPoints.length !== 0) {
 
                             // this is basically the DTO for the chart
-                            this.chartData = {
-                                id: this.searchId,
-                                startTimeStamp: this.startTimeStamp,
-                                endTimeStamp: this.endTimeStamp,
-                                dataPoints: this.bucketedDataPoints,
-                                contextDataPoints: this.contextDataPoints,
+                            that.chartData = {
+                                id: that.searchId,
+                                startTimeStamp: that.startTimeStamp,
+                                endTimeStamp: that.endTimeStamp,
+                                dataPoints: that.bucketedDataPoints,
+                                contextDataPoints: that.contextDataPoints,
                                 annotationDataPoints: []
                             };
 
                         } else {
-                            this.noDataFoundForId(this.searchId);
+                            that.noDataFoundForId(that.searchId);
                         }
 
                     }, function (error) {

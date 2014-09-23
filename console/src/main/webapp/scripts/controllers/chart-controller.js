@@ -2,6 +2,8 @@
 'use strict';
 var Controllers;
 (function (Controllers) {
+    
+
     /**
     * @ngdoc controller
     * @name ChartController
@@ -21,6 +23,8 @@ var Controllers;
             this.metricDataService = metricDataService;
             this.bucketedDataPoints = [];
             this.contextDataPoints = [];
+            //@todo: refactor out vars to I/F object
+            //chartInputParams:IChartInputParams ;
             this.searchId = '';
             this.startTimeStamp = moment().subtract('hours', 24).toDate();
             this.endTimeStamp = new Date();
@@ -53,11 +57,12 @@ var Controllers;
         //        });
         //
         //    $rootScope.$on('GraphTimeRangeChangedEvent', function (event, timeRange) {
-        // set to the new published time range
-        //    startTimeStamp = timeRange[0];
-        //    endTimeStamp = timeRange[1];
-        //    dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
-        //refreshHistoricalChartData(startTimeStamp, endTimeStamp);
+        //
+        //        startTimeStamp = timeRange[0];
+        //        endTimeStamp = timeRange[1];
+        //        dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
+        //        refreshHistoricalChartData(startTimeStamp, endTimeStamp);
+        //    });
         ChartController.prototype.noDataFoundForId = function (id) {
             this.$log.warn('No Data found for id: ' + id);
             toastr.warning('No Data found for id: ' + id);
@@ -141,9 +146,10 @@ var Controllers;
         };
 
         ChartController.prototype.refreshChartDataNow = function (startTime) {
+            var adjStartTimeStamp = moment().subtract('hours', 24).toDate();
             this.$rootScope.$broadcast('MultiChartOverlayDataChanged');
             this.endTimeStamp = new Date();
-            this.refreshHistoricalChartData(startTime, new Date());
+            this.refreshHistoricalChartData(angular.isUndefined(startTime) ? adjStartTimeStamp : startTime, this.endTimeStamp);
         };
 
         ChartController.prototype.refreshHistoricalChartData = function (startDate, endDate) {
@@ -151,6 +157,8 @@ var Controllers;
         };
 
         ChartController.prototype.refreshHistoricalChartDataForTimestamp = function (startTime, endTime) {
+            var that = this;
+
             // calling refreshChartData without params use the model values
             if (angular.isUndefined(endTime)) {
                 endTime = this.endTimeStamp.getTime();
@@ -165,22 +173,22 @@ var Controllers;
             //            return;
             //        }
             if (this.searchId !== '') {
-                this.metricDataService.getMetricsForTimeRange(this.searchId, startTime, endTime).then(function (response) {
+                this.metricDataService.getMetricsForTimeRange(this.searchId, new Date(startTime), new Date(endTime)).then(function (response) {
                     // we want to isolate the response from the data we are feeding to the chart
-                    this.bucketedDataPoints = this.formatBucketedChartOutput(response);
+                    that.bucketedDataPoints = that.formatBucketedChartOutput(response);
 
-                    if (this.bucketedDataPoints.length !== 0) {
+                    if (that.bucketedDataPoints.length !== 0) {
                         // this is basically the DTO for the chart
-                        this.chartData = {
-                            id: this.searchId,
-                            startTimeStamp: this.startTimeStamp,
-                            endTimeStamp: this.endTimeStamp,
-                            dataPoints: this.bucketedDataPoints,
-                            contextDataPoints: this.contextDataPoints,
+                        that.chartData = {
+                            id: that.searchId,
+                            startTimeStamp: that.startTimeStamp,
+                            endTimeStamp: that.endTimeStamp,
+                            dataPoints: that.bucketedDataPoints,
+                            contextDataPoints: that.contextDataPoints,
                             annotationDataPoints: []
                         };
                     } else {
-                        this.noDataFoundForId(this.searchId);
+                        that.noDataFoundForId(that.searchId);
                     }
                 }, function (error) {
                     toastr.error('Error Loading Chart Data: ' + error);

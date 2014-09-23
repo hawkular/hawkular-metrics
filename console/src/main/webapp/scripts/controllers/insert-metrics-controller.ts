@@ -144,9 +144,8 @@ module Controllers {
                 this.rangeInsertData.selectedIntervalInMinutes, this.rangeInsertData.startNumber,
                 this.rangeInsertData.endNumber);
             this.$log.debug("JsonPayload: " + jsonPayload);
-            this.$log.warn("About to rangeInsert: " + this.rangeInsertData.id);
             this.metricDataService.insertMultiplePayload(jsonPayload).then(function (success) {
-                toastr.success('Advanced Range Inserted Multiple values Successfully.', 'Success');
+                toastr.success('Advanced Range Inserted Multiple values Successfully for id: '+that.rangeInsertData.id, 'Success');
                 that.rangeInsertData.id = "";
             }, function (error) {
                 this.insertError(error);

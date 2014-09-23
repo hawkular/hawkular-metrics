@@ -29,6 +29,7 @@ angular.module('rhqm.directives')
                         endDateMoment,
                         startEndArray = [];
                     endDateMoment = moment();
+                    console.warn("DateRangeButtonBar pressed: "+ newValue);
                     for (var i = 0; i < $scope.dateTimeRanges.length; i++) {
                         var dateTimeRange = $scope.dateTimeRanges[i];
                         if (dateTimeRange.range === $scope.dateTimeRangeButtonBarModel.graphTimeRangeSelection) {

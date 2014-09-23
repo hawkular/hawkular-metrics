@@ -9,7 +9,7 @@
                     <label class="col-sm-2 control-label">ID</label>
 
                     <div class="col-sm-5">
-                        <input type="text" class="form-control" name="searchId" ng-model="vm.chartParams.searchId"
+                        <input type="text" class="form-control" name="searchId" ng-model="vm.searchId"
                                ng-enter="vm.refreshChartDataNow();"
                                placeholder="Enter Id..." required ng-minlength="1">
                         <span class="error-message"
@@ -21,11 +21,11 @@
                 <div class="row">
                     <div class="col-md-12">
                         <relative-time-range-button-bar style="margin-left: 140px;"
-                                                        start-time-stamp="vm.chartParams.startTimestamp"
-                                                        end-time-stamp="chartParms.endTimeStamp">
+                                                        start-time-stamp="vm.startTimestamp"
+                                                        end-time-stamp="vm..endTimeStamp">
                         </relative-time-range-button-bar>
 
-                        <input type="text" style="margin-left: 20px;text-align: center;" ng-model="vm.chartParams.dateRange" readonly disbabled/>
+                        <input type="text" style="margin-left: 20px;text-align: center;" ng-model="vm..dateRange" readonly disbabled/>
                         <p></p>
                     </div>
                 </div>
@@ -39,12 +39,12 @@
                                data-target="#" href="#">
                                 <div class="input-group">
                                     <input type="text" class="form-control"
-                                           data-ng-model="vm.chartParams.startTimeStamp">
+                                           data-ng-model="vm.startTimeStamp">
                                     <span class="input-group-addon"><i class="glyphicon glyphicon-calendar"></i></span>
                                 </div>
                             </a>
                             <ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
-                                <datetimepicker data-ng-model="vm.chartParams.startTimeStamp"
+                                <datetimepicker data-ng-model="vm.startTimeStamp"
                                                 data-datetimepicker-config="{ dropdownSelector: '#dropdownStart' }"/>
                             </ul>
                         </div>
@@ -62,13 +62,13 @@
                                data-target="#" href="#">
                                 <div class="input-group">
                                     <input type="text" class="form-control"
-                                           data-ng-model="vm.chartParams.endTimeStamp">
+                                           data-ng-model="vm.endTimeStamp">
                                         <span class="input-group-addon"><i
                                                 class="glyphicon glyphicon-calendar"></i></span>
                                 </div>
                             </a>
                             <ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
-                                <datetimepicker data-ng-model="vm.chartParams.endTimeStamp"
+                                <datetimepicker data-ng-model="vm.endTimeStamp"
                                                 data-datetimepicker-config="{ dropdownSelector: '#dropdownEnd' }"/>
                             </ul>
                         </div>
@@ -77,11 +77,11 @@
 
                 <div class="form-group">
                     <div class="col-sm-offset-2 col-sm-10">
-                        <div class="btn-group" ng-disabled="!chartForm.$valid || vm.chartParams.showAutoRefreshCancel" dropdown>
-                            <button type="button" class="btn btn-primary" ng-disabled="!chartForm.$valid || vm.chartParams.showAutoRefreshCancel"
+                        <div class="btn-group" ng-disabled="!chartForm.$valid || vm.showAutoRefreshCancel" dropdown>
+                            <button type="button" class="btn btn-primary" ng-disabled="!chartForm.$valid || vm.showAutoRefreshCancel"
                                     ng-click="vm.refreshChartDataNow()">Refresh
                             </button>
-                            <button type="button" class="btn btn-primary dropdown-toggle" ng-disabled="!chartForm.$valid || vm.chartParams.showAutoRefreshCancel">
+                            <button type="button" class="btn btn-primary dropdown-toggle" ng-disabled="!chartForm.$valid || vm.showAutoRefreshCancel">
                                 <span class="caret"></span>
                                 <span class="sr-only">Refresh</span>
                             </button>
@@ -92,7 +92,7 @@
                                 <li><a href="#" ng-click="vm.autoRefresh(60)">Auto Refresh (every 1m)</a></li>
                             </ul>
                         </div>
-                        <button style="margin-left: 15px" type="button" class="btn-small btn-danger" ng-hide="!vm.chartParams.showAutoRefreshCancel" ng-click="vm.cancelAutoRefresh()">Stop</button>
+                        <button style="margin-left: 15px" type="button" class="btn-small btn-danger" ng-hide="!vm.showAutoRefreshCancel" ng-click="vm.cancelAutoRefresh()">Stop</button>
                         <span class="help-block">Default is Refresh to Now</span>
                     </div>
                 </div>
@@ -108,10 +108,10 @@
                         previous-range-data="{{vm.chartData.prevDataPoints}}"
                         context-data="{{vm.chartData.contextDataPoints}}"
                         multi-chart-overlay-data="{{vm.multiChartOverlayData}}"
-                        chart-type="{{vm.chartParams.chartType}}"
-                        show-avg-line="{{vm.chartParams.showAvgLine}}"
-                        hide-high-low-values="{{vm.chartParams.hideHighLowValues}}"
-                        chart-title="{{'Metrics Id: '+vm.chartParams.searchId}}"
+                        chart-type="{{vm.chartType}}"
+                        show-avg-line="{{vm.showAvgLine}}"
+                        hide-high-low-values="{{vm.hideHighLowValues}}"
+                        chart-title="{{'Metrics Id: '+vm.searchId}}"
                         chart-height="250"></rhqm-chart>
             </div>
 
@@ -132,8 +132,8 @@
                 <div class="col-sm-10">
                     <div class="btn-group">
                         <button type="button" class="btn btn-primary btn-sm"
-                                ng-model="vm.chartParams.chartType" btn-radio="value"
-                                ng-repeat="value in vm.chartParams.chartTypes"
+                                ng-model="vm.chartType" btn-radio="value"
+                                ng-repeat="value in vm.chartTypes"
                                 >{{value}}
                         </button>
                     </div>
@@ -146,11 +146,11 @@
 
                 <div class="col-sm-10">
                     <div class="btn-group">
-                        <label class="btn btn-primary btn-sm" ng-model="vm.chartParams.showAvgLine" btn-checkbox>Show Avg. Line</label>
-                        <label class="btn btn-primary btn-sm" ng-model="vm.chartParams.hideHighLowValues" btn-checkbox>Hide High/Low Values</label>
-                        <label class="btn btn-primary btn-sm" ng-model="vm.chartParams.showPreviousRangeDataOverlay" btn-checkbox
+                        <label class="btn btn-primary btn-sm" ng-model="vm.showAvgLine" btn-checkbox>Show Avg. Line</label>
+                        <label class="btn btn-primary btn-sm" ng-model="vm.hideHighLowValues" btn-checkbox>Hide High/Low Values</label>
+                        <label class="btn btn-primary btn-sm" ng-model="vm.showPreviousRangeDataOverlay" btn-checkbox
                                ng-click="vm.togglePreviousRangeDataOverlay()">Overlay Prev. Range</label>
-                        <label class="btn btn-primary btn-sm" ng-model="vm.chartParams.showContextZoom" btn-checkbox ng-click="vm.toggleContextZoom()">Show Context Zoom</label>
+                        <label class="btn btn-primary btn-sm" ng-model="vm.showContextZoom" btn-checkbox ng-click="vm.toggleContextZoom()">Show Context Zoom</label>
                     </div>
 
                 </div>
@@ -160,7 +160,7 @@
             <ng-include src="'views/multi-metric-section.html'"></ng-include>
 
             <button class="btn btn-sm" ng-click="vm.toggleTable()">
-                {{vm.chartParams.tableButtonLabel}}
+                {{vm.tableButtonLabel}}
             </button>
 
             <ng-include src="'views/chart-tabular-data.html'"></ng-include>
