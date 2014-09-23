@@ -2,7 +2,7 @@
 'use strict';
 
 angular.module('rhqm.directives')
-    .directive('relativeTimeRangeButtonBar', function () {
+    .directive('relativeTimeRangeButtonBar', function (): ng.IDirective {
         return {
             templateUrl: '../views/directives/date-time-range-selection.tpl.html',
             controller: function ($scope) {

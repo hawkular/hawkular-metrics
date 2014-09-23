@@ -2,7 +2,7 @@
 "use strict";
 
 angular.module('rhqm.directives')
-.directive('ngEnter', function () {
+.directive('ngEnter', function (): ng.IDirective {
     return function (scope, element, attrs) {
         element.bind("keydown keypress", function (event) {
             if(event.which === 13) {
