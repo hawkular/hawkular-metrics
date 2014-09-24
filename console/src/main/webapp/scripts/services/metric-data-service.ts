@@ -1,7 +1,10 @@
 /// <reference path="../../vendor/vendor.d.ts" />
 'use strict';
 
-    class MetricDataService {
+module Services {
+
+
+    export class MetricDataService {
 
         public static  $inject = ['$q', '$rootScope', '$http', '$log', '$localStorage', 'BASE_URL' ];
 
@@ -74,3 +77,4 @@
 
     angular.module('rhqm.services')
         .service('metricDataService', MetricDataService);
+}
