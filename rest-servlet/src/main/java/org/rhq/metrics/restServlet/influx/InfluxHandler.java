@@ -48,6 +48,11 @@ public class InfluxHandler {
     public void series(@Suspended final AsyncResponse asyncResponse,
                            @QueryParam("q") String queryString) {
 
+        if (queryString==null || queryString.isEmpty()) {
+            asyncResponse.cancel();
+            return;
+        }
+
         if (queryString.equals("list series")) {
 
             // Copied from MetricsHandler
