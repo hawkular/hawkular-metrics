@@ -9,7 +9,7 @@ import io.netty.handler.codec.MessageToMessageDecoder;
 
 import org.acplt.oncrpc.XdrBufferDecodingStream;
 
-import org.rhq.metrics.clients.ptrans.SingleMetric;
+import org.rhq.metrics.client.common.SingleMetric;
 
 /**
  * A Decoder for Ganglia metrics packets.

@@ -10,6 +10,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <name>RHQ Metrics REST-api</name>
+  <description>The REST-api of RHQ-Metrics implemented as a Web archive</description>
 
   <artifactId>rest-servlet</artifactId>
   <packaging>war</packaging>

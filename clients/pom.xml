@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
     <artifactId>rhq-metrics-parent</artifactId>
     <groupId>org.rhq.metrics</groupId>
@@ -13,9 +11,12 @@
   <packaging>pom</packaging>
 
   <name>RHQ Metrics clients</name>
+  <description>Clients for use with RHQ Metrics</description>
 
   <modules>
+    <module>common</module>
     <module>ptranslator</module>
+    <module>wildfly-sender</module>
   </modules>
 
 </project>

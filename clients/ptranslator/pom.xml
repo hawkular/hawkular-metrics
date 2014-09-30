@@ -6,8 +6,9 @@
 
   <parent>
     <groupId>org.rhq.metrics</groupId>
-    <artifactId>clients</artifactId>
+    <artifactId>rhq-metrics-parent</artifactId>
     <version>0.2.3-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
   </parent>
 
   <groupId>org.rhq.metrics</groupId>
@@ -15,9 +16,15 @@
   <version>0.2.3-SNAPSHOT</version>
   <name>Protocol Translator</name>
   <packaging>jar</packaging>
+  <description>A protocol translator that can receive data from various system and feed it to the RHQ Metrics REST api.</description>
 
 
   <dependencies>
+    <dependency>
+      <groupId>org.rhq.metrics</groupId>
+      <artifactId>clients-common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-all</artifactId>

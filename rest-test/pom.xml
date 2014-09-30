@@ -18,6 +18,7 @@
 
   <artifactId>rhq-metrics-rest-test</artifactId>
   <name>RHQ Metrics Rest Test</name>
+  <description>Test for RHQ Metrics that go over the REST Api</description>
 
 
   <build>

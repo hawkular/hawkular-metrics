@@ -8,8 +8,8 @@ import io.netty.channel.socket.DatagramPacket;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.util.CharsetUtil;
 
-import org.rhq.metrics.clients.ptrans.MetricType;
-import org.rhq.metrics.clients.ptrans.SingleMetric;
+import org.rhq.metrics.client.common.MetricType;
+import org.rhq.metrics.client.common.SingleMetric;
 
 /**
  * Decoder for Stats packets that comes in the form of

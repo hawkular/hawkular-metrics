@@ -1,0 +1,72 @@
+= WildFlySender
+
+This is a module to be deployed into WildFlyAS and which then takes
+measurements from the WildFly model and sends them to the RHQ-Metrics server
+
+Currently the location of the RHQ Metrics Server defaults to
+http://localhost:8080 , which can be configured in `subsystem.xml` as shown below.
+
+== Installation
+
+First build the `client-commons` module located next to this module. Then
+build the source with:
+
+----
+$ mvn install
+----
+
+
+Add the following to `$SERVER/standalone/configuration/standalone.xml` at the
+end of the `extensions` section:
+
+[source,xml]
+----
+        <extension module="org.rhq.metrics.clients.wildflySender"/>  (1)
+    </extensions>
+----
+
+and at the end of the profile section goes the subsystem definition:
+
+[source,xml]
+----
+          <subsystem xmlns="urn:org.rhq.metrics:wildflySender:1.0">
+            <rhqm-server
+                name="localhost"
+                enabled="true"
+                port="8080"
+                token="0x-deaf-beef"/>
+            <metric name="non-heap"
+                    path="/core-service=platform-mbean/type=memory"
+                    attribute="non-heap-memory-usage"/>
+            <metric name="thread-count"
+                    path="/core-service=platform-mbean/type=threading"
+                    attribute="thread-count"/>
+          </subsystem>
+
+       </profile>
+----
+
+Copy the module into the server before starting it:
+
+[source,shell]
+----
+cd $SERVER/modules
+mkdir -p org/rhq/metrics/clients/wildflySender
+cd $SRC
+cp -R target/module/wildflySender/ $SERVER/modules/org/rhq/metrics/clients/wildflySender/
+----
+
+You can add new metrics via the jboss-cli e.g. via
+
+----
+[standalone@localhost:9990 subsystem=rhq-metrics-sender] ./metric=uptime:add(path="/core-service=platform-mbean/type=runtime",attribute=uptime)
+----
+
+and also remove them:
+
+----
+[standalone@localhost:9990 subsystem=rhq-metrics-sender] ls metric=
+heap          non-heap      thread-count  uptime
+[standalone@localhost:9990 subsystem=rhq-metrics-sender] ./metric=uptime:remove
+{"outcome" => "success"}
+----

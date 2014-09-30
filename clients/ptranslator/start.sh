@@ -3,8 +3,14 @@
 
 VERSION=`grep version pom.xml | sed -n '3,3p' | sed -E 's/^.*n>(.*)<.*$/\1/' `
 
+if [ ! -d ../common/target -o ! -f ../common/target/clients-common-$VERSION ]
+then
+   cd ../common
+   mvn install
+   cd -
+fi
 
-if [ ! -d target -o ! -f target/ptrans-$VERSION ]
+if [ ! -d target -o ! -f target/ptrans-$VERSION.jar ]
 then
     mvn install
 fi
@@ -13,6 +19,7 @@ java -Djava.net.preferIPv4Stack=true \
    -cp ${HOME}/.m2/repository/io/netty/netty-all/4.0.20.Final/netty-all-4.0.20.Final.jar\
 :ptrans.properties\
 :target/ptrans-$VERSION.jar\
+:../common/target/clients-common-$VERSION.jar\
 :${HOME}/.m2/repository/org/slf4j/slf4j-log4j12/1.7.7/slf4j-log4j12-1.7.7.jar\
 :${HOME}/.m2/repository/org/slf4j/slf4j-api/1.7.7/slf4j-api-1.7.7.jar\
 :${HOME}/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar\

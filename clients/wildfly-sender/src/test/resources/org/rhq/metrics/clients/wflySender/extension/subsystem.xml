@@ -1,0 +1,10 @@
+<subsystem xmlns="urn:org.rhq.metrics:wildflySender:1.0">
+  <rhqm-server
+      name="localhost"
+      enabled="true"
+      port="8080"
+      token="0x-deaf-beef"/>
+    <metric name="heap" path="/core-service=platform-mbean/type=memory" attribute="heap-memory-usage"/>
+    <metric name="non-heap" path="/core-service=platform-mbean/type=memory" attribute="non-heap-memory-usage"/>
+    <metric name="thread-count" path="/core-service=platform-mbean/type=threading" attribute="thread-count"/>
+</subsystem>

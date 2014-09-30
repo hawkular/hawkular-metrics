@@ -3,7 +3,6 @@ package org.rhq.metrics.clients.ptrans.backend;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
@@ -33,8 +32,9 @@ import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.rhq.metrics.client.common.Batcher;
+import org.rhq.metrics.client.common.SingleMetric;
 import org.rhq.metrics.clients.ptrans.Main;
-import org.rhq.metrics.clients.ptrans.SingleMetric;
 
 import static io.netty.channel.ChannelHandler.Sharable;
 
@@ -99,7 +99,7 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
         if (logger.isDebugEnabled()) {
             logger.debug("Sending to channel " +ch );
         }
-        String payload = eventsToJson(in);
+        String payload = Batcher.metricListToJson(in);
         ByteBuf content = Unpooled.copiedBuffer(payload, CharsetUtil.UTF_8);
         FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST,
             restPrefix, content);
@@ -156,21 +156,6 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
         ChannelFuture clientFuture = clientBootstrap.connect();
 
         return clientFuture;
-    }
-
-    private String eventsToJson(List<SingleMetric> events) {
-        StringBuilder builder = new StringBuilder("[");
-        Iterator<SingleMetric> iter = events.iterator();
-        while (iter.hasNext()) {
-            SingleMetric event = iter.next();
-            builder.append(event.toJson());
-            if (iter.hasNext()) {
-                builder.append(',');
-            }
-        }
-        builder.append(']');
-
-        return builder.toString();
     }
 
     private void loadRestEndpointInfoFromProperties() {

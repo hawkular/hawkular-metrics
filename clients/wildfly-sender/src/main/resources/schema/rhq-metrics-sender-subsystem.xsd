@@ -1,0 +1,33 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="urn:org.rhq.metrics:wildflySender:1.0"
+            xmlns="urn:org.rhq.metrics:wildflySender:1.0"
+            elementFormDefault="qualified"
+            attributeFormDefault="unqualified"
+            version="1.0">
+
+    <!-- The subsystem root element -->
+    <xs:element name="subsystem" type="subsystemType"/>
+
+    <xs:complexType name="subsystemType">
+      <xs:sequence>
+        <xs:element name="rhqm-server" type="serverType" minOccurs="1" maxOccurs="1"/>
+        <xs:element name="metric" type="metricType" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+
+    </xs:complexType>
+
+  <!-- definition of the RHQ Metrics Server to send to -->
+  <xs:complexType name="serverType">
+    <xs:attribute name="name" default="localhost" type="xs:string"/>
+    <xs:attribute name="enabled" default="false" type="xs:boolean"/>
+    <xs:attribute name="port" default="8080" type="xs:unsignedShort"/>
+    <xs:attribute name="token" use="required" type="xs:string"/>
+  </xs:complexType>
+
+  <!-- definition of individual metrics -->
+  <xs:complexType name="metricType">
+    <xs:attribute name="name" use="required" type="xs:string"/>
+    <xs:attribute name="path" type="xs:string" use="required"/>
+    <xs:attribute name="attribute" type="xs:string"/>
+  </xs:complexType>
+</xs:schema>

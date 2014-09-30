@@ -1,0 +1,23 @@
+<module xmlns="urn:jboss:module:1.0" name="org.rhq.metrics.clients.wildflySender">
+    <resources>
+        <resource-root path="wildfly-sender.jar"/>
+      <resource-root path="clients-common-0.2.3-SNAPSHOT.jar"/>
+    </resources>
+
+    <dependencies>
+        <module name="javax.api"/>
+        <module name="org.jboss.staxmapper"/>
+        <module name="org.jboss.as.controller"/>
+        <module name="org.jboss.as.server"/>
+        <module name="org.jboss.modules"/>
+        <module name="org.jboss.msc"/>
+        <module name="org.jboss.logging"/>
+        <module name="org.jboss.vfs"/>
+        <module name="org.jboss.as.threads"/>
+        <module name="org.jboss.threads"/>
+        <module name="org.wildfly.security.manager"/>
+        <module name="org.codehaus.jackson.jackson-core-asl"/>
+        <module name="org.apache.httpcomponents"/>
+
+    </dependencies>
+</module>

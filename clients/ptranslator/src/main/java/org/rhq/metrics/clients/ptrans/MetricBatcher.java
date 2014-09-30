@@ -7,9 +7,10 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.util.AttributeKey;
 
+import org.rhq.metrics.client.common.SingleMetric;
 
 /**
- * Batch several individual {@link SingleMetric} objects in a batch of {@link MetricBatcher#THRESHOLD}
+ * Batch several individual {@link org.rhq.metrics.client.common.SingleMetric} objects in a batch of {@link MetricBatcher#THRESHOLD}
  * items to reduce backend communication overhead.
  *
  * TODO how can we detect that Netty is going down and first send the last batch?

@@ -1,4 +1,4 @@
-package org.rhq.metrics.clients.ptrans;
+package org.rhq.metrics.client.common;
 
 /**
  * One single metric
