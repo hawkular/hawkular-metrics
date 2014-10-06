@@ -63,6 +63,7 @@ public class RHQMetrics {
             if (buffer.length() > 0) {
                 buffer.deleteCharAt(buffer.length() - 1);
             }
+            options.put("nodes", buffer.toString());
             return this;
         }
 
