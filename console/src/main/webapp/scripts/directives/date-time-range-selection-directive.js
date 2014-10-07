@@ -1,14 +1,15 @@
-'use strict';
+/// <reference path="../../vendor/vendor.d.ts" />
+var Directives;
+(function (Directives) {
+    'use strict';
 
-angular.module('rhqm.directives')
-    .directive('relativeTimeRangeButtonBar', function () {
+    angular.module('rhqm.directives').directive('relativeTimeRangeButtonBar', function () {
         return {
             templateUrl: '../views/directives/date-time-range-selection.tpl.html',
             controller: function ($scope) {
-
                 $scope.dateTimeRanges = [
-                    { "range": "1h", "rangeInSeconds": 60 * 60 } ,
-                    { "range": "4h", "rangeInSeconds": 4 * 60 * 60 } ,
+                    { "range": "1h", "rangeInSeconds": 60 * 60 },
+                    { "range": "4h", "rangeInSeconds": 4 * 60 * 60 },
                     { "range": "8h", "rangeInSeconds": 8 * 60 * 60 },
                     { "range": "12h", "rangeInSeconds": 12 * 60 * 60 },
                     { "range": "1d", "rangeInSeconds": 24 * 60 * 60 },
@@ -19,14 +20,11 @@ angular.module('rhqm.directives')
                 ];
 
                 $scope.dateTimeRangeButtonBarModel = {
-                    graphTimeRangeSelection: '1d'// also sets the default range value
+                    graphTimeRangeSelection: '1d'
                 };
 
-
                 $scope.$watch('dateTimeRangeButtonBarModel.graphTimeRangeSelection', function (newValue, oldValue) {
-                    var startDateMoment,
-                        endDateMoment,
-                        startEndArray = [];
+                    var startDateMoment, endDateMoment, startEndArray = [];
                     endDateMoment = moment();
                     for (var i = 0; i < $scope.dateTimeRanges.length; i++) {
                         var dateTimeRange = $scope.dateTimeRanges[i];
@@ -40,7 +38,6 @@ angular.module('rhqm.directives')
                     startEndArray.push(new Date());
                     $scope.$emit('GraphTimeRangeChangedEvent', startEndArray);
                 });
-
             },
             replace: true,
             restrict: 'EA',
@@ -50,3 +47,5 @@ angular.module('rhqm.directives')
             }
         };
     });
+})(Directives || (Directives = {}));
+//# sourceMappingURL=date-time-range-selection-directive.js.map
