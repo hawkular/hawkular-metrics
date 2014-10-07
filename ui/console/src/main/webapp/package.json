@@ -1,6 +1,6 @@
 {
-  "name": "charting",
-  "version": "0.1.0",
+  "name": "sass-console",
+  "version": "0.1.5",
   "dependencies": {},
   "devDependencies": {
     "grunt": "~0.4.5",
