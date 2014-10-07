@@ -15,20 +15,16 @@ var Controllers;
     * @param metricDataService
     */
     var ChartController = (function () {
-        function ChartController($scope, $rootScope, $interval, $log, metricDataService) {
+        function ChartController($scope, $rootScope, $interval, $log, metricDataService, startTimeStamp, endTimeStamp, dateRange) {
             this.$scope = $scope;
             this.$rootScope = $rootScope;
             this.$interval = $interval;
             this.$log = $log;
             this.metricDataService = metricDataService;
-            this.bucketedDataPoints = [];
-            this.contextDataPoints = [];
-            //@todo: refactor out vars to I/F object
-            //chartInputParams:IChartInputParams ;
+            this.startTimeStamp = startTimeStamp;
+            this.endTimeStamp = endTimeStamp;
+            this.dateRange = dateRange;
             this.searchId = '';
-            this.startTimeStamp = moment().subtract('hours', 24).toDate();
-            this.endTimeStamp = new Date();
-            this.dateRange = moment().subtract('hours', 24).from(moment(), true);
             this.updateEndTimeStampToNow = false;
             this.collapseTable = true;
             this.tableButtonLabel = 'Show Table';
@@ -50,19 +46,26 @@ var Controllers;
                 { 'range': '3m', 'rangeInSeconds': 3 * 30 * 24 * 60 * 60 },
                 { 'range': '6m', 'rangeInSeconds': 6 * 30 * 24 * 60 * 60 }
             ];
+            this.bucketedDataPoints = [];
+            this.contextDataPoints = [];
             $scope.vm = this;
+
+            this.startTimeStamp = moment().subtract('hours', 24).toDate(); //default time period set to 24 hours
+            this.endTimeStamp = new Date();
+            this.dateRange = moment().subtract('hours', 24).from(moment(), true);
+            $scope.$on('GraphTimeRangeChangedEvent', function (event, timeRange) {
+                startTimeStamp = timeRange[0];
+                endTimeStamp = timeRange[1];
+                dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
+                $scope.vm.refreshHistoricalChartDataForTimestamp(startTimeStamp, endTimeStamp);
+            });
         }
+        //@todo: refactor out vars to I/F object
+        //chartInputParams:IChartInputParams ;
         //       $rootScope.$on('DateRangeMove', function (event, message) {
         //            $log.debug('DateRangeMove on chart Detected.');
         //        });
         //
-        //    $rootScope.$on('GraphTimeRangeChangedEvent', function (event, timeRange) {
-        //
-        //        startTimeStamp = timeRange[0];
-        //        endTimeStamp = timeRange[1];
-        //        dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
-        //        refreshHistoricalChartData(startTimeStamp, endTimeStamp);
-        //    });
         ChartController.prototype.noDataFoundForId = function (id) {
             this.$log.warn('No Data found for id: ' + id);
             toastr.warning('No Data found for id: ' + id);

@@ -82,28 +82,7 @@ module Controllers {
     export class ChartController implements IChartController {
         public static  $inject = ['$scope', '$rootScope', '$interval', '$log', 'metricDataService' ];
 
-
-        constructor(private $scope:ng.IScope,
-                    private $rootScope:ng.IRootScopeService,
-                    private $interval:ng.IIntervalService,
-                    private $log:ng.ILogService,
-                    private metricDataService) {
-            $scope.vm = this;
-        }
-
-        private updateLastTimeStampToNowPromise:ng.IPromise<number>;
-        private bucketedDataPoints:IChartDataPoint[] = [];
-        private contextDataPoints:IChartDataPoint[] = [];
-        private chartData:any;
-
-
-        //@todo: refactor out vars to I/F object
-        //chartInputParams:IChartInputParams ;
-
         searchId = '';
-        startTimeStamp:Date = moment().subtract('hours', 24).toDate(); //default time period set to 24 hours
-        endTimeStamp:Date = new Date();
-        dateRange:string = moment().subtract('hours', 24).from(moment(), true);
         updateEndTimeStampToNow = false;
         collapseTable = true;
         tableButtonLabel = 'Show Table';
@@ -127,17 +106,45 @@ module Controllers {
             { 'range': '6m', 'rangeInSeconds': 6 * 30 * 24 * 60 * 60 }
         ];
 
+        constructor(private $scope:ng.IScope,
+                    private $rootScope:ng.IRootScopeService,
+                    private $interval:ng.IIntervalService,
+                    private $log:ng.ILogService,
+                    private metricDataService,
+                    public startTimeStamp:Date,
+                    public endTimeStamp:Date,
+                    public dateRange:string) {
+            $scope.vm = this;
+
+            this.startTimeStamp = moment().subtract('hours', 24).toDate(); //default time period set to 24 hours
+            this.endTimeStamp = new Date();
+            this.dateRange = moment().subtract('hours', 24).from(moment(), true);
+            $scope.$on('GraphTimeRangeChangedEvent', function (event, timeRange) {
+                startTimeStamp = timeRange[0];
+                endTimeStamp = timeRange[1];
+                dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
+                $scope.vm.refreshHistoricalChartDataForTimestamp(startTimeStamp, endTimeStamp);
+
+
+            });
+
+        }
+
+        private updateLastTimeStampToNowPromise:ng.IPromise<number>;
+        private bucketedDataPoints:IChartDataPoint[] = [];
+        private contextDataPoints:IChartDataPoint[] = [];
+        private chartData:any;
+
+
+        //@todo: refactor out vars to I/F object
+        //chartInputParams:IChartInputParams ;
+
 //       $rootScope.$on('DateRangeMove', function (event, message) {
 //            $log.debug('DateRangeMove on chart Detected.');
 //        });
 //
-//    $rootScope.$on('GraphTimeRangeChangedEvent', function (event, timeRange) {
-//
-//        startTimeStamp = timeRange[0];
-//        endTimeStamp = timeRange[1];
-//        dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
-//        refreshHistoricalChartData(startTimeStamp, endTimeStamp);
-//    });
+
+
 
         private noDataFoundForId(id:string):void {
             this.$log.warn('No Data found for id: ' + id);
@@ -408,6 +415,9 @@ module Controllers {
             });
 
         }
+
+
+
     }
 
     angular.module('chartingApp')
