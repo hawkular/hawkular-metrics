@@ -53,10 +53,11 @@ var Controllers;
             this.startTimeStamp = moment().subtract('hours', 24).toDate(); //default time period set to 24 hours
             this.endTimeStamp = new Date();
             this.dateRange = moment().subtract('hours', 24).from(moment(), true);
+
             $scope.$on('GraphTimeRangeChangedEvent', function (event, timeRange) {
-                startTimeStamp = timeRange[0];
-                endTimeStamp = timeRange[1];
-                dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
+                $scope.vm.startTimeStamp = timeRange[0];
+                $scope.vm.endTimeStamp = timeRange[1];
+                $scope.vm.dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
                 $scope.vm.refreshHistoricalChartDataForTimestamp(startTimeStamp, endTimeStamp);
             });
         }
