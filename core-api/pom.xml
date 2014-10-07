@@ -11,6 +11,7 @@
 
   <artifactId>rhq-metrics-api</artifactId>
   <name>RHQ Metrics API</name>
+  <packaging>bundle</packaging>
 
   <dependencies>
     <dependency>
