@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import com.google.common.base.Strings;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
@@ -345,22 +346,23 @@ public class BaseTest {
             .contentType(ContentType.JSON)
         .expect()
             .statusCode(200)
+            .log().all()
         .when()
             .post("/metrics/{id}");
 
 
         Response response =
-        given()
-            .pathParam("id", id)
-            .header(acceptWrappedJson)
-            .queryParam("jsonp", "jsonp") // Use jsonp-wrapping e.g. for JavaScript access
-            .queryParam("start", now - 100)
-            .queryParam("end", now + 100)
-        .expect()
-            .statusCode(200)
-            .log().ifError()
-        .when()
-           .get("/metrics/{id}");
+            given()
+                .pathParam("id", id)
+                .header(acceptWrappedJson)
+                .queryParam("jsonp", "jsonp") // Use jsonp-wrapping e.g. for JavaScript access
+                .queryParam("start", now - 100)
+                .queryParam("end", now + 100)
+            .expect()
+                .statusCode(200)
+                .log().all()
+            .when()
+               .get("/metrics/{id}");
 
         // We request our custom type, but the resulting document must have
         // a content type of application/javascript
@@ -371,12 +373,13 @@ public class BaseTest {
         // check for jsonp wrapping
         String bodyString = response.asString();
         System.out.println("Received body is [" + bodyString + "]");
-        assert bodyString.startsWith("jsonp(");
-        assert bodyString.endsWith(");");
+        assert !Strings.isNullOrEmpty(bodyString) : "Body is empty";
+        assert bodyString.startsWith("jsonp(") : "Body is not formatted as jsonp";
+        assert bodyString.endsWith(");") : "Body is not formatted as jsonp";
 
         // extract the internal json data
         String body = bodyString.substring(6,bodyString.length()-2);
-        assert !body.isEmpty() : "Inner body is emtpy and does not contain json data";
+        assert !body.isEmpty() : "Inner body is empty and does not contain json data";
 
         JsonPath jp = new JsonPath(body);
         long aLong = jp.getLong("timestamp[0]");

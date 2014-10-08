@@ -19,33 +19,17 @@
 
 package org.rhq.metrics.restServlet;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-
-import javax.servlet.AsyncListener;
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletInputStream;
-import javax.servlet.ServletOutputStream;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.*;
 import javax.servlet.annotation.WebFilter;
 import javax.servlet.annotation.WebInitParam;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 
 /**
  * A filter to wrap json answers as jsonp
@@ -79,32 +63,21 @@ public class JsonPFilter implements Filter {
 
             String callback = getCallback(httpRequest);
 
-            // We need to wrap request and response, as we need to do some re-writing on both
-            // We want to get json data inside, so change the accept header
-            JsonPRequestWrapper requestWrapper = new JsonPRequestWrapper(httpRequest);
-            if (requestsJsonWrapping(httpRequest)) {
-                requestWrapper.setHeader(ACCEPT, VND_RHQ_WRAPPED_JSON);
-            } else {
-                requestWrapper.setHeader(ACCEPT, APPLICATION_JSON);
-            }
-            requestWrapper.setContentType(APPLICATION_JSON);
-
             JsonPResponseWrapper responseWrapper = new JsonPResponseWrapper(httpResponse);
-            chain.doFilter(requestWrapper, responseWrapper);
+
+            chain.doFilter(request, responseWrapper);
+
             if (request.isAsyncStarted()) {
                 // We have an async "backend" servlet, so we need to create a listener and
                 // have it "wait" for the data.
                 AsyncListener asyncListener = request.getAsyncContext().createListener(JsonPAsyncListener.class);
-                ((JsonPAsyncListener)asyncListener).set(responseWrapper, httpResponse,
+                ((JsonPAsyncListener)asyncListener).set(httpResponse,
                     callback);
-                request.getAsyncContext().addListener(asyncListener, requestWrapper, responseWrapper);
-            }
-
-            else {
+                request.getAsyncContext().addListener(asyncListener, request, responseWrapper);
+            } else {
 
                 // Normal case, no async processing started.
-
-                ServletOutputStream outputStream = response.getOutputStream();
+                OutputStream outputStream = response.getOutputStream();
                 response.setContentType("application/javascript; charset=utf-8");
                 outputStream.write((callback + "(").getBytes(StandardCharsets.UTF_8));
                 responseWrapper.getByteArrayOutputStream().writeTo(outputStream);
@@ -182,127 +155,6 @@ public class JsonPFilter implements Filter {
         @Override
         public PrintWriter getWriter() throws IOException {
             return new PrintWriter(baos);
-        }
-    }
-
-    private static class JsonPRequestWrapper extends HttpServletRequestWrapper {
-        int contentLength;
-        BufferedReader reader;
-        ByteArrayInputStream bais;
-        Map<String, String> headers = new HashMap<>();
-
-
-        public JsonPRequestWrapper(HttpServletRequest request) {
-            super(request);
-            copyHeaders(request);
-        }
-
-        private void copyHeaders(HttpServletRequest request) {
-
-            Enumeration headers = request.getHeaderNames();
-            while (headers.hasMoreElements()) {
-                String key = (String) headers.nextElement();
-                if (key.equalsIgnoreCase("Accept-Encoding")) {
-                    // Filter Content codings like compression, as we would end up
-                    // with compressed inner data and uncompressed wrapper
-                    continue;
-                }
-                String value = request.getHeader(key);
-                this.headers.put(key, value);
-            }
-        }
-
-        public void setHeader(String key, String value) {
-            headers.put(key, value);
-        }
-
-
-        @Override
-        public BufferedReader getReader() throws IOException {
-            reader = new BufferedReader(new InputStreamReader(bais,StandardCharsets.UTF_8));
-            return reader;
-        }
-
-        @Override
-        public ServletInputStream getInputStream() throws IOException {
-            return new ServletInputStream() {
-                @Override
-                public int read() throws IOException {
-                    return bais.read();
-                }
-            };
-        }
-
-        private String contentType;
-
-        public void setContentType(String contentType) {
-            this.contentType = contentType;
-            headers.put("content-type", contentType);
-        }
-
-        @Override
-        public String getContentType() {
-            return contentType;
-        }
-
-        @Override
-        public int getContentLength() {
-            return contentLength;
-        }
-
-        @Override
-        public String getHeader(String name) {
-            String val = headers.get(name);
-            if (val != null) {
-                return val;
-            }
-            return super.getHeader(name);
-        }
-
-        @Override
-        public Enumeration getHeaders(final String name) {
-            final String val = headers.get(name);
-            return new Enumeration() {
-                boolean first = true;
-
-                @Override
-                public boolean hasMoreElements() {
-                    return first;
-                }
-
-                @Override
-                public Object nextElement() {
-                    if (first) {
-                        first = false;
-                        return val;
-                    } else
-                        return null;
-                }
-            };
-        }
-
-        @Override
-        public Enumeration getHeaderNames() {
-            final Iterator it = headers.keySet().iterator();
-            return new Enumeration() {
-                public boolean hasMoreElements() {
-                    return it.hasNext();
-                }
-
-                public Object nextElement() {
-                    return it.hasNext() ? it.next() : null;
-                }
-            };
-        }
-
-        @Override
-        public int getIntHeader(String name) {
-            String val = headers.get(name);
-            if (val == null) {
-                return 0; // TODO ??
-            } else {
-                return Integer.parseInt(val);
-            }
         }
     }
 }
