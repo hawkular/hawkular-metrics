@@ -25,6 +25,9 @@
                 <artifactId>maven-war-plugin</artifactId>
                 <version>2.4</version>
                 <configuration>
+                    <archive>
+                        <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+                    </archive>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
                     <webResources>
                         <resource>
@@ -48,6 +51,7 @@
                         <supportedProjectType>war</supportedProjectType>
                     </supportedProjectTypes>
                     <instructions>
+                        <Import-Package></Import-Package>
                         <Webapp-Context>/rhq-console</Webapp-Context>
                         <Web-ContextPath>/rhq-console</Web-ContextPath>
                         <Bundle-Name>${project.description}</Bundle-Name>
