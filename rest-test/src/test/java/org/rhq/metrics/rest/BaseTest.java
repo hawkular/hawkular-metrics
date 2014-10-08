@@ -23,6 +23,7 @@ import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.resolver.api.maven.archive.importer.MavenImporter;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,6 +77,11 @@ public class BaseTest {
         }
         // There is no need to set RestAssured.basePath as this is already in the baseUrl,
         // set via Arquillian in the baseUrl
+    }
+
+    @After
+    public void tearDown() {
+        RestAssured.reset();
     }
 
 
