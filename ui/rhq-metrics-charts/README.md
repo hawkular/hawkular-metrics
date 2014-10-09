@@ -1,6 +1,8 @@
-# AngularJS directives for [PatternFly](https://www.patternfly.org)
+# [RHQ Metrics Charting Directives](https://github.com/rhq-project/rhq-metrics)
+### _Warning: this project is in Incubation (early stages)_
 
-This project will provide a set of common AngularJS directives for use with the PatternFly reference implementation.
+This project provides AngularJS directives for displaying visual representations of data such as charts.
+
 
 ## Getting started
 
@@ -23,7 +25,7 @@ You have to install required software before you're able to use grunt:
 
 You should have your environment ready now.
 
-Angular-PatternFly can now be built with:
+The RHQ Metrics directives can be built with:
 ```shell
 grunt build
 ```
