@@ -4,7 +4,7 @@
  * @description
  *   Base module for rhq-metrics-charts.
  */
-angular.module('rhq-metrics-charts', ['d3','d3-tip','moment','lodash',
+angular.module('rhq-metrics-charts', [
   'rhq-metrics-charts.chart',
   'rhq-metrics-charts.enter-key',
   'rhq-metrics-charts.date-time-range'
