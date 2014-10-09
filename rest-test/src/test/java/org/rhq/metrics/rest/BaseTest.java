@@ -1,23 +1,12 @@
 package org.rhq.metrics.rest;
 
-import static com.jayway.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.emptyCollectionOf;
-import static org.hamcrest.Matchers.hasSize;
-
-import java.io.File;
-import java.net.URL;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
 import com.google.common.base.Strings;
+import com.jayway.restassured.RestAssured;
+import com.jayway.restassured.http.ContentType;
+import com.jayway.restassured.path.json.JsonPath;
+import com.jayway.restassured.path.xml.XmlPath;
+import com.jayway.restassured.response.Header;
+import com.jayway.restassured.response.Response;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
@@ -30,17 +19,23 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import com.jayway.restassured.RestAssured;
-import com.jayway.restassured.http.ContentType;
-import com.jayway.restassured.path.json.JsonPath;
-import com.jayway.restassured.path.xml.XmlPath;
-import com.jayway.restassured.response.Header;
-import com.jayway.restassured.response.Response;
+import java.io.File;
+import java.net.URL;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+import static com.jayway.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.Matchers.emptyCollectionOf;
+import static org.hamcrest.Matchers.hasSize;
 
 @RunWith(Arquillian.class)
 public class BaseTest {
 
     private static final String APPLICATION_JSON = "application/json";
+    private static final String APPLICATION_JAVASCRIPT = "application/javascript";
     private static final String WRAPPED_JSON = "application/vnd.rhq.wrapped+json";
     private static final String APPLICATION_XML = "application/xml";
     private static final long SIXTY_SECONDS = 60*1000L;
@@ -350,7 +345,6 @@ public class BaseTest {
         .when()
             .post("/metrics/{id}");
 
-
         Response response =
             given()
                 .pathParam("id", id)
@@ -368,7 +362,7 @@ public class BaseTest {
         // a content type of application/javascript
         String mediaType = response.getContentType();
         assert mediaType != null : "Did not see a Content-Type header";
-        assert mediaType.startsWith("application/javascript") : "Media type was " + mediaType;
+        assert mediaType.startsWith(APPLICATION_JAVASCRIPT) : "Media type was " + mediaType;
 
         // check for jsonp wrapping
         String bodyString = response.asString();

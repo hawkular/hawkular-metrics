@@ -16,7 +16,7 @@ import java.util.zip.GZIPOutputStream;
  */
 public class JsonPAsyncListener implements AsyncListener {
 
-    private ServletResponse origResponse;
+    private HttpServletResponse origResponse;
     private String callback;
 
     public JsonPAsyncListener() {
@@ -39,6 +39,7 @@ public class JsonPAsyncListener implements AsyncListener {
         }
 
         origResponse.setContentType("application/javascript; charset=utf-8");
+
         responseOutputStream.write((callback + "(").getBytes(StandardCharsets.UTF_8));
 
         ByteArrayOutputStream jsonpOutputStream = responseWrapper.getByteArrayOutputStream();
@@ -63,7 +64,7 @@ public class JsonPAsyncListener implements AsyncListener {
         responseOutputStream.write(");".getBytes(StandardCharsets.UTF_8));
         responseOutputStream.flush();
         if (gzipped) {
-            responseOutputStream.close();
+            ((GZIPOutputStream) responseOutputStream).finish();
         }
     }
 
