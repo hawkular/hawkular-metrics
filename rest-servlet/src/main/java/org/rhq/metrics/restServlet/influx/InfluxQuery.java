@@ -110,6 +110,9 @@ public class InfluxQuery {
         String unit = m.group(2);
         long factor ;
         switch (unit) {
+        case "d":
+            factor =86400;
+            break;
         case "h":
             factor = 3600;
             break;
