@@ -1,15 +1,13 @@
 package org.rhq.metrics.restServlet;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-
 import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
-import javax.servlet.ServletOutputStream;
 import javax.servlet.ServletResponse;
-import javax.servlet.ServletResponseWrapper;
 import javax.servlet.http.HttpServletResponse;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Listener that is called when the async result is available for the filter.
@@ -18,8 +16,7 @@ import javax.servlet.http.HttpServletResponse;
  */
 public class JsonPAsyncListener implements AsyncListener {
 
-    private ServletResponseWrapper responseWrapper;
-    private ServletResponse origResponse;
+    private HttpServletResponse origResponse;
     private String callback;
 
     public JsonPAsyncListener() {
@@ -31,16 +28,44 @@ public class JsonPAsyncListener implements AsyncListener {
         // Async processing is complete. We can now wrap the
         // returned output stream and set the content type.
 
-        ServletResponse response = asyncEvent.getSuppliedResponse();
+        JsonPFilter.JsonPResponseWrapper responseWrapper = (JsonPFilter.JsonPResponseWrapper) asyncEvent.getSuppliedResponse();
 
-        ServletOutputStream outputStream = response.getOutputStream();
+        OutputStream responseOutputStream = origResponse.getOutputStream();
+
+        boolean gzipped = responseWrapper.getHeader("Content-Encoding").equalsIgnoreCase("gzip");
+
+        if (gzipped) {
+            responseOutputStream = new GZIPOutputStream(responseOutputStream);
+        }
+
         origResponse.setContentType("application/javascript; charset=utf-8");
-        origResponse.getOutputStream().write((callback + "(").getBytes(StandardCharsets.UTF_8));
-        ByteArrayOutputStream outputStream1 = ((JsonPFilter.JsonPResponseWrapper)responseWrapper).getByteArrayOutputStream();
-        outputStream1.writeTo(origResponse.getOutputStream());
-        origResponse.getOutputStream().write(");".getBytes(StandardCharsets.UTF_8));
-        outputStream.flush();
 
+        responseOutputStream.write((callback + "(").getBytes(StandardCharsets.UTF_8));
+
+        ByteArrayOutputStream jsonpOutputStream = responseWrapper.getByteArrayOutputStream();
+
+        if (gzipped) {
+            GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(jsonpOutputStream.toByteArray()));
+            try {
+                InputStreamReader reader = new InputStreamReader(gzipInputStream);
+                BufferedReader in = new BufferedReader(reader);
+
+                String read;
+                while ((read = in.readLine()) != null) {
+                    responseOutputStream.write(read.getBytes());
+                }
+            } finally {
+                gzipInputStream.close();
+            }
+        } else {
+            jsonpOutputStream.writeTo(responseOutputStream);
+        }
+
+        responseOutputStream.write(");".getBytes(StandardCharsets.UTF_8));
+        responseOutputStream.flush();
+        if (gzipped) {
+            ((GZIPOutputStream) responseOutputStream).finish();
+        }
     }
 
     @Override
@@ -55,10 +80,8 @@ public class JsonPAsyncListener implements AsyncListener {
     public void onStartAsync(AsyncEvent asyncEvent) throws IOException {
     }
 
-    public void set(JsonPFilter.JsonPResponseWrapper responseWrapper, HttpServletResponse httpResponse,
+    public void set(HttpServletResponse httpResponse,
                     String callback) {
-
-        this.responseWrapper = responseWrapper;
         this.origResponse = httpResponse;
         this.callback = callback;
     }

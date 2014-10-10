@@ -11,6 +11,7 @@
 
   <artifactId>rhq-metrics-core</artifactId>
   <name>RHQ Metrics Core</name>
+  <packaging>bundle</packaging>
 
   <dependencies>
 

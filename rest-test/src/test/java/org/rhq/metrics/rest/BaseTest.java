@@ -1,44 +1,41 @@
 package org.rhq.metrics.rest;
 
-import static com.jayway.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.emptyCollectionOf;
-import static org.hamcrest.Matchers.hasSize;
-
-import java.io.File;
-import java.net.URL;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
-import org.jboss.arquillian.container.test.api.Deployment;
-import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.arquillian.test.api.ArquillianResource;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.jboss.shrinkwrap.resolver.api.maven.archive.importer.MavenImporter;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
+import com.google.common.base.Strings;
 import com.jayway.restassured.RestAssured;
 import com.jayway.restassured.http.ContentType;
 import com.jayway.restassured.path.json.JsonPath;
 import com.jayway.restassured.path.xml.XmlPath;
 import com.jayway.restassured.response.Header;
 import com.jayway.restassured.response.Response;
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.arquillian.test.api.ArquillianResource;
+import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.jboss.shrinkwrap.resolver.api.maven.archive.importer.MavenImporter;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import java.io.File;
+import java.net.URL;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+import static com.jayway.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.Matchers.emptyCollectionOf;
+import static org.hamcrest.Matchers.hasSize;
 
 @RunWith(Arquillian.class)
 public class BaseTest {
 
     private static final String APPLICATION_JSON = "application/json";
+    private static final String APPLICATION_JAVASCRIPT = "application/javascript";
     private static final String WRAPPED_JSON = "application/vnd.rhq.wrapped+json";
     private static final String APPLICATION_XML = "application/xml";
     private static final long SIXTY_SECONDS = 60*1000L;
@@ -76,6 +73,11 @@ public class BaseTest {
         }
         // There is no need to set RestAssured.basePath as this is already in the baseUrl,
         // set via Arquillian in the baseUrl
+    }
+
+    @After
+    public void tearDown() {
+        RestAssured.reset();
     }
 
 
@@ -339,38 +341,39 @@ public class BaseTest {
             .contentType(ContentType.JSON)
         .expect()
             .statusCode(200)
+            .log().all()
         .when()
             .post("/metrics/{id}");
 
-
         Response response =
-        given()
-            .pathParam("id", id)
-            .header(acceptWrappedJson)
-            .queryParam("jsonp", "jsonp") // Use jsonp-wrapping e.g. for JavaScript access
-            .queryParam("start", now - 100)
-            .queryParam("end", now + 100)
-        .expect()
-            .statusCode(200)
-            .log().ifError()
-        .when()
-           .get("/metrics/{id}");
+            given()
+                .pathParam("id", id)
+                .header(acceptWrappedJson)
+                .queryParam("jsonp", "jsonp") // Use jsonp-wrapping e.g. for JavaScript access
+                .queryParam("start", now - 100)
+                .queryParam("end", now + 100)
+            .expect()
+                .statusCode(200)
+                .log().all()
+            .when()
+               .get("/metrics/{id}");
 
         // We request our custom type, but the resulting document must have
         // a content type of application/javascript
         String mediaType = response.getContentType();
         assert mediaType != null : "Did not see a Content-Type header";
-        assert mediaType.startsWith("application/javascript") : "Media type was " + mediaType;
+        assert mediaType.startsWith(APPLICATION_JAVASCRIPT) : "Media type was " + mediaType;
 
         // check for jsonp wrapping
         String bodyString = response.asString();
         System.out.println("Received body is [" + bodyString + "]");
-        assert bodyString.startsWith("jsonp(");
-        assert bodyString.endsWith(");");
+        assert !Strings.isNullOrEmpty(bodyString) : "Body is empty";
+        assert bodyString.startsWith("jsonp(") : "Body is not formatted as jsonp";
+        assert bodyString.endsWith(");") : "Body is not formatted as jsonp";
 
         // extract the internal json data
         String body = bodyString.substring(6,bodyString.length()-2);
-        assert !body.isEmpty() : "Inner body is emtpy and does not contain json data";
+        assert !body.isEmpty() : "Inner body is empty and does not contain json data";
 
         JsonPath jp = new JsonPath(body);
         long aLong = jp.getLong("timestamp[0]");
