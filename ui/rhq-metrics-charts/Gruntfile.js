@@ -40,7 +40,7 @@ module.exports = function(grunt) {
         },
         dist: {
           src: ['src/**/*.module.js', 'src/**/*.js', 'templates/*.js'],
-          dest: 'dist/rhq-metrics-charts.js'
+          dest: 'dist/rhqm-charts.js'
         }
       },
       connect: {
@@ -52,13 +52,13 @@ module.exports = function(grunt) {
       },
       copy: {
         docdata: {
-          cwd: 'lib/rhq-metrics-charts/dist',
+          cwd: 'lib/rhqm-charts/dist',
           src: ['fonts/*', 'img/*'],
           dest: 'dist/docs',
           expand: true
         },
         fa: {
-          cwd: 'lib/rhq-metrics-charts/',
+          cwd: 'lib/rhqm-charts/',
           src: ['components/font-awesome/**'],
           dest: 'dist/docs',
           expand: true
@@ -98,13 +98,13 @@ module.exports = function(grunt) {
 //        options: {
 //          title: 'RHQ Metrics Documentation',
 //          dest: 'dist/docs',
-//          scripts: ['lib/rhq-metrics-charts/components/jquery/jquery.js',
-//            'lib/rhq-metrics-charts/components/bootstrap/dist/js/bootstrap.js',
+//          scripts: ['lib/rhqm-charts/components/jquery/jquery.js',
+//            'lib/rhqm-charts/components/bootstrap/dist/js/bootstrap.js',
 //            'angular.js',
-//            'dist/rhq-metrics-charts.js',
-//            'lib/rhq-metrics-charts/dist/js/rhq-metrics-charts.js'],
+//            'dist/rhqm-charts.js',
+//            'lib/rhqm-charts/dist/js/rhqm-charts.js'],
 //          html5Mode: false,
-//          styles: ['lib/rhq-metrics-charts/dist/css/rhq-metrics-charts.css']
+//          styles: ['lib/rhqm-charts/dist/css/rhqm-charts.css']
 //        },
 //        all: ['src/**/*.js']
 //      },
@@ -129,8 +129,8 @@ module.exports = function(grunt) {
         },
         build: {
           files: {},
-          src: 'dist/rhq-metrics-charts.js',
-          dest: 'dist/rhq-metrics-charts.min.js'
+          src: 'dist/rhqm-charts.js',
+          dest: 'dist/rhqm-charts.min.js'
         }
       },
       watch: {

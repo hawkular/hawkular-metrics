@@ -29,7 +29,7 @@
     ],
     "repository": {
         "type": "git",
-        "url": "git://github.com/rhq/rhq-metrics/rhq-metrics-charts.git"
+        "url": "git://github.com/rhq/rhq-metrics/rhqm-charts.git"
     },
     "dependencies": {
         "angular": "1.2.24",

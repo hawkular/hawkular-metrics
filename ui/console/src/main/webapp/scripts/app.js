@@ -1,6 +1,6 @@
 /// <reference path="../vendor/vendor.d.ts" />
 'use strict';
-angular.module('chartingApp', ['ui.bootstrap', 'ui.bootstrap.datetimepicker', 'ui.router', 'ngStorage', 'rhqm.directives', 'rhqm.services', 'rhq-metrics-charts']).constant('BASE_URL', '/rhq-metrics/metrics').constant('DATE_TIME_FORMAT', 'MM/DD/YYYY h:mm a').config([
+angular.module('chartingApp', ['ui.bootstrap', 'ui.bootstrap.datetimepicker', 'ui.router', 'ngStorage', 'rhqm.directives', 'rhqm.services']).constant('BASE_URL', '/rhq-metrics/metrics').constant('DATE_TIME_FORMAT', 'MM/DD/YYYY h:mm a').config([
     '$stateProvider', '$urlRouterProvider', function ($stateProvider, $urlRouterProvider) {
         $urlRouterProvider.otherwise('/');
 
@@ -27,6 +27,6 @@ angular.module('chartingApp', ['ui.bootstrap', 'ui.bootstrap.datetimepicker', 'u
     });
 });
 
-angular.module('rhqm.directives', ['ui.bootstrap', 'd3']);
+angular.module('rhqm.directives', ['ui.bootstrap']);
 angular.module('rhqm.services', ['ngStorage']);
 //# sourceMappingURL=app.js.map
