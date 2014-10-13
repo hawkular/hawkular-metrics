@@ -281,7 +281,7 @@ var Controllers;
             // @fixme: add a real service to determine unbounded range
             var endTime = _.now(), startTime = moment().subtract('months', 24).valueOf();
 
-            console.debug('refreshChartContext');
+            this.$log.debug('refreshChartContext');
             if (this.searchId !== '') {
                 if (startTime >= endTime) {
                     this.$log.warn('Start Date was >= End Date');
@@ -295,6 +295,7 @@ var Controllers;
                         this.noDataFoundForId(this.searchId);
                     }
                 }, function (error) {
+                    this.$log.error('Error loading Context graph data', 'Status: ' + error);
                     toastr.error('Error loading Context graph data', 'Status: ' + error);
                 });
             }

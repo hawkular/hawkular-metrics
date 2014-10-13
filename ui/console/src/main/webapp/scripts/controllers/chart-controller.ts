@@ -382,7 +382,7 @@ module Controllers {
             var endTime = _.now(),
                 startTime = moment().subtract('months', 24).valueOf();
 
-            console.debug('refreshChartContext');
+            this.$log.debug('refreshChartContext');
             if (this.searchId !== '') {
                 if (startTime >= endTime) {
                     this.$log.warn('Start Date was >= End Date');
@@ -399,6 +399,7 @@ module Controllers {
                         }
 
                     }, function (error) {
+                        this.$log.error('Error loading Context graph data', 'Status: ' + error);
                         toastr.error('Error loading Context graph data', 'Status: ' + error);
                     });
             }

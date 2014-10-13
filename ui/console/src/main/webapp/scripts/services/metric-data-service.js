@@ -17,9 +17,23 @@ var Services;
             return baseUrl;
         };
 
+        MetricDataService.prototype.getAllMetrics = function () {
+            this.$log.info('-- Retrieving all metrics');
+            var base = this.makeBaseUrl(), deferred = this.$q.defer();
+
+            this.$http.get(base).success(function (data) {
+                deferred.resolve(data);
+            }).error(function (reason, status) {
+                this.$log.error('Error Retrieving all metrics :' + status + ", " + reason);
+                deferred.reject(status + " - " + reason);
+            });
+
+            return deferred.promise;
+        };
+
         MetricDataService.prototype.getMetricsForTimeRange = function (id, startDate, endDate, buckets) {
-            this.$log.info("-- Retrieving metrics data for id: " + id);
-            this.$log.info("-- Date Range: " + startDate + " - " + endDate);
+            this.$log.info('-- Retrieving metrics data for id: ' + id);
+            this.$log.info('-- Date Range: ' + startDate + ' - ' + endDate);
             var numBuckets = buckets || 60, base = this.makeBaseUrl(), deferred = this.$q.defer(), searchParams = {
                 params: {
                     start: startDate.getTime(),

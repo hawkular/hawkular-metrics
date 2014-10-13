@@ -1,16 +1,3 @@
-<!--<div ui-view>-->
-<!--<div ng-controller="ConfigController" class="jumbotron standard-width" style="height: 60px;">-->
-<!--<h3 style="margin-top: -10px;">RHQ-Metrics Console</h3>-->
-<!--<h6 style="margin-top: -5px;">Metrics Visualized!</h6>-->
-<!--<button class="btn btn-xs" style="float:right;margin-top:-60px;margin-right:-60px;" ng-click="vm.openConfig()">-->
-<!--<i class="glyphicon glyphicon-cog"></i>-->
-<!--</button>-->
-<!--<ng-include src="'views/config-dialog.html'"></ng-include>-->
-<!--</div>-->
-
-<!--<ng-include src="'views/chart-tab.html'"></ng-include>-->
-
-<!--</div>-->
 
 <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
     <div class="container-fluid">
@@ -27,66 +14,32 @@
             <ul class="nav navbar-nav navbar-right">
                 <li><a href="#" ng-click="vm.openConfig()">Settings</a></li>
             </ul>
-            <form class="navbar-form navbar-right">
-                <input type="text" class="form-control" placeholder="Quick Chart...">
-            </form>
+            <!--<form class="navbar-form navbar-right">-->
+                <!--<input type="text" class="form-control" placeholder="Quick Chart...">-->
+            <!--</form>-->
         </div>
     </div>
 </div>
 
-<div class="container-fluid">
+<div class="container-fluid" >
     <div class="form-group">
         <div class="row">
-            <div class="col-sm-3 col-md-2 sidebar">
-                <ul class="nav nav-sidebar">
-                    <li class="active">
-                        <a href="#">
-                            <label class="checkbox-inline">
-                                <input type="checkbox" name="favoriteColors" ng-model="formData.favoriteColors.red"> server1.cpu0
-                            </label></a>
-                    </li>
+            <div class="col-sm-3 col-md-2 sidebar" ng-controller="SidebarController as vm">
+
+                <h4 class="sub-header">Metrics<span class="badge" style="margin-left: 5px;">{{vm.allMetrics.length}}</span> <button type="button" class="btn btn-primary btn-xs"  ng-click="vm.populateMetricsSidebar()">Refresh </button></h4>
+                <ul class="nav nav-sidebar"
+                    ng-repeat="metric in vm.allMetrics">
                     <li>
-                        <a href="#">
                             <label class="checkbox-inline">
-                                <input type="checkbox" name="favoriteColors" ng-model="formData.favoriteColors.red"> server1.cpu2
+                                <input type="checkbox"  ng-model="metric.selected" ng-click="vm.showChart(metric.title)"/> {{metric.title}}
                             </label>
-                        </a>
                     </li>
 
                 </ul>
             </div>
 
             <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-                <h1 class="page-header">Dashboard</h1>
-
-                <div class="row placeholders">
-                    <div class="col-xs-6 col-sm-3 placeholder">
-                        <img data-src="holder.js/200x200/auto/sky" class="img-responsive"
-                             alt="Generic placeholder thumbnail">
-                        <h4>Label</h4>
-                        <span class="text-muted">Something else</span>
-                    </div>
-                    <div class="col-xs-6 col-sm-3 placeholder">
-                        <img data-src="holder.js/200x200/auto/vine" class="img-responsive"
-                             alt="Generic placeholder thumbnail">
-                        <h4>Label</h4>
-                        <span class="text-muted">Something else</span>
-                    </div>
-                    <div class="col-xs-6 col-sm-3 placeholder">
-                        <img data-src="holder.js/200x200/auto/sky" class="img-responsive"
-                             alt="Generic placeholder thumbnail">
-                        <h4>Label</h4>
-                        <span class="text-muted">Something else</span>
-                    </div>
-                    <div class="col-xs-6 col-sm-3 placeholder">
-                        <img data-src="holder.js/200x200/auto/vine" class="img-responsive"
-                             alt="Generic placeholder thumbnail">
-                        <h4>Label</h4>
-                        <span class="text-muted">Something else</span>
-                    </div>
-                </div>
-
-                <h2 class="sub-header">Section title</h2>
+                <h3 class="sub-header">Dashboard<span class="badge" style="margin-left: 5px;">23</span></h3>
 
             </div>
         </div>
