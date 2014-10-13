@@ -4,11 +4,20 @@ var Controllers;
     'use strict';
 
     var SidebarController = (function () {
-        function SidebarController($scope, $log, metricDataService) {
+        function SidebarController($scope, $rootScope, $log, metricDataService) {
             this.$scope = $scope;
+            this.$rootScope = $rootScope;
             this.$log = $log;
             this.metricDataService = metricDataService;
             $scope.vm = this;
+
+            $scope.$on('RemoveSelectedMetricEvent', function (event, metricId) {
+                console.debug('RemoveSelectedMeticEvent for: ' + metricId);
+                if (_.contains($scope.vm.allMetrics, metricId)) {
+                    var pos = _.indexOf($scope.vm.allMetrics, metricId);
+                    $scope.vm.allMetrics.splice(pos, 1);
+                }
+            });
         }
         SidebarController.prototype.populateMetricsSidebar = function () {
             var that = this;
@@ -21,10 +30,15 @@ var Controllers;
             });
         };
 
-        SidebarController.prototype.showChart = function (metricId) {
-            console.log('show chart for: ' + metricId);
+        SidebarController.prototype.addRemoveChart = function (metricId, checked) {
+            console.log('show chart for: ' + metricId + ', checked: ' + checked);
+            if (checked) {
+                this.$rootScope.$emit('RemoveChartEvent', metricId);
+            } else {
+                this.$rootScope.$emit('NewChartEvent', metricId);
+            }
         };
-        SidebarController.$inject = ['$scope', '$log', 'metricDataService'];
+        SidebarController.$inject = ['$scope', '$rootScope', '$log', 'metricDataService'];
         return SidebarController;
     })();
     Controllers.SidebarController = SidebarController;

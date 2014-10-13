@@ -128,6 +128,9 @@ module Controllers {
 
 
             });
+            $rootScope.$on('NewChartEvent', function(event, metricId){
+                console.log('Hey NewChartEvent');
+            });
 
         }
 

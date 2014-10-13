@@ -59,7 +59,7 @@ var Directives;
                     function determineMultiMetricMinMax() {
                         var currentMax, currentMin, seriesMax, seriesMin, maxList = [], minList = [];
                         angular.forEach(multiChartOverlayData, function (series) {
-                            console.warn("Series: " + series.length);
+                            console.debug("Series: " + series.length);
                             currentMax = d3.max(series.map(function (d) {
                                 return !d.empty ? d.avg : 0;
                             }));
@@ -746,9 +746,6 @@ var Directives;
 
                 function createMultiMetricOverlay() {
                     var multiLine, g = 0, colorScale = d3.scale.category20();
-
-                    console.warn("Inside createMultiMetricOverlay");
-                    console.dir(multiChartOverlayData);
 
                     if (isDefinedAndHasValues(multiChartOverlayData)) {
                         $log.warn("Running MultiChartOverlay for %i metrics", multiChartOverlayData.length);

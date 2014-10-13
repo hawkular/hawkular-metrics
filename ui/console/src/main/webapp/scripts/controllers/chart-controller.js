@@ -61,6 +61,9 @@ var Controllers;
                 $scope.vm.dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
                 $scope.vm.refreshHistoricalChartDataForTimestamp(startTimeStamp, endTimeStamp);
             });
+            $rootScope.$on('NewChartEvent', function (event, metricId) {
+                console.log('Hey NewChartEvent');
+            });
         }
         //@todo: refactor out vars to I/F object
         //chartInputParams:IChartInputParams ;
