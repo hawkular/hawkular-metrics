@@ -1,6 +1,17 @@
 language: java
 jdk:
-  - oraclejdk8
-
+- oraclejdk8
 services:
-  - cassandra
+- cassandra
+env:
+  global:
+    secure: mDUhAf474mlads7ZEAf2mWecQxZWgdfcjiBn6+yif0hJoWKQs38HU+jm4EE8UMgGvdn7avIYvdrxKJ9MnjWpncaXJ0366ZYbxP+7pybMk/SA80yr3dCg5gSHosJ9UqMvGga1bzgDeqF9UppKt0kqxgSLLwKAFoY+x70Pp0rIwQg=
+addons:
+  coverity_scan:
+    project:
+      name: rhq-project/rhq-metrics
+      description: Build submitted via Travis CI
+    notification_email: hwr@pilhuhn.de
+    build_command_prepend: mvn clean
+    build_command: mvn -DskipTests=true compile
+    branch_pattern: coverity_scan
