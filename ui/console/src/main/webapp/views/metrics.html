@@ -49,7 +49,7 @@
 
                 <h3 class="sub-header">Dashboard
                     <small style="margin-left: 5px;">Graphs</small>
-                    <span class="badge" ng-hide="vm.selectedMetrics.length < 1" style="margin-left: 5px;">{{vm.selectedMetrics.length}}</span>
+                    <span class="badge" ng-hide="vm.selectedMetrics.length < 1" >{{vm.selectedMetrics.length}}</span>
 
                 </h3>
 
@@ -103,15 +103,15 @@
 
 
                 <!-- Panel Sections  for each chart -->
-                <div class="panel panel-default" ng-repeat="selectedMetric in vm.selectedMetrics">
+                <div class="panel panel-default" ng-repeat="selectedMetric in vm.selectedMetrics" >
                     <div class="panel-heading">
                         <button type="button" ng-click="vm.deleteChart(selectedMetric)"
-                                style="margin-right: 10px;" class="btn btn-default btn-xs right">X
+                                style="margin-right: 10px;" class="btn btn-default btn-xs">X
                         </button>
-                        <strong>{{selectedMetric}}</strong></div>
-                    <div class="panel-body">
+                        <strong>{{selectedMetric}}</strong>
+                    </div>
 
-                        <div id="stackedBarChart" style="height:270px">
+                        <div id="stackedBarChart" style="height:255px" >
                             <!-- HINT: colors for the chart can be changed in the d3-chart.css -->
                             <rhqm-chart
                                     data="{{vm.getChartDataFor(selectedMetric)}}"

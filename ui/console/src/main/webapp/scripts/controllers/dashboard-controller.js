@@ -23,6 +23,8 @@ var Controllers;
             this.startTimeStamp = startTimeStamp;
             this.endTimeStamp = endTimeStamp;
             this.dateRange = dateRange;
+            this.chartData = {};
+            this.bucketedDataPoints = [];
             this.self = this;
             this.selectedMetrics = [];
             this.searchId = '';
@@ -41,22 +43,14 @@ var Controllers;
                 { 'range': '3m', 'rangeInSeconds': 3 * 30 * 24 * 60 * 60 },
                 { 'range': '6m', 'rangeInSeconds': 6 * 30 * 24 * 60 * 60 }
             ];
-            this.bucketedDataPoints = [];
-            this.chartData = {};
             $scope.vm = this;
 
-            this.startTimeStamp = moment().subtract('hours', 24).toDate(); //default time period set to 24 hours
-            this.endTimeStamp = new Date();
-            this.dateRange = moment().subtract('hours', 24).from(moment(), true);
-
             $scope.$on('GraphTimeRangeChangedEvent', function (event, timeRange) {
-                console.warn("GraphTimeRangeChangedEvent received!");
+                console.debug("GraphTimeRangeChangedEvent received!");
                 $scope.vm.startTimeStamp = timeRange[0];
                 $scope.vm.endTimeStamp = timeRange[1];
                 $scope.vm.dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
-
-                //$scope.vm.refreshHistoricalChartDataForTimestamp(startTimeStamp, endTimeStamp);
-                $scope.vm.renderCharts();
+                $scope.vm.refreshAllChartsDataForTimestamp($scope.vm.startTimeStamp, $scope.vm.endTimeStamp);
             });
 
             $rootScope.$on('NewChartEvent', function (event, metricId) {
@@ -66,10 +60,11 @@ var Controllers;
                 } else {
                     $scope.vm.selectedMetrics.push(metricId);
                     $scope.vm.searchId = metricId;
-                    $scope.vm.renderCharts();
+                    $scope.vm.refreshHistoricalChartData(metricId, $scope.vm.startTimeStamp, $scope.vm.endTimeStamp);
                     toastr.success(metricId + ' Added to Dashboard!');
                 }
             });
+
             $rootScope.$on('RemoveChartEvent', function (event, metricId) {
                 console.debug('RemoveChartEvent for: ' + metricId);
                 if (_.contains($scope.vm.selectedMetrics, metricId)) {
@@ -77,16 +72,10 @@ var Controllers;
                     $scope.vm.selectedMetrics.splice(pos, 1);
                     $scope.vm.searchId = metricId;
                     toastr.info('Removed: ' + metricId + ' from Dashboard!');
-                    $scope.vm.renderCharts();
-                } else {
+                    $scope.vm.refreshAllChartsDataForTimestamp($scope.vm.startTimeStamp, $scope.vm.endTimeStamp);
                 }
             });
         }
-        DashboardController.prototype.renderCharts = function () {
-            console.info("RenderCharts!");
-            this.refreshChartDataNow();
-        };
-
         DashboardController.prototype.noDataFoundForId = function (id) {
             this.$log.warn('No Data found for id: ' + id);
             toastr.warning('No Data found for id: ' + id);
@@ -104,15 +93,15 @@ var Controllers;
         };
 
         DashboardController.prototype.autoRefresh = function (intervalInSeconds) {
+            var that = this;
             toastr.info('Auto Refresh Mode started');
             this.updateEndTimeStampToNow = !this.updateEndTimeStampToNow;
             this.showAutoRefreshCancel = true;
             if (this.updateEndTimeStampToNow) {
-                this.refreshHistoricalChartDataForTimestamp();
                 this.showAutoRefreshCancel = true;
                 this.updateLastTimeStampToNowPromise = this.$interval(function () {
-                    this.endTimeStamp = new Date();
-                    this.refreshHistoricalChartData();
+                    that.updateTimestampsToNow();
+                    that.refreshAllChartsDataForTimestamp();
                 }, intervalInSeconds * 1000);
             } else {
                 this.$interval.cancel(this.updateLastTimeStampToNowPromise);
@@ -123,26 +112,30 @@ var Controllers;
             });
         };
 
-        DashboardController.prototype.refreshChartDataNow = function (startTime) {
-            var adjStartTimeStamp = moment().subtract('hours', 24).toDate();
-            this.$rootScope.$broadcast('MultiChartOverlayDataChanged');
-            this.endTimeStamp = new Date();
-            this.refreshHistoricalChartData(angular.isUndefined(startTime) ? adjStartTimeStamp : startTime, this.endTimeStamp);
+        DashboardController.prototype.updateTimestampsToNow = function () {
+            var interval = this.$scope.vm.endTimeStamp - this.$scope.vm.startTimeStamp;
+            this.$scope.vm.endTimeStamp = new Date().getTime();
+            this.$scope.vm.startTimeStamp = this.$scope.vm.endTimeStamp - interval;
         };
 
-        DashboardController.prototype.refreshHistoricalChartData = function (startDate, endDate) {
-            this.refreshHistoricalChartDataForTimestamp(startDate.getTime(), endDate.getTime());
+        DashboardController.prototype.refreshChartDataNow = function () {
+            this.updateTimestampsToNow();
+            this.refreshAllChartsDataForTimestamp(this.$scope.vm.startTimeStamp, this.$scope.vm.endTimeStamp);
         };
 
-        DashboardController.prototype.refreshHistoricalChartDataForTimestamp = function (startTime, endTime) {
+        DashboardController.prototype.refreshHistoricalChartData = function (metricId, startDate, endDate) {
+            this.refreshHistoricalChartDataForTimestamp(metricId, startDate.getTime(), endDate.getTime());
+        };
+
+        DashboardController.prototype.refreshHistoricalChartDataForTimestamp = function (metricId, startTime, endTime) {
             var that = this;
 
             // calling refreshChartData without params use the model values
             if (angular.isUndefined(endTime)) {
-                endTime = this.endTimeStamp.getTime();
+                endTime = this.$scope.vm.endTimeStamp;
             }
             if (angular.isUndefined(startTime)) {
-                startTime = this.startTimeStamp.getTime();
+                startTime = this.$scope.vm.startTimeStamp;
             }
 
             if (startTime >= endTime) {
@@ -151,30 +144,37 @@ var Controllers;
                 return;
             }
 
-            if (this.searchId !== '') {
-                this.metricDataService.getMetricsForTimeRange(this.searchId, new Date(startTime), new Date(endTime)).then(function (response) {
+            if (metricId !== '') {
+                this.metricDataService.getMetricsForTimeRange(metricId, new Date(startTime), new Date(endTime)).then(function (response) {
                     // we want to isolate the response from the data we are feeding to the chart
                     that.bucketedDataPoints = that.formatBucketedChartOutput(response);
 
                     if (that.bucketedDataPoints.length !== 0) {
-                        console.warn("SearchID: " + that.searchId);
+                        that.$log.info("Retrieving data for metricId: " + metricId);
 
                         // this is basically the DTO for the chart
-                        that.chartData[that.searchId] = {
-                            id: that.searchId,
+                        that.chartData[metricId] = {
+                            id: metricId,
                             startTimeStamp: that.startTimeStamp,
                             endTimeStamp: that.endTimeStamp,
                             dataPoints: that.bucketedDataPoints
                         };
-                        console.warn("ChartData-->");
-                        console.dir(that.chartData);
                     } else {
-                        that.noDataFoundForId(that.searchId);
+                        that.noDataFoundForId(metricId);
                     }
                 }, function (error) {
                     toastr.error('Error Loading Chart Data: ' + error);
                 });
             }
+        };
+
+        DashboardController.prototype.refreshAllChartsDataForTimestamp = function (startTime, endTime) {
+            var that = this;
+
+            _.each(this.selectedMetrics, function (aMetric) {
+                that.$log.info("Reloading Metric Chart Data for: " + aMetric);
+                that.refreshHistoricalChartDataForTimestamp(aMetric, startTime, endTime);
+            });
         };
 
         DashboardController.prototype.getChartDataFor = function (metricId) {
