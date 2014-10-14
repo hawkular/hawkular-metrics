@@ -81,8 +81,9 @@
     <module>rest-servlet</module>
     <module>clients</module>
     <module>rest-test</module>
-    <module>dummy-ui</module>
-    <module>console</module>
+    <module>ui/explorer</module>
+    <module>ui/dummy-ui</module>
+    <module>ui/console</module>
   </modules>
 
   <build>

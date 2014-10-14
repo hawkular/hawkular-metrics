@@ -49,11 +49,11 @@ then
     cd ..
 fi
 
-if [ ! -e console/target/metrics-console*.war ]
+if [ ! -e ui/console/target/metrics-console*.war ]
 then
-    cd console
+    cd ui/console
     mvn install
-    cd ..
+    cd ../..
 fi
 
 if [ ! -e target ]
@@ -75,5 +75,5 @@ then
 fi
 
 cp rest-servlet/target/rhq-metric-rest*.war target/wildfly-$WFLY_VERSION/standalone/deployments/
-cp console/target/metrics-console-*.war target/wildfly-$WFLY_VERSION/standalone/deployments/
+cp ui/console/target/metrics-console-*.war target/wildfly-$WFLY_VERSION/standalone/deployments/
 target/wildfly-$WFLY_VERSION/bin/standalone.sh -Drhq-metrics.backend=$BACKEND --debug 8787
