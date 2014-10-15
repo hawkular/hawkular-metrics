@@ -13,7 +13,7 @@ var Services;
             this.BASE_URL = BASE_URL;
         }
         MetricDataService.prototype.makeBaseUrl = function () {
-            var baseUrl = 'http://' + this.$rootScope.$storage.server + ':' + this.$rootScope.$storage.port + this.BASE_URL;
+            var baseUrl = 'http://' + this.$rootScope.$storage.server.replace(/['"]+/g, '') + ':' + this.$rootScope.$storage.port + this.BASE_URL;
             return baseUrl;
         };
 

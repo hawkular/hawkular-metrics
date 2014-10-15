@@ -10,11 +10,12 @@ angular.module('chartingApp', [ 'ui.bootstrap',  'ui.bootstrap.datetimepicker', 
         $httpProvider.defaults.useXDomain = true;
         // just a good security precaution to delete this
         delete $httpProvider.defaults.headers.common['X-Requested-With'];
-    }]).run(function ($rootScope, $localStorage) {
+    }]).run(function ($rootScope, $localStorage, $location) {
 
+        //NOTE: if we are then use port 8080 not 9000 that livereload server uses
         $rootScope.$storage = $localStorage.$default({
-            server: 'localhost',
-            port: '8080'
+            server: $location.host(),
+            port: ($location.host() === '127.0.0.1') ? '8080' : $location.port()
         });
     });
 

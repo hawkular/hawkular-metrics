@@ -13,7 +13,7 @@ module Services {
         }
 
         private makeBaseUrl():string {
-            var baseUrl = 'http://' + this.$rootScope.$storage.server + ':' + this.$rootScope.$storage.port + this.BASE_URL;
+            var baseUrl = 'http://' + this.$rootScope.$storage.server.replace(/['"]+/g, '') + ':' + this.$rootScope.$storage.port + this.BASE_URL;
             return baseUrl;
         }
 
