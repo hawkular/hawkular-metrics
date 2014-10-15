@@ -1,6 +1,8 @@
 package org.rhq.metrics.clients.ptrans;
 
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Inet4Address;
@@ -55,13 +57,23 @@ public class Main {
     private static final int STATSD_DEFAULT_PORT = 8125;
     private int statsDport = STATSD_DEFAULT_PORT;
 
+    Properties configuration;
+
     public static void main(String[] args) throws Exception {
-        Main main = new Main();
+
+        Main main;
+        if (args.length>0) {
+            main = new Main(args[0]);
+        } else {
+            main = new Main(CONFIG_PROPERTIES_FILE_NAME);
+        }
         main.run();
     }
 
-    public Main() {
-        loadPortsFromProperties();
+    public Main(String propertiesPath) {
+
+        configuration = loadConfigurationFromProperties(propertiesPath);
+        loadPortsFromProperties(configuration);
     }
 
     private void run() throws Exception {
@@ -78,7 +90,7 @@ public class Main {
                     @Override
                     public void initChannel(SocketChannel socketChannel) throws Exception {
                         ChannelPipeline pipeline = socketChannel.pipeline();
-                        pipeline.addLast(new DemuxHandler());
+                        pipeline.addLast(new DemuxHandler(configuration));
                     }
                 });
             ChannelFuture graphiteFuture = serverBootstrap.bind().sync();
@@ -97,7 +109,7 @@ public class Main {
                     public void initChannel(Channel socketChannel) throws Exception {
                         ChannelPipeline pipeline = socketChannel.pipeline();
                         pipeline.addLast(new UdpSyslogEventDecoder());
-                        pipeline.addLast(new RestForwardingHandler());
+                        pipeline.addLast(new RestForwardingHandler(configuration));
                     }
                 })
             ;
@@ -129,7 +141,7 @@ public class Main {
                     ChannelPipeline pipeline = socketChannel.pipeline();
                     pipeline.addLast(new StatsdDecoder());
                     pipeline.addLast(new MetricBatcher("statsd"));
-                    pipeline.addLast(new RestForwardingHandler());
+                    pipeline.addLast(new RestForwardingHandler(configuration));
                 }
             })
         ;
@@ -171,7 +183,7 @@ public class Main {
                         ChannelPipeline pipeline = socketChannel.pipeline();
                         pipeline.addLast(new UdpGangliaDecoder());
                         pipeline.addLast(new MetricBatcher("ganglia"));
-                        pipeline.addLast(new RestForwardingHandler());
+                        pipeline.addLast(new RestForwardingHandler(configuration));
                     }
                 })
             ;
@@ -189,25 +201,33 @@ public class Main {
         }
     }
 
-    private void loadPortsFromProperties() {
-        Properties properties;
-        try (InputStream inputStream = ClassLoader.getSystemResourceAsStream(CONFIG_PROPERTIES_FILE_NAME)) {
-            if (inputStream==null) {
-                logger.warn("Can not load properties from '"+ CONFIG_PROPERTIES_FILE_NAME +"', using defaults");
-                return;
-            }
-            properties = new Properties();
-            properties.load(inputStream);
+    private Properties loadConfigurationFromProperties(String path) {
 
-            udpPort = Integer.parseInt(properties.getProperty("port.udp", String.valueOf(DEFAULT_PORT)));
-            tcpPort = Integer.parseInt(properties.getProperty("port.tcp", String.valueOf(DEFAULT_PORT)));
-            gangliaGroup = properties.getProperty("ganglia.group",GANGLIA_DEFAULT_GROUP);
-            gangliaPort = Integer.parseInt(properties.getProperty("ganglia.port", String.valueOf(GANGLIA_DEFAULT_PORT)));
-            multicastIfOverride = properties.getProperty("multicast.interface");
-            statsDport = Integer.parseInt(properties.getProperty("statsd.port", String.valueOf(STATSD_DEFAULT_PORT)));
 
-        } catch (IOException e) {
-            logger.warn("Can not load properties from '" + CONFIG_PROPERTIES_FILE_NAME + "'");
+        File file = new File(path);
+        logger.info("Using configuration properties from ==> " + file.getAbsolutePath());
+        if (!file.exists() || !file.canRead()) {
+            throw new IllegalArgumentException("Properties at " + path + " do not exist or are not readable");
         }
+
+        Properties properties = new Properties();
+        try (InputStream inputStream = new FileInputStream(file)) {
+            properties.load(inputStream);
+        } catch (IOException e) {
+            logger.warn("Can not load properties from '" + file.getAbsolutePath() + "'");
+        }
+
+        return properties;
+    }
+
+    private void loadPortsFromProperties(Properties configuration) {
+
+            udpPort = Integer.parseInt(configuration.getProperty("port.udp", String.valueOf(DEFAULT_PORT)));
+            tcpPort = Integer.parseInt(configuration.getProperty("port.tcp", String.valueOf(DEFAULT_PORT)));
+            gangliaGroup = configuration.getProperty("ganglia.group",GANGLIA_DEFAULT_GROUP);
+            gangliaPort = Integer.parseInt(configuration.getProperty("ganglia.port", String.valueOf(GANGLIA_DEFAULT_PORT)));
+            multicastIfOverride = configuration.getProperty("multicast.interface");
+            statsDport = Integer.parseInt(configuration.getProperty("statsd.port", String.valueOf(STATSD_DEFAULT_PORT)));
+
     }
 }

@@ -1,8 +1,6 @@
 package org.rhq.metrics.clients.ptrans.backend;
 
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 import java.util.Properties;
 
@@ -34,7 +32,6 @@ import org.slf4j.LoggerFactory;
 
 import org.rhq.metrics.client.common.Batcher;
 import org.rhq.metrics.client.common.SingleMetric;
-import org.rhq.metrics.clients.ptrans.Main;
 
 import static io.netty.channel.ChannelHandler.Sharable;
 
@@ -46,11 +43,12 @@ import static io.netty.channel.ChannelHandler.Sharable;
 @Sharable
 public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
 
-    private static final String RHQ_METRICS_ENDPOINT = "/rhq-metrics/metrics";
+    private static final String RHQ_METRICS_PREFIX = "/rhq-metrics";
+    private static final String METRICS_PREFIX = "/metrics";
     private static final String DEFAULT_REST_PORT = "8080";
     private String restHost = "localhost";
     private int restPort = 8080;
-    private String restPrefix = RHQ_METRICS_ENDPOINT;
+    private String restPrefix = RHQ_METRICS_PREFIX + METRICS_PREFIX;
 
     private static final int CLOSE_AFTER_REQUESTS = 200;
 
@@ -61,9 +59,9 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
     private static final Logger logger = LoggerFactory.getLogger(RestForwardingHandler.class);
     private int closeAfterRequests = CLOSE_AFTER_REQUESTS;
 
-    public RestForwardingHandler() {
+    public RestForwardingHandler(Properties configuration) {
         logger.debug("RsyslogHandler init");
-        loadRestEndpointInfoFromProperties();
+        loadRestEndpointInfoFromProperties(configuration);
     }
 
     @Override
@@ -158,26 +156,15 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
         return clientFuture;
     }
 
-    private void loadRestEndpointInfoFromProperties() {
-        Properties properties;
-        try (InputStream inputStream = ClassLoader.getSystemResourceAsStream(Main.CONFIG_PROPERTIES_FILE_NAME)) {
-            if (inputStream==null) {
-                logger.warn("Can not load properties from '"+ Main.CONFIG_PROPERTIES_FILE_NAME +"', using defaults");
-                return;
-            }
+    private void loadRestEndpointInfoFromProperties(Properties configuration) {
 
-            properties = new Properties();
-            properties.load(inputStream);
+        restHost = configuration.getProperty("rest.host", "localhost");
+        restPort = Integer.parseInt(configuration.getProperty("rest.port", DEFAULT_REST_PORT));
+        restPrefix = configuration.getProperty("rest.prefix", RHQ_METRICS_PREFIX);
+        restPrefix += METRICS_PREFIX;
+        closeAfterRequests = Integer.parseInt(
+            configuration.getProperty("rest.close-after", String.valueOf(CLOSE_AFTER_REQUESTS)));
 
-            restHost = properties.getProperty("rest.host", "localhost");
-            restPort = Integer.parseInt(properties.getProperty("rest.port", DEFAULT_REST_PORT));
-            restPrefix = properties.getProperty("rest.prefix", RHQ_METRICS_ENDPOINT);
-            closeAfterRequests = Integer.parseInt(
-                properties.getProperty("rest.close-after", String.valueOf(CLOSE_AFTER_REQUESTS)));
-
-        } catch (IOException e) {
-            logger.warn("Can not load properties from '"+ Main.CONFIG_PROPERTIES_FILE_NAME +"', using defaults");
-        }
     }
 
 }

@@ -1,6 +1,7 @@
 package org.rhq.metrics.clients.ptrans;
 
 import java.util.List;
+import java.util.Properties;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -21,6 +22,11 @@ import org.rhq.metrics.clients.ptrans.syslog.SyslogEventDecoder;
 public class DemuxHandler extends ByteToMessageDecoder {
 
     private static final Logger logger = LoggerFactory.getLogger(DemuxHandler.class);
+    private Properties configuration;
+
+    public DemuxHandler(Properties configuration) {
+        this.configuration = configuration;
+    }
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf msg, @SuppressWarnings("rawtypes") List out) throws Exception {
@@ -43,14 +49,14 @@ public class DemuxHandler extends ByteToMessageDecoder {
 
         if (data.contains("type=metric")) {
             pipeline.addLast(new SyslogEventDecoder());
-            pipeline.addLast("forwarder", new RestForwardingHandler());
+            pipeline.addLast("forwarder", new RestForwardingHandler(configuration));
             pipeline.remove(this);
             done = true;
         } else if (!data.contains("=")){
             String[] items = data.split(" |\\n");
             if (items.length % 3 == 0) {
                 pipeline.addLast("encoder", new GraphiteEventDecoder());
-                pipeline.addLast("forwarder", new RestForwardingHandler());
+                pipeline.addLast("forwarder", new RestForwardingHandler(configuration));
                 pipeline.remove(this);
                 done = true;
             }
