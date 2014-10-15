@@ -13,59 +13,18 @@ fi
 
 WFLY_VERSION=`grep "<version.wildfly>" pom.xml | sed -E 's/^.*y>(8.*l)<.*$/\1/'`
 
-if [ ! -e metrics-core/target/rhq-metrics-core*.jar ]
-then
-    cd metrics-core
-    mvn install -DskipTests
-    cd ..
-fi
-
-
-if [ ! -e core-api/target/rhq-metrics-api*.jar ]
-then
-    cd core-api
-    mvn install
-    cd ..
-fi
-
-if [ ! -e metrics-core/target/rhq-metrics-core*.jar ]
-then
-    cd metrics-core
-    mvn install
-    cd ..
-fi
-
-if [ ! -e metrics-core/target/rhq-metrics-core*.jar ]
-then
-    cd metrics-core
-    mvn install
-    cd ..
-fi
-
-if [ ! -e rest-servlet/target/rhq-metric-rest*.war ]
-then
-    cd rest-servlet
-    mvn install
-    cd ..
-fi
-
-if [ ! -e ui/console/target/metrics-console*.war ]
-then
-    cd ui/console
-    mvn install
-    cd ../..
-fi
+mvn install -DskipTests
 
 if [ ! -e target ]
 then
     mkdir target
 fi
 
-if [ ! -e $HOME/.m2/repository/org/wildfly/wildfly-dist/$WFLY_VERSION/wildfly-dist-$WFLY_VERSION.zip ]
-then
-    echo "Downloading WildFly $WFLY_VERSION into local maven repository"
-    mvn -P download_wildfly -DskipTests install
-fi
+#if [ ! -e $HOME/.m2/repository/org/wildfly/wildfly-dist/$WFLY_VERSION/wildfly-dist-$WFLY_VERSION.zip ]
+#then
+#    echo "Downloading WildFly $WFLY_VERSION into local maven repository"
+#    mvn -P download_wildfly -DskipTests install
+#fi
 
 if [ ! -e target/wild* ]
 then
