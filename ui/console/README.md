@@ -42,8 +42,8 @@ Grunt is a build tool for javscript webapps just like maven is for java. The bui
 0. Go to proper directory **'cd console/src/main/webapp'**
 1. Install [Node.js](http://nodejs.org)  (and npm) if not already installed
 2. Install the node packages: **'npm install -g grunt-cli bower karma'**
-(if you get an EACESS permission errors you may need to use sudo to the do the install)
-3. Install npm packages for tooling: **'npm install'**
+(if you get an EACESS permission errors you may need to use sudo to the do the install) These commands are installed globally because they are are run from the command line.
+3. Install local npm packages for tooling: **'npm install'**
 4. Optional: Install [Bower](http://bower.io) packages for UI: **'bower install'**
 5. Start the [Grunt](http://gruntjs.com) Server: **'grunt serve'**
 6. Browse [http://127.0.0.1:9000/](http://127.0.0.1:9000/) and explore...

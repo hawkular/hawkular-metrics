@@ -7,6 +7,6 @@ target/
 *.ipr
 .DS_Store/
 .settings
-.idea/
 *node_modules/
+*.log
 *.tmp/
