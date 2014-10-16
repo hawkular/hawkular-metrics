@@ -184,13 +184,27 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
         case LONG:
             attributeNumToMetrics(now, metrics, def.attribute, def.path);
             break;
+        case FAILED:
+            // Re check the type info. Server may not have been fully up during initial check
+            // Only check every 3 minutes
+            if (def.failCount < 5 && (System.currentTimeMillis() - def.lastTypeCheck) > 3L* 60L * 1000) {
+                getTypeFromModel(def);
+            }
+            if (def.failCount>5) {
+                System.err.println("Can not resolve type for " + def + " no longer retrying...");
+                def.type=MetricSubType.UNKNOWN;
+            }
+            break;
+        case UNKNOWN:
+            // Nothing to do for us
+            return;
         default:
             throw new IOException("Metric type for " + def + " not known");
         }
     }
 
     private void attributeNumToMetrics(long now, List<SingleMetric> metrics, String attributeName, PathAddress path) throws  IOException {
-        Double d = getDoubleAttribute(attributeName,path);
+        Double d = getDoubleAttribute(attributeName, path);
 
         String source = hostPrefix + WILDFLY_PATH_ELEMENT + attributeName;
         SingleMetric m = new SingleMetric(source,now,d);
@@ -276,15 +290,17 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
     private void getTypeFromModel(MetricDef def) {
         ModelNode request = new ModelNode();
 
+        def.lastTypeCheck = System.currentTimeMillis();
         if (def.path ==null) {
             def.type = MetricSubType.UNKNOWN;
             return;
         }
 
 
-        // This can be null in the test suite and TODO may be null in some rare cases in the server
+        // This can be null in the test suite and may be null in some rare cases in the server
         if (controllerClient==null) {
-            def.type = MetricSubType.UNKNOWN;
+            def.type = MetricSubType.FAILED;
+            def.failCount++;
             return;
         }
 
@@ -297,6 +313,13 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
         try {
             ModelNode resultNode;
             resultNode = controllerClient.execute(request);
+
+            String outcome = resultNode.get("outcome").asString();
+            if (!"success".equals(outcome)) {
+                def.type = MetricSubType.FAILED;
+                def.failCount++;
+                return;
+            }
 
             // get the inner "result" -- should check for failure and so on...
             resultNode = resultNode.get("result");
@@ -354,6 +377,8 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
         String attribute;
         String name;
         MetricSubType type;
+        long lastTypeCheck;
+        int failCount =0;
 
         @Override
         public String toString() {
@@ -370,6 +395,7 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
         INT, LONG,
         STRING,
         OBJECT, // a map
+        FAILED, // retrieval failed
         UNKNOWN
     }
 }

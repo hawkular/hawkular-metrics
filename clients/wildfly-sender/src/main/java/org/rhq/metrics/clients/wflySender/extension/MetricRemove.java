@@ -16,7 +16,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_
  */
 public class MetricRemove extends AbstractRemoveStepHandler {
 
-    public static MetricRemove INSTANCE = new MetricRemove();
+    public static final MetricRemove INSTANCE = new MetricRemove();
 
     private MetricRemove() {
 
