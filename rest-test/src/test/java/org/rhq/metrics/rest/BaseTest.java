@@ -5,7 +5,6 @@ import com.jayway.restassured.RestAssured;
 import com.jayway.restassured.http.ContentType;
 import com.jayway.restassured.path.json.JsonPath;
 import com.jayway.restassured.path.xml.XmlPath;
-import com.jayway.restassured.response.Header;
 import com.jayway.restassured.response.Response;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -13,6 +12,8 @@ import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.resolver.api.maven.archive.importer.MavenImporter;
+
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -32,17 +33,13 @@ import static org.hamcrest.Matchers.emptyCollectionOf;
 import static org.hamcrest.Matchers.hasSize;
 
 @RunWith(Arquillian.class)
-public class BaseTest {
+public class BaseTest extends AbstractTestBase {
 
-    private static final String APPLICATION_JSON = "application/json";
     private static final String APPLICATION_JAVASCRIPT = "application/javascript";
-    private static final String WRAPPED_JSON = "application/vnd.rhq.wrapped+json";
-    private static final String APPLICATION_XML = "application/xml";
     private static final long SIXTY_SECONDS = 60*1000L;
 
-    static Header acceptJson = new Header("Accept", APPLICATION_JSON);
-    static Header acceptWrappedJson = new Header("Accept",WRAPPED_JSON);
-    static Header acceptXml = new Header("Accept", APPLICATION_XML);
+    @ArquillianResource
+    private URL baseUrl;
 
     @Deployment(testable=false)
     public static WebArchive createDeployment() {
@@ -61,8 +58,6 @@ public class BaseTest {
         System.out.flush();
         return archive;
     }
-    @ArquillianResource
-    private URL baseUrl;
 
     @Before
     public void setupRestAssured() {
@@ -181,15 +176,7 @@ public class BaseTest {
         long now = System.currentTimeMillis();
         Map<String,Object> data = createDataPoint(id, now, 42d);
 
-        given()
-            .body(data)
-            .pathParam("id", id)
-            .contentType(ContentType.JSON)
-        .expect()
-            .statusCode(200)
-        .when()
-            .post("/metrics/{id}");
-
+        postDataPoint(id, data);
 
         given()
             .pathParam("id", id)
@@ -229,27 +216,12 @@ public class BaseTest {
         long now = System.currentTimeMillis();
         Map<String,Object> data = createDataPoint(id, now, 42d);
 
-        given()
-            .body(data)
-            .pathParam("id", id)
-            .contentType(ContentType.JSON)
-        .expect()
-            .statusCode(200)
-        .when()
-            .post("/metrics/{id}");
+        postDataPoint(id, data);
 
         String id2 = "fooListIds2";
         Map<String,Object> data2 = createDataPoint(id2, now, 42d);
 
-        given()
-            .body(data2)
-            .pathParam("id", id2)
-            .contentType(ContentType.JSON)
-        .expect()
-            .statusCode(200)
-        .when()
-            .post("/metrics/{id}");
-
+        postDataPoint(id2, data2);
 
         given()
             .header(acceptJson)
@@ -270,15 +242,7 @@ public class BaseTest {
         long now = System.currentTimeMillis();
         Map<String,Object> data = createDataPoint(id, now, 42d);
 
-        given()
-            .body(data)
-            .pathParam("id", id)
-            .contentType(ContentType.JSON)
-        .expect()
-            .statusCode(200)
-        .when()
-            .post("/metrics/{id}");
-
+        postDataPoint(id, data);
 
         given()
             .pathParam("id", id)
@@ -300,15 +264,7 @@ public class BaseTest {
         long now = System.currentTimeMillis();
         Map<String,Object> data = createDataPoint(id, now, 42d);
 
-        given()
-            .body(data)
-            .pathParam("id", id)
-            .contentType(ContentType.JSON)
-        .expect()
-            .statusCode(200)
-        .when()
-            .post("/metrics/{id}");
-
+        postDataPoint(id, data);
 
         XmlPath xmlPath =
         given()
@@ -335,15 +291,7 @@ public class BaseTest {
         long now = System.currentTimeMillis();
         Map<String,Object> data = createDataPoint(id, now, 42d);
 
-        given()
-            .body(data)
-            .pathParam("id", id)
-            .contentType(ContentType.JSON)
-        .expect()
-            .statusCode(200)
-            .log().all()
-        .when()
-            .post("/metrics/{id}");
+        postDataPoint(id, data);
 
         Response response =
             given()
@@ -388,19 +336,12 @@ public class BaseTest {
         String id = "bla";
         long now = System.currentTimeMillis();
 
-        Map<String,Object> data1 = createDataPoint(id,now-10,42d);
-        Map<String,Object> data2 = createDataPoint(id,now,4242d);
+        Map<String,Object> data1 = createDataPoint(id, now - 10, 42d);
+        Map<String,Object> data2 = createDataPoint(id, now, 4242d);
         data.add(data1);
         data.add(data2);
 
-        given()
-            .body(data)
-            .contentType(ContentType.JSON)
-        .expect()
-            .statusCode(200)
-        .when()
-            .post("/metrics");
-
+        postDataPoints(data);
 
         given()
             .pathParam("id", id)
@@ -422,19 +363,12 @@ public class BaseTest {
         String id = "bla";
         long now = System.currentTimeMillis();
 
-        Map<String,Object> data1 = createDataPoint(id,now-12,42d);
-        Map<String,Object> data2 = createDataPoint(id,now,4242d);
+        Map<String,Object> data1 = createDataPoint(id, now - 12, 42d);
+        Map<String,Object> data2 = createDataPoint(id, now, 4242d);
         data.add(data1);
         data.add(data2);
 
-        given()
-            .body(data)
-            .contentType(ContentType.JSON)
-        .expect()
-            .statusCode(200)
-        .when()
-            .post("/metrics");
-
+        postDataPoints(data);
 
         given()
             .pathParam("id", id)
@@ -457,19 +391,12 @@ public class BaseTest {
         String id = "bla2";
         long now = System.currentTimeMillis();
 
-        Map<String,Object> data1 = createDataPoint(id,now-12,42d);
-        Map<String,Object> data2 = createDataPoint(id,now,4242d);
+        Map<String,Object> data1 = createDataPoint(id, now - 12, 42d);
+        Map<String,Object> data2 = createDataPoint(id, now, 4242d);
         data.add(data1);
         data.add(data2);
 
-        given()
-            .body(data)
-            .contentType(ContentType.JSON)
-        .expect()
-            .statusCode(200)
-        .when()
-            .post("/metrics");
-
+        postDataPoints(data);
 
         given()
             .pathParam("id", id)
@@ -495,33 +422,25 @@ public class BaseTest {
 
         Map<String,Object> data1;
 
-        data1 = createDataPoint(id,now-26000,26d);
+        data1 = createDataPoint(id, now - 26000, 26d);
         data.add(data1);
 
-        data1 = createDataPoint(id,now-25000,25d);
+        data1 = createDataPoint(id, now - 25000, 25d);
         data.add(data1);
 
-        data1 = createDataPoint(id,now-16000,16d);
+        data1 = createDataPoint(id, now - 16000, 16d);
         data.add(data1);
 
-        data1 = createDataPoint(id,now-15000,15d);
+        data1 = createDataPoint(id, now - 15000, 15d);
         data.add(data1);
 
-        data1 = createDataPoint(id,now-6000,6d);
+        data1 = createDataPoint(id, now - 6000, 6d);
         data.add(data1);
 
-        data1 = createDataPoint(id,now-5000,5d);
+        data1 = createDataPoint(id, now - 5000, 5d);
         data.add(data1);
 
-
-        given()
-            .body(data)
-            .contentType(ContentType.JSON)
-        .expect()
-            .statusCode(200)
-        .when()
-            .post("/metrics");
-
+        postDataPoints(data);
 
         List resultList =
         given()
@@ -581,15 +500,7 @@ public class BaseTest {
         long now = System.currentTimeMillis();
         Map<String,Object> data = createDataPoint(id, now, 42d);
 
-        given()
-            .body(data)
-            .pathParam("id", id)
-            .contentType(ContentType.JSON)
-        .expect()
-            .statusCode(200)
-        .when()
-            .post("/metrics/{id}");
-
+        postDataPoint(id, data);
 
         given()
             .pathParam("id", id)
@@ -623,19 +534,143 @@ public class BaseTest {
            .get("/metrics/{id}");
     }
 
+    @Test
+    public void testInfluxAddGetOneSillyMetric() throws Exception {
+
+        String id = "influx.foo3";
+        long now = System.currentTimeMillis();
+
+        List<Map<String,Object>> data = new ArrayList<>();
+
+        data.add(createDataPoint(id, now - 2000, 40d));
+        data.add(createDataPoint(id, now - 1000, 41d));
+        data.add(createDataPoint(id, now, 42d));
+
+        postDataPoints(data);
+
+
+        String query = "select mean(value) from  \"influx.foo3\" where time > '2013-08-12 23:32:01.232' and time < '2013-08-13' group by time(30s) order asc ";
+
+
+        given()
+            .queryParam("q",query)
+            .header(acceptJson)
+        .expect()
+            .statusCode(200)
+            .log()
+                .ifError()
+        .when()
+            .get("/influx/series")
+        .andReturn()
+            .then()
+            .assertThat()
+                .body("[0].name",Matchers.is("influx.foo3"))
+            .and()
+                .body("[0].points[0]", Matchers.nullValue());
+
+    }
+
+    @Test
+    public void testInfluxAddGetMultiMetric() throws Exception {
+
+        String id = "influx.foo2";
+        long now = System.currentTimeMillis();
+
+        List<Map<String,Object>> data = new ArrayList<>();
+
+        data.add(createDataPoint(id, now-2000, 40d));
+        data.add(createDataPoint(id, now-1000, 41d));
+        data.add(createDataPoint(id, now, 42d));
+
+        id = "influx.bar2";
+        data.add(createDataPoint(id, now-2000, 20d));
+        data.add(createDataPoint(id, now-1000, 21d));
+        data.add(createDataPoint(id, now, 22d));
+
+        postDataPoints(data);
+
+        String query = "select mean(value) from  \"influx.bar2\" where time > now() - 30sec group by time(30s) order asc ";
+
+
+        given()
+            .queryParam("q",query)
+            .header(acceptJson)
+        .expect()
+            .statusCode(200)
+            .log()
+                .ifError()
+        .when()
+            .get("/influx/series")
+        .andReturn()
+            .then()
+            .assertThat()
+                .body("[0].name",Matchers.is("influx.bar2"))
+            .and()
+                .body("[0].points[0][1]", Matchers.hasToString("21.0"));
+
+        query = "select mean(value) from  \"influx.foo2\" where time > now() - 30sec group by time(30s) order asc ";
+
+        given()
+            .queryParam("q",query)
+            .header(acceptJson)
+        .expect()
+            .statusCode(200)
+            .log()
+                .ifError()
+        .when()
+            .get("/influx/series")
+        .andReturn()
+            .then()
+            .assertThat()
+                .body("[0].name",Matchers.is("influx.foo2"))
+            .and()
+                .body("[0].points[0][1]", Matchers.hasToString("41.0"));
+
+    }
+
+    @Test
+    public void testInfluxAddGetOneMetric() throws Exception {
+
+        String id = "influx.foo";
+        long now = System.currentTimeMillis();
+
+        List<Map<String,Object>> data = new ArrayList<>();
+
+        data.add(createDataPoint(id, now - 2000, 40d));
+        data.add(createDataPoint(id, now - 1000, 41d));
+        data.add(createDataPoint(id, now, 42d));
+
+        postDataPoints(data);
+
+
+        String query = "select mean(value) from  \"influx.foo\" where time > now() - 30sec group by time(30s) order asc ";
+
+
+        given()
+            .queryParam("q",query)
+            .header(acceptJson)
+        .expect()
+            .statusCode(200)
+            .log()
+                .ifError()
+        .when()
+            .get("/influx/series")
+        .andReturn()
+            .then()
+            .assertThat()
+                .body("[0].name",Matchers.is("influx.foo"))
+            .and()
+                .body("[0].points[0][1]", Matchers.hasToString("41.0"));
+
+    }
+
+
+
+
     private void assertDouble(Map<String, Object> item,double refVal, double refVal2) {
         Double value = Double.valueOf(String.valueOf(item.get("value")));
         boolean expr = value.compareTo(refVal) == 0 || value.compareTo(refVal2)==0;
         assert expr : "Value was " + value + " but should be " + refVal + " or " + refVal2;
     }
 
-    private Map<String, Object> createDataPoint(String id, long time, Double value) {
-        Map<String,Object> data = new HashMap<>(3);
-        data.put("id", id);
-        data.put("timestamp", time);
-        data.put("value",value);
-
-        return data;
-
-    }
 }
