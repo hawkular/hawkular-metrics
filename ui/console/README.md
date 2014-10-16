@@ -4,7 +4,7 @@
 
 RHQ Metrics Dashboard Console:
 
-![RHQ Metrics Dashboard Console](rhq-metrics-console.png "Console")
+![RHQ Metrics Dashboard Console](rhq-metrics-dashboard.png "Console")
 
 
 
