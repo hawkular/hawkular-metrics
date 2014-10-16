@@ -106,7 +106,7 @@ module Controllers {
         deleteChart(metricId:string):void {
             var pos = _.indexOf(this.selectedMetrics, metricId);
             this.selectedMetrics.splice(pos, 1);
-
+            this.$rootScope.$broadcast('RemoveSelectedMetricEvent',metricId);
         }
 
 

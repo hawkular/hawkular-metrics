@@ -21,13 +21,15 @@ module Services {
 
             this.$log.info('-- Retrieving all metrics');
             var base = this.makeBaseUrl(),
+                that = this,
                 deferred = this.$q.defer();
 
 
             this.$http.get(base).success(function (data) {
                 deferred.resolve(data);
             }).error(function (reason, status) {
-                this.$log.error('Error Retrieving all metrics :' + status + ", " + reason);
+                that.$log.error('Error Retrieving all metrics :' + status + ", " + reason);
+                toastr.warning('No Metrics retrieved.');
                 deferred.reject(status + " - " + reason);
             });
 
@@ -58,7 +60,7 @@ module Services {
             this.$http.get(base + '/' + id, searchParams).success(function (data) {
                 deferred.resolve(data);
             }).error(function (reason, status) {
-                this.$log.error('Error Loading Chart Data:' + status + ", " + reason);
+                //this.$log.error('Error Loading Chart Data:' + status + ", " + reason);
                 deferred.reject(status + " - " + reason);
             });
 

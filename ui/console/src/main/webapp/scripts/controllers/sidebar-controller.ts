@@ -9,15 +9,15 @@ module Controllers {
 
         allMetrics;
 
-        constructor(private $scope:ng.IScope,private $rootScope:ng.IRootScopeService,  private $log:ng.ILogService, private metricDataService) {
+        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $log:ng.ILogService, private metricDataService) {
             $scope.vm = this;
 
-            $scope.$on('RemoveSelectedMetricEvent', function(event, metricId){
-                console.debug('RemoveSelectedMeticEvent for: '+metricId);
-                if(_.contains($scope.vm.allMetrics, metricId)){
-                    var pos = _.indexOf($scope.vm.allMetrics, metricId);
-                    $scope.vm.allMetrics.splice(pos, 1);
-                }
+            $scope.$on('RemoveSelectedMetricEvent', function (event, metricId) {
+                angular.forEach($scope.vm.allMetrics, function (value) {
+                    if (value.title === metricId) {
+                         value.selected = false;
+                    }
+                });
             });
 
         }
@@ -36,9 +36,8 @@ module Controllers {
 
         }
 
-        addRemoveChart(metricId: string, checked: boolean) {
-            console.log('show chart for: '+ metricId + ', checked: '+checked);
-            if(checked){
+        addRemoveChart(metricId:string, checked:boolean) {
+            if (checked) {
                 this.$rootScope.$emit('RemoveChartEvent', metricId);
             } else {
                 this.$rootScope.$emit('NewChartEvent', metricId);

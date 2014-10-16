@@ -84,6 +84,7 @@ var Controllers;
         DashboardController.prototype.deleteChart = function (metricId) {
             var pos = _.indexOf(this.selectedMetrics, metricId);
             this.selectedMetrics.splice(pos, 1);
+            this.$rootScope.$broadcast('RemoveSelectedMetricEvent', metricId);
         };
 
         DashboardController.prototype.cancelAutoRefresh = function () {

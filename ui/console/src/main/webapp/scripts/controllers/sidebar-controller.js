@@ -12,11 +12,11 @@ var Controllers;
             $scope.vm = this;
 
             $scope.$on('RemoveSelectedMetricEvent', function (event, metricId) {
-                console.debug('RemoveSelectedMeticEvent for: ' + metricId);
-                if (_.contains($scope.vm.allMetrics, metricId)) {
-                    var pos = _.indexOf($scope.vm.allMetrics, metricId);
-                    $scope.vm.allMetrics.splice(pos, 1);
-                }
+                angular.forEach($scope.vm.allMetrics, function (value) {
+                    if (value.title === metricId) {
+                        value.selected = false;
+                    }
+                });
             });
         }
         SidebarController.prototype.populateMetricsSidebar = function () {
@@ -31,7 +31,6 @@ var Controllers;
         };
 
         SidebarController.prototype.addRemoveChart = function (metricId, checked) {
-            console.log('show chart for: ' + metricId + ', checked: ' + checked);
             if (checked) {
                 this.$rootScope.$emit('RemoveChartEvent', metricId);
             } else {
