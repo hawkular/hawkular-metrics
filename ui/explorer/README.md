@@ -1,18 +1,18 @@
-# RHQ-Metrics Console (and UI Components)
+# RHQ-Metrics Explorer (and UI Components)
 
 ## Quickstart
-Show me what the UI Console does: [RHQ-Metrics UI Quickstart Video](https://vimeo.com/101576357)   _Length - 8:33_
+Show me what the RHQ-Metrics Explorer does: [RHQ-Metrics UI Explorer Quickstart Video](https://vimeo.com/101576357)   _Length - 8:33_
 
 
 ## Why?
 I want to start using the rhq-metrics project in my own work. How do I start?
-The console is a quick and easy way to populate and view the rhq-metrics datastore (either in-Memory or Cassandra).
+The explorer is a quick and easy way to populate and view the rhq-metrics datastore (either in-Memory or Cassandra).
 Less intended as a console, but more as a component provider to your own projects. The UI components serve as high level
 building blocks to create your own projects more quickly and with additional capability that continue to be added into the future.
 
 
 ## What does it do?
-The console provides a simple UI for:
+The explorer provides a simple UI for:
 1. Inserting/creating  data in various ways
 ![Inserts](rhq-metrics-explorer.png "Inserts")
 
@@ -22,11 +22,11 @@ The console provides a simple UI for:
 3. An example of the capabilities of rhq-metrics and the Angular.js charting components.
 
 ## Purpose
-This console showcases the capabilities of rhq-metrics and the complementary UI components used to visualize the metric data in meaningful ways.
+This explorer showcases the capabilities of rhq-metrics and the complementary UI components used to visualize the metric data in meaningful ways.
 
-The console is very functional at populating a datastore and viewing its results graphically as well as a learning tool for working with the *rhq-metrics* suite.
+The explorer is also very good at populating a datastore and viewing its results graphically as well as a learning tool for working with the *rhq-metrics* suite.
 
-The visual UI [Angular.js](https://angularjs.org/) components provided by the rhq-metrics project are the primary deliverable of the console/UI module and are intended to be plug-n-play components for quickly creating dashboards for the rhq-metrics backend.
+The visual UI [Angular.js](https://angularjs.org/) components provided by the rhq-metrics project are the primary deliverable of the console/explorer module and are intended to be plug-n-play components for quickly creating dashboards for the rhq-metrics backend.
 
 The Angular.js components will be published as [bower](http://bower.io) packaged components(think maven repo) and published to the bower repository to be easily installed and consumed in other javascript applications.
 

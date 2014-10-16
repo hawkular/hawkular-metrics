@@ -1,30 +1,22 @@
 # RHQ-Metrics Console (and UI Components)
 
 ## Quickstart
-Show me what the UI Console does: [RHQ-Metrics UI Quickstart Video](https://vimeo.com/101576357)   _Length - 8:33_
+
+RHQ Metrics Dashboard Console:
+
+![RHQ Metrics Dashboard Console](rhq-metrics-console.png "Console")
+
 
 
 ## Why?
 I want to start using the rhq-metrics project in my own work. How do I start?
-The console is a quick and easy way to populate and view the rhq-metrics datastore (either in-Memory or Cassandra).
-Less intended as a console, but more as a component provider to your own projects. The UI components serve as high level
-building blocks to create your own projects more quickly and with additional capability that continue to be added into the future.
+The console is a quick and easy way to view the rhq-metrics datastore (either in-Memory or Cassandra).
+The console is very usable but is really just intended as a technical preview of what you can do with RHQ-metrics and it's AngularJS UI components.  
+The UI components serve as high level building blocks to create your own projects more quickly and with additional capability that will continue to be added into the future.
 
-
-## What does it do?
-The console provides a simple UI for:
-1. Inserting/creating  data in various ways
-![Inserts](rhq-metrics-console.png "Inserts")
-
-2. Viewing the data in the database both visually via a graph and a grid table
-![Charts](rhqm-chart.png "Charts")
-
-3. An example of the capabilities of rhq-metrics and the Angular.js charting components.
 
 ## Purpose
-This console showcases the capabilities of rhq-metrics and the complementary UI components used to visualize the metric data in meaningful ways.
-
-The console is very functional at populating a datastore and viewing its results graphically as well as a learning tool for working with the *rhq-metrics* suite.
+This console showcases the capabilities of rhq-metrics and it's charting UI components used to visualize the metric data in meaningful ways.
 
 The visual UI [Angular.js](https://angularjs.org/) components provided by the rhq-metrics project are the primary deliverable of the console/UI module and are intended to be plug-n-play components for quickly creating dashboards for the rhq-metrics backend.
 
@@ -33,7 +25,7 @@ The Angular.js components will be published as [bower](http://bower.io) packaged
 
 ## Install
 The standard **mvn install** will build the war artifact in 'console/target/metrics-console-*.war'. Place this along with the 'rest-servlet/target/rest-servlet-*.war' in your app server deployments directory to have a functioning frontend/backend.
-Browse [http://127.0.0.1:8080/](http://127.0.0.1:8080/) and explore...
+Browse [http://127.0.0.1:8080/](http://127.0.0.1:8080/) and play...
 
 ## Dev Install (optional)
 This is an optional development install for a standard [Grunt](http://gruntjs.com) project.
