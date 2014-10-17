@@ -336,7 +336,7 @@ public class MetricHandler {
                                         BucketDataPoint point;
                                         if (tmpList == null) {
                                             if (!skipEmpty) {
-                                                point = new BucketDataPoint(id, i * bucketWidthSeconds * 1000L, NaN, NaN, NaN);
+                                                point = new BucketDataPoint(id, 1000L * i * bucketWidthSeconds , NaN, NaN, NaN);
                                                 points.add(point);
                                             }
                                         } else {

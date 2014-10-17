@@ -12,10 +12,10 @@ import org.rhq.metrics.restServlet.influx.InfluxQuery;
 import static org.junit.Assert.assertEquals;
 
 /**
- * Some testing ..
+ * Some testing of the Influx Query parser
  * @author Heiko W. Rupp
  */
-public class MiscTest {
+public class InfluxQueryTest {
 
     @Test
     public void testQuantil() throws Exception {
@@ -55,6 +55,32 @@ public class MiscTest {
     @Test
     public void testInflux2() throws Exception {
         String query = "select  mean(\"value\") as \"value_mean\" from \"snert.cpu_user\" where  time > now() - 6h     group by time(30s)  order asc";
+
+        InfluxQuery iq = new InfluxQuery(query);
+
+        assertEquals("mean", iq.getMapping());
+        assertEquals("snert.cpu_user", iq.getMetric());
+        assertEquals("value_mean",iq.getAlias());
+
+
+    }
+
+    @Test
+    public void testInflux2days() throws Exception {
+        String query = "select  mean(\"value\") as \"value_mean\" from \"snert.cpu_user\" where  time > now() - 2d     group by time(30s)  order asc";
+
+        InfluxQuery iq = new InfluxQuery(query);
+
+        assertEquals("mean", iq.getMapping());
+        assertEquals("snert.cpu_user", iq.getMetric());
+        assertEquals("value_mean",iq.getAlias());
+
+
+    }
+
+    @Test
+    public void testInflux2days2() throws Exception {
+        String query = "select  mean(\"value\") as \"value_mean\" from \"snert.cpu_user\" where  time > now() - 2d     group by time(30m)  order asc";
 
         InfluxQuery iq = new InfluxQuery(query);
 

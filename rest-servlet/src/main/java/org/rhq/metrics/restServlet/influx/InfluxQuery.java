@@ -51,7 +51,7 @@ public class InfluxQuery {
                 start = parseTime(timeExpr);
             }
 
-            bucketLengthSec = (int) parseTime(groupExpr) / 1000;
+            bucketLengthSec = (int) parseTime(groupExpr) / 1000; // TODO bucket length can be less than 1s
 
             if (expr.contains("(")) {
                 int parPos = expr.indexOf("(");
@@ -110,6 +110,9 @@ public class InfluxQuery {
         String unit = m.group(2);
         long factor ;
         switch (unit) {
+        case "w":
+            factor=30L*86400;
+            break;
         case "d":
             factor =86400;
             break;
@@ -122,6 +125,8 @@ public class InfluxQuery {
         case "s":
             factor = 1;
             break;
+        case "u":
+            // TODO this is the base unit
         default:
             throw new IllegalArgumentException("Unknown unit " + unit);
         }
