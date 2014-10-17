@@ -17,6 +17,7 @@ import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
 import org.jboss.threads.JBossThreadFactory;
+import org.wildfly.metrics.scheduler.ModelControllerClientFactory;
 import org.wildfly.metrics.scheduler.config.ConfigurationInstance;
 import org.wildfly.metrics.scheduler.config.Interval;
 import org.wildfly.metrics.scheduler.config.ResourceRef;
@@ -40,15 +41,13 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
     private boolean enabled;
 
     private ConfigurationInstance schedulerConfig;
-    private final org.wildfly.metrics.scheduler.Service schedulerService;
+    private org.wildfly.metrics.scheduler.Service schedulerService;
 
     private final InjectedValue<ModelController> modelControllerValue = new InjectedValue<>();
-    private ModelControllerClient controllerClient;
     private final InjectedValue<ServerEnvironment> serverEnvironmentValue = new InjectedValue<>();
 
     public static final ServiceName SERVICE_NAME = ServiceName.JBOSS.append("rhq-metrics", "sender");
     private boolean isStarted;
-
 
     public RhqMetricsService(ModelNode config, String remoteServer) {
 
@@ -63,9 +62,6 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
 
         schedulerConfig.setRhqUrl("http://" + remoteServer + ":" + remotePort + "/rhq-metrics/metrics");
 
-         // create scheduler service
-        schedulerService = new org.wildfly.metrics.scheduler.Service(schedulerConfig);
-
     }
 
     public static ServiceController<RhqMetricsService> addService(final ServiceTarget target,
@@ -73,6 +69,7 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
                                                                   String remoteServer, ModelNode config) {
 
         RhqMetricsService service = new RhqMetricsService(config, remoteServer);
+
         return target.addService(SERVICE_NAME, service)
             .addDependency(ServerEnvironmentService.SERVICE_NAME, ServerEnvironment.class,
                 service.serverEnvironmentValue)
@@ -88,30 +85,39 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
     public void start(StartContext startContext) throws StartException {
 
 
-        final ThreadFactory threadFactory = new JBossThreadFactory(
-                new ThreadGroup("RHQ-Metrics-threads"),
-                Boolean.FALSE, null, "%G - %t", null, null,
-                doPrivileged(GetAccessControlContextAction.getInstance()));
-
-        ExecutorService executorService = Executors.newCachedThreadPool(threadFactory);
-        controllerClient = modelControllerValue.getValue().createClient(executorService);
-
         if (this.enabled) {
+
+            final ThreadFactory threadFactory = new JBossThreadFactory(
+                            new ThreadGroup("RHQ-Metrics-threads"),
+                            Boolean.FALSE, null, "%G - %t", null, null,
+                            doPrivileged(GetAccessControlContextAction.getInstance()));
+
+            final ExecutorService executorService = Executors.newCachedThreadPool(threadFactory);
+            final ModelControllerClient client = modelControllerValue.getValue().createClient(executorService);
+
+            // create scheduler service
+            schedulerService = new org.wildfly.metrics.scheduler.Service(schedulerConfig, new ModelControllerClientFactory() {
+                @Override
+                public ModelControllerClient createClient() {
+                    return  modelControllerValue.getValue().createClient(executorService);
+                }
+            });
+
             // Get the server name from the runtime model
-            boolean isDomainMode = getStringAttribute("launch-type", PathAddress.EMPTY_ADDRESS).equalsIgnoreCase("domain");
+            boolean isDomainMode = getStringAttribute(client, "launch-type", PathAddress.EMPTY_ADDRESS).equalsIgnoreCase("domain");
 
             String hostName = null;
             String serverName = null;
 
             if(isDomainMode)
             {
-                hostName = getStringAttribute("local-host-name", PathAddress.EMPTY_ADDRESS);
+                hostName = getStringAttribute(client, "local-host-name", PathAddress.EMPTY_ADDRESS);
                 serverName = "tbd";   // TODO
             }
             else
             {
                 hostName = "standalone";
-                serverName = getStringAttribute("name", PathAddress.EMPTY_ADDRESS);
+                serverName = getStringAttribute(client, "name", PathAddress.EMPTY_ADDRESS);
             }
 
 
@@ -126,7 +132,9 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
 
     @Override
     public void stop(StopContext stopContext) {
-        schedulerService.stop();
+        if(schedulerService!=null)
+            schedulerService.stop();
+
         this.isStarted = false;
     }
 
@@ -135,17 +143,17 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
         return this;
     }
 
-    private String getStringAttribute(String attributeName, PathAddress path)  {
+    private String getStringAttribute(ModelControllerClient client, String attributeName, PathAddress path)  {
 
         try {
-            ModelNode result = getModelNode(attributeName,path);
+            ModelNode result = getModelNode(client,attributeName,path);
             return result.asString();
         } catch (IOException e) {
             return null;
         }
     }
 
-    private ModelNode getModelNode(String attributeName, PathAddress address) throws IOException {
+    private ModelNode getModelNode(ModelControllerClient client, String attributeName, PathAddress address) throws IOException {
         ModelNode request = new ModelNode();
 
         if (address !=null) {
@@ -155,7 +163,7 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
 
         request.get(OP).set(READ_ATTRIBUTE_OPERATION);
         request.get(NAME).set(attributeName);
-        ModelNode resultNode = controllerClient.execute(request);
+        ModelNode resultNode = client.execute(request);
         // get the inner "result" -- should check for failure and so on...
         resultNode = resultNode.get("result");
         return resultNode;
