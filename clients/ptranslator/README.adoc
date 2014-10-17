@@ -6,7 +6,8 @@
 This is a proxy server taking in metrics data in several common formats and emitting
 them as rest-requests into rhq-metrics backend for storage.
 
-You can configure ports to use in a `ptrans.properties` file.
+You can configure ports to use in a `ptrans.properties` file, which you can pass on the
+command line. Otherwise an internal default is used. See also below.
 
 == Supported input formats
 
@@ -85,6 +86,9 @@ You can use the provided `start.sh` script to start the server
 
 Before you start the proxy, make sure the rest-server is running.
 
+You can pass a different properties file on the command line:
+
+`$ ./start.sh /tmp/my.properties`
 
 == Room for improvement:
 

@@ -1,6 +1,7 @@
 package org.rhq.metrics.clients.ptrans.backend;
 
 
+import java.net.ConnectException;
 import java.util.List;
 import java.util.Properties;
 
@@ -82,7 +83,13 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
                 if (!future.isSuccess()) {
-                    logger.warn("something went wrong: ", future.cause());
+                    Throwable cause = future.cause();
+                    if (cause instanceof ConnectException ) {
+                        logger.warn("Sending failed: " + cause.getLocalizedMessage());
+                    }
+                    else {
+                        logger.warn("Something went wrong: " + cause);
+                    }
                     // TODO at this point we may consider buffering the data until
                     //   the remote is back up again.
                 } else {
