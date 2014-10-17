@@ -52,11 +52,11 @@ class ServerAdd extends AbstractAddStepHandler {
                                ServiceVerificationHandler verificationHandler,
                                List<ServiceController<?>> newControllers) throws OperationFailedException {
 
-        String rhqMetricsServerName = address.getLastElement().getValue();
+        String remoteServer  = address.getLastElement().getValue();
 
         // Add the service
         newControllers.add(
-                RhqMetricsService.addService(context.getServiceTarget(), verificationHandler, rhqMetricsServerName, serverModel));
+                RhqMetricsService.addService(context.getServiceTarget(), verificationHandler, remoteServer, serverModel));
     }
 
 }
