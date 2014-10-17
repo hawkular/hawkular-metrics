@@ -22,6 +22,7 @@
   <packaging>jar</packaging>
 
   <properties>
+      <metric.scheduler.version>0.0.5-SNAPSHOT</metric.scheduler.version>
     <version.wildfly>8.1.0.Final</version.wildfly>
     <version.junit>4.11</version.junit>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -36,6 +37,25 @@
        given to the generated war, and hence the context root) -->
     <finalName>${project.artifactId}</finalName>
     <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <version>2.4</version>
+            <configuration>
+                <descriptors>
+                    <descriptor>src/main/assembly/module-assembly.xml</descriptor>
+                </descriptors>
+            </configuration>
+            <executions>
+                <execution>
+                    <id>make-module</id>
+                    <phase>package</phase>
+                    <goals>
+                        <goal>single</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.1</version>
@@ -64,7 +84,7 @@
           <forkMode>once</forkMode>
         </configuration>
       </plugin>
-      <plugin>
+      <!--<plugin>
         <artifactId>maven-assembly-plugin</artifactId>
         <version>2.4</version>
         <configuration>
@@ -75,7 +95,7 @@
             <descriptor>src/assemble/distribution.xml</descriptor>
           </descriptors>
         </configuration>
-      </plugin>
+      </plugin>-->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-antrun-plugin</artifactId>
@@ -155,7 +175,11 @@
       <groupId>org.wildfly</groupId>
       <artifactId>wildfly-server</artifactId>
     </dependency>
-
+      <dependency>
+            <groupId>org.wildfly.metrics</groupId>
+            <artifactId>scheduler</artifactId>
+          <version>${metric.scheduler.version}</version>
+          </dependency>
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
