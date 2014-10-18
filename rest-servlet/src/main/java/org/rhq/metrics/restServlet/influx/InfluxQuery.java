@@ -20,8 +20,6 @@ public class InfluxQuery {
 
     // TODO Group by is optional and can also have a fill(val) part
     static Pattern metricSelectPattern = Pattern.compile("select +(\\S+) +(as +\\S+ +)?from +(\\S+) +where +(.*?) +group by time\\((\\S+)\\).*");
-    static Pattern timePattern = Pattern.compile("([0-9]+)([a-z])");
-
 
     public InfluxQuery(String query) {
         inputQueryString = query;
@@ -44,14 +42,14 @@ public class InfluxQuery {
 
             if (timeExpr.contains("and")) {
                 int i = timeExpr.indexOf(" and ");
-                start = parseTime(timeExpr.substring(0, i));
-                end = parseTime(timeExpr.substring(i + 5, timeExpr.length()));
+                start = InfluxTimeParser.parseTime(timeExpr.substring(0, i));
+                end = InfluxTimeParser.parseTime(timeExpr.substring(i + 5, timeExpr.length()));
             } else {
                 end = System.currentTimeMillis();
-                start = parseTime(timeExpr);
+                start = InfluxTimeParser.parseTime(timeExpr);
             }
 
-            bucketLengthSec = (int) parseTime(groupExpr) / 1000; // TODO bucket length can be less than 1s
+            bucketLengthSec = (int) InfluxTimeParser.parseTime(groupExpr) / 1000; // TODO bucket length can be less than 1s
 
             if (expr.contains("(")) {
                 int parPos = expr.indexOf("(");
@@ -73,65 +71,6 @@ public class InfluxQuery {
         else {
             throw new IllegalArgumentException("Can not parse " + query);
         }
-    }
-
-    /**
-     * Parse the time input which looks like "time > now() - 6h"
-     * @param timeExpr Expression to parse
-     * @return Time in Milliseconds
-     */
-    private long parseTime(String timeExpr) {
-        String tmp; // Skip over "time <"
-        if (timeExpr.startsWith("time")) {
-            tmp = timeExpr.substring(7);
-        } else {
-            tmp = timeExpr;
-        }
-        if (tmp.startsWith("now()")) {
-            tmp = tmp.substring(8); // skip over "now() - "
-            Matcher m = timePattern.matcher(tmp);
-            if (m.matches()) {
-                long convertedOffset = getTimeFromExpr(m);
-                return System.currentTimeMillis() - convertedOffset; // Need to convert to ms -> *1000L
-            }
-
-        } else {
-            Matcher m = timePattern.matcher(tmp);
-            if (m.matches()) {
-                long convertedOffset = getTimeFromExpr(m);
-                return convertedOffset;
-            }
-        }
-        return 0;  // TODO: Customise this generated block
-    }
-
-    private long getTimeFromExpr(Matcher m) {
-        String val = m.group(1);
-        String unit = m.group(2);
-        long factor ;
-        switch (unit) {
-        case "w":
-            factor=30L*86400;
-            break;
-        case "d":
-            factor =86400;
-            break;
-        case "h":
-            factor = 3600;
-            break;
-        case "m":
-            factor = 60;
-            break;
-        case "s":
-            factor = 1;
-            break;
-        case "u":
-            // TODO this is the base unit
-        default:
-            throw new IllegalArgumentException("Unknown unit " + unit);
-        }
-        long offset = Long.parseLong(val);
-        return offset * factor * 1000L;
     }
 
     /**
