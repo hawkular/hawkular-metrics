@@ -4,7 +4,7 @@
   <parent>
     <artifactId>rhq-metrics-parent</artifactId>
     <groupId>org.rhq.metrics</groupId>
-    <version>0.2.3.20141020-M4</version>
+    <version>0.2.4-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>

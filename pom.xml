@@ -5,7 +5,7 @@
 
   <groupId>org.rhq.metrics</groupId>
   <artifactId>rhq-metrics-parent</artifactId>
-  <version>0.2.3.20141020-M4</version>
+  <version>0.2.4-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>RHQ Metrics</name>
