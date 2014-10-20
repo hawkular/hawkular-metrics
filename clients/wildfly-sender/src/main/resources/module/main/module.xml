@@ -1,7 +1,7 @@
 <module xmlns="urn:jboss:module:1.0" name="org.rhq.metrics.clients.wildflySender">
     <resources>
         <resource-root path="clients-common-0.2.3-SNAPSHOT.jar"/>
-        <resource-root path="scheduler-0.0.5-SNAPSHOT.jar"/>
+        <resource-root path="scheduler-0.0.6-SNAPSHOT.jar"/>
         <resource-root path="metrics-core-3.1.0.jar"/>
         <resource-root path="slf4j-api-1.7.7.jar"/>
         <resource-root path="guava-18.0.jar"/>

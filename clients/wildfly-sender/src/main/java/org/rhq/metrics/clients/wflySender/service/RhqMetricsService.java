@@ -38,6 +38,9 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
  */
 public class RhqMetricsService implements Service<RhqMetricsService> {
 
+    private static final String SECONDS = "seconds";
+    private static final String MINUTES = "minutes";
+    private static final String HOURS = "hours";
     private boolean enabled;
 
     private ConfigurationInstance schedulerConfig;
@@ -146,7 +149,7 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
     private String getStringAttribute(ModelControllerClient client, String attributeName, PathAddress path)  {
 
         try {
-            ModelNode result = getModelNode(client,attributeName,path);
+            ModelNode result = getModelNode(client, attributeName, path);
             return result.asString();
         } catch (IOException e) {
             return null;
@@ -174,11 +177,33 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
         if(isStarted)
             throw new UnsupportedOperationException("Adding metric to running service is currently not supported");
 
+
+        Interval interval = null;
+
+        if(metricResource.hasDefined(SECONDS))
+        {
+            interval = new Interval(metricResource.get(SECONDS).asInt(), TimeUnit.SECONDS);
+        }
+        else if(metricResource.hasDefined(MINUTES))
+        {
+            interval = new Interval(metricResource.get(MINUTES).asInt(), TimeUnit.MINUTES);
+        }
+        else if(metricResource.hasDefined(HOURS))
+        {
+            interval = new Interval(metricResource.get(HOURS).asInt(), TimeUnit.HOURS);
+        }
+        else
+        {
+            // default interval
+            System.out.println("Using default interval (20 seconds) for metric "+metricName);
+            interval = Interval.TWENTY_SECONDS;
+        }
+
         schedulerConfig.addResourceRef(
                 new ResourceRef(
                         metricResource.get("path").asString(),
                         metricResource.get("attribute").asString(),
-                        Interval.FIVE_SECONDS
+                        interval
                         )
         );
     }

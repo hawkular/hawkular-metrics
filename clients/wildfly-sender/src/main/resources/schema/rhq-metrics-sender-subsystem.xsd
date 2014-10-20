@@ -29,5 +29,8 @@
     <xs:attribute name="name" use="required" type="xs:string"/>
     <xs:attribute name="path" type="xs:string" use="required"/>
     <xs:attribute name="attribute" type="xs:string"/>
+      <xs:attribute name="seconds" type="xs:int" use="optional"/>
+      <xs:attribute name="minutes" type="xs:int" use="optional"/>
+      <xs:attribute name="hours" type="xs:int" use="optional"/>
   </xs:complexType>
 </xs:schema>
