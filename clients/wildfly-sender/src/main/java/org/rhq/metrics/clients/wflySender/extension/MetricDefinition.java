@@ -21,7 +21,7 @@ public class MetricDefinition extends PersistentResourceDefinition {
 
     public static final String METRIC  = "metric";
 
-    static final SimpleAttributeDefinition PATH = new SimpleAttributeDefinitionBuilder("path", ModelType.STRING,false)
+    static final SimpleAttributeDefinition RESOURCE = new SimpleAttributeDefinitionBuilder("resource", ModelType.STRING,false)
         .build();
 
     static final SimpleAttributeDefinition ATTRIBUTE  = new SimpleAttributeDefinitionBuilder("attribute", ModelType.STRING,false)
@@ -37,7 +37,7 @@ public class MetricDefinition extends PersistentResourceDefinition {
                .build();
 
     static AttributeDefinition[] ATTRIBUTES = {
-            PATH,
+            RESOURCE,
             ATTRIBUTE,
             SECONDS,
             MINUTES,
@@ -46,7 +46,7 @@ public class MetricDefinition extends PersistentResourceDefinition {
 
     private MetricDefinition() {
         super(PathElement.pathElement(METRIC),
-            SubsystemExtension.getResourceDescriptionResolver(METRIC),
+            SubsystemExtension.getResourceDescriptionResolver(MonitorDefinition.MONITOR, METRIC),
             MetricAdd.INSTANCE,
             MetricRemove.INSTANCE
             );
@@ -54,7 +54,7 @@ public class MetricDefinition extends PersistentResourceDefinition {
 
     @Override
     public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
-        ServerWriteAttributeHandler handler = new ServerWriteAttributeHandler(ATTRIBUTES);
+        MetricWriteAttributeHandler handler = new MetricWriteAttributeHandler(ATTRIBUTES);
 
         for (AttributeDefinition attr : ATTRIBUTES) {
             resourceRegistration.registerReadWriteAttribute(attr, null, handler);

@@ -12,12 +12,12 @@ import org.rhq.metrics.clients.wflySender.service.RhqMetricsService;
  *
  * @author <a href="kabir.khan@jboss.com">Kabir Khan</a>
  */
-class ServerRemove extends AbstractRemoveStepHandler {
+class StorageRemove extends AbstractRemoveStepHandler {
 
-    static final ServerRemove INSTANCE = new ServerRemove();
+    static final StorageRemove INSTANCE = new StorageRemove();
 
 
-    private ServerRemove() {
+    private StorageRemove() {
     }
 
     @Override

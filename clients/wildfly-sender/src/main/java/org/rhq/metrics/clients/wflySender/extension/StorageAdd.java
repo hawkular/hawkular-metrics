@@ -20,16 +20,16 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_
  * Add a server node
  * @author Heiko W. Rupp
  */
-class ServerAdd extends AbstractAddStepHandler {
+class StorageAdd extends AbstractAddStepHandler {
 
-    static final ServerAdd INSTANCE = new ServerAdd();
+    static final StorageAdd INSTANCE = new StorageAdd();
 
-    private ServerAdd() {
+    private StorageAdd() {
     }
 
     @Override
     protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
-        for (AttributeDefinition def : ServerDefinition.ATTRIBUTES) {
+        for (AttributeDefinition def : StorageDefinition.ATTRIBUTES) {
               def.validateAndSet(operation, model);
           }
 

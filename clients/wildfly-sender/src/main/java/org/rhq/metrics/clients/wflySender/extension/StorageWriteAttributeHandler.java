@@ -18,16 +18,16 @@ import org.rhq.metrics.clients.wflySender.service.RhqMetricsService;
  * Handler that restarts the service on attribute changes
  * @author Heiko W. Rupp
  */
-public class ServerWriteAttributeHandler extends RestartParentWriteAttributeHandler {
+public class StorageWriteAttributeHandler extends RestartParentWriteAttributeHandler {
 
-    public ServerWriteAttributeHandler(AttributeDefinition... definitions) {
-        super(ServerDefinition.RHQM_SERVER, definitions);
+    public StorageWriteAttributeHandler(AttributeDefinition... definitions) {
+        super(StorageDefinition.STORAGE_ADAPTER, definitions);
     }
 
     @Override
     protected void recreateParentService(OperationContext context, PathAddress parentAddress, ModelNode parentModel,
                                          ServiceVerificationHandler verificationHandler) throws OperationFailedException {
-        ServerAdd.installService(context,parentAddress,parentModel,verificationHandler, new ArrayList<ServiceController<?>>());
+        StorageAdd.installService(context, parentAddress, parentModel, verificationHandler, new ArrayList<ServiceController<?>>());
     }
 
     @Override

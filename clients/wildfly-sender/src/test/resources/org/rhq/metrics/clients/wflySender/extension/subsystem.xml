@@ -1,10 +1,27 @@
 <subsystem xmlns="urn:org.rhq.metrics:wildflySender:1.0">
-  <rhqm-server
-      name="localhost"
-      enabled="true"
-      port="8080"
-      token="0x-deaf-beef"/>
-    <metric name="heap" path="/core-service=platform-mbean/type=memory" attribute="heap-memory-usage"/>
-    <metric name="non-heap" path="/core-service=platform-mbean/type=memory" attribute="non-heap-memory-usage"/>
-    <metric name="thread-count" path="/core-service=platform-mbean/type=threading" attribute="thread-count"/>
+
+    <storage-adapter
+            name="org.wildfly.metrics.scheduler.storage.RHQStorageAdapter"
+            url="http://localhost:8080/rhq-metrics/metrics"/>
+
+    <server-monitor name="default" enabled="true">
+        <metric name="heap"
+                seconds="20"
+                resource="/core-service=platform-mbean/type=memory"
+                attribute="heap-memory-usage"/>
+
+        <metric name="non-heap"
+                seconds="20"
+                resource="/core-service=platform-mbean/type=memory"
+                attribute="non-heap-memory-usage"/>
+
+        <metric name="thread-count"
+                minutes="1"
+                resource="/core-service=platform-mbean/type=threading"
+                attribute="thread-count"/>
+    </server-monitor>
+
+    <!--<diagnostics
+            name="com.codahale.metrics.ConsoleReporter"
+            enabled="true"/> -->
 </subsystem>
