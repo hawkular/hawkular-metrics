@@ -24,8 +24,13 @@ public class RHQMetrics {
         private Map<String, String> options;
 
         public Builder() {
+            String cqlPortString = System.getenv("CQL_PORT");
+            if(cqlPortString == null){
+                cqlPortString = "9042";
+            }
+
             options = new HashMap<>();
-            options.put("cqlport", "9042");
+            options.put("cqlport", cqlPortString);
             options.put("nodes", "127.0.0.1");
             options.put("keyspace", "rhq-metrics");
         }
