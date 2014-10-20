@@ -50,10 +50,8 @@ Copy the module into the server before starting it:
 
 [source,shell]
 ----
-cd $SERVER/modules
-mkdir -p org/rhq/metrics/clients/wildflySender
-cd $SRC
-cp -R target/module/wildflySender/ $SERVER/modules/org/rhq/metrics/clients/wildflySender/
+$ cd $WILDFLY
+$ unzip $RHQMSRC/clients/wildfly-sender/target/wildfly-sender-module.zip
 ----
 
 You can add new metrics via the jboss-cli e.g. via

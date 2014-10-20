@@ -14,9 +14,6 @@ import java.util.regex.Pattern;
 public class InfluxTimeParser {
 
     public static final Pattern simpleTimePattern = Pattern.compile("([0-9]+)([a-z])");
-    static DateFormat dateFormatLong = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
-    static DateFormat dateFormatMedium = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-    static DateFormat dateFormatShort = new SimpleDateFormat("yyyy-MM-dd");
 
     public static long getTimeFromExpr(Matcher m) {
         String val = m.group(1);
@@ -86,8 +83,7 @@ public class InfluxTimeParser {
             Matcher m = simpleTimePattern.matcher(tmp);
             if (m.matches()) {
                 // seconds since epoch
-                long convertedOffset = getTimeFromExpr(m);
-                return convertedOffset;
+                return getTimeFromExpr(m);
             }
             else {
                 // This is now an absolute time in a format like
@@ -105,10 +101,13 @@ public class InfluxTimeParser {
                     tmp = tmp.trim();
                     Date date;
                     if (tmp.contains(".")) {
+                        DateFormat dateFormatLong = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
                         date = dateFormatLong.parse(tmp);
                     } else if (tmp.contains(":")) {
+                        DateFormat dateFormatMedium = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
                         date = dateFormatMedium.parse(tmp);
                     } else {
+                        DateFormat dateFormatShort = new SimpleDateFormat("yyyy-MM-dd");
                         date = dateFormatShort.parse(tmp);
                     }
                     return date.getTime();

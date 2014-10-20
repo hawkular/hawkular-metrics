@@ -2,7 +2,6 @@ package org.rhq.metrics.restServlet;
 
 import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -45,17 +44,15 @@ public class JsonPAsyncListener implements AsyncListener {
         ByteArrayOutputStream jsonpOutputStream = responseWrapper.getByteArrayOutputStream();
 
         if (gzipped) {
-            GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(jsonpOutputStream.toByteArray()));
-            try {
-                InputStreamReader reader = new InputStreamReader(gzipInputStream);
+            try (GZIPInputStream gzipInputStream = new GZIPInputStream(
+                new ByteArrayInputStream(jsonpOutputStream.toByteArray()))) {
+                InputStreamReader reader = new InputStreamReader(gzipInputStream,StandardCharsets.UTF_8);
                 BufferedReader in = new BufferedReader(reader);
 
                 String read;
                 while ((read = in.readLine()) != null) {
-                    responseOutputStream.write(read.getBytes());
+                    responseOutputStream.write(read.getBytes(StandardCharsets.UTF_8));
                 }
-            } finally {
-                gzipInputStream.close();
             }
         } else {
             jsonpOutputStream.writeTo(responseOutputStream);

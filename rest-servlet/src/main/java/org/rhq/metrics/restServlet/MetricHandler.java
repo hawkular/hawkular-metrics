@@ -341,7 +341,7 @@ public class MetricHandler {
                                             }
                                         } else {
                                             point = getBucketDataPoint(tmpList.get(0).getId(),
-                                                i * bucketWidthSeconds * 1000L, tmpList);
+                                                1000L * i * bucketWidthSeconds, tmpList);
                                             points.add(point);
                                         }
 
@@ -355,7 +355,7 @@ public class MetricHandler {
                                         if (tmpList!=null) {
                                             for (RawNumericMetric metric : tmpList) {
                                                 point = new BucketDataPoint(id, // TODO could be simple data points
-                                                    i * bucketWidthSeconds * 1000L, NaN,metric.getValue(),NaN);
+                                                    1000L * i * bucketWidthSeconds, NaN,metric.getValue(),NaN);
                                                 point.setValue(metric.getValue());
                                                 points.add(point);
                                             }

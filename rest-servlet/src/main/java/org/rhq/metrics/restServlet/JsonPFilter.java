@@ -41,9 +41,6 @@ import java.nio.charset.StandardCharsets;
 @WebFilter(urlPatterns = "/*", asyncSupported = true)
 @WebInitParam(name = "filter.jsonp.callback", value = "jsonp", description = "Name of the callback to use for JsonP (?jsonp=...)")
 public class JsonPFilter implements Filter {
-    private static final String APPLICATION_JSON = "application/json";
-    private static final String VND_RHQ_WRAPPED_JSON = "application/vnd.rhq.wrapped+json";
-    private static final String ACCEPT = "accept";
     private static final String DEFAULT_CALLBACK_NAME = "jsonp";
     private String callbackName;
 
@@ -81,33 +78,13 @@ public class JsonPFilter implements Filter {
                 response.setContentType("application/javascript; charset=utf-8");
                 outputStream.write((callback + "(").getBytes(StandardCharsets.UTF_8));
                 responseWrapper.getByteArrayOutputStream().writeTo(outputStream);
-                outputStream.write(");".getBytes());
+                outputStream.write(");".getBytes(StandardCharsets.UTF_8));
                 outputStream.flush();
             }
 
         } else {
             chain.doFilter(request, response);
         }
-    }
-
-    /**
-     * Check if the incoming request requests jsonw wrapping and jsonp-wrapping
-     * @param httpRequest The incoming http request
-     * @return True if json wrapping was requested
-     */
-    private boolean requestsJsonWrapping(HttpServletRequest httpRequest) {
-
-        String mimeType = httpRequest.getHeader(ACCEPT);
-        if (mimeType.equals(VND_RHQ_WRAPPED_JSON)) {
-            return true;
-        }
-
-        String localPart = httpRequest.getContextPath();
-        if (localPart.endsWith(".jsonw")) {
-            return true;
-        }
-
-        return false;
     }
 
     public void init(FilterConfig config) throws ServletException {
