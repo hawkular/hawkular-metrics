@@ -7,14 +7,14 @@
   <parent>
     <groupId>org.rhq.metrics</groupId>
     <artifactId>rhq-metrics-parent</artifactId>
-    <version>0.2.3-SNAPSHOT</version>
+    <version>0.2.3.20141020-M4</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
 
   <groupId>org.rhq.metrics</groupId>
   <artifactId>wildfly-sender</artifactId>
-  <version>0.2.3-SNAPSHOT</version>
+  <version>0.2.3.20141020-M4</version>
 
   <name>RHQ Metrics WildFly Sender Subsystem</name>
   <description>A WildFly extension that is able to take server metrics and send them to RHQ Metrics.</description>

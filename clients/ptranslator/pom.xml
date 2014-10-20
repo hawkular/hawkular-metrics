@@ -7,13 +7,13 @@
   <parent>
     <groupId>org.rhq.metrics</groupId>
     <artifactId>rhq-metrics-parent</artifactId>
-    <version>0.2.3-SNAPSHOT</version>
+    <version>0.2.3.20141020-M4</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
   <groupId>org.rhq.metrics</groupId>
   <artifactId>ptrans</artifactId>
-  <version>0.2.3-SNAPSHOT</version>
+  <version>0.2.3.20141020-M4</version>
   <name>Protocol Translator</name>
   <packaging>jar</packaging>
   <description>A protocol translator that can receive data from various system and feed it to the RHQ Metrics REST api.</description>
