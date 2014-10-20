@@ -112,17 +112,17 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
             String hostName = null;
             String serverName = null;
 
+            ServerEnvironment serverEnv = serverEnvironmentValue.getValue();
             if(isDomainMode)
             {
                 hostName = getStringAttribute(client, "local-host-name", PathAddress.EMPTY_ADDRESS);
-                serverName = serverEnvironmentValue.getValue().getServerName();
+                serverName = serverEnv.getServerName();
             }
             else
             {
-                hostName = "standalone";
+                hostName = serverEnv.getQualifiedHostName();
                 serverName = getStringAttribute(client, "name", PathAddress.EMPTY_ADDRESS);
             }
-
 
 
             // Create a http client
