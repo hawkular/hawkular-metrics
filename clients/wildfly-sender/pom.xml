@@ -29,9 +29,6 @@
     <module.name>wildflySender</module.name>
   </properties>
 
-
-
-
   <build>
     <!-- Maven will append the version to the finalName (which is the name
        given to the generated war, and hence the context root) -->
@@ -115,6 +112,19 @@
                 <echo>Module ${module.name} has been created in the target/module directory. Copy to your WildFly installation.</echo>
               </target>
             </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
           </execution>
         </executions>
       </plugin>
