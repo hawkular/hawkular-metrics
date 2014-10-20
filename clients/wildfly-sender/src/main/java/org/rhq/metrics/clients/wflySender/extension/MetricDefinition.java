@@ -27,9 +27,21 @@ public class MetricDefinition extends PersistentResourceDefinition {
     static final SimpleAttributeDefinition ATTRIBUTE  = new SimpleAttributeDefinitionBuilder("attribute", ModelType.STRING,false)
         .build();
 
+    static final SimpleAttributeDefinition SECONDS  = new SimpleAttributeDefinitionBuilder("seconds", ModelType.INT,true)
+           .build();
+
+    static final SimpleAttributeDefinition MINUTES  = new SimpleAttributeDefinitionBuilder("minutes", ModelType.INT,true)
+               .build();
+
+    static final SimpleAttributeDefinition HOURS  = new SimpleAttributeDefinitionBuilder("hours", ModelType.INT,true)
+               .build();
+
     static AttributeDefinition[] ATTRIBUTES = {
-        PATH,
-        ATTRIBUTE
+            PATH,
+            ATTRIBUTE,
+            SECONDS,
+            MINUTES,
+            HOURS
     };
 
     private MetricDefinition() {
