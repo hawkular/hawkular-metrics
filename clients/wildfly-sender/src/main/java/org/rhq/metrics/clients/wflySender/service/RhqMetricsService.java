@@ -115,7 +115,7 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
             if(isDomainMode)
             {
                 hostName = getStringAttribute(client, "local-host-name", PathAddress.EMPTY_ADDRESS);
-                serverName = "tbd";   // TODO
+                serverName = serverEnvironmentValue.getValue().getServerName();
             }
             else
             {
