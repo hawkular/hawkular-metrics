@@ -18,10 +18,11 @@ import static org.jboss.as.controller.PersistentResourceXMLDescription.builder;
 
 /**
  * The subsystem parser, which uses stax to read and write to and from xml
+ *
  * @author Heiko W. Rupp
  */
 class SubsystemParser
-    implements XMLStreamConstants, XMLElementReader<List<ModelNode>>, XMLElementWriter<SubsystemMarshallingContext> {
+        implements XMLStreamConstants, XMLElementReader<List<ModelNode>>, XMLElementWriter<SubsystemMarshallingContext> {
 
     public static final SubsystemParser INSTANCE = new SubsystemParser();
 
@@ -30,13 +31,23 @@ class SubsystemParser
     static {
         xmlDescription = builder(RootDefinition.INSTANCE)
                 .addChild(
-                    builder(ServerDefinition.INSTANCE)
-                        .addAttributes(ServerDefinition.ATTRIBUTES)
+                        builder(StorageDefinition.INSTANCE)
+                                .addAttributes(StorageDefinition.ATTRIBUTES)
                 )
                 .addChild(
-                    builder(MetricDefinition.INSTANCE)
-                        .setXmlElementName(MetricDefinition.METRIC)
-                        .addAttributes(MetricDefinition.ATTRIBUTES)
+
+                        builder(MonitorDefinition.INSTANCE)
+                                .setXmlElementName(MonitorDefinition.MONITOR)
+                                .addAttributes(MonitorDefinition.ATTRIBUTES)
+                            .addChild(
+                                builder(MetricDefinition.INSTANCE)
+                                        .setXmlElementName(MetricDefinition.METRIC)
+                                        .addAttributes(MetricDefinition.ATTRIBUTES)
+                            )
+                )
+                .addChild(
+                        builder(DiagnosticsDefinition.INSTANCE)
+                                .addAttributes(DiagnosticsDefinition.ATTRIBUTES)
                 )
                 .build();
 

@@ -12,49 +12,39 @@ import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.dmr.ModelType;
 
 /**
- * Definition of a single metric
+ * Definition of a diagnostics handler
  * @author Heiko W. Rupp
  */
-public class MetricDefinition extends PersistentResourceDefinition {
+public class DiagnosticsDefinition extends PersistentResourceDefinition {
 
-    public static final MetricDefinition INSTANCE = new MetricDefinition();
+    public static final DiagnosticsDefinition INSTANCE = new DiagnosticsDefinition();
 
-    public static final String METRIC  = "metric";
+    public static final String DIAGNOSTICS = "diagnostics";
 
-    static final SimpleAttributeDefinition RESOURCE = new SimpleAttributeDefinitionBuilder("resource", ModelType.STRING,false)
-        .build();
-
-    static final SimpleAttributeDefinition ATTRIBUTE  = new SimpleAttributeDefinitionBuilder("attribute", ModelType.STRING,false)
+    static final SimpleAttributeDefinition ENABLED  = new SimpleAttributeDefinitionBuilder("enabled", ModelType.BOOLEAN,false)
         .build();
 
     static final SimpleAttributeDefinition SECONDS  = new SimpleAttributeDefinitionBuilder("seconds", ModelType.INT,true)
-           .build();
+            .build();
 
     static final SimpleAttributeDefinition MINUTES  = new SimpleAttributeDefinitionBuilder("minutes", ModelType.INT,true)
-               .build();
-
-    static final SimpleAttributeDefinition HOURS  = new SimpleAttributeDefinitionBuilder("hours", ModelType.INT,true)
-               .build();
+            .build();
 
     static AttributeDefinition[] ATTRIBUTES = {
-            RESOURCE,
-            ATTRIBUTE,
-            SECONDS,
-            MINUTES,
-            HOURS
+            ENABLED, SECONDS, MINUTES
     };
 
-    private MetricDefinition() {
-        super(PathElement.pathElement(METRIC),
-            SubsystemExtension.getResourceDescriptionResolver(MonitorDefinition.MONITOR, METRIC),
-            MetricAdd.INSTANCE,
-            MetricRemove.INSTANCE
+    private DiagnosticsDefinition() {
+        super(PathElement.pathElement(DIAGNOSTICS),
+            SubsystemExtension.getResourceDescriptionResolver(DIAGNOSTICS),
+            DiagnosticsAdd.INSTANCE,
+            DiagnosticsRemove.INSTANCE
             );
     }
 
     @Override
     public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
-        MetricWriteAttributeHandler handler = new MetricWriteAttributeHandler(ATTRIBUTES);
+        DiagnosticsWriteAttributeHandler handler = new DiagnosticsWriteAttributeHandler(ATTRIBUTES);
 
         for (AttributeDefinition attr : ATTRIBUTES) {
             resourceRegistration.registerReadWriteAttribute(attr, null, handler);

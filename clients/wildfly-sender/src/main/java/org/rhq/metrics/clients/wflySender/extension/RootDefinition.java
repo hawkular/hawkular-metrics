@@ -19,7 +19,7 @@ public class RootDefinition extends PersistentResourceDefinition {
 
 
     static PersistentResourceDefinition[] CHILDREN = {
-        ServerDefinition.INSTANCE
+        StorageDefinition.INSTANCE
     };
 
 

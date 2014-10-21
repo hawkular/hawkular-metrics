@@ -4,27 +4,31 @@ import org.jboss.as.controller.AbstractAddStepHandler;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.ServiceVerificationHandler;
+import org.jboss.as.controller.registry.Resource;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceController;
 
 import java.util.List;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
+
 /**
- * Add a metric to the system
- * @author Heiko W. Rupp
+ * Adds a monitor to the system
+ * @author Heiko Braun
  */
-public class MetricAdd extends AbstractAddStepHandler {
+public class MonitorAdd extends AbstractAddStepHandler {
 
-    public static final MetricAdd INSTANCE = new MetricAdd();
+    public static final MonitorAdd INSTANCE = new MonitorAdd();
 
-    private MetricAdd() {
+    private MonitorAdd() {
 
     }
 
     @Override
     protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
-        for (AttributeDefinition def : MetricDefinition.ATTRIBUTES) {
+        for (AttributeDefinition def : MonitorDefinition.ATTRIBUTES) {
             def.validateAndSet(operation, model);
         }
     }
@@ -33,6 +37,9 @@ public class MetricAdd extends AbstractAddStepHandler {
     protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model,
                                   ServiceVerificationHandler verificationHandler,
                                   List<ServiceController<?>> newControllers) throws OperationFailedException {
+
+        final PathAddress address = PathAddress.pathAddress(operation.get(OP_ADDR));
+        ModelNode fullTree = Resource.Tools.readModel(context.readResource(PathAddress.EMPTY_ADDRESS));
 
 
     }

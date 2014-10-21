@@ -20,16 +20,16 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_
  * Add a server node
  * @author Heiko W. Rupp
  */
-class ServerAdd extends AbstractAddStepHandler {
+class StorageAdd extends AbstractAddStepHandler {
 
-    static final ServerAdd INSTANCE = new ServerAdd();
+    static final StorageAdd INSTANCE = new StorageAdd();
 
-    private ServerAdd() {
+    private StorageAdd() {
     }
 
     @Override
     protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
-        for (AttributeDefinition def : ServerDefinition.ATTRIBUTES) {
+        for (AttributeDefinition def : StorageDefinition.ATTRIBUTES) {
               def.validateAndSet(operation, model);
           }
 
@@ -43,20 +43,6 @@ class ServerAdd extends AbstractAddStepHandler {
         final PathAddress address = PathAddress.pathAddress(operation.get(OP_ADDR));
         ModelNode fullTree = Resource.Tools.readModel(context.readResource(PathAddress.EMPTY_ADDRESS));
 
-
-        installService(context, address, fullTree, verificationHandler, newControllers);
-    }
-
-    static void installService(OperationContext context, PathAddress address,
-                               ModelNode serverModel,
-                               ServiceVerificationHandler verificationHandler,
-                               List<ServiceController<?>> newControllers) throws OperationFailedException {
-
-        String remoteServer  = address.getLastElement().getValue();
-
-        // Add the service
-        newControllers.add(
-                RhqMetricsService.addService(context.getServiceTarget(), verificationHandler, remoteServer, serverModel));
     }
 
 }

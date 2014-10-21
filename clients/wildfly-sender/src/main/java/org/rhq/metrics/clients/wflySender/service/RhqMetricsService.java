@@ -8,6 +8,7 @@ import org.jboss.as.server.ServerEnvironment;
 import org.jboss.as.server.ServerEnvironmentService;
 import org.jboss.as.server.Services;
 import org.jboss.dmr.ModelNode;
+import org.jboss.dmr.Property;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
@@ -18,12 +19,14 @@ import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
 import org.jboss.threads.JBossThreadFactory;
 import org.wildfly.metrics.scheduler.ModelControllerClientFactory;
+import org.wildfly.metrics.scheduler.config.Configuration;
 import org.wildfly.metrics.scheduler.config.ConfigurationInstance;
 import org.wildfly.metrics.scheduler.config.Interval;
 import org.wildfly.metrics.scheduler.config.ResourceRef;
 import org.wildfly.security.manager.action.GetAccessControlContextAction;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -38,10 +41,9 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
  */
 public class RhqMetricsService implements Service<RhqMetricsService> {
 
-    private static final String SECONDS = "seconds";
-    private static final String MINUTES = "minutes";
-    private static final String HOURS = "hours";
-    private boolean enabled;
+    private Interval diagnosticsInterval;
+    private boolean diagnosticsEnabled = false;
+    private boolean enabled = false;
 
     private ConfigurationInstance schedulerConfig;
     private org.wildfly.metrics.scheduler.Service schedulerService;
@@ -50,38 +52,99 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
     private final InjectedValue<ServerEnvironment> serverEnvironmentValue = new InjectedValue<>();
 
     public static final ServiceName SERVICE_NAME = ServiceName.JBOSS.append("rhq-metrics", "sender");
-    private boolean isStarted;
 
-    public RhqMetricsService(ModelNode config, String remoteServer) {
+    public RhqMetricsService(ModelNode config) {
 
         // the wildfly scheduler config
-        this.schedulerConfig = new ConfigurationInstance(
-                "localhost", // domain controller host
-                9990 // domain controller port
-        );
+        this.schedulerConfig = new ConfigurationInstance();
 
-        int remotePort = config.get("port").asInt(8080);
-        this.enabled = config.get("enabled").asBoolean(false);
+        Property storageAdapter = config.get("storage-adapter").asPropertyList().get(0);
+        List<Property> monitors = config.get("server-monitor").asPropertyList();
+        Property diagnostics = config.get("diagnostics").asPropertyList().get(0);
 
-        schedulerConfig.setRhqUrl("http://" + remoteServer + ":" + remotePort + "/rhq-metrics/metrics");
+        if(monitors.size()==1)
+        {
+            Property monitor = monitors.get(0);
+            ModelNode monitorCfg = monitor.getValue();
+            if(monitorCfg.get("enabled").asBoolean())
+            {
+                this.enabled = true;
+
+                // parse storage adapter
+                ModelNode storageAdapterCfg = storageAdapter.getValue();
+                schedulerConfig.setStorageAdapter(Configuration.Storage.valueOf(storageAdapter.getName().toUpperCase()));
+                schedulerConfig.setStorageUrl(storageAdapterCfg.get("url").asString());
+                schedulerConfig.setStorageDb(storageAdapterCfg.get("db").asString());
+                schedulerConfig.setStorageUser(storageAdapterCfg.get("user").asString());
+                schedulerConfig.setStoragePassword(storageAdapterCfg.get("passsword").asString());
+                schedulerConfig.setStorageToken(storageAdapterCfg.get("token").asString());
+
+                // monitoring setup
+                schedulerConfig.setSchedulerThreads(monitorCfg.get("num-threads").asInt());
+
+                List<Property> metrics = monitorCfg.get("metric").asPropertyList();
+                for (Property metric : metrics) {
+                    ModelNode metricCfg = metric.getValue();
+
+                    Interval interval = null;
+                    if (metricCfg.hasDefined("seconds")) {
+                        interval = new Interval(metricCfg.get("seconds").asInt(), TimeUnit.SECONDS);
+                    }
+                    else if (metricCfg.hasDefined("minutes"))
+                    {
+                        interval = new Interval(metricCfg.get("minutes").asInt(), TimeUnit.MINUTES);
+                    }
+                    else if(metricCfg.hasDefined("hours"))
+                    {
+                        interval = new Interval(metricCfg.get("hours").asInt(), TimeUnit.HOURS);
+                    }
+
+
+                    ResourceRef ref = new ResourceRef(
+                            metricCfg.get("resource").asString(),
+                            metricCfg.get("attribute").asString(),
+                            interval
+                    );
+
+                    schedulerConfig.addResourceRef(ref);
+
+                }
+
+                // diagnostics
+                ModelNode diagnosticsCfg = diagnostics.getValue();
+                schedulerConfig.setDiagnostics(Configuration.Diagnostics.valueOf(diagnostics.getName().toUpperCase()));
+
+                if(diagnosticsCfg.hasDefined("seconds"))
+                {
+                    this.diagnosticsEnabled = diagnosticsCfg.get("enabled").asBoolean();
+                    this.diagnosticsInterval = new Interval(diagnosticsCfg.get("seconds").asInt(), TimeUnit.SECONDS);
+                }
+                else if(diagnosticsCfg.hasDefined("minutes"))
+                {
+                    this.diagnosticsEnabled = diagnosticsCfg.get("enabled").asBoolean();
+                    this.diagnosticsInterval = new Interval(diagnosticsCfg.get("minutes").asInt(), TimeUnit.MINUTES);
+                }
+
+            }
+        }
 
     }
 
-    public static ServiceController<RhqMetricsService> addService(final ServiceTarget target,
-                                                                  final ServiceVerificationHandler verificationHandler,
-                                                                  String remoteServer, ModelNode config) {
+    public static ServiceController<RhqMetricsService> createService(final ServiceTarget target,
+                                                                     final ServiceVerificationHandler verificationHandler,
+                                                                     ModelNode config) {
 
-        RhqMetricsService service = new RhqMetricsService(config, remoteServer);
+        RhqMetricsService service = new RhqMetricsService(config);
 
         return target.addService(SERVICE_NAME, service)
-            .addDependency(ServerEnvironmentService.SERVICE_NAME, ServerEnvironment.class,
-                service.serverEnvironmentValue)
+                .addDependency(ServerEnvironmentService.SERVICE_NAME, ServerEnvironment.class,
+                        service.serverEnvironmentValue)
                 .addDependency(Services.JBOSS_SERVER_CONTROLLER, ModelController.class,
-                    service.modelControllerValue)
+                        service.modelControllerValue)
                 .addListener(verificationHandler)
                 .setInitialMode(ServiceController.Mode.ACTIVE)
                 .install();
-        }
+    }
 
 
     @Override
@@ -91,9 +154,9 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
         if (this.enabled) {
 
             final ThreadFactory threadFactory = new JBossThreadFactory(
-                            new ThreadGroup("RHQ-Metrics-threads"),
-                            Boolean.FALSE, null, "%G - %t", null, null,
-                            doPrivileged(GetAccessControlContextAction.getInstance()));
+                    new ThreadGroup("RHQ-Metrics-threads"),
+                    Boolean.FALSE, null, "%G - %t", null, null,
+                    doPrivileged(GetAccessControlContextAction.getInstance()));
 
             final ExecutorService executorService = Executors.newCachedThreadPool(threadFactory);
             final ModelControllerClient client = modelControllerValue.getValue().createClient(executorService);
@@ -127,18 +190,21 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
 
             // Create a http client
             schedulerService.start(hostName, serverName);
-            schedulerService.reportEvery(30, TimeUnit.SECONDS);
+
+            // enabled diagnostics if needed
+            if(diagnosticsEnabled) {
+                schedulerService.reportEvery(diagnosticsInterval.getVal(), diagnosticsInterval.getUnit());
+            }
+
         }
 
-        this.isStarted = true;
+
     }
 
     @Override
     public void stop(StopContext stopContext) {
         if(schedulerService!=null)
             schedulerService.stop();
-
-        this.isStarted = false;
     }
 
     @Override
@@ -172,43 +238,7 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
         return resultNode;
     }
 
-    public void addMetric(String metricName, ModelNode metricResource) {
-
-        if(isStarted)
-            throw new UnsupportedOperationException("Adding metric to running service is currently not supported");
-
-
-        Interval interval = null;
-
-        if(metricResource.hasDefined(SECONDS))
-        {
-            interval = new Interval(metricResource.get(SECONDS).asInt(), TimeUnit.SECONDS);
-        }
-        else if(metricResource.hasDefined(MINUTES))
-        {
-            interval = new Interval(metricResource.get(MINUTES).asInt(), TimeUnit.MINUTES);
-        }
-        else if(metricResource.hasDefined(HOURS))
-        {
-            interval = new Interval(metricResource.get(HOURS).asInt(), TimeUnit.HOURS);
-        }
-        else
-        {
-            // default interval
-            System.out.println("Using default interval (20 seconds) for metric "+metricName);
-            interval = Interval.TWENTY_SECONDS;
-        }
-
-        schedulerConfig.addResourceRef(
-                new ResourceRef(
-                        metricResource.get("path").asString(),
-                        metricResource.get("attribute").asString(),
-                        interval
-                        )
-        );
-    }
-
     public void removeMetric(String metricName) {
-       // TODO
+        // TODO
     }
 }
