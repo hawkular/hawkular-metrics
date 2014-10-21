@@ -35,4 +35,5 @@ fi
 
 cp rest-servlet/target/rhq-metric-rest*.war target/wildfly-$WFLY_VERSION/standalone/deployments/
 cp ui/console/target/metrics-console-*.war target/wildfly-$WFLY_VERSION/standalone/deployments/
+cp ui/explorer/target/explorer-*.war target/wildfly-$WFLY_VERSION/standalone/deployments/
 target/wildfly-$WFLY_VERSION/bin/standalone.sh -Drhq-metrics.backend=$BACKEND --debug 8787
