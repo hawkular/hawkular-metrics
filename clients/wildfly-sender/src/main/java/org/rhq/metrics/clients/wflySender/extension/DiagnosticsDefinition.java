@@ -24,8 +24,14 @@ public class DiagnosticsDefinition extends PersistentResourceDefinition {
     static final SimpleAttributeDefinition ENABLED  = new SimpleAttributeDefinitionBuilder("enabled", ModelType.BOOLEAN,false)
         .build();
 
+    static final SimpleAttributeDefinition SECONDS  = new SimpleAttributeDefinitionBuilder("seconds", ModelType.INT,true)
+            .build();
+
+    static final SimpleAttributeDefinition MINUTES  = new SimpleAttributeDefinitionBuilder("minutes", ModelType.INT,true)
+            .build();
+
     static AttributeDefinition[] ATTRIBUTES = {
-            ENABLED
+            ENABLED, SECONDS, MINUTES
     };
 
     private DiagnosticsDefinition() {

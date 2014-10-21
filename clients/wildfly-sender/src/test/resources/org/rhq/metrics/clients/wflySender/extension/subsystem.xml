@@ -4,7 +4,7 @@
             name="rhq"
             url="http://localhost:8080/rhq-metrics/metrics" db="wildfly"/>
 
-    <server-monitor name="default" enabled="true">
+    <server-monitor name="default" enabled="true" num-threads="2">
 
         <metric name="heap"
                 seconds="20"
@@ -25,5 +25,5 @@
 
     <diagnostics
             name="console"
-            enabled="true"/>
+            enabled="true" seconds="10"/>
 </subsystem>

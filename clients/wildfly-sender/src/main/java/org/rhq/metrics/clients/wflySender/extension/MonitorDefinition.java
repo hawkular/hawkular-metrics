@@ -25,8 +25,12 @@ public class MonitorDefinition extends PersistentResourceDefinition {
     static final SimpleAttributeDefinition ENABLED = new SimpleAttributeDefinitionBuilder("enabled", ModelType.BOOLEAN,false)
         .build();
 
+    static final SimpleAttributeDefinition THREADS  = new SimpleAttributeDefinitionBuilder("num-threads", ModelType.INT,false)
+            .build();
+
+
     static AttributeDefinition[] ATTRIBUTES = {
-            ENABLED
+            ENABLED, THREADS
     };
 
     private MonitorDefinition() {

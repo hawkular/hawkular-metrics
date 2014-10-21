@@ -43,16 +43,6 @@ class StorageAdd extends AbstractAddStepHandler {
         final PathAddress address = PathAddress.pathAddress(operation.get(OP_ADDR));
         ModelNode fullTree = Resource.Tools.readModel(context.readResource(PathAddress.EMPTY_ADDRESS));
 
-
-        installService(context, address, fullTree, verificationHandler, newControllers);
-    }
-
-    static void installService(OperationContext context, PathAddress address,
-                               ModelNode serverModel,
-                               ServiceVerificationHandler verificationHandler,
-                               List<ServiceController<?>> newControllers) throws OperationFailedException {
-
-
     }
 
 }

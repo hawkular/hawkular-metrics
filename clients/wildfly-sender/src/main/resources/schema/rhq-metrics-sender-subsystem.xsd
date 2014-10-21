@@ -11,7 +11,7 @@
     <xs:complexType name="subsystemType">
         <xs:sequence>
             <xs:element name="storage-adapter" type="storageType" minOccurs="1" maxOccurs="1"/>
-            <xs:element name="server-monitor" type="serverMonitorType" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="server-monitor" type="serverMonitorType" minOccurs="1" maxOccurs="1"/>
             <!--xs:element name="application-monitor" type="applicationMonitorType" minOccurs="0" maxOccurs="unbounded"/-->
             <xs:element name="diagnostics" type="diagnosticsType" minOccurs="1" maxOccurs="1"/>
         </xs:sequence>
@@ -31,6 +31,8 @@
     <xs:complexType name="diagnosticsType">
         <xs:attribute name="name" default="console" type="reporterType"/>
         <xs:attribute name="enabled" default="false" type="xs:boolean"/>
+        <xs:attribute name="seconds" type="xs:int" use="optional"/>
+        <xs:attribute name="minutes" type="xs:int" use="optional"/>
     </xs:complexType>
 
     <!-- definition of individual metrics -->
@@ -39,6 +41,7 @@
             <xs:element name="metric" type="metricType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
         <xs:attribute name="name" use="required" type="xs:string"/>
+        <xs:attribute name="num-threads" default="2" use="required" type="xs:int"/>
         <xs:attribute name="enabled" use="required" type="xs:boolean" default="true"/>
     </xs:complexType>
 
