@@ -28,7 +28,7 @@ public class SubsystemDefinition extends PersistentResourceDefinition {
 
     @Override
     protected List<? extends PersistentResourceDefinition> getChildren() {
-        return Arrays.asList(StorageDefinition.INSTANCE, MonitorDefinition.INSTANCE);
+        return Arrays.asList(StorageDefinition.INSTANCE, MonitorDefinition.INSTANCE, DiagnosticsDefinition.INSTANCE);
     }
 
     @Override

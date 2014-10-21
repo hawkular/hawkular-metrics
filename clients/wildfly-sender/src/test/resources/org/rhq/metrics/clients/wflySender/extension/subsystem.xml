@@ -1,7 +1,7 @@
 <subsystem xmlns="urn:org.rhq.metrics:wildflySender:1.0">
 
     <storage-adapter
-            name="org.wildfly.metrics.scheduler.storage.RHQStorageAdapter"
+            name="rhq"
             url="http://localhost:8080/rhq-metrics/metrics" db="wildfly"/>
 
     <server-monitor name="default" enabled="true">
@@ -23,7 +23,7 @@
 
     </server-monitor>
 
-    <!--<diagnostics
-            name="com.codahale.metrics.ConsoleReporter"
-            enabled="true"/> -->
+    <diagnostics
+            name="console"
+            enabled="true"/>
 </subsystem>

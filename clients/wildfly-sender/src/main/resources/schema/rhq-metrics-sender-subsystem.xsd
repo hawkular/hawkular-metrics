@@ -13,7 +13,7 @@
             <xs:element name="storage-adapter" type="storageType" minOccurs="1" maxOccurs="1"/>
             <xs:element name="server-monitor" type="serverMonitorType" minOccurs="0" maxOccurs="1"/>
             <!--xs:element name="application-monitor" type="applicationMonitorType" minOccurs="0" maxOccurs="unbounded"/-->
-            <!--xs:element name="diagnostics" type="diagnosticsType" minOccurs="1" maxOccurs="1"/-->
+            <xs:element name="diagnostics" type="diagnosticsType" minOccurs="1" maxOccurs="1"/>
         </xs:sequence>
     </xs:complexType>
 
@@ -29,7 +29,7 @@
 
     <!-- diagnostics configuration -->
     <xs:complexType name="diagnosticsType">
-        <xs:attribute name="name" default="com.codahale.metrics.ConsoleReporter" type="reporterType"/>
+        <xs:attribute name="name" default="console" type="reporterType"/>
         <xs:attribute name="enabled" default="false" type="xs:boolean"/>
     </xs:complexType>
 
@@ -59,15 +59,15 @@
 
     <xs:simpleType name="adapterType">
         <xs:restriction base="xs:string">
-            <xs:enumeration value="org.wildfly.metrics.scheduler.storage.RHQStorageAdapter" />
-            <xs:enumeration value="org.wildfly.metrics.scheduler.storage.InfluxStorageAdapter" />
+            <xs:enumeration value="rhq" />
+            <xs:enumeration value="influx" />
         </xs:restriction>
     </xs:simpleType>
 
     <xs:simpleType name="reporterType">
         <xs:restriction base="xs:string">
-            <xs:enumeration value="org.wildfly.metrics.scheduler.diagnose.StorageReporter" />
-            <xs:enumeration value="com.codahale.metrics.ConsoleReporter" />
+            <xs:enumeration value="storage" />
+            <xs:enumeration value="console" />
         </xs:restriction>
     </xs:simpleType>
 </xs:schema>

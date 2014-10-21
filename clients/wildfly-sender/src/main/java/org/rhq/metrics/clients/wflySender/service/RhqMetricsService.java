@@ -19,6 +19,7 @@ import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
 import org.jboss.threads.JBossThreadFactory;
 import org.wildfly.metrics.scheduler.ModelControllerClientFactory;
+import org.wildfly.metrics.scheduler.config.Configuration;
 import org.wildfly.metrics.scheduler.config.ConfigurationInstance;
 import org.wildfly.metrics.scheduler.config.Interval;
 import org.wildfly.metrics.scheduler.config.ResourceRef;
@@ -61,6 +62,8 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
 
         Property storageAdapter = config.get("storage-adapter").asPropertyList().get(0);
         List<Property> monitors = config.get("server-monitor").asPropertyList();
+        Property diagnostics = config.get("diagnostics").asPropertyList().get(0);
+
         if(monitors.size()==1)
         {
             Property monitor = monitors.get(0);
@@ -71,13 +74,14 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
 
                 // parse storage adapter
                 ModelNode storageAdapterCfg = storageAdapter.getValue();
-                schedulerConfig.setStorageAdapterType(storageAdapter.getName());
+                schedulerConfig.setStorageAdapter(Configuration.Storage.valueOf(storageAdapter.getName().toUpperCase()));
                 schedulerConfig.setStorageUrl(storageAdapterCfg.get("url").asString());
                 schedulerConfig.setStorageDb(storageAdapterCfg.get("db").asString());
                 schedulerConfig.setStorageUser(storageAdapterCfg.get("user").asString());
                 schedulerConfig.setStoragePassword(storageAdapterCfg.get("passsword").asString());
                 schedulerConfig.setStorageToken(storageAdapterCfg.get("token").asString());
 
+                // resource references
                 List<Property> metrics = monitorCfg.get("metric").asPropertyList();
                 for (Property metric : metrics) {
                     ModelNode metricCfg = metric.getValue();
@@ -105,6 +109,11 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
                     schedulerConfig.addResourceRef(ref);
 
                 }
+
+                // diagnostics
+                schedulerConfig.setDiagnostics(Configuration.Diagnostics.valueOf(diagnostics.getName().toUpperCase()));
+                // TODO the enabled attribute
+
             }
         }
 
