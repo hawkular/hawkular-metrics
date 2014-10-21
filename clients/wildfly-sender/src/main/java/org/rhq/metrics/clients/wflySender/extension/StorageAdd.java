@@ -52,11 +52,7 @@ class StorageAdd extends AbstractAddStepHandler {
                                ServiceVerificationHandler verificationHandler,
                                List<ServiceController<?>> newControllers) throws OperationFailedException {
 
-        String remoteServer  = address.getLastElement().getValue();
 
-        // Add the service
-        newControllers.add(
-                RhqMetricsService.addService(context.getServiceTarget(), verificationHandler, remoteServer, serverModel));
     }
 
 }

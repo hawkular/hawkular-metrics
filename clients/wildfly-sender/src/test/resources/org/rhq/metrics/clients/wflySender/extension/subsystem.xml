@@ -2,23 +2,25 @@
 
     <storage-adapter
             name="org.wildfly.metrics.scheduler.storage.RHQStorageAdapter"
-            url="http://localhost:8080/rhq-metrics/metrics"/>
+            url="http://localhost:8080/rhq-metrics/metrics" db="wildfly"/>
 
     <server-monitor name="default" enabled="true">
+
         <metric name="heap"
                 seconds="20"
                 resource="/core-service=platform-mbean/type=memory"
-                attribute="heap-memory-usage"/>
+                attribute="heap-memory-usage#used"/>
 
         <metric name="non-heap"
                 seconds="20"
                 resource="/core-service=platform-mbean/type=memory"
-                attribute="non-heap-memory-usage"/>
+                attribute="non-heap-memory-usage#used"/>
 
         <metric name="thread-count"
                 minutes="1"
                 resource="/core-service=platform-mbean/type=threading"
                 attribute="thread-count"/>
+
     </server-monitor>
 
     <!--<diagnostics

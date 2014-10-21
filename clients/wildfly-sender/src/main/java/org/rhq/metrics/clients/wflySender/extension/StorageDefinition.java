@@ -51,11 +51,15 @@ public class StorageDefinition extends PersistentResourceDefinition {
             .addFlag(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES)
             .build();
 
+    static final SimpleAttributeDefinition DB = new SimpleAttributeDefinitionBuilder("db", ModelType.STRING,true)
+                .addFlag(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES)
+                .build();
+
 
     static final AttributeDefinition[] ATTRIBUTES = {
             URL,
             USER, PASSWORD,
-            TOKEN
+            TOKEN, DB
     };
 
     @Override

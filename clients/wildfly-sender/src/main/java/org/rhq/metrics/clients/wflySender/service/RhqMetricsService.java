@@ -8,6 +8,7 @@ import org.jboss.as.server.ServerEnvironment;
 import org.jboss.as.server.ServerEnvironmentService;
 import org.jboss.as.server.Services;
 import org.jboss.dmr.ModelNode;
+import org.jboss.dmr.Property;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
@@ -24,6 +25,7 @@ import org.wildfly.metrics.scheduler.config.ResourceRef;
 import org.wildfly.security.manager.action.GetAccessControlContextAction;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -52,36 +54,77 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
     public static final ServiceName SERVICE_NAME = ServiceName.JBOSS.append("rhq-metrics", "sender");
     private boolean isStarted;
 
-    public RhqMetricsService(ModelNode config, String remoteServer) {
+    public RhqMetricsService(ModelNode config) {
 
         // the wildfly scheduler config
-        this.schedulerConfig = new ConfigurationInstance(
-                "localhost", // domain controller host
-                9990 // domain controller port
-        );
+        this.schedulerConfig = new ConfigurationInstance();
 
-        int remotePort = config.get("port").asInt(8080);
-        this.enabled = config.get("enabled").asBoolean(false);
+        Property storageAdapter = config.get("storage-adapter").asPropertyList().get(0);
+        List<Property> monitors = config.get("server-monitor").asPropertyList();
+        if(monitors.size()==1)
+        {
+            Property monitor = monitors.get(0);
+            ModelNode monitorCfg = monitor.getValue();
+            if(monitorCfg.get("enabled").asBoolean())
+            {
+                this.enabled = true;
 
-        schedulerConfig.setRhqUrl("http://" + remoteServer + ":" + remotePort + "/rhq-metrics/metrics");
+                // parse storage adapter
+                ModelNode storageAdapterCfg = storageAdapter.getValue();
+                schedulerConfig.setStorageAdapterType(storageAdapter.getName());
+                schedulerConfig.setStorageUrl(storageAdapterCfg.get("url").asString());
+                schedulerConfig.setStorageDb(storageAdapterCfg.get("db").asString());
+                schedulerConfig.setStorageUser(storageAdapterCfg.get("user").asString());
+                schedulerConfig.setStoragePassword(storageAdapterCfg.get("passsword").asString());
+                schedulerConfig.setStorageToken(storageAdapterCfg.get("token").asString());
+
+                List<Property> metrics = monitorCfg.get("metric").asPropertyList();
+                for (Property metric : metrics) {
+                    ModelNode metricCfg = metric.getValue();
+
+                    Interval interval = null;
+                    if (metricCfg.hasDefined("seconds")) {
+                        interval = new Interval(metricCfg.get("seconds").asInt(), TimeUnit.SECONDS);
+                    }
+                    else if (metricCfg.hasDefined("minutes"))
+                    {
+                        interval = new Interval(metricCfg.get("minutes").asInt(), TimeUnit.MINUTES);
+                    }
+                    else if(metricCfg.hasDefined("hours"))
+                    {
+                        interval = new Interval(metricCfg.get("hours").asInt(), TimeUnit.HOURS);
+                    }
+
+
+                    ResourceRef ref = new ResourceRef(
+                            metricCfg.get("resource").asString(),
+                            metricCfg.get("attribute").asString(),
+                            interval
+                    );
+
+                    schedulerConfig.addResourceRef(ref);
+
+                }
+            }
+        }
 
     }
 
-    public static ServiceController<RhqMetricsService> addService(final ServiceTarget target,
-                                                                  final ServiceVerificationHandler verificationHandler,
-                                                                  String remoteServer, ModelNode config) {
+    public static ServiceController<RhqMetricsService> createService(final ServiceTarget target,
+                                                                     final ServiceVerificationHandler verificationHandler,
+                                                                     ModelNode config) {
 
-        RhqMetricsService service = new RhqMetricsService(config, remoteServer);
+        RhqMetricsService service = new RhqMetricsService(config);
 
         return target.addService(SERVICE_NAME, service)
-            .addDependency(ServerEnvironmentService.SERVICE_NAME, ServerEnvironment.class,
-                service.serverEnvironmentValue)
+                .addDependency(ServerEnvironmentService.SERVICE_NAME, ServerEnvironment.class,
+                        service.serverEnvironmentValue)
                 .addDependency(Services.JBOSS_SERVER_CONTROLLER, ModelController.class,
-                    service.modelControllerValue)
+                        service.modelControllerValue)
                 .addListener(verificationHandler)
                 .setInitialMode(ServiceController.Mode.ACTIVE)
                 .install();
-        }
+    }
 
 
     @Override
@@ -91,9 +134,9 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
         if (this.enabled) {
 
             final ThreadFactory threadFactory = new JBossThreadFactory(
-                            new ThreadGroup("RHQ-Metrics-threads"),
-                            Boolean.FALSE, null, "%G - %t", null, null,
-                            doPrivileged(GetAccessControlContextAction.getInstance()));
+                    new ThreadGroup("RHQ-Metrics-threads"),
+                    Boolean.FALSE, null, "%G - %t", null, null,
+                    doPrivileged(GetAccessControlContextAction.getInstance()));
 
             final ExecutorService executorService = Executors.newCachedThreadPool(threadFactory);
             final ModelControllerClient client = modelControllerValue.getValue().createClient(executorService);
@@ -204,11 +247,11 @@ public class RhqMetricsService implements Service<RhqMetricsService> {
                         metricResource.get("path").asString(),
                         metricResource.get("attribute").asString(),
                         interval
-                        )
+                )
         );
     }
 
     public void removeMetric(String metricName) {
-       // TODO
+        // TODO
     }
 }

@@ -24,6 +24,7 @@
         <xs:attribute name="user" type="xs:string" use="optional"/>
         <xs:attribute name="password" type="xs:string" use="optional"/>
         <xs:attribute name="token" type="xs:string" use="optional"/>
+        <xs:attribute name="db" type="xs:string" use="required"/>
     </xs:complexType>
 
     <!-- diagnostics configuration -->
