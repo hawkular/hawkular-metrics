@@ -29,21 +29,35 @@ and at the end of the profile section goes the subsystem definition:
 
 [source,xml]
 ----
-          <subsystem xmlns="urn:org.rhq.metrics:wildflySender:1.0">
-            <rhqm-server
-                name="localhost"
-                enabled="true"
-                port="8080"
-                token="0x-deaf-beef"/>
-            <metric name="non-heap"
-                    path="/core-service=platform-mbean/type=memory"
-                    attribute="non-heap-memory-usage"/>
-            <metric name="thread-count"
-                    path="/core-service=platform-mbean/type=threading"
-                    attribute="thread-count"/>
-          </subsystem>
+        <subsystem xmlns="urn:org.rhq.metrics:wildflySender:1.0">
 
-       </profile>
+            <storage-adapter
+                    name="rhq"
+                    url="http://localhost:8080/rhq-metrics/metrics" db="wildfly"/>
+
+            <server-monitor name="default" enabled="true" num-threads="2">
+
+                <metric name="heap"
+                        seconds="20"
+                        resource="/core-service=platform-mbean/type=memory"
+                        attribute="heap-memory-usage#used"/>
+
+                <metric name="non-heap"
+                        seconds="20"
+                        resource="/core-service=platform-mbean/type=memory"
+                        attribute="non-heap-memory-usage#used"/>
+
+                <metric name="thread-count"
+                        minutes="1"
+                        resource="/core-service=platform-mbean/type=threading"
+                        attribute="thread-count"/>
+
+            </server-monitor>
+
+            <diagnostics
+                    name="console"
+                    enabled="true" seconds="10"/>
+        </subsystem>
 ----
 
 Copy the module into the server before starting it:
@@ -54,17 +68,3 @@ $ cd $WILDFLY
 $ unzip $RHQMSRC/clients/wildfly-sender/target/wildfly-sender-module.zip
 ----
 
-You can add new metrics via the jboss-cli e.g. via
-
-----
-[standalone@localhost:9990 subsystem=rhq-metrics-sender] ./metric=uptime:add(path="/core-service=platform-mbean/type=runtime",attribute=uptime)
-----
-
-and also remove them:
-
-----
-[standalone@localhost:9990 subsystem=rhq-metrics-sender] ls metric=
-heap          non-heap      thread-count  uptime
-[standalone@localhost:9990 subsystem=rhq-metrics-sender] ./metric=uptime:remove
-{"outcome" => "success"}
-----
