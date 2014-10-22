@@ -1,0 +1,43 @@
+
+<div>
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse-1">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/">
+            <h3 class="sub-header">RHQ Metrics
+                <small style="margin-left: 5px;">Console</small>
+            </h3>
+        </a>
+    </div>
+    <div class="collapse navbar-collapse navbar-collapse-1">
+        <ul class="nav navbar-nav navbar-utility">
+            <li>
+                <a href="#">{{$storage.server+':'+$storage.port}}</a>
+            </li>
+            <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                    <span class="pficon pficon-user"></span>
+                    User Name<b class="caret"></b>
+                </a>
+                <ul class="dropdown-menu" ng-controller="ConfigController as vm">
+                    <li>
+                        <a href="#" ng-click="vm.openConfig()">Connection...</a>
+                        <ng-include src="'views/config-dialog.html'"></ng-include>
+                    </li>
+
+                </ul>
+            </li>
+        </ul>
+        <!--<ul class="nav navbar-nav navbar-primary">-->
+        <!--<li class="active">-->
+        <!--<a href="#">Dashboard</a>-->
+        <!--</li>-->
+
+        <!--<li>-->
+        <!--</ul>-->
+    </div>
+</div>

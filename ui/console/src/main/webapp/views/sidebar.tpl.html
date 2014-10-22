@@ -1,0 +1,22 @@
+<div ng-controller="SidebarController as vm">
+
+    <h4 class="sub-header">Metrics<span class="badge" ng-hide="vm.allMetrics.length < 1"
+                                        style="margin-left: 5px;">{{vm.allMetrics.length}}</span>
+        <button type="button" class="btn btn-primary btn-xs" style="margin-left: 15px;"
+                ng-click="vm.populateMetricsSidebar()">
+            Refresh
+        </button>
+    </h4>
+    <input type="text" class="form-control input-sm" placeholder="Filter..." ng-model="searchText">
+    <ul class="nav nav-sidebar"
+        ng-repeat="metric in vm.allMetrics | limitTo:50 | filter:searchText | orderBy:'title';">
+        <li>
+            <label class="checkbox-inline">
+                <input type="checkbox" style="margin:3px 10px 0 10px;" ng-model="metric.selected"
+                       ng-click="vm.addRemoveChart(metric.title,metric.selected)"/> {{metric.title}}
+            </label>
+        </li>
+
+    </ul>
+
+</div>

@@ -1,0 +1,76 @@
+<div>
+    <ol class="breadcrumb">
+        <li><a href="#">Home</a></li>
+        <li>Dashboard</li>
+    </ol>
+
+    <h3 class="sub-header">Dashboard
+        <small style="margin-left: 5px;">Graphs</small>
+        <span class="badge" ng-hide="vm.selectedMetrics.length < 1">{{vm.selectedMetrics.length}}</span>
+    </h3>
+
+    <div class="well">
+        <!-- Relative Date Range control -->
+        <div class="row">
+            <div class="col-md-12">
+                <relative-time-range-button-bar
+                        start-time-stamp="vm.startTimestamp"
+                        end-time-stamp="vm..endTimeStamp">
+                </relative-time-range-button-bar>
+
+                <input type="text" class="input-xs" style="margin-left: 20px;text-align: center;"
+                       ng-model="vm.dateRange" readonly disbabled/>
+
+                <div class="btn-group button-group-sm" style="margin-left:15px;">
+                    <button type="button" class="btn btn-default btn-xs"
+                            ng-model="vm.chartType" btn-radio="value"
+                            ng-repeat="value in vm.chartTypes"
+                            >{{value}}
+                    </button>
+                </div>
+
+                <!-- Refresh Button -->
+                <div class="btn-group" style="margin-left:15px;"
+                     ng-disabled="vm.selectedMetrics.length == 0"
+                     dropdown>
+                    <button type="button" class="btn btn-primary btn-xs"
+                            ng-disabled="vm.selectedMetrics.length == 0"
+                            ng-click="vm.refreshChartDataNow()">Refresh
+                    </button>
+                    <button type="button" class="btn btn-primary btn-xs dropdown-toggle"
+                            ng-disabled="vm.selectedMetrics.length == 0">
+                        <span class="caret"></span>
+                        <span class="sr-only">Refresh</span>
+                    </button>
+                    <ul class="dropdown-menu" role="menu" ng-disabled="vm.selectedMetrics.length == 0">
+                        <li><a href="#" ng-click="vm.autoRefresh(5)">Auto Refresh (every 5s)</a></li>
+                        <li><a href="#" ng-click="vm.autoRefresh(30)">Auto Refresh (every 30s)</a></li>
+                        <li><a href="#" ng-click="vm.autoRefresh(60)">Auto Refresh (every 1m)</a></li>
+                    </ul>
+                </div>
+                <!--<button style="margin-left: 15px" type="button" class="btn-small btn-danger" ng-hide="vm.selectedMetrics.length == 0" ng-click="vm.cancelAutoRefresh()">Stop</button>-->
+            </div>
+
+            <p></p>
+        </div>
+    </div>
+
+
+    <!-- Panel Sections  for each chart -->
+    <div class="panel panel-default" ng-repeat="selectedMetric in vm.selectedMetrics">
+        <div class="panel-heading">
+            <button type="button" ng-click="vm.deleteChart(selectedMetric)"
+                    style="margin-right: 10px;" class="btn btn-default btn-xs">X
+            </button>
+            <span style="color:#999;margin-right: 10px;"> Metric Id:</span> <strong>  {{selectedMetric}}</strong>
+        </div>
+
+        <div id="stackedBarChart" style="height:255px">
+            <!-- HINT: colors for the chart can be changed in the d3-chart.css -->
+            <rhqm-chart
+                    data="{{vm.getChartDataFor(selectedMetric)}}"
+                    chart-type="{{vm.chartType}}"
+                    chart-height="250"></rhqm-chart>
+        </div>
+    </div>
+</div>
