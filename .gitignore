@@ -7,6 +7,8 @@ target/
 *.ipr
 .DS_Store/
 .settings
+.project
+.classpath
 *node_modules/
 *.log
 *.tmp/
