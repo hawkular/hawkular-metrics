@@ -13,7 +13,9 @@
     "toastr": "2.0.3",
     "lodash": "2.4.1",
     "ngstorage": "0.3.0",
-    "angular-ui-router": "0.2.11"
+    "angular-ui-router": "0.2.11",
+    "underscore.string": "2.3.3",
+    "numeral": "~1.5.3"
   },
   "devDependencies": {
     "angular-mocks": "1.2.16",
