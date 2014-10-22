@@ -16,7 +16,6 @@
   <modules>
     <module>common</module>
     <module>ptranslator</module>
-    <module>wildfly-sender</module>
   </modules>
 
 </project>
