@@ -32,48 +32,12 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.emptyCollectionOf;
 import static org.hamcrest.Matchers.hasSize;
 
-@RunWith(Arquillian.class)
+
 public class BaseTest extends AbstractTestBase {
 
     private static final String APPLICATION_JAVASCRIPT = "application/javascript";
     private static final long SIXTY_SECONDS = 60*1000L;
 
-    @ArquillianResource
-    private URL baseUrl;
-
-    @Deployment(testable=false)
-    public static WebArchive createDeployment() {
-        File pomFile = new File("../rest-servlet/pom.xml");
-
-        System.out.println("Pom file path: " + pomFile.getAbsolutePath());
-        System.out.flush();
-
-        WebArchive archive =
-        ShrinkWrap.create(MavenImporter.class)
-            .offline()
-            .loadPomFromFile(pomFile)
-            .importBuildOutput()
-            .as(WebArchive.class);
-        System.out.println("archive is " + archive.toString(false));
-        System.out.flush();
-        return archive;
-    }
-
-    @Before
-    public void setupRestAssured() {
-        if (baseUrl!=null) {
-            RestAssured.baseURI = baseUrl.toString();
-        } else {
-            RestAssured.baseURI = "http://localhost:8080/rhq-metrics";
-        }
-        // There is no need to set RestAssured.basePath as this is already in the baseUrl,
-        // set via Arquillian in the baseUrl
-    }
-
-    @After
-    public void tearDown() {
-        RestAssured.reset();
-    }
 
 
     @Test
@@ -628,41 +592,6 @@ public class BaseTest extends AbstractTestBase {
 
     }
 
-    @Test
-    public void testInfluxAddGetOneMetric() throws Exception {
-
-        String id = "influx.foo";
-        long now = System.currentTimeMillis();
-
-        List<Map<String,Object>> data = new ArrayList<>();
-
-        data.add(createDataPoint(id, now - 2000, 40d));
-        data.add(createDataPoint(id, now - 1000, 41d));
-        data.add(createDataPoint(id, now, 42d));
-
-        postDataPoints(data);
-
-
-        String query = "select mean(value) from  \"influx.foo\" where time > now() - 30sec group by time(30s) order asc ";
-
-
-        given()
-            .queryParam("q",query)
-            .header(acceptJson)
-        .expect()
-            .statusCode(200)
-            .log()
-                .ifError()
-        .when()
-            .get("/influx/series")
-        .andReturn()
-            .then()
-            .assertThat()
-                .body("[0].name",Matchers.is("influx.foo"))
-            .and()
-                .body("[0].points[0][1]", Matchers.hasToString("41.0"));
-
-    }
 
 
 
