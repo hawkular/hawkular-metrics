@@ -1,27 +1,14 @@
 package org.rhq.metrics.rest;
 
 import com.google.common.base.Strings;
-import com.jayway.restassured.RestAssured;
 import com.jayway.restassured.http.ContentType;
 import com.jayway.restassured.path.json.JsonPath;
 import com.jayway.restassured.path.xml.XmlPath;
 import com.jayway.restassured.response.Response;
-import org.jboss.arquillian.container.test.api.Deployment;
-import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.arquillian.test.api.ArquillianResource;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.jboss.shrinkwrap.resolver.api.maven.archive.importer.MavenImporter;
 
-import org.hamcrest.Matchers;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
-import java.io.File;
-import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -496,100 +483,6 @@ public class BaseTest extends AbstractTestBase {
             .statusCode(404)
         .when()
            .get("/metrics/{id}");
-    }
-
-    @Test
-    public void testInfluxAddGetOneSillyMetric() throws Exception {
-
-        String id = "influx.foo3";
-        long now = System.currentTimeMillis();
-
-        List<Map<String,Object>> data = new ArrayList<>();
-
-        data.add(createDataPoint(id, now - 2000, 40d));
-        data.add(createDataPoint(id, now - 1000, 41d));
-        data.add(createDataPoint(id, now, 42d));
-
-        postDataPoints(data);
-
-
-        String query = "select mean(value) from  \"influx.foo3\" where time > '2013-08-12 23:32:01.232' and time < '2013-08-13' group by time(30s) order asc ";
-
-
-        given()
-            .queryParam("q",query)
-            .header(acceptJson)
-        .expect()
-            .statusCode(200)
-            .log()
-                .ifError()
-        .when()
-            .get("/influx/series")
-        .andReturn()
-            .then()
-            .assertThat()
-                .body("[0].name",Matchers.is("influx.foo3"))
-            .and()
-                .body("[0].points[0]", Matchers.nullValue());
-
-    }
-
-    @Test
-    public void testInfluxAddGetMultiMetric() throws Exception {
-
-        String id = "influx.foo2";
-        long now = System.currentTimeMillis();
-
-        List<Map<String,Object>> data = new ArrayList<>();
-
-        data.add(createDataPoint(id, now-2000, 40d));
-        data.add(createDataPoint(id, now-1000, 41d));
-        data.add(createDataPoint(id, now, 42d));
-
-        id = "influx.bar2";
-        data.add(createDataPoint(id, now-2000, 20d));
-        data.add(createDataPoint(id, now-1000, 21d));
-        data.add(createDataPoint(id, now, 22d));
-
-        postDataPoints(data);
-
-        String query = "select mean(value) from  \"influx.bar2\" where time > now() - 30sec group by time(30s) order asc ";
-
-
-        given()
-            .queryParam("q",query)
-            .header(acceptJson)
-        .expect()
-            .statusCode(200)
-            .log()
-                .ifError()
-        .when()
-            .get("/influx/series")
-        .andReturn()
-            .then()
-            .assertThat()
-                .body("[0].name",Matchers.is("influx.bar2"))
-            .and()
-                .body("[0].points[0][1]", Matchers.hasToString("21.0"));
-
-        query = "select mean(value) from  \"influx.foo2\" where time > now() - 30sec group by time(30s) order asc ";
-
-        given()
-            .queryParam("q",query)
-            .header(acceptJson)
-        .expect()
-            .statusCode(200)
-            .log()
-                .ifError()
-        .when()
-            .get("/influx/series")
-        .andReturn()
-            .then()
-            .assertThat()
-                .body("[0].name",Matchers.is("influx.foo2"))
-            .and()
-                .body("[0].points[0][1]", Matchers.hasToString("41.0"));
-
     }
 
 
