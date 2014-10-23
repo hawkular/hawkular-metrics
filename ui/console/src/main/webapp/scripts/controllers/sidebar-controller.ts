@@ -5,11 +5,11 @@ module Controllers {
     'use strict';
 
     export class SidebarController {
-        public static  $inject = ['MAX_SEARCH_ENTRIES', '$scope', '$rootScope', '$log', 'metricDataService' ];
+        public static  $inject = ['$scope', '$rootScope', '$log', 'metricDataService' ];
 
         allMetrics;
 
-        constructor(private MAX_SEARCH_ENTRIES: number, private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $log:ng.ILogService, private metricDataService) {
+        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $log:ng.ILogService, private metricDataService) {
             $scope.vm = this;
 
             $scope.$on('RemoveSelectedMetricEvent', function (event, metricId) {
@@ -28,9 +28,6 @@ module Controllers {
             this.metricDataService.getAllMetrics()
                 .then(function (response) {
                     that.allMetrics = response;
-                    if(response.length >= this.MAX_SEARCH_ENTRIES){
-                        toastr.info('More than 50 entries please use filter to narrow results');
-                    }
 
                 }, function (error) {
                     this.$log.error('Error Retrieving all metrics: ' + error);

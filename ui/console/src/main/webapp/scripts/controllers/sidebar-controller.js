@@ -4,8 +4,7 @@ var Controllers;
     'use strict';
 
     var SidebarController = (function () {
-        function SidebarController(MAX_SEARCH_ENTRIES, $scope, $rootScope, $log, metricDataService) {
-            this.MAX_SEARCH_ENTRIES = MAX_SEARCH_ENTRIES;
+        function SidebarController($scope, $rootScope, $log, metricDataService) {
             this.$scope = $scope;
             this.$rootScope = $rootScope;
             this.$log = $log;
@@ -25,9 +24,6 @@ var Controllers;
 
             this.metricDataService.getAllMetrics().then(function (response) {
                 that.allMetrics = response;
-                if (response.length >= this.MAX_SEARCH_ENTRIES) {
-                    toastr.info('More than 50 entries please use filter to narrow results');
-                }
             }, function (error) {
                 this.$log.error('Error Retrieving all metrics: ' + error);
                 toastr.error('Error Retrieving all metrics: ' + error);
@@ -41,7 +37,7 @@ var Controllers;
                 this.$rootScope.$emit('NewChartEvent', metricId);
             }
         };
-        SidebarController.$inject = ['MAX_SEARCH_ENTRIES', '$scope', '$rootScope', '$log', 'metricDataService'];
+        SidebarController.$inject = ['$scope', '$rootScope', '$log', 'metricDataService'];
         return SidebarController;
     })();
     Controllers.SidebarController = SidebarController;
