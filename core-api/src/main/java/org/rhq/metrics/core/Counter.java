@@ -3,14 +3,19 @@ package org.rhq.metrics.core;
 import com.google.common.base.Objects;
 
 /**
+ * A counter for tracking the number of some events, such as page hits.
+ *
  * @author John Sanda
  */
 public class Counter {
 
+    /** An identifier for grouping related counters. */
     private String group;
 
+    /** The counter name. */
     private String name;
 
+    /** The counter value. */
     private long value;
 
     public Counter() {
@@ -22,6 +27,11 @@ public class Counter {
         this.value = value;
     }
 
+    /**
+     * Returns an identifier for grouping related counters.
+     *
+     * @return an identifier for grouping related counters
+     */
     public String getGroup() {
         return group;
     }
@@ -30,6 +40,11 @@ public class Counter {
         this.group = group;
     }
 
+    /**
+     * Returns this {@link Counter}'s name.
+     *
+     * @return this {@link Counter}'s name
+     */
     public String getName() {
         return name;
     }
@@ -38,6 +53,11 @@ public class Counter {
         this.name = name;
     }
 
+    /**
+     * Returns this {@link Counter}'s value.
+     *
+     * @return this {@link Counter}'s value
+     */
     public long getValue() {
         return value;
     }
@@ -46,6 +66,7 @@ public class Counter {
         this.value = value;
     }
 
+    /** @see java.lang.Object#equals(java.lang.Object) */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -59,6 +80,7 @@ public class Counter {
         return true;
     }
 
+    /** @see java.lang.Object#hashCode() */
     @Override
     public int hashCode() {
         int result = group.hashCode();
@@ -66,6 +88,7 @@ public class Counter {
         return result;
     }
 
+    /** @see java.lang.Object#toString() */
     @Override
     public String toString() {
         return Objects.toStringHelper(getClass().getSimpleName())
