@@ -225,6 +225,53 @@ module Controllers {
             });
         }
 
+        private calculatePreviousTimeRange(startDate:Date, endDate:Date):any {
+            var previousTimeRange:Date[] = [];
+            var intervalInMillis = endDate.getTime() - startDate.getTime();
+
+            previousTimeRange.push(new Date(startDate.getTime() - intervalInMillis));
+            previousTimeRange.push(startDate);
+            return previousTimeRange;
+        }
+
+        showPreviousTimeRange():void {
+            var previousTimeRange = this.calculatePreviousTimeRange(this.startTimeStamp, this.endTimeStamp);
+
+            this.startTimeStamp = previousTimeRange[0];
+            this.endTimeStamp = previousTimeRange[1];
+            this.refreshAllChartsDataForTimestamp(this.startTimeStamp.getTime(), this.endTimeStamp.getTime());
+
+        }
+
+
+        private calculateNextTimeRange(startDate:Date, endDate:Date):any {
+            var nextTimeRange = [];
+            var intervalInMillis = endDate.getTime() - startDate.getTime();
+
+            nextTimeRange.push(endDate);
+            nextTimeRange.push(new Date(endDate.getTime() + intervalInMillis));
+            return nextTimeRange;
+        }
+
+
+        showNextTimeRange():void {
+            var nextTimeRange = this.calculateNextTimeRange(this.startTimeStamp, this.endTimeStamp);
+
+            this.startTimeStamp = nextTimeRange[0];
+            this.endTimeStamp = nextTimeRange[1];
+            this.refreshAllChartsDataForTimestamp(this.startTimeStamp.getTime(), this.endTimeStamp.getTime());
+
+        }
+
+
+        hasNext():boolean {
+            var nextTimeRange = this.calculateNextTimeRange(this.startTimeStamp, this.endTimeStamp);
+            // unsophisticated test to see if there is a next; without actually querying.
+            //@fixme: pay the price, do the query!
+            return nextTimeRange[1].getTime() < _.now();
+        }
+
+
     }
 
     angular.module('chartingApp')

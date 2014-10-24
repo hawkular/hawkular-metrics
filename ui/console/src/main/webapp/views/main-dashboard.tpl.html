@@ -18,6 +18,14 @@
                         end-time-stamp="vm..endTimeStamp">
                 </relative-time-range-button-bar>
 
+                <button type="button" class="btn btn-default btn-xs"
+                        style="margin-left: 15px;"
+                        ng-click="vm.showPreviousTimeRange()">&lt;
+                </button>
+                <button type="button" class="btn btn-default btn-xs"
+                        ng-disabled="!vm.hasNext()"
+                        ng-click="vm.showNextTimeRange()">&gt;
+                </button>
                 <input type="text" class="input-xs" style="margin-left: 20px;text-align: center;"
                        ng-model="vm.dateRange" readonly disbabled/>
 
@@ -51,7 +59,6 @@
                 <!--<button style="margin-left: 15px" type="button" class="btn-small btn-danger" ng-hide="vm.selectedMetrics.length == 0" ng-click="vm.cancelAutoRefresh()">Stop</button>-->
             </div>
 
-            <p></p>
         </div>
     </div>
 
