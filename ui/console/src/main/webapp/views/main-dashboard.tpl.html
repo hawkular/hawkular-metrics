@@ -1,7 +1,7 @@
 <div>
     <!--<ol class="breadcrumb">-->
-        <!--<li><a href="#">Home</a></li>-->
-        <!--<li>Dashboard</li>-->
+    <!--<li><a href="#">Home</a></li>-->
+    <!--<li>Dashboard</li>-->
     <!--</ol>-->
 
     <h3 class="sub-header" style="margin-top:10px;">Dashboard
@@ -62,22 +62,26 @@
         </div>
     </div>
 
+    <ul ui-sortable ng-model="vm.selectedMetrics" class="sortableList">
+        <li ng-repeat="selectedMetric in vm.selectedMetrics">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <button type="button" ng-click="vm.deleteChart(selectedMetric)"
+                            style="margin-right: 10px;" class="btn btn-default btn-xs"><span
+                            class="pficon pficon-delete"></span>
+                    </button>
+                    <span style="color:#999;margin-right: 10px;"> Metric Id:</span> <strong> {{selectedMetric}}</strong>
+                </div>
 
-    <!-- Panel Sections  for each chart -->
-    <div class="panel panel-default" ng-repeat="selectedMetric in vm.selectedMetrics">
-        <div class="panel-heading">
-            <button type="button" ng-click="vm.deleteChart(selectedMetric)"
-                    style="margin-right: 10px;" class="btn btn-default btn-xs"><span class="pficon pficon-delete"></span>
-            </button>
-            <span style="color:#999;margin-right: 10px;"> Metric Id:</span> <strong>  {{selectedMetric}}</strong>
-        </div>
+                <div id="stackedBarChart" style="height:255px">
+                    <!-- HINT: colors for the chart can be changed in the d3-chart.css -->
+                    <rhqm-chart
+                            data="{{vm.getChartDataFor(selectedMetric)}}"
+                            chart-type="{{vm.chartType}}"
+                            chart-height="250"></rhqm-chart>
+                </div>
+            </div>
+        </li>
+    </ul>
 
-        <div id="stackedBarChart" style="height:255px">
-            <!-- HINT: colors for the chart can be changed in the d3-chart.css -->
-            <rhqm-chart
-                    data="{{vm.getChartDataFor(selectedMetric)}}"
-                    chart-type="{{vm.chartType}}"
-                    chart-height="250"></rhqm-chart>
-        </div>
-    </div>
 </div>

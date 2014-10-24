@@ -127,3 +127,12 @@ input.ng-valid.ng-dirty {
     height: 200px
 }
 
+
+.sortableList {
+    list-style: none outside none;
+    /*margin: 10px 0 30px;*/
+    margin-left:-40px;
+}
+.sortableList > li {
+    margin-bottom: -15px;
+}

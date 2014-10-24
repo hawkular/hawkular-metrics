@@ -36,7 +36,6 @@
     "commit": "23a5419a7c6b17e871e750d27023422e8f3761de"
   },
   "_source": "git://github.com/patternfly/patternfly.git",
-  "_target": "~1.1.1",
-  "_originalSource": "patternfly",
-  "_direct": true
+  "_target": "1.1.1",
+  "_originalSource": "patternfly"
 }

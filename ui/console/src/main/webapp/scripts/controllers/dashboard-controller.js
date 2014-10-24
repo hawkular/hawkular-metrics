@@ -25,7 +25,6 @@ var Controllers;
             this.dateRange = dateRange;
             this.chartData = {};
             this.bucketedDataPoints = [];
-            this.self = this;
             this.selectedMetrics = [];
             this.searchId = '';
             this.updateEndTimeStampToNow = false;

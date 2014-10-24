@@ -38,7 +38,6 @@ module Controllers {
         private updateLastTimeStampToNowPromise:ng.IPromise<number>;
         private chartData = {};
         private bucketedDataPoints:IChartDataPoint[] = [];
-        private self = this;
 
         selectedMetrics:string[] = [];
         searchId = '';
