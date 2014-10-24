@@ -4,7 +4,7 @@
         <!--<li>Dashboard</li>-->
     <!--</ol>-->
 
-    <h3 class="sub-header">Dashboard
+    <h3 class="sub-header" style="margin-top:10px;">Dashboard
         <small style="margin-left: 5px;">Graphs</small>
         <span class="badge" ng-hide="vm.selectedMetrics.length < 1">{{vm.selectedMetrics.length}}</span>
     </h3>
@@ -67,7 +67,7 @@
     <div class="panel panel-default" ng-repeat="selectedMetric in vm.selectedMetrics">
         <div class="panel-heading">
             <button type="button" ng-click="vm.deleteChart(selectedMetric)"
-                    style="margin-right: 10px;" class="btn btn-default btn-xs">X
+                    style="margin-right: 10px;" class="btn btn-default btn-xs"><span class="pficon pficon-delete"></span>
             </button>
             <span style="color:#999;margin-right: 10px;"> Metric Id:</span> <strong>  {{selectedMetric}}</strong>
         </div>
