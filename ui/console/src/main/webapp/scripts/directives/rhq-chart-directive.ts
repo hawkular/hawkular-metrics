@@ -1106,7 +1106,7 @@ module Directives {
                                 return !d.empty;
                             })
                             .x(function (d) {
-                                return timeScale(d.timestamp);
+                                return  timeScale(d.timestamp) + (calcBarWidth() / 2)
                             })
                             .y(function (d) {
                                 return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
@@ -1120,59 +1120,58 @@ module Directives {
                         .datum(chartData)
                         .attr("class", "barAvgLine")
                         .attr("d", createCenteredLine("monotone"));
-
                 }
 
 
-                function createContextBrush() {
-                    console.debug("Create Context Brush");
-
-                    context = svg.append("g")
-                        .attr("class", "context")
-                        .attr("width", width + margin.left + margin.right)
-                        .attr("height", chartHeight)
-                        .attr("transform", "translate(" + contextMargin.left + "," + (adjustedChartHeight2 + 130) + ")");
-
-
-                    brush = d3.svg.brush()
-                        .x(timeScaleForContext)
-                        .on("brushstart", brushStart)
-                        .on("brush", brushMove)
-                        .on("brushend", brushEnd);
-
-                    brushGroup = svg.append("g")
-                        .attr("class", "brush")
-                        .call(brush);
-
-                    brushGroup.selectAll(".resize").append("path");
-
-                    brushGroup.selectAll("rect")
-                        .attr("height", height);
-
-                    function brushStart() {
-                        svg.classed("selecting", true);
-                    }
-
-                    function brushMove() {
-                        //useful for showing the daterange change dynamically while selecting
-                        var extent = brush.extent();
-                        scope.$emit('DateRangeMove', extent);
-                    }
-
-                    function brushEnd() {
-                        var extent = brush.extent(),
-                            startTime = Math.round(extent[0].getTime()),
-                            endTime = Math.round(extent[1].getTime()),
-                            dragSelectionDelta = endTime - startTime >= 60000;
-
-                        svg.classed("selecting", !d3.event.target.empty());
-                        // ignore range selections less than 1 minute
-                        if (dragSelectionDelta) {
-                            scope.$emit('DateRangeChanged', extent);
-                        }
-                    }
-
-                }
+                //function createContextBrush() {
+                //    console.debug("Create Context Brush");
+                //
+                //    context = svg.append("g")
+                //        .attr("class", "context")
+                //        .attr("width", width + margin.left + margin.right)
+                //        .attr("height", chartHeight)
+                //        .attr("transform", "translate(" + contextMargin.left + "," + (adjustedChartHeight2 + 130) + ")");
+                //
+                //
+                //    brush = d3.svg.brush()
+                //        .x(timeScaleForContext)
+                //        .on("brushstart", brushStart)
+                //        .on("brush", brushMove)
+                //        .on("brushend", brushEnd);
+                //
+                //    brushGroup = svg.append("g")
+                //        .attr("class", "brush")
+                //        .call(brush);
+                //
+                //    brushGroup.selectAll(".resize").append("path");
+                //
+                //    brushGroup.selectAll("rect")
+                //        .attr("height", height);
+                //
+                //    function brushStart() {
+                //        svg.classed("selecting", true);
+                //    }
+                //
+                //    function brushMove() {
+                //        //useful for showing the daterange change dynamically while selecting
+                //        var extent = brush.extent();
+                //        scope.$emit('DateRangeMove', extent);
+                //    }
+                //
+                //    function brushEnd() {
+                //        var extent = brush.extent(),
+                //            startTime = Math.round(extent[0].getTime()),
+                //            endTime = Math.round(extent[1].getTime()),
+                //            dragSelectionDelta = endTime - startTime >= 60000;
+                //
+                //        svg.classed("selecting", !d3.event.target.empty());
+                //        // ignore range selections less than 1 minute
+                //        if (dragSelectionDelta) {
+                //            scope.$emit('DateRangeChanged', extent);
+                //        }
+                //    }
+                //
+                //}
 
                 function createXAxisBrush() {
 
@@ -1395,6 +1394,7 @@ module Directives {
                         createPreviousRangeOverlay(previousRangeDataPoints);
                         createMultiMetricOverlay();
                         createXandYAxes();
+                        showAvgLine = (chartType === 'bar' || chartType === 'scatterline') ? true : false;
                         if (showAvgLine === true) {
                             createAvgLines();
                         }
