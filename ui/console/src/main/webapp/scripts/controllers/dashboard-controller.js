@@ -30,7 +30,7 @@ var Controllers;
             this.updateEndTimeStampToNow = false;
             this.showAutoRefreshCancel = false;
             this.chartType = 'bar';
-            this.chartTypes = ['bar', 'line', 'area'];
+            this.chartTypes = ['bar', 'line', 'area', 'scatterline'];
             this.dateTimeRanges = [
                 { 'range': '1h', 'rangeInSeconds': 60 * 60 },
                 { 'range': '4h', 'rangeInSeconds': 4 * 60 * 60 },

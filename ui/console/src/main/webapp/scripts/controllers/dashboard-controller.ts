@@ -44,7 +44,7 @@ module Controllers {
         updateEndTimeStampToNow = false;
         showAutoRefreshCancel = false;
         chartType = 'bar';
-        chartTypes = ['bar', 'line', 'area' ];
+        chartTypes = ['bar', 'line', 'area', 'scatterline' ];
 
         dateTimeRanges:IDateTimeRangeDropDown[] = [
             { 'range': '1h', 'rangeInSeconds': 60 * 60 } ,
