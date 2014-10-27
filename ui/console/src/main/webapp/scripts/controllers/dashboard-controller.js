@@ -30,8 +30,13 @@ var Controllers;
             this.searchId = '';
             this.updateEndTimeStampToNow = false;
             this.showAutoRefreshCancel = false;
-            this.chartType = 'bar';
-            this.chartTypes = ['bar', 'line', 'area', 'scatterline'];
+            this.chartTypes = [
+                { chartType: 'bar', icon: 'fa fa-bar-chart', enabled: true },
+                { chartType: 'line', icon: 'fa fa-line-chart', enabled: true },
+                { chartType: 'area', icon: 'fa fa-area-chart', enabled: true },
+                { chartType: 'scatterline', icon: 'fa fa-circle-thin', enabled: true }
+            ];
+            this.chartType = this.chartTypes[0].chartType;
             this.dateTimeRanges = [
                 { 'range': '1h', 'rangeInSeconds': 60 * 60 },
                 { 'range': '4h', 'rangeInSeconds': 4 * 60 * 60 },

@@ -42,9 +42,9 @@
 
                 <div class="btn-group button-group-sm" style="margin-left:15px;">
                     <button type="button" class="btn btn-default btn-xs"
-                            ng-model="vm.chartType" btn-radio="value"
-                            ng-repeat="value in vm.chartTypes"
-                            >{{value}}
+                            ng-repeat="chart in vm.chartTypes"
+                            ng-model="vm.chartType" btn-radio="chart"
+                            ><i class="{{chart.icon}}"></i>
                     </button>
                 </div>
 
@@ -88,7 +88,7 @@
                     <!-- HINT: colors for the chart can be changed in the d3-chart.css -->
                     <rhqm-chart
                             data="{{vm.getChartDataFor(selectedMetric)}}"
-                            chart-type="{{vm.chartType}}"
+                            chart-type="{{vm.chartType.chartType}}"
                             chart-height="250"></rhqm-chart>
                 </div>
             </div>

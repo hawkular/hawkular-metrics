@@ -22,6 +22,12 @@ module Controllers {
         rangeInSeconds:number;
     }
 
+    export interface IChartType {
+        chartType: string;
+        icon:string;
+        enabled:boolean;
+    }
+
     export interface IMetricGroup {
         groupName:string;
         metrics:string[];
@@ -48,8 +54,13 @@ module Controllers {
         searchId = '';
         updateEndTimeStampToNow = false;
         showAutoRefreshCancel = false;
-        chartType = 'bar';
-        chartTypes = ['bar', 'line', 'area', 'scatterline'];
+        chartTypes:IChartType[] = [
+            {chartType: 'bar', icon: 'fa fa-bar-chart', enabled: true},
+            {chartType: 'line',  icon: 'fa fa-line-chart', enabled: true},
+            {chartType: 'area', icon: 'fa fa-area-chart', enabled: true},
+            {chartType: 'scatterline', icon: 'fa fa-circle-thin', enabled: true}
+        ];
+        chartType:string =  this.chartTypes[0].chartType;
 
         dateTimeRanges:IDateTimeRangeDropDown[] = [
             {'range': '1h', 'rangeInSeconds': 60 * 60},
