@@ -22,7 +22,7 @@ module Controllers {
         rangeInSeconds:number;
     }
 
-    export interface IMetricGroups {
+    export interface IMetricGroup {
         groupName:string;
         metrics:string[];
     }
@@ -63,7 +63,7 @@ module Controllers {
             {'range': '6m', 'rangeInSeconds': 6 * 30 * 24 * 60 * 60}
         ];
 
-        groupName:string;
+        selectedGroup:string;
         groupNames:string[] = [];
 
 
@@ -90,6 +90,7 @@ module Controllers {
 
             $rootScope.$on('RefreshSidebarEvent', function (event) {
                 $scope.vm.selectedMetrics = [];
+                $scope.vm.selectedGroup = '';
                 $scope.vm.loadAllGraphGroupNames();
             });
 
@@ -103,6 +104,11 @@ module Controllers {
                 }
             });
 
+
+            $scope.$watch('selectedGroup', function (newName, oldName) {
+                console.log('GroupName Changed!' + newName);
+                $scope.vm.loadSelectedGraphGroup();
+            });
 
 
         }
@@ -128,15 +134,14 @@ module Controllers {
         }
 
         autoRefresh(intervalInSeconds:number):void {
-            var that = this;
             toastr.info('Auto Refresh Mode started');
             this.updateEndTimeStampToNow = !this.updateEndTimeStampToNow;
             this.showAutoRefreshCancel = true;
             if (this.updateEndTimeStampToNow) {
                 this.showAutoRefreshCancel = true;
-                this.updateLastTimeStampToNowPromise = this.$interval(function () {
-                    that.updateTimestampsToNow();
-                    that.refreshAllChartsDataForTimestamp();
+                this.updateLastTimeStampToNowPromise = this.$interval(() => {
+                    this.updateTimestampsToNow();
+                    this.refreshAllChartsDataForTimestamp();
                 }, intervalInSeconds * 1000);
 
             } else {
@@ -164,7 +169,6 @@ module Controllers {
         }
 
         refreshHistoricalChartDataForTimestamp(metricId:string, startTime?:number, endTime?:number):void {
-            var that = this;
             // calling refreshChartData without params use the model values
             if (angular.isUndefined(endTime)) {
                 endTime = this.$scope.vm.endTimeStamp;
@@ -182,22 +186,22 @@ module Controllers {
             if (metricId !== '') {
 
                 this.metricDataService.getMetricsForTimeRange(metricId, new Date(startTime), new Date(endTime))
-                    .then(function (response) {
+                    .then((response) => {
                         // we want to isolate the response from the data we are feeding to the chart
-                        that.bucketedDataPoints = that.formatBucketedChartOutput(response);
+                        this.bucketedDataPoints = this.formatBucketedChartOutput(response);
 
-                        if (that.bucketedDataPoints.length !== 0) {
-                            that.$log.info("Retrieving data for metricId: " + metricId);
+                        if (this.bucketedDataPoints.length !== 0) {
+                            this.$log.info("Retrieving data for metricId: " + metricId);
                             // this is basically the DTO for the chart
-                            that.chartData[metricId] = {
+                            this.chartData[metricId] = {
                                 id: metricId,
-                                startTimeStamp: that.startTimeStamp,
-                                endTimeStamp: that.endTimeStamp,
-                                dataPoints: that.bucketedDataPoints
+                                startTimeStamp: this.startTimeStamp,
+                                endTimeStamp: this.endTimeStamp,
+                                dataPoints: this.bucketedDataPoints
                             };
 
                         } else {
-                            that.noDataFoundForId(metricId);
+                            this.noDataFoundForId(metricId);
                         }
 
                     }, function (error) {
@@ -208,11 +212,10 @@ module Controllers {
         }
 
         refreshAllChartsDataForTimestamp(startTime?:number, endTime?:number):void {
-            var that = this;
 
-            _.each(this.selectedMetrics, function (aMetric) {
-                that.$log.info("Reloading Metric Chart Data for: " + aMetric);
-                that.refreshHistoricalChartDataForTimestamp(aMetric, startTime, endTime);
+            _.each(this.selectedMetrics, (aMetric) => {
+                this.$log.info("Reloading Metric Chart Data for: " + aMetric);
+                this.refreshHistoricalChartDataForTimestamp(aMetric, startTime, endTime);
             });
 
         }
@@ -223,7 +226,7 @@ module Controllers {
 
         private formatBucketedChartOutput(response):IChartDataPoint[] {
             //  The schema is different for bucketed output
-            return _.map(response, function (point:IChartDataPoint) {
+            return _.map(response, (point:IChartDataPoint) => {
                 return {
                     timestamp: point.timestamp,
                     date: new Date(point.timestamp),
@@ -285,48 +288,47 @@ module Controllers {
 
         saveGraphsAsGroup(groupName:string) {
             console.debug("Saving GroupName: " + groupName);
-            var savedGroups:IMetricGroups[] = [];
+            var savedGroups:IMetricGroup[] = [];
             var previousGroups = localStorage.getItem('groups');
-            console.debug("Previous groups:");
-            console.dir(previousGroups);
+            var aGroupName = angular.isUndefined(groupName) ? this.selectedGroup : groupName;
 
-            var newEntry:IMetricGroups = {'groupName': groupName, 'metrics':  this.selectedMetrics};
-
-            savedGroups.push(newEntry);
-            if(previousGroups !== null){
-                _.each(angular.fromJson(previousGroups), function(item:IMetricGroups){
-                    item.groupName
-                    newEntry= {'groupName': item.groupName, 'metrics':  item.metrics};
-
+            if (previousGroups !== null) {
+                _.each(angular.fromJson(previousGroups), (item:IMetricGroup) => {
+                    savedGroups.push({'groupName': item.groupName, 'metrics': item.metrics});
                 });
-                //savedGroups.push(angular.fromJson(previousGroups));
             }
 
-            localStorage.setItem('groups', angular.toJson(savedGroups));
-            this.groupName = '';
-            this.loadAllGraphGroupNames();
+            var newEntry:IMetricGroup = {'groupName': aGroupName, 'metrics': this.selectedMetrics};
+            savedGroups.push(newEntry);
 
+            localStorage.setItem('groups', angular.toJson(savedGroups));
+            this.loadAllGraphGroupNames();
+            this.selectedGroup = groupName;
         }
 
         loadAllGraphGroupNames() {
-            var that = this;
             var existingGroups = localStorage.getItem('groups');
             var groups = angular.fromJson(existingGroups);
-            console.debug("Groups loaded:");
-            console.dir(groups);
-            _.each(groups, function(item:IMetricGroups){
-                that.groupNames.push(item.groupName);
+            this.groupNames = [];
+            _.each(groups, (item:IMetricGroup) => {
+                this.groupNames.push(item.groupName);
             });
-            console.debug("loaded all group names: ");
-            console.dir(this.groupNames);
         }
 
         loadSelectedGraphGroup() {
+            var groups = localStorage.getItem('groups');
 
+            if (angular.isDefined(groups)) {
+                _.each(angular.fromJson(groups), function (item:IMetricGroup) {
+
+                    if (item.groupName === this.selectedGroup) {
+                        this.selectedMetrics = item.metrics;
+                    }
+                });
+            }
         }
-
-
     }
+
 
     angular.module('chartingApp')
         .controller('DashboardController', DashboardController);

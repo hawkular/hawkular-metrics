@@ -8,13 +8,13 @@
         <small style="margin-left: 5px;">Graphs</small>
         <span class="badge" ng-hide="vm.selectedMetrics.length < 1">{{vm.selectedMetrics.length}}</span>
 
-        <select class="pull-right" ng-model="vm.groupNames" style="margin:17px 0 0 10px;" ng-options="group for group in vm.groupNames" ng-show="vm.groupNames.length > 0">
+        <select class="pull-right" ng-model="vm.selectedGroup" style="margin:17px 0 0 10px;" ng-options="group for group in vm.groupNames" ng-show="vm.groupNames.length > 0" >
             <option value="">-- Choose Group --</option>
         </select>
         <div class="input-group " ng-show="vm.selectedMetrics.length > 0">
-            <input type="text" class="form-control input-sm pull-right"  style="width:150px;" placeholder="Save Group..." ng-model="vm.groupName" ng-enter="vm.saveGraphsAsGroup(vm.groupName);">
+            <input type="text" class="form-control input-sm pull-right"  style="width:150px;" placeholder="Save Group..." ng-model="vm.selectedGroup" ng-enter="vm.saveGraphsAsGroup(vm.selectedGroup);">
             <span class="input-group-btn">
-            <button class="btn btn-default btn-sm" type="button" ng-click="vm.saveGraphsAsGroup(vm.groupName)"><span class="pficon pficon-save"></span> </button>
+            <button class="btn btn-default btn-sm" type="button" ng-click="vm.saveGraphsAsGroup(vm.selectedGroup)"><span class="pficon pficon-save"></span> </button>
             </span>
         </div>
 
@@ -50,18 +50,18 @@
 
                 <!-- Refresh Button -->
                 <div class="btn-group pull-right" style="margin-left:15px;"
-                     ng-disabled="vm.selectedMetrics.length == 0"
+                     ng-disabled="vm.selectedMetrics.length === 0"
                      dropdown>
                     <button type="button" class="btn btn-primary btn-xs"
-                            ng-disabled="vm.selectedMetrics.length == 0"
+                            ng-disabled="vm.selectedMetrics.length === 0"
                             ng-click="vm.refreshChartDataNow()">Refresh
                     </button>
                     <button type="button" class="btn btn-primary btn-xs dropdown-toggle"
-                            ng-disabled="vm.selectedMetrics.length == 0">
+                            ng-disabled="vm.selectedMetrics.length === 0">
                         <span class="caret"></span>
                         <span class="sr-only">Refresh</span>
                     </button>
-                    <ul class="dropdown-menu" role="menu" ng-disabled="vm.selectedMetrics.length == 0">
+                    <ul class="dropdown-menu" role="menu" ng-disabled="vm.selectedMetrics.length === 0">
                         <li><a href="#" ng-click="vm.autoRefresh(5)">Auto Refresh (every 5s)</a></li>
                         <li><a href="#" ng-click="vm.autoRefresh(30)">Auto Refresh (every 30s)</a></li>
                         <li><a href="#" ng-click="vm.autoRefresh(60)">Auto Refresh (every 1m)</a></li>

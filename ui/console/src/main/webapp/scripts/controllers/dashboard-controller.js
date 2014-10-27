@@ -66,6 +66,7 @@ var Controllers;
 
             $rootScope.$on('RefreshSidebarEvent', function (event) {
                 $scope.vm.selectedMetrics = [];
+                $scope.vm.selectedGroup = '';
                 $scope.vm.loadAllGraphGroupNames();
             });
 
@@ -77,6 +78,11 @@ var Controllers;
                     toastr.info('Removed: ' + metricId + ' from Dashboard!');
                     $scope.vm.refreshAllChartsDataForTimestamp($scope.vm.startTimeStamp, $scope.vm.endTimeStamp);
                 }
+            });
+
+            $scope.$watch('selectedGroup', function (newName, oldName) {
+                console.log('GroupName Changed!' + newName);
+                $scope.vm.loadSelectedGraphGroup();
             });
         }
         DashboardController.prototype.noDataFoundForId = function (id) {
@@ -97,15 +103,15 @@ var Controllers;
         };
 
         DashboardController.prototype.autoRefresh = function (intervalInSeconds) {
-            var that = this;
+            var _this = this;
             toastr.info('Auto Refresh Mode started');
             this.updateEndTimeStampToNow = !this.updateEndTimeStampToNow;
             this.showAutoRefreshCancel = true;
             if (this.updateEndTimeStampToNow) {
                 this.showAutoRefreshCancel = true;
                 this.updateLastTimeStampToNowPromise = this.$interval(function () {
-                    that.updateTimestampsToNow();
-                    that.refreshAllChartsDataForTimestamp();
+                    _this.updateTimestampsToNow();
+                    _this.refreshAllChartsDataForTimestamp();
                 }, intervalInSeconds * 1000);
             } else {
                 this.$interval.cancel(this.updateLastTimeStampToNowPromise);
@@ -132,8 +138,7 @@ var Controllers;
         };
 
         DashboardController.prototype.refreshHistoricalChartDataForTimestamp = function (metricId, startTime, endTime) {
-            var that = this;
-
+            var _this = this;
             // calling refreshChartData without params use the model values
             if (angular.isUndefined(endTime)) {
                 endTime = this.$scope.vm.endTimeStamp;
@@ -151,20 +156,20 @@ var Controllers;
             if (metricId !== '') {
                 this.metricDataService.getMetricsForTimeRange(metricId, new Date(startTime), new Date(endTime)).then(function (response) {
                     // we want to isolate the response from the data we are feeding to the chart
-                    that.bucketedDataPoints = that.formatBucketedChartOutput(response);
+                    _this.bucketedDataPoints = _this.formatBucketedChartOutput(response);
 
-                    if (that.bucketedDataPoints.length !== 0) {
-                        that.$log.info("Retrieving data for metricId: " + metricId);
+                    if (_this.bucketedDataPoints.length !== 0) {
+                        _this.$log.info("Retrieving data for metricId: " + metricId);
 
                         // this is basically the DTO for the chart
-                        that.chartData[metricId] = {
+                        _this.chartData[metricId] = {
                             id: metricId,
-                            startTimeStamp: that.startTimeStamp,
-                            endTimeStamp: that.endTimeStamp,
-                            dataPoints: that.bucketedDataPoints
+                            startTimeStamp: _this.startTimeStamp,
+                            endTimeStamp: _this.endTimeStamp,
+                            dataPoints: _this.bucketedDataPoints
                         };
                     } else {
-                        that.noDataFoundForId(metricId);
+                        _this.noDataFoundForId(metricId);
                     }
                 }, function (error) {
                     toastr.error('Error Loading Chart Data: ' + error);
@@ -173,11 +178,10 @@ var Controllers;
         };
 
         DashboardController.prototype.refreshAllChartsDataForTimestamp = function (startTime, endTime) {
-            var that = this;
-
+            var _this = this;
             _.each(this.selectedMetrics, function (aMetric) {
-                that.$log.info("Reloading Metric Chart Data for: " + aMetric);
-                that.refreshHistoricalChartDataForTimestamp(aMetric, startTime, endTime);
+                _this.$log.info("Reloading Metric Chart Data for: " + aMetric);
+                _this.refreshHistoricalChartDataForTimestamp(aMetric, startTime, endTime);
             });
         };
 
@@ -246,39 +250,42 @@ var Controllers;
             console.debug("Saving GroupName: " + groupName);
             var savedGroups = [];
             var previousGroups = localStorage.getItem('groups');
-            console.debug("Previous groups:");
-            console.dir(previousGroups);
+            var aGroupName = angular.isUndefined(groupName) ? this.selectedGroup : groupName;
 
-            var newEntry = { 'groupName': groupName, 'metrics': this.selectedMetrics };
-
-            savedGroups.push(newEntry);
             if (previousGroups !== null) {
                 _.each(angular.fromJson(previousGroups), function (item) {
-                    item.groupName;
-                    newEntry = { 'groupName': item.groupName, 'metrics': item.metrics };
+                    savedGroups.push({ 'groupName': item.groupName, 'metrics': item.metrics });
                 });
-                //savedGroups.push(angular.fromJson(previousGroups));
             }
 
+            var newEntry = { 'groupName': aGroupName, 'metrics': this.selectedMetrics };
+            savedGroups.push(newEntry);
+
             localStorage.setItem('groups', angular.toJson(savedGroups));
-            this.groupName = '';
             this.loadAllGraphGroupNames();
+            this.selectedGroup = groupName;
         };
 
         DashboardController.prototype.loadAllGraphGroupNames = function () {
-            var that = this;
+            var _this = this;
             var existingGroups = localStorage.getItem('groups');
             var groups = angular.fromJson(existingGroups);
-            console.debug("Groups loaded:");
-            console.dir(groups);
+            this.groupNames = [];
             _.each(groups, function (item) {
-                that.groupNames.push(item.groupName);
+                _this.groupNames.push(item.groupName);
             });
-            console.debug("loaded all group names: ");
-            console.dir(this.groupNames);
         };
 
         DashboardController.prototype.loadSelectedGraphGroup = function () {
+            var groups = localStorage.getItem('groups');
+
+            if (angular.isDefined(groups)) {
+                _.each(angular.fromJson(groups), function (item) {
+                    if (item.groupName === this.selectedGroup) {
+                        this.selectedMetrics = item.metrics;
+                    }
+                });
+            }
         };
         DashboardController.$inject = ['$scope', '$rootScope', '$interval', '$localStorage', '$log', 'metricDataService'];
         return DashboardController;
