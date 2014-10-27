@@ -28,6 +28,7 @@ module Controllers {
             this.metricDataService.getAllMetrics()
                 .then(function (response) {
                     that.allMetrics = response;
+                    that.$rootScope.$emit('RefreshSidebarEvent');
 
                 }, function (error) {
                     this.$log.error('Error Retrieving all metrics: ' + error);

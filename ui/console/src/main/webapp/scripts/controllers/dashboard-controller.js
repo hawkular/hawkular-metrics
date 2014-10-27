@@ -14,10 +14,11 @@ var Controllers;
     * @param metricDataService
     */
     var DashboardController = (function () {
-        function DashboardController($scope, $rootScope, $interval, $log, metricDataService, startTimeStamp, endTimeStamp, dateRange) {
+        function DashboardController($scope, $rootScope, $interval, $localStorage, $log, metricDataService, startTimeStamp, endTimeStamp, dateRange) {
             this.$scope = $scope;
             this.$rootScope = $rootScope;
             this.$interval = $interval;
+            this.$localStorage = $localStorage;
             this.$log = $log;
             this.metricDataService = metricDataService;
             this.startTimeStamp = startTimeStamp;
@@ -42,10 +43,10 @@ var Controllers;
                 { 'range': '3m', 'rangeInSeconds': 3 * 30 * 24 * 60 * 60 },
                 { 'range': '6m', 'rangeInSeconds': 6 * 30 * 24 * 60 * 60 }
             ];
+            this.groupNames = [];
             $scope.vm = this;
 
             $scope.$on('GraphTimeRangeChangedEvent', function (event, timeRange) {
-                console.debug("GraphTimeRangeChangedEvent received!");
                 $scope.vm.startTimeStamp = timeRange[0];
                 $scope.vm.endTimeStamp = timeRange[1];
                 $scope.vm.dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
@@ -53,7 +54,6 @@ var Controllers;
             });
 
             $rootScope.$on('NewChartEvent', function (event, metricId) {
-                console.debug('NewChartEvent for: ' + metricId);
                 if (_.contains($scope.vm.selectedMetrics, metricId)) {
                     toastr.warning(metricId + ' is already selected');
                 } else {
@@ -64,8 +64,12 @@ var Controllers;
                 }
             });
 
+            $rootScope.$on('RefreshSidebarEvent', function (event) {
+                $scope.vm.selectedMetrics = [];
+                $scope.vm.loadAllGraphGroupNames();
+            });
+
             $rootScope.$on('RemoveChartEvent', function (event, metricId) {
-                console.debug('RemoveChartEvent for: ' + metricId);
                 if (_.contains($scope.vm.selectedMetrics, metricId)) {
                     var pos = _.indexOf($scope.vm.selectedMetrics, metricId);
                     $scope.vm.selectedMetrics.splice(pos, 1);
@@ -237,7 +241,46 @@ var Controllers;
             //@fixme: pay the price, do the query!
             return nextTimeRange[1].getTime() < _.now();
         };
-        DashboardController.$inject = ['$scope', '$rootScope', '$interval', '$log', 'metricDataService'];
+
+        DashboardController.prototype.saveGraphsAsGroup = function (groupName) {
+            console.debug("Saving GroupName: " + groupName);
+            var savedGroups = [];
+            var previousGroups = localStorage.getItem('groups');
+            console.debug("Previous groups:");
+            console.dir(previousGroups);
+
+            var newEntry = { 'groupName': groupName, 'metrics': this.selectedMetrics };
+
+            savedGroups.push(newEntry);
+            if (previousGroups !== null) {
+                _.each(angular.fromJson(previousGroups), function (item) {
+                    item.groupName;
+                    newEntry = { 'groupName': item.groupName, 'metrics': item.metrics };
+                });
+                //savedGroups.push(angular.fromJson(previousGroups));
+            }
+
+            localStorage.setItem('groups', angular.toJson(savedGroups));
+            this.groupName = '';
+            this.loadAllGraphGroupNames();
+        };
+
+        DashboardController.prototype.loadAllGraphGroupNames = function () {
+            var that = this;
+            var existingGroups = localStorage.getItem('groups');
+            var groups = angular.fromJson(existingGroups);
+            console.debug("Groups loaded:");
+            console.dir(groups);
+            _.each(groups, function (item) {
+                that.groupNames.push(item.groupName);
+            });
+            console.debug("loaded all group names: ");
+            console.dir(this.groupNames);
+        };
+
+        DashboardController.prototype.loadSelectedGraphGroup = function () {
+        };
+        DashboardController.$inject = ['$scope', '$rootScope', '$interval', '$localStorage', '$log', 'metricDataService'];
         return DashboardController;
     })();
     Controllers.DashboardController = DashboardController;

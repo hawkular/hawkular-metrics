@@ -22,6 +22,11 @@ module Controllers {
         rangeInSeconds:number;
     }
 
+    export interface IMetricGroups {
+        groupName:string;
+        metrics:string[];
+    }
+
     /**
      * @ngdoc controller
      * @name ChartController
@@ -33,7 +38,7 @@ module Controllers {
      * @param metricDataService
      */
     export class DashboardController {
-        public static  $inject = ['$scope', '$rootScope', '$interval', '$log', 'metricDataService' ];
+        public static  $inject = ['$scope', '$rootScope', '$interval', '$localStorage', '$log', 'metricDataService'];
 
         private updateLastTimeStampToNowPromise:ng.IPromise<number>;
         private chartData = {};
@@ -44,26 +49,28 @@ module Controllers {
         updateEndTimeStampToNow = false;
         showAutoRefreshCancel = false;
         chartType = 'bar';
-        chartTypes = ['bar', 'line', 'area', 'scatterline' ];
+        chartTypes = ['bar', 'line', 'area', 'scatterline'];
 
         dateTimeRanges:IDateTimeRangeDropDown[] = [
-            { 'range': '1h', 'rangeInSeconds': 60 * 60 } ,
-            { 'range': '4h', 'rangeInSeconds': 4 * 60 * 60 } ,
-            { 'range': '8h', 'rangeInSeconds': 8 * 60 * 60 },
-            { 'range': '12h', 'rangeInSeconds': 12 * 60 * 60 },
-            { 'range': '1d', 'rangeInSeconds': 24 * 60 * 60 },
-            { 'range': '5d', 'rangeInSeconds': 5 * 24 * 60 * 60 },
-            { 'range': '1m', 'rangeInSeconds': 30 * 24 * 60 * 60 },
-            { 'range': '3m', 'rangeInSeconds': 3 * 30 * 24 * 60 * 60 },
-            { 'range': '6m', 'rangeInSeconds': 6 * 30 * 24 * 60 * 60 }
+            {'range': '1h', 'rangeInSeconds': 60 * 60},
+            {'range': '4h', 'rangeInSeconds': 4 * 60 * 60},
+            {'range': '8h', 'rangeInSeconds': 8 * 60 * 60},
+            {'range': '12h', 'rangeInSeconds': 12 * 60 * 60},
+            {'range': '1d', 'rangeInSeconds': 24 * 60 * 60},
+            {'range': '5d', 'rangeInSeconds': 5 * 24 * 60 * 60},
+            {'range': '1m', 'rangeInSeconds': 30 * 24 * 60 * 60},
+            {'range': '3m', 'rangeInSeconds': 3 * 30 * 24 * 60 * 60},
+            {'range': '6m', 'rangeInSeconds': 6 * 30 * 24 * 60 * 60}
         ];
 
+        groupName:string;
+        groupNames:string[] = [];
 
-        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $interval:ng.IIntervalService, private $log:ng.ILogService, private metricDataService, public startTimeStamp:Date, public endTimeStamp:Date, public dateRange:string) {
+
+        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $interval:ng.IIntervalService, private $localStorage, private $log:ng.ILogService, private metricDataService, public startTimeStamp:Date, public endTimeStamp:Date, public dateRange:string) {
             $scope.vm = this;
 
             $scope.$on('GraphTimeRangeChangedEvent', function (event, timeRange) {
-                console.debug("GraphTimeRangeChangedEvent received!");
                 $scope.vm.startTimeStamp = timeRange[0];
                 $scope.vm.endTimeStamp = timeRange[1];
                 $scope.vm.dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
@@ -71,7 +78,6 @@ module Controllers {
             });
 
             $rootScope.$on('NewChartEvent', function (event, metricId) {
-                console.debug('NewChartEvent for: ' + metricId);
                 if (_.contains($scope.vm.selectedMetrics, metricId)) {
                     toastr.warning(metricId + ' is already selected');
                 } else {
@@ -82,8 +88,12 @@ module Controllers {
                 }
             });
 
+            $rootScope.$on('RefreshSidebarEvent', function (event) {
+                $scope.vm.selectedMetrics = [];
+                $scope.vm.loadAllGraphGroupNames();
+            });
+
             $rootScope.$on('RemoveChartEvent', function (event, metricId) {
-                console.debug('RemoveChartEvent for: ' + metricId);
                 if (_.contains($scope.vm.selectedMetrics, metricId)) {
                     var pos = _.indexOf($scope.vm.selectedMetrics, metricId);
                     $scope.vm.selectedMetrics.splice(pos, 1);
@@ -92,6 +102,8 @@ module Controllers {
                     $scope.vm.refreshAllChartsDataForTimestamp($scope.vm.startTimeStamp, $scope.vm.endTimeStamp);
                 }
             });
+
+
 
         }
 
@@ -105,7 +117,7 @@ module Controllers {
         deleteChart(metricId:string):void {
             var pos = _.indexOf(this.selectedMetrics, metricId);
             this.selectedMetrics.splice(pos, 1);
-            this.$rootScope.$broadcast('RemoveSelectedMetricEvent',metricId);
+            this.$rootScope.$broadcast('RemoveSelectedMetricEvent', metricId);
         }
 
 
@@ -136,7 +148,7 @@ module Controllers {
             });
         }
 
-        private updateTimestampsToNow(): void {
+        private updateTimestampsToNow():void {
             var interval:number = this.$scope.vm.endTimeStamp - this.$scope.vm.startTimeStamp;
             this.$scope.vm.endTimeStamp = new Date().getTime();
             this.$scope.vm.startTimeStamp = this.$scope.vm.endTimeStamp - interval;
@@ -268,6 +280,49 @@ module Controllers {
             // unsophisticated test to see if there is a next; without actually querying.
             //@fixme: pay the price, do the query!
             return nextTimeRange[1].getTime() < _.now();
+        }
+
+
+        saveGraphsAsGroup(groupName:string) {
+            console.debug("Saving GroupName: " + groupName);
+            var savedGroups:IMetricGroups[] = [];
+            var previousGroups = localStorage.getItem('groups');
+            console.debug("Previous groups:");
+            console.dir(previousGroups);
+
+            var newEntry:IMetricGroups = {'groupName': groupName, 'metrics':  this.selectedMetrics};
+
+            savedGroups.push(newEntry);
+            if(previousGroups !== null){
+                _.each(angular.fromJson(previousGroups), function(item:IMetricGroups){
+                    item.groupName
+                    newEntry= {'groupName': item.groupName, 'metrics':  item.metrics};
+
+                });
+                //savedGroups.push(angular.fromJson(previousGroups));
+            }
+
+            localStorage.setItem('groups', angular.toJson(savedGroups));
+            this.groupName = '';
+            this.loadAllGraphGroupNames();
+
+        }
+
+        loadAllGraphGroupNames() {
+            var that = this;
+            var existingGroups = localStorage.getItem('groups');
+            var groups = angular.fromJson(existingGroups);
+            console.debug("Groups loaded:");
+            console.dir(groups);
+            _.each(groups, function(item:IMetricGroups){
+                that.groupNames.push(item.groupName);
+            });
+            console.debug("loaded all group names: ");
+            console.dir(this.groupNames);
+        }
+
+        loadSelectedGraphGroup() {
+
         }
 
 
