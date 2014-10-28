@@ -10,4 +10,4 @@ Session session = cluster.connect()
 
 String keyspace = properties["keyspace"] ?: "rhqtest"
 SchemaManager schemaManager = new SchemaManager(session)
-schemaManager.updateSchema(keyspace)
+schemaManager.createSchema()

@@ -1,7 +1,15 @@
 package org.rhq.metrics.core;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
+import com.google.common.io.CharStreams;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author John Sanda
@@ -9,10 +17,33 @@ import com.datastax.driver.core.Session;
  */
 public class SchemaManager {
 
+    private static final Logger logger = LoggerFactory.getLogger(SchemaManager.class);
+
     private Session session;
 
     public SchemaManager(Session session) {
         this.session = session;
+    }
+
+    public void createSchema() throws IOException {
+        logger.info("Creating schema");
+
+        ResultSet resultSet = session.execute("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = 'rhq'");
+        if (!resultSet.isExhausted()) {
+            logger.info("Schema already exist. Skipping schema creation.");
+            return;
+        }
+
+        InputStream inputStream = getClass().getResourceAsStream("/schema.cql");
+        InputStreamReader reader = new InputStreamReader(inputStream);
+        String content = CharStreams.toString(reader);
+
+        for (String cql : content.split("(?m)^-- #.*$")) {
+            if (!cql.startsWith("--")) {
+                logger.info("Executing CQL:\n" + cql.trim() + "\n");
+                session.execute(cql.trim());
+            }
+        }
     }
 
     public void updateSchema(String keyspace) {

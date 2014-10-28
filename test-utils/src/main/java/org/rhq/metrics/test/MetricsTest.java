@@ -8,6 +8,7 @@ import java.util.concurrent.TimeoutException;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -29,11 +30,16 @@ public class MetricsTest {
 
     public void initSession() {
         String nodeAddresses = System.getProperty("nodes", "127.0.0.1");
-        Cluster cluster = new Cluster.Builder().addContactPoints(nodeAddresses.split(",")).build();
+        Cluster cluster = new Cluster.Builder()
+            .addContactPoints(nodeAddresses.split(","))
+            // Due to JAVA-500 and JAVA-509 we need to explicitly set the protocol to V3.
+            // These bugs are fixed upstream and will be in version 2.1.3 of the driver.
+            .withProtocolVersion(ProtocolVersion.V3)
+            .build();
         session = cluster.connect(getKeyspace());
 
-        truncateMetrics = session.prepare("TRUNCATE metrics");
-        truncateCounters = session.prepare("TRUNCATE counters");
+//        truncateMetrics = session.prepare("TRUNCATE metrics");
+//        truncateCounters = session.prepare("TRUNCATE counters");
     }
 
     protected void resetDB() {
@@ -42,7 +48,7 @@ public class MetricsTest {
     }
 
     protected String getKeyspace() {
-        return System.getProperty("keyspace", "rhqtest");
+        return System.getProperty("keyspace", "rhq");
     }
 
     protected DateTime hour0() {
