@@ -7,10 +7,18 @@ import java.util.Set;
 import com.google.common.base.Objects;
 
 /**
+ * The data retention settings configured and stored at the tenant level. This includes retention both raw and
+ * aggregated data.  Note that data retention can also be configured per metric, but that is stored and tracked
+ * separately.
+ *
  * @author John Sanda
  */
 public class RetentionSettings {
 
+    /**
+     * The key class used in {@link RetentionSettings} internal map. Note that {@link #interval} can be null, in which
+     * case this means the raw data type.
+     */
     public static class RetentionKey {
         public MetricType metricType;
         public Interval interval;
@@ -77,10 +85,6 @@ public class RetentionSettings {
 
     public Set<RetentionKey> keySet() {
         return retentions.keySet();
-    }
-
-    public Map<RetentionKey, Integer> getMap() {
-        return retentions;
     }
 
     @Override

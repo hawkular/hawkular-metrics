@@ -3,6 +3,18 @@ package org.rhq.metrics.core;
 import com.google.common.base.Objects;
 
 /**
+ * Describes an interval or duration intended to be used with aggregated metrics. An interval describes the frequency
+ * at which aggregated metrics are computed/updated. It consists of two parts - length and units. Examples include,
+ *
+ * <ul>
+ *   <li>1 minute</li>
+ *   <li>5 minutes</li>
+ *   <li>1 hour</li>
+ *   <li>5 hours</li>
+ *   <li>1 day</li>
+ *   <li>5 days</li>
+ * </ul>
+ *
  * @author John Sanda
  */
 public class Interval {

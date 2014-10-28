@@ -54,14 +54,19 @@ public class DataAccess2 {
         for (AggregationTemplate template : tenant.getAggregationTemplates()) {
             UDTValue value = aggregationTemplateType.newValue();
             value.setString("type", template.getType().getCode());
-            value.setString("interval", template.getInterval());
+
+            TupleType intervalType = TupleType.of(DataType.cint(), DataType.text());
+            TupleValue tuple = intervalType.newValue();
+            tuple.setInt(0, template.getInterval().getLength());
+            tuple.setString(1, template.getInterval().getUnits().getCode());
+            value.setTupleValue("interval", tuple);
             value.setSet("fns", template.getFunctions());
             templateValues.add(value);
         }
 
         Map<TupleValue, Integer> retentions = new HashMap<>();
         for (RetentionSettings.RetentionKey key : tenant.getRetentionSettings().keySet()) {
-            TupleType metricType = TupleType.of(DataType.text(), DataType.text(), DataType.cint());
+            TupleType metricType = TupleType.of(DataType.text(), DataType.cint(), DataType.text());
             TupleValue tuple = metricType.newValue();
             tuple.setString(0, key.metricType.getCode());
             if (key.interval != null) {
@@ -98,13 +103,17 @@ public class DataAccess2 {
             for (UDTValue value : templateValues) {
                 tenant.addAggregationTemplate(new AggregationTemplate()
                     .setType(MetricType.fromCode(value.getString("type")))
-                    .setInterval(value.getString("interval"))
+                    .setInterval(toInterval(value.getTupleValue("interval")))
                     .setFunctions(value.getSet("fns", String.class)));
             }
 
             tenants.add(tenant);
         }
         return tenants;
+    }
+
+    private Interval toInterval(TupleValue tuple) {
+        return new Interval(tuple.getInt(0), Interval.Units.fromCode(tuple.getString(1)));
     }
 
 }

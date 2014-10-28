@@ -14,6 +14,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import org.rhq.metrics.core.AggregationTemplate;
+import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.Tenant;
 import org.rhq.metrics.test.MetricsTest;
@@ -44,15 +45,17 @@ public class DataAccess2Test extends MetricsTest {
         Tenant tenant1 = new Tenant().setId("tenant-1")
             .addAggregationTemplate(new AggregationTemplate()
                 .setType(MetricType.NUMERIC)
-                .setInterval("5min")
+                .setInterval(new Interval(5, Interval.Units.MINUTES))
                 .setFunctions(ImmutableSet.of("max", "min", "avg")))
-            .setRetention(MetricType.NUMERIC, Days.days(31).toStandardHours().getHours());
+            .setRetention(MetricType.NUMERIC, Days.days(31).toStandardHours().getHours())
+            .setRetention(MetricType.NUMERIC, new Interval(5, Interval.Units.MINUTES),
+                Days.days(100).toStandardHours().getHours());
 
         Tenant tenant2 = new Tenant().setId("tenant-2")
             .setRetention(MetricType.NUMERIC, Days.days(14).toStandardHours().getHours())
             .addAggregationTemplate(new AggregationTemplate()
                 .setType(MetricType.NUMERIC)
-                .setInterval("1hr")
+                .setInterval(new Interval(5, Interval.Units.HOURS))
                 .setFunctions(ImmutableSet.of("sum", "count")));
 
 

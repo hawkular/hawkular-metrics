@@ -14,7 +14,7 @@ CREATE KEYSPACE rhq WITH replication = {'class': 'SimpleStrategy', 'replication_
 CREATE TYPE rhq.aggregation_template (
     type text,
     src text,
-    interval text,
+    interval frozen<tuple<int, text>>,
     fns set<text>
 );
 

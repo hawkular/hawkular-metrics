@@ -6,6 +6,10 @@ import java.util.List;
 import com.google.common.base.Objects;
 
 /**
+ * RHQ Metrics provides multi-tenancy support. This means that all data is implicitly partitioned by tenant. Tags,
+ * data retention, and pre-computed aggregates are also per-tenant. Note that data retention and pre-computed aggregates
+ * can be configured more narrowly, by tag and by individual metric.
+ *
  * @author John Sanda
  */
 public class Tenant {
@@ -25,6 +29,9 @@ public class Tenant {
         return this;
     }
 
+    /**
+     * The configured {@link org.rhq.metrics.core.AggregationTemplate aggregation templates} for the tenant
+     */
     public List<AggregationTemplate> getAggregationTemplates() {
         return aggregationTemplates;
     }
@@ -34,6 +41,10 @@ public class Tenant {
         return this;
     }
 
+    /**
+     * The {@link org.rhq.metrics.core.RetentionSettings data retention settings} for both raw and aggregated data of
+     * all metric types
+     */
     public RetentionSettings getRetentionSettings() {
         return retentionSettings;
     }

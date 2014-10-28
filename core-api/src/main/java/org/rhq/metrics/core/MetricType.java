@@ -1,6 +1,14 @@
 package org.rhq.metrics.core;
 
 /**
+ * An enumeration of the supported metric types which currently includes,
+ *
+ * <ul>
+ *   <li>numeric</li>
+ *   <li>availability</li>
+ *   <li>log events</li>
+ * </ul>
+ *
  * @author John Sanda
  */
 public enum MetricType {
