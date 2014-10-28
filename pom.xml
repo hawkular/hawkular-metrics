@@ -34,6 +34,8 @@
     <findbugs.version>3.0.0</findbugs.version>
     <groovy-maven-plugin.version>2.0</groovy-maven-plugin.version>
     <maven-project-info-reports-plugin.version>2.7</maven-project-info-reports-plugin.version>
+    <maven-source-plugin.version>2.4</maven-source-plugin.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
   <organization>
