@@ -81,7 +81,6 @@
           <plugin>
             <groupId>org.codehaus.gmaven</groupId>
             <artifactId>groovy-maven-plugin</artifactId>
-            <version>${groovy-maven-plugin.version}</version>
             <dependencies>
               <dependency>
                 <groupId>org.codehaus.groovy</groupId>
@@ -114,7 +113,6 @@
 
           <plugin>
             <artifactId>maven-surefire-plugin</artifactId>
-            <version>2.17</version>
             <configuration>
               <systemProperties>
                 <property>
