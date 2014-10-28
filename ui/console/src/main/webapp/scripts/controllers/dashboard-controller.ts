@@ -25,6 +25,7 @@ module Controllers {
     export interface IChartType {
         chartType: string;
         icon:string;
+        previousRangeData: boolean;
         enabled:boolean;
     }
 
@@ -55,12 +56,12 @@ module Controllers {
         updateEndTimeStampToNow = false;
         showAutoRefreshCancel = false;
         chartTypes:IChartType[] = [
-            {chartType: 'bar', icon: 'fa fa-bar-chart', enabled: true},
-            {chartType: 'line',  icon: 'fa fa-line-chart', enabled: true},
-            {chartType: 'area', icon: 'fa fa-area-chart', enabled: true},
-            {chartType: 'scatterline', icon: 'fa fa-circle-thin', enabled: true}
+            {chartType: 'bar', icon: 'fa fa-bar-chart', enabled: true, previousRangeData: false},
+            {chartType: 'line', icon: 'fa fa-line-chart', enabled: true, previousRangeData: false},
+            {chartType: 'area', icon: 'fa fa-area-chart', enabled: true, previousRangeData: false},
+            {chartType: 'scatterline', icon: 'fa fa-circle-thin', enabled: true, previousRangeData: false}
         ];
-        chartType:string =  this.chartTypes[0].chartType;
+        chartType:string = this.chartTypes[0].chartType;
 
         dateTimeRanges:IDateTimeRangeDropDown[] = [
             {'range': '1h', 'rangeInSeconds': 60 * 60},
@@ -81,14 +82,14 @@ module Controllers {
         constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $interval:ng.IIntervalService, private $localStorage, private $log:ng.ILogService, private metricDataService, public startTimeStamp:Date, public endTimeStamp:Date, public dateRange:string) {
             $scope.vm = this;
 
-            $scope.$on('GraphTimeRangeChangedEvent', function (event, timeRange) {
+            $scope.$on('GraphTimeRangeChangedEvent',  (event, timeRange) => {
                 $scope.vm.startTimeStamp = timeRange[0];
                 $scope.vm.endTimeStamp = timeRange[1];
                 $scope.vm.dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
                 $scope.vm.refreshAllChartsDataForTimestamp($scope.vm.startTimeStamp, $scope.vm.endTimeStamp);
             });
 
-            $rootScope.$on('NewChartEvent', function (event, metricId) {
+            $rootScope.$on('NewChartEvent', (event, metricId) => {
                 if (_.contains($scope.vm.selectedMetrics, metricId)) {
                     toastr.warning(metricId + ' is already selected');
                 } else {
@@ -99,13 +100,13 @@ module Controllers {
                 }
             });
 
-            $rootScope.$on('RefreshSidebarEvent', function (event) {
+            $rootScope.$on('RefreshSidebarEvent', () =>  {
                 $scope.vm.selectedMetrics = [];
                 $scope.vm.selectedGroup = '';
                 $scope.vm.loadAllGraphGroupNames();
             });
 
-            $rootScope.$on('RemoveChartEvent', function (event, metricId) {
+            $rootScope.$on('RemoveChartEvent', (event, metricId) => {
                 if (_.contains($scope.vm.selectedMetrics, metricId)) {
                     var pos = _.indexOf($scope.vm.selectedMetrics, metricId);
                     $scope.vm.selectedMetrics.splice(pos, 1);
@@ -115,17 +116,16 @@ module Controllers {
                 }
             });
 
-
-            $scope.$watch('selectedGroup', function (newName, oldName) {
-                console.log('GroupName Changed!' + newName);
-                $scope.vm.loadSelectedGraphGroup();
+            this.$scope.$watch(() => $scope.vm.selectedGroup,
+                (newValue: string) => {
+                    $scope.vm.loadSelectedGraphGroup(newValue);
             });
-
 
         }
 
 
-        private noDataFoundForId(id:string):void {
+
+private noDataFoundForId(id:string):void {
             this.$log.warn('No Data found for id: ' + id);
             toastr.warning('No Data found for id: ' + id);
         }
@@ -235,6 +235,45 @@ module Controllers {
             return this.chartData[metricId].dataPoints;
         }
 
+        refreshPreviousRangeDataForTimestamp(metricId:string, previousRangeStartTime:number, previousRangeEndTime:number):void {
+
+            if (previousRangeStartTime >= previousRangeEndTime) {
+                this.$log.warn('Previous Range Start Date was >= Previous Range End Date');
+                toastr.warning('Previous Range Start Date was after Previous Range End Date');
+                return;
+            }
+
+            if (metricId !== '') {
+
+                this.metricDataService.getMetricsForTimeRange(metricId, new Date(previousRangeStartTime), new Date(previousRangeEndTime))
+                    .then((response) => {
+                        // we want to isolate the response from the data we are feeding to the chart
+                        this.bucketedDataPoints = this.formatBucketedChartOutput(response);
+
+                        if (this.bucketedDataPoints.length !== 0) {
+                            this.$log.info("Retrieving previous range data for metricId: " + metricId);
+                            this.chartData[metricId].previousStartTimeStamp = previousRangeStartTime;
+                            this.chartData[metricId].previousEndTimeStamp = previousRangeEndTime;
+                            this.chartData[metricId].previousDataPoints = this.bucketedDataPoints;
+
+                        } else {
+                            this.noDataFoundForId(metricId);
+                        }
+
+                    }, function (error) {
+                        toastr.error('Error Loading Chart Data: ' + error);
+                    });
+            }
+
+        }
+
+
+        getPreviousRangeDataFor(metricId:string):IChartDataPoint[] {
+
+            return this.chartData[metricId].previousDataPoints;
+
+        }
+
         private formatBucketedChartOutput(response):IChartDataPoint[] {
             //  The schema is different for bucketed output
             return _.map(response, (point:IChartDataPoint) => {
@@ -326,14 +365,14 @@ module Controllers {
             });
         }
 
-        loadSelectedGraphGroup() {
-            var groups = localStorage.getItem('groups');
+        loadSelectedGraphGroup(selectedGroup:string) {
+            var groups = angular.fromJson(localStorage.getItem('groups'));
 
             if (angular.isDefined(groups)) {
-                _.each(angular.fromJson(groups), function (item:IMetricGroup) {
-
-                    if (item.groupName === this.selectedGroup) {
+                _.each(groups, (item:IMetricGroup) => {
+                    if (item.groupName === selectedGroup) {
                         this.selectedMetrics = item.metrics;
+                        this.refreshAllChartsDataForTimestamp(this.startTimeStamp.getTime(), this.endTimeStamp.getTime());
                     }
                 });
             }

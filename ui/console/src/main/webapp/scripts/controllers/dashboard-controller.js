@@ -31,10 +31,10 @@ var Controllers;
             this.updateEndTimeStampToNow = false;
             this.showAutoRefreshCancel = false;
             this.chartTypes = [
-                { chartType: 'bar', icon: 'fa fa-bar-chart', enabled: true },
-                { chartType: 'line', icon: 'fa fa-line-chart', enabled: true },
-                { chartType: 'area', icon: 'fa fa-area-chart', enabled: true },
-                { chartType: 'scatterline', icon: 'fa fa-circle-thin', enabled: true }
+                { chartType: 'bar', icon: 'fa fa-bar-chart', enabled: true, previousRangeData: false },
+                { chartType: 'line', icon: 'fa fa-line-chart', enabled: true, previousRangeData: false },
+                { chartType: 'area', icon: 'fa fa-area-chart', enabled: true, previousRangeData: false },
+                { chartType: 'scatterline', icon: 'fa fa-circle-thin', enabled: true, previousRangeData: false }
             ];
             this.chartType = this.chartTypes[0].chartType;
             this.dateTimeRanges = [
@@ -69,7 +69,7 @@ var Controllers;
                 }
             });
 
-            $rootScope.$on('RefreshSidebarEvent', function (event) {
+            $rootScope.$on('RefreshSidebarEvent', function () {
                 $scope.vm.selectedMetrics = [];
                 $scope.vm.selectedGroup = '';
                 $scope.vm.loadAllGraphGroupNames();
@@ -85,9 +85,10 @@ var Controllers;
                 }
             });
 
-            $scope.$watch('selectedGroup', function (newName, oldName) {
-                console.log('GroupName Changed!' + newName);
-                $scope.vm.loadSelectedGraphGroup();
+            this.$scope.$watch(function () {
+                return $scope.vm.selectedGroup;
+            }, function (newValue) {
+                $scope.vm.loadSelectedGraphGroup(newValue);
             });
         }
         DashboardController.prototype.noDataFoundForId = function (id) {
@@ -194,6 +195,37 @@ var Controllers;
             return this.chartData[metricId].dataPoints;
         };
 
+        DashboardController.prototype.refreshPreviousRangeDataForTimestamp = function (metricId, previousRangeStartTime, previousRangeEndTime) {
+            var _this = this;
+            if (previousRangeStartTime >= previousRangeEndTime) {
+                this.$log.warn('Previous Range Start Date was >= Previous Range End Date');
+                toastr.warning('Previous Range Start Date was after Previous Range End Date');
+                return;
+            }
+
+            if (metricId !== '') {
+                this.metricDataService.getMetricsForTimeRange(metricId, new Date(previousRangeStartTime), new Date(previousRangeEndTime)).then(function (response) {
+                    // we want to isolate the response from the data we are feeding to the chart
+                    _this.bucketedDataPoints = _this.formatBucketedChartOutput(response);
+
+                    if (_this.bucketedDataPoints.length !== 0) {
+                        _this.$log.info("Retrieving previous range data for metricId: " + metricId);
+                        _this.chartData[metricId].previousStartTimeStamp = previousRangeStartTime;
+                        _this.chartData[metricId].previousEndTimeStamp = previousRangeEndTime;
+                        _this.chartData[metricId].previousDataPoints = _this.bucketedDataPoints;
+                    } else {
+                        _this.noDataFoundForId(metricId);
+                    }
+                }, function (error) {
+                    toastr.error('Error Loading Chart Data: ' + error);
+                });
+            }
+        };
+
+        DashboardController.prototype.getPreviousRangeDataFor = function (metricId) {
+            return this.chartData[metricId].previousDataPoints;
+        };
+
         DashboardController.prototype.formatBucketedChartOutput = function (response) {
             //  The schema is different for bucketed output
             return _.map(response, function (point) {
@@ -281,13 +313,15 @@ var Controllers;
             });
         };
 
-        DashboardController.prototype.loadSelectedGraphGroup = function () {
-            var groups = localStorage.getItem('groups');
+        DashboardController.prototype.loadSelectedGraphGroup = function (selectedGroup) {
+            var _this = this;
+            var groups = angular.fromJson(localStorage.getItem('groups'));
 
             if (angular.isDefined(groups)) {
-                _.each(angular.fromJson(groups), function (item) {
-                    if (item.groupName === this.selectedGroup) {
-                        this.selectedMetrics = item.metrics;
+                _.each(groups, function (item) {
+                    if (item.groupName === selectedGroup) {
+                        _this.selectedMetrics = item.metrics;
+                        _this.refreshAllChartsDataForTimestamp(_this.startTimeStamp.getTime(), _this.endTimeStamp.getTime());
                     }
                 });
             }
