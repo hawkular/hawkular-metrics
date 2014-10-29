@@ -7,10 +7,6 @@ package org.rhq.metrics.client.common;
  */
 public class SingleMetric {
 
-    private static final String JSON_TEMPLATE = "{\"id\":\"%1\"," +
-            "\"timestamp\":%2,"+
-            "\"value\":%3}";
-
     private final String source;
     private final long timestamp;
     private final Double value;
@@ -57,9 +53,7 @@ public class SingleMetric {
     }
 
     public String toJson() {
-        String payload = JSON_TEMPLATE.replaceAll("%1",source)
-            .replaceAll("%2", String.valueOf(timestamp))
-            .replaceAll("%3", String.valueOf(value));
-        return payload;
+        return "{\"id\":\"" + source + "\"," + "\"timestamp\":" + String.valueOf(timestamp) + "," + "\"value\":"
+            + String.valueOf(value) + "}";
     }
 }
