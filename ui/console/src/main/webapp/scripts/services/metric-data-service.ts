@@ -25,9 +25,9 @@ module Services {
                 deferred = this.$q.defer();
 
 
-            this.$http.get(base).success(function (data) {
+            this.$http.get(base).success((data) => {
                 deferred.resolve(data);
-            }).error(function (reason, status) {
+            }).error((reason, status) => {
                 that.$log.error('Error Retrieving all metrics :' + status + ", " + reason);
                 toastr.warning('No Metrics retrieved.');
                 deferred.reject(status + " - " + reason);
@@ -57,9 +57,9 @@ module Services {
                 deferred.reject("Start date was after end date");
             }
 
-            this.$http.get(base + '/' + id, searchParams).success(function (data) {
+            this.$http.get(base + '/' + id, searchParams).success((data) => {
                 deferred.resolve(data);
-            }).error(function (reason, status) {
+            }).error((reason, status) => {
                 //this.$log.error('Error Loading Chart Data:' + status + ", " + reason);
                 deferred.reject(status + " - " + reason);
             });
@@ -71,9 +71,9 @@ module Services {
             var url = this.makeBaseUrl(),
                 deferred = this.$q.defer();
             this.$http.post(url + '/' + id, jsonPayload
-            ).success(function () {
+            ).success(()=> {
                     deferred.resolve("Success");
-                }).error(function (response, status) {
+                }).error((response, status) => {
                     console.error("Error: " + status + " --> " + response);
                     deferred.reject(status);
                 });
@@ -84,9 +84,9 @@ module Services {
             var url = this.makeBaseUrl(),
                 deferred = this.$q.defer();
             this.$http.post(url + '/', jsonPayload
-            ).success(function () {
+            ).success(() => {
                     deferred.resolve("Success");
-                }).error(function (response, status) {
+                }).error((response, status) => {
                     console.error("Error: " + status + " --> " + response);
                     deferred.reject(status);
                 });

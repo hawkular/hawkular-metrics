@@ -28,6 +28,43 @@ module Controllers {
         metrics:string[];
     }
 
+
+    export class TimeRange {
+
+        constructor(public startTimeStamp:number, public endTimeStamp:number){
+
+        }
+
+        getIntervalInSeconds(){
+            return this.endTimeStamp - this.startTimeStamp;
+        }
+
+        moveToNextTimePeriod(){
+             var next = this.calculateNextTimeRange();
+            this.startTimeStamp = next.startTimeStamp;
+            this.endTimeStamp = next.endTimeStamp;
+        }
+
+        moveToPreviousTimePeriod(){
+            var previous = this.calculatePreviousTimeRange();
+            this.startTimeStamp = previous.startTimeStamp;
+            this.endTimeStamp = previous.endTimeStamp;
+        }
+
+        calculateNextTimeRange():TimeRange {
+            return new TimeRange(this.endTimeStamp, this.endTimeStamp + this.getIntervalInSeconds());
+        }
+
+        calculatePreviousTimeRange():TimeRange {
+            return new TimeRange(this.startTimeStamp - this.getIntervalInSeconds(), this.startTimeStamp);
+        }
+
+        getRelativeHumanTimeRange():string{
+            return  moment(this.startTimeStamp).from(moment(this.endTimeStamp));
+
+        }
+    }
+
     /**
      * @ngdoc controller
      * @name DashboardController
@@ -60,47 +97,50 @@ module Controllers {
         selectedGroup:string;
         groupNames:string[] = [];
 
+        currentTimeRange:TimeRange;
 
-        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $interval:ng.IIntervalService, private $localStorage, private $log:ng.ILogService, private metricDataService, public startTimeStamp:Date, public endTimeStamp:Date, public dateRange:string) {
+
+        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $interval:ng.IIntervalService, private $localStorage, private $log:ng.ILogService, private metricDataService,  public dateRange:string) {
             $scope.vm = this;
+            this.currentTimeRange = new TimeRange(_.now() - (24 * 60 *60), _.now()); // default to 24 hours
 
             $scope.$on('GraphTimeRangeChangedEvent', (event, timeRange) => {
-                $scope.vm.startTimeStamp = timeRange[0];
-                $scope.vm.endTimeStamp = timeRange[1];
-                $scope.vm.dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
-                $scope.vm.refreshAllChartsDataForTimestamp($scope.vm.startTimeStamp, $scope.vm.endTimeStamp);
+                this.currentTimeRange.startTimeStamp = timeRange[0];
+                this.currentTimeRange.endTimeStamp = timeRange[1];
+                this.dateRange = this.currentTimeRange.getRelativeHumanTimeRange();
+                this.refreshAllChartsDataForTimeRange(this.currentTimeRange);
             });
 
             $rootScope.$on('NewChartEvent', (event, metricId) => {
-                if (_.contains($scope.vm.selectedMetrics, metricId)) {
+                if (_.contains(this.selectedMetrics, metricId)) {
                     toastr.warning(metricId + ' is already selected');
                 } else {
-                    $scope.vm.selectedMetrics.push(metricId);
-                    $scope.vm.searchId = metricId;
-                    $scope.vm.refreshHistoricalChartData(metricId, $scope.vm.startTimeStamp, $scope.vm.endTimeStamp);
+                    this.selectedMetrics.push(metricId);
+                    this.searchId = metricId;
+                    this.refreshHistoricalChartData(metricId, this.currentTimeRange);
                     toastr.success(metricId + ' Added to Dashboard!');
                 }
             });
 
             $rootScope.$on('RefreshSidebarEvent', () => {
-                $scope.vm.selectedMetrics = [];
-                $scope.vm.selectedGroup = '';
-                $scope.vm.loadAllGraphGroupNames();
+                this.selectedMetrics = [];
+                this.selectedGroup = '';
+                this.loadAllGraphGroupNames();
             });
 
             $rootScope.$on('RemoveChartEvent', (event, metricId) => {
-                if (_.contains($scope.vm.selectedMetrics, metricId)) {
-                    var pos = _.indexOf($scope.vm.selectedMetrics, metricId);
-                    $scope.vm.selectedMetrics.splice(pos, 1);
-                    $scope.vm.searchId = metricId;
+                if (_.contains(this.selectedMetrics, metricId)) {
+                    var pos = _.indexOf(this.selectedMetrics, metricId);
+                    this.selectedMetrics.splice(pos, 1);
+                    this.searchId = metricId;
                     toastr.info('Removed: ' + metricId + ' from Dashboard!');
-                    $scope.vm.refreshAllChartsDataForTimestamp($scope.vm.startTimeStamp, $scope.vm.endTimeStamp);
+                    this.refreshAllChartsDataForTimeRange(this.currentTimeRange);
                 }
             });
 
-            this.$scope.$watch(() => $scope.vm.selectedGroup,
+            this.$scope.$watch(() => this.selectedGroup,
                 (newValue:string) => {
-                    $scope.vm.loadSelectedGraphGroup(newValue);
+                    this.loadSelectedGraphGroup(newValue);
                 });
 
         }
@@ -133,7 +173,7 @@ module Controllers {
                 this.showAutoRefreshCancel = true;
                 this.updateLastTimeStampToNowPromise = this.$interval(() => {
                     this.updateTimestampsToNow();
-                    this.refreshAllChartsDataForTimestamp();
+                    this.refreshAllChartsDataForTimeRange(this.currentTimeRange);
                 }, intervalInSeconds * 1000);
 
             } else {
@@ -146,27 +186,27 @@ module Controllers {
         }
 
         private updateTimestampsToNow():void {
-            var interval:number = this.$scope.vm.endTimeStamp - this.$scope.vm.startTimeStamp;
-            this.$scope.vm.endTimeStamp = new Date().getTime();
-            this.$scope.vm.startTimeStamp = this.$scope.vm.endTimeStamp - interval;
+            var interval:number = this.currentTimeRange.getIntervalInSeconds();
+            this.currentTimeRange.endTimeStamp = _.now();
+            this.currentTimeRange.startTimeStamp = this.currentTimeRange.endTimeStamp - interval;
         }
 
         refreshChartDataNow():void {
             this.updateTimestampsToNow();
-            this.refreshAllChartsDataForTimestamp(this.$scope.vm.startTimeStamp, this.$scope.vm.endTimeStamp);
+            this.refreshAllChartsDataForTimeRange(this.currentTimeRange);
         }
 
-        refreshHistoricalChartData(metricId:string, startDate:Date, endDate:Date):void {
-            this.refreshHistoricalChartDataForTimestamp(metricId, startDate.getTime(), endDate.getTime());
+        refreshHistoricalChartData(metricId:string, timeRange:TimeRange):void {
+            this.refreshHistoricalChartDataForTimestamp(metricId, timeRange.startTimeStamp, timeRange.endTimeStamp);
         }
 
         refreshHistoricalChartDataForTimestamp(metricId:string, startTime?:number, endTime?:number):void {
             // calling refreshChartData without params use the model values
             if (angular.isUndefined(endTime)) {
-                endTime = this.$scope.vm.endTimeStamp;
+                endTime = this.currentTimeRange.endTimeStamp;
             }
             if (angular.isUndefined(startTime)) {
-                startTime = this.$scope.vm.startTimeStamp;
+                startTime = this.currentTimeRange.startTimeStamp;
             }
 
             if (startTime >= endTime) {
@@ -187,8 +227,8 @@ module Controllers {
                             // this is basically the DTO for the chart
                             this.chartData[metricId] = {
                                 id: metricId,
-                                startTimeStamp: this.startTimeStamp,
-                                endTimeStamp: this.endTimeStamp,
+                                startTimeStamp: this.currentTimeRange.startTimeStamp,
+                                endTimeStamp: this.currentTimeRange.endTimeStamp,
                                 dataPoints: this.bucketedDataPoints
                             };
 
@@ -203,11 +243,11 @@ module Controllers {
 
         }
 
-        refreshAllChartsDataForTimestamp(startTime?:number, endTime?:number):void {
+        refreshAllChartsDataForTimeRange(timeRange:TimeRange):void {
 
             _.each(this.selectedMetrics, (aMetric) => {
                 this.$log.info("Reloading Metric Chart Data for: " + aMetric);
-                this.refreshHistoricalChartDataForTimestamp(aMetric, startTime, endTime);
+                this.refreshHistoricalChartDataForTimestamp(aMetric, timeRange.startTimeStamp, timeRange.endTimeStamp);
             });
 
         }
@@ -272,29 +312,24 @@ module Controllers {
 
 
         showPreviousTimeRange():void {
-            var previousTimeRange = TimeRange.calculatePreviousTimeRange(this.startTimeStamp, this.endTimeStamp);
-
-            this.startTimeStamp = previousTimeRange[0];
-            this.endTimeStamp = previousTimeRange[1];
-            this.refreshAllChartsDataForTimestamp(this.startTimeStamp.getTime(), this.endTimeStamp.getTime());
+            this.currentTimeRange.moveToPreviousTimePeriod();
+            this.refreshAllChartsDataForTimeRange(this.currentTimeRange);
+            this.dateRange = moment(this.currentTimeRange.startTimeStamp).from(moment(_.now()));
 
         }
 
         showNextTimeRange():void {
-            var nextTimeRange = TimeRange.calculateNextTimeRange(this.startTimeStamp, this.endTimeStamp);
-
-            this.startTimeStamp = nextTimeRange[0];
-            this.endTimeStamp = nextTimeRange[1];
-            this.refreshAllChartsDataForTimestamp(this.startTimeStamp.getTime(), this.endTimeStamp.getTime());
-
+            this.currentTimeRange.moveToNextTimePeriod();
+            this.refreshAllChartsDataForTimeRange(this.currentTimeRange);
+            this.dateRange = moment(this.currentTimeRange.startTimeStamp).from(moment(_.now()));
         }
 
 
         hasNext():boolean {
-            var nextTimeRange = TimeRange.calculateNextTimeRange(this.startTimeStamp, this.endTimeStamp);
+            var nextTimeRange = this.currentTimeRange.calculateNextTimeRange();
             // unsophisticated test to see if there is a next; without actually querying.
-            //@fixme: pay the price, do the query!
-            return nextTimeRange[1].getTime() < _.now();
+            //@fixme: pay the price, do the query!?
+            return nextTimeRange.endTimeStamp < _.now();
         }
 
 
@@ -334,33 +369,13 @@ module Controllers {
                 _.each(groups, (item:IMetricGroup) => {
                     if (item.groupName === selectedGroup) {
                         this.selectedMetrics = item.metrics;
-                        this.refreshAllChartsDataForTimestamp(this.startTimeStamp.getTime(), this.endTimeStamp.getTime());
+                        this.refreshAllChartsDataForTimeRange(this.currentTimeRange);
                     }
                 });
             }
         }
     }
 
-    class TimeRange {
-
-        static calculateNextTimeRange(startDate:Date, endDate:Date):any {
-            var nextTimeRange = [];
-            var intervalInMillis = endDate.getTime() - startDate.getTime();
-
-            nextTimeRange.push(endDate);
-            nextTimeRange.push(new Date(endDate.getTime() + intervalInMillis));
-            return nextTimeRange;
-        }
-
-        static calculatePreviousTimeRange(startDate:Date, endDate:Date):any {
-            var previousTimeRange:Date[] = [];
-            var intervalInMillis = endDate.getTime() - startDate.getTime();
-
-            previousTimeRange.push(new Date(startDate.getTime() - intervalInMillis));
-            previousTimeRange.push(startDate);
-            return previousTimeRange;
-        }
-    }
 
     angular.module('chartingApp')
         .controller('DashboardController', DashboardController);

@@ -7,7 +7,7 @@ module Directives {
         .directive('relativeTimeRangeButtonBar', function ():ng.IDirective {
             return {
                 templateUrl: '../views/directives/date-time-range-selection.tpl.html',
-                controller: function ($scope) {
+                controller: ($scope) => {
 
                     $scope.dateTimeRanges = [
                         { "range": "1h", "rangeInSeconds": 60 * 60 } ,
@@ -26,7 +26,7 @@ module Directives {
                     };
 
 
-                    $scope.$watch('dateTimeRangeButtonBarModel.graphTimeRangeSelection', function (newValue, oldValue) {
+                    $scope.$watch('dateTimeRangeButtonBarModel.graphTimeRangeSelection', (newValue, oldValue) =>{
                         var startDateMoment,
                             endDateMoment,
                             startEndArray = [];

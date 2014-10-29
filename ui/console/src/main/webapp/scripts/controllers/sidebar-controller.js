@@ -5,6 +5,7 @@ var Controllers;
 
     var SidebarController = (function () {
         function SidebarController($scope, $rootScope, $log, metricDataService) {
+            var _this = this;
             this.$scope = $scope;
             this.$rootScope = $rootScope;
             this.$log = $log;
@@ -12,7 +13,7 @@ var Controllers;
             $scope.vm = this;
 
             $scope.$on('RemoveSelectedMetricEvent', function (event, metricId) {
-                angular.forEach($scope.vm.allMetrics, function (value) {
+                angular.forEach(_this.allMetrics, function (value) {
                     if (value.title === metricId) {
                         value.selected = false;
                     }
@@ -20,13 +21,12 @@ var Controllers;
             });
         }
         SidebarController.prototype.populateMetricsSidebar = function () {
-            var that = this;
-
+            var _this = this;
             this.metricDataService.getAllMetrics().then(function (response) {
-                that.allMetrics = response;
-                that.$rootScope.$emit('RefreshSidebarEvent');
+                _this.allMetrics = response;
+                _this.$rootScope.$emit('RefreshSidebarEvent');
             }, function (error) {
-                this.$log.error('Error Retrieving all metrics: ' + error);
+                _this.$log.error('Error Retrieving all metrics: ' + error);
                 toastr.error('Error Retrieving all metrics: ' + error);
             });
         };

@@ -12,8 +12,8 @@ module Controllers {
         constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $log:ng.ILogService, private metricDataService) {
             $scope.vm = this;
 
-            $scope.$on('RemoveSelectedMetricEvent', function (event, metricId) {
-                angular.forEach($scope.vm.allMetrics, function (value) {
+            $scope.$on('RemoveSelectedMetricEvent', (event, metricId) => {
+                angular.forEach(this.allMetrics, function (value) {
                     if (value.title === metricId) {
                          value.selected = false;
                     }
@@ -23,14 +23,13 @@ module Controllers {
         }
 
         populateMetricsSidebar() {
-            var that = this;
 
             this.metricDataService.getAllMetrics()
-                .then(function (response) {
-                    that.allMetrics = response;
-                    that.$rootScope.$emit('RefreshSidebarEvent');
+                .then((response) => {
+                    this.allMetrics = response;
+                    this.$rootScope.$emit('RefreshSidebarEvent');
 
-                }, function (error) {
+                }, (error) => {
                     this.$log.error('Error Retrieving all metrics: ' + error);
                     toastr.error('Error Retrieving all metrics: ' + error);
                 });

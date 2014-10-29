@@ -27,8 +27,8 @@ module Controllers {
                 size: size
             });
 
-            configModalInstance.result.then(function () {
-            }, function () {
+            configModalInstance.result.then(() =>{
+            }, () => {
                 //$log.info('Config Modal dismissed at: ' + new Date());
             });
         }
