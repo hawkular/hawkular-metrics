@@ -57,10 +57,7 @@ public class StatsdDecoder extends MessageToMessageDecoder<DatagramPacket> {
             type = "";
         }
         Double value = Double.valueOf(valString);
-        SingleMetric singleMetric = new SingleMetric(name, System.currentTimeMillis(),value);
-        singleMetric.setMetricType(MetricType.from(type));
+        SingleMetric singleMetric = new SingleMetric(name, System.currentTimeMillis(),value, MetricType.from(type));
         out.add(singleMetric);
-
-
     }
 }

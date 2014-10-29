@@ -11,4 +11,12 @@
 
   <artifactId>clients-common</artifactId>
 
+  <dependencies>
+    <dependency>
+      <groupId>org.testng</groupId>
+      <artifactId>testng</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
 </project>

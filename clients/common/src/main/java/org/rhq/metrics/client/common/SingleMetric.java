@@ -7,24 +7,27 @@ package org.rhq.metrics.client.common;
  */
 public class SingleMetric {
 
-    private MetricType metricType;
+    private static final String JSON_TEMPLATE = "{\"id\":\"%1\"," +
+            "\"timestamp\":%2,"+
+            "\"value\":%3}";
 
-    String jsonTemplate = "{\"id\":\"%1\"," +
-     "\"timestamp\":%2,"+
-     "\"value\":%3}";
-
-
-    private long timestamp;
-    private String source;
-    private Double value;
-
-    public SingleMetric() {
-    }
+    private final String source;
+    private final long timestamp;
+    private final Double value;
+    private final MetricType metricType;
 
     public SingleMetric(String source, long timestamp, Double value) {
         this.timestamp = timestamp;
         this.source = source;
         this.value = value;
+        metricType = null;
+    }
+
+    public SingleMetric(String source, long timestamp, Double value, MetricType metricType) {
+        this.source = source;
+        this.timestamp = timestamp;
+        this.value = value;
+        this.metricType = metricType;
     }
 
     public long getTimestamp() {
@@ -39,6 +42,10 @@ public class SingleMetric {
         return value;
     }
 
+    public MetricType getMetricType() {
+        return metricType;
+    }
+
     @Override
     public String toString() {
         return "SingleMetric{" +
@@ -50,19 +57,9 @@ public class SingleMetric {
     }
 
     public String toJson() {
-        String payload = jsonTemplate.replaceAll("%1",source)
+        String payload = JSON_TEMPLATE.replaceAll("%1",source)
             .replaceAll("%2", String.valueOf(timestamp))
             .replaceAll("%3", String.valueOf(value));
-
         return payload;
-
-    }
-
-    public MetricType getMetricType() {
-        return metricType;
-    }
-
-    public void setMetricType(MetricType metricType) {
-        this.metricType = metricType;
     }
 }
