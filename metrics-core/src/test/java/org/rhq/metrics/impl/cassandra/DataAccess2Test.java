@@ -140,7 +140,8 @@ public class DataAccess2Test extends MetricsTest {
             .setTenantId("tenant-1")
             .setMetric("metric-1")
             .setTimeUUID(UUIDs.timeBased())
-            .setValue(1.23);
+            .setValue(1.23)
+            .putAttribute("test?", "true");
 
         NumericData d2 = new NumericData()
             .setTenantId("tenant-1")
@@ -167,7 +168,7 @@ public class DataAccess2Test extends MetricsTest {
         ResultSet resultSet = getUninterruptibly(queryFuture);
 
         List<NumericData> expected = asList(
-            d2.putAttribute("units", "KB").putAttribute("env", "test"),
+            d2.putAttribute("units", "KB").putAttribute("env", "test").putAttribute("test?", "true"),
             d1.putAttribute("units", "KB").putAttribute("env", "test")
         );
         List<NumericData> actual = new ArrayList<>();

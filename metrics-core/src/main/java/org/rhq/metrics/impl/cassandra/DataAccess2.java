@@ -59,9 +59,14 @@ public class DataAccess2 {
             "SET attributes[?] = ? " +
             "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ?");
 
+//        insertNumericData = session.prepare(
+//            "INSERT INTO numeric_data (tenant_id, metric, interval, dpart, time, raw) " +
+//            "VALUES (?, ?, ?, ?, ?, ?)");
+
         insertNumericData = session.prepare(
-            "INSERT INTO numeric_data (tenant_id, metric, interval, dpart, time, raw) " +
-            "VALUES (?, ?, ?, ?, ?, ?)");
+            "UPDATE numeric_data " +
+            "SET raw = ?, attributes = attributes + ? " +
+            "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
         findNumericData = session.prepare(
             "SELECT tenant_id, metric, interval, dpart, time, attributes, raw " +
@@ -136,8 +141,10 @@ public class DataAccess2 {
 
     public ResultSetFuture insertNumericData(NumericData data) {
         // NOTE: only handle raw data right now
-        return session.executeAsync(insertNumericData.bind(data.getTenantId(), data.getMetric(), "", 0L,
-            data.getTimeUUID(), data.getValue()));
+//        return session.executeAsync(insertNumericData.bind(data.getTenantId(), data.getMetric(), "", 0L,
+//            data.getTimeUUID(), data.getValue()));
+        return session.executeAsync(insertNumericData.bind(data.getValue(), data.getAttributes(), data.getTenantId(),
+            data.getMetric(), "", 0L, data.getTimeUUID()));
     }
 
     public ResultSetFuture findNumericData(String tenantId, String metric, Interval interval, long dpart) {
