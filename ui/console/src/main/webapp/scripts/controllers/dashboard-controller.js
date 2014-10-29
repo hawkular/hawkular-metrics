@@ -5,8 +5,8 @@ var Controllers;
 
     /**
     * @ngdoc controller
-    * @name ChartController
-    * @description This controller is responsible for handling activity related to the Chart tab.
+    * @name DashboardController
+    * @description This controller is responsible for handling activity related to the console Dashboard
     * @param $scope
     * @param $rootScope
     * @param $interval
@@ -37,17 +37,6 @@ var Controllers;
                 { chartType: 'scatterline', icon: 'fa fa-circle-thin', enabled: true, previousRangeData: false }
             ];
             this.chartType = this.chartTypes[0].chartType;
-            this.dateTimeRanges = [
-                { 'range': '1h', 'rangeInSeconds': 60 * 60 },
-                { 'range': '4h', 'rangeInSeconds': 4 * 60 * 60 },
-                { 'range': '8h', 'rangeInSeconds': 8 * 60 * 60 },
-                { 'range': '12h', 'rangeInSeconds': 12 * 60 * 60 },
-                { 'range': '1d', 'rangeInSeconds': 24 * 60 * 60 },
-                { 'range': '5d', 'rangeInSeconds': 5 * 24 * 60 * 60 },
-                { 'range': '1m', 'rangeInSeconds': 30 * 24 * 60 * 60 },
-                { 'range': '3m', 'rangeInSeconds': 3 * 30 * 24 * 60 * 60 },
-                { 'range': '6m', 'rangeInSeconds': 6 * 30 * 24 * 60 * 60 }
-            ];
             this.groupNames = [];
             $scope.vm = this;
 
@@ -124,7 +113,7 @@ var Controllers;
             }
 
             this.$scope.$on('$destroy', function () {
-                this.$interval.cancel(this.updateLastTimeStampToNowPromise);
+                _this.$interval.cancel(_this.updateLastTimeStampToNowPromise);
             });
         };
 
@@ -241,34 +230,16 @@ var Controllers;
             });
         };
 
-        DashboardController.prototype.calculatePreviousTimeRange = function (startDate, endDate) {
-            var previousTimeRange = [];
-            var intervalInMillis = endDate.getTime() - startDate.getTime();
-
-            previousTimeRange.push(new Date(startDate.getTime() - intervalInMillis));
-            previousTimeRange.push(startDate);
-            return previousTimeRange;
-        };
-
         DashboardController.prototype.showPreviousTimeRange = function () {
-            var previousTimeRange = this.calculatePreviousTimeRange(this.startTimeStamp, this.endTimeStamp);
+            var previousTimeRange = TimeRange.calculatePreviousTimeRange(this.startTimeStamp, this.endTimeStamp);
 
             this.startTimeStamp = previousTimeRange[0];
             this.endTimeStamp = previousTimeRange[1];
             this.refreshAllChartsDataForTimestamp(this.startTimeStamp.getTime(), this.endTimeStamp.getTime());
         };
 
-        DashboardController.prototype.calculateNextTimeRange = function (startDate, endDate) {
-            var nextTimeRange = [];
-            var intervalInMillis = endDate.getTime() - startDate.getTime();
-
-            nextTimeRange.push(endDate);
-            nextTimeRange.push(new Date(endDate.getTime() + intervalInMillis));
-            return nextTimeRange;
-        };
-
         DashboardController.prototype.showNextTimeRange = function () {
-            var nextTimeRange = this.calculateNextTimeRange(this.startTimeStamp, this.endTimeStamp);
+            var nextTimeRange = TimeRange.calculateNextTimeRange(this.startTimeStamp, this.endTimeStamp);
 
             this.startTimeStamp = nextTimeRange[0];
             this.endTimeStamp = nextTimeRange[1];
@@ -276,7 +247,7 @@ var Controllers;
         };
 
         DashboardController.prototype.hasNext = function () {
-            var nextTimeRange = this.calculateNextTimeRange(this.startTimeStamp, this.endTimeStamp);
+            var nextTimeRange = TimeRange.calculateNextTimeRange(this.startTimeStamp, this.endTimeStamp);
 
             // unsophisticated test to see if there is a next; without actually querying.
             //@fixme: pay the price, do the query!
@@ -330,6 +301,29 @@ var Controllers;
         return DashboardController;
     })();
     Controllers.DashboardController = DashboardController;
+
+    var TimeRange = (function () {
+        function TimeRange() {
+        }
+        TimeRange.calculateNextTimeRange = function (startDate, endDate) {
+            var nextTimeRange = [];
+            var intervalInMillis = endDate.getTime() - startDate.getTime();
+
+            nextTimeRange.push(endDate);
+            nextTimeRange.push(new Date(endDate.getTime() + intervalInMillis));
+            return nextTimeRange;
+        };
+
+        TimeRange.calculatePreviousTimeRange = function (startDate, endDate) {
+            var previousTimeRange = [];
+            var intervalInMillis = endDate.getTime() - startDate.getTime();
+
+            previousTimeRange.push(new Date(startDate.getTime() - intervalInMillis));
+            previousTimeRange.push(startDate);
+            return previousTimeRange;
+        };
+        return TimeRange;
+    })();
 
     angular.module('chartingApp').controller('DashboardController', DashboardController);
 })(Controllers || (Controllers = {}));

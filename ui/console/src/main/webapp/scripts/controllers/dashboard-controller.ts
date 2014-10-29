@@ -16,12 +16,6 @@ module Controllers {
         max: number;
     }
 
-
-    export interface IDateTimeRangeDropDown {
-        range: string;
-        rangeInSeconds:number;
-    }
-
     export interface IChartType {
         chartType: string;
         icon:string;
@@ -36,8 +30,8 @@ module Controllers {
 
     /**
      * @ngdoc controller
-     * @name ChartController
-     * @description This controller is responsible for handling activity related to the Chart tab.
+     * @name DashboardController
+     * @description This controller is responsible for handling activity related to the console Dashboard
      * @param $scope
      * @param $rootScope
      * @param $interval
@@ -63,18 +57,6 @@ module Controllers {
         ];
         chartType:string = this.chartTypes[0].chartType;
 
-        dateTimeRanges:IDateTimeRangeDropDown[] = [
-            {'range': '1h', 'rangeInSeconds': 60 * 60},
-            {'range': '4h', 'rangeInSeconds': 4 * 60 * 60},
-            {'range': '8h', 'rangeInSeconds': 8 * 60 * 60},
-            {'range': '12h', 'rangeInSeconds': 12 * 60 * 60},
-            {'range': '1d', 'rangeInSeconds': 24 * 60 * 60},
-            {'range': '5d', 'rangeInSeconds': 5 * 24 * 60 * 60},
-            {'range': '1m', 'rangeInSeconds': 30 * 24 * 60 * 60},
-            {'range': '3m', 'rangeInSeconds': 3 * 30 * 24 * 60 * 60},
-            {'range': '6m', 'rangeInSeconds': 6 * 30 * 24 * 60 * 60}
-        ];
-
         selectedGroup:string;
         groupNames:string[] = [];
 
@@ -82,7 +64,7 @@ module Controllers {
         constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $interval:ng.IIntervalService, private $localStorage, private $log:ng.ILogService, private metricDataService, public startTimeStamp:Date, public endTimeStamp:Date, public dateRange:string) {
             $scope.vm = this;
 
-            $scope.$on('GraphTimeRangeChangedEvent',  (event, timeRange) => {
+            $scope.$on('GraphTimeRangeChangedEvent', (event, timeRange) => {
                 $scope.vm.startTimeStamp = timeRange[0];
                 $scope.vm.endTimeStamp = timeRange[1];
                 $scope.vm.dateRange = moment(timeRange[0]).from(moment(timeRange[1]));
@@ -100,7 +82,7 @@ module Controllers {
                 }
             });
 
-            $rootScope.$on('RefreshSidebarEvent', () =>  {
+            $rootScope.$on('RefreshSidebarEvent', () => {
                 $scope.vm.selectedMetrics = [];
                 $scope.vm.selectedGroup = '';
                 $scope.vm.loadAllGraphGroupNames();
@@ -117,15 +99,14 @@ module Controllers {
             });
 
             this.$scope.$watch(() => $scope.vm.selectedGroup,
-                (newValue: string) => {
+                (newValue:string) => {
                     $scope.vm.loadSelectedGraphGroup(newValue);
-            });
+                });
 
         }
 
 
-
-private noDataFoundForId(id:string):void {
+        private noDataFoundForId(id:string):void {
             this.$log.warn('No Data found for id: ' + id);
             toastr.warning('No Data found for id: ' + id);
         }
@@ -159,7 +140,7 @@ private noDataFoundForId(id:string):void {
                 this.$interval.cancel(this.updateLastTimeStampToNowPromise);
             }
 
-            this.$scope.$on('$destroy', function () {
+            this.$scope.$on('$destroy', () => {
                 this.$interval.cancel(this.updateLastTimeStampToNowPromise);
             });
         }
@@ -215,7 +196,7 @@ private noDataFoundForId(id:string):void {
                             this.noDataFoundForId(metricId);
                         }
 
-                    }, function (error) {
+                    }, (error) => {
                         toastr.error('Error Loading Chart Data: ' + error);
                     });
             }
@@ -260,7 +241,7 @@ private noDataFoundForId(id:string):void {
                             this.noDataFoundForId(metricId);
                         }
 
-                    }, function (error) {
+                    }, (error) => {
                         toastr.error('Error Loading Chart Data: ' + error);
                     });
             }
@@ -289,17 +270,9 @@ private noDataFoundForId(id:string):void {
             });
         }
 
-        private calculatePreviousTimeRange(startDate:Date, endDate:Date):any {
-            var previousTimeRange:Date[] = [];
-            var intervalInMillis = endDate.getTime() - startDate.getTime();
-
-            previousTimeRange.push(new Date(startDate.getTime() - intervalInMillis));
-            previousTimeRange.push(startDate);
-            return previousTimeRange;
-        }
 
         showPreviousTimeRange():void {
-            var previousTimeRange = this.calculatePreviousTimeRange(this.startTimeStamp, this.endTimeStamp);
+            var previousTimeRange = TimeRange.calculatePreviousTimeRange(this.startTimeStamp, this.endTimeStamp);
 
             this.startTimeStamp = previousTimeRange[0];
             this.endTimeStamp = previousTimeRange[1];
@@ -307,19 +280,8 @@ private noDataFoundForId(id:string):void {
 
         }
 
-
-        private calculateNextTimeRange(startDate:Date, endDate:Date):any {
-            var nextTimeRange = [];
-            var intervalInMillis = endDate.getTime() - startDate.getTime();
-
-            nextTimeRange.push(endDate);
-            nextTimeRange.push(new Date(endDate.getTime() + intervalInMillis));
-            return nextTimeRange;
-        }
-
-
         showNextTimeRange():void {
-            var nextTimeRange = this.calculateNextTimeRange(this.startTimeStamp, this.endTimeStamp);
+            var nextTimeRange = TimeRange.calculateNextTimeRange(this.startTimeStamp, this.endTimeStamp);
 
             this.startTimeStamp = nextTimeRange[0];
             this.endTimeStamp = nextTimeRange[1];
@@ -329,7 +291,7 @@ private noDataFoundForId(id:string):void {
 
 
         hasNext():boolean {
-            var nextTimeRange = this.calculateNextTimeRange(this.startTimeStamp, this.endTimeStamp);
+            var nextTimeRange = TimeRange.calculateNextTimeRange(this.startTimeStamp, this.endTimeStamp);
             // unsophisticated test to see if there is a next; without actually querying.
             //@fixme: pay the price, do the query!
             return nextTimeRange[1].getTime() < _.now();
@@ -379,6 +341,26 @@ private noDataFoundForId(id:string):void {
         }
     }
 
+    class TimeRange {
+
+        static calculateNextTimeRange(startDate:Date, endDate:Date):any {
+            var nextTimeRange = [];
+            var intervalInMillis = endDate.getTime() - startDate.getTime();
+
+            nextTimeRange.push(endDate);
+            nextTimeRange.push(new Date(endDate.getTime() + intervalInMillis));
+            return nextTimeRange;
+        }
+
+        static calculatePreviousTimeRange(startDate:Date, endDate:Date):any {
+            var previousTimeRange:Date[] = [];
+            var intervalInMillis = endDate.getTime() - startDate.getTime();
+
+            previousTimeRange.push(new Date(startDate.getTime() - intervalInMillis));
+            previousTimeRange.push(startDate);
+            return previousTimeRange;
+        }
+    }
 
     angular.module('chartingApp')
         .controller('DashboardController', DashboardController);
