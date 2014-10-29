@@ -7,7 +7,11 @@ import java.util.List;
  * Just a helper
  * @author Heiko W. Rupp
  */
-public abstract class Batcher {
+public class Batcher {
+
+    private Batcher() {
+        // Utility class
+    }
 
     /**
      * Translate the passed list of metrics into a JSON representation
