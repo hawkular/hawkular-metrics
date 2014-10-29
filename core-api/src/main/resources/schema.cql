@@ -14,7 +14,7 @@ CREATE KEYSPACE rhq WITH replication = {'class': 'SimpleStrategy', 'replication_
 CREATE TYPE rhq.aggregation_template (
     type text,
     src text,
-    interval frozen<tuple<int, text>>,
+    interval text,
     fns set<text>
 );
 
@@ -22,7 +22,7 @@ CREATE TYPE rhq.aggregation_template (
 
 CREATE TABLE rhq.tenants (
     id text PRIMARY KEY,
-    retentions map<frozen<tuple<text, int, text>>, int>,
+    retentions map<frozen<tuple<text, text>>, int>,
     aggregation_templates list<frozen<aggregation_template>>
 );
 
@@ -39,15 +39,16 @@ CREATE TYPE rhq.aggregate_data (
 
 CREATE TABLE rhq.numeric_data (
     tenant_id text,
-    type text,
     metric text,
-    dpart text,
+    interval text,
+    dpart bigint,
     time timeuuid,
     attributes map<text, text> static,
     raw double,
     aggregates set<frozen <aggregate_data>>,
-    PRIMARY KEY ((tenant_id, type, metric, dpart), time)
-);
+    PRIMARY KEY ((tenant_id, metric, interval, dpart), time)
+)
+WITH CLUSTERING ORDER BY (time DESC);
 
 -- #
 

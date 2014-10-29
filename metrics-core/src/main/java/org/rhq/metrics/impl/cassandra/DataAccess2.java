@@ -21,6 +21,7 @@ import com.datastax.driver.core.UserType;
 import org.rhq.metrics.core.AggregationTemplate;
 import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.MetricType;
+import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.RetentionSettings;
 import org.rhq.metrics.core.Tenant;
 
@@ -37,6 +38,12 @@ public class DataAccess2 {
 
     private PreparedStatement findTenants;
 
+    private PreparedStatement addNumericAttribute;
+
+    private PreparedStatement insertNumericData;
+
+    private PreparedStatement findNumericData;
+
     public DataAccess2(Session session) {
         this.session = session;
         initPreparedStatements();
@@ -44,7 +51,22 @@ public class DataAccess2 {
 
     private void initPreparedStatements() {
         insertTenant = session.prepare("INSERT INTO tenants (id, retentions, aggregation_templates) VALUES (?, ?, ?)");
+
         findTenants = session.prepare("SELECT id, retentions, aggregation_templates FROM tenants");
+
+        addNumericAttribute = session.prepare(
+            "UPDATE numeric_data " +
+            "SET attributes[?] = ? " +
+            "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ?");
+
+        insertNumericData = session.prepare(
+            "INSERT INTO numeric_data (tenant_id, metric, interval, dpart, time, raw) " +
+            "VALUES (?, ?, ?, ?, ?, ?)");
+
+        findNumericData = session.prepare(
+            "SELECT tenant_id, metric, interval, dpart, time, attributes, raw " +
+            "FROM numeric_data " +
+            "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ?");
     }
 
     public ResultSetFuture insertTenant(Tenant tenant) {
@@ -54,24 +76,20 @@ public class DataAccess2 {
         for (AggregationTemplate template : tenant.getAggregationTemplates()) {
             UDTValue value = aggregationTemplateType.newValue();
             value.setString("type", template.getType().getCode());
-
-            TupleType intervalType = TupleType.of(DataType.cint(), DataType.text());
-            TupleValue tuple = intervalType.newValue();
-            tuple.setInt(0, template.getInterval().getLength());
-            tuple.setString(1, template.getInterval().getUnits().getCode());
-            value.setTupleValue("interval", tuple);
+            value.setString("interval", template.getInterval().toString());
             value.setSet("fns", template.getFunctions());
             templateValues.add(value);
         }
 
         Map<TupleValue, Integer> retentions = new HashMap<>();
         for (RetentionSettings.RetentionKey key : tenant.getRetentionSettings().keySet()) {
-            TupleType metricType = TupleType.of(DataType.text(), DataType.cint(), DataType.text());
+            TupleType metricType = TupleType.of(DataType.text(), DataType.text());
             TupleValue tuple = metricType.newValue();
             tuple.setString(0, key.metricType.getCode());
-            if (key.interval != null) {
-                tuple.setInt(1, key.interval.getLength());
-                tuple.setString(2, key.interval.getUnits().getCode());
+            if (key.interval == null) {
+                tuple.setString(1, null);
+            } else {
+                tuple.setString(1, key.interval.toString());
             }
             retentions.put(tuple, tenant.getRetentionSettings().get(key));
         }
@@ -92,9 +110,7 @@ public class DataAccess2 {
                 if (entry.getKey().isNull(1)) {
                     tenant.setRetention(metricType, entry.getValue());
                 } else {
-                    int length = entry.getKey().getInt(1);
-                    Interval.Units units = Interval.Units.fromCode(entry.getKey().getString(2));
-                    Interval interval = new Interval(length, units);
+                    Interval interval = Interval.parse(entry.getKey().getString(1));
                     tenant.setRetention(metricType, interval, entry.getValue());
                 }
             }
@@ -103,7 +119,7 @@ public class DataAccess2 {
             for (UDTValue value : templateValues) {
                 tenant.addAggregationTemplate(new AggregationTemplate()
                     .setType(MetricType.fromCode(value.getString("type")))
-                    .setInterval(toInterval(value.getTupleValue("interval")))
+                    .setInterval(Interval.parse(value.getString("interval")))
                     .setFunctions(value.getSet("fns", String.class)));
             }
 
@@ -112,8 +128,20 @@ public class DataAccess2 {
         return tenants;
     }
 
-    private Interval toInterval(TupleValue tuple) {
-        return new Interval(tuple.getInt(0), Interval.Units.fromCode(tuple.getString(1)));
+    public ResultSetFuture addNumericAttribute(String tenantId, String metric, Interval interval, long dpart,
+        String attrName, String attrValue) {
+        return session.executeAsync(addNumericAttribute.bind(attrName, attrValue, tenantId, metric, interval.toString(),
+            dpart));
+    }
+
+    public ResultSetFuture insertNumericData(NumericData data) {
+        // NOTE: only handle raw data right now
+        return session.executeAsync(insertNumericData.bind(data.getTenantId(), data.getMetric(), "", 0L,
+            data.getTimeUUID(), data.getValue()));
+    }
+
+    public ResultSetFuture findNumericData(String tenantId, String metric, Interval interval, long dpart) {
+        return session.executeAsync(findNumericData.bind(tenantId, metric, interval.toString(), dpart));
     }
 
 }
