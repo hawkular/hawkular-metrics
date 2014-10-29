@@ -31,20 +31,17 @@ then
     mkdir target
 fi
 
-#if [ ! -e $HOME/.m2/repository/org/wildfly/wildfly-dist/$WFLY_VERSION/wildfly-dist-$WFLY_VERSION.zip ]
-#then
-#    echo "Downloading WildFly $WFLY_VERSION into local maven repository"
-#    mvn -P download_wildfly -DskipTests install
-#fi
+MVN_REPO=`mvn help:evaluate -Dexpression=settings.localRepository | grep -v '[INFO]'`
+WFLY_ZIP=${MVN_REPO}/org/wildfly/wildfly-dist/${WFLY_VERSION}/wildfly-dist-${WFLY_VERSION}.zip
 
 if [ ! -e target/wild* ]
 then
     cd target
-    unzip $HOME/.m2/repository/org/wildfly/wildfly-dist/$WFLY_VERSION/wildfly-dist-$WFLY_VERSION.zip
+    unzip ${WFLY_ZIP}
     cd ..
 fi
 
-cp rest-servlet/target/rhq-metric-rest*.war target/wildfly-$WFLY_VERSION/standalone/deployments/
-cp ui/console/target/metrics-console-*.war target/wildfly-$WFLY_VERSION/standalone/deployments/
-cp ui/explorer/target/explorer-*.war target/wildfly-$WFLY_VERSION/standalone/deployments/
-target/wildfly-$WFLY_VERSION/bin/standalone.sh -Drhq-metrics.backend=$BACKEND --debug 8787 -b $BIND_ADDR
+cp rest-servlet/target/rhq-metric-rest*.war target/wildfly-${WFLY_VERSION}/standalone/deployments/
+cp ui/console/target/metrics-console-*.war target/wildfly-${WFLY_VERSION}/standalone/deployments/
+cp ui/explorer/target/explorer-*.war target/wildfly-${WFLY_VERSION}/standalone/deployments/
+target/wildfly-${WFLY_VERSION}/bin/standalone.sh -Drhq-metrics.backend=${BACKEND} --debug 8787 -b ${BIND_ADDR}
