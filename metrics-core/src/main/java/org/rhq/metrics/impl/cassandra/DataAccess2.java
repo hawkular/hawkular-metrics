@@ -9,9 +9,7 @@ import java.util.Set;
 
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TupleType;
 import com.datastax.driver.core.TupleValue;
@@ -21,7 +19,6 @@ import com.datastax.driver.core.UserType;
 import org.rhq.metrics.core.AggregatedValue;
 import org.rhq.metrics.core.AggregationTemplate;
 import org.rhq.metrics.core.Interval;
-import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.RetentionSettings;
 import org.rhq.metrics.core.Tenant;
@@ -51,7 +48,10 @@ public class DataAccess2 {
     }
 
     private void initPreparedStatements() {
-        insertTenant = session.prepare("INSERT INTO tenants (id, retentions, aggregation_templates) VALUES (?, ?, ?)");
+        insertTenant = session.prepare(
+            "INSERT INTO tenants (id, retentions, aggregation_templates) " +
+            "VALUES (?, ?, ?) " +
+            "IF NOT EXISTS");
 
         findTenants = session.prepare("SELECT id, retentions, aggregation_templates FROM tenants");
 
@@ -59,10 +59,6 @@ public class DataAccess2 {
             "UPDATE numeric_data " +
             "SET attributes = attributes + ? " +
             "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ?");
-
-//        insertNumericData = session.prepare(
-//            "INSERT INTO numeric_data (tenant_id, metric, interval, dpart, time, raw) " +
-//            "VALUES (?, ?, ?, ?, ?, ?)");
 
         insertNumericData = session.prepare(
             "UPDATE numeric_data " +
@@ -103,35 +99,8 @@ public class DataAccess2 {
         return session.executeAsync(insertTenant.bind(tenant.getId(), retentions, templateValues));
     }
 
-    public Set<Tenant> findTenants() {
-        ResultSet resultSet = session.execute(findTenants.bind());
-        Set<Tenant> tenants = new HashSet<>();
-        for (Row row : resultSet) {
-            Tenant tenant = new Tenant();
-            tenant.setId(row.getString(0));
-
-            Map<TupleValue, Integer> retentions = row.getMap(1, TupleValue.class, Integer.class);
-            for (Map.Entry<TupleValue, Integer> entry : retentions.entrySet()) {
-                MetricType metricType = MetricType.fromCode(entry.getKey().getString(0));
-                if (entry.getKey().isNull(1)) {
-                    tenant.setRetention(metricType, entry.getValue());
-                } else {
-                    Interval interval = Interval.parse(entry.getKey().getString(1));
-                    tenant.setRetention(metricType, interval, entry.getValue());
-                }
-            }
-
-            List<UDTValue> templateValues = row.getList(2, UDTValue.class);
-            for (UDTValue value : templateValues) {
-                tenant.addAggregationTemplate(new AggregationTemplate()
-                    .setType(MetricType.fromCode(value.getString("type")))
-                    .setInterval(Interval.parse(value.getString("interval")))
-                    .setFunctions(value.getSet("fns", String.class)));
-            }
-
-            tenants.add(tenant);
-        }
-        return tenants;
+    public ResultSetFuture findTenants() {
+        return session.executeAsync(findTenants.bind());
     }
 
     public ResultSetFuture addNumericAttributes(String tenantId, String metric, Interval interval, long dpart,

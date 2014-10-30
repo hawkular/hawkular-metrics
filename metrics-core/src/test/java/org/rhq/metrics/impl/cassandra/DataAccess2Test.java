@@ -4,9 +4,9 @@ import static java.util.Arrays.asList;
 import static org.joda.time.DateTime.now;
 import static org.rhq.metrics.util.TimeUUIDUtils.getTimeUUID;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -14,10 +14,11 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
-import com.datastax.driver.core.UDTValue;
 import com.datastax.driver.core.utils.UUIDs;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import org.joda.time.Days;
 import org.testng.annotations.BeforeClass;
@@ -82,10 +83,19 @@ public class DataAccess2Test extends MetricsTest {
         insertFuture = dataAccess.insertTenant(tenant2);
         getUninterruptibly(insertFuture);
 
-        Set<Tenant> actual = dataAccess.findTenants();
+        ResultSetFuture queryFuture = dataAccess.findTenants();
+        ListenableFuture<Set<Tenant>> tenantsFuture = Futures.transform(queryFuture, new TenantsMapper());
+        Set<Tenant> actual = getUninterruptibly(tenantsFuture);
         Set<Tenant> expected = ImmutableSet.of(tenant1, tenant2);
 
         assertEquals(actual, expected, "The tenants do not match");
+    }
+
+    @Test
+    public void doNotAllowDuplicateTenats() throws Exception {
+        getUninterruptibly(dataAccess.insertTenant(new Tenant().setId("tenant-1")));
+        ResultSet resultSet = getUninterruptibly(dataAccess.insertTenant(new Tenant().setId("tenant-1")));
+        assertFalse(resultSet.wasApplied(), "Tenants should not be overwritten");
     }
 
     @Test
@@ -216,32 +226,10 @@ public class DataAccess2Test extends MetricsTest {
         insertNumericData(d3);
 
         ResultSetFuture queryFuture = dataAccess.findNumericData(d1.getTenantId(), d1.getMetric(), d1.getInterval(), 0L);
-        ResultSet resultSet = getUninterruptibly(queryFuture);
+        ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
+        List<NumericData> actual = getUninterruptibly(dataFuture);
 
         List<NumericData> expected = asList(d2, d1);
-        List<NumericData> actual = new ArrayList<>();
-        for (Row row : resultSet) {
-            NumericData d = new NumericData()
-                .setTenantId(row.getString(0))
-                .setMetric(row.getString(1))
-                .setInterval(Interval.parse(row.getString(2)))
-                .setTimeUUID(row.getUUID(4));
-
-            Set<UDTValue> udtValues = row.getSet(7, UDTValue.class);
-            Set<AggregatedValue> values = new HashSet<>();
-
-            for (UDTValue udtValue : udtValues) {
-                values.add(new AggregatedValue(udtValue.getString("type"), udtValue.getDouble("value"),
-                    udtValue.getString("src_metric"), getInterval(udtValue.getString("src_metric_interval")),
-                    udtValue.getUUID("time")));
-            }
-
-            actual.add(new NumericData()
-                .setTenantId(row.getString(0))
-                .setMetric(row.getString(1))
-                .setInterval(Interval.parse(row.getString(2)))
-                .setTimeUUID(row.getUUID(4)));
-        }
 
         assertEquals(actual, expected, "The aggregated numeric data does not match");
     }
