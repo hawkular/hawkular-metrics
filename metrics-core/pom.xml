@@ -55,6 +55,12 @@
       <artifactId>trove4j</artifactId>
       <version>${trove4j.version}</version>
     </dependency>
+
+    <dependency>
+      <groupId>com.github.stephenc.eaio-uuid</groupId>
+      <artifactId>uuid</artifactId>
+      <version>3.4.0</version>
+    </dependency>
   </dependencies>
 
   <profiles>

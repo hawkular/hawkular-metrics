@@ -1,7 +1,9 @@
 package org.rhq.metrics.core;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import com.datastax.driver.core.utils.UUIDs;
@@ -24,7 +26,12 @@ public class NumericData {
 
     private Map<String, String> attributes = new HashMap<>();
 
+    // value and aggregatedValues are mutally exclusive. One or the other should be set
+    // but not both. It may make sense to introduce subclasses for raw and aggregated data.
+
     private double value;
+
+    private Set<AggregatedValue> aggregatedValues = new HashSet<>();
 
     public String getTenantId() {
         return tenantId;
@@ -91,6 +98,15 @@ public class NumericData {
 
     public NumericData setValue(double value) {
         this.value = value;
+        return this;
+    }
+
+    public Set<AggregatedValue> getAggregatedValues() {
+        return aggregatedValues;
+    }
+
+    public NumericData addAggregatedValue(AggregatedValue aggregatedValue) {
+        aggregatedValues.add(aggregatedValue);
         return this;
     }
 

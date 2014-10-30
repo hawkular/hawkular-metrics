@@ -18,6 +18,7 @@ import com.datastax.driver.core.TupleValue;
 import com.datastax.driver.core.UDTValue;
 import com.datastax.driver.core.UserType;
 
+import org.rhq.metrics.core.AggregatedValue;
 import org.rhq.metrics.core.AggregationTemplate;
 import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.MetricType;
@@ -38,7 +39,7 @@ public class DataAccess2 {
 
     private PreparedStatement findTenants;
 
-    private PreparedStatement addNumericAttribute;
+    private PreparedStatement addNumericAttributes;
 
     private PreparedStatement insertNumericData;
 
@@ -54,9 +55,9 @@ public class DataAccess2 {
 
         findTenants = session.prepare("SELECT id, retentions, aggregation_templates FROM tenants");
 
-        addNumericAttribute = session.prepare(
+        addNumericAttributes = session.prepare(
             "UPDATE numeric_data " +
-            "SET attributes[?] = ? " +
+            "SET attributes = attributes + ? " +
             "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ?");
 
 //        insertNumericData = session.prepare(
@@ -65,11 +66,11 @@ public class DataAccess2 {
 
         insertNumericData = session.prepare(
             "UPDATE numeric_data " +
-            "SET raw = ?, attributes = attributes + ? " +
+            "SET attributes = attributes + ?, raw = ?, aggregates = ? " +
             "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
         findNumericData = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, attributes, raw " +
+            "SELECT tenant_id, metric, interval, dpart, time, attributes, raw, aggregates " +
             "FROM numeric_data " +
             "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ?");
     }
@@ -133,18 +134,34 @@ public class DataAccess2 {
         return tenants;
     }
 
-    public ResultSetFuture addNumericAttribute(String tenantId, String metric, Interval interval, long dpart,
-        String attrName, String attrValue) {
-        return session.executeAsync(addNumericAttribute.bind(attrName, attrValue, tenantId, metric, interval.toString(),
+    public ResultSetFuture addNumericAttributes(String tenantId, String metric, Interval interval, long dpart,
+        Map<String, String> attributes) {
+        return session.executeAsync(addNumericAttributes.bind(attributes, tenantId, metric, interval.toString(),
             dpart));
     }
 
     public ResultSetFuture insertNumericData(NumericData data) {
-        // NOTE: only handle raw data right now
-//        return session.executeAsync(insertNumericData.bind(data.getTenantId(), data.getMetric(), "", 0L,
-//            data.getTimeUUID(), data.getValue()));
-        return session.executeAsync(insertNumericData.bind(data.getValue(), data.getAttributes(), data.getTenantId(),
-            data.getMetric(), "", 0L, data.getTimeUUID()));
+        // TODO determine if we should use separate queries/methods for raw vs aggregated data
+
+        UserType aggregateDataType = session.getCluster().getMetadata().getKeyspace("rhq")
+            .getUserType("aggregate_data");
+        Set<UDTValue> aggregateDataValues = new HashSet<>();
+
+        for (AggregatedValue v : data.getAggregatedValues()) {
+            aggregateDataValues.add(aggregateDataType.newValue()
+                .setString("type", v.getType())
+                .setDouble("value", v.getValue())
+                .setUUID("time", v.getTimeUUID())
+                .setString("src_metric", v.getSrcMetric())
+                .setString("src_metric_interval", getInterval(v.getSrcMetricInterval())));
+        }
+
+        return session.executeAsync(insertNumericData.bind(data.getAttributes(), data.getValue(), aggregateDataValues,
+            data.getTenantId(), data.getMetric(), getInterval(data.getInterval()), 0L, data.getTimeUUID()));
+    }
+
+    private final String getInterval(Interval interval) {
+        return interval == null ? "" : interval.toString();
     }
 
     public ResultSetFuture findNumericData(String tenantId, String metric, Interval interval, long dpart) {

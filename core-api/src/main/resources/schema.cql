@@ -31,8 +31,9 @@ CREATE TABLE rhq.tenants (
 CREATE TYPE rhq.aggregate_data (
     type text,
     value double,
-    time timestamp,
-    src_metric text
+    time timeuuid,
+    src_metric text,
+    src_metric_interval text
 );
 
 -- #
@@ -61,4 +62,18 @@ CREATE TABLE rhq.availability (
     attributes map<text, text> static,
     value blob,
     PRIMARY KEY ((tenant_id, type, metric, dpart), time)
+);
+
+-- #
+
+CREATE TABLE rhq.tags (
+    tenant_id text,
+    tag text,
+    type text,
+    metric text,
+    time timeuuid,
+    raw_data double,
+    aggregates set<frozen <aggregate_data>>,
+    availability blob,
+    PRIMARY KEY ((tenant_id, tag), type, metric, time)
 );
