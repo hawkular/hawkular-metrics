@@ -29,7 +29,7 @@ Browse [http://127.0.0.1:8080/](http://127.0.0.1:8080/) and play...
 
 ## Dev Install (optional)
 This is an optional development install for a standard [Grunt](http://gruntjs.com) project.
-Grunt is a build tool for javscript webapps just like maven is for java. The build capabilities of grunt are not used here as we are using maven for building/deploying. Grunt is used here for starting a development environment that automatically refreshes itself whenever html, css or javascript files change. Making a fast/agile environment for web development.
+Grunt is a build tool for javascript webapps just like maven is for java. The build capabilities of grunt are not used here as we are using maven for building/deploying. Grunt is used here for starting a development environment that automatically refreshes itself whenever html, css or javascript files change. Making a fast/agile environment for web development.
 
 0. Go to proper directory **'cd console/src/main/webapp'**
 1. Install [Node.js](http://nodejs.org)  (and npm) if not already installed
