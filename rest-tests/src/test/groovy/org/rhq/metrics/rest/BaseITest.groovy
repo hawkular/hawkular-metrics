@@ -25,14 +25,16 @@ class BaseITest extends RESTTest {
 
   @Test
   void addAndGetValue() {
+    rhqm.defaultRequestHeaders.Authorization = "Basic YWdlbnQ6ZWY2YzZkMDktNTczNC00MTAyLTg2ODMtZGYzZjMwZjA5YmEy"
+
     def end = now().millis
     def start = end - 100
-    def tenantId = 'test-tenant'
+    def tenantId = 'tenant-1'
     def metric = 'foo'
-    def response = rhqm.post(path: "$tenantId/metrics/numeric/$metric/data", body: [[timestamp: start + 10, value: 42]])
+    def response = rhqm.post(path: "tenants/${tenantId}/metrics/numeric/${metric}/data", body: [[timestamp: start + 10, value: 42]])
     assertEquals(200, response.status)
 
-    response = rhqm.get(path: "$tenantId/metrics/numeric/$metric/data", query: [start: start, end: end])
+    response = rhqm.get(path: "tenants/${tenantId}/metrics/numeric/${metric}/data", query: [start: start, end: end])
     assertEquals(200, response.status)
     assertEquals(start + 10, response.data.data[0].timestamp)
   }

@@ -240,7 +240,7 @@ module.exports = function (grunt) {
                         cwd: '<%= rhqMetrics.app %>',
                         dest: '<%= rhqMetrics.dist %>',
                         src: [
-                            '*.{ico,png,txt}',
+                            '*.{ico,png,txt,json}',
                             '.htaccess',
                             '*.html',
                             'views/{,*/}*.html',

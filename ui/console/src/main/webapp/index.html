@@ -28,9 +28,9 @@
     <!-- endbuild -->
 
 </head>
-<body ng-app="chartingApp" class="container-fluid">
-<div  ng-include="'views/metrics.html'"></div>
-
+<body data-ng-cloak="true" class="container-fluid">
+<div ng-include="'views/metrics.html'" ng-show="{{username != null}}"></div>
+<div ng-include="'views/select-realm.html'" ng-show="{{username == null}}"></div>
 
 <script>
     (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
@@ -65,17 +65,44 @@
 <script src="bower_components/numeral/numeral.js"></script>
 <script src="bower_components/rhqm-charts/dist/rhqm-charts.js"></script>
 <script src="bower_components/angularytics/dist/angularytics.min.js"></script>
+<script src="bower_components/keycloak/dist/keycloak.js"></script>
 <!-- endbower -->
 <!-- endbuild -->
 
 <!-- build:js({.tmp,app}) scripts/scripts.js -->
 <script src="scripts/app.js"></script>
+<script src="scripts/services/auth.js"></script>
+<script src="scripts/services/authinterceptor.js"></script>
 <script src="scripts/services/dashboard-state-service.js"></script>
 <script src="scripts/services/metric-data-service.js"></script>
 <script src="scripts/directives/date-time-range-selection-directive.js"></script>
 <script src="scripts/controllers/dashboard-controller.js"></script>
 <script src="scripts/controllers/sidebar-controller.js"></script>
 <script src="scripts/controllers/config-controller.js"></script>
+<script src="scripts/controllers/realm-selector-controller.js"></script>
 <!-- endbuild -->
+<script type="text/javascript">
+angular.element(document).ready(function () {
+    var realm = localStorage.realm;
+    if (realm !== undefined) {
+        console.debug("Bootstrapping the application and logging user into realm");
+        // we know the realm already
+        window.keycloak = Keycloak('/keycloak-'+realm+'.json');
+        window.keycloak.init({ onLoad: 'login-required' })
+            .success(function() {
+                angular.bootstrap(document, ["chartingApp"]);
+            })
+            .error(function () {
+                alert("Couldn't proceed with the login.");
+                delete localStorage.realm;
+                window.location.reload();
+            });
+    } else {
+        // we don't know the realm, let the user choose one
+        console.debug("Bootstrapping the application for realm selection");
+        angular.bootstrap(document, ["chartingApp"]);
+    }
+});
+</script>
 </body>
 </html>

@@ -1,0 +1,36 @@
+The REST tests needs to authenticate against Keycloak. For that, you could either use an existing tenant
+or create a new tenant for your new test.
+
+To create a new tenant:
+
+$ export TENANT=mynewtest
+$ cp tenant1-realm.json ${TENANT}-realm.json
+$ cp keycloak-tenant1.json keycloak-${TENANT}.json
+$ openssl genrsa -out /tmp/${TENANT}.key 1024 ; openssl rsa -in /tmp/${TENANT}.key -pubout > /tmp/${TENANT}.pub
+$ cat /tmp/${TENANT}.key | grep -v "PRIVATE KEY" | tr -d '\n' ; echo
+$ cat /tmp/${TENANT}.pub | grep -v "PUBLIC KEY" | tr -d '\n' ; echo
+$ uuidgen
+$ uuidgen
+$ uuidgen
+
+On the ${TENANT}-realm.json, change the realm ID and name (first two properties) to match ${TENANT}.
+Similarly, change the `realm` property on keycloak-${TENANT}.json to be the ${TENANT}.
+
+The result of the `cat` command for the key file should be put in the JSON property `privateKey` for the
+${TENANT}-realm.json file.
+The result of the `cat` command for the pub file should be put in the JSON property `publicKey` for the
+${TENANT}-realm.json file and on the property `realm-public-key` from the keycloak-${TENANT}.json.
+The first uuidgen should be put on the `value` property for the agent's password (around line 18).
+The second should be the `secret` for the application `metrics-console` (around line 76).
+The third should be the `secret` for the application `metrics-api` (around line 89) and on the property `secret` from
+keycloak-${TENANT}.json .
+
+On your Groovy test, you can authenticate by using this:
+
+rhqm.headers.Authorization = "Basic YWdlbnQ6Y2Q2NTAwNDYtOTEzNC00MGIwLTk2ZDEtMWQxM2FhMGYzM2Yz"
+
+To get the value of the basic auth string (YW....Yz in the example above), run this command:
+
+$ printf agent:cd650046-9134-40b0-96d1-1d13aa0f33f3 | base64 -
+
+And finally, in the pom.xml , add the new tenant to the Wildfly startup command property `-Dkeycloak.import`.

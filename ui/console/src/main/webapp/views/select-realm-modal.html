@@ -1,0 +1,14 @@
+<div class="modal-header">
+    <h3 class="modal-title">Select your department</h3>
+</div>
+<div class="modal-body">
+    <ul>
+        <li ng-repeat="realm in modalInstance.realms">
+            <a ng-click="modalInstance.selected.realm = realm">{{realm}}</a>
+        </li>
+    </ul>
+    Selected: <b>{{modalInstance.selected.realm}}</b>
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" ng-click="modalInstance.ok()">OK</button>
+</div>

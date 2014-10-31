@@ -83,6 +83,18 @@
       <scope>provided</scope>
     </dependency>
 
+    <!-- Keycloak-related dependencies -->
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-core</artifactId>
+      <version>${version.keycloak}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-adapter-core</artifactId>
+      <version>${version.keycloak}</version>
+    </dependency>
+
     <!-- documentation -->
     <dependency>
       <groupId>com.wordnik</groupId>

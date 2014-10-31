@@ -15,7 +15,8 @@
     "angular-busy": "4.0.4",
     "ng-clip": "0.2.3",
     "rhqm-charts": "~0.1.7",
-    "angularytics": "~0.3.0"
+    "angularytics": "~0.3.0",
+    "keycloak": "~1.0.4"
   },
   "devDependencies": {
     "angular-scenario": "1.2.6"

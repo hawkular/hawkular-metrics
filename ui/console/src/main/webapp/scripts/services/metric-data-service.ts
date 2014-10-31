@@ -36,14 +36,14 @@ module Services {
 
     export class MetricDataService {
 
-        public static  $inject = ['$q', '$rootScope', '$http', '$localStorage', 'BASE_URL','TENANT_ID'];
+        public static  $inject = ['$q', '$rootScope', '$http', '$localStorage', 'BASE_URL', 'Auth'];
 
-        constructor(private $q:ng.IQService, private $rootScope:ng.IRootScopeService, private $http:ng.IHttpService, public $localStorage:any, private BASE_URL:string, private TENANT_ID:string) {
+        constructor(private $q:ng.IQService, private $rootScope:ng.IRootScopeService, private $http:ng.IHttpService, public $localStorage:any, private BASE_URL:string, private Auth:Services.AuthService) {
 
         }
 
         getBaseUrl():string {
-            return 'http://' + this.$rootScope.$storage.server.replace(/['"]+/g, '') + ':' + this.$rootScope.$storage.port + this.BASE_URL + '/'+this.TENANT_ID;
+            return 'http://' + this.$rootScope.$storage.server.replace(/['"]+/g, '') + ':' + this.$rootScope.$storage.port + this.BASE_URL + '/tenants/'+this.Auth.realm();
         }
 
         getAllMetrics() {

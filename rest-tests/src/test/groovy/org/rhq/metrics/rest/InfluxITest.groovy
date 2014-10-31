@@ -36,6 +36,7 @@ class InfluxITest extends RESTTest {
     postData(timeseriesName, start)
 
     def influxQuery = 'select value from "' + timeseriesName + '" order asc'
+    rhqm.defaultRequestHeaders.Authorization = "Basic YWdlbnQ6MjUyMzExMGYtZTk2ZS00NDg2LTk4NTAtOTRhODU3YzUzOTA5"
 
     def response = rhqm.get(path: "tenants/${tenantId}/influx/series", query: [q: influxQuery])
     assertEquals(200, response.status)
@@ -63,6 +64,7 @@ class InfluxITest extends RESTTest {
     postData(timeseriesName, start)
 
     def influxQuery = 'select value from "' + timeseriesName + '"'
+    rhqm.defaultRequestHeaders.Authorization = "Basic YWdlbnQ6MjUyMzExMGYtZTk2ZS00NDg2LTk4NTAtOTRhODU3YzUzOTA5"
 
     def response = rhqm.get(path: "tenants/${tenantId}/influx/series", query: [q: influxQuery])
     assertEquals(200, response.status)
@@ -90,6 +92,7 @@ class InfluxITest extends RESTTest {
     postData(timeseriesName, start)
 
     def influxQuery = 'select mean(value) from "' + timeseriesName + '" where time > now() - 30s group by time(30s) '
+    rhqm.defaultRequestHeaders.Authorization = "Basic YWdlbnQ6MjUyMzExMGYtZTk2ZS00NDg2LTk4NTAtOTRhODU3YzUzOTA5"
 
     def response = rhqm.get(path: "tenants/${tenantId}/influx/series", query: [q: influxQuery])
     assertEquals(200, response.status)
@@ -115,6 +118,7 @@ class InfluxITest extends RESTTest {
     postData(timeseriesName, start)
 
     def influxQuery = 'select value from "' + timeseriesName + '" limit 2 order asc '
+    rhqm.defaultRequestHeaders.Authorization = "Basic YWdlbnQ6MjUyMzExMGYtZTk2ZS00NDg2LTk4NTAtOTRhODU3YzUzOTA5"
 
     def response = rhqm.get(path: "tenants/${tenantId}/influx/series", query: [q: influxQuery])
     assertEquals(200, response.status)
@@ -142,6 +146,7 @@ class InfluxITest extends RESTTest {
 
     def influxQuery = 'select mean(value) from "' + timeseriesName + '''" where time > '2013-08-12 23:32:01.232'
                         and time < '2013-08-13' group by time(30s) '''
+    rhqm.defaultRequestHeaders.Authorization = "Basic YWdlbnQ6MjUyMzExMGYtZTk2ZS00NDg2LTk4NTAtOTRhODU3YzUzOTA5"
 
 
     def response = rhqm.get(path: "tenants/${tenantId}/influx/series", query: [q: influxQuery])
@@ -160,6 +165,7 @@ class InfluxITest extends RESTTest {
   }
 
   private static void postData(String timeseriesName, DateTime start) {
+    rhqm.defaultRequestHeaders.Authorization = "Basic YWdlbnQ6MjUyMzExMGYtZTk2ZS00NDg2LTk4NTAtOTRhODU3YzUzOTA5"
     def response = rhqm.post(path: "tenants/${tenantId}/influx/series", body: [
         [
             name: timeseriesName,

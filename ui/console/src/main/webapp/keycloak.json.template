@@ -1,0 +1,8 @@
+{
+  "realm": "rhq",
+  "realm-public-key": "...",
+  "auth-server-url": "...",
+  "ssl-required": "external",
+  "resource": "metrics-console",
+  "public-client": true
+}

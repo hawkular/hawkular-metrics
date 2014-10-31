@@ -1,0 +1,95 @@
+{
+  "id" : "acme-roadrunner-affairs",
+  "realm" : "acme-roadrunner-affairs",
+  "enabled" : true,
+  "sslRequired" : "external",
+  "passwordCredentialGrantAllowed" : true,
+  "registrationAllowed" : true,
+  "privateKey" : "PRIVATE_KEY_REALM_ACME_RRAFFAIRS",
+  "publicKey" : "PUBLIC_KEY_REALM_ACME_RRAFFAIRS",
+  "users": [ {
+    "username": "agent",
+    "enabled": true,
+    "email": "agent@acme.com",
+    "firstName": "Built-in",
+    "lastName": "Agent",
+    "credentials": [ {
+      "type": "password",
+      "value": "AGENT_PASSWORD_RRAFFAIRS"
+    }],
+    "realmRoles": ["agent"]
+  }],
+  "roles" : {
+    "realm" : [ {
+      "name" : "admin",
+      "description" : "Admin privileges",
+      "composite" : true,
+      "composites" : {
+        "realm" : [ "user" ],
+        "application" : {
+          "metrics-console" : [ "admin" ],
+          "metrics-api" : [ "admin" ]
+        }
+      }
+    }, {
+      "name" : "user",
+      "description" : "User privileges",
+      "composite" : true,
+      "composites" : {
+        "application" : {
+          "metrics-console" : [ "user" ],
+          "metrics-api" : [ "user" ]
+        }
+      }
+    }, {
+      "name" : "agent",
+      "description" : "Agent privileges",
+      "composite" : true,
+      "composites" : {
+        "application" : {
+          "metrics-console" : [ "user" ],
+          "metrics-api" : [ "user" ]
+        }
+      }
+    } ],
+    "application" : {
+      "metrics-console" : [
+          { "name" : "user" },
+          { "name" : "admin" }
+      ],
+      "metrics-api" : [
+          { "name" : "user" },
+          { "name" : "agent" },
+          { "name" : "admin" }
+      ]
+    }
+  },
+  "defaultRoles" : [ "user" ],
+  "requiredCredentials" : [ "password" ],
+  "scopeMappings" : [ {
+    "client" : "metrics-console",
+    "roles" : [ "admin" ]
+  } ],
+  "applications" : [ {
+    "name" : "metrics-console",
+    "enabled" : true,
+    "secret" : "SECRET_METRICS_CONSOLE_RR",
+    "redirectUris" : [ "http://localhost:9000/*", "http://localhost:8080/*" ],
+    "webOrigins" : [ "http://localhost:9000", "http://localhost:8080" ],
+    "claims" : {
+      "name" : true,
+      "username" : true,
+      "email" : true
+    },
+    "bearerOnly" : false,
+    "publicClient" : true
+  }, {
+    "name" : "metrics-api",
+    "enabled" : true,
+    "secret" : "SECRET_METRICS_API_RR",
+    "redirectUris" : [ "/rhq-metrics" ],
+    "webOrigins" : [ ],
+    "bearerOnly" : false,
+    "publicClient" : false
+  }]
+}
