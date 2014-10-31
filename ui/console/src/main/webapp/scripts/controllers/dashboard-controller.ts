@@ -81,6 +81,7 @@ module Controllers {
         private updateLastTimeStampToNowPromise:ng.IPromise<number>;
         private chartData = {};
         private bucketedDataPoints:IChartDataPoint[] = [];
+        metricDataPromise;
 
         selectedMetrics:string[] = [];
         searchId = '';
@@ -217,7 +218,7 @@ module Controllers {
 
             if (metricId !== '') {
 
-                this.metricDataService.getMetricsForTimeRange(metricId, new Date(startTime), new Date(endTime))
+                this.metricDataPromise = this.metricDataService.getMetricsForTimeRange(metricId, new Date(startTime), new Date(endTime))
                     .then((response) => {
                         // we want to isolate the response from the data we are feeding to the chart
                         this.bucketedDataPoints = this.formatBucketedChartOutput(response);

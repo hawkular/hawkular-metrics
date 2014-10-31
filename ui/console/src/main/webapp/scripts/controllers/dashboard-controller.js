@@ -185,7 +185,7 @@ var Controllers;
             }
 
             if (metricId !== '') {
-                this.metricDataService.getMetricsForTimeRange(metricId, new Date(startTime), new Date(endTime)).then(function (response) {
+                this.metricDataPromise = this.metricDataService.getMetricsForTimeRange(metricId, new Date(startTime), new Date(endTime)).then(function (response) {
                     // we want to isolate the response from the data we are feeding to the chart
                     _this.bucketedDataPoints = _this.formatBucketedChartOutput(response);
 

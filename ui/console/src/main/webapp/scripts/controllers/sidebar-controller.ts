@@ -8,6 +8,7 @@ module Controllers {
         public static  $inject = ['$scope', '$rootScope', '$log', 'metricDataService' ];
 
         allMetrics;
+        retrieveMetricsPromise;
 
         constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $log:ng.ILogService, private metricDataService) {
             $scope.vm = this;
@@ -24,7 +25,7 @@ module Controllers {
 
         populateMetricsSidebar() {
 
-            this.metricDataService.getAllMetrics()
+            this.retrieveMetricsPromise = this.metricDataService.getAllMetrics()
                 .then((response) => {
                     this.allMetrics = response;
                     this.$rootScope.$emit('RefreshSidebarEvent');

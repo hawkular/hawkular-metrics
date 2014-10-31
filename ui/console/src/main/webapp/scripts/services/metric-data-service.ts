@@ -17,7 +17,7 @@ module Services {
             return baseUrl;
         }
 
-        getAllMetrics():any {
+        getAllMetrics() {
 
             this.$log.info('-- Retrieving all metrics');
             var base = this.makeBaseUrl(),

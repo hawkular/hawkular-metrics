@@ -22,7 +22,7 @@ var Controllers;
         }
         SidebarController.prototype.populateMetricsSidebar = function () {
             var _this = this;
-            this.metricDataService.getAllMetrics().then(function (response) {
+            this.retrieveMetricsPromise = this.metricDataService.getAllMetrics().then(function (response) {
                 _this.allMetrics = response;
                 _this.$rootScope.$emit('RefreshSidebarEvent');
             }, function (error) {
