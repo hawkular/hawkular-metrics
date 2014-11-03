@@ -22,6 +22,7 @@ import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.RetentionSettings;
 import org.rhq.metrics.core.Tenant;
+import org.rhq.metrics.util.TimeUUIDUtils;
 
 /**
  * This class will eventually supplant the existing DataAccess class.
@@ -41,6 +42,10 @@ public class DataAccess2 {
     private PreparedStatement insertNumericData;
 
     private PreparedStatement findNumericData;
+
+    private PreparedStatement deleteNumericMetric;
+
+    private PreparedStatement findNumericMetrics;
 
     public DataAccess2(Session session) {
         this.session = session;
@@ -68,7 +73,14 @@ public class DataAccess2 {
         findNumericData = session.prepare(
             "SELECT tenant_id, metric, interval, dpart, time, attributes, raw, aggregates " +
             "FROM numeric_data " +
+            "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
+
+        deleteNumericMetric = session.prepare(
+            "DELETE FROM numeric_data " +
             "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ?");
+
+        findNumericMetrics = session.prepare(
+            "SELECT DISTINCT tenant_id, metric, interval, dpart FROM numeric_data;");
     }
 
     public ResultSetFuture insertTenant(Tenant tenant) {
@@ -133,8 +145,18 @@ public class DataAccess2 {
         return interval == null ? "" : interval.toString();
     }
 
-    public ResultSetFuture findNumericData(String tenantId, String metric, Interval interval, long dpart) {
-        return session.executeAsync(findNumericData.bind(tenantId, metric, interval.toString(), dpart));
+    public ResultSetFuture findNumericData(String tenantId, String metric, Interval interval, long dpart,
+        long startTime, long endTime) {
+        return session.executeAsync(findNumericData.bind(tenantId, metric, interval.toString(), dpart,
+            TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
+    }
+
+    public ResultSetFuture deleteNumericMetric(String tenantId, String metric, Interval interval, long dpart) {
+        return session.executeAsync(deleteNumericMetric.bind(tenantId, metric, interval.toString(), dpart));
+    }
+
+    public ResultSetFuture findAllNumericMetrics() {
+        return session.executeAsync(findNumericMetrics.bind());
     }
 
 }

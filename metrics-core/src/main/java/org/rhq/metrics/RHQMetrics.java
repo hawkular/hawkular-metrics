@@ -2,8 +2,13 @@ package org.rhq.metrics;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+
+import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import org.rhq.metrics.core.MetricsService;
+import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.impl.cassandra.MetricsServiceCassandra;
 import org.rhq.metrics.impl.memory.MemoryMetricsService;
 
@@ -86,4 +91,27 @@ public class RHQMetrics {
         }
 
     }
+
+    private MetricsService metricsService;
+
+    private RHQMetrics(MetricsService metricsService) {
+        this.metricsService = metricsService;
+    }
+
+    public ListenableFuture<Void> addData(NumericData data) {
+        return metricsService.addNumericData(ImmutableSet.of(data));
+    }
+
+    public ListenableFuture<Void> addData(Set<NumericData> data) {
+        return metricsService.addNumericData(data);
+    }
+
+//    public ListenableFuture<List<NumericData>> findData(String id, long start, long end) {
+//        return metricsService.findData(id, start, end);
+//    }
+
+    public void shutdown() {
+        metricsService.shutdown();
+    }
+
 }

@@ -31,8 +31,10 @@ import org.slf4j.LoggerFactory;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.DataAccess;
 import org.rhq.metrics.core.DataType;
+import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
+import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.RawMetricMapper;
 import org.rhq.metrics.core.RawNumericMetric;
 import org.rhq.metrics.core.SchemaManager;
@@ -46,6 +48,8 @@ public class MetricsServiceCassandra implements MetricsService {
 
     public static final String REQUEST_LIMIT = "rhq.metrics.request.limit";
 
+    private static final long DPART = 0;
+
     private static final int RAW_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
     private static final Function<ResultSet, Void> TO_VOID = new Function<ResultSet, Void>() {
@@ -55,14 +59,21 @@ public class MetricsServiceCassandra implements MetricsService {
         }
     };
 
+    private static final Function<List<ResultSet>, Void> RESULT_SETS_TO_VOID = new Function<List<ResultSet>, Void>() {
+        @Override
+        public Void apply(List<ResultSet> resultSets) {
+            return null;
+        }
+    };
+
     private RateLimiter permits = RateLimiter.create(Double.parseDouble(
         System.getProperty(REQUEST_LIMIT, "30000")), 3, TimeUnit.MINUTES);
 
     private Optional<Session> session;
 
-    private DataAccess dataAccess;
+    private DataAccess2 dataAccess2;
 
-    private MapQueryResultSet mapQueryResultSet = new MapQueryResultSet();
+    private NumericDataMapper numericDataMapper = new NumericDataMapper();
 
     private Function<ResultSet, List<Counter>> mapCounters = new Function<ResultSet, List<Counter>>() {
         @Override
@@ -83,7 +94,7 @@ public class MetricsServiceCassandra implements MetricsService {
     public void startUp(Session s) {
         // the session is managed externally
         this.session = Optional.absent();
-        this.dataAccess = new DataAccess(s);
+        this.dataAccess2 = new DataAccess2(s);
     }
 
     @Override
@@ -109,8 +120,6 @@ public class MetricsServiceCassandra implements MetricsService {
             .withPort(port)
             .build();
 
-
-
         String keyspace = params.get("keyspace");
         if (keyspace==null||keyspace.isEmpty()) {
             logger.debug("No keyspace given in params, checking system properties ...");
@@ -133,7 +142,7 @@ public class MetricsServiceCassandra implements MetricsService {
         updateSchemaIfNecessary(cluster, keyspace);
 
         session = Optional.of(cluster.connect(keyspace));
-        dataAccess = new DataAccess(session.get());
+        dataAccess2 = new DataAccess2(session.get());
 
     }
 
@@ -146,107 +155,84 @@ public class MetricsServiceCassandra implements MetricsService {
         }
     }
 
-    public ListenableFuture<Void> addData(RawNumericMetric data) {
-        permits.acquire();
-        ResultSetFuture future = dataAccess.insertData(data.getBucket(), data.getId(), data.getTimestamp(),
-            ImmutableMap.of(DataType.RAW.ordinal(), data.getValue()), RAW_TTL);
-        return Futures.transform(future, TO_VOID);
-    }
-
-            @Override
-    public ListenableFuture<Map<RawNumericMetric, Throwable>> addData(Set<RawNumericMetric> data) {
-        final Map<RawNumericMetric, Throwable> errors = new HashMap<>();
+    @Override
+    public ListenableFuture<Void> addNumericData(Set<NumericData> data) {
         List<ResultSetFuture> futures = new ArrayList<>(data.size());
-
-        for (final RawNumericMetric metric : data) {
+        for (NumericData d : data) {
             permits.acquire();
-            ResultSetFuture future = dataAccess.insertData(metric.getBucket(), metric.getId(), metric.getTimestamp(),
-                ImmutableMap.of(DataType.RAW.ordinal(), metric.getAvg()), RAW_TTL);
-            Futures.withFallback(future, new RawDataFallback(errors, metric));
-            futures.add(future);
+            futures.add(dataAccess2.insertNumericData(d));
         }
         ListenableFuture<List<ResultSet>> insertsFuture = Futures.successfulAsList(futures);
-
-        return Futures.transform(insertsFuture, new Function<List<ResultSet>, Map<RawNumericMetric, Throwable>>() {
-            @Override
-            public Map<RawNumericMetric, Throwable> apply(List<ResultSet> resultSets) {
-                return errors;
-            }
-        });
+        return Futures.transform(insertsFuture, RESULT_SETS_TO_VOID);
     }
 
-            @Override
+    @Override
     public ListenableFuture<Void> updateCounter(Counter counter) {
-        return Futures.transform(dataAccess.updateCounter(counter), TO_VOID);
-            }
+//        return Futures.transform(dataAccess.updateCounter(counter), TO_VOID);
+        throw new UnsupportedOperationException();
+    }
 
     @Override
     public ListenableFuture<Void> updateCounters(Collection<Counter> counters) {
-        ResultSetFuture future = dataAccess.updateCounters(counters);
-        return Futures.transform(future, TO_VOID);
+//        ResultSetFuture future = dataAccess.updateCounters(counters);
+//        return Futures.transform(future, TO_VOID);
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public ListenableFuture<List<Counter>> findCounters(String group) {
-        ResultSetFuture future = dataAccess.findCounters(group);
-        return Futures.transform(future, mapCounters, metricsTasks);
+//        ResultSetFuture future = dataAccess.findCounters(group);
+//        return Futures.transform(future, mapCounters, metricsTasks);
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public ListenableFuture<List<Counter>> findCounters(String group, List<String> counterNames) {
-        ResultSetFuture future = dataAccess.findCounters(group, counterNames);
-        return Futures.transform(future, mapCounters, metricsTasks);
+//        ResultSetFuture future = dataAccess.findCounters(group, counterNames);
+//        return Futures.transform(future, mapCounters, metricsTasks);
+        throw new UnsupportedOperationException();
     }
 
     @Override
-    public ListenableFuture<List<RawNumericMetric>> findData(String bucket, String id, long start, long end) {
-        ResultSetFuture future = dataAccess.findData(bucket, id, start, end);
-        return Futures.transform(future, mapQueryResultSet, metricsTasks);
-    }
-
-    @Override
-    public ListenableFuture<List<RawNumericMetric>> findData(String id, long start, long end) {
-        return findData("raw", id, start, end);
+    public ListenableFuture<List<NumericData>> findData(String tenantId, String id, long start, long end) {
+        ResultSetFuture future = dataAccess2.findNumericData(tenantId, id, Interval.NONE, DPART, start, end);
+        return Futures.transform(future, numericDataMapper, metricsTasks);
     }
 
     @Override
     public ListenableFuture<Boolean> idExists(final String id) {
-        ResultSetFuture rsf = dataAccess.listMetricNames();
-        return Futures.transform(rsf, new Function<ResultSet, Boolean>() {
+        ResultSetFuture future = dataAccess2.findAllNumericMetrics();
+        return Futures.transform(future, new Function<ResultSet, Boolean>() {
             @Override
-            public Boolean apply(ResultSet input) {
-                boolean found = false;
-                for (Row row : input.all()) {
-                    String name = row.getString("metric_id");
-                    if (name.equals(id)) {
-                        found = true;
-                        break;
+            public Boolean apply(ResultSet resultSet) {
+                for (Row row : resultSet) {
+                    if (id.equals(row.getString(1))) {
+                        return true;
                     }
                 }
-                return found;
+                return false;
             }
-        });
+        }, metricsTasks);
     }
 
     @Override
     public ListenableFuture<List<String>> listMetrics() {
-        ResultSetFuture rsf = dataAccess.listMetricNames();
-        return Futures.transform(rsf, new Function<ResultSet, List<String>>() {
+        ResultSetFuture future = dataAccess2.findAllNumericMetrics();
+        return Futures.transform(future, new Function<ResultSet, List<String>>() {
             @Override
-            public List<String> apply(ResultSet input) {
-                List<String> result = new ArrayList<>();
-                for (Row row : input.all()) {
-                    String name = row.getString("metric_id");
-                    result.add(name);
+            public List<String> apply(ResultSet resultSet) {
+                List<String> metrics = new ArrayList<>();
+                for (Row row : resultSet) {
+                    metrics.add(row.getString(1));
                 }
-                return result;
+                return metrics;
             }
-        });
+        }, metricsTasks);
     }
 
     @Override
     public ListenableFuture<Boolean> deleteMetric(String id) {
-        ResultSetFuture future = dataAccess.removeData(id);
+        ResultSetFuture future = dataAccess2.deleteNumericMetric(DEFAULT_TENANT_ID, id, Interval.NONE, DPART);
         return Futures.transform(future, new Function<ResultSet, Boolean>() {
             @Override
             public Boolean apply(ResultSet input) {
@@ -271,10 +257,10 @@ public class MetricsServiceCassandra implements MetricsService {
         try (Session session = cluster.connect("system")) {
             SchemaManager schemaManager = new SchemaManager(session);
             try {
-                schemaManager.updateSchema(schemaName);
+                schemaManager.createSchema(schemaName);
             } catch (Exception e) {
                 logger.error("Schema update failed: " + e);
-                throw e;
+                throw new RuntimeException(e);
             }
         }
     }

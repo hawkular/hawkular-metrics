@@ -6,20 +6,18 @@ import static org.rhq.metrics.util.TimeUUIDUtils.getTimeUUID;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.utils.UUIDs;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.joda.time.DateTime;
 import org.joda.time.Days;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -100,51 +98,52 @@ public class DataAccess2Test extends MetricsTest {
 
     @Test
     public void insertAndFindNumericRawData() throws Exception {
+        DateTime start = now().minusMinutes(10);
+        DateTime end = start.plusMinutes(6);
+
         NumericData d1 = new NumericData()
             .setTenantId("tenant-1")
             .setMetric("metric-1")
-            .setTimeUUID(UUIDs.timeBased())
+            .setTimeUUID(getTimeUUID(start))
             .setValue(1.23);
 
         NumericData d2 = new NumericData()
             .setTenantId("tenant-1")
             .setMetric("metric-1")
-            .setTimeUUID(UUIDs.timeBased())
+            .setTimeUUID(getTimeUUID(start.plusMinutes(1)))
             .setValue(1.234);
 
         NumericData d3 = new NumericData()
             .setTenantId("tenant-1")
-            .setMetric("metric-2")
-            .setTimeUUID(UUIDs.timeBased())
+            .setMetric("metric-1")
+            .setTimeUUID(getTimeUUID(start.plusMinutes(2)))
             .setValue(1.234);
 
-        ResultSetFuture insertFuture = dataAccess.insertNumericData(d1);
-        getUninterruptibly(insertFuture);
+        NumericData d4 = new NumericData()
+            .setTenantId("tenant-1")
+            .setMetric("metric-1")
+            .setTimeUUID(getTimeUUID(end))
+            .setValue(1.234);
 
-        insertFuture = dataAccess.insertNumericData(d2);
-        getUninterruptibly(insertFuture);
+        getUninterruptibly(dataAccess.insertNumericData(d1));
+        getUninterruptibly(dataAccess.insertNumericData(d2));
+        getUninterruptibly(dataAccess.insertNumericData(d3));
+        getUninterruptibly(dataAccess.insertNumericData(d4));
 
-        insertFuture = dataAccess.insertNumericData(d3);
-        getUninterruptibly(insertFuture);
-
-        ResultSetFuture queryFuture = dataAccess.findNumericData(d1.getTenantId(), d1.getMetric(), Interval.NONE, 0L);
-        ResultSet resultSet = getUninterruptibly(queryFuture);
-
-        List<NumericData> expected = asList(d2, d1);
-        List<NumericData> actual = new ArrayList<>();
-        for (Row row : resultSet) {
-            actual.add(new NumericData()
-                .setTenantId(row.getString(0))
-                .setMetric(row.getString(1))
-                .setTimeUUID(row.getUUID(4))
-                .setValue(row.getDouble(6)));
-        }
+        ResultSetFuture queryFuture = dataAccess.findNumericData(d1.getTenantId(), d1.getMetric(), Interval.NONE, 0L,
+            start.getMillis(), end.getMillis());
+        ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
+        List<NumericData> actual = getUninterruptibly(dataFuture);
+        List<NumericData> expected = asList(d3, d2, d1);
 
         assertEquals(actual, expected, "The numeric data does not match");
     }
 
     @Test
     public void addAttributesToNumericRawData() throws Exception {
+        DateTime start = now().minusMinutes(10);
+        DateTime end = start.plusMinutes(6);
+
        ResultSetFuture insertFuture = dataAccess.addNumericAttributes("tenant-1", "metric-1", Interval.NONE, 0,
            ImmutableMap.of("units", "KB", "env", "test"));
        getUninterruptibly(insertFuture);
@@ -152,95 +151,93 @@ public class DataAccess2Test extends MetricsTest {
         NumericData d1 = new NumericData()
             .setTenantId("tenant-1")
             .setMetric("metric-1")
-            .setTimeUUID(UUIDs.timeBased())
+            .setTimeUUID(getTimeUUID(start))
             .setValue(1.23)
             .putAttribute("test?", "true");
 
         NumericData d2 = new NumericData()
             .setTenantId("tenant-1")
             .setMetric("metric-1")
-            .setTimeUUID(UUIDs.timeBased())
+            .setTimeUUID(getTimeUUID(start.plusMinutes(2)))
             .setValue(1.234);
 
         NumericData d3 = new NumericData()
             .setTenantId("tenant-1")
-            .setMetric("metric-2")
-            .setTimeUUID(UUIDs.timeBased())
+            .setMetric("metric-1")
+            .setTimeUUID(getTimeUUID(start.plusMinutes(4)))
             .setValue(1.234);
 
-        insertFuture = dataAccess.insertNumericData(d1);
-        getUninterruptibly(insertFuture);
+        NumericData d4 = new NumericData()
+            .setTenantId("tenant-1")
+            .setMetric("metric-1")
+            .setTimeUUID(getTimeUUID(end))
+            .setValue(1.234);
 
-        insertFuture = dataAccess.insertNumericData(d2);
-        getUninterruptibly(insertFuture);
+        getUninterruptibly(dataAccess.insertNumericData(d1));
+        getUninterruptibly(dataAccess.insertNumericData(d2));
+        getUninterruptibly(dataAccess.insertNumericData(d3));
+        getUninterruptibly(dataAccess.insertNumericData(d4));
 
-        insertFuture = dataAccess.insertNumericData(d3);
-        getUninterruptibly(insertFuture);
-
-        ResultSetFuture queryFuture = dataAccess.findNumericData(d1.getTenantId(), d1.getMetric(), Interval.NONE, 0L);
-        ResultSet resultSet = getUninterruptibly(queryFuture);
-
+        ResultSetFuture queryFuture = dataAccess.findNumericData(d1.getTenantId(), d1.getMetric(), Interval.NONE, 0L,
+            start.getMillis(), end.getMillis());
+        ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
+        List<NumericData> actual = getUninterruptibly(dataFuture);
         List<NumericData> expected = asList(
+            d3.putAttribute("units", "KB").putAttribute("env", "test").putAttribute("test?", "true"),
             d2.putAttribute("units", "KB").putAttribute("env", "test").putAttribute("test?", "true"),
             d1.putAttribute("units", "KB").putAttribute("env", "test")
         );
-        List<NumericData> actual = new ArrayList<>();
-        for (Row row : resultSet) {
-            actual.add(new NumericData()
-                .setTenantId(row.getString(0))
-                .setMetric(row.getString(1))
-                .setTimeUUID(row.getUUID(4))
-                .setValue(row.getDouble(6))
-                .putAttributes(row.getMap(5, String.class, String.class)));
-        }
 
         assertEquals(actual, expected, "The numeric data does not match");
     }
 
     @Test
     public void insertAndFindAggregatedNumericData() throws Exception {
+        DateTime start = now().minusMinutes(10);
+        DateTime end = start.plusMinutes(6);
+
         NumericData d1 = new NumericData()
             .setTenantId("tenant-1")
             .setMetric("m1")
             .setInterval(Interval.parse("5min"))
-            .setTimeUUID(UUIDs.timeBased())
+            .setTimeUUID(getTimeUUID(start))
             .addAggregatedValue(new AggregatedValue("sum", 100.1))
             .addAggregatedValue(new AggregatedValue("max", 51.5, null, null, getTimeUUID(now().minusMinutes(3))));
-        insertNumericData(d1);
-
 
         NumericData d2 = new NumericData()
             .setTenantId("tenant-1")
             .setMetric("m1")
             .setInterval(Interval.parse("5min"))
-            .setTimeUUID(UUIDs.timeBased())
+            .setTimeUUID(getTimeUUID(start.plusMinutes(2)))
             .addAggregatedValue(new AggregatedValue("sum", 110.1))
             .addAggregatedValue(new AggregatedValue("max", 54.7, null, null, getTimeUUID(now().minusMinutes(3))));
-        insertNumericData(d2);
 
         NumericData d3 = new NumericData()
             .setTenantId("tenant-1")
             .setMetric("m1")
-            .setTimeUUID(UUIDs.timeBased())
+            .setInterval(Interval.parse("5min"))
+            .setTimeUUID(getTimeUUID(start.plusMinutes(4)))
             .setValue(22.2);
-        insertNumericData(d3);
 
-        ResultSetFuture queryFuture = dataAccess.findNumericData(d1.getTenantId(), d1.getMetric(), d1.getInterval(), 0L);
+        NumericData d4 = new NumericData()
+            .setTenantId("tenant-1")
+            .setMetric("m1")
+            .setInterval(Interval.parse("5min"))
+            .setTimeUUID(getTimeUUID(end))
+            .setValue(22.2);
+
+        getUninterruptibly(dataAccess.insertNumericData(d1));
+        getUninterruptibly(dataAccess.insertNumericData(d2));
+        getUninterruptibly(dataAccess.insertNumericData(d3));
+        getUninterruptibly(dataAccess.insertNumericData(d4));
+
+        ResultSetFuture queryFuture = dataAccess.findNumericData(d1.getTenantId(), d1.getMetric(), d1.getInterval(), 0L,
+            start.getMillis(), end.getMillis());
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
         List<NumericData> actual = getUninterruptibly(dataFuture);
-
-        List<NumericData> expected = asList(d2, d1);
+        List<NumericData> expected = asList(d3, d2, d1);
 
         assertEquals(actual, expected, "The aggregated numeric data does not match");
-    }
-
-    private Interval getInterval(String interval) {
-        return interval.equals("") ? null : Interval.parse(interval);
-    }
-
-    private void insertNumericData(NumericData data) throws Exception {
-        ResultSetFuture future = dataAccess.insertNumericData(data);
-        getUninterruptibly(future);
     }
 
 }

@@ -2,8 +2,7 @@ package org.rhq.metrics.restServlet;
 
 import static java.lang.Double.NaN;
 import static java.util.Arrays.asList;
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.rhq.metrics.core.MetricsService.DEFAULT_TENANT_ID;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,8 +45,10 @@ import org.jboss.resteasy.annotations.GZIP;
 
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.MetricsService;
+import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.RawNumericMetric;
+import org.rhq.metrics.util.TimeUUIDUtils;
 
 /**
  * Interface to deal with metrics
@@ -80,8 +81,8 @@ public class MetricHandler {
     @Consumes({"application/json","application/xml"})
     @ApiOperation("Adds a single data point for the given id.")
     public void addMetric(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id, IdDataPoint dataPoint) {
-        addData(asyncResponse, ImmutableSet.of(new RawNumericMetric(id, dataPoint.getValue(),
-            dataPoint.getTimestamp())));
+        addData(asyncResponse, ImmutableSet.of(new NumericData().setTenantId(DEFAULT_TENANT_ID).setMetric(id)
+            .setTimeUUID(TimeUUIDUtils.getTimeUUID(dataPoint.getTimestamp())).setValue(dataPoint.getValue())));
     }
 
     @POST
@@ -90,21 +91,23 @@ public class MetricHandler {
     @ApiOperation("Add a collection of data. Values can be for different metric ids.")
     public void addMetrics(@Suspended AsyncResponse asyncResponse, Collection<IdDataPoint> dataPoints) {
 
-        Set<RawNumericMetric> rawSet = new HashSet<>(dataPoints.size());
+        Set<NumericData> rawSet = new HashSet<>(dataPoints.size());
         for (IdDataPoint dataPoint : dataPoints) {
-            RawNumericMetric rawMetric = new RawNumericMetric(dataPoint.getId(), dataPoint.getValue(),
-                dataPoint.getTimestamp());
-            rawSet.add(rawMetric);
+            rawSet.add(new NumericData()
+                .setTenantId(DEFAULT_TENANT_ID)
+                .setMetric(dataPoint.getId())
+                .setTimeUUID(TimeUUIDUtils.getTimeUUID(dataPoint.getTimestamp()))
+                .setValue(dataPoint.getValue()));
         }
 
         addData(asyncResponse, rawSet);
     }
 
-    private void addData(final AsyncResponse asyncResponse, Set<RawNumericMetric> rawData) {
-        ListenableFuture<Map<RawNumericMetric,Throwable>> future = metricsService.addData(rawData);
-        Futures.addCallback(future, new FutureCallback<Map<RawNumericMetric, Throwable>>() {
+    private void addData(final AsyncResponse asyncResponse, Set<NumericData> rawData) {
+        ListenableFuture<Void> future = metricsService.addNumericData(rawData);
+        Futures.addCallback(future, new FutureCallback<Void>() {
             @Override
-            public void onSuccess(Map<RawNumericMetric, Throwable> errors) {
+            public void onSuccess(Void errors) {
                 Response jaxrs = Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build();
                 asyncResponse.resume(jaxrs);
             }
@@ -261,16 +264,17 @@ public class MetricHandler {
                     asyncResponse.resume(Response.status(404).entity(val).build());
                 }
 
-                final ListenableFuture<List<RawNumericMetric>> future = metricsService.findData(id, finalStart, finalEnd);
+                final ListenableFuture<List<NumericData>> future = metricsService.findData(DEFAULT_TENANT_ID, id,
+                    finalStart, finalEnd);
 
-                Futures.addCallback(future, new FutureCallback<List<RawNumericMetric>>() {
+                Futures.addCallback(future, new FutureCallback<List<NumericData>>() {
                     @Override
-                    public void onSuccess(List<RawNumericMetric> metrics) {
+                    public void onSuccess(List<NumericData> metrics) {
                         if (numberOfBuckets == 0) {
                             // Normal case of raw metrics
                             List<DataPoint> points = new ArrayList<>(metrics.size());
-                            for (NumericMetric item : metrics) {
-                                DataPoint point = new DataPoint(item.getTimestamp(), item.getAvg());
+                            for (NumericData item : metrics) {
+                                DataPoint point = new DataPoint(item.getTimestamp(), item.getValue());
                                 points.add(point);
                             }
                             GenericEntity<List<DataPoint>> list = new GenericEntity<List<DataPoint>>(points) {};
@@ -299,19 +303,19 @@ public class MetricHandler {
 
                                 // find the minimum ts
                                 long minTs = Long.MAX_VALUE;
-                                for (RawNumericMetric metric : metrics) {
+                                for (NumericData metric : metrics) {
                                     if (metric.getTimestamp() < minTs) {
                                         minTs = metric.getTimestamp();
                                     }
                                 }
 
-                                TLongObjectMap<List<RawNumericMetric>> buckets = new TLongObjectHashMap<>(numberOfBuckets);
+                                TLongObjectMap<List<NumericData>> buckets = new TLongObjectHashMap<>(numberOfBuckets);
 
-                                for (RawNumericMetric metric : metrics) {
+                                for (NumericData metric : metrics) {
                                     long bucket = metric.getTimestamp() - minTs;
                                     bucket = bucket % totalLength;
                                     bucket = bucket / (bucketWidthSeconds * 1000L);
-                                    List<RawNumericMetric> tmpList = buckets.get(bucket);
+                                    List<NumericData> tmpList = buckets.get(bucket);
                                     if (tmpList == null) {
                                         tmpList = new ArrayList<>();
                                         buckets.put(bucket, tmpList);
@@ -323,7 +327,7 @@ public class MetricHandler {
                                     // As we collapse stuff from a lot of input timestamps into some
                                     // buckets, we only use a relative time for the bucket timestamps.
                                     for (int i = 0; i < numberOfBuckets; i++) {
-                                        List<RawNumericMetric> tmpList = buckets.get(i);
+                                        List<NumericData> tmpList = buckets.get(i);
                                         BucketDataPoint point;
                                         if (tmpList == null) {
                                             if (!skipEmpty) {
@@ -331,7 +335,7 @@ public class MetricHandler {
                                                 points.add(point);
                                             }
                                         } else {
-                                            point = getBucketDataPoint(tmpList.get(0).getId(),
+                                            point = getBucketDataPoint(tmpList.get(0).getMetric(),
                                                 1000L * i * bucketWidthSeconds, tmpList);
                                             points.add(point);
                                         }
@@ -341,10 +345,10 @@ public class MetricHandler {
                                     // We want to keep the raw values, but put them into clusters anyway
                                     // without collapsing them into a single min/avg/max tuple
                                     for (int i = 0; i < numberOfBuckets; i++) {
-                                        List<RawNumericMetric> tmpList = buckets.get(i);
+                                        List<NumericData> tmpList = buckets.get(i);
                                         BucketDataPoint point;
                                         if (tmpList!=null) {
-                                            for (RawNumericMetric metric : tmpList) {
+                                            for (NumericData metric : tmpList) {
                                                 point = new BucketDataPoint(id, // TODO could be simple data points
                                                     1000L * i * bucketWidthSeconds, NaN,metric.getValue(),NaN);
                                                 point.setValue(metric.getValue());
@@ -450,23 +454,23 @@ public class MetricHandler {
     }
 
     private BucketDataPoint createPointInSimpleBucket(String id, long startTime, long bucketsize,
-                                                      List<RawNumericMetric> metrics) {
-        List<RawNumericMetric> bucketMetrics = new ArrayList<>(metrics.size());
+        List<NumericData> metrics) {
+        List<NumericData> bucketMetrics = new ArrayList<>(metrics.size());
         // Find matching metrics
-        for (NumericMetric raw : metrics) {
+        for (NumericData raw : metrics) {
             if (raw.getTimestamp() >= startTime && raw.getTimestamp() < startTime + bucketsize) {
-                bucketMetrics.add((RawNumericMetric) raw);
+                bucketMetrics.add((NumericData) raw);
             }
         }
 
         return getBucketDataPoint(id, startTime, bucketMetrics);
     }
 
-    private BucketDataPoint getBucketDataPoint(String id, long startTime, List<RawNumericMetric> bucketMetrics) {
+    private BucketDataPoint getBucketDataPoint(String id, long startTime, List<NumericData> bucketMetrics) {
         Double min = null;
         Double max = null;
         double sum = 0;
-        for (RawNumericMetric raw : bucketMetrics) {
+        for (NumericData raw : bucketMetrics) {
             if (max==null || raw.getValue() > max) {
                 max = raw.getValue();
             }

@@ -7,11 +7,11 @@
 
 -- #
 
-CREATE KEYSPACE rhq WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}
+CREATE KEYSPACE ${keyspace} WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}
 
 -- #
 
-CREATE TYPE rhq.aggregation_template (
+CREATE TYPE ${keyspace}.aggregation_template (
     type text,
     src text,
     interval text,
@@ -20,7 +20,7 @@ CREATE TYPE rhq.aggregation_template (
 
 -- #
 
-CREATE TABLE rhq.tenants (
+CREATE TABLE ${keyspace}.tenants (
     id text PRIMARY KEY,
     retentions map<frozen<tuple<text, text>>, int>,
     aggregation_templates list<frozen<aggregation_template>>
@@ -28,7 +28,7 @@ CREATE TABLE rhq.tenants (
 
 -- #
 
-CREATE TYPE rhq.aggregate_data (
+CREATE TYPE ${keyspace}.aggregate_data (
     type text,
     value double,
     time timeuuid,
@@ -38,7 +38,7 @@ CREATE TYPE rhq.aggregate_data (
 
 -- #
 
-CREATE TABLE rhq.numeric_data (
+CREATE TABLE ${keyspace}.numeric_data (
     tenant_id text,
     metric text,
     interval text,
@@ -53,7 +53,7 @@ WITH CLUSTERING ORDER BY (time DESC);
 
 -- #
 
-CREATE TABLE rhq.availability (
+CREATE TABLE ${keyspace}.availability (
     tenant_id text,
     type text,
     metric text,
@@ -66,7 +66,7 @@ CREATE TABLE rhq.availability (
 
 -- #
 
-CREATE TABLE rhq.tags (
+CREATE TABLE ${keyspace}.tags (
     tenant_id text,
     tag text,
     type text,

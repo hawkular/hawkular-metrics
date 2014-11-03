@@ -78,6 +78,10 @@ public class NumericData {
         return this;
     }
 
+    public long getTimestamp() {
+        return UUIDs.unixTimestamp(timeUUID);
+    }
+
     public Map<String, String> getAttributes() {
         return attributes;
     }

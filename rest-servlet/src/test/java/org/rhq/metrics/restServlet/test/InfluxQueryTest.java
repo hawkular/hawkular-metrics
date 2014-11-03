@@ -1,15 +1,18 @@
 package org.rhq.metrics.restServlet.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.rhq.metrics.core.MetricsService.DEFAULT_TENANT_ID;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.Test;
 
-import org.rhq.metrics.core.RawNumericMetric;
+import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.restServlet.influx.InfluxHandler;
 import org.rhq.metrics.restServlet.influx.InfluxQuery;
-
-import static org.junit.Assert.assertEquals;
+import org.rhq.metrics.util.TimeUUIDUtils;
 
 /**
  * Some testing of the Influx Query parser
@@ -22,10 +25,14 @@ public class InfluxQueryTest {
 
         double[] input = {1,1,1,3,4,7,9,11,13,13};
 
-        List<RawNumericMetric> metrics = new ArrayList<>(10);
+        UUID timeUUID = TimeUUIDUtils.getTimeUUID(new java.util.Date());
+        List<NumericData> metrics = new ArrayList<>(10);
         for (Double val: input) {
-            RawNumericMetric m = new RawNumericMetric("x",val,0);
-            metrics.add(m);
+            NumericData d = new NumericData()
+                .setTenantId(DEFAULT_TENANT_ID)
+                .setTimeUUID(timeUUID)
+                .setValue(val);
+            metrics.add(d);
         }
 
         double q30 = new InfluxHandler().quantil(metrics,0.3*100);

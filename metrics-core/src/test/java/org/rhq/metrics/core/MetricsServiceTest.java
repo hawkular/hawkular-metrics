@@ -1,14 +1,16 @@
 package org.rhq.metrics.core;
 
+import static java.util.Arrays.asList;
+import static org.joda.time.DateTime.now;
+import static org.rhq.metrics.util.TimeUUIDUtils.getTimeUUID;
 import static org.testng.Assert.assertEquals;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.joda.time.DateTime;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -23,8 +25,6 @@ public class MetricsServiceTest extends MetricsTest {
 
     private MetricsServiceCassandra metricsService;
 
-    private RawMetricMapper rawMapper = new RawMetricMapper();
-
     @BeforeClass
     public void initClass() {
         initSession();
@@ -34,34 +34,36 @@ public class MetricsServiceTest extends MetricsTest {
 
     @BeforeMethod
     public void initMethod() {
-        resetDB();
+        session.execute("TRUNCATE tenants");
+        session.execute("TRUNCATE numeric_data");
     }
 
 
     @Test
     public void addAndFetchRawData() throws Exception {
-        Set<RawNumericMetric> data = ImmutableSet.of(
-            new RawNumericMetric("1", 22.3, hour(5).plusMinutes(2).getMillis()),
-            new RawNumericMetric("2", 10.234, hour(5).plusMinutes(2).plusSeconds(5).getMillis()),
-            new RawNumericMetric("1", 21.9, hour(5).plusMinutes(3).plusSeconds(10).getMillis()),
-            new RawNumericMetric("1", 23.32, hour(5).plusMinutes(3).plusSeconds(15).getMillis()),
-            new RawNumericMetric("1", 23.32, hour(5).plusMinutes(4).getMillis())
-        );
+        DateTime start = now().minusMinutes(30);
+        DateTime end = start.plusMinutes(20);
+        String tenantId = "t1";
+        String metric = "m1";
 
-        Set<RawNumericMetric> expected = ImmutableSet.of(
-            new RawNumericMetric("1", 21.9, hour(5).plusMinutes(3).plusSeconds(10).getMillis()),
-            new RawNumericMetric("1", 23.32, hour(5).plusMinutes(3).plusSeconds(15).getMillis())
-        );
+        NumericData d1 = new NumericData().setTenantId(tenantId).setMetric("m1").setTimeUUID(getTimeUUID(start))
+            .setValue(1.1);
+        NumericData d2 = new NumericData().setTenantId(tenantId).setMetric("m1")
+            .setTimeUUID(getTimeUUID(start.plusMinutes(2))).setValue(2.2);
+        NumericData d3 = new NumericData().setTenantId(tenantId).setMetric("m1")
+            .setTimeUUID(getTimeUUID(start.plusMinutes(4))).setValue(3.3);
+        NumericData d4 = new NumericData().setTenantId(tenantId).setMetric("m1").setTimeUUID(getTimeUUID(end))
+            .setValue(4.4);
 
-        ListenableFuture<Map<RawNumericMetric, Throwable>> insertFuture =  metricsService.addData(data);
+        ListenableFuture<Void> insertFuture =  metricsService.addNumericData(ImmutableSet.of(d1, d2, d3, d4));
         getUninterruptibly(insertFuture);
-        ListenableFuture<List<RawNumericMetric>> future = metricsService.findData("raw", "1",
-            hour(5).plusMinutes(3).getMillis(), hour(5).plusMinutes(4).getMillis());
 
-        List<RawNumericMetric> actual = getUninterruptibly(future);
+        ListenableFuture<List<NumericData>> queryFuture = metricsService.findData(tenantId, metric, start.getMillis(),
+            end.getMillis());
+        List<NumericData> actual = getUninterruptibly(queryFuture);
+        List<NumericData> expected = asList(d3, d2, d1);
 
-        assertEquals(actual.size(), expected.size(), "Expected to get back 3 raw metrics");
-        assertEquals(actual, expected, "The returned raw metrics do not match the expected values");
+        assertEquals(actual, expected, "The numeric raw data does not match");
     }
 
 }
