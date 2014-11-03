@@ -24,14 +24,19 @@ public class RHQMetrics {
         private Map<String, String> options;
 
         public Builder() {
-            String cqlPortString = System.getenv("CQL_PORT");
-            if(cqlPortString == null){
-                cqlPortString = "9042";
+            String cassandraCqlPortString = System.getenv("CASSANDRA_CQL_PORT");
+            if (cassandraCqlPortString == null) {
+                cassandraCqlPortString = "9042";
+            }
+
+            String cassandraNodes = System.getenv("CASSANDRA_NODES");
+            if (cassandraNodes == null) {
+                cassandraNodes = "127.0.0.1";
             }
 
             options = new HashMap<>();
-            options.put("cqlport", cqlPortString);
-            options.put("nodes", "127.0.0.1");
+            options.put("cqlport", cassandraCqlPortString);
+            options.put("nodes", cassandraNodes);
             options.put("keyspace", "rhq-metrics");
         }
 
