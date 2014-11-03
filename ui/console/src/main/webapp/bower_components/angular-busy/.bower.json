@@ -37,7 +37,6 @@
     "commit": "b3163c2873436a96dfe06e86141faef7905c747a"
   },
   "_source": "git://github.com/cgross/angular-busy.git",
-  "_target": "~4.1.1",
-  "_originalSource": "angular-busy",
-  "_direct": true
+  "_target": "4.1.1",
+  "_originalSource": "angular-busy"
 }
