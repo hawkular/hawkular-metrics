@@ -21,13 +21,17 @@ import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
 import org.rhq.metrics.core.NumericData;
-import org.rhq.metrics.core.RawNumericMetric;
+import org.rhq.metrics.util.TimeUUIDUtils;
 
 import gnu.trove.map.TLongDoubleMap;
 import gnu.trove.map.hash.TLongDoubleHashMap;
 
 /**
- * A memory based storage backend for rapid prototyping
+ * A memory based storage backend for rapid prototyping.
+ * <br/><br/>
+ * Note that this implementation currently supports only numeric raw data. There is no multi-tenancy support yet, nor
+ * is there any concurrency control yet.
+ *
  * @author Heiko W. Rupp
  */
 public class MemoryMetricsService implements MetricsService {
@@ -37,7 +41,6 @@ public class MemoryMetricsService implements MetricsService {
     private Map<String,TLongDoubleMap> storage = new HashMap<>();
 
     Table<String, String, Long> counters = TreeBasedTable.create();
-//    private ListMultimap<String, Counter> counters = ArrayListMultimap.create();
 
     private ListeningExecutorService metricsTasks = MoreExecutors
         .listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
@@ -56,39 +59,24 @@ public class MemoryMetricsService implements MetricsService {
     public void shutdown() {
     }
 
-//    @Override
-//    public ListenableFuture<Void> addData(RawNumericMetric data) {
-//        addMetric(data);
-//        return VOID_FUTURE;
-//    }
-
-//    @Override
-//    public ListenableFuture<Map<RawNumericMetric, Throwable>> addData(Set<RawNumericMetric> data) {
-//
-//        for (RawNumericMetric metric : data) {
-//            addMetric(metric);
-//
-//            // TODO expire an old entry
-//        }
-//        Map<RawNumericMetric, Throwable> errors = Collections.emptyMap();
-//        return Futures.immediateFuture(errors);
-//    }
-
     @Override
     public ListenableFuture<Void> addNumericData(Set<NumericData> data) {
-        return null;
+        for (NumericData d : data) {
+            addMetric(d);
+        }
+        return Futures.immediateFuture(null);
     }
 
-    private void addMetric(RawNumericMetric metric) {
+    private void addMetric(NumericData d) {
         TLongDoubleMap map;
-        String metricId = metric.getId();
+        String metricId = d.getMetric();
         if (storage.containsKey(metricId)) {
             map = storage.get(metricId);
         } else {
             map = new TLongDoubleHashMap();
             storage.put(metricId,map);
         }
-        map.put(metric.getTimestamp(), metric.getAvg()); // TODO getAvg() may be wrong in future
+        map.put(d.getTimestamp(), d.getValue()); // TODO getAvg() may be wrong in future
     }
 
     @Override
@@ -136,22 +124,22 @@ public class MemoryMetricsService implements MetricsService {
 
     @Override
     public ListenableFuture<List<NumericData>> findData(String tenantId, String id, long start, long end) {
-//        List<RawNumericMetric> metrics = new ArrayList<>();
-//
-//        if (storage.containsKey(id)) {
-//            TLongDoubleMap map = storage.get(id);
-//            for (long ts : map.keys()) {
-//                if (ts>=start && ts<=end) {
-//                    RawNumericMetric metric = new RawNumericMetric(id,map.get(ts),ts);
-//                    metrics.add(metric);
-//                }
-//
-//            }
-//        }
-//        ListenableFuture<List<RawNumericMetric>> listListenableFuture = Futures.immediateFuture(metrics);
-//
-//        return Futures.transform(listListenableFuture,new NoOpMapper<List<RawNumericMetric>>(),metricsTasks);
-        return null;
+        List<NumericData> data = new ArrayList<>();
+
+        if (storage.containsKey(id)) {
+            TLongDoubleMap map = storage.get(id);
+            for (long ts : map.keys()) {
+                if (ts>=start && ts<=end) {
+                    data.add(new NumericData()
+                        .setTenantId(DEFAULT_TENANT_ID)
+                        .setMetric(id)
+                        .setValue(map.get(ts))
+                        .setTimeUUID(TimeUUIDUtils.getTimeUUID(ts)));
+                }
+
+            }
+        }
+        return Futures.immediateFuture(data);
     }
 
     @Override
