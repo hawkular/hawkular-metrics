@@ -20,6 +20,9 @@ module Controllers {
                     }
                 });
             });
+            $scope.$on('LoadAllSidebarMetricsEvent', () => {
+                this.populateMetricsSidebar();
+            });
 
         }
 
@@ -28,7 +31,7 @@ module Controllers {
             this.retrieveMetricsPromise = this.metricDataService.getAllMetrics()
                 .then((response) => {
                     this.allMetrics = response;
-                    this.$rootScope.$emit('RefreshSidebarEvent');
+                    this.$rootScope.$emit('SidebarRefreshedEvent');
 
                 }, (error) => {
                     this.$log.error('Error Retrieving all metrics: ' + error);
@@ -38,6 +41,7 @@ module Controllers {
         }
 
         addRemoveChart(metricId:string, checked:boolean) {
+
             if (checked) {
                 this.$rootScope.$emit('RemoveChartEvent', metricId);
             } else {

@@ -123,12 +123,6 @@ module Controllers {
                 }
             });
 
-            $rootScope.$on('RefreshSidebarEvent', () => {
-                this.selectedMetrics = [];
-                this.selectedGroup = '';
-                this.loadAllGraphGroupNames();
-            });
-
             $rootScope.$on('RemoveChartEvent', (event, metricId) => {
                 if (_.contains(this.selectedMetrics, metricId)) {
                     var pos = _.indexOf(this.selectedMetrics, metricId);
@@ -137,6 +131,12 @@ module Controllers {
                     toastr.info('Removed: ' + metricId + ' from Dashboard!');
                     this.refreshAllChartsDataForTimeRange(this.currentTimeRange);
                 }
+            });
+
+            $rootScope.$on('SidebarRefreshedEvent', () => {
+                this.selectedMetrics = [];
+                this.selectedGroup = '';
+                this.loadAllGraphGroupNames();
             });
 
             this.$scope.$watch(() => this.selectedGroup,

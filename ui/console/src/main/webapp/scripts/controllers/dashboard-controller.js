@@ -94,12 +94,6 @@ var Controllers;
                 }
             });
 
-            $rootScope.$on('RefreshSidebarEvent', function () {
-                _this.selectedMetrics = [];
-                _this.selectedGroup = '';
-                _this.loadAllGraphGroupNames();
-            });
-
             $rootScope.$on('RemoveChartEvent', function (event, metricId) {
                 if (_.contains(_this.selectedMetrics, metricId)) {
                     var pos = _.indexOf(_this.selectedMetrics, metricId);
@@ -108,6 +102,12 @@ var Controllers;
                     toastr.info('Removed: ' + metricId + ' from Dashboard!');
                     _this.refreshAllChartsDataForTimeRange(_this.currentTimeRange);
                 }
+            });
+
+            $rootScope.$on('SidebarRefreshedEvent', function () {
+                _this.selectedMetrics = [];
+                _this.selectedGroup = '';
+                _this.loadAllGraphGroupNames();
             });
 
             this.$scope.$watch(function () {

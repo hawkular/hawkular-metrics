@@ -19,12 +19,15 @@ var Controllers;
                     }
                 });
             });
+            $scope.$on('LoadAllSidebarMetricsEvent', function () {
+                _this.populateMetricsSidebar();
+            });
         }
         SidebarController.prototype.populateMetricsSidebar = function () {
             var _this = this;
             this.retrieveMetricsPromise = this.metricDataService.getAllMetrics().then(function (response) {
                 _this.allMetrics = response;
-                _this.$rootScope.$emit('RefreshSidebarEvent');
+                _this.$rootScope.$emit('SidebarRefreshedEvent');
             }, function (error) {
                 _this.$log.error('Error Retrieving all metrics: ' + error);
                 toastr.error('Error Retrieving all metrics: ' + error);
