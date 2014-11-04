@@ -4,8 +4,7 @@ package org.rhq.metrics.client.common;
 import java.util.Collection;
 import java.util.List;
 
-import org.testng.annotations.Test;
-
+import org.junit.Test;
 
 /**
  *
