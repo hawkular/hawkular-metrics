@@ -9,7 +9,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -46,9 +45,6 @@ import org.jboss.resteasy.annotations.GZIP;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericData;
-import org.rhq.metrics.core.NumericMetric;
-import org.rhq.metrics.core.RawNumericMetric;
-import org.rhq.metrics.util.TimeUUIDUtils;
 
 /**
  * Interface to deal with metrics
@@ -108,6 +104,46 @@ public class MetricHandler {
         Futures.addCallback(future, new FutureCallback<Void>() {
             @Override
             public void onSuccess(Void errors) {
+                Response jaxrs = Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build();
+                asyncResponse.resume(jaxrs);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
+    }
+
+    @POST
+    @Path("/metrics/numeric")
+    @Consumes("application/json")
+    public void addNumericData(@Suspended final AsyncResponse asyncResponse, NumericDataParams params) {
+        logger.info("params = " + params);
+        Set<NumericData> data;
+
+        if (params.getData().isEmpty()) {
+            data = ImmutableSet.of(new NumericData()
+                .setTenantId(params.getTenantId())
+                .setMetric(params.getName())
+                .putAttributes(params.getAttributes())
+                .setTimestamp(params.getTimestamp())
+                .setValue(params.getValue()));
+        } else {
+            data = new HashSet<>();
+            for (NumericDataPoint p : params.getData()) {
+                data.add(new NumericData()
+                    .setTenantId(params.getTenantId())
+                    .setMetric(params.getName())
+                    .putAttributes(params.getAttributes())
+                    .setTimestamp(p.getTimestamp())
+                    .setValue(p.getValue()));
+            }
+        }
+        ListenableFuture<Void> future = metricsService.addNumericData(data);
+        Futures.addCallback(future, new FutureCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
                 Response jaxrs = Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build();
                 asyncResponse.resume(jaxrs);
             }
