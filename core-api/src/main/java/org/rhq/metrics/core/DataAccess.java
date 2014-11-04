@@ -12,6 +12,8 @@ import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 
 /**
+ *
+ * @deprecated This class is going to be replaced by DataAccess2.
  * @author John Sanda
  */
 public class DataAccess {

@@ -103,7 +103,7 @@ public class MemoryMetricsService implements MetricsService {
         Map<String, Long> row = counters.row(group);
         List<Counter> counters = new ArrayList<>(row.size());
         for (Map.Entry<String, Long> entry : row.entrySet()) {
-            counters.add(new Counter(group, entry.getKey(), entry.getValue()));
+            counters.add(new Counter(DEFAULT_TENANT_ID, group, entry.getKey(), entry.getValue()));
         }
         return Futures.immediateFuture(counters);
     }
@@ -115,7 +115,7 @@ public class MemoryMetricsService implements MetricsService {
         for (String name : counterNames) {
             Long value = row.get(name);
             if (value != null) {
-                counters.add(new Counter(group, name, value));
+                counters.add(new Counter(DEFAULT_TENANT_ID, group, name, value));
             }
         }
         ListenableFuture<List<Counter>> listListenableFuture = Futures.immediateFuture(counters);

@@ -53,6 +53,16 @@ WITH CLUSTERING ORDER BY (time DESC);
 
 -- #
 
+CREATE TABLE ${keyspace}.counters (
+    tenant_id text,
+    group text,
+    c_name text,
+    c_value counter,
+    PRIMARY KEY ((tenant_id, group), c_name)
+);
+
+-- #
+
 CREATE TABLE ${keyspace}.availability (
     tenant_id text,
     type text,

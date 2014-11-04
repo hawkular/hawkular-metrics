@@ -10,6 +10,9 @@ import com.datastax.driver.core.utils.UUIDs;
 import com.google.common.base.Objects;
 
 /**
+ * A numeric metric data point. This class currently represents both raw and aggregated data; however, at some point
+ * we may subclasses for each of them.
+ *
  * @author John Sanda
  */
 public class NumericData {
@@ -26,13 +29,16 @@ public class NumericData {
 
     private Map<String, String> attributes = new HashMap<>();
 
-    // value and aggregatedValues are mutally exclusive. One or the other should be set
+    // value and aggregatedValues are mutually exclusive. One or the other should be set
     // but not both. It may make sense to introduce subclasses for raw and aggregated data.
 
     private double value;
 
     private Set<AggregatedValue> aggregatedValues = new HashSet<>();
 
+    /**
+     * The tenant to which this metric belongs.
+     */
     public String getTenantId() {
         return tenantId;
     }
@@ -42,6 +48,9 @@ public class NumericData {
         return this;
     }
 
+    /**
+     * The metric name. The metric name and the interval must be unique across numeric metrics.
+     */
     public String getMetric() {
         return metric;
     }
@@ -51,6 +60,10 @@ public class NumericData {
         return this;
     }
 
+    /**
+     * This is for use with aggregated metrics. It specifies how frequently the metric is updated or computed. If we
+     * introduce subclasses for raw and aggregated data, I think this would only go in the aggregated data class.
+     */
     public Interval getInterval() {
         return interval;
     }
@@ -60,6 +73,13 @@ public class NumericData {
         return this;
     }
 
+    /**
+     * Currently not used. It wil be used for breaking up a metric time series into multiple partitions by date. For
+     * example, if we choose to partition by month, then all data collected for a given metric during October would go
+     * into one partition, and data collected during November would go into another partition. This will not impact
+     * writes, but it will make reads more complicated and potentially more expensive if we make the date partition too
+     * small.
+     */
     public long getDpart() {
         return dpart;
     }
@@ -69,6 +89,9 @@ public class NumericData {
         return this;
     }
 
+    /**
+     * The time based UUID for this data point
+     */
     public UUID getTimeUUID() {
         return timeUUID;
     }
@@ -78,24 +101,47 @@ public class NumericData {
         return this;
     }
 
+    /**
+     * The UNIX timestamp of the {@link #getTimeUUID() timeUUID}
+     */
     public long getTimestamp() {
         return UUIDs.unixTimestamp(timeUUID);
     }
 
+    /**
+     * A set of key/value pairs that are shared by all data points for the metric. A good example is units like KB / sec.
+     */
     public Map<String, String> getAttributes() {
         return attributes;
     }
 
+    /**
+     * Stores an attribute which will be shared by all data points for the metric when it is persisted. If an attribute
+     * with the same name already exists, it will be overwritten.
+     *
+     * @param name The attribute name.
+     * @param value The attribute value
+     */
     public NumericData putAttribute(String name, String value) {
         attributes.put(name, value);
         return this;
     }
 
+    /**
+     * Stores attributes which will be shared by all data points for the metric. If an attribute with the same name
+     * already exists, it will be overwritten.
+     *
+     * @param attributes The key/value pairs to store.
+     * @return
+     */
     public NumericData putAttributes(Map<String, String> attributes) {
         this.attributes.putAll(attributes);
         return this;
     }
 
+    /**
+     * The value of the raw data point. This should only be set for raw data. It should be null for aggregated data.
+     */
     public double getValue() {
         return value;
     }
@@ -105,6 +151,10 @@ public class NumericData {
         return this;
     }
 
+    /**
+     * A set of the aggregated values that make up this aggregated data point. This should return an empty set for raw
+     * data.
+     */
     public Set<AggregatedValue> getAggregatedValues() {
         return aggregatedValues;
     }

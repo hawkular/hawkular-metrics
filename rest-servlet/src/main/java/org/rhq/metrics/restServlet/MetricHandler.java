@@ -168,7 +168,8 @@ public class MetricHandler {
     }
 
     private void updateCounterValue(final AsyncResponse asyncResponse, String group, String counter, Long value) {
-        ListenableFuture<Void> future = metricsService.updateCounter(new Counter(group, counter, value));
+        ListenableFuture<Void> future = metricsService.updateCounter(new Counter(DEFAULT_TENANT_ID, group, counter,
+            value));
         Futures.addCallback(future, new FutureCallback<Void>() {
             @Override
             public void onSuccess(Void result) {

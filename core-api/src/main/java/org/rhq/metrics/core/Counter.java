@@ -9,6 +9,8 @@ import com.google.common.base.Objects;
  */
 public class Counter {
 
+    private String tenantId;
+
     /** An identifier for grouping related counters. */
     private String group;
 
@@ -18,19 +20,22 @@ public class Counter {
     /** The counter value. */
     private long value;
 
-    public Counter() {
-    }
-
-    public Counter(String group, String name, long value) {
+    public Counter(String tenantId, String group, String name, long value) {
+        this.tenantId = tenantId;
         this.group = group;
         this.name = name;
         this.value = value;
     }
 
     /**
-     * Returns an identifier for grouping related counters.
-     *
-     * @return an identifier for grouping related counters
+     * @return The id of the owning tenant
+     */
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    /**
+     * @return An identifier for grouping related counters
      */
     public String getGroup() {
         return group;
@@ -41,9 +46,7 @@ public class Counter {
     }
 
     /**
-     * Returns this {@link Counter}'s name.
-     *
-     * @return this {@link Counter}'s name
+     * @return The counter name
      */
     public String getName() {
         return name;
@@ -54,9 +57,7 @@ public class Counter {
     }
 
     /**
-     * Returns this {@link Counter}'s value.
-     *
-     * @return this {@link Counter}'s value
+     * @return The counter value
      */
     public long getValue() {
         return value;
@@ -66,7 +67,6 @@ public class Counter {
         this.value = value;
     }
 
-    /** @see java.lang.Object#equals(java.lang.Object) */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -74,17 +74,20 @@ public class Counter {
 
         Counter counter = (Counter) o;
 
+        if (value != counter.value) return false;
         if (!group.equals(counter.group)) return false;
         if (!name.equals(counter.name)) return false;
+        if (!tenantId.equals(counter.tenantId)) return false;
 
         return true;
     }
 
-    /** @see java.lang.Object#hashCode() */
     @Override
     public int hashCode() {
-        int result = group.hashCode();
-        result = 29 * result + name.hashCode();
+        int result = tenantId.hashCode();
+        result = 31 * result + group.hashCode();
+        result = 31 * result + name.hashCode();
+        result = 31 * result + (int) (value ^ (value >>> 32));
         return result;
     }
 
@@ -92,6 +95,7 @@ public class Counter {
     @Override
     public String toString() {
         return Objects.toStringHelper(getClass().getSimpleName())
+            .add("tenantId", tenantId)
             .add("group", group)
             .add("name", name)
             .add("value", value)

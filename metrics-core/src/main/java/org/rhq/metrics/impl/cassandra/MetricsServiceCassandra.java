@@ -48,13 +48,6 @@ public class MetricsServiceCassandra implements MetricsService {
 
     private static final int RAW_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
-    private static final Function<ResultSet, Void> TO_VOID = new Function<ResultSet, Void>() {
-        @Override
-        public Void apply(ResultSet resultSet) {
-            return null;
-        }
-    };
-
     private static final Function<List<ResultSet>, Void> RESULT_SETS_TO_VOID = new Function<List<ResultSet>, Void>() {
         @Override
         public Void apply(List<ResultSet> resultSets) {
@@ -70,17 +63,6 @@ public class MetricsServiceCassandra implements MetricsService {
     private DataAccess2 dataAccess2;
 
     private NumericDataMapper numericDataMapper = new NumericDataMapper();
-
-    private Function<ResultSet, List<Counter>> mapCounters = new Function<ResultSet, List<Counter>>() {
-        @Override
-        public List<Counter> apply(ResultSet resultSet) {
-            List<Counter> counters = new ArrayList<>();
-            for (Row row : resultSet) {
-                counters.add(new Counter(row.getString(0), row.getString(1), row.getLong(2)));
-            }
-            return counters;
-        }
-    };
 
     private ListeningExecutorService metricsTasks = MoreExecutors
         .listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));

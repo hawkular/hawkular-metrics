@@ -1,12 +1,15 @@
 package org.rhq.metrics.impl.cassandra;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.datastax.driver.core.BatchStatement;
+import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSetFuture;
@@ -18,6 +21,7 @@ import com.datastax.driver.core.UserType;
 
 import org.rhq.metrics.core.AggregatedValue;
 import org.rhq.metrics.core.AggregationTemplate;
+import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.RetentionSettings;
@@ -46,6 +50,12 @@ public class DataAccess2 {
     private PreparedStatement deleteNumericMetric;
 
     private PreparedStatement findNumericMetrics;
+
+    private PreparedStatement updateCounter;
+
+    private PreparedStatement findCountersByGroup;
+
+    private PreparedStatement findCountersByGroupAndName;
 
     public DataAccess2(Session session) {
         this.session = session;
@@ -81,6 +91,17 @@ public class DataAccess2 {
 
         findNumericMetrics = session.prepare(
             "SELECT DISTINCT tenant_id, metric, interval, dpart FROM numeric_data;");
+
+        updateCounter = session.prepare(
+            "UPDATE counters " +
+            "SET c_value = c_value + ? " +
+            "WHERE tenant_id = ? AND group = ? AND c_name = ?");
+
+        findCountersByGroup = session.prepare(
+            "SELECT tenant_id, group, c_name, c_value FROM counters WHERE tenant_id = ? AND group = ?");
+
+        findCountersByGroupAndName = session.prepare(
+            "SELECT tenant_id, group, c_name, c_value FROM counters WHERE tenant_id = ? AND group = ? AND c_name IN ?");
     }
 
     public ResultSetFuture insertTenant(Tenant tenant) {
@@ -159,4 +180,28 @@ public class DataAccess2 {
         return session.executeAsync(findNumericMetrics.bind());
     }
 
+    public ResultSetFuture updateCounter(Counter counter) {
+        BoundStatement statement = updateCounter.bind(counter.getValue(), counter.getTenantId(), counter.getGroup(),
+            counter.getName());
+        return session.executeAsync(statement);
+    }
+
+    public ResultSetFuture updateCounters(Collection<Counter> counters) {
+        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.COUNTER);
+        for (Counter counter : counters) {
+            batchStatement.add(updateCounter.bind(counter.getValue(), counter.getTenantId(), counter.getGroup(),
+                counter.getName()));
+        }
+        return session.executeAsync(batchStatement);
+    }
+
+    public ResultSetFuture findCounters(String tenantId, String group) {
+        BoundStatement statement = findCountersByGroup.bind(tenantId, group);
+        return session.executeAsync(statement);
+    }
+
+    public ResultSetFuture findCounters(String tenantId, String group, List<String> names) {
+        BoundStatement statement = findCountersByGroupAndName.bind(tenantId, group, names);
+        return session.executeAsync(statement);
+    }
 }
