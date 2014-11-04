@@ -26,12 +26,12 @@ public class RHQMetrics {
         public Builder() {
             String cassandraCqlPortString = System.getenv("CASSANDRA_CQL_PORT");
             if (cassandraCqlPortString == null) {
-                cassandraCqlPortString = "9042";
+                cassandraCqlPortString = System.getProperty("rhq-metrics.cassandra-cql-port", "9042");
             }
 
             String cassandraNodes = System.getenv("CASSANDRA_NODES");
             if (cassandraNodes == null) {
-                cassandraNodes = "127.0.0.1";
+                cassandraNodes = System.getProperty("rhq-metrics.cassandra-nodes", "127.0.0.1");
             }
 
             options = new HashMap<>();
