@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.rhq.metrics.client.common.Batcher;
+import org.rhq.metrics.client.common.BoundMetricFifo;
 import org.rhq.metrics.client.common.SingleMetric;
 
 import static io.netty.channel.ChannelHandler.Sharable;
@@ -52,7 +53,9 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
     private String restPrefix = RHQ_METRICS_PREFIX + METRICS_PREFIX;
 
     private static final int CLOSE_AFTER_REQUESTS = 200;
+    private long numberOfMetrics = 0;
 
+    BoundMetricFifo fifo = new BoundMetricFifo(10, 5000);
 
     private Channel senderChannel;
     private int sendCounter = 0;
@@ -61,9 +64,11 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
     private int closeAfterRequests = CLOSE_AFTER_REQUESTS;
 
     public RestForwardingHandler(Properties configuration) {
-        logger.debug("RsyslogHandler init");
+        logger.debug("RestForwardingHandler init");
         loadRestEndpointInfoFromProperties(configuration);
     }
+
+
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -72,8 +77,10 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
 		final List<SingleMetric> in = (List<SingleMetric>) msg;
         logger.debug("Received some metrics :[" + in + "]");
 
+        fifo.addAll(in);
+
         if (senderChannel!=null ) {
-            sendToChannel(senderChannel,in);
+            sendToChannel(senderChannel);
             return;
         }
 
@@ -94,17 +101,19 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
                     //   the remote is back up again.
                 } else {
                     senderChannel = future.channel();
-                    sendToChannel(senderChannel, in);
+                    sendToChannel(senderChannel);
                 }
             }
         });
     }
 
-    private void sendToChannel(final Channel ch, List<SingleMetric> in) {
+    private void sendToChannel(final Channel ch) {
         if (logger.isDebugEnabled()) {
             logger.debug("Sending to channel " +ch );
         }
-        String payload = Batcher.metricListToJson(in);
+        final List<SingleMetric> metricsToSend = fifo.getList();
+
+        String payload = Batcher.metricListToJson(metricsToSend);
         ByteBuf content = Unpooled.copiedBuffer(payload, CharsetUtil.UTF_8);
         FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST,
             restPrefix, content);
@@ -117,16 +126,26 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
                 if (!future.isSuccess()) {
                     // and remove from connection pool if you have one etc...
                     ch.close();
-                    senderChannel=null;
+                    senderChannel = null;
                     logger.error("Sending to the rhq-metrics server failed: " + future.cause());
-                }
-                else {
+
+                } else {
+                    fifo.cleanout(
+                        metricsToSend); // only clear the ones we sent - new ones may have arrived between batching and now
+                    numberOfMetrics += metricsToSend.size();
+                    logger.debug("sent " + metricsToSend.size() + " items");
                     sendCounter++;
                     if (sendCounter >= closeAfterRequests) {
-                        logger.info("Doing a periodic close after "+ closeAfterRequests+" requests");
+                        SingleMetric perfMetric = new SingleMetric("snert.ptrans.counter", System.currentTimeMillis(),
+                            // TODO determine host+name dynamically
+                            (double) (numberOfMetrics + metricsToSend.size()));
+                        fifo.offer(perfMetric);
+                        logger.info("Doing a periodic close after " + closeAfterRequests + " requests (" +
+                            numberOfMetrics + ") items");
+                        numberOfMetrics = 0;
                         ch.close();
-                        senderChannel=null;
-                        sendCounter=0;
+                        senderChannel = null;
+                        sendCounter = 0;
                     }
                 }
             }

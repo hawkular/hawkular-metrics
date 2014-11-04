@@ -1,7 +1,7 @@
 package org.rhq.metrics.client.common;
 
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 
 /**
  * Just a helper
@@ -14,11 +14,11 @@ public class Batcher {
     }
 
     /**
-     * Translate the passed list of metrics into a JSON representation
-     * @param metrics a List of metrics to translate
+     * Translate the passed collection of metrics into a JSON representation
+     * @param metrics a Collection of metrics to translate
      * @return String as JSON representation of the Metrics.
      */
-    public static  String metricListToJson(List<SingleMetric> metrics) {
+    public static String metricListToJson(final Collection<SingleMetric> metrics) {
             StringBuilder builder = new StringBuilder("[");
             Iterator<SingleMetric> iter = metrics.iterator();
             while (iter.hasNext()) {

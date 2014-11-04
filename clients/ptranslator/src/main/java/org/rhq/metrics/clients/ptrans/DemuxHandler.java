@@ -5,6 +5,7 @@ import java.util.Properties;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.util.CharsetUtil;
@@ -23,9 +24,11 @@ public class DemuxHandler extends ByteToMessageDecoder {
 
     private static final Logger logger = LoggerFactory.getLogger(DemuxHandler.class);
     private Properties configuration;
+    private ChannelInboundHandlerAdapter forwardingHandler;
 
-    public DemuxHandler(Properties configuration) {
+    public DemuxHandler(Properties configuration, ChannelInboundHandlerAdapter forwardingHandler) {
         this.configuration = configuration;
+        this.forwardingHandler = forwardingHandler;
     }
 
     @Override
@@ -56,7 +59,7 @@ public class DemuxHandler extends ByteToMessageDecoder {
             String[] items = data.split(" |\\n");
             if (items.length % 3 == 0) {
                 pipeline.addLast("encoder", new GraphiteEventDecoder());
-                pipeline.addLast("forwarder", new RestForwardingHandler(configuration));
+                pipeline.addLast("forwarder", forwardingHandler);
                 pipeline.remove(this);
                 done = true;
             }

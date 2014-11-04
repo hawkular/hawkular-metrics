@@ -13,6 +13,9 @@ public class SingleMetric {
     private final MetricType metricType;
 
     public SingleMetric(String source, long timestamp, Double value) {
+        if (source==null) {
+            throw new IllegalArgumentException("Source must not be null");
+        }
         this.timestamp = timestamp;
         this.source = source;
         this.value = value;
@@ -20,6 +23,9 @@ public class SingleMetric {
     }
 
     public SingleMetric(String source, long timestamp, Double value, MetricType metricType) {
+        if (source==null) {
+            throw new IllegalArgumentException("Source must not be null");
+        }
         this.source = source;
         this.timestamp = timestamp;
         this.value = value;
@@ -55,5 +61,27 @@ public class SingleMetric {
     public String toJson() {
         return "{\"id\":\"" + source + "\"," + "\"timestamp\":" + String.valueOf(timestamp) + "," + "\"value\":"
             + String.valueOf(value) + "}";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        SingleMetric metric = (SingleMetric) o;
+
+        if (timestamp != metric.timestamp) return false;
+        if (metricType != metric.metricType) return false;
+        if (!source.equals(metric.source)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = source.hashCode();
+        result = 31 * result + (int) (timestamp ^ (timestamp >>> 32));
+        result = 31 * result + (metricType != null ? metricType.hashCode() : 0);
+        return result;
     }
 }
