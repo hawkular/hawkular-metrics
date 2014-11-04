@@ -32,7 +32,7 @@ public class RHQMetrics {
             options = new HashMap<>();
             options.put("cqlport", cassandraCqlPortString);
             options.put("nodes", cassandraNodes);
-            options.put("keyspace", "rhq-metrics");
+            options.put("keyspace", "rhq_metrics");
         }
 
         public Builder withOptions(Map<String,String> options) {
