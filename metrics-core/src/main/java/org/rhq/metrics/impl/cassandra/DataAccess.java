@@ -11,6 +11,7 @@ import java.util.Set;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
@@ -104,8 +105,7 @@ public class DataAccess {
     }
 
     public ResultSetFuture insertTenant(Tenant tenant) {
-        UserType aggregationTemplateType = session.getCluster().getMetadata().getKeyspace("rhq")
-            .getUserType("aggregation_template");
+        UserType aggregationTemplateType = getKeyspace().getUserType("aggregation_template");
         List<UDTValue> templateValues = new ArrayList<>(tenant.getAggregationTemplates().size());
         for (AggregationTemplate template : tenant.getAggregationTemplates()) {
             UDTValue value = aggregationTemplateType.newValue();
@@ -144,8 +144,7 @@ public class DataAccess {
     public ResultSetFuture insertNumericData(NumericData data) {
         // TODO determine if we should use separate queries/methods for raw vs aggregated data
 
-        UserType aggregateDataType = session.getCluster().getMetadata().getKeyspace("rhq")
-            .getUserType("aggregate_data");
+        UserType aggregateDataType = getKeyspace().getUserType("aggregate_data");
         Set<UDTValue> aggregateDataValues = new HashSet<>();
 
         for (AggregatedValue v : data.getAggregatedValues()) {
@@ -203,4 +202,9 @@ public class DataAccess {
         BoundStatement statement = findCountersByGroupAndName.bind(tenantId, group, names);
         return session.executeAsync(statement);
     }
+
+    private KeyspaceMetadata getKeyspace() {
+        return session.getCluster().getMetadata().getKeyspace(session.getLoggedKeyspace());
+    }
+
 }

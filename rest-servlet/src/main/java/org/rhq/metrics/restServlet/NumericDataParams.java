@@ -18,9 +18,9 @@ public class NumericDataParams {
 
     private Map<String, String> attributes = new HashMap<>();
 
-    private long timestamp;
+    private Long timestamp;
 
-    private double value;
+    private Double value;
 
     private List<NumericDataPoint> data = new ArrayList<>();
 
