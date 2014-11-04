@@ -272,7 +272,7 @@ public class InfluxHandler {
                 out.add(new NumericData()
                     .setTenantId(DEFAULT_TENANT_ID)
                     .setMetric(firstElementInList.getMetric())
-                    .setTimeUUID(TimeUUIDUtils.getTimeUUID(firstElementInList.getTimestamp()))
+                    .setTimestamp(firstElementInList.getTimestamp())
                     .setValue(retVal));
             }
         }

@@ -110,25 +110,25 @@ public class DataAccessTest extends MetricsTest {
         NumericData d1 = new NumericData()
             .setTenantId("tenant-1")
             .setMetric("metric-1")
-            .setTimeUUID(getTimeUUID(start))
+            .setTimestamp(start.getMillis())
             .setValue(1.23);
 
         NumericData d2 = new NumericData()
             .setTenantId("tenant-1")
             .setMetric("metric-1")
-            .setTimeUUID(getTimeUUID(start.plusMinutes(1)))
+            .setTimestamp(start.plusMinutes(1).getMillis())
             .setValue(1.234);
 
         NumericData d3 = new NumericData()
             .setTenantId("tenant-1")
             .setMetric("metric-1")
-            .setTimeUUID(getTimeUUID(start.plusMinutes(2)))
+            .setTimestamp(start.plusMinutes(2).getMillis())
             .setValue(1.234);
 
         NumericData d4 = new NumericData()
             .setTenantId("tenant-1")
             .setMetric("metric-1")
-            .setTimeUUID(getTimeUUID(end))
+            .setTimestamp(end.getMillis())
             .setValue(1.234);
 
         getUninterruptibly(dataAccess.insertNumericData(d1));
@@ -157,26 +157,26 @@ public class DataAccessTest extends MetricsTest {
         NumericData d1 = new NumericData()
             .setTenantId("tenant-1")
             .setMetric("metric-1")
-            .setTimeUUID(getTimeUUID(start))
+            .setTimestamp(start.getMillis())
             .setValue(1.23)
             .putAttribute("test?", "true");
 
         NumericData d2 = new NumericData()
             .setTenantId("tenant-1")
             .setMetric("metric-1")
-            .setTimeUUID(getTimeUUID(start.plusMinutes(2)))
+            .setTimestamp(start.plusMinutes(2).getMillis())
             .setValue(1.234);
 
         NumericData d3 = new NumericData()
             .setTenantId("tenant-1")
             .setMetric("metric-1")
-            .setTimeUUID(getTimeUUID(start.plusMinutes(4)))
+            .setTimestamp(start.plusMinutes(4).getMillis())
             .setValue(1.234);
 
         NumericData d4 = new NumericData()
             .setTenantId("tenant-1")
             .setMetric("metric-1")
-            .setTimeUUID(getTimeUUID(end))
+            .setTimestamp(end.getMillis())
             .setValue(1.234);
 
         getUninterruptibly(dataAccess.insertNumericData(d1));
@@ -206,7 +206,7 @@ public class DataAccessTest extends MetricsTest {
             .setTenantId("tenant-1")
             .setMetric("m1")
             .setInterval(Interval.parse("5min"))
-            .setTimeUUID(getTimeUUID(start))
+            .setTimestamp(start.getMillis())
             .addAggregatedValue(new AggregatedValue("sum", 100.1))
             .addAggregatedValue(new AggregatedValue("max", 51.5, null, null, getTimeUUID(now().minusMinutes(3))));
 
@@ -214,7 +214,7 @@ public class DataAccessTest extends MetricsTest {
             .setTenantId("tenant-1")
             .setMetric("m1")
             .setInterval(Interval.parse("5min"))
-            .setTimeUUID(getTimeUUID(start.plusMinutes(2)))
+            .setTimestamp(start.plusMinutes(2).getMillis())
             .addAggregatedValue(new AggregatedValue("sum", 110.1))
             .addAggregatedValue(new AggregatedValue("max", 54.7, null, null, getTimeUUID(now().minusMinutes(3))));
 
@@ -222,14 +222,14 @@ public class DataAccessTest extends MetricsTest {
             .setTenantId("tenant-1")
             .setMetric("m1")
             .setInterval(Interval.parse("5min"))
-            .setTimeUUID(getTimeUUID(start.plusMinutes(4)))
+            .setTimestamp(start.plusMinutes(4).getMillis())
             .setValue(22.2);
 
         NumericData d4 = new NumericData()
             .setTenantId("tenant-1")
             .setMetric("m1")
             .setInterval(Interval.parse("5min"))
-            .setTimeUUID(getTimeUUID(end))
+            .setTimestamp(end.getMillis())
             .setValue(22.2);
 
         getUninterruptibly(dataAccess.insertNumericData(d1));

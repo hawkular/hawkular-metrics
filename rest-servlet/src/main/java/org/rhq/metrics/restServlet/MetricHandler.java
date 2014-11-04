@@ -82,7 +82,7 @@ public class MetricHandler {
     @ApiOperation("Adds a single data point for the given id.")
     public void addMetric(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id, IdDataPoint dataPoint) {
         addData(asyncResponse, ImmutableSet.of(new NumericData().setTenantId(DEFAULT_TENANT_ID).setMetric(id)
-            .setTimeUUID(TimeUUIDUtils.getTimeUUID(dataPoint.getTimestamp())).setValue(dataPoint.getValue())));
+            .setTimestamp(dataPoint.getTimestamp()).setValue(dataPoint.getValue())));
     }
 
     @POST
@@ -96,7 +96,7 @@ public class MetricHandler {
             rawSet.add(new NumericData()
                 .setTenantId(DEFAULT_TENANT_ID)
                 .setMetric(dataPoint.getId())
-                .setTimeUUID(TimeUUIDUtils.getTimeUUID(dataPoint.getTimestamp()))
+                .setTimestamp(dataPoint.getTimestamp())
                 .setValue(dataPoint.getValue()));
         }
 

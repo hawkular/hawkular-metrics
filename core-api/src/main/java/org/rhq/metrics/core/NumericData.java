@@ -9,6 +9,8 @@ import java.util.UUID;
 import com.datastax.driver.core.utils.UUIDs;
 import com.google.common.base.Objects;
 
+import org.rhq.metrics.util.TimeUUIDUtils;
+
 /**
  * A numeric metric data point. This class currently represents both raw and aggregated data; however, at some point
  * we may subclasses for each of them.
@@ -106,6 +108,14 @@ public class NumericData {
      */
     public long getTimestamp() {
         return UUIDs.unixTimestamp(timeUUID);
+    }
+
+    /**
+     * Sets the {@link #getTimeUUID() timeUUID} using the UNIX timestamp
+     */
+    public NumericData setTimestamp(long timestamp) {
+        timeUUID = TimeUUIDUtils.getTimeUUID(timestamp);
+        return this;
     }
 
     /**

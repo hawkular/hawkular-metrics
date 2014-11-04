@@ -2,7 +2,6 @@ package org.rhq.metrics.core;
 
 import static java.util.Arrays.asList;
 import static org.joda.time.DateTime.now;
-import static org.rhq.metrics.util.TimeUUIDUtils.getTimeUUID;
 import static org.testng.Assert.assertEquals;
 
 import java.util.List;
@@ -46,13 +45,13 @@ public class MetricsServiceTest extends MetricsTest {
         String tenantId = "t1";
         String metric = "m1";
 
-        NumericData d1 = new NumericData().setTenantId(tenantId).setMetric("m1").setTimeUUID(getTimeUUID(start))
+        NumericData d1 = new NumericData().setTenantId(tenantId).setMetric("m1").setTimestamp(start.getMillis())
             .setValue(1.1);
         NumericData d2 = new NumericData().setTenantId(tenantId).setMetric("m1")
-            .setTimeUUID(getTimeUUID(start.plusMinutes(2))).setValue(2.2);
+            .setTimestamp(start.plusMinutes(2).getMillis()).setValue(2.2);
         NumericData d3 = new NumericData().setTenantId(tenantId).setMetric("m1")
-            .setTimeUUID(getTimeUUID(start.plusMinutes(4))).setValue(3.3);
-        NumericData d4 = new NumericData().setTenantId(tenantId).setMetric("m1").setTimeUUID(getTimeUUID(end))
+            .setTimestamp(start.plusMinutes(4).getMillis()).setValue(3.3);
+        NumericData d4 = new NumericData().setTenantId(tenantId).setMetric("m1").setTimestamp(end.getMillis())
             .setValue(4.4);
 
         ListenableFuture<Void> insertFuture =  metricsService.addNumericData(ImmutableSet.of(d1, d2, d3, d4));

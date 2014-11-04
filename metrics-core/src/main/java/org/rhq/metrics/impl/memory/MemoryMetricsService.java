@@ -21,7 +21,6 @@ import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
 import org.rhq.metrics.core.NumericData;
-import org.rhq.metrics.util.TimeUUIDUtils;
 
 import gnu.trove.map.TLongDoubleMap;
 import gnu.trove.map.hash.TLongDoubleHashMap;
@@ -134,7 +133,7 @@ public class MemoryMetricsService implements MetricsService {
                         .setTenantId(DEFAULT_TENANT_ID)
                         .setMetric(id)
                         .setValue(map.get(ts))
-                        .setTimeUUID(TimeUUIDUtils.getTimeUUID(ts)));
+                        .setTimestamp(ts));
                 }
 
             }
