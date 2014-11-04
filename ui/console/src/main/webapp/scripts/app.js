@@ -19,7 +19,7 @@ angular.module('chartingApp', ['ui.bootstrap', 'ui.bootstrap.datetimepicker', 'u
         $rootScope.$broadcast('LoadAllSidebarMetricsEvent');
         $rootScope.$emit('LoadAllSidebarMetricsEvent');
         $interval.cancel(startIntervalPromise);
-    }, 2000);
+    }, 1000);
 });
 
 angular.module('rhqm.directives', ['ui.bootstrap']);

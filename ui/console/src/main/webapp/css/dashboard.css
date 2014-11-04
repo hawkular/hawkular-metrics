@@ -135,3 +135,11 @@ input.ng-valid.ng-dirty {
 .sortableList > li {
     margin-bottom: -15px;
 }
+
+.selectGroupNamesOnly {
+    margin:0 0 0 10px;
+}
+
+.selectGroupNamesAndSelected {
+    margin:17px 0 0 10px;
+}

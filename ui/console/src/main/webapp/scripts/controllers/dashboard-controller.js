@@ -73,6 +73,7 @@ var Controllers;
             ];
             this.chartType = this.chartTypes[0].chartType;
             this.groupNames = [];
+            this.defaultGroupName = 'Default Group';
             $scope.vm = this;
             this.currentTimeRange = new TimeRange(_.now() - (24 * 60 * 60), _.now()); // default to 24 hours
 
@@ -107,13 +108,32 @@ var Controllers;
             $rootScope.$on('SidebarRefreshedEvent', function () {
                 _this.selectedMetrics = [];
                 _this.selectedGroup = '';
-                _this.loadAllGraphGroupNames();
+                _this.loadAllChartGroupNames();
+                _this.loadSelectedChartGroup(_this.defaultGroupName);
+            });
+
+            $rootScope.$on('LoadInitialChartGroup', function () {
+                // due to timing issues we need to pause for a few seconds to allow the app to start
+                // and must be greater than 1 sec delay in app.ts
+                var startIntervalPromise = $interval(function () {
+                    _this.selectedGroup = 'Default Group';
+                    _this.loadSelectedChartGroup(_this.defaultGroupName);
+                    $interval.cancel(startIntervalPromise);
+                }, 1300);
             });
 
             this.$scope.$watch(function () {
                 return _this.selectedGroup;
             }, function (newValue) {
-                _this.loadSelectedGraphGroup(newValue);
+                _this.loadSelectedChartGroup(newValue);
+            });
+
+            this.$scope.$watchCollection(function () {
+                return _this.selectedMetrics;
+            }, function () {
+                if (_this.selectedMetrics.length > 0) {
+                    _this.saveChartGroup(_this.defaultGroupName);
+                }
             });
         }
         DashboardController.prototype.noDataFoundForId = function (id) {
@@ -286,7 +306,8 @@ var Controllers;
             return nextTimeRange.endTimeStamp < _.now();
         };
 
-        DashboardController.prototype.saveGraphsAsGroup = function (groupName) {
+        DashboardController.prototype.saveChartGroup = function (groupName) {
+            var _this = this;
             console.debug("Saving GroupName: " + groupName);
             var savedGroups = [];
             var previousGroups = localStorage.getItem('groups');
@@ -294,19 +315,30 @@ var Controllers;
 
             if (previousGroups !== null) {
                 _.each(angular.fromJson(previousGroups), function (item) {
-                    savedGroups.push({ 'groupName': item.groupName, 'metrics': item.metrics });
+                    if (item.groupName !== _this.defaultGroupName) {
+                        savedGroups.push({ 'groupName': item.groupName, 'metrics': item.metrics });
+                    }
                 });
             }
 
+            // Add the 'Default Group'
+            var defaultGroupEntry = { 'groupName': this.defaultGroupName, 'metrics': this.selectedMetrics };
+            if (this.selectedMetrics.length > 0) {
+                savedGroups.push(defaultGroupEntry);
+            }
+
+            // Add the new group name
             var newEntry = { 'groupName': aGroupName, 'metrics': this.selectedMetrics };
-            savedGroups.push(newEntry);
+            if (aGroupName !== this.defaultGroupName) {
+                savedGroups.push(newEntry);
+            }
 
             localStorage.setItem('groups', angular.toJson(savedGroups));
-            this.loadAllGraphGroupNames();
+            this.loadAllChartGroupNames();
             this.selectedGroup = groupName;
         };
 
-        DashboardController.prototype.loadAllGraphGroupNames = function () {
+        DashboardController.prototype.loadAllChartGroupNames = function () {
             var _this = this;
             var existingGroups = localStorage.getItem('groups');
             var groups = angular.fromJson(existingGroups);
@@ -316,7 +348,7 @@ var Controllers;
             });
         };
 
-        DashboardController.prototype.loadSelectedGraphGroup = function (selectedGroup) {
+        DashboardController.prototype.loadSelectedChartGroup = function (selectedGroup) {
             var _this = this;
             var groups = angular.fromJson(localStorage.getItem('groups'));
 

@@ -21,6 +21,7 @@ var Controllers;
             });
             $scope.$on('LoadAllSidebarMetricsEvent', function () {
                 _this.populateMetricsSidebar();
+                _this.$rootScope.$emit('LoadInitialChartGroup');
             });
         }
         SidebarController.prototype.populateMetricsSidebar = function () {

@@ -22,6 +22,7 @@ module Controllers {
             });
             $scope.$on('LoadAllSidebarMetricsEvent', () => {
                 this.populateMetricsSidebar();
+                this.$rootScope.$emit('LoadInitialChartGroup');
             });
 
         }

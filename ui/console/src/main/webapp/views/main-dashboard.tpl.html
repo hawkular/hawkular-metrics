@@ -8,13 +8,13 @@
         <small style="margin-left: 5px;">Graphs</small>
         <span class="badge" ng-hide="vm.selectedMetrics.length < 1">{{vm.selectedMetrics.length}}</span>
 
-        <select class="pull-right" ng-model="vm.selectedGroup" style="margin:17px 0 0 10px;" ng-options="group for group in vm.groupNames" ng-show="vm.groupNames.length > 0" >
+        <select ng-class="{'pull-right selectGroupNamesAndSelected': vm.selectedMetrics.length > 0, 'pull-right selectGroupNamesOnly':vm.selectedMetrics.length === 0}" ng-model="vm.selectedGroup" ng-options="group for group in vm.groupNames" ng-show="vm.groupNames.length > 0" >
             <option value="">-- Choose Group --</option>
         </select>
-        <div class="input-group " ng-show="vm.selectedMetrics.length > 0">
+        <div class="input-group " ng-show="vm.selectedMetrics.length > 0" >
             <input type="text" class="form-control input-sm pull-right"  style="width:150px;" placeholder="Save Group..." ng-model="vm.selectedGroup" ng-enter="vm.saveGraphsAsGroup(vm.selectedGroup);">
             <span class="input-group-btn">
-            <button class="btn btn-default btn-sm" type="button" ng-click="vm.saveGraphsAsGroup(vm.selectedGroup)"><span class="pficon pficon-save"></span> </button>
+            <button class="btn btn-default btn-sm" type="button" ng-click="vm.saveChartGroup(vm.selectedGroup)"><span class="pficon pficon-save"></span> </button>
             </span>
         </div>
 

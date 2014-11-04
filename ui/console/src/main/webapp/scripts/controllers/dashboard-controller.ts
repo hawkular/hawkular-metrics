@@ -31,21 +31,21 @@ module Controllers {
 
     export class TimeRange {
 
-        constructor(public startTimeStamp:number, public endTimeStamp:number){
+        constructor(public startTimeStamp:number, public endTimeStamp:number) {
 
         }
 
-        getIntervalInSeconds(){
+        getIntervalInSeconds() {
             return this.endTimeStamp - this.startTimeStamp;
         }
 
-        moveToNextTimePeriod(){
-             var next = this.calculateNextTimeRange();
+        moveToNextTimePeriod() {
+            var next = this.calculateNextTimeRange();
             this.startTimeStamp = next.startTimeStamp;
             this.endTimeStamp = next.endTimeStamp;
         }
 
-        moveToPreviousTimePeriod(){
+        moveToPreviousTimePeriod() {
             var previous = this.calculatePreviousTimeRange();
             this.startTimeStamp = previous.startTimeStamp;
             this.endTimeStamp = previous.endTimeStamp;
@@ -59,8 +59,8 @@ module Controllers {
             return new TimeRange(this.startTimeStamp - this.getIntervalInSeconds(), this.startTimeStamp);
         }
 
-        getRelativeHumanTimeRange():string{
-            return  moment(this.startTimeStamp).from(moment(this.endTimeStamp));
+        getRelativeHumanTimeRange():string {
+            return moment(this.startTimeStamp).from(moment(this.endTimeStamp));
 
         }
     }
@@ -97,13 +97,14 @@ module Controllers {
 
         selectedGroup:string;
         groupNames:string[] = [];
+        defaultGroupName = 'Default Group';
 
         currentTimeRange:TimeRange;
 
 
-        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $interval:ng.IIntervalService, private $localStorage, private $log:ng.ILogService, private metricDataService,  public dateRange:string) {
+        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $interval:ng.IIntervalService, private $localStorage, private $log:ng.ILogService, private metricDataService, public dateRange:string) {
             $scope.vm = this;
-            this.currentTimeRange = new TimeRange(_.now() - (24 * 60 *60), _.now()); // default to 24 hours
+            this.currentTimeRange = new TimeRange(_.now() - (24 * 60 * 60), _.now()); // default to 24 hours
 
             $scope.$on('GraphTimeRangeChangedEvent', (event, timeRange) => {
                 this.currentTimeRange.startTimeStamp = timeRange[0];
@@ -136,12 +137,31 @@ module Controllers {
             $rootScope.$on('SidebarRefreshedEvent', () => {
                 this.selectedMetrics = [];
                 this.selectedGroup = '';
-                this.loadAllGraphGroupNames();
+                this.loadAllChartGroupNames();
+                this.loadSelectedChartGroup(this.defaultGroupName);
+            });
+
+
+            $rootScope.$on('LoadInitialChartGroup', () => {
+                // due to timing issues we need to pause for a few seconds to allow the app to start
+                // and must be greater than 1 sec delay in app.ts
+                var startIntervalPromise = $interval(() => {
+                    this.selectedGroup = 'Default Group';
+                    this.loadSelectedChartGroup(this.defaultGroupName);
+                    $interval.cancel(startIntervalPromise);
+                }, 1300);
             });
 
             this.$scope.$watch(() => this.selectedGroup,
                 (newValue:string) => {
-                    this.loadSelectedGraphGroup(newValue);
+                    this.loadSelectedChartGroup(newValue);
+                });
+
+            this.$scope.$watchCollection(() => this.selectedMetrics,
+                () => {
+                    if(this.selectedMetrics.length > 0){
+                        this.saveChartGroup(this.defaultGroupName);
+                    }
                 });
 
         }
@@ -334,7 +354,7 @@ module Controllers {
         }
 
 
-        saveGraphsAsGroup(groupName:string) {
+        saveChartGroup(groupName:string) {
             console.debug("Saving GroupName: " + groupName);
             var savedGroups:IMetricGroup[] = [];
             var previousGroups = localStorage.getItem('groups');
@@ -342,19 +362,30 @@ module Controllers {
 
             if (previousGroups !== null) {
                 _.each(angular.fromJson(previousGroups), (item:IMetricGroup) => {
-                    savedGroups.push({'groupName': item.groupName, 'metrics': item.metrics});
+                    if (item.groupName !== this.defaultGroupName) {
+                        savedGroups.push({'groupName': item.groupName, 'metrics': item.metrics});
+                    }
                 });
             }
 
+            // Add the 'Default Group'
+            var defaultGroupEntry:IMetricGroup = {'groupName': this.defaultGroupName, 'metrics': this.selectedMetrics};
+            if(this.selectedMetrics.length > 0){
+                savedGroups.push(defaultGroupEntry);
+            }
+
+            // Add the new group name
             var newEntry:IMetricGroup = {'groupName': aGroupName, 'metrics': this.selectedMetrics};
-            savedGroups.push(newEntry);
+            if(aGroupName !== this.defaultGroupName){
+                savedGroups.push(newEntry);
+            }
 
             localStorage.setItem('groups', angular.toJson(savedGroups));
-            this.loadAllGraphGroupNames();
+            this.loadAllChartGroupNames();
             this.selectedGroup = groupName;
         }
 
-        loadAllGraphGroupNames() {
+        loadAllChartGroupNames() {
             var existingGroups = localStorage.getItem('groups');
             var groups = angular.fromJson(existingGroups);
             this.groupNames = [];
@@ -363,7 +394,7 @@ module Controllers {
             });
         }
 
-        loadSelectedGraphGroup(selectedGroup:string) {
+        loadSelectedChartGroup(selectedGroup:string) {
             var groups = angular.fromJson(localStorage.getItem('groups'));
 
             if (angular.isDefined(groups)) {
