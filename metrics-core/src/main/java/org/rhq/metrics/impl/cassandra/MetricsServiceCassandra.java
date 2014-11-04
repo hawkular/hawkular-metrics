@@ -60,7 +60,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
     private Optional<Session> session;
 
-    private DataAccess2 dataAccess2;
+    private DataAccess dataAccess;
 
     private NumericDataMapper numericDataMapper = new NumericDataMapper();
 
@@ -72,7 +72,7 @@ public class MetricsServiceCassandra implements MetricsService {
     public void startUp(Session s) {
         // the session is managed externally
         this.session = Optional.absent();
-        this.dataAccess2 = new DataAccess2(s);
+        this.dataAccess = new DataAccess(s);
     }
 
     @Override
@@ -120,7 +120,7 @@ public class MetricsServiceCassandra implements MetricsService {
         updateSchemaIfNecessary(cluster, keyspace);
 
         session = Optional.of(cluster.connect(keyspace));
-        dataAccess2 = new DataAccess2(session.get());
+        dataAccess = new DataAccess(session.get());
 
     }
 
@@ -138,7 +138,7 @@ public class MetricsServiceCassandra implements MetricsService {
         List<ResultSetFuture> futures = new ArrayList<>(data.size());
         for (NumericData d : data) {
             permits.acquire();
-            futures.add(dataAccess2.insertNumericData(d));
+            futures.add(dataAccess.insertNumericData(d));
         }
         ListenableFuture<List<ResultSet>> insertsFuture = Futures.successfulAsList(futures);
         return Futures.transform(insertsFuture, RESULT_SETS_TO_VOID);
@@ -173,13 +173,13 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public ListenableFuture<List<NumericData>> findData(String tenantId, String id, long start, long end) {
-        ResultSetFuture future = dataAccess2.findNumericData(tenantId, id, Interval.NONE, DPART, start, end);
+        ResultSetFuture future = dataAccess.findNumericData(tenantId, id, Interval.NONE, DPART, start, end);
         return Futures.transform(future, numericDataMapper, metricsTasks);
     }
 
     @Override
     public ListenableFuture<Boolean> idExists(final String id) {
-        ResultSetFuture future = dataAccess2.findAllNumericMetrics();
+        ResultSetFuture future = dataAccess.findAllNumericMetrics();
         return Futures.transform(future, new Function<ResultSet, Boolean>() {
             @Override
             public Boolean apply(ResultSet resultSet) {
@@ -195,7 +195,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public ListenableFuture<List<String>> listMetrics() {
-        ResultSetFuture future = dataAccess2.findAllNumericMetrics();
+        ResultSetFuture future = dataAccess.findAllNumericMetrics();
         return Futures.transform(future, new Function<ResultSet, List<String>>() {
             @Override
             public List<String> apply(ResultSet resultSet) {
@@ -210,7 +210,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public ListenableFuture<Boolean> deleteMetric(String id) {
-        ResultSetFuture future = dataAccess2.deleteNumericMetric(DEFAULT_TENANT_ID, id, Interval.NONE, DPART);
+        ResultSetFuture future = dataAccess.deleteNumericMetric(DEFAULT_TENANT_ID, id, Interval.NONE, DPART);
         return Futures.transform(future, new Function<ResultSet, Boolean>() {
             @Override
             public Boolean apply(ResultSet input) {

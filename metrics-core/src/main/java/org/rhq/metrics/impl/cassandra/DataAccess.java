@@ -29,11 +29,10 @@ import org.rhq.metrics.core.Tenant;
 import org.rhq.metrics.util.TimeUUIDUtils;
 
 /**
- * This class will eventually supplant the existing DataAccess class.
  *
  * @author John Sanda
  */
-public class DataAccess2 {
+public class DataAccess {
 
     private Session session;
 
@@ -57,7 +56,7 @@ public class DataAccess2 {
 
     private PreparedStatement findCountersByGroupAndName;
 
-    public DataAccess2(Session session) {
+    public DataAccess(Session session) {
         this.session = session;
         initPreparedStatements();
     }
