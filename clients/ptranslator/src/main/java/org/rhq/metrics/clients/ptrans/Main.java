@@ -17,6 +17,7 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
@@ -79,6 +80,9 @@ public class Main {
     private void run() throws Exception {
         EventLoopGroup group = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
+
+        final RestForwardingHandler forwardingHandler = new RestForwardingHandler(configuration);
+
         try {
 
             // The generic TCP socket server
@@ -90,7 +94,7 @@ public class Main {
                     @Override
                     public void initChannel(SocketChannel socketChannel) throws Exception {
                         ChannelPipeline pipeline = socketChannel.pipeline();
-                        pipeline.addLast(new DemuxHandler(configuration));
+                        pipeline.addLast(new DemuxHandler(configuration, forwardingHandler));
                     }
                 });
             ChannelFuture graphiteFuture = serverBootstrap.bind().sync();
@@ -109,7 +113,8 @@ public class Main {
                     public void initChannel(Channel socketChannel) throws Exception {
                         ChannelPipeline pipeline = socketChannel.pipeline();
                         pipeline.addLast(new UdpSyslogEventDecoder());
-                        pipeline.addLast(new RestForwardingHandler(configuration));
+
+                        pipeline.addLast(forwardingHandler);
                     }
                 })
             ;
@@ -117,10 +122,10 @@ public class Main {
             logger.info("Syslogd listening on udp " + udpFuture.channel().localAddress());
 
             // Try to set up an upd listener for Ganglia Messages
-            setupGangliaUdp(group);
+            setupGangliaUdp(group, forwardingHandler);
 
             // Setup statsd listener
-            setupStatsdUdp(group);
+            setupStatsdUdp(group, forwardingHandler);
 
             udpFuture.channel().closeFuture().sync();
         } finally {
@@ -129,7 +134,7 @@ public class Main {
         }
     }
 
-    private void setupStatsdUdp(EventLoopGroup group) {
+    private void setupStatsdUdp(EventLoopGroup group, final ChannelInboundHandlerAdapter forwardingHandler) {
         Bootstrap statsdBootstrap = new Bootstrap();
         statsdBootstrap
             .group(group)
@@ -141,7 +146,7 @@ public class Main {
                     ChannelPipeline pipeline = socketChannel.pipeline();
                     pipeline.addLast(new StatsdDecoder());
                     pipeline.addLast(new MetricBatcher("statsd"));
-                    pipeline.addLast(new RestForwardingHandler(configuration));
+                    pipeline.addLast(forwardingHandler);
                 }
             })
         ;
@@ -154,7 +159,7 @@ public class Main {
 
     }
 
-    private void setupGangliaUdp(EventLoopGroup group) {
+    private void setupGangliaUdp(EventLoopGroup group, final ChannelInboundHandlerAdapter fowardingHandler) {
         // The ganglia UPD socket server
 
         try {
@@ -183,7 +188,7 @@ public class Main {
                         ChannelPipeline pipeline = socketChannel.pipeline();
                         pipeline.addLast(new UdpGangliaDecoder());
                         pipeline.addLast(new MetricBatcher("ganglia"));
-                        pipeline.addLast(new RestForwardingHandler(configuration));
+                        pipeline.addLast(fowardingHandler);
                     }
                 })
             ;
