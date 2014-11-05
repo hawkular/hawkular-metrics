@@ -138,9 +138,20 @@ public class MetricsServiceCassandra implements MetricsService {
         List<ResultSetFuture> futures = new ArrayList<>(data.size());
         for (NumericData d : data) {
             permits.acquire();
-            futures.add(dataAccess.insertNumericData(d));
+            if (d.getTimeUUID() == null) {
+                Interval interval = d.getInterval() == null ? Interval.NONE : d.getInterval();
+                futures.add(dataAccess.addNumericAttributes(d.getTenantId(), d.getMetric(), interval, DPART,
+                    d.getAttributes()));
+            } else {
+                futures.add(dataAccess.insertNumericData(d));
+            }
         }
         ListenableFuture<List<ResultSet>> insertsFuture = Futures.successfulAsList(futures);
+        // TODO Should we include any errors in the return value?
+        // By returning a void future, we swallow any errors that might occur which if
+        // nothing else makes development/testing more difficult. We ought to propagate
+        // errors back to the client. Doing it with Guava's futures can be limiting. Might
+        // be better and easier to tackle with RxJava's Observables.
         return Futures.transform(insertsFuture, RESULT_SETS_TO_VOID);
     }
 

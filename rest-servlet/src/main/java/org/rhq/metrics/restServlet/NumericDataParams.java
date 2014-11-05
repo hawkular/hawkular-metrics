@@ -51,19 +51,19 @@ public class NumericDataParams {
         this.attributes = attributes;
     }
 
-    public long getTimestamp() {
+    public Long getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(long timestamp) {
+    public void setTimestamp(Long timestamp) {
         this.timestamp = timestamp;
     }
 
-    public double getValue() {
+    public Double getValue() {
         return value;
     }
 
-    public void setValue(double value) {
+    public void setValue(Double value) {
         this.value = value;
     }
 

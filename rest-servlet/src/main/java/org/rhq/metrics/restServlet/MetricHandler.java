@@ -123,12 +123,19 @@ public class MetricHandler {
         Set<NumericData> data;
 
         if (params.getData().isEmpty()) {
-            data = ImmutableSet.of(new NumericData()
-                .setTenantId(params.getTenantId())
-                .setMetric(params.getName())
-                .putAttributes(params.getAttributes())
-                .setTimestamp(params.getTimestamp())
-                .setValue(params.getValue()));
+            if (params.getTimestamp() == null || params.getValue() == null) {
+                data = ImmutableSet.of(new NumericData()
+                    .setTenantId(params.getTenantId())
+                    .setMetric(params.getName())
+                    .putAttributes(params.getAttributes()));
+            } else {
+                data = ImmutableSet.of(new NumericData()
+                    .setTenantId(params.getTenantId())
+                    .setMetric(params.getName())
+                    .putAttributes(params.getAttributes())
+                    .setTimestamp(params.getTimestamp())
+                    .setValue(params.getValue()));
+            }
         } else {
             data = new HashSet<>();
             for (NumericDataPoint p : params.getData()) {
