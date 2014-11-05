@@ -30,7 +30,6 @@
     <trove4j.version>3.0.3</trove4j.version>
 
     <version.wildfly>8.1.0.Final</version.wildfly>
-    <junit.version>4.8.2</junit.version>
     <findbugs.version>3.0.0</findbugs.version>
 
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -90,6 +89,15 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.11</version>
+        <scope>test</scope>
+      </dependency>
+      <!-- TestNG is not RHQ-Metrics main testing framework -->
+      <!-- While still needed to run legacy tests, new tests should be based upon jUnit -->
+      <!-- It can still be used when there's a good reason (compatibility with a testing framework for example) -->
       <dependency>
         <groupId>org.testng</groupId>
         <artifactId>testng</artifactId>
