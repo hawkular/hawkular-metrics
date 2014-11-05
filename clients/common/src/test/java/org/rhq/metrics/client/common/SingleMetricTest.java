@@ -38,4 +38,24 @@ public class SingleMetricTest {
         SingleMetric metric = new SingleMetric(source, timestamp, value);
         assertEquals(metric.toJson(), expectedJson);
     }
+
+    @Test
+    public void testEquals() throws Exception {
+
+        SingleMetric metric1 = new SingleMetric("bla",1,45d);
+        SingleMetric metric2 = new SingleMetric("bla",1,99d);
+
+        assert metric1.equals(metric2);
+
+    }
+
+    @Test
+    public void testNotEquals() throws Exception {
+
+        SingleMetric metric1 = new SingleMetric("foo",1,42d);
+        SingleMetric metric2 = new SingleMetric("bla",1,42d);
+
+        assert !metric1.equals(metric2);
+
+    }
 }
