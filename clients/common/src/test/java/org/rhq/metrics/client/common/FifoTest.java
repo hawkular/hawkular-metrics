@@ -1,6 +1,7 @@
 package org.rhq.metrics.client.common;
 
 
+import java.util.Collection;
 import java.util.List;
 
 import org.testng.annotations.Test;
@@ -246,6 +247,15 @@ public class FifoTest {
 
         assert !removed;
 
+    }
+
+    @Test
+    public void testCleanoutNull() throws Exception {
+
+        BoundMetricFifo fifo = new BoundMetricFifo(10, 5);
+
+        assert !fifo.cleanout((Collection)null);
+        assert !fifo.cleanout((SingleMetric)null);
 
     }
 }

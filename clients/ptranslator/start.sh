@@ -4,8 +4,6 @@
 ##VERSION=`grep version pom.xml | sed -n '3,3p' | sed -E 's/^.*n>(.*)<.*$/\1/' `
 VERSION=`mvn  help:evaluate -Dexpression=project.version | grep -v "^\[INFO\]"`
 
-exit 1
-
 echo "(Re)building the commons library"
 cd ../common
 mvn install

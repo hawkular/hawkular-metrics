@@ -100,17 +100,25 @@ public class BoundMetricFifo extends AbstractQueue<SingleMetric> implements Queu
      * @return true if it was removed, false otherwise (e.g. if the metric was not in the fifo)
      */
     public boolean cleanout(SingleMetric metric) {
+        if (metric==null) {
+            return false;
+        }
+
         synchronized (mutex) {
             return contents.remove(metric);
         }
     }
 
     /**
-     * Remove the collection of passed metrics from the fifo
+     * Remove the collection of passed metrics from the fifo.
      * @param metrics Metrics to remove
      * @return true if all Metrics were removed, false otherwise (e.g. if one metric was not in the fifo)
      */
     public boolean cleanout(Collection<SingleMetric> metrics) {
+
+        if (metrics==null || metrics.isEmpty()) {
+            return false;
+        }
 
         boolean removed = true;
 
