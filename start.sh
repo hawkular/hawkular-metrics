@@ -31,7 +31,7 @@ then
     mkdir target
 fi
 
-MVN_REPO=`mvn help:evaluate -Dexpression=settings.localRepository | grep -v '[INFO]'`
+MVN_REPO=`mvn help:evaluate -Dexpression=settings.localRepository | grep -vF "[INFO]"`
 WFLY_ZIP=${MVN_REPO}/org/wildfly/wildfly-dist/${WFLY_VERSION}/wildfly-dist-${WFLY_VERSION}.zip
 
 if [ ! -e target/wild* ]
