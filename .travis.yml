@@ -3,6 +3,8 @@ jdk:
 - oraclejdk8
 services:
 - cassandra
+notifications:
+  irc: "chat.freenode.net#rhq.next"
 env:
   global:
     secure: mDUhAf474mlads7ZEAf2mWecQxZWgdfcjiBn6+yif0hJoWKQs38HU+jm4EE8UMgGvdn7avIYvdrxKJ9MnjWpncaXJ0366ZYbxP+7pybMk/SA80yr3dCg5gSHosJ9UqMvGga1bzgDeqF9UppKt0kqxgSLLwKAFoY+x70Pp0rIwQg=
