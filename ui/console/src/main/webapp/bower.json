@@ -1,6 +1,6 @@
 {
   "name": "rhq-metrics-console",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "dependencies": {
     "angular": "1.2.6",
     "jquery": "2.1.1",
@@ -12,14 +12,12 @@
     "toastr": "2.0.3",
     "lodash": "2.4.1",
     "ngstorage": "0.3.0",
-    "angular-ui-router": "0.2.11",
     "numeral": "1.5.3",
     "patternfly": "1.1.1",
     "angular-ui-sortable": "0.13.0",
     "angular-busy": "4.0.4"
   },
   "devDependencies": {
-    "angular-mocks": "1.2.6",
     "angular-scenario": "1.2.6"
   },
   "resolutions": {
