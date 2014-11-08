@@ -142,6 +142,15 @@ var Controllers;
             toastr.warning('No Data found for id: ' + id);
         };
 
+        DashboardController.prototype.getChartHtmlTextToCopy = function (metricId) {
+            var chartHtml = '<rhqm-chart chart-type="bar" chart-height="250" >' + metricId + '</rhqm-chart>';
+            return chartHtml;
+        };
+
+        DashboardController.prototype.clickChartHtmlCopy = function () {
+            toastr.info("Copied Chart to Clipboard");
+        };
+
         DashboardController.prototype.deleteChart = function (metricId) {
             var pos = _.indexOf(this.selectedMetrics, metricId);
             this.selectedMetrics.splice(pos, 1);

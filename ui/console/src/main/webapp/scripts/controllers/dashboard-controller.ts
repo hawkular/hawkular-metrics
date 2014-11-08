@@ -174,6 +174,15 @@ module Controllers {
         }
 
 
+        getChartHtmlTextToCopy(metricId:string):string {
+            var chartHtml = '<rhqm-chart chart-type="bar" chart-height="250" >'+metricId+'</rhqm-chart>';
+            return chartHtml;
+        }
+
+        clickChartHtmlCopy():void {
+            toastr.info("Copied Chart to Clipboard");
+        }
+
         deleteChart(metricId:string):void {
             var pos = _.indexOf(this.selectedMetrics, metricId);
             this.selectedMetrics.splice(pos, 1);
