@@ -16,3 +16,4 @@ target/
 console/.DS_Store
 rest-servlet/.DS_Store
 nb-configuration.xml
+*~
