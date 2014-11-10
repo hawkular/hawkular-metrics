@@ -38,9 +38,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.rhq.metrics.clients.ptrans.backend.RestForwardingHandler;
+import org.rhq.metrics.clients.ptrans.collectd.CollectdEventHandler;
 import org.rhq.metrics.clients.ptrans.ganglia.UdpGangliaDecoder;
 import org.rhq.metrics.clients.ptrans.statsd.StatsdDecoder;
 import org.rhq.metrics.clients.ptrans.syslog.UdpSyslogEventDecoder;
+import org.rhq.metrics.netty.collectd.event.CollectdEventsDecoder;
+import org.rhq.metrics.netty.collectd.packet.CollectdPacketDecoder;
 
 /**
  * Simple client (proxy) that receives messages from other syslogs and
@@ -144,10 +147,39 @@ public class Main {
             // Setup statsd listener
             setupStatsdUdp(group, forwardingHandler);
 
+            // Setup collectd listener
+            setupCollectdUdp(group, forwardingHandler);
+
             udpFuture.channel().closeFuture().sync();
         } finally {
             group.shutdownGracefully().sync();
-            group.shutdownGracefully().sync();
+            workerGroup.shutdownGracefully().sync();
+        }
+    }
+
+    private void setupCollectdUdp(EventLoopGroup group, final ChannelInboundHandlerAdapter forwardingHandler) {
+        Bootstrap statsdBootstrap = new Bootstrap();
+        statsdBootstrap
+                .group(group)
+                .channel(NioDatagramChannel.class)
+                .localAddress(25826)
+                .handler(new ChannelInitializer<Channel>() {
+                    @Override
+                    public void initChannel(Channel socketChannel) throws Exception {
+                        ChannelPipeline pipeline = socketChannel.pipeline();
+                        pipeline.addLast(new CollectdPacketDecoder());
+                        pipeline.addLast(new CollectdEventsDecoder());
+                        pipeline.addLast(new CollectdEventHandler());
+                        pipeline.addLast(new MetricBatcher("collectd"));
+                        pipeline.addLast(forwardingHandler);
+                    }
+                })
+        ;
+        try {
+            ChannelFuture statsdFuture = statsdBootstrap.bind().sync();
+            logger.info("Collectd listening on udp " + statsdFuture.channel().localAddress());
+        } catch (InterruptedException e) {
+            e.printStackTrace();  // TODO: Customise this generated block
         }
     }
 

@@ -25,6 +25,10 @@ fi
 WFLY_VERSION=`grep "<version.wildfly>" pom.xml | sed -E 's/^.*y>(8.*l)<.*$/\1/'`
 
 mvn install -DskipTests
+if [ $? -ne 0 ]
+then
+   exit;
+fi
 
 if [ ! -e target ]
 then
