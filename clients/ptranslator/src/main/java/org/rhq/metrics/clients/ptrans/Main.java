@@ -1,6 +1,5 @@
 package org.rhq.metrics.clients.ptrans;
 
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -11,6 +10,7 @@ import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.List;
 import java.util.Properties;
 
 import io.netty.bootstrap.Bootstrap;
@@ -28,6 +28,12 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
+import org.apache.commons.cli.BasicParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,14 +67,25 @@ public class Main {
     Properties configuration;
 
     public static void main(String[] args) throws Exception {
-
-        Main main;
-        if (args.length>0) {
-            main = new Main(args[0]);
+        Options options = new Options();
+        Option helpOption = new Option("h", "help", false, "Print usage and exit.");
+        options.addOption(helpOption);
+        CommandLineParser parser = new BasicParser();
+        CommandLine cmd = parser.parse(options, args, true);
+        if (cmd.hasOption("h")) {
+            HelpFormatter formatter = new HelpFormatter();
+            formatter.printHelp("ptrans", options, false);
         } else {
-            main = new Main(CONFIG_PROPERTIES_FILE_NAME);
+            @SuppressWarnings("unchecked")
+            List<String> argList = cmd.getArgList();
+            Main main;
+            if (argList.size() > 0) {
+                main = new Main(argList.get(0));
+            } else {
+                main = new Main(CONFIG_PROPERTIES_FILE_NAME);
+            }
+            main.run();
         }
-        main.run();
     }
 
     public Main(String propertiesPath) {
