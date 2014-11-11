@@ -12,14 +12,14 @@ var Services;
             this.$localStorage = $localStorage;
             this.BASE_URL = BASE_URL;
         }
-        MetricDataService.prototype.makeBaseUrl = function () {
+        MetricDataService.prototype.getBaseUrl = function () {
             var baseUrl = 'http://' + this.$rootScope.$storage.server.replace(/['"]+/g, '') + ':' + this.$rootScope.$storage.port + this.BASE_URL;
             return baseUrl;
         };
 
         MetricDataService.prototype.getAllMetrics = function () {
             this.$log.info('-- Retrieving all metrics');
-            var base = this.makeBaseUrl(), that = this, deferred = this.$q.defer();
+            var base = this.getBaseUrl(), that = this, deferred = this.$q.defer();
 
             this.$http.get(base).success(function (data) {
                 deferred.resolve(data);
@@ -35,7 +35,7 @@ var Services;
         MetricDataService.prototype.getMetricsForTimeRange = function (id, startDate, endDate, buckets) {
             this.$log.info('-- Retrieving metrics data for id: ' + id);
             this.$log.info('-- Date Range: ' + startDate + ' - ' + endDate);
-            var numBuckets = buckets || 60, base = this.makeBaseUrl(), deferred = this.$q.defer(), searchParams = {
+            var numBuckets = buckets || 60, base = this.getBaseUrl(), deferred = this.$q.defer(), searchParams = {
                 params: {
                     start: startDate.getTime(),
                     end: endDate.getTime(),
@@ -59,7 +59,7 @@ var Services;
         };
 
         MetricDataService.prototype.insertSinglePayload = function (id, jsonPayload) {
-            var url = this.makeBaseUrl(), deferred = this.$q.defer();
+            var url = this.getBaseUrl(), deferred = this.$q.defer();
             this.$http.post(url + '/' + id, jsonPayload).success(function () {
                 deferred.resolve("Success");
             }).error(function (response, status) {
@@ -70,7 +70,7 @@ var Services;
         };
 
         MetricDataService.prototype.insertMultiplePayload = function (jsonPayload) {
-            var url = this.makeBaseUrl(), deferred = this.$q.defer();
+            var url = this.getBaseUrl(), deferred = this.$q.defer();
             this.$http.post(url + '/', jsonPayload).success(function () {
                 deferred.resolve("Success");
             }).error(function (response, status) {

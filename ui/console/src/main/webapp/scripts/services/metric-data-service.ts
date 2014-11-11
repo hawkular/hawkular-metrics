@@ -12,7 +12,7 @@ module Services {
 
         }
 
-        private makeBaseUrl():string {
+        getBaseUrl():string {
             var baseUrl = 'http://' + this.$rootScope.$storage.server.replace(/['"]+/g, '') + ':' + this.$rootScope.$storage.port + this.BASE_URL;
             return baseUrl;
         }
@@ -20,7 +20,7 @@ module Services {
         getAllMetrics() {
 
             this.$log.info('-- Retrieving all metrics');
-            var base = this.makeBaseUrl(),
+            var base = this.getBaseUrl(),
                 that = this,
                 deferred = this.$q.defer();
 
@@ -41,7 +41,7 @@ module Services {
             this.$log.info('-- Retrieving metrics data for id: ' + id);
             this.$log.info('-- Date Range: ' + startDate + ' - ' + endDate);
             var numBuckets = buckets || 60,
-                base = this.makeBaseUrl(),
+                base = this.getBaseUrl(),
                 deferred = this.$q.defer(),
                 searchParams =
                 {
@@ -68,7 +68,7 @@ module Services {
         }
 
         insertSinglePayload(id, jsonPayload):any {
-            var url = this.makeBaseUrl(),
+            var url = this.getBaseUrl(),
                 deferred = this.$q.defer();
             this.$http.post(url + '/' + id, jsonPayload
             ).success(()=> {
@@ -81,7 +81,7 @@ module Services {
         }
 
         insertMultiplePayload(jsonPayload):any {
-            var url = this.makeBaseUrl(),
+            var url = this.getBaseUrl(),
                 deferred = this.$q.defer();
             this.$http.post(url + '/', jsonPayload
             ).success(() => {

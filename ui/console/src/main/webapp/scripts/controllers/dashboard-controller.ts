@@ -175,7 +175,7 @@ module Controllers {
 
 
         getChartHtmlTextToCopy(metricId:string):string {
-            var chartHtml = '<rhqm-chart chart-type="bar" chart-height="250" >'+metricId+'</rhqm-chart>';
+            var chartHtml = '<rhqm-chart chart-type="bar" metric-id="'+metricId+'" data-url="'+this.metricDataService.getBaseUrl()+'" start-timestamp="'+this.currentTimeRange.startTimeStamp+'" end-timestamp="'+this.currentTimeRange.endTimeStamp+'"  chart-height="250" ></rhqm-chart>';
             return chartHtml;
         }
 

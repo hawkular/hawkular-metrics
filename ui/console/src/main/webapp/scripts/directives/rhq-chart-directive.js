@@ -10,9 +10,9 @@ var Directives;
     *
     */
     angular.module('rhqm.directives', []).directive('rhqmChart', [
-        '$log', function ($log) {
+        '$rootScope', '$http', '$log', 'BASE_URL', function ($rootScope, $http, $log, BASE_URL) {
             function link(scope, element, attributes) {
-                var dataPoints = [], previousRangeDataPoints = [], annotationData = [], contextData = [], multiChartOverlayData = [], chartHeight = +attributes.chartHeight || 250, chartType = attributes.chartType || 'bar', timeLabel = attributes.timeLabel || 'Time', dateLabel = attributes.dateLabel || 'Date', singleValueLabel = attributes.singleValueLabel || 'Raw Value', noDataLabel = attributes.noDataLabel || 'No Data', aggregateLabel = attributes.aggregateLabel || 'Aggregate', startLabel = attributes.startLabel || 'Start', endLabel = attributes.endLabel || 'End', durationLabel = attributes.durationLabel || 'Bar Duration', minLabel = attributes.minLabel || 'Min', maxLabel = attributes.maxLabel || 'Max', avgLabel = attributes.avgLabel || 'Avg', timestampLabel = attributes.timestampLabel || 'Timestamp', highBarColor = attributes.highBarColor || '#1794bc', lowBarColor = attributes.lowBarColor || '#70c4e2', leaderBarColor = attributes.leaderBarColor || '#d3d3d6', rawValueBarColor = attributes.rawValueBarColor || '#50505a', avgLineColor = attributes.avgLineColor || '#2e376a', showAvgLine = true, hideHighLowValues = false, chartHoverDateFormat = attributes.chartHoverDateFormat || '%m/%d/%y', chartHoverTimeFormat = attributes.chartHoverTimeFormat || '%I:%M:%S %p', buttonBarDateTimeFormat = attributes.buttonbarDatetimeFormat || 'MM/DD/YYYY h:mm a';
+                var dataPoints = [], dataUrl = attributes.dataUrl || '', metricId = attributes.metricId || '', startTimestamp = +attributes.startTimestamp || 1415665478364, endTimestamp = +attributes.endTimestamp || _.now(), refreshInterval = +attributes.refreshInterval || 3600, timeRange = +attributes.timeRange || 28800, previousRangeDataPoints = [], annotationData = [], contextData = [], multiChartOverlayData = [], chartHeight = +attributes.chartHeight || 250, chartType = attributes.chartType || 'bar', timeLabel = attributes.timeLabel || 'Time', dateLabel = attributes.dateLabel || 'Date', singleValueLabel = attributes.singleValueLabel || 'Raw Value', noDataLabel = attributes.noDataLabel || 'No Data', aggregateLabel = attributes.aggregateLabel || 'Aggregate', startLabel = attributes.startLabel || 'Start', endLabel = attributes.endLabel || 'End', durationLabel = attributes.durationLabel || 'Bar Duration', minLabel = attributes.minLabel || 'Min', maxLabel = attributes.maxLabel || 'Max', avgLabel = attributes.avgLabel || 'Avg', timestampLabel = attributes.timestampLabel || 'Timestamp', highBarColor = attributes.highBarColor || '#1794bc', lowBarColor = attributes.lowBarColor || '#70c4e2', leaderBarColor = attributes.leaderBarColor || '#d3d3d6', rawValueBarColor = attributes.rawValueBarColor || '#50505a', avgLineColor = attributes.avgLineColor || '#2e376a', showAvgLine = true, hideHighLowValues = false, chartHoverDateFormat = attributes.chartHoverDateFormat || '%m/%d/%y', chartHoverTimeFormat = attributes.chartHoverTimeFormat || '%I:%M:%S %p', buttonBarDateTimeFormat = attributes.buttonbarDatetimeFormat || 'MM/DD/YYYY h:mm a';
 
                 // chart specific vars
                 var margin = { top: 10, right: 5, bottom: 5, left: 90 }, contextMargin = { top: 150, right: 5, bottom: 5, left: 90 }, xAxisContextMargin = { top: 190, right: 5, bottom: 5, left: 90 }, width = 750 - margin.left - margin.right, adjustedChartHeight = chartHeight - 50, height = adjustedChartHeight - margin.top - margin.bottom, smallChartThresholdInPixels = 600, titleHeight = 30, titleSpace = 10, innerChartHeight = height + margin.top - titleHeight - titleSpace + margin.bottom, adjustedChartHeight2 = +titleHeight + titleSpace + margin.top, barOffset = 2, chartData, calcBarWidth, yScale, timeScale, yAxis, xAxis, tip, brush, brushGroup, timeScaleForBrush, timeScaleForContext, chart, chartParent, context, contextArea, svg, lowBound, highBound, avg, peak, min, processedNewData, processedPreviousRangeData;
@@ -71,8 +71,6 @@ var Directives;
                         });
                         seriesMax = d3.max(maxList);
                         seriesMin = d3.min(minList);
-                        console.debug("Series max: " + seriesMax);
-                        console.debug("Series min: " + seriesMin);
                         return [seriesMin, seriesMax];
                     }
 
@@ -141,6 +139,52 @@ var Directives;
 
                         xAxis = d3.svg.axis().scale(timeScale).ticks(xTicks).tickSubdivide(xTickSubDivide).tickSize(4, 4, 0).orient("bottom");
                     }
+                }
+
+                function getBaseUrl() {
+                    var baseUrl = 'http://' + $rootScope.$storage.server.replace(/['"]+/g, '') + ':' + $rootScope.$storage.port + BASE_URL;
+                    return baseUrl;
+                }
+
+                function loadMetricsForTimeRange(url, metricId, startTimestamp, endTimestamp, buckets) {
+                    $log.info('-- Retrieving metrics data for urlData: ' + metricId);
+                    $log.info('-- Date Range: ' + new Date(startTimestamp) + ' - ' + new Date(endTimestamp));
+                    var numBuckets = buckets || 60, urlDataPoints = [], searchParams = {
+                        params: {
+                            start: startTimestamp,
+                            end: endTimestamp,
+                            buckets: numBuckets
+                        }
+                    };
+
+                    if (startTimestamp >= endTimestamp) {
+                        $log.warn('Start date was after end date');
+                    }
+
+                    //$http.get(url + '/rhq-metrics/metrics/' + metricId, searchParams).success(function (response) {
+                    $http.get(getBaseUrl() + '/' + metricId, searchParams).success(function (response) {
+                        urlDataPoints = this.formatBucketedChartOutput(response);
+                        console.info("DataPoints from URL:");
+                        console.dir(dataPoints);
+                        return urlDataPoints;
+                    }).error(function (reason, status) {
+                        $log.error('Error Loading Chart Data:' + status + ", " + reason);
+                    });
+                }
+
+                function formatBucketedChartOutput(response) {
+                    //  The schema is different for bucketed output
+                    return _.map(response, function (point) {
+                        return {
+                            timestamp: point.timestamp,
+                            date: new Date(point.timestamp),
+                            value: !angular.isNumber(point.value) ? 0 : point.value,
+                            avg: (point.empty) ? 0 : point.avg,
+                            min: !angular.isNumber(point.min) ? 0 : point.min,
+                            max: !angular.isNumber(point.max) ? 0 : point.max,
+                            empty: point.empty
+                        };
+                    });
                 }
 
                 function isEmptyDataBar(d) {
@@ -846,6 +890,60 @@ var Directives;
                     }
                 });
 
+                scope.$watch('dataUrl', function (newUrlData) {
+                    if (isDefinedAndHasValues(newUrlData)) {
+                        dataUrl = newUrlData;
+                        processedNewData = loadMetricsForTimeRange(dataUrl, metricId, startTimestamp, endTimestamp, 60);
+                        scope.render(processedNewData, processedPreviousRangeData);
+                    }
+                });
+
+                scope.$watch('metricId', function (newMetricId) {
+                    if (isDefinedAndHasValues(newMetricId)) {
+                        metricId = newMetricId;
+                        processedNewData = loadMetricsForTimeRange(dataUrl, metricId, startTimestamp, endTimestamp, 60);
+                        scope.render(processedNewData, processedPreviousRangeData);
+                    }
+                });
+
+                scope.$watch('startTimestamp', function (newStartTimestamp) {
+                    if (isDefinedAndHasValues(newStartTimestamp)) {
+                        startTimestamp = +newStartTimestamp;
+                        processedNewData = loadMetricsForTimeRange(dataUrl, metricId, startTimestamp, endTimestamp, 60);
+                        scope.render(processedNewData, processedPreviousRangeData);
+                    }
+                });
+
+                scope.$watch('endTimestamp', function (newEndTimestamp) {
+                    if (isDefinedAndHasValues(newEndTimestamp)) {
+                        endTimestamp = +newEndTimestamp;
+                        processedNewData = loadMetricsForTimeRange(dataUrl, metricId, startTimestamp, endTimestamp, 60);
+                        scope.render(processedNewData, processedPreviousRangeData);
+                    }
+                });
+
+                scope.$watch('refreshInterval', function (newRefreshInterval) {
+                    if (isDefinedAndHasValues(newRefreshInterval)) {
+                        refreshInterval = newRefreshInterval;
+
+                        //@todo: update timeout for refresh interval
+                        endTimestamp = _.now();
+                        startTimestamp = _.now() - refreshInterval;
+                        processedNewData = loadMetricsForTimeRange(dataUrl, metricId, startTimestamp, endTimestamp, 60);
+                        scope.render(processedNewData, processedPreviousRangeData);
+                    }
+                });
+
+                scope.$watch('timeRange', function (newTimeRange) {
+                    if (isDefinedAndHasValues(newTimeRange)) {
+                        timeRange = newTimeRange;
+                        endTimestamp = _.now();
+                        startTimestamp = _.now() - timeRange;
+                        processedNewData = loadMetricsForTimeRange(dataUrl, metricId, startTimestamp, endTimestamp, 60);
+                        scope.render(processedNewData, processedPreviousRangeData);
+                    }
+                });
+
                 scope.$watch('showAvgLine', function (newShowAvgLine) {
                     if (isDefinedAndHasValues(newShowAvgLine)) {
                         showAvgLine = newShowAvgLine;
@@ -875,7 +973,6 @@ var Directives;
                 scope.render = function (dataPoints, previousRangeDataPoints) {
                     if (isDefinedAndHasValues(dataPoints)) {
                         $log.log('Render Chart');
-                        console.dir(multiChartOverlayData);
 
                         //NOTE: layering order is important!
                         oneTimeChartSetup();
@@ -919,6 +1016,12 @@ var Directives;
                 replace: true,
                 scope: {
                     data: '@',
+                    dataUrl: '@',
+                    metricId: '@',
+                    startTimestamp: '@',
+                    endTimestamp: '@',
+                    timeRange: '@',
+                    refreshInterval: '@',
                     previousRangeData: '@',
                     annotationData: '@',
                     contextData: '@',
@@ -948,7 +1051,8 @@ var Directives;
                     avgLineColor: '@',
                     showAvgLine: '@',
                     hideHighLowValues: '@',
-                    chartTitle: '@' }
+                    chartTitle: '@'
+                }
             };
         }]);
 })(Directives || (Directives = {}));

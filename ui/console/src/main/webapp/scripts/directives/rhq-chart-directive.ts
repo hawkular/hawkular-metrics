@@ -13,11 +13,17 @@ module Directives {
      *
      */
     angular.module('rhqm.directives', [])
-        .directive('rhqmChart', ['$log', function ($log:ng.ILogService):ng.IDirective {
+        .directive('rhqmChart', ['$rootScope', '$http', '$log', 'BASE_URL', function ($rootScope:ng.IRootScopeService, $http:ng.IHttpService, $log:ng.ILogService, BASE_URL):ng.IDirective {
 
             function link(scope, element, attributes) {
 
-                var dataPoints = [],
+                var dataPoints:any[] = [],
+                    dataUrl = attributes.dataUrl || '',
+                    metricId = attributes.metricId || '',
+                    startTimestamp = +attributes.startTimestamp || 1415665478364,
+                    endTimestamp = +attributes.endTimestamp || _.now(),
+                    refreshInterval = +attributes.refreshInterval || 3600,
+                    timeRange = +attributes.timeRange || 28800,
                     previousRangeDataPoints = [],
                     annotationData = [],
                     contextData = [],
@@ -99,7 +105,7 @@ module Directives {
                 }
 
                 function useSmallCharts() {
-                    return  getChartWidth() <= smallChartThresholdInPixels;
+                    return getChartWidth() <= smallChartThresholdInPixels;
                 }
 
 
@@ -148,8 +154,6 @@ module Directives {
                         });
                         seriesMax = d3.max(maxList);
                         seriesMin = d3.min(minList);
-                        console.debug("Series max: " + seriesMax);
-                        console.debug("Series min: " + seriesMin);
                         return [seriesMin, seriesMax];
                     }
 
@@ -243,15 +247,69 @@ module Directives {
                             .orient("bottom");
 
                     }
+                }
+
+
+                function getBaseUrl() {
+                    var baseUrl = 'http://' + $rootScope.$storage.server.replace(/['"]+/g, '') + ':' + $rootScope.$storage.port + BASE_URL;
+                    return baseUrl;
+                }
+
+
+                function loadMetricsForTimeRange(url, metricId, startTimestamp, endTimestamp, buckets) {
+                    $log.info('-- Retrieving metrics data for urlData: ' + metricId);
+                    $log.info('-- Date Range: ' + new Date(startTimestamp) + ' - ' + new Date(endTimestamp));
+                    var numBuckets = buckets || 60,
+                        urlDataPoints = [],
+                        searchParams =
+                        {
+                            params: {
+                                start: startTimestamp,
+                                end: endTimestamp,
+                                buckets: numBuckets
+                            }
+                        };
+
+                    if (startTimestamp >= endTimestamp) {
+                        $log.warn('Start date was after end date');
+                    }
+
+                    //$http.get(url + '/rhq-metrics/metrics/' + metricId, searchParams).success(function (response) {
+                    $http.get(getBaseUrl()+'/'+ metricId, searchParams).success(function (response) {
+
+                        urlDataPoints = this.formatBucketedChartOutput(response);
+                        console.info("DataPoints from URL:")
+                        console.dir(dataPoints);
+                        return urlDataPoints;
+
+                    }).error(function (reason, status) {
+                        $log.error('Error Loading Chart Data:' + status + ", " + reason);
+                    });
 
                 }
 
+                function formatBucketedChartOutput(response) {
+                    //  The schema is different for bucketed output
+                    return _.map(response, function (point:any) {
+                        return {
+                            timestamp: point.timestamp,
+                            date: new Date(point.timestamp),
+                            value: !angular.isNumber(point.value) ? 0 : point.value,
+                            avg: (point.empty) ? 0 : point.avg,
+                            min: !angular.isNumber(point.min) ? 0 : point.min,
+                            max: !angular.isNumber(point.max) ? 0 : point.max,
+                            empty: point.empty
+                        };
+                    });
+                }
+
+
                 function isEmptyDataBar(d) {
-                    return  d.empty;
+                    return d.empty;
                 }
 
                 function isRawMetric(d) {
-                    return  d.value;
+                    return d.value;
                 }
 
 
@@ -270,24 +328,24 @@ module Directives {
                     if (isEmptyDataBar(d)) {
                         // nodata
                         hover = "<div class='chartHover'><small class='chartHoverLabel'>" + noDataLabel + "</small>" +
-                            "<div><small><span class='chartHoverLabel'>" + durationLabel + "</span><span>: </span><span class='chartHoverValue'>" + barDuration + "</span></small> </div>" +
-                            "<hr/>" +
-                            "<div><small><span class='chartHoverLabel'>" + timestampLabel + "</span><span>: </span><span class='chartHoverValue'>" + formattedDateTime + "</span></small></div></div>";
+                        "<div><small><span class='chartHoverLabel'>" + durationLabel + "</span><span>: </span><span class='chartHoverValue'>" + barDuration + "</span></small> </div>" +
+                        "<hr/>" +
+                        "<div><small><span class='chartHoverLabel'>" + timestampLabel + "</span><span>: </span><span class='chartHoverValue'>" + formattedDateTime + "</span></small></div></div>";
                     } else {
                         if (isRawMetric(d)) {
                             // raw single value from raw table
                             hover = "<div class='chartHover'><div><small><span class='chartHoverLabel'>" + timestampLabel + "</span><span>: </span><span class='chartHoverValue'>" + formattedDateTime + "</span></small></div>" +
-                                "<div><small><span class='chartHoverLabel'>" + durationLabel + "</span><span>: </span><span class='chartHoverValue'>" + barDuration + "</span></small> </div>" +
-                                "<hr/>" +
-                                "<div><small><span class='chartHoverLabel'>" + singleValueLabel + "</span><span>: </span><span class='chartHoverValue'>" + numeral(d.value).format('0,0.0') + "</span></small> </div></div> ";
+                            "<div><small><span class='chartHoverLabel'>" + durationLabel + "</span><span>: </span><span class='chartHoverValue'>" + barDuration + "</span></small> </div>" +
+                            "<hr/>" +
+                            "<div><small><span class='chartHoverLabel'>" + singleValueLabel + "</span><span>: </span><span class='chartHoverValue'>" + numeral(d.value).format('0,0.0') + "</span></small> </div></div> ";
                         } else {
                             // aggregate with min/avg/max
                             hover = "<div class='chartHover'><div><small><span class='chartHoverLabel'>" + timestampLabel + "</span><span>: </span><span class='chartHoverValue'>" + formattedDateTime + "</span></small></div>" +
-                                "<div><small><span class='chartHoverLabel'>" + durationLabel + "</span><span>: </span><span class='chartHoverValue'>" + barDuration + "</span></small> </div>" +
-                                "<hr/>" +
-                                "<div><small><span class='chartHoverLabel'>" + maxLabel + "</span><span>: </span><span class='chartHoverValue'>" + numeral(d.max).format('0,0.0') + "</span></small> </div> " +
-                                "<div><small><span class='chartHoverLabel'>" + avgLabel + "</span><span>: </span><span class='chartHoverValue'>" + numeral(d.avg).format('0,0.0') + "</span></small> </div> " +
-                                "<div><small><span class='chartHoverLabel'>" + minLabel + "</span><span>: </span><span class='chartHoverValue'>" + numeral(d.min).format('0,0.0') + "</span></small> </div></div> ";
+                            "<div><small><span class='chartHoverLabel'>" + durationLabel + "</span><span>: </span><span class='chartHoverValue'>" + barDuration + "</span></small> </div>" +
+                            "<hr/>" +
+                            "<div><small><span class='chartHoverLabel'>" + maxLabel + "</span><span>: </span><span class='chartHoverValue'>" + numeral(d.max).format('0,0.0') + "</span></small> </div> " +
+                            "<div><small><span class='chartHoverLabel'>" + avgLabel + "</span><span>: </span><span class='chartHoverValue'>" + numeral(d.avg).format('0,0.0') + "</span></small> </div> " +
+                            "<div><small><span class='chartHoverLabel'>" + minLabel + "</span><span>: </span><span class='chartHoverValue'>" + numeral(d.min).format('0,0.0') + "</span></small> </div></div> ";
                         }
                     }
                     return hover;
@@ -378,16 +436,16 @@ module Directives {
                             }
                         })
                         .attr("width", function () {
-                            return  calcBarWidth();
+                            return calcBarWidth();
                         })
 
                         .attr("opacity", ".6")
                         .attr("fill", function (d) {
                             if (isEmptyDataBar(d)) {
-                                return  "url(#noDataStripes)";
+                                return "url(#noDataStripes)";
                             }
                             else {
-                                return  leaderBarColor;
+                                return leaderBarColor;
                             }
                         }).on("mouseover", function (d, i) {
                             tip.show(d, i);
@@ -412,11 +470,11 @@ module Directives {
                                 return 0;
                             }
                             else {
-                                return  yScale(d.avg) - yScale(d.max);
+                                return yScale(d.avg) - yScale(d.max);
                             }
                         })
                         .attr("width", function () {
-                            return  calcBarWidth();
+                            return calcBarWidth();
                         })
                         .attr("data-rhq-value", function (d) {
                             return d.max;
@@ -445,11 +503,11 @@ module Directives {
                                 return 0;
                             }
                             else {
-                                return  yScale(d.min) - yScale(d.avg);
+                                return yScale(d.min) - yScale(d.avg);
                             }
                         })
                         .attr("width", function () {
-                            return  calcBarWidth();
+                            return calcBarWidth();
                         })
                         .attr("opacity", 0.9)
                         .attr("data-rhq-value", function (d) {
@@ -478,15 +536,15 @@ module Directives {
                             }
                             else {
                                 if (d.min === d.max) {
-                                    return  yScale(d.min) - yScale(d.value) + 2;
+                                    return yScale(d.min) - yScale(d.value) + 2;
                                 }
                                 else {
-                                    return  0;
+                                    return 0;
                                 }
                             }
                         })
                         .attr("width", function () {
-                            return  calcBarWidth();
+                            return calcBarWidth();
                         })
                         .attr("opacity", 0.9)
                         .attr("data-rhq-value", function (d) {
@@ -494,10 +552,10 @@ module Directives {
                         })
                         .attr("fill", function (d) {
                             if (d.min === d.max) {
-                                return  rawValueBarColor;
+                                return rawValueBarColor;
                             }
                             else {
-                                return  "#70c4e2";
+                                return "#70c4e2";
                             }
                         }).on("mouseover", function (d, i) {
                             tip.show(d, i);
@@ -524,11 +582,11 @@ module Directives {
                                 return 0;
                             }
                             else {
-                                return  yScale(d.avg) - yScale(d.max);
+                                return yScale(d.avg) - yScale(d.max);
                             }
                         })
                         .attr("width", function () {
-                            return  calcBarWidth();
+                            return calcBarWidth();
                         })
                         .attr("data-rhq-value", function (d) {
                             return d.max;
@@ -560,11 +618,11 @@ module Directives {
                                 return 0;
                             }
                             else {
-                                return  yScale(d.min) - yScale(d.avg);
+                                return yScale(d.min) - yScale(d.avg);
                             }
                         })
                         .attr("width", function () {
-                            return  calcBarWidth();
+                            return calcBarWidth();
                         })
                         .attr("data-rhq-value", function (d) {
                             return d.min;
@@ -602,7 +660,7 @@ module Directives {
                             return timeScale(d.timestamp);
                         })
                         .attr("width", function () {
-                            return  calcBarWidth();
+                            return calcBarWidth();
                         })
                         .attr("y", function (d) {
                             if (!isEmptyDataBar(d)) {
@@ -622,13 +680,13 @@ module Directives {
                         })
                         .attr("fill", function (d, i) {
                             if (isEmptyDataBar(d)) {
-                                return  'url(#noDataStripes)';
+                                return 'url(#noDataStripes)';
                             }
                             else if (i % 5 === 0) {
-                                return  '#989898';
+                                return '#989898';
                             }
                             else {
-                                return  '#C0C0C0';
+                                return '#C0C0C0';
                             }
                         })
                         .attr("stroke", function (d) {
@@ -636,10 +694,10 @@ module Directives {
                         })
                         .attr("stroke-width", function (d) {
                             if (isEmptyDataBar(d)) {
-                                return  '0';
+                                return '0';
                             }
                             else {
-                                return  '0';
+                                return '0';
                             }
                         })
                         .attr("data-rhq-value", function (d) {
@@ -1106,7 +1164,7 @@ module Directives {
                                 return !d.empty;
                             })
                             .x(function (d) {
-                                return  timeScale(d.timestamp) + (calcBarWidth() / 2)
+                                return timeScale(d.timestamp) + (calcBarWidth() / 2)
                             })
                             .y(function (d) {
                                 return isRawMetric(d) ? yScale(d.value) : yScale(d.avg);
@@ -1267,7 +1325,7 @@ module Directives {
                                 return timeScale(d.timestamp);
                             })
                             .attr("cy", function () {
-                                return  height - yScale(highBound);
+                                return height - yScale(highBound);
                             })
                             .style("fill", function (d) {
                                 if (d.severity === '1') {
@@ -1336,6 +1394,61 @@ module Directives {
                     }
                 });
 
+                scope.$watch('dataUrl', function (newUrlData) {
+                    if (isDefinedAndHasValues(newUrlData)) {
+                        dataUrl = newUrlData;
+                        processedNewData = loadMetricsForTimeRange(dataUrl, metricId, startTimestamp, endTimestamp, 60);
+                        scope.render(processedNewData, processedPreviousRangeData);
+                    }
+                });
+
+
+                scope.$watch('metricId', function (newMetricId) {
+                    if (isDefinedAndHasValues(newMetricId)) {
+                        metricId = newMetricId;
+                        processedNewData = loadMetricsForTimeRange(dataUrl, metricId, startTimestamp, endTimestamp, 60);
+                        scope.render(processedNewData, processedPreviousRangeData);
+                    }
+                });
+
+                scope.$watch('startTimestamp', function (newStartTimestamp) {
+                    if (isDefinedAndHasValues(newStartTimestamp)) {
+                        startTimestamp = +newStartTimestamp;
+                        processedNewData = loadMetricsForTimeRange(dataUrl, metricId, startTimestamp, endTimestamp, 60);
+                        scope.render(processedNewData, processedPreviousRangeData);
+                    }
+                });
+
+                scope.$watch('endTimestamp', function (newEndTimestamp) {
+                    if (isDefinedAndHasValues(newEndTimestamp)) {
+                        endTimestamp = +newEndTimestamp;
+                        processedNewData = loadMetricsForTimeRange(dataUrl, metricId, startTimestamp, endTimestamp, 60);
+                        scope.render(processedNewData, processedPreviousRangeData);
+                    }
+                });
+
+                scope.$watch('refreshInterval', function (newRefreshInterval) {
+                    if (isDefinedAndHasValues(newRefreshInterval)) {
+                        refreshInterval = newRefreshInterval;
+                        //@todo: update timeout for refresh interval
+                        endTimestamp = _.now();
+                        startTimestamp = _.now() - refreshInterval;
+                        processedNewData = loadMetricsForTimeRange(dataUrl, metricId, startTimestamp, endTimestamp, 60);
+                        scope.render(processedNewData, processedPreviousRangeData);
+                    }
+                });
+
+                scope.$watch('timeRange', function (newTimeRange) {
+                    if (isDefinedAndHasValues(newTimeRange)) {
+                        timeRange = newTimeRange;
+                        endTimestamp = _.now();
+                        startTimestamp = _.now() - timeRange;
+                        processedNewData = loadMetricsForTimeRange(dataUrl, metricId, startTimestamp, endTimestamp, 60);
+                        scope.render(processedNewData, processedPreviousRangeData);
+                    }
+                });
+
+
                 scope.$watch('showAvgLine', function (newShowAvgLine) {
                     if (isDefinedAndHasValues(newShowAvgLine)) {
                         showAvgLine = newShowAvgLine;
@@ -1366,7 +1479,6 @@ module Directives {
                 scope.render = function (dataPoints, previousRangeDataPoints) {
                     if (isDefinedAndHasValues(dataPoints)) {
                         $log.log('Render Chart');
-                        console.dir(multiChartOverlayData);
                         //NOTE: layering order is important!
                         oneTimeChartSetup();
                         determineScale(dataPoints);
@@ -1409,6 +1521,12 @@ module Directives {
                 replace: true,
                 scope: {
                     data: '@',
+                    dataUrl: '@',
+                    metricId: '@',
+                    startTimestamp: '@',
+                    endTimestamp: '@',
+                    timeRange: '@',
+                    refreshInterval: '@',
                     previousRangeData: '@',
                     annotationData: '@',
                     contextData: '@',
@@ -1438,7 +1556,8 @@ module Directives {
                     avgLineColor: '@',
                     showAvgLine: '@',
                     hideHighLowValues: '@',
-                    chartTitle: '@'}
+                    chartTitle: '@'
+                }
             };
         }]
     );
