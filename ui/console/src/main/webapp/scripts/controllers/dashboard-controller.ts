@@ -81,6 +81,8 @@ module Controllers {
         private updateLastTimeStampToNowPromise:ng.IPromise<number>;
         private chartData = {};
         private bucketedDataPoints:IChartDataPoint[] = [];
+
+        // this promise needs to be exposed so the page can render busy wait spinning icons
         metricDataPromise;
 
         selectedMetrics:string[] = [];
@@ -93,7 +95,7 @@ module Controllers {
             {chartType: 'area', icon: 'fa fa-area-chart', enabled: true, previousRangeData: false},
             {chartType: 'scatterline', icon: 'fa fa-circle-thin', enabled: true, previousRangeData: false}
         ];
-        chartType:string = this.chartTypes[0].chartType;
+        chartType:string = 'bar';
 
         selectedGroup:string;
         groupNames:string[] = [];

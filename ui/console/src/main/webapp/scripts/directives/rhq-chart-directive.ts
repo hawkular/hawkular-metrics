@@ -5,6 +5,7 @@ module Directives {
 
     declare var d3:any;
     declare var numeral:any;
+    declare var console:any;
 
     /**
      * @ngdoc directive
@@ -16,14 +17,15 @@ module Directives {
         .directive('rhqmChart', ['$rootScope', '$http', '$log', 'BASE_URL', function ($rootScope:ng.IRootScopeService, $http:ng.IHttpService, $log:ng.ILogService, BASE_URL):ng.IDirective {
 
             function link(scope, element, attributes) {
+                console.log('link dataUrl: '+attributes.dataUrl);
 
                 var dataPoints:any[] = [],
-                    dataUrl = attributes.dataUrl || '',
+                    dataUrl = attributes.dataUrl || 'http://127.0.0.1:8080/rhq-metrics/metrics/',
                     metricId = attributes.metricId || '',
-                    startTimestamp = +attributes.startTimestamp || 1415665478364,
+                    startTimestamp = +attributes.startTimestamp || 0,
                     endTimestamp = +attributes.endTimestamp || _.now(),
                     refreshInterval = +attributes.refreshInterval || 3600,
-                    timeRange = +attributes.timeRange || 28800,
+                    timeRangeInSeconds = +attributes.timeRangeInSeconds || 28800,
                     previousRangeDataPoints = [],
                     annotationData = [],
                     contextData = [],
@@ -99,17 +101,18 @@ module Directives {
                     return timeScale(d.timestamp) + (calcBarWidth() / 2);
                 }
 
-                function getChartWidth() {
+                function getChartWidth():number {
                     //return angular.element("#" + chartContext.chartHandle).width();
                     return 760;
                 }
 
-                function useSmallCharts() {
+                function useSmallCharts():boolean {
                     return getChartWidth() <= smallChartThresholdInPixels;
                 }
 
 
-                function oneTimeChartSetup() {
+                function oneTimeChartSetup():void {
+                    console.log("OneTimeChartSetup");
                     // destroy any previous charts
                     if (angular.isDefined(chart)) {
                         chartParent.selectAll('*').remove();
@@ -137,7 +140,7 @@ module Directives {
                 }
 
 
-                function setupFilteredData(dataPoints) {
+                function setupFilteredData(dataPoints):void {
                     function determineMultiMetricMinMax() {
                         var currentMax, currentMin, seriesMax, seriesMin, maxList = [], minList = [];
                         angular.forEach(multiChartOverlayData, function (series) {
@@ -223,7 +226,7 @@ module Directives {
                                 return d.timestamp;
                             }));
 
-                        if (isDefinedAndHasValues(contextData)) {
+                        if (isListDefinedAndHasValues(contextData)) {
                             timeScaleForContext = d3.time.scale()
                                 .range([0, width])
                                 .domain(d3.extent(contextData, function (d:any) {
@@ -250,8 +253,14 @@ module Directives {
                 }
 
 
-                function getBaseUrl() {
-                    var baseUrl = 'http://' + $rootScope.$storage.server.replace(/['"]+/g, '') + ':' + $rootScope.$storage.port + BASE_URL;
+                function getBaseUrl():string {
+                    var baseUrl;
+                    console.warn("DataUrl: "+ dataUrl);
+                        if(angular.isUndefined(dataUrl) || dataUrl === ''){
+                            baseUrl = 'http://' + $rootScope.$storage.server.replace(/['"]+/g, '') + ':' + $rootScope.$storage.port + BASE_URL;
+                        }else {
+                            baseUrl = dataUrl;
+                        }
                     return baseUrl;
                 }
 
@@ -275,11 +284,12 @@ module Directives {
                     }
 
                     //$http.get(url + '/rhq-metrics/metrics/' + metricId, searchParams).success(function (response) {
-                    $http.get(getBaseUrl()+'/'+ metricId, searchParams).success(function (response) {
+                    $http.get(url+ metricId, searchParams).success(function (response) {
 
-                        urlDataPoints = this.formatBucketedChartOutput(response);
-                        console.info("DataPoints from URL:")
-                        console.dir(dataPoints);
+                        urlDataPoints = formatBucketedChartOutput(response);
+                        console.info("DataPoints from URL:");
+                        console.dir(urlDataPoints);
+                        console.table(urlDataPoints);
                         return urlDataPoints;
 
                     }).error(function (reason, status) {
@@ -1181,56 +1191,6 @@ module Directives {
                 }
 
 
-                //function createContextBrush() {
-                //    console.debug("Create Context Brush");
-                //
-                //    context = svg.append("g")
-                //        .attr("class", "context")
-                //        .attr("width", width + margin.left + margin.right)
-                //        .attr("height", chartHeight)
-                //        .attr("transform", "translate(" + contextMargin.left + "," + (adjustedChartHeight2 + 130) + ")");
-                //
-                //
-                //    brush = d3.svg.brush()
-                //        .x(timeScaleForContext)
-                //        .on("brushstart", brushStart)
-                //        .on("brush", brushMove)
-                //        .on("brushend", brushEnd);
-                //
-                //    brushGroup = svg.append("g")
-                //        .attr("class", "brush")
-                //        .call(brush);
-                //
-                //    brushGroup.selectAll(".resize").append("path");
-                //
-                //    brushGroup.selectAll("rect")
-                //        .attr("height", height);
-                //
-                //    function brushStart() {
-                //        svg.classed("selecting", true);
-                //    }
-                //
-                //    function brushMove() {
-                //        //useful for showing the daterange change dynamically while selecting
-                //        var extent = brush.extent();
-                //        scope.$emit('DateRangeMove', extent);
-                //    }
-                //
-                //    function brushEnd() {
-                //        var extent = brush.extent(),
-                //            startTime = Math.round(extent[0].getTime()),
-                //            endTime = Math.round(extent[1].getTime()),
-                //            dragSelectionDelta = endTime - startTime >= 60000;
-                //
-                //        svg.classed("selecting", !d3.event.target.empty());
-                //        // ignore range selections less than 1 minute
-                //        if (dragSelectionDelta) {
-                //            scope.$emit('DateRangeChanged', extent);
-                //        }
-                //    }
-                //
-                //}
-
                 function createXAxisBrush() {
 
                     brush = d3.svg.brush()
@@ -1274,7 +1234,7 @@ module Directives {
                 }
 
                 function createPreviousRangeOverlay(prevRangeData) {
-                    if (isDefinedAndHasValues(prevRangeData)) {
+                    if (isListDefinedAndHasValues(prevRangeData)) {
                         $log.debug("Running PreviousRangeOverlay");
                         svg.append("path")
                             .datum(prevRangeData)
@@ -1291,7 +1251,7 @@ module Directives {
                         colorScale = d3.scale.category20();
 
 
-                    if (isDefinedAndHasValues(multiChartOverlayData)) {
+                    if (isListDefinedAndHasValues(multiChartOverlayData)) {
                         $log.warn("Running MultiChartOverlay for %i metrics", multiChartOverlayData.length);
 
                         angular.forEach(multiChartOverlayData, function (singleChartData) {
@@ -1315,7 +1275,7 @@ module Directives {
                 }
 
                 function annotateChart(annotationData) {
-                    if (isDefinedAndHasValues(annotationData)) {
+                    if (isListDefinedAndHasValues(annotationData)) {
                         svg.selectAll(".annotationDot")
                             .data(annotationData)
                             .enter().append("circle")
@@ -1339,42 +1299,43 @@ module Directives {
                     }
                 }
 
-                function isDefinedAndHasValues(list) {
+                function isListDefinedAndHasValues(list) {
                     return angular.isDefined(list) && list.length > 0;
                 }
 
-                scope.$watch('data', function (newData) {
-                    if (isDefinedAndHasValues(newData)) {
+                scope.$watch('data', (newData) => {
+                    if (isListDefinedAndHasValues(newData)) {
                         $log.debug('Data Changed');
                         processedNewData = angular.fromJson(newData);
+                        console.dir(processedNewData);
                         scope.render(processedNewData, processedPreviousRangeData);
                     }
                 }, true);
 
-                scope.$watch('previousRangeData', function (newPreviousRangeValues) {
-                    if (isDefinedAndHasValues(newPreviousRangeValues)) {
+                scope.$watch('previousRangeData', (newPreviousRangeValues) =>{
+                    if (isListDefinedAndHasValues(newPreviousRangeValues)) {
                         $log.debug("Previous Range data changed");
                         processedPreviousRangeData = angular.fromJson(newPreviousRangeValues);
                         scope.render(processedNewData, processedPreviousRangeData);
                     }
                 }, true);
 
-                scope.$watch('annotationData', function (newAnnotationData) {
-                    if (isDefinedAndHasValues(newAnnotationData)) {
+                scope.$watch('annotationData', (newAnnotationData) => {
+                    if (isListDefinedAndHasValues(newAnnotationData)) {
                         annotationData = angular.fromJson(newAnnotationData);
                         scope.render(processedNewData, processedPreviousRangeData);
                     }
                 }, true);
 
 
-                scope.$watch('contextData', function (newContextData) {
-                    if (isDefinedAndHasValues(newContextData)) {
+                scope.$watch('contextData', (newContextData) => {
+                    if (isListDefinedAndHasValues(newContextData)) {
                         contextData = angular.fromJson(newContextData);
                         scope.render(processedNewData, processedPreviousRangeData);
                     }
                 }, true);
 
-                scope.$on('MultiChartOverlayDataChanged', function (event, newMultiChartData) {
+                scope.$on('MultiChartOverlayDataChanged', (event, newMultiChartData) =>{
                     $log.log('Handling MultiChartOverlayDataChanged in Chart Directive');
                     if (angular.isUndefined(newMultiChartData)) {
                         // same event is sent with no data to clear it
@@ -1387,104 +1348,109 @@ module Directives {
                 });
 
 
-                scope.$watch('chartType', function (newChartType) {
-                    if (isDefinedAndHasValues(newChartType)) {
+                scope.$watch('chartType', (newChartType) => {
+                    if (angular.isDefined(newChartType)) {
                         chartType = newChartType;
                         scope.render(processedNewData, processedPreviousRangeData);
                     }
                 });
 
-                scope.$watch('dataUrl', function (newUrlData) {
-                    if (isDefinedAndHasValues(newUrlData)) {
+                scope.$watch('dataUrl', (newUrlData) => {
+                    if (angular.isDefined(newUrlData)) {
+                        console.log('dataUrl has changed: '+newUrlData);
                         dataUrl = newUrlData;
-                        processedNewData = loadMetricsForTimeRange(dataUrl, metricId, startTimestamp, endTimestamp, 60);
+                        processedNewData = loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                         scope.render(processedNewData, processedPreviousRangeData);
                     }
                 });
 
 
-                scope.$watch('metricId', function (newMetricId) {
-                    if (isDefinedAndHasValues(newMetricId)) {
+                scope.$watch('metricId', (newMetricId) =>{
+                    if (angular.isDefined(newMetricId)) {
                         metricId = newMetricId;
-                        processedNewData = loadMetricsForTimeRange(dataUrl, metricId, startTimestamp, endTimestamp, 60);
+                        processedNewData = loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                         scope.render(processedNewData, processedPreviousRangeData);
                     }
                 });
 
-                scope.$watch('startTimestamp', function (newStartTimestamp) {
-                    if (isDefinedAndHasValues(newStartTimestamp)) {
+                scope.$watch('startTimestamp', (newStartTimestamp) => {
+                    if (angular.isDefined(newStartTimestamp)) {
                         startTimestamp = +newStartTimestamp;
-                        processedNewData = loadMetricsForTimeRange(dataUrl, metricId, startTimestamp, endTimestamp, 60);
+                        processedNewData = loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                         scope.render(processedNewData, processedPreviousRangeData);
                     }
                 });
 
-                scope.$watch('endTimestamp', function (newEndTimestamp) {
-                    if (isDefinedAndHasValues(newEndTimestamp)) {
+                scope.$watch('endTimestamp', (newEndTimestamp) => {
+                    if (angular.isDefined(newEndTimestamp)) {
                         endTimestamp = +newEndTimestamp;
-                        processedNewData = loadMetricsForTimeRange(dataUrl, metricId, startTimestamp, endTimestamp, 60);
+                        processedNewData = loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                         scope.render(processedNewData, processedPreviousRangeData);
                     }
                 });
 
-                scope.$watch('refreshInterval', function (newRefreshInterval) {
-                    if (isDefinedAndHasValues(newRefreshInterval)) {
+                scope.$watch('refreshInterval', (newRefreshInterval) => {
+                    if (angular.isDefined(newRefreshInterval)) {
                         refreshInterval = newRefreshInterval;
                         //@todo: update timeout for refresh interval
                         endTimestamp = _.now();
                         startTimestamp = _.now() - refreshInterval;
-                        processedNewData = loadMetricsForTimeRange(dataUrl, metricId, startTimestamp, endTimestamp, 60);
+                        processedNewData = loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                         scope.render(processedNewData, processedPreviousRangeData);
                     }
                 });
 
-                scope.$watch('timeRange', function (newTimeRange) {
-                    if (isDefinedAndHasValues(newTimeRange)) {
-                        timeRange = newTimeRange;
+                scope.$watch('timeRangeInSeconds', (newTimeRange) => {
+                    if (angular.isDefined(newTimeRange)) {
+                        timeRangeInSeconds = newTimeRange;
                         endTimestamp = _.now();
-                        startTimestamp = _.now() - timeRange;
-                        processedNewData = loadMetricsForTimeRange(dataUrl, metricId, startTimestamp, endTimestamp, 60);
+                        startTimestamp = _.now() - timeRangeInSeconds;
+                        processedNewData = loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                         scope.render(processedNewData, processedPreviousRangeData);
                     }
                 });
 
 
-                scope.$watch('showAvgLine', function (newShowAvgLine) {
-                    if (isDefinedAndHasValues(newShowAvgLine)) {
+                scope.$watch('showAvgLine', (newShowAvgLine) =>{
+                    if (angular.isDefined(newShowAvgLine)) {
                         showAvgLine = newShowAvgLine;
                         scope.render(processedNewData, processedPreviousRangeData);
                     }
                 });
 
-                scope.$watch('avgLineColor', function (newAvgLineColor) {
-                    if (isDefinedAndHasValues(newAvgLineColor)) {
+                scope.$watch('avgLineColor', (newAvgLineColor) => {
+                    if (angular.isDefined(newAvgLineColor)) {
                         avgLineColor = newAvgLineColor;
                         scope.render(processedNewData, processedPreviousRangeData);
                     }
                 });
 
-                scope.$watch('hideHighLowValues', function (newHideHighLowValues) {
-                    if (isDefinedAndHasValues(newHideHighLowValues)) {
+                scope.$watch('hideHighLowValues', (newHideHighLowValues) =>{
+                    if (angular.isDefined(newHideHighLowValues)) {
                         hideHighLowValues = newHideHighLowValues;
                         scope.render(processedNewData, processedPreviousRangeData);
                     }
                 });
 
-                scope.$on('DateRangeDragChanged', function (event, extent) {
+                scope.$on('DateRangeDragChanged', (event, extent) => {
                     $log.debug('Handling DateRangeDragChanged Fired Chart Directive: ' + extent[0] + ' --> ' + extent[1]);
                     scope.$emit('GraphTimeRangeChangedEvent', extent);
                 });
 
 
-                scope.render = function (dataPoints, previousRangeDataPoints) {
-                    if (isDefinedAndHasValues(dataPoints)) {
-                        $log.log('Render Chart');
+                scope.render = (dataPoints, previousRangeDataPoints) => {
+                    if (isListDefinedAndHasValues(dataPoints)) {
+                        console.group('Render Chart');
+                        console.time('chartRender');
                         //NOTE: layering order is important!
                         oneTimeChartSetup();
                         determineScale(dataPoints);
                         createHeader(attributes.chartTitle);
                         createYAxisGridLines();
                         createXAxisBrush();
+
+                        console.info('Chart Type: '+ chartType);
+                        chartType = 'bar'
 
                         if (chartType === 'bar') {
                             createStackedBars(lowBound, highBound);
@@ -1511,6 +1477,8 @@ module Directives {
                             createAvgLines();
                         }
                         annotateChart(annotationData);
+                        console.timeEnd('chartRender');
+                        console.groupEnd('Render Chart');
                     }
                 };
             }
@@ -1525,7 +1493,7 @@ module Directives {
                     metricId: '@',
                     startTimestamp: '@',
                     endTimestamp: '@',
-                    timeRange: '@',
+                    timeRangeInSeconds: '@',
                     refreshInterval: '@',
                     previousRangeData: '@',
                     annotationData: '@',
