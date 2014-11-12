@@ -67,6 +67,9 @@ public class Main {
     private static final int STATSD_DEFAULT_PORT = 8125;
     private int statsDport = STATSD_DEFAULT_PORT;
 
+    private static final int COLLETCD_DEFAULT_PORT = 25826;
+    private int collectdPort = COLLETCD_DEFAULT_PORT;
+
     Properties configuration;
 
     public static void main(String[] args) throws Exception {
@@ -162,7 +165,7 @@ public class Main {
         collectdBootstrap
                 .group(group)
                 .channel(NioDatagramChannel.class)
-                .localAddress(25826)
+                .localAddress(collectdPort)
                 .handler(new ChannelInitializer<Channel>() {
                     @Override
                     public void initChannel(Channel socketChannel) throws Exception {
@@ -282,6 +285,7 @@ public class Main {
             gangliaPort = Integer.parseInt(configuration.getProperty("ganglia.port", String.valueOf(GANGLIA_DEFAULT_PORT)));
             multicastIfOverride = configuration.getProperty("multicast.interface");
             statsDport = Integer.parseInt(configuration.getProperty("statsd.port", String.valueOf(STATSD_DEFAULT_PORT)));
+            collectdPort = Integer.parseInt(configuration.getProperty("collectd.port", String.valueOf(COLLETCD_DEFAULT_PORT)));
 
     }
 }
