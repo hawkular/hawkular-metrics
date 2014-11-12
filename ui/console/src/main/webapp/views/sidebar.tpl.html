@@ -18,7 +18,7 @@
 
 
     <ul class="nav nav-sidebar"
-        ng-repeat="metric in vm.allMetrics | limitTo:50 | filter:searchText | orderBy:'title';">
+        ng-repeat="metric in vm.allMetrics | filter:searchText | limitTo:50 | orderBy:'title';">
         <li>
             <label class="checkbox-inline">
                 <input type="checkbox" style="margin:3px 10px 0 10px;" ng-model="metric.selected"
