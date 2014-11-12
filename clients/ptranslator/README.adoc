@@ -88,15 +88,17 @@ You can use the provided `start.sh` script to start the server (this will build 
 
 Before you start the proxy, make sure the rest-server is running.
 
-You can pass a different properties file on the command line:
+Make sure to specify a configuration file on the command line:
 
-`$ ./start.sh /tmp/my.properties`
+ $ ./start.sh -c ptrans.conf
 
 *With Maven*
 
 Once the project is built, simply run the following command:
 
  mvn exec:java
+
+By default, the ptrans.conf configuration at the project base directory will be used.
 
 == Room for improvement:
 

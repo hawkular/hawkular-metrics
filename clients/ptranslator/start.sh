@@ -19,4 +19,4 @@ then
    exit 1;
 fi
 
-java -Djava.net.preferIPv4Stack=true -jar target/ptrans-jar-with-dependencies.jar $*
+java -Djava.net.preferIPv4Stack=true -jar target/ptrans-all.jar $*

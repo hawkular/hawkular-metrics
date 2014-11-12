@@ -62,15 +62,13 @@
         <artifactId>maven-assembly-plugin</artifactId>
         <executions>
           <execution>
-            <id>jar-with-dependencies</id>
+            <id>all</id>
             <phase>package</phase>
             <goals>
               <goal>single</goal>
             </goals>
             <configuration>
-              <descriptorRefs>
-                <descriptorRef>jar-with-dependencies</descriptorRef>
-              </descriptorRefs>
+              <descriptor>${project.basedir}/src/assembly/all/assembly.xml</descriptor>
               <archive>
                 <manifest>
                   <mainClass>org.rhq.metrics.clients.ptrans.Main</mainClass>
@@ -85,6 +83,10 @@
         <artifactId>exec-maven-plugin</artifactId>
         <configuration>
           <mainClass>org.rhq.metrics.clients.ptrans.Main</mainClass>
+          <arguments>
+            <argument>-c</argument>
+            <argument>${project.basedir}/ptrans.conf</argument>
+          </arguments>
         </configuration>
       </plugin>
     </plugins>
