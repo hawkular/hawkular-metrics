@@ -71,7 +71,9 @@ var Controllers;
                 { chartType: 'area', icon: 'fa fa-area-chart', enabled: true, previousRangeData: false },
                 { chartType: 'scatterline', icon: 'fa fa-circle-thin', enabled: true, previousRangeData: false }
             ];
-            this.chartType = 'bar';
+            this.selectedChart = {
+                chartType: 'bar'
+            };
             this.groupNames = [];
             this.defaultGroupName = 'Default Group';
             $scope.vm = this;

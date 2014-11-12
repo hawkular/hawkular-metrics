@@ -95,7 +95,9 @@ module Controllers {
             {chartType: 'area', icon: 'fa fa-area-chart', enabled: true, previousRangeData: false},
             {chartType: 'scatterline', icon: 'fa fa-circle-thin', enabled: true, previousRangeData: false}
         ];
-        chartType:string = 'bar';
+        selectedChart = {
+            chartType : 'bar'
+        };
 
         selectedGroup:string;
         groupNames:string[] = [];

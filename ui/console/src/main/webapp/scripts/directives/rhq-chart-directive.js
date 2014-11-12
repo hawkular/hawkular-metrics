@@ -947,7 +947,6 @@ var Directives;
                         createXAxisBrush();
 
                         console.info('Chart Type: ' + chartType);
-                        chartType = 'bar';
 
                         if (chartType === 'bar') {
                             createStackedBars(lowBound, highBound);

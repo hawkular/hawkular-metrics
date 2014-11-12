@@ -1449,9 +1449,6 @@ module Directives {
                         createYAxisGridLines();
                         createXAxisBrush();
 
-                        console.info('Chart Type: '+ chartType);
-                        chartType = 'bar'
-
                         if (chartType === 'bar') {
                             createStackedBars(lowBound, highBound);
                         } else if (chartType === 'histogram') {
