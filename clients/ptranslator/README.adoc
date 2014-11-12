@@ -82,13 +82,21 @@ E.g.: `$ echo "my_time:100|ms" | nc -u4 localhost 8125`
 
 == Running ptrans
 
-You can use the provided `start.sh` script to start the server
+*With `start.sh`*
+
+You can use the provided `start.sh` script to start the server (this will build the source first).
 
 Before you start the proxy, make sure the rest-server is running.
 
 You can pass a different properties file on the command line:
 
 `$ ./start.sh /tmp/my.properties`
+
+*With Maven*
+
+Once the project is built, simply run the following command:
+
+ mvn exec:java
 
 == Room for improvement:
 
