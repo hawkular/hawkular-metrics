@@ -158,8 +158,8 @@ public class Main {
     }
 
     private void setupCollectdUdp(EventLoopGroup group, final ChannelInboundHandlerAdapter forwardingHandler) {
-        Bootstrap statsdBootstrap = new Bootstrap();
-        statsdBootstrap
+        Bootstrap collectdBootstrap = new Bootstrap();
+        collectdBootstrap
                 .group(group)
                 .channel(NioDatagramChannel.class)
                 .localAddress(25826)
@@ -176,8 +176,8 @@ public class Main {
                 })
         ;
         try {
-            ChannelFuture statsdFuture = statsdBootstrap.bind().sync();
-            logger.info("Collectd listening on udp " + statsdFuture.channel().localAddress());
+            ChannelFuture collectdFuture = collectdBootstrap.bind().sync();
+            logger.info("Collectd listening on udp " + collectdFuture.channel().localAddress());
         } catch (InterruptedException e) {
             e.printStackTrace();  // TODO: Customise this generated block
         }
