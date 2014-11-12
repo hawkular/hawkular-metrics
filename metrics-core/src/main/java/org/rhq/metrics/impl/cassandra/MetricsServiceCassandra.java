@@ -15,6 +15,7 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.FutureFallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -238,9 +239,34 @@ public class MetricsServiceCassandra implements MetricsService {
         }
     }
 
+    @Override
+    public ListenableFuture<List<NumericData>> tagData(String tenantId, final Set<String> tags, String metric,
+        long start, long end) {
+        ListenableFuture<List<NumericData>> queryFuture = findData(tenantId, metric, start, end);
+        return Futures.transform(queryFuture, new AsyncFunction<List<NumericData>, List<NumericData>>() {
+            @Override
+            public ListenableFuture<List<NumericData>> apply(final List<NumericData> taggedData) {
+                List<ResultSetFuture> insertFutures = new ArrayList<>(tags.size());
+                for (String tag : tags) {
+                    insertFutures.add(dataAccess.insertTag(tag, taggedData));
+                }
+                ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
+                return Futures.transform(insertsFuture, new Function<List<ResultSet>, List<NumericData>>() {
+                    @Override
+                    public List<NumericData> apply(List<ResultSet> resultSets) {
+                        return taggedData;
+                    }
+                });
+            }
+        }, metricsTasks);
+    };
 
-
-
+    @Override
+    public ListenableFuture<List<NumericData>> findDataByTags(String tenantId, Set<String> tags) {
+        String tag = tags.iterator().next();
+        ListenableFuture<ResultSet> queryFuture = dataAccess.findData(tenantId, tag);
+        return Futures.transform(queryFuture, new TaggedDataMapper(), metricsTasks);
+    }
 
     private void updateSchemaIfNecessary(Cluster cluster, String schemaName) {
         try (Session session = cluster.connect("system")) {
@@ -253,8 +279,6 @@ public class MetricsServiceCassandra implements MetricsService {
             }
         }
     }
-
-
 
     private static class RawDataFallback implements FutureFallback<ResultSet> {
 

@@ -23,7 +23,7 @@ public class NumericData {
 
     private String metric;
 
-    private Interval interval;
+    private Interval interval = Interval.NONE;
 
     private long dpart;
 

@@ -56,6 +56,20 @@ public class Interval {
         public String toString() {
             return "";
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Interval interval = (Interval) o;
+            return interval.length == 0 && interval.units == null;
+        }
+
+        @Override
+        public int hashCode() {
+            return 51;
+        }
     };
 
     private int length;
@@ -76,6 +90,10 @@ public class Interval {
      * @throws java.lang.IllegalArgumentException if the string does not parse
      */
     public static Interval parse(String s) {
+        if (s.isEmpty()) {
+            return NONE;
+        }
+
         Matcher matcher = INTERVAL_PATTERN.matcher(s);
         if (!(matcher.matches() && matcher.groupCount() == 2)) {
             throw new IllegalArgumentException(s + " is not a valid interval. It must follow the pattern " +

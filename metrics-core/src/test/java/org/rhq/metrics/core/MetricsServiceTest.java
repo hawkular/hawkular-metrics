@@ -35,6 +35,7 @@ public class MetricsServiceTest extends MetricsTest {
     public void initMethod() {
         session.execute("TRUNCATE tenants");
         session.execute("TRUNCATE numeric_data");
+        session.execute("TRUNCATE tags");
     }
 
 
@@ -54,7 +55,7 @@ public class MetricsServiceTest extends MetricsTest {
         NumericData d4 = new NumericData().setTenantId(tenantId).setMetric("m1").setTimestamp(end.getMillis())
             .setValue(4.4);
 
-        ListenableFuture<Void> insertFuture =  metricsService.addNumericData(ImmutableSet.of(d1, d2, d3, d4));
+        ListenableFuture<Void> insertFuture = metricsService.addNumericData(ImmutableSet.of(d1, d2, d3, d4));
         getUninterruptibly(insertFuture);
 
         ListenableFuture<List<NumericData>> queryFuture = metricsService.findData(tenantId, metric, start.getMillis(),
@@ -63,6 +64,39 @@ public class MetricsServiceTest extends MetricsTest {
         List<NumericData> expected = asList(d3, d2, d1);
 
         assertEquals(actual, expected, "The numeric raw data does not match");
+    }
+
+    @Test
+    public void tagRawNumericData() throws Exception {
+        DateTime start = now().minusHours(10);
+
+        NumericData d1 = new NumericData().setTenantId("t1").setMetric("m1").setTimestamp(start.getMillis())
+            .setValue(101.1);
+        NumericData d2 = new NumericData().setTenantId("t1").setMetric("m1").setTimestamp(
+            start.plusMinutes(30).getMillis()).setValue(101.2);
+        NumericData d3 = new NumericData().setTenantId("t1").setMetric("m2").setTimestamp(
+            start.plusHours(2).getMillis()).setValue(102.1);
+        NumericData d4 = new NumericData().setTenantId("t1").setMetric("m2").setTimestamp(
+            start.plusHours(3).getMillis()).setValue(102.1);
+        NumericData d5 = new NumericData().setTenantId("t1").setMetric("m2").setTimestamp(
+            start.minusSeconds(30).getMillis()).setValue(101.3);
+
+        ListenableFuture<Void> insertFuture = metricsService.addNumericData(ImmutableSet.of(d1, d2, d3, d4, d5));
+        getUninterruptibly(insertFuture);
+
+        ListenableFuture<List<NumericData>> tagFuture1 = metricsService.tagData("t1", ImmutableSet.of("test1"), "m1",
+            start.getMillis(), start.plusHours(3).plusMinutes(10).getMillis());
+        ListenableFuture<List<NumericData>> tagFuture2 = metricsService.tagData("t1", ImmutableSet.of("test1"), "m2",
+            start.getMillis(), start.plusHours(3).getMillis());
+
+        getUninterruptibly(tagFuture1);
+        getUninterruptibly(tagFuture2);
+
+        ListenableFuture<List<NumericData>> queryFuture = metricsService.findDataByTags("t1", ImmutableSet.of("test1"));
+        List<NumericData> actual = getUninterruptibly(queryFuture);
+        List<NumericData> expected = asList(d1, d2, d3);
+
+        assertEquals(actual, expected, "The tagged data does not match");
     }
 
 }

@@ -47,6 +47,6 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
 
     private Interval getInterval(String s) {
         Preconditions.checkArgument(s != null, "The interval in the database should not be null");
-        return s.isEmpty() ? null : Interval.parse(s);
+        return Interval.parse(s);
     }
 }

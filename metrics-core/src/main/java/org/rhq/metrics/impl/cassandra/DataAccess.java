@@ -24,6 +24,7 @@ import org.rhq.metrics.core.AggregatedValue;
 import org.rhq.metrics.core.AggregationTemplate;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Interval;
+import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.RetentionSettings;
 import org.rhq.metrics.core.Tenant;
@@ -56,6 +57,10 @@ public class DataAccess {
     private PreparedStatement findCountersByGroup;
 
     private PreparedStatement findCountersByGroupAndName;
+
+    private PreparedStatement insertTags;
+
+    private PreparedStatement findDataByTag;
 
     public DataAccess(Session session) {
         this.session = session;
@@ -102,6 +107,14 @@ public class DataAccess {
 
         findCountersByGroupAndName = session.prepare(
             "SELECT tenant_id, group, c_name, c_value FROM counters WHERE tenant_id = ? AND group = ? AND c_name IN ?");
+
+        insertTags = session.prepare(
+            "INSERT INTO tags (tenant_id, tag, type, metric, interval, time, raw_data) VALUES (?, ?, ?, ?, ?, ?, ?)");
+
+        findDataByTag = session.prepare(
+            "SELECT tenant_id, tag, type, metric, interval, time, raw_data " +
+            "FROM tags " +
+            "WHERE tenant_id = ? AND tag = ?");
     }
 
     public ResultSetFuture insertTenant(Tenant tenant) {
@@ -141,6 +154,30 @@ public class DataAccess {
             dpart));
     }
 
+//    public ResultSetFuture insert(Metric metric) {
+//        UserType aggregateDataType = getKeyspace().getUserType("aggregate_data");
+//
+//        for (NumericDataPoint d : metric.getData()) {
+//            Set<UDTValue> aggregateDataValues = new HashSet<>();
+//            for (AggregatedValue v : d.getAggregatedValues()) {
+//
+//            }
+//        }
+//
+//        if (metric.getData().size() > 1) {
+//            BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
+//            for (NumericDataPoint d : metric.getData()) {
+//                batchStatement.add(insertNumericData.bind(metric.getAttributes(), d.getValue(), null,
+//                    metric.getTenantId(), metric.getName(), getInterval(metric.getInterval()), 0L, d.getTimeUUID()));
+//            }
+//            return session.executeAsync(batchStatement);
+//        } else {
+//
+//            statement = insertNumericData.bind(metric.getAttributes(), d.getValue(), null,
+//                metric.getTenantId(), metric.getName(), getInterval(metric.getInterval()), 0L, d.getTimeUUID());
+//        }
+//    }
+
     public ResultSetFuture insertNumericData(NumericData data) {
         // TODO determine if we should use separate queries/methods for raw vs aggregated data
 
@@ -176,6 +213,19 @@ public class DataAccess {
 
     public ResultSetFuture findAllNumericMetrics() {
         return session.executeAsync(findNumericMetrics.bind());
+    }
+
+    public ResultSetFuture insertTag(String tag, List<NumericData> data) {
+        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
+        for (NumericData d : data) {
+            batchStatement.add(insertTags.bind(d.getTenantId(), tag, MetricType.NUMERIC.getCode(), d.getMetric(),
+                d.getInterval().toString(), d.getTimeUUID(), d.getValue()));
+        }
+        return session.executeAsync(batchStatement);
+    }
+
+    public ResultSetFuture findData(String tenantId, String tag) {
+        return session.executeAsync(findDataByTag.bind(tenantId, tag));
     }
 
     public ResultSetFuture updateCounter(Counter counter) {

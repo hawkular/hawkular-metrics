@@ -162,6 +162,17 @@ public class MemoryMetricsService implements MetricsService {
         return Futures.immediateFuture(true);
     }
 
+    @Override
+    public ListenableFuture<List<NumericData>> tagData(String tenantId, Set<String> tags, String metric, long start,
+        long end) {
+        return null;
+    }
+
+    @Override
+    public ListenableFuture<List<NumericData>> findDataByTags(String tenantId, Set<String> tags) {
+        return null;
+    }
+
     private static class NoOpMapper<T> implements Function<T,T> {
 
         public T apply(T input) {

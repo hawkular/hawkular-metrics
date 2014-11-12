@@ -30,6 +30,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -153,6 +154,105 @@ public class MetricHandler {
             public void onSuccess(Void result) {
                 Response jaxrs = Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build();
                 asyncResponse.resume(jaxrs);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
+    }
+
+    @GET
+    @Path("/metrics/numeric/{id}")
+    public void findNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("id") final String id,
+        @QueryParam("start") Long start, @QueryParam("end") Long end) {
+
+        long now = System.currentTimeMillis();
+        if (start == null) {
+            start = now - EIGHT_HOURS;
+        }
+        if (end == null) {
+            end = now;
+        }
+
+        ListenableFuture<List<NumericData>> future = metricsService.findData(DEFAULT_TENANT_ID, id, start, end);
+        Futures.addCallback(future, new FutureCallback<List<NumericData>>() {
+            @Override
+            public void onSuccess(List<NumericData> data) {
+                if (data.isEmpty()) {
+                    asyncResponse.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
+                } else {
+                    NumericDataOut output = new NumericDataOut();
+                    output.setTenantId(data.get(0).getTenantId());
+                    output.setName(data.get(0).getMetric());
+                    output.setAttributes(data.get(0).getAttributes());
+
+                    List<NumericDataPoint> dataPoints = new ArrayList<>(data.size());
+                    for (NumericData d : data) {
+                        NumericDataPoint p = new NumericDataPoint();
+                        p.setTimestamp(d.getTimestamp());
+                        p.setValue(d.getValue());
+                        dataPoints.add(p);
+                    }
+                    output.setData(dataPoints);
+
+                    asyncResponse.resume(Response.ok(output).type(MediaType.APPLICATION_JSON_TYPE).build());
+                }
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
+    }
+
+    @POST
+    @Path("/tags/numeric")
+    public void tagNumericData(@Suspended final AsyncResponse asyncResponse, TagParams params) {
+        ListenableFuture<List<NumericData>> future = metricsService.tagData(DEFAULT_TENANT_ID, params.getTags(),
+            params.getMetric(), params.getStart(), params.getEnd());
+        Futures.addCallback(future, new FutureCallback<List<NumericData>>() {
+            @Override
+            public void onSuccess(List<NumericData> data) {
+                asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
+    }
+
+    @GET
+    @Path("/tags/numeric/{tags}")
+    public void findNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tags") String tags) {
+        Set<String> tagsSet = ImmutableSet.copyOf(tags.split(","));
+        ListenableFuture<List<NumericData>> future = metricsService.findDataByTags(DEFAULT_TENANT_ID, tagsSet);
+        Futures.addCallback(future, new FutureCallback<List<NumericData>>() {
+            @Override
+            public void onSuccess(List<NumericData> data) {
+                if (data.isEmpty()) {
+                    asyncResponse.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
+                } else {
+                    NumericDataOut output = new NumericDataOut();
+                    output.setTenantId(data.get(0).getTenantId());
+                    output.setName(data.get(0).getMetric());
+                    output.setAttributes(data.get(0).getAttributes());
+
+                    List<NumericDataPoint> dataPoints = new ArrayList<>(data.size());
+                    for (NumericData d : data) {
+                        NumericDataPoint p = new NumericDataPoint();
+                        p.setTimestamp(d.getTimestamp());
+                        p.setValue(d.getValue());
+                        dataPoints.add(p);
+                    }
+                    output.setData(dataPoints);
+
+                    asyncResponse.resume(Response.ok(output).type(MediaType.APPLICATION_JSON_TYPE).build());
+                }
             }
 
             @Override

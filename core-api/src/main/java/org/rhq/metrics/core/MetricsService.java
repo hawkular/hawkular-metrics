@@ -52,4 +52,7 @@ public interface MetricsService {
     /** Delete the metric with the passed id */
     ListenableFuture<Boolean> deleteMetric(String id);
 
+    ListenableFuture<List<NumericData>> tagData(String tenantId, Set<String> tags, String metric, long start, long end);
+
+    ListenableFuture<List<NumericData>> findDataByTags(String tenantId, Set<String> tags);
 }

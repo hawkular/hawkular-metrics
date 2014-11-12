@@ -81,9 +81,10 @@ CREATE TABLE ${keyspace}.tags (
     tag text,
     type text,
     metric text,
+    interval text,
     time timeuuid,
     raw_data double,
     aggregates set<frozen <aggregate_data>>,
     availability blob,
-    PRIMARY KEY ((tenant_id, tag), type, metric, time)
+    PRIMARY KEY ((tenant_id, tag), type, metric, interval, time)
 );
