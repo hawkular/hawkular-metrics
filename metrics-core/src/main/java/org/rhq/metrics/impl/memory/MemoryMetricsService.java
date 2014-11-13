@@ -18,6 +18,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import org.rhq.metrics.core.Counter;
+import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
 import org.rhq.metrics.core.NumericData;
@@ -68,7 +69,7 @@ public class MemoryMetricsService implements MetricsService {
 
     private void addMetric(NumericData d) {
         TLongDoubleMap map;
-        String metricId = d.getMetric();
+        String metricId = d.getId().getName();
         if (storage.containsKey(metricId)) {
             map = storage.get(metricId);
         } else {
@@ -131,7 +132,7 @@ public class MemoryMetricsService implements MetricsService {
                 if (ts>=start && ts<=end) {
                     data.add(new NumericData()
                         .setTenantId(DEFAULT_TENANT_ID)
-                        .setMetric(id)
+                        .setId(new MetricId(id))
                         .setValue(map.get(ts))
                         .setTimestamp(ts));
                 }
@@ -169,7 +170,8 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<NumericData>> findDataByTags(String tenantId, Set<String> tags) {
+    public ListenableFuture<Map<MetricId, Set<NumericData>>> findDataByTags(String tenantId,
+        Set<String> tags) {
         return null;
     }
 

@@ -2,9 +2,13 @@ package org.rhq.metrics.impl.cassandra;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -29,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Interval;
+import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
 import org.rhq.metrics.core.NumericData;
@@ -140,9 +145,7 @@ public class MetricsServiceCassandra implements MetricsService {
         for (NumericData d : data) {
             permits.acquire();
             if (d.getTimeUUID() == null) {
-                Interval interval = d.getInterval() == null ? Interval.NONE : d.getInterval();
-                futures.add(dataAccess.addNumericAttributes(d.getTenantId(), d.getMetric(), interval, DPART,
-                    d.getAttributes()));
+                futures.add(dataAccess.addNumericAttributes(d.getTenantId(), d.getId(), DPART, d.getAttributes()));
             } else {
                 futures.add(dataAccess.insertNumericData(d));
             }
@@ -185,7 +188,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public ListenableFuture<List<NumericData>> findData(String tenantId, String id, long start, long end) {
-        ResultSetFuture future = dataAccess.findNumericData(tenantId, id, Interval.NONE, DPART, start, end);
+        ResultSetFuture future = dataAccess.findNumericData(tenantId, new MetricId(id), DPART, start, end);
         return Futures.transform(future, numericDataMapper, metricsTasks);
     }
 
@@ -240,6 +243,7 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
+    // TODO refactor to support multiple metrics
     public ListenableFuture<List<NumericData>> tagData(String tenantId, final Set<String> tags, String metric,
         long start, long end) {
         ListenableFuture<List<NumericData>> queryFuture = findData(tenantId, metric, start, end);
@@ -262,10 +266,41 @@ public class MetricsServiceCassandra implements MetricsService {
     };
 
     @Override
-    public ListenableFuture<List<NumericData>> findDataByTags(String tenantId, Set<String> tags) {
-        String tag = tags.iterator().next();
-        ListenableFuture<ResultSet> queryFuture = dataAccess.findData(tenantId, tag);
-        return Futures.transform(queryFuture, new TaggedDataMapper(), metricsTasks);
+    public ListenableFuture<Map<MetricId, Set<NumericData>>> findDataByTags(String tenantId, Set<String> tags) {
+        List<ListenableFuture<Map<MetricId, Set<NumericData>>>> queryFutures = new ArrayList<>(tags.size());
+        TaggedDataMapper mapper = new TaggedDataMapper();
+        for (String tag : tags) {
+            queryFutures.add(Futures.transform(dataAccess.findData(tenantId, tag), mapper, metricsTasks));
+        }
+        ListenableFuture<List<Map<MetricId, Set<NumericData>>>> queriesFuture = Futures.allAsList(queryFutures);
+        return Futures.transform(queriesFuture, new Function<List<Map<MetricId, Set<NumericData>>>, Map<MetricId, Set<NumericData>>>() {
+            @Override
+            public Map<MetricId, Set<NumericData>> apply(List<Map<MetricId, Set<NumericData>>> taggedDataMaps) {
+                if (taggedDataMaps.isEmpty()) {
+                    return Collections.emptyMap();
+                }
+                if (taggedDataMaps.size() == 1) {
+                    return taggedDataMaps.get(0);
+                }
+
+                Set<MetricId> ids = new HashSet<>(taggedDataMaps.get(0).keySet());
+                for (int i = 1; i < taggedDataMaps.size(); ++i) {
+                    ids.retainAll(taggedDataMaps.get(i).keySet());
+                }
+
+                Map<MetricId, Set<NumericData>> mergedDataMap = new HashMap<>();
+                for (MetricId id : ids) {
+                    TreeSet<NumericData> set = new TreeSet<>(NumericData.TIME_UUID_COMPARATOR);
+                    for (Map<MetricId, Set<NumericData>> taggedDataMap : taggedDataMaps) {
+                        set.addAll(taggedDataMap.get(id));
+                    }
+                    mergedDataMap.put(id, set);
+                }
+
+                return mergedDataMap;
+            }
+        }, metricsTasks);
+
     }
 
     private void updateSchemaIfNecessary(Cluster cluster, String schemaName) {

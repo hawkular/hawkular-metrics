@@ -3,6 +3,7 @@ package org.rhq.metrics.util;
 import java.util.Date;
 import java.util.UUID;
 
+import com.datastax.driver.core.utils.UUIDs;
 import com.eaio.uuid.UUIDGen;
 
 import org.joda.time.DateTime;
@@ -64,6 +65,19 @@ public class TimeUUIDUtils {
 
     public static UUID getTimeUUID(DateTime d) {
         return getTimeUUID(d.getMillis());
+    }
+
+    public static int compare(UUID u1, UUID u2) {
+        long ts1 = UUIDs.unixTimestamp(u1);
+        long ts2 = UUIDs.unixTimestamp(u2);
+
+        if (ts1 > ts2) {
+            return 1;
+        }
+        if (ts1 < ts2) {
+            return -1;
+        }
+        return u1.compareTo(u2);
     }
 
 }

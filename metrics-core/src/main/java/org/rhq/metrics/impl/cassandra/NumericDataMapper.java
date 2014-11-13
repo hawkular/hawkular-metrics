@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 
 import org.rhq.metrics.core.AggregatedValue;
 import org.rhq.metrics.core.Interval;
+import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.NumericData;
 
 /**
@@ -25,8 +26,7 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
         for (Row row : resultSet) {
             NumericData d = new NumericData()
                 .setTenantId(row.getString(0))
-                .setMetric(row.getString(1))
-                .setInterval(getInterval(row.getString(2)))
+                .setId(new MetricId(row.getString(1), getInterval(row.getString(2))))
                 .setDpart(row.getLong(3))
                 .setTimeUUID(row.getUUID(4))
                 .putAttributes(row.getMap(5, String.class, String.class))

@@ -31,7 +31,6 @@ import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.restServlet.ServiceKeeper;
 import org.rhq.metrics.restServlet.StringValue;
-import org.rhq.metrics.util.TimeUUIDUtils;
 
 /**
  * Some support for InfluxDB clients like Grafana.
@@ -271,7 +270,7 @@ public class InfluxHandler {
                 }
                 out.add(new NumericData()
                     .setTenantId(DEFAULT_TENANT_ID)
-                    .setMetric(firstElementInList.getMetric())
+                    .setId(firstElementInList.getId())
                     .setTimestamp(firstElementInList.getTimestamp())
                     .setValue(retVal));
             }

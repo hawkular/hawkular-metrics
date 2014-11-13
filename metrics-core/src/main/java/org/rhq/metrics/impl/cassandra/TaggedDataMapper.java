@@ -1,32 +1,55 @@
 package org.rhq.metrics.impl.cassandra;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.google.common.base.Function;
 
 import org.rhq.metrics.core.Interval;
+import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.NumericData;
 
 /**
  * @author John Sanda
  */
-public class TaggedDataMapper implements Function<ResultSet, List<NumericData>> {
+public class TaggedDataMapper implements Function<ResultSet, Map<MetricId, Set<NumericData>>> {
 
     @Override
-    public List<NumericData> apply(ResultSet resultSet) {
-        List<NumericData> list = new ArrayList<>();
+    public Map<MetricId, Set<NumericData>> apply(ResultSet resultSet) {
+        Map<MetricId, Set<NumericData>> taggedData = new HashMap<>();
+        MetricId id = null;
+        LinkedHashSet<NumericData> set = new LinkedHashSet<>();
         for (Row row : resultSet) {
-            NumericData d = new NumericData()
-                .setTenantId(row.getString(0))
-                .setMetric(row.getString(3))
-                .setInterval(Interval.parse(row.getString(4)))
-                .setTimeUUID(row.getUUID(5))
-                .setValue(row.getDouble(6));
-            list.add(d);
+            if (id == null) {
+                id = new MetricId(row.getString(3), Interval.parse(row.getString(4)));
+                set.add(createNumericData(row, id));
+            } else {
+                MetricId nextId = new MetricId(row.getString(3), Interval.parse(row.getString(4)));
+                if (id.equals(nextId)) {
+                    set.add(createNumericData(row, id));
+                } else {
+                    taggedData.put(id, set);
+                    id = nextId;
+                    set = new LinkedHashSet<>();
+                    set.add(createNumericData(row, id));
+                }
+            }
         }
-        return list;
+        if (!set.isEmpty()) {
+            taggedData.put(id, set);
+        }
+        return taggedData;
+    }
+
+    private NumericData createNumericData(Row row, MetricId id) {
+        return new NumericData()
+            .setTenantId(row.getString(0))
+            .setId(id)
+            .setTimeUUID(row.getUUID(5))
+            .setValue(row.getDouble(6));
     }
 }

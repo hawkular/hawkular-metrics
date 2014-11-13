@@ -1,5 +1,6 @@
 package org.rhq.metrics.core;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -19,11 +20,19 @@ import org.rhq.metrics.util.TimeUUIDUtils;
  */
 public class NumericData {
 
+    public static final Comparator<NumericData> TIME_UUID_COMPARATOR = new Comparator<NumericData>() {
+        @Override
+        public int compare(NumericData d1, NumericData d2) {
+            return TimeUUIDUtils.compare(d1.timeUUID, d2.timeUUID);
+        }
+    };
+
     private String tenantId;
 
-    private String metric;
-
-    private Interval interval = Interval.NONE;
+//    private String metric;
+//
+//    private Interval interval = Interval.NONE;
+    private MetricId id;
 
     private long dpart;
 
@@ -50,30 +59,39 @@ public class NumericData {
         return this;
     }
 
-    /**
-     * The metric name. The metric name and the interval must be unique across numeric metrics.
-     */
-    public String getMetric() {
-        return metric;
+    public MetricId getId() {
+        return id;
     }
 
-    public NumericData setMetric(String metric) {
-        this.metric = metric;
+    public NumericData setId(MetricId id) {
+        this.id = id;
         return this;
     }
 
-    /**
-     * This is for use with aggregated metrics. It specifies how frequently the metric is updated or computed. If we
-     * introduce subclasses for raw and aggregated data, I think this would only go in the aggregated data class.
-     */
-    public Interval getInterval() {
-        return interval;
-    }
-
-    public NumericData setInterval(Interval interval) {
-        this.interval = interval;
-        return this;
-    }
+//    /**
+//     * The metric name. The metric name and the interval must be unique across numeric metrics.
+//     */
+//    public String getMetric() {
+//        return metric;
+//    }
+//
+//    public NumericData setMetric(String metric) {
+//        this.metric = metric;
+//        return this;
+//    }
+//
+//    /**
+//     * This is for use with aggregated metrics. It specifies how frequently the metric is updated or computed. If we
+//     * introduce subclasses for raw and aggregated data, I think this would only go in the aggregated data class.
+//     */
+//    public Interval getInterval() {
+//        return interval;
+//    }
+//
+//    public NumericData setInterval(Interval interval) {
+//        this.interval = interval;
+//        return this;
+//    }
 
     /**
      * Currently not used. It wil be used for breaking up a metric time series into multiple partitions by date. For
@@ -184,8 +202,7 @@ public class NumericData {
         if (dpart != that.dpart) return false;
         if (Double.compare(that.value, value) != 0) return false;
         if (!attributes.equals(that.attributes)) return false;
-        if (interval != null ? !interval.equals(that.interval) : that.interval != null) return false;
-        if (!metric.equals(that.metric)) return false;
+        if (!id.equals(that.id)) return false;
         if (!tenantId.equals(that.tenantId)) return false;
         if (!timeUUID.equals(that.timeUUID)) return false;
 
@@ -197,8 +214,7 @@ public class NumericData {
         int result;
         long temp;
         result = tenantId.hashCode();
-        result = 31 * result + metric.hashCode();
-        result = 31 * result + (interval != null ? interval.hashCode() : 0);
+        result = 31 * result + id.hashCode();
         result = 31 * result + (int) (dpart ^ (dpart >>> 32));
         result = 31 * result + timeUUID.hashCode();
         result = 31 * result + attributes.hashCode();
@@ -211,8 +227,7 @@ public class NumericData {
     public String toString() {
         return Objects.toStringHelper(this)
             .add("tenantId", tenantId)
-            .add("metric", metric)
-            .add("interval", interval)
+            .add("id", id)
             .add("dpart", dpart)
             .add("attributes", attributes)
             .add("timeUUID", timeUUID)

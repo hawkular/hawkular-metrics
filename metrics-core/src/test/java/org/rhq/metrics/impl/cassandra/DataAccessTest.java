@@ -28,6 +28,7 @@ import org.rhq.metrics.core.AggregatedValue;
 import org.rhq.metrics.core.AggregationTemplate;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Interval;
+import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.Tenant;
@@ -109,25 +110,25 @@ public class DataAccessTest extends MetricsTest {
 
         NumericData d1 = new NumericData()
             .setTenantId("tenant-1")
-            .setMetric("metric-1")
+            .setId(new MetricId("metric-1"))
             .setTimestamp(start.getMillis())
             .setValue(1.23);
 
         NumericData d2 = new NumericData()
             .setTenantId("tenant-1")
-            .setMetric("metric-1")
+            .setId(new MetricId("metric-1"))
             .setTimestamp(start.plusMinutes(1).getMillis())
             .setValue(1.234);
 
         NumericData d3 = new NumericData()
             .setTenantId("tenant-1")
-            .setMetric("metric-1")
+            .setId(new MetricId("metric-1"))
             .setTimestamp(start.plusMinutes(2).getMillis())
             .setValue(1.234);
 
         NumericData d4 = new NumericData()
             .setTenantId("tenant-1")
-            .setMetric("metric-1")
+            .setId(new MetricId("metric-1"))
             .setTimestamp(end.getMillis())
             .setValue(1.234);
 
@@ -136,8 +137,8 @@ public class DataAccessTest extends MetricsTest {
         getUninterruptibly(dataAccess.insertNumericData(d3));
         getUninterruptibly(dataAccess.insertNumericData(d4));
 
-        ResultSetFuture queryFuture = dataAccess.findNumericData(d1.getTenantId(), d1.getMetric(), Interval.NONE, 0L,
-            start.getMillis(), end.getMillis());
+        ResultSetFuture queryFuture = dataAccess.findNumericData(d1.getTenantId(), d1.getId(), 0L, start.getMillis(),
+            end.getMillis());
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
         List<NumericData> actual = getUninterruptibly(dataFuture);
         List<NumericData> expected = asList(d3, d2, d1);
@@ -150,32 +151,32 @@ public class DataAccessTest extends MetricsTest {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);
 
-       ResultSetFuture insertFuture = dataAccess.addNumericAttributes("tenant-1", "metric-1", Interval.NONE, 0,
+       ResultSetFuture insertFuture = dataAccess.addNumericAttributes("tenant-1", new MetricId("metric-1"), 0,
            ImmutableMap.of("units", "KB", "env", "test"));
        getUninterruptibly(insertFuture);
 
         NumericData d1 = new NumericData()
             .setTenantId("tenant-1")
-            .setMetric("metric-1")
+            .setId(new MetricId("metric-1"))
             .setTimestamp(start.getMillis())
             .setValue(1.23)
             .putAttribute("test?", "true");
 
         NumericData d2 = new NumericData()
             .setTenantId("tenant-1")
-            .setMetric("metric-1")
+            .setId(new MetricId("metric-1"))
             .setTimestamp(start.plusMinutes(2).getMillis())
             .setValue(1.234);
 
         NumericData d3 = new NumericData()
             .setTenantId("tenant-1")
-            .setMetric("metric-1")
+            .setId(new MetricId("metric-1"))
             .setTimestamp(start.plusMinutes(4).getMillis())
             .setValue(1.234);
 
         NumericData d4 = new NumericData()
             .setTenantId("tenant-1")
-            .setMetric("metric-1")
+            .setId(new MetricId("metric-1"))
             .setTimestamp(end.getMillis())
             .setValue(1.234);
 
@@ -184,8 +185,8 @@ public class DataAccessTest extends MetricsTest {
         getUninterruptibly(dataAccess.insertNumericData(d3));
         getUninterruptibly(dataAccess.insertNumericData(d4));
 
-        ResultSetFuture queryFuture = dataAccess.findNumericData(d1.getTenantId(), d1.getMetric(), Interval.NONE, 0L,
-            start.getMillis(), end.getMillis());
+        ResultSetFuture queryFuture = dataAccess.findNumericData(d1.getTenantId(), d1.getId(), 0L, start.getMillis(),
+            end.getMillis());
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
         List<NumericData> actual = getUninterruptibly(dataFuture);
         List<NumericData> expected = asList(
@@ -204,31 +205,27 @@ public class DataAccessTest extends MetricsTest {
 
         NumericData d1 = new NumericData()
             .setTenantId("tenant-1")
-            .setMetric("m1")
-            .setInterval(Interval.parse("5min"))
+            .setId(new MetricId("m1", Interval.parse("5min")))
             .setTimestamp(start.getMillis())
             .addAggregatedValue(new AggregatedValue("sum", 100.1))
             .addAggregatedValue(new AggregatedValue("max", 51.5, null, null, getTimeUUID(now().minusMinutes(3))));
 
         NumericData d2 = new NumericData()
             .setTenantId("tenant-1")
-            .setMetric("m1")
-            .setInterval(Interval.parse("5min"))
+            .setId(new MetricId("m1", Interval.parse("5min")))
             .setTimestamp(start.plusMinutes(2).getMillis())
             .addAggregatedValue(new AggregatedValue("sum", 110.1))
             .addAggregatedValue(new AggregatedValue("max", 54.7, null, null, getTimeUUID(now().minusMinutes(3))));
 
         NumericData d3 = new NumericData()
             .setTenantId("tenant-1")
-            .setMetric("m1")
-            .setInterval(Interval.parse("5min"))
+            .setId(new MetricId("m1", Interval.parse("5min")))
             .setTimestamp(start.plusMinutes(4).getMillis())
             .setValue(22.2);
 
         NumericData d4 = new NumericData()
             .setTenantId("tenant-1")
-            .setMetric("m1")
-            .setInterval(Interval.parse("5min"))
+            .setId(new MetricId("m1", Interval.parse("5min")))
             .setTimestamp(end.getMillis())
             .setValue(22.2);
 
@@ -237,8 +234,8 @@ public class DataAccessTest extends MetricsTest {
         getUninterruptibly(dataAccess.insertNumericData(d3));
         getUninterruptibly(dataAccess.insertNumericData(d4));
 
-        ResultSetFuture queryFuture = dataAccess.findNumericData(d1.getTenantId(), d1.getMetric(), d1.getInterval(), 0L,
-            start.getMillis(), end.getMillis());
+        ResultSetFuture queryFuture = dataAccess.findNumericData(d1.getTenantId(), d1.getId(), 0L, start.getMillis(),
+            end.getMillis());
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
         List<NumericData> actual = getUninterruptibly(dataFuture);
         List<NumericData> expected = asList(d3, d2, d1);
