@@ -1,0 +1,5 @@
+#### docker build
+`docker build --force-rm=true --no-cache=true -t rhq-metrics:latest .`
+<br>
+#### docker run (on port: 18080)
+`docker run --sig-proxy=false -d -t -i -p 18080:8080 -u jboss rhq-metrics:latest`
