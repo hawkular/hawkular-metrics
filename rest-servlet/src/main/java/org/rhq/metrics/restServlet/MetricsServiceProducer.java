@@ -3,6 +3,9 @@ package org.rhq.metrics.restServlet;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.rhq.metrics.RHQMetrics;
 import org.rhq.metrics.core.MetricsService;
 
@@ -11,11 +14,7 @@ import org.rhq.metrics.core.MetricsService;
  */
 @ApplicationScoped
 public class MetricsServiceProducer {
-
-/*
-    @Inject TODO why does this fail all of a sudden?
-    private javax.servlet.ServletContext context;
-*/
+    private static final Logger LOG = LoggerFactory.getLogger(MetricsServiceProducer.class);
 
     private MetricsService metricsService;
 
@@ -28,20 +27,18 @@ public class MetricsServiceProducer {
 
             if (backend != null) {
                 switch (backend) {
-                    case "mem":
-                        metricsServiceBuilder.withInMemoryDataStore();
-                        break;
                     case "cass":
+                        LOG.info("Using Cassandra backend implementation");
                         metricsServiceBuilder.withCassandraDataStore();
                         break;
+                    case "mem":
                     default:
+                        LOG.info("Using memory backend implementation");
                         metricsServiceBuilder.withInMemoryDataStore();
                 }
             } else {
                 metricsServiceBuilder.withInMemoryDataStore();
             }
-
-            System.out.println("Using a backend implementation of " + backend);
 
             metricsService = metricsServiceBuilder.build();
             ServiceKeeper.getInstance().service = metricsService;
