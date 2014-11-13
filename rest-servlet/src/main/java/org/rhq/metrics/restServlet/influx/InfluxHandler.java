@@ -2,6 +2,7 @@ package org.rhq.metrics.restServlet.influx;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,9 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.RawNumericMetric;
 import org.rhq.metrics.restServlet.ServiceKeeper;
@@ -34,11 +38,9 @@ import org.rhq.metrics.restServlet.StringValue;
 @Path("/influx")
 @Produces("application/json")
 public class InfluxHandler {
+    private static final Logger LOG = LoggerFactory.getLogger(InfluxHandler.class);
 
     private static final String SELECT_FROM = "select ";
-
-    // TODO how often are they compiled? move those to a place where this happens only once
-
 
     @Inject
     private MetricsService metricsService;
@@ -88,6 +90,7 @@ public class InfluxHandler {
             final String query = queryString.toLowerCase();
             if (query.startsWith(SELECT_FROM)) {
                 final InfluxQuery iq = new InfluxQuery(query);
+                LOG.debug("Parsed Influx query: {}", iq);
 
                 final String metric = iq.getMetric();  // metric to query from backend
 
@@ -102,10 +105,16 @@ public class InfluxHandler {
 
                         final ListenableFuture<List<RawNumericMetric>> future = metricsService.findData(metric,
                             iq.getStart(), iq.getEnd());
+                        if (LOG.isDebugEnabled()) {
+                            LOG.debug("Searching for metrics from {} to {}", new Date(iq.getStart()), new Date(iq.getEnd()));
+                        }
 
                         Futures.addCallback(future, new FutureCallback<List<RawNumericMetric>>() {
                             @Override
                             public void onSuccess(List<RawNumericMetric> metrics) {
+                                if (LOG.isDebugEnabled()) {
+                                    LOG.debug("Found {} metric(s): {}", metrics.size(), metrics);
+                                }
 
                                 List<InfluxObject> objects = new ArrayList<>(1);
 
@@ -173,11 +182,17 @@ public class InfluxHandler {
 
         long timeDiff = endTime - startTime; // Millis
         int numBuckets = (int) ((timeDiff /1000 ) / bucketLengthSec);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("timeDiff = {}, numBuckets = {}", timeDiff, numBuckets);
+        }
         Map<Integer,List<RawNumericMetric>> tmpMap = new HashMap<>(numBuckets);
 
         // Bucketize
         for (RawNumericMetric rnm: in) {
             int pos = (int) ((rnm.getTimestamp()-startTime)/1000) /bucketLengthSec;
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Adding metric {} to bucket {}", rnm, pos);
+            }
             List<RawNumericMetric> bucket = tmpMap.get(pos);
             if (bucket==null) {
                 bucket = new ArrayList<>();
@@ -200,6 +215,9 @@ public class InfluxHandler {
                 case "mean":
                     for (RawNumericMetric rnm : list) {
                         retVal += rnm.getAvg();
+                    }
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Applying mean mapping, total = {}, size = {}", retVal, size);
                     }
                     retVal /= size;
                     break;

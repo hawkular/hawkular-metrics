@@ -2,6 +2,8 @@ package org.rhq.metrics.restServlet;
 
 import static java.lang.Double.NaN;
 import static java.util.Arrays.asList;
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,8 +39,8 @@ import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import gnu.trove.map.TLongObjectMap;
+import gnu.trove.map.hash.TLongObjectHashMap;
 
 import org.jboss.resteasy.annotations.GZIP;
 
@@ -47,9 +49,6 @@ import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.RawNumericMetric;
 
-import gnu.trove.map.TLongObjectMap;
-import gnu.trove.map.hash.TLongObjectHashMap;
-
 /**
  * Interface to deal with metrics
  * @author Heiko W. Rupp
@@ -57,18 +56,10 @@ import gnu.trove.map.hash.TLongObjectHashMap;
 @Api(value = "Related to metrics")
 @Path("/")
 public class MetricHandler {
-
-    private static final Logger logger = LoggerFactory.getLogger(MetricHandler.class);
-    private static final long EIGHT_HOURS = 8L*60L*60L*1000L; // 8 Hours in milliseconds
+    private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
     @Inject
     private MetricsService metricsService;
-
-    public MetricHandler() {
-        if (logger.isDebugEnabled()) {
-            logger.debug("MetricHandler instantiated");
-        }
-    }
 
 	@GET
     @POST
