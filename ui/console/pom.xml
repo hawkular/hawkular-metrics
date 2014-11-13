@@ -25,17 +25,8 @@
                 <artifactId>maven-war-plugin</artifactId>
                 <configuration>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
-                    <webResources>
-                        <resource>
-                            <!-- this is relative to the pom.xml directory -->
-                            <directory>src/main/webapp</directory>
-                            <excludes>
-                                <exclude>*.js</exclude>
-                                <exclude>*.json</exclude>
-                                <exclude>test/**</exclude>
-                            </excludes>
-                        </resource>
-                    </webResources>
+                    <warSourceExcludes>test/**/*,vendor/**/*,node_modules/**/*,**/.*,*.js,*.json,</warSourceExcludes>
+                    <packagingExcludes>WEB-INF/classes</packagingExcludes>
                 </configuration>
             </plugin>
 
