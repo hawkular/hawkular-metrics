@@ -38,9 +38,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.rhq.metrics.clients.ptrans.backend.RestForwardingHandler;
+import org.rhq.metrics.clients.ptrans.collectd.CollectdEventHandler;
 import org.rhq.metrics.clients.ptrans.ganglia.UdpGangliaDecoder;
 import org.rhq.metrics.clients.ptrans.statsd.StatsdDecoder;
 import org.rhq.metrics.clients.ptrans.syslog.UdpSyslogEventDecoder;
+import org.rhq.metrics.netty.collectd.event.CollectdEventsDecoder;
+import org.rhq.metrics.netty.collectd.packet.CollectdPacketDecoder;
 
 /**
  * Simple client (proxy) that receives messages from other syslogs and
@@ -63,6 +66,9 @@ public class Main {
 
     private static final int STATSD_DEFAULT_PORT = 8125;
     private int statsDport = STATSD_DEFAULT_PORT;
+
+    private static final int COLLETCD_DEFAULT_PORT = 25826;
+    private int collectdPort = COLLETCD_DEFAULT_PORT;
 
     Properties configuration;
 
@@ -144,10 +150,39 @@ public class Main {
             // Setup statsd listener
             setupStatsdUdp(group, forwardingHandler);
 
+            // Setup collectd listener
+            setupCollectdUdp(group, forwardingHandler);
+
             udpFuture.channel().closeFuture().sync();
         } finally {
             group.shutdownGracefully().sync();
-            group.shutdownGracefully().sync();
+            workerGroup.shutdownGracefully().sync();
+        }
+    }
+
+    private void setupCollectdUdp(EventLoopGroup group, final ChannelInboundHandlerAdapter forwardingHandler) {
+        Bootstrap collectdBootstrap = new Bootstrap();
+        collectdBootstrap
+                .group(group)
+                .channel(NioDatagramChannel.class)
+                .localAddress(collectdPort)
+                .handler(new ChannelInitializer<Channel>() {
+                    @Override
+                    public void initChannel(Channel socketChannel) throws Exception {
+                        ChannelPipeline pipeline = socketChannel.pipeline();
+                        pipeline.addLast(new CollectdPacketDecoder());
+                        pipeline.addLast(new CollectdEventsDecoder());
+                        pipeline.addLast(new CollectdEventHandler());
+                        pipeline.addLast(new MetricBatcher("collectd"));
+                        pipeline.addLast(forwardingHandler);
+                    }
+                })
+        ;
+        try {
+            ChannelFuture collectdFuture = collectdBootstrap.bind().sync();
+            logger.info("Collectd listening on udp " + collectdFuture.channel().localAddress());
+        } catch (InterruptedException e) {
+            e.printStackTrace();  // TODO: Customise this generated block
         }
     }
 
@@ -250,6 +285,7 @@ public class Main {
             gangliaPort = Integer.parseInt(configuration.getProperty("ganglia.port", String.valueOf(GANGLIA_DEFAULT_PORT)));
             multicastIfOverride = configuration.getProperty("multicast.interface");
             statsDport = Integer.parseInt(configuration.getProperty("statsd.port", String.valueOf(STATSD_DEFAULT_PORT)));
+            collectdPort = Integer.parseInt(configuration.getProperty("collectd.port", String.valueOf(COLLETCD_DEFAULT_PORT)));
 
     }
 }

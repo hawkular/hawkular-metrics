@@ -47,6 +47,11 @@
       <artifactId>commons-cli</artifactId>
       <version>1.2</version>
     </dependency>
+    <dependency>
+      <groupId>org.rhq.metrics.netty</groupId>
+      <artifactId>netty-collectd</artifactId>
+      <version>0.1</version>
+    </dependency>
   </dependencies>
 
   <build>
