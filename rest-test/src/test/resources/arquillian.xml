@@ -6,10 +6,10 @@
   <container qualifier="wildfly-as-managed" default="true">
     <configuration>
       <property name="jbossHome">${arquillian.jboss_home}</property>
-      <property name="javaVmArguments">-client -noverify -Xms64m -Xmx1024m -XX:MaxPermSize=512m -Djboss.socket.binding.port-offset=50000 -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=58797</property>
+      <property name="javaVmArguments">-client -noverify -Xms64m -Xmx1024m -XX:MaxPermSize=512m -Djboss.socket.binding.port-offset=50000 -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=58797 -Drhq-metrics.backend=mem</property>
       <property name="outputToConsole">true</property>
       <property name="managementPort">59990</property>
-      <property name="serverConfig">standalone.xml</property>
+      <property name="serverConfig">standalone-test.xml</property>
     </configuration>
   </container>
 
@@ -19,7 +19,7 @@
       <property name="javaVmArguments">-client -noverify -Xms64m -Xmx1024m -XX:MaxPermSize=512m -Djboss.socket.binding.port-offset=50000 -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=58797 -Drhq-metrics.backend=cass -Dcassandra.keyspace=rhqTestServlet -Dcassandra.resetdb=true</property>
       <property name="outputToConsole">true</property>
       <property name="managementPort">59990</property>
-      <property name="serverConfig">standalone.xml</property>
+      <property name="serverConfig">standalone-test.xml</property>
     </configuration>
   </container>
 
