@@ -22,7 +22,7 @@ module Directives {
                 var dataPoints:any[] = [],
                     dataUrl = attributes.dataUrl || 'http://127.0.0.1:8080/rhq-metrics/metrics/',
                     metricId = attributes.metricId || '',
-                    startTimestamp = +attributes.startTimestamp || 0,
+                    startTimestamp = +attributes.startTimestamp || 1415833180222,
                     endTimestamp = +attributes.endTimestamp || _.now(),
                     refreshInterval = +attributes.refreshInterval || 3600,
                     timeRangeInSeconds = +attributes.timeRangeInSeconds || 28800,
@@ -269,7 +269,6 @@ module Directives {
                     $log.info('-- Retrieving metrics data for urlData: ' + metricId);
                     $log.info('-- Date Range: ' + new Date(startTimestamp) + ' - ' + new Date(endTimestamp));
                     var numBuckets = buckets || 60,
-                        urlDataPoints = [],
                         searchParams =
                         {
                             params: {
@@ -283,14 +282,12 @@ module Directives {
                         $log.warn('Start date was after end date');
                     }
 
-                    //$http.get(url + '/rhq-metrics/metrics/' + metricId, searchParams).success(function (response) {
                     $http.get(url+ metricId, searchParams).success(function (response) {
 
-                        urlDataPoints = formatBucketedChartOutput(response);
-                        console.info("DataPoints from URL:");
-                        console.dir(urlDataPoints);
-                        console.table(urlDataPoints);
-                        return urlDataPoints;
+                        processedNewData = formatBucketedChartOutput(response);
+                        console.info("DataPoints from standalone URL:");
+                        console.table(processedNewData);
+                        scope.render(processedNewData, processedPreviousRangeData);
 
                     }).error(function (reason, status) {
                         $log.error('Error Loading Chart Data:' + status + ", " + reason);
@@ -1307,7 +1304,6 @@ module Directives {
                     if (isListDefinedAndHasValues(newData)) {
                         $log.debug('Data Changed');
                         processedNewData = angular.fromJson(newData);
-                        console.dir(processedNewData);
                         scope.render(processedNewData, processedPreviousRangeData);
                     }
                 }, true);
@@ -1342,7 +1338,6 @@ module Directives {
                         multiChartOverlayData = [];
                     } else {
                         multiChartOverlayData = angular.fromJson(newMultiChartData);
-                        console.dir(multiChartOverlayData);
                     }
                     scope.render(processedNewData, processedPreviousRangeData);
                 });
@@ -1359,8 +1354,7 @@ module Directives {
                     if (angular.isDefined(newUrlData)) {
                         console.log('dataUrl has changed: '+newUrlData);
                         dataUrl = newUrlData;
-                        processedNewData = loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
-                        scope.render(processedNewData, processedPreviousRangeData);
+                        loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                     }
                 });
 
@@ -1368,24 +1362,21 @@ module Directives {
                 scope.$watch('metricId', (newMetricId) =>{
                     if (angular.isDefined(newMetricId)) {
                         metricId = newMetricId;
-                        processedNewData = loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
-                        scope.render(processedNewData, processedPreviousRangeData);
+                        loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                     }
                 });
 
                 scope.$watch('startTimestamp', (newStartTimestamp) => {
                     if (angular.isDefined(newStartTimestamp)) {
                         startTimestamp = +newStartTimestamp;
-                        processedNewData = loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
-                        scope.render(processedNewData, processedPreviousRangeData);
+                        loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                     }
                 });
 
                 scope.$watch('endTimestamp', (newEndTimestamp) => {
                     if (angular.isDefined(newEndTimestamp)) {
                         endTimestamp = +newEndTimestamp;
-                        processedNewData = loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
-                        scope.render(processedNewData, processedPreviousRangeData);
+                        loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                     }
                 });
 
@@ -1395,8 +1386,7 @@ module Directives {
                         //@todo: update timeout for refresh interval
                         endTimestamp = _.now();
                         startTimestamp = _.now() - refreshInterval;
-                        processedNewData = loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
-                        scope.render(processedNewData, processedPreviousRangeData);
+                        loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                     }
                 });
 
@@ -1405,8 +1395,7 @@ module Directives {
                         timeRangeInSeconds = newTimeRange;
                         endTimestamp = _.now();
                         startTimestamp = _.now() - timeRangeInSeconds;
-                        processedNewData = loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
-                        scope.render(processedNewData, processedPreviousRangeData);
+                        loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                     }
                 });
 

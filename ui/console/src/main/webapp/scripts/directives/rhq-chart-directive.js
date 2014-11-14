@@ -14,7 +14,7 @@ var Directives;
             function link(scope, element, attributes) {
                 console.log('link dataUrl: ' + attributes.dataUrl);
 
-                var dataPoints = [], dataUrl = attributes.dataUrl || 'http://127.0.0.1:8080/rhq-metrics/metrics/', metricId = attributes.metricId || '', startTimestamp = +attributes.startTimestamp || 0, endTimestamp = +attributes.endTimestamp || _.now(), refreshInterval = +attributes.refreshInterval || 3600, timeRangeInSeconds = +attributes.timeRangeInSeconds || 28800, previousRangeDataPoints = [], annotationData = [], contextData = [], multiChartOverlayData = [], chartHeight = +attributes.chartHeight || 250, chartType = attributes.chartType || 'bar', timeLabel = attributes.timeLabel || 'Time', dateLabel = attributes.dateLabel || 'Date', singleValueLabel = attributes.singleValueLabel || 'Raw Value', noDataLabel = attributes.noDataLabel || 'No Data', aggregateLabel = attributes.aggregateLabel || 'Aggregate', startLabel = attributes.startLabel || 'Start', endLabel = attributes.endLabel || 'End', durationLabel = attributes.durationLabel || 'Bar Duration', minLabel = attributes.minLabel || 'Min', maxLabel = attributes.maxLabel || 'Max', avgLabel = attributes.avgLabel || 'Avg', timestampLabel = attributes.timestampLabel || 'Timestamp', highBarColor = attributes.highBarColor || '#1794bc', lowBarColor = attributes.lowBarColor || '#70c4e2', leaderBarColor = attributes.leaderBarColor || '#d3d3d6', rawValueBarColor = attributes.rawValueBarColor || '#50505a', avgLineColor = attributes.avgLineColor || '#2e376a', showAvgLine = true, hideHighLowValues = false, chartHoverDateFormat = attributes.chartHoverDateFormat || '%m/%d/%y', chartHoverTimeFormat = attributes.chartHoverTimeFormat || '%I:%M:%S %p', buttonBarDateTimeFormat = attributes.buttonbarDatetimeFormat || 'MM/DD/YYYY h:mm a';
+                var dataPoints = [], dataUrl = attributes.dataUrl || 'http://127.0.0.1:8080/rhq-metrics/metrics/', metricId = attributes.metricId || '', startTimestamp = +attributes.startTimestamp || 1415833180222, endTimestamp = +attributes.endTimestamp || _.now(), refreshInterval = +attributes.refreshInterval || 3600, timeRangeInSeconds = +attributes.timeRangeInSeconds || 28800, previousRangeDataPoints = [], annotationData = [], contextData = [], multiChartOverlayData = [], chartHeight = +attributes.chartHeight || 250, chartType = attributes.chartType || 'bar', timeLabel = attributes.timeLabel || 'Time', dateLabel = attributes.dateLabel || 'Date', singleValueLabel = attributes.singleValueLabel || 'Raw Value', noDataLabel = attributes.noDataLabel || 'No Data', aggregateLabel = attributes.aggregateLabel || 'Aggregate', startLabel = attributes.startLabel || 'Start', endLabel = attributes.endLabel || 'End', durationLabel = attributes.durationLabel || 'Bar Duration', minLabel = attributes.minLabel || 'Min', maxLabel = attributes.maxLabel || 'Max', avgLabel = attributes.avgLabel || 'Avg', timestampLabel = attributes.timestampLabel || 'Timestamp', highBarColor = attributes.highBarColor || '#1794bc', lowBarColor = attributes.lowBarColor || '#70c4e2', leaderBarColor = attributes.leaderBarColor || '#d3d3d6', rawValueBarColor = attributes.rawValueBarColor || '#50505a', avgLineColor = attributes.avgLineColor || '#2e376a', showAvgLine = true, hideHighLowValues = false, chartHoverDateFormat = attributes.chartHoverDateFormat || '%m/%d/%y', chartHoverTimeFormat = attributes.chartHoverTimeFormat || '%I:%M:%S %p', buttonBarDateTimeFormat = attributes.buttonbarDatetimeFormat || 'MM/DD/YYYY h:mm a';
 
                 // chart specific vars
                 var margin = { top: 10, right: 5, bottom: 5, left: 90 }, contextMargin = { top: 150, right: 5, bottom: 5, left: 90 }, xAxisContextMargin = { top: 190, right: 5, bottom: 5, left: 90 }, width = 750 - margin.left - margin.right, adjustedChartHeight = chartHeight - 50, height = adjustedChartHeight - margin.top - margin.bottom, smallChartThresholdInPixels = 600, titleHeight = 30, titleSpace = 10, innerChartHeight = height + margin.top - titleHeight - titleSpace + margin.bottom, adjustedChartHeight2 = +titleHeight + titleSpace + margin.top, barOffset = 2, chartData, calcBarWidth, yScale, timeScale, yAxis, xAxis, tip, brush, brushGroup, timeScaleForBrush, timeScaleForContext, chart, chartParent, context, contextArea, svg, lowBound, highBound, avg, peak, min, processedNewData, processedPreviousRangeData;
@@ -159,7 +159,7 @@ var Directives;
                 function loadMetricsForTimeRange(url, metricId, startTimestamp, endTimestamp, buckets) {
                     $log.info('-- Retrieving metrics data for urlData: ' + metricId);
                     $log.info('-- Date Range: ' + new Date(startTimestamp) + ' - ' + new Date(endTimestamp));
-                    var numBuckets = buckets || 60, urlDataPoints = [], searchParams = {
+                    var numBuckets = buckets || 60, searchParams = {
                         params: {
                             start: startTimestamp,
                             end: endTimestamp,
@@ -171,13 +171,11 @@ var Directives;
                         $log.warn('Start date was after end date');
                     }
 
-                    //$http.get(url + '/rhq-metrics/metrics/' + metricId, searchParams).success(function (response) {
                     $http.get(url + metricId, searchParams).success(function (response) {
-                        urlDataPoints = formatBucketedChartOutput(response);
-                        console.info("DataPoints from URL:");
-                        console.dir(urlDataPoints);
-                        console.table(urlDataPoints);
-                        return urlDataPoints;
+                        processedNewData = formatBucketedChartOutput(response);
+                        console.info("DataPoints from standalone URL:");
+                        console.table(processedNewData);
+                        scope.render(processedNewData, processedPreviousRangeData);
                     }).error(function (reason, status) {
                         $log.error('Error Loading Chart Data:' + status + ", " + reason);
                     });
@@ -807,7 +805,6 @@ var Directives;
                     if (isListDefinedAndHasValues(newData)) {
                         $log.debug('Data Changed');
                         processedNewData = angular.fromJson(newData);
-                        console.dir(processedNewData);
                         scope.render(processedNewData, processedPreviousRangeData);
                     }
                 }, true);
@@ -841,7 +838,6 @@ var Directives;
                         multiChartOverlayData = [];
                     } else {
                         multiChartOverlayData = angular.fromJson(newMultiChartData);
-                        console.dir(multiChartOverlayData);
                     }
                     scope.render(processedNewData, processedPreviousRangeData);
                 });
@@ -857,32 +853,28 @@ var Directives;
                     if (angular.isDefined(newUrlData)) {
                         console.log('dataUrl has changed: ' + newUrlData);
                         dataUrl = newUrlData;
-                        processedNewData = loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
-                        scope.render(processedNewData, processedPreviousRangeData);
+                        loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                     }
                 });
 
                 scope.$watch('metricId', function (newMetricId) {
                     if (angular.isDefined(newMetricId)) {
                         metricId = newMetricId;
-                        processedNewData = loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
-                        scope.render(processedNewData, processedPreviousRangeData);
+                        loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                     }
                 });
 
                 scope.$watch('startTimestamp', function (newStartTimestamp) {
                     if (angular.isDefined(newStartTimestamp)) {
                         startTimestamp = +newStartTimestamp;
-                        processedNewData = loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
-                        scope.render(processedNewData, processedPreviousRangeData);
+                        loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                     }
                 });
 
                 scope.$watch('endTimestamp', function (newEndTimestamp) {
                     if (angular.isDefined(newEndTimestamp)) {
                         endTimestamp = +newEndTimestamp;
-                        processedNewData = loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
-                        scope.render(processedNewData, processedPreviousRangeData);
+                        loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                     }
                 });
 
@@ -893,8 +885,7 @@ var Directives;
                         //@todo: update timeout for refresh interval
                         endTimestamp = _.now();
                         startTimestamp = _.now() - refreshInterval;
-                        processedNewData = loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
-                        scope.render(processedNewData, processedPreviousRangeData);
+                        loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                     }
                 });
 
@@ -903,8 +894,7 @@ var Directives;
                         timeRangeInSeconds = newTimeRange;
                         endTimestamp = _.now();
                         startTimestamp = _.now() - timeRangeInSeconds;
-                        processedNewData = loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
-                        scope.render(processedNewData, processedPreviousRangeData);
+                        loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                     }
                 });
 
@@ -945,8 +935,6 @@ var Directives;
                         createHeader(attributes.chartTitle);
                         createYAxisGridLines();
                         createXAxisBrush();
-
-                        console.info('Chart Type: ' + chartType);
 
                         if (chartType === 'bar') {
                             createStackedBars(lowBound, highBound);

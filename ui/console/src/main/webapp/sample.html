@@ -4,33 +4,24 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>RHQ Metrics Console </title>
-    <meta name="description" content="RHQ Metrics Console">
+    <title>RHQ Metrics Standalone Chart Example </title>
+    <meta name="description" content="RHQ Metrics Standalone Chart Example">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
-    <link rel="shortcut icon" href="../dist/img/favicon.ico">
-    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="bower_components/patternfly/dist/img/apple-touch-icon-144-precomposed.png">
-    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="bower_components/patternfly/dist/img/apple-touch-icon-114-precomposed.png">
-    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="bower_components/patternfly/dist/img/apple-touch-icon-72-precomposed.png">
-    <link rel="apple-touch-icon-precomposed" href="bower_components/patternfly/dist/img/apple-touch-icon-57-precomposed.png">
     <!-- build:css styles/vendor.css -->
     <!-- bower:css -->
-    <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.css" />
-    <link rel="stylesheet" href="bower_components/toastr/toastr.css" />
-    <link rel="stylesheet" href="bower_components/patternfly/dist/css/patternfly.css" />
-    <link rel="stylesheet" href="bower_components/angular-busy/dist/angular-busy.css" />
     <!-- endbower -->
     <!-- endbuild -->
     <!-- build:css({.tmp,app}) styles/main.css -->
-    <link rel="stylesheet" href="css/font-awesome.css">
-    <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/d3-chart.css">
     <!-- endbuild -->
 
 </head>
 <body ng-app="chartingApp" class="container-fluid">
 
-<rhqm-chart chart-type="bar" metric-id="200" data-url="http://127.0.0.1:8080/rhq-metrics/metrics"  time-range-in-seconds="28800"  chart-height="250" ></rhqm-chart>
+<div style="height: 250px;" ng-controller="StandAloneController as vm">
+    <rhqm-chart chart-type="bar" metric-id="100" data-url="http://127.0.0.1:8080/rhq-metrics/metrics"  time-range-in-seconds="288"  chart-height="250" ></rhqm-chart>
+</div>
+
 
 
 
@@ -64,6 +55,7 @@
 <script src="scripts/directives/date-time-range-selection-directive.js"></script>
 <script src="scripts/controllers/dashboard-controller.js"></script>
 <script src="scripts/controllers/sidebar-controller.js"></script>
+<script src="scripts/controllers/stand-alone-controller.js"></script>
 <script src="scripts/controllers/config-controller.js"></script>
 <!-- endbuild -->
 </body>
