@@ -54,5 +54,8 @@ public interface MetricsService {
 
     ListenableFuture<List<NumericData>> tagData(String tenantId, Set<String> tags, String metric, long start, long end);
 
+    ListenableFuture<List<NumericData>> tagData(String tenantId, Set<String> tags, String metric,
+        long timestamp);
+
     ListenableFuture<Map<MetricId, Set<NumericData>>> findDataByTags(String tenantId, Set<String> tags);
 }

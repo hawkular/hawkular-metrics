@@ -244,6 +244,9 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     // TODO refactor to support multiple metrics
+    // Data for different metrics and for the same tag are stored within the same partition
+    // in the tags table; therefore, it makes sense for the API to support tagging multiple
+    // metrics since they could efficiently be inserted in a single batch statement.
     public ListenableFuture<List<NumericData>> tagData(String tenantId, final Set<String> tags, String metric,
         long start, long end) {
         ListenableFuture<List<NumericData>> queryFuture = findData(tenantId, metric, start, end);
@@ -263,7 +266,36 @@ public class MetricsServiceCassandra implements MetricsService {
                 });
             }
         }, metricsTasks);
-    };
+    }
+
+    @Override
+    public ListenableFuture<List<NumericData>> tagData(String tenantId, final Set<String> tags, String metric,
+        long timestamp) {
+        ListenableFuture<ResultSet> queryFuture = dataAccess.findNumericData(tenantId, new MetricId(metric), DPART,
+          timestamp);
+        ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper(false),
+            metricsTasks);
+        return Futures.transform(dataFuture, new AsyncFunction<List<NumericData>, List<NumericData>>() {
+            @Override
+            public ListenableFuture<List<NumericData>> apply(final List<NumericData> data) throws Exception {
+                if (data.isEmpty()) {
+                    List<NumericData> results = Collections.emptyList();
+                    return Futures.immediateFuture(results);
+                }
+                List<ResultSetFuture> insertFutures = new ArrayList<>(tags.size());
+                for (String tag : tags) {
+                    insertFutures.add(dataAccess.insertTag(tag, data));
+                }
+                ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
+                return Futures.transform(insertsFuture, new Function<List<ResultSet>, List<NumericData>>() {
+                    @Override
+                    public List<NumericData> apply(List<ResultSet> resultSets) {
+                        return data;
+                    }
+                });
+            }
+        });
+    }
 
     @Override
     public ListenableFuture<Map<MetricId, Set<NumericData>>> findDataByTags(String tenantId, Set<String> tags) {

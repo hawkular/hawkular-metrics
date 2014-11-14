@@ -170,6 +170,12 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
+    public ListenableFuture<List<NumericData>> tagData(String tenantId, Set<String> tags, String metric,
+        long timestamp) {
+        return null;
+    }
+
+    @Override
     public ListenableFuture<Map<MetricId, Set<NumericData>>> findDataByTags(String tenantId,
         Set<String> tags) {
         return null;

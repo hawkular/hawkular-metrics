@@ -20,26 +20,56 @@ import org.rhq.metrics.core.NumericData;
  */
 public class NumericDataMapper implements Function<ResultSet, List<NumericData>> {
 
+    private boolean includeAttributes;
+
+    public NumericDataMapper() {
+        this(true);
+    }
+
+    public NumericDataMapper(boolean includeAttributes) {
+        this.includeAttributes = includeAttributes;
+    }
+
     @Override
     public List<NumericData> apply(ResultSet resultSet) {
         List<NumericData> list = new ArrayList<>();
-        for (Row row : resultSet) {
-            NumericData d = new NumericData()
-                .setTenantId(row.getString(0))
-                .setId(new MetricId(row.getString(1), getInterval(row.getString(2))))
-                .setDpart(row.getLong(3))
-                .setTimeUUID(row.getUUID(4))
-                .putAttributes(row.getMap(5, String.class, String.class))
-                .setValue(row.getDouble(6));
+        if (includeAttributes) {
+            for (Row row : resultSet) {
+                NumericData d = new NumericData()
+                    .setTenantId(row.getString(0))
+                    .setId(new MetricId(row.getString(1), getInterval(row.getString(2))))
+                    .setDpart(row.getLong(3))
+                    .setTimeUUID(row.getUUID(4))
+                    .putAttributes(row.getMap(5, String.class, String.class))
+                    .setValue(row.getDouble(6));
 
-            Set<UDTValue> udtValues = row.getSet(7, UDTValue.class);
-            for (UDTValue udtValue : udtValues) {
-                d.addAggregatedValue(new AggregatedValue(udtValue.getString("type"), udtValue.getDouble("value"),
-                    udtValue.getString("src_metric"), getInterval(udtValue.getString("src_metric_interval")),
-                    udtValue.getUUID("time")));
+                Set<UDTValue> udtValues = row.getSet(7, UDTValue.class);
+                for (UDTValue udtValue : udtValues) {
+                    d.addAggregatedValue(new AggregatedValue(udtValue.getString("type"), udtValue.getDouble("value"),
+                        udtValue.getString("src_metric"), getInterval(udtValue.getString("src_metric_interval")),
+                        udtValue.getUUID("time")));
+                }
+
+                list.add(d);
             }
+        } else {
+            for (Row row : resultSet) {
+                NumericData d = new NumericData()
+                    .setTenantId(row.getString(0))
+                    .setId(new MetricId(row.getString(1), getInterval(row.getString(2))))
+                    .setDpart(row.getLong(3))
+                    .setTimeUUID(row.getUUID(4))
+                    .setValue(row.getDouble(5));
 
-            list.add(d);
+                Set<UDTValue> udtValues = row.getSet(6, UDTValue.class);
+                for (UDTValue udtValue : udtValues) {
+                    d.addAggregatedValue(new AggregatedValue(udtValue.getString("type"), udtValue.getDouble("value"),
+                        udtValue.getString("src_metric"), getInterval(udtValue.getString("src_metric_interval")),
+                        udtValue.getUUID("time")));
+                }
+
+                list.add(d);
+            }
         }
 
         return list;

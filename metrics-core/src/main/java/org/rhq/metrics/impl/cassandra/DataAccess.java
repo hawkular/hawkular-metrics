@@ -19,6 +19,7 @@ import com.datastax.driver.core.TupleType;
 import com.datastax.driver.core.TupleValue;
 import com.datastax.driver.core.UDTValue;
 import com.datastax.driver.core.UserType;
+import com.datastax.driver.core.utils.UUIDs;
 
 import org.rhq.metrics.core.AggregatedValue;
 import org.rhq.metrics.core.AggregationTemplate;
@@ -47,7 +48,9 @@ public class DataAccess {
 
     private PreparedStatement insertNumericData;
 
-    private PreparedStatement findNumericData;
+    private PreparedStatement findNumericDataByDateRangeExclusive;
+
+    private PreparedStatement findNumericDataByDateRangeInclusive;
 
     private PreparedStatement deleteNumericMetric;
 
@@ -86,10 +89,15 @@ public class DataAccess {
             "SET attributes = attributes + ?, raw = ?, aggregates = ? " +
             "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
-        findNumericData = session.prepare(
+        findNumericDataByDateRangeExclusive = session.prepare(
             "SELECT tenant_id, metric, interval, dpart, time, attributes, raw, aggregates " +
             "FROM numeric_data " +
             "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
+
+        findNumericDataByDateRangeInclusive = session.prepare(
+            "SELECT tenant_id, metric, interval, dpart, time, raw, aggregates " +
+            " FROM numeric_data " +
+            " WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time <= ?");
 
         deleteNumericMetric = session.prepare(
             "DELETE FROM numeric_data " +
@@ -203,8 +211,14 @@ public class DataAccess {
     }
 
     public ResultSetFuture findNumericData(String tenantId, MetricId id, long dpart, long startTime, long endTime) {
-        return session.executeAsync(findNumericData.bind(tenantId, id.getName(), id.getInterval().toString(), dpart,
-            TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
+        return session.executeAsync(
+            findNumericDataByDateRangeExclusive.bind(tenantId, id.getName(), id.getInterval().toString(), dpart,
+                TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
+    }
+
+    public ResultSetFuture findNumericData(String tenantId, MetricId id, long dpart, long timestamp) {
+        return session.executeAsync(findNumericDataByDateRangeInclusive.bind(tenantId, id.getName(),
+            id.getInterval().toString(), dpart, UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
     }
 
     public ResultSetFuture deleteNumericMetric(String tenantId, String metric, Interval interval, long dpart) {

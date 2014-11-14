@@ -251,8 +251,14 @@ public class MetricHandler {
     @POST
     @Path("/tags/numeric")
     public void tagNumericData(@Suspended final AsyncResponse asyncResponse, TagParams params) {
-        ListenableFuture<List<NumericData>> future = metricsService.tagData(DEFAULT_TENANT_ID, params.getTags(),
-            params.getMetric(), params.getStart(), params.getEnd());
+        ListenableFuture<List<NumericData>> future;
+        if (params.getTimestamp() != null) {
+            future = metricsService.tagData(DEFAULT_TENANT_ID, params.getTags(), params.getMetric(),
+                params.getTimestamp());
+        } else {
+            future = metricsService.tagData(DEFAULT_TENANT_ID, params.getTags(),
+                params.getMetric(), params.getStart(), params.getEnd());
+        }
         Futures.addCallback(future, new FutureCallback<List<NumericData>>() {
             @Override
             public void onSuccess(List<NumericData> data) {
@@ -283,19 +289,6 @@ public class MetricHandler {
                     // will always have a null attributes field, which might misleading. We may
                     // want to use a different return type that does not have an attributes property.
 
-//                    NumericDataOut output = new NumericDataOut();
-//                    output.setTenantId(data.get(0).getTenantId());
-//                    output.setName(data.get(0).getId().getName());
-//                    output.setAttributes(data.get(0).getAttributes());
-//
-//                    List<NumericDataPoint> dataPoints = new ArrayList<>(data.size());
-//                    for (NumericData d : data) {
-//                        NumericDataPoint p = new NumericDataPoint();
-//                        p.setTimestamp(d.getTimestamp());
-//                        p.setValue(d.getValue());
-//                        dataPoints.add(p);
-//                    }
-//                    output.setData(dataPoints);
                     Map<String, NumericDataOut> results = new HashMap<>();
                     NumericDataOut dataOut = null;
                     for (MetricId id : taggedDataMap.keySet()) {
@@ -315,8 +308,6 @@ public class MetricHandler {
                         results.put(id.getName(), dataOut);
                         dataOut = null;
                     }
-
-//                    asyncResponse.resume(Response.ok(taggedDataMap).type(MediaType.APPLICATION_JSON_TYPE).build());
                     asyncResponse.resume(Response.ok(results).type(MediaType.APPLICATION_JSON_TYPE).build());
                 }
             }

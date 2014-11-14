@@ -147,6 +147,11 @@ public class DataAccessTest extends MetricsTest {
     }
 
     @Test
+    public void findData() throws Exception {
+
+    }
+
+    @Test
     public void addAttributesToNumericRawData() throws Exception {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);

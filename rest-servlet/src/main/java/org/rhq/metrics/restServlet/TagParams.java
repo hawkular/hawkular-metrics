@@ -24,6 +24,8 @@ public class TagParams {
 
     private Long end;
 
+    private Long timestamp;
+
     public String getTenantId() {
         return tenantId;
     }
@@ -80,6 +82,14 @@ public class TagParams {
         this.end = end;
     }
 
+    public Long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Long timestamp) {
+        this.timestamp = timestamp;
+    }
+
     @Override
     public String toString() {
         return Objects.toStringHelper(this)
@@ -88,6 +98,7 @@ public class TagParams {
             .add("interval", interval)
             .add("metricType", metricType)
             .add("tags", tags)
+            .add("timestamp", timestamp)
             .add("start", start)
             .add("end", end)
             .toString();
