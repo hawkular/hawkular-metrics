@@ -19,4 +19,4 @@ then
    exit 1;
 fi
 
-java -Djava.net.preferIPv4Stack=true -jar target/ptrans-all.jar $*
+java -Djava.net.preferIPv4Stack=true -Dlog4j.configuration=file:log4j-dev.xml -jar target/ptrans-all.jar $*

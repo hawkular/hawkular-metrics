@@ -83,6 +83,12 @@
         <artifactId>exec-maven-plugin</artifactId>
         <configuration>
           <mainClass>org.rhq.metrics.clients.ptrans.Main</mainClass>
+          <systemProperties>
+            <systemProperty>
+              <key>log4j.configuration</key>
+              <value>file:${project.basedir}/log4j-dev.xml</value>
+            </systemProperty>
+          </systemProperties>
           <arguments>
             <argument>-c</argument>
             <argument>${project.basedir}/ptrans.conf</argument>
