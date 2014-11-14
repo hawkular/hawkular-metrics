@@ -27,6 +27,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
+import io.netty.util.concurrent.Future;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -71,7 +72,9 @@ public class Main {
     private int statsDport = STATSD_DEFAULT_PORT;
     private int collectdPort = COLLETCD_DEFAULT_PORT;
 
-    private Properties configuration;
+    private final Properties configuration;
+    private final EventLoopGroup group;
+    private final EventLoopGroup workerGroup;
 
     public static void main(String[] args) throws Exception {
         Options options = getCommandOptions();
@@ -112,86 +115,97 @@ public class Main {
     }
 
     private Main(File configFile) {
+        group = new NioEventLoopGroup();
+        workerGroup = new NioEventLoopGroup();
         configuration = loadConfigurationFromProperties(configFile);
         loadPortsFromProperties(configuration);
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            @Override
+            public void run() {
+                stop();
+            }
+        }));
     }
 
     private void run() throws Exception {
-        EventLoopGroup group = new NioEventLoopGroup();
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
-
         final RestForwardingHandler forwardingHandler = new RestForwardingHandler(configuration);
 
+        // The generic TCP socket server
+        ServerBootstrap serverBootstrap = new ServerBootstrap();
+        serverBootstrap.group(group, workerGroup).channel(NioServerSocketChannel.class).localAddress(tcpPort)
+            .childHandler(new ChannelInitializer<SocketChannel>() {
+                @Override
+                public void initChannel(SocketChannel socketChannel) throws Exception {
+                    ChannelPipeline pipeline = socketChannel.pipeline();
+                    pipeline.addLast(new DemuxHandler(configuration, forwardingHandler));
+                }
+            });
+        ChannelFuture graphiteFuture = serverBootstrap.bind().sync();
+        logger.info("Server listening on TCP " + graphiteFuture.channel().localAddress());
+        graphiteFuture.channel().closeFuture();
+
+        // The syslog UPD socket server
+        Bootstrap udpBootstrap = new Bootstrap();
+        udpBootstrap.group(group).channel(NioDatagramChannel.class).localAddress(udpPort)
+            .handler(new ChannelInitializer<Channel>() {
+                @Override
+                public void initChannel(Channel socketChannel) throws Exception {
+                    ChannelPipeline pipeline = socketChannel.pipeline();
+                    pipeline.addLast(new UdpSyslogEventDecoder());
+
+                    pipeline.addLast(forwardingHandler);
+                }
+            });
+        ChannelFuture udpFuture = udpBootstrap.bind().sync();
+        logger.info("Syslogd listening on udp " + udpFuture.channel().localAddress());
+
+        // Try to set up an upd listener for Ganglia Messages
+        setupGangliaUdp(group, forwardingHandler);
+
+        // Setup statsd listener
+        setupStatsdUdp(group, forwardingHandler);
+
+        // Setup collectd listener
+        setupCollectdUdp(group, forwardingHandler);
+
+        udpFuture.channel().closeFuture().sync();
+    }
+
+    private void stop() {
+        logger.info("Stopping ptrans...");
+        Future<?> groupShutdownFuture = group.shutdownGracefully();
+        Future<?> workerGroupShutdownFuture = workerGroup.shutdownGracefully();
         try {
-
-            // The generic TCP socket server
-            ServerBootstrap serverBootstrap = new ServerBootstrap();
-            serverBootstrap.group(group, workerGroup).channel(NioServerSocketChannel.class).localAddress(tcpPort)
-                .childHandler(new ChannelInitializer<SocketChannel>() {
-                    @Override
-                    public void initChannel(SocketChannel socketChannel) throws Exception {
-                        ChannelPipeline pipeline = socketChannel.pipeline();
-                        pipeline.addLast(new DemuxHandler(configuration, forwardingHandler));
-                    }
-                });
-            ChannelFuture graphiteFuture = serverBootstrap.bind().sync();
-            logger.info("Server listening on TCP " + graphiteFuture.channel().localAddress());
-            graphiteFuture.channel().closeFuture();
-
-            // The syslog UPD socket server
-            Bootstrap udpBootstrap = new Bootstrap();
-            udpBootstrap.group(group).channel(NioDatagramChannel.class).localAddress(udpPort)
-                .handler(new ChannelInitializer<Channel>() {
-                    @Override
-                    public void initChannel(Channel socketChannel) throws Exception {
-                        ChannelPipeline pipeline = socketChannel.pipeline();
-                        pipeline.addLast(new UdpSyslogEventDecoder());
-
-                        pipeline.addLast(forwardingHandler);
-                    }
-                });
-            ChannelFuture udpFuture = udpBootstrap.bind().sync();
-            logger.info("Syslogd listening on udp " + udpFuture.channel().localAddress());
-
-            // Try to set up an upd listener for Ganglia Messages
-            setupGangliaUdp(group, forwardingHandler);
-
-            // Setup statsd listener
-            setupStatsdUdp(group, forwardingHandler);
-
-            // Setup collectd listener
-            setupCollectdUdp(group, forwardingHandler);
-
-            udpFuture.channel().closeFuture().sync();
-        } finally {
-            group.shutdownGracefully().sync();
-            workerGroup.shutdownGracefully().sync();
+            groupShutdownFuture.sync();
+        } catch (InterruptedException ignored) {
         }
+        try {
+            workerGroupShutdownFuture.sync();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        logger.info("Stopped");
     }
 
     private void setupCollectdUdp(EventLoopGroup group, final ChannelInboundHandlerAdapter forwardingHandler) {
         Bootstrap collectdBootstrap = new Bootstrap();
-        collectdBootstrap
-                .group(group)
-                .channel(NioDatagramChannel.class)
-                .localAddress(collectdPort)
-                .handler(new ChannelInitializer<Channel>() {
-                    @Override
-                    public void initChannel(Channel socketChannel) throws Exception {
-                        ChannelPipeline pipeline = socketChannel.pipeline();
-                        pipeline.addLast(new CollectdPacketDecoder());
-                        pipeline.addLast(new CollectdEventsDecoder());
-                        pipeline.addLast(new CollectdEventHandler());
-                        pipeline.addLast(new MetricBatcher("collectd"));
-                        pipeline.addLast(forwardingHandler);
-                    }
-                })
-        ;
+        collectdBootstrap.group(group).channel(NioDatagramChannel.class).localAddress(collectdPort)
+            .handler(new ChannelInitializer<Channel>() {
+                @Override
+                public void initChannel(Channel socketChannel) throws Exception {
+                    ChannelPipeline pipeline = socketChannel.pipeline();
+                    pipeline.addLast(new CollectdPacketDecoder());
+                    pipeline.addLast(new CollectdEventsDecoder());
+                    pipeline.addLast(new CollectdEventHandler());
+                    pipeline.addLast(new MetricBatcher("collectd"));
+                    pipeline.addLast(forwardingHandler);
+                }
+            });
         try {
             ChannelFuture collectdFuture = collectdBootstrap.bind().sync();
             logger.info("Collectd listening on udp " + collectdFuture.channel().localAddress());
         } catch (InterruptedException e) {
-            e.printStackTrace();  // TODO: Customise this generated block
+            e.printStackTrace(); // TODO: Customise this generated block
         }
     }
 
@@ -280,6 +294,7 @@ public class Main {
         gangliaPort = Integer.parseInt(configuration.getProperty("ganglia.port", String.valueOf(GANGLIA_DEFAULT_PORT)));
         multicastIfOverride = configuration.getProperty("multicast.interface");
         statsDport = Integer.parseInt(configuration.getProperty("statsd.port", String.valueOf(STATSD_DEFAULT_PORT)));
-        collectdPort = Integer.parseInt(configuration.getProperty("collectd.port", String.valueOf(COLLETCD_DEFAULT_PORT)));
+        collectdPort = Integer.parseInt(configuration.getProperty("collectd.port",
+            String.valueOf(COLLETCD_DEFAULT_PORT)));
     }
 }
