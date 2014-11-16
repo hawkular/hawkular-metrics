@@ -2,6 +2,7 @@ target/
 .idea/
 *.iml
 *.swp
+*.js.map
 *.patch
 .metadata/
 *.ipr
