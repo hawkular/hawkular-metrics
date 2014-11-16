@@ -133,6 +133,7 @@ var Controllers;
             }, function () {
                 if (_this.selectedMetrics.length > 0) {
                     _this.saveChartGroup(_this.defaultGroupName);
+                    _this.$rootScope.$broadcast('SelectedMetricsChangedEvent', _this.selectedMetrics);
                 }
             });
         }

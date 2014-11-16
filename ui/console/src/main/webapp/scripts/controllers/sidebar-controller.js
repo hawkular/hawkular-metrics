@@ -23,7 +23,23 @@ var Controllers;
                 _this.populateMetricsSidebar();
                 _this.$rootScope.$emit('LoadInitialChartGroup');
             });
+
+            $scope.$on('SelectedMetricsChangedEvent', function (event, selectedMetrics) {
+                _this.selectedMetricsChanged(selectedMetrics);
+            });
         }
+        SidebarController.prototype.selectedMetricsChanged = function (selectedMetrics) {
+            _.each(this.allMetrics, function (metric) {
+                console.log('Metric ' + metric.title);
+                _.each(selectedMetrics, function (selectedMetric) {
+                    if (selectedMetric === metric.title) {
+                        console.info("Selected Checked Metric: " + selectedMetric);
+                        metric.selected = true;
+                    }
+                });
+            });
+        };
+
         SidebarController.prototype.populateMetricsSidebar = function () {
             var _this = this;
             this.retrieveMetricsPromise = this.metricDataService.getAllMetrics().then(function (response) {

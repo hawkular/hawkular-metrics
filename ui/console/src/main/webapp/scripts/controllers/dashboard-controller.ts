@@ -161,6 +161,7 @@ module Controllers {
                 () => {
                     if(this.selectedMetrics.length > 0){
                         this.saveChartGroup(this.defaultGroupName);
+                        this.$rootScope.$broadcast('SelectedMetricsChangedEvent', this.selectedMetrics);
                     }
                 });
 
