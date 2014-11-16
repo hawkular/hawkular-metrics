@@ -238,7 +238,11 @@ var Controllers;
         };
 
         DashboardController.prototype.getChartDataFor = function (metricId) {
-            return this.chartData[metricId].dataPoints;
+            if (angular.isUndefined(this.chartData[metricId])) {
+                return;
+            } else {
+                return this.chartData[metricId].dataPoints;
+            }
         };
 
         DashboardController.prototype.refreshPreviousRangeDataForTimestamp = function (metricId, previousRangeStartTime, previousRangeEndTime) {

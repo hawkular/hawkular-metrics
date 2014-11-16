@@ -275,7 +275,11 @@ module Controllers {
         }
 
         getChartDataFor(metricId:string):IChartDataPoint[] {
-            return this.chartData[metricId].dataPoints;
+            if(angular.isUndefined(this.chartData[metricId])){
+                return;
+            }else {
+                return this.chartData[metricId].dataPoints;
+            }
         }
 
         refreshPreviousRangeDataForTimestamp(metricId:string, previousRangeStartTime:number, previousRangeEndTime:number):void {

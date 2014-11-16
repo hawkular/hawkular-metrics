@@ -30,10 +30,8 @@ var Controllers;
         }
         SidebarController.prototype.selectedMetricsChanged = function (selectedMetrics) {
             _.each(this.allMetrics, function (metric) {
-                console.log('Metric ' + metric.title);
                 _.each(selectedMetrics, function (selectedMetric) {
                     if (selectedMetric === metric.title) {
-                        console.info("Selected Checked Metric: " + selectedMetric);
                         metric.selected = true;
                     }
                 });

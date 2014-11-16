@@ -44,10 +44,8 @@ module Controllers {
 
         private selectedMetricsChanged(selectedMetrics:string[]) {
             _.each(this.allMetrics, function(metric:ISelectedMetric){
-                console.log('Metric ' + metric.title);
                 _.each(selectedMetrics, function(selectedMetric:string){
                     if(selectedMetric === metric.title){
-                       console.info("Selected Checked Metric: " + selectedMetric);
                         metric.selected = true;
                     }
                 });
