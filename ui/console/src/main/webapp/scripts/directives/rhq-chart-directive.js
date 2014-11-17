@@ -11,19 +11,17 @@ var Directives;
     */
     angular.module('rhqm.directives', []).directive('rhqmChart', [
         '$rootScope', '$http', '$log', 'BASE_URL', function ($rootScope, $http, $log, BASE_URL) {
-            function link(scope, element, attributes) {
-                console.log('link dataUrl: ' + attributes.dataUrl);
-
-                var dataPoints = [], dataUrl = attributes.dataUrl || 'http://127.0.0.1:8080/rhq-metrics/metrics/', metricId = attributes.metricId || '', startTimestamp = +attributes.startTimestamp || 1415833180222, endTimestamp = +attributes.endTimestamp || _.now(), refreshInterval = +attributes.refreshInterval || 3600, timeRangeInSeconds = +attributes.timeRangeInSeconds || 28800, previousRangeDataPoints = [], annotationData = [], contextData = [], multiChartOverlayData = [], chartHeight = +attributes.chartHeight || 250, chartType = attributes.chartType || 'bar', timeLabel = attributes.timeLabel || 'Time', dateLabel = attributes.dateLabel || 'Date', singleValueLabel = attributes.singleValueLabel || 'Raw Value', noDataLabel = attributes.noDataLabel || 'No Data', aggregateLabel = attributes.aggregateLabel || 'Aggregate', startLabel = attributes.startLabel || 'Start', endLabel = attributes.endLabel || 'End', durationLabel = attributes.durationLabel || 'Bar Duration', minLabel = attributes.minLabel || 'Min', maxLabel = attributes.maxLabel || 'Max', avgLabel = attributes.avgLabel || 'Avg', timestampLabel = attributes.timestampLabel || 'Timestamp', highBarColor = attributes.highBarColor || '#1794bc', lowBarColor = attributes.lowBarColor || '#70c4e2', leaderBarColor = attributes.leaderBarColor || '#d3d3d6', rawValueBarColor = attributes.rawValueBarColor || '#50505a', avgLineColor = attributes.avgLineColor || '#2e376a', showAvgLine = true, hideHighLowValues = false, chartHoverDateFormat = attributes.chartHoverDateFormat || '%m/%d/%y', chartHoverTimeFormat = attributes.chartHoverTimeFormat || '%I:%M:%S %p', buttonBarDateTimeFormat = attributes.buttonbarDatetimeFormat || 'MM/DD/YYYY h:mm a';
+            function link(scope, element, attrs) {
+                var dataPoints = [], dataUrl = attrs.dataUrl || 'http://10.3.10.81:8080/rhq-metrics/metrics/', metricId = attrs.metricId || '', timeRangeInSeconds = +attrs.timeRangeInSeconds || 43200, refreshInterval = +attrs.refreshInterval || 3600, endTimestamp = _.now(), startTimestamp = endTimestamp - timeRangeInSeconds, previousRangeDataPoints = [], annotationData = [], contextData = [], multiChartOverlayData = [], chartHeight = +attrs.chartHeight || 250, chartType = attrs.chartType || 'bar', timeLabel = attrs.timeLabel || 'Time', dateLabel = attrs.dateLabel || 'Date', singleValueLabel = attrs.singleValueLabel || 'Raw Value', noDataLabel = attrs.noDataLabel || 'No Data', aggregateLabel = attrs.aggregateLabel || 'Aggregate', startLabel = attrs.startLabel || 'Start', endLabel = attrs.endLabel || 'End', durationLabel = attrs.durationLabel || 'Bar Duration', minLabel = attrs.minLabel || 'Min', maxLabel = attrs.maxLabel || 'Max', avgLabel = attrs.avgLabel || 'Avg', timestampLabel = attrs.timestampLabel || 'Timestamp', highBarColor = attrs.highBarColor || '#1794bc', lowBarColor = attrs.lowBarColor || '#70c4e2', leaderBarColor = attrs.leaderBarColor || '#d3d3d6', rawValueBarColor = attrs.rawValueBarColor || '#50505a', avgLineColor = attrs.avgLineColor || '#2e376a', showAvgLine = true, hideHighLowValues = false, chartHoverDateFormat = attrs.chartHoverDateFormat || '%m/%d/%y', chartHoverTimeFormat = attrs.chartHoverTimeFormat || '%I:%M:%S %p', buttonBarDateTimeFormat = attrs.buttonbarDatetimeFormat || 'MM/DD/YYYY h:mm a';
 
                 // chart specific vars
                 var margin = { top: 10, right: 5, bottom: 5, left: 90 }, contextMargin = { top: 150, right: 5, bottom: 5, left: 90 }, xAxisContextMargin = { top: 190, right: 5, bottom: 5, left: 90 }, width = 750 - margin.left - margin.right, adjustedChartHeight = chartHeight - 50, height = adjustedChartHeight - margin.top - margin.bottom, smallChartThresholdInPixels = 600, titleHeight = 30, titleSpace = 10, innerChartHeight = height + margin.top - titleHeight - titleSpace + margin.bottom, adjustedChartHeight2 = +titleHeight + titleSpace + margin.top, barOffset = 2, chartData, calcBarWidth, yScale, timeScale, yAxis, xAxis, tip, brush, brushGroup, timeScaleForBrush, timeScaleForContext, chart, chartParent, context, contextArea, svg, lowBound, highBound, avg, peak, min, processedNewData, processedPreviousRangeData;
 
-                dataPoints = attributes.data;
-                previousRangeDataPoints = attributes.previousRangeData;
-                multiChartOverlayData = attributes.multiChartOverlayData;
-                annotationData = attributes.annotationData;
-                contextData = attributes.contextData;
+                dataPoints = attrs.data;
+                previousRangeDataPoints = attrs.previousRangeData;
+                multiChartOverlayData = attrs.multiChartOverlayData;
+                annotationData = attrs.annotationData;
+                contextData = attrs.contextData;
 
                 function xStartPosition(d) {
                     return timeScale(d.timestamp) + (calcBarWidth() / 2);
@@ -147,7 +145,6 @@ var Directives;
 
                 function getBaseUrl() {
                     var baseUrl;
-                    console.warn("DataUrl: " + dataUrl);
                     if (angular.isUndefined(dataUrl) || dataUrl === '') {
                         baseUrl = 'http://' + $rootScope.$storage.server.replace(/['"]+/g, '') + ':' + $rootScope.$storage.port + BASE_URL;
                     } else {
@@ -705,7 +702,7 @@ var Directives;
                     xAxisGroup.append("g").attr("class", "x brush").call(brush).selectAll("rect").attr("y", -6).attr("height", 30);
 
                     // create y-axis
-                    svg.append("g").attr("class", "y axis").call(yAxis).append("text").attr("transform", "rotate(-90),translate( -70,-40)").attr("y", -30).style("text-anchor", "end").text(attributes.yAxisUnits === "NONE" ? "" : attributes.yAxisUnits);
+                    svg.append("g").attr("class", "y axis").call(yAxis).append("text").attr("transform", "rotate(-90),translate( -70,-40)").attr("y", -30).style("text-anchor", "end").text(attrs.yAxisUnits === "NONE" ? "" : attrs.yAxisUnits);
                 }
 
                 function createCenteredLine(newInterpolation) {
@@ -727,12 +724,14 @@ var Directives;
                 function createXAxisBrush() {
                     brush = d3.svg.brush().x(timeScaleForBrush).on("brushstart", brushStart).on("brush", brushMove).on("brushend", brushEnd);
 
-                    brushGroup = svg.append("g").attr("class", "brush").call(brush);
-
-                    brushGroup.selectAll(".resize").append("path");
-
-                    brushGroup.selectAll("rect").attr("height", height);
-
+                    //brushGroup = svg.append("g")
+                    //    .attr("class", "brush")
+                    //    .call(brush);
+                    //
+                    //brushGroup.selectAll(".resize").append("path");
+                    //
+                    //brushGroup.selectAll("rect")
+                    //    .attr("height", height);
                     function brushStart() {
                         svg.classed("selecting", true);
                     }
@@ -849,52 +848,39 @@ var Directives;
                     }
                 });
 
+                function loadMetricsTimeRangeFromNow() {
+                    endTimestamp = _.now();
+                    startTimestamp = moment().subtract('seconds', timeRangeInSeconds).valueOf();
+                    loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
+                }
+
                 scope.$watch('dataUrl', function (newUrlData) {
                     if (angular.isDefined(newUrlData)) {
                         console.log('dataUrl has changed: ' + newUrlData);
                         dataUrl = newUrlData;
-                        loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                     }
                 });
 
                 scope.$watch('metricId', function (newMetricId) {
                     if (angular.isDefined(newMetricId)) {
+                        console.log('metricId has changed: ' + newMetricId);
                         metricId = newMetricId;
-                        loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
-                    }
-                });
-
-                scope.$watch('startTimestamp', function (newStartTimestamp) {
-                    if (angular.isDefined(newStartTimestamp)) {
-                        startTimestamp = +newStartTimestamp;
-                        loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
-                    }
-                });
-
-                scope.$watch('endTimestamp', function (newEndTimestamp) {
-                    if (angular.isDefined(newEndTimestamp)) {
-                        endTimestamp = +newEndTimestamp;
-                        loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
+                        loadMetricsTimeRangeFromNow();
                     }
                 });
 
                 scope.$watch('refreshInterval', function (newRefreshInterval) {
                     if (angular.isDefined(newRefreshInterval)) {
+                        console.log("refreshInterval changed.");
                         refreshInterval = newRefreshInterval;
-
                         //@todo: update timeout for refresh interval
-                        endTimestamp = _.now();
-                        startTimestamp = _.now() - refreshInterval;
-                        loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                     }
                 });
 
                 scope.$watch('timeRangeInSeconds', function (newTimeRange) {
                     if (angular.isDefined(newTimeRange)) {
+                        console.log("timeRangeInSeconds changed.");
                         timeRangeInSeconds = newTimeRange;
-                        endTimestamp = _.now();
-                        startTimestamp = _.now() - timeRangeInSeconds;
-                        loadMetricsForTimeRange(getBaseUrl(), metricId, startTimestamp, endTimestamp, 60);
                     }
                 });
 
@@ -932,7 +918,7 @@ var Directives;
                         //NOTE: layering order is important!
                         oneTimeChartSetup();
                         determineScale(dataPoints);
-                        createHeader(attributes.chartTitle);
+                        createHeader(attrs.chartTitle);
                         createYAxisGridLines();
                         createXAxisBrush();
 

@@ -179,8 +179,7 @@ module Controllers {
 
 
         getChartHtmlTextToCopy(metricId:string):string {
-            var chartHtml = '<rhqm-chart chart-type="bar" metric-id="'+metricId+'" data-url="'+this.metricDataService.getBaseUrl()+'" start-timestamp="'+this.currentTimeRange.startTimeStamp+'" end-timestamp="'+this.currentTimeRange.endTimeStamp+'"  chart-height="250" ></rhqm-chart>';
-            return chartHtml;
+            return '<rhqm-chart chart-type="bar" metric-id="'+metricId+'" data-url="'+this.metricDataService.getBaseUrl()+'" timeRangeInSeconds="'+this.currentTimeRange.getIntervalInSeconds()+'"  chart-height="250" ></rhqm-chart>';
         }
 
         clickChartHtmlCopy():void {

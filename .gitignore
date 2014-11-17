@@ -6,15 +6,12 @@ target/
 *.patch
 .metadata/
 *.ipr
-.DS_Store/
 .settings
 .project
 .classpath
 *node_modules/
 *.log
 *.tmp/
-.DS_Store
-console/.DS_Store
-rest-servlet/.DS_Store
+*.DS_Store
 nb-configuration.xml
 *~
