@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Interval;
+import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
@@ -53,6 +54,13 @@ public class MetricsServiceCassandra implements MetricsService {
     private static final long DPART = 0;
 
     private static final int RAW_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
+
+    private static final Function<ResultSet, Void> RESULT_SET_TO_VOID = new Function<ResultSet, Void>() {
+        @Override
+        public Void apply(ResultSet resultSet) {
+            return null;
+        }
+    };
 
     private static final Function<List<ResultSet>, Void> RESULT_SETS_TO_VOID = new Function<List<ResultSet>, Void>() {
         @Override
@@ -140,23 +148,39 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> addNumericData(Set<NumericData> data) {
+    public ListenableFuture<Void> insertMetric(Metric metric) {
+        ResultSetFuture insertFuture = dataAccess.addAttributes(metric);
+        return Futures.transform(insertFuture, RESULT_SET_TO_VOID);
+    }
+
+    @Override
+    public ListenableFuture<Void> addNumericData(List<NumericData> data) {
         List<ResultSetFuture> futures = new ArrayList<>(data.size());
-        for (NumericData d : data) {
-            permits.acquire();
-            if (d.getTimeUUID() == null) {
-                futures.add(dataAccess.addNumericAttributes(d.getTenantId(), d.getId(), DPART, d.getAttributes()));
-            } else {
-                futures.add(dataAccess.insertNumericData(d));
-            }
-        }
-        ListenableFuture<List<ResultSet>> insertsFuture = Futures.successfulAsList(futures);
-        // TODO Should we include any errors in the return value?
-        // By returning a void future, we swallow any errors that might occur which if
-        // nothing else makes development/testing more difficult. We ought to propagate
-        // errors back to the client. Doing it with Guava's futures can be limiting. Might
-        // be better and easier to tackle with RxJava's Observables.
-        return Futures.transform(insertsFuture, RESULT_SETS_TO_VOID);
+//        for (Metric metric : metrics) {
+//            // There are several cases to handle
+//            //  1) the metric includes attributes and no data
+//            //  2) the metric includes attributes and data
+//            //  3) the metric includes data and no attributes
+//            //  4) the metric includes neither attributes nor data
+//            //  5) data includes tags
+//            //
+//            // When there are data and attributes, we want to do a separate write for the
+//            // attributes since they apply to all of the data. We can include that write
+//            // in the same batch statement as the the data point writes since they are all
+//            // going to the same partition.
+//            //
+//            // Case 4. should be reported as an error.
+//            permits.acquire();
+//            if (metric.getData().isEmpty()) {
+//                // TODO report an error if attributes is null or empty
+//                futures.add(dataAccess.addNumericAttributes(metric.getTenantId(), metric.getId(), metric.getDpart(),
+//                    metric.getAttributes()));
+//            } else {
+//                futures.add(dataAccess.insertNumericData(metric));
+//            }
+//        }
+        ResultSetFuture insertFuture = dataAccess.insertNumericData(data);
+        return Futures.transform(insertFuture, RESULT_SET_TO_VOID, metricsTasks);
     }
 
     @Override
@@ -189,7 +213,7 @@ public class MetricsServiceCassandra implements MetricsService {
     @Override
     public ListenableFuture<List<NumericData>> findData(String tenantId, String id, long start, long end) {
         ResultSetFuture future = dataAccess.findNumericData(tenantId, new MetricId(id), DPART, start, end);
-        return Futures.transform(future, numericDataMapper, metricsTasks);
+        return Futures.transform(future, new NumericDataMapper(), metricsTasks);
     }
 
     @Override

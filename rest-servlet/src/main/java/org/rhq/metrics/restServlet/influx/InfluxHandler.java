@@ -268,11 +268,8 @@ public class InfluxHandler {
                     System.out.println("Mapping of " + query + " not yet supported");
 
                 }
-                out.add(new NumericData()
-                    .setTenantId(DEFAULT_TENANT_ID)
-                    .setId(firstElementInList.getId())
-                    .setTimestamp(firstElementInList.getTimestamp())
-                    .setValue(retVal));
+                Metric metric = new Metric().setTenantId(DEFAULT_TENANT_ID).setId(firstElementInList.getMetric().getId());
+                out.add(new NumericData(metric, firstElementInList.getTimestamp(), retVal));
             }
         }
 

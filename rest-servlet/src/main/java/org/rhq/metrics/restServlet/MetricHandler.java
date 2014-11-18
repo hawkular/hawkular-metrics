@@ -45,6 +45,7 @@ import gnu.trove.map.hash.TLongObjectHashMap;
 import org.jboss.resteasy.annotations.GZIP;
 
 import org.rhq.metrics.core.Counter;
+import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericData;
@@ -80,8 +81,8 @@ public class MetricHandler {
     @Consumes({"application/json","application/xml"})
     @ApiOperation("Adds a single data point for the given id.")
     public void addMetric(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id, IdDataPoint dataPoint) {
-        addData(asyncResponse, ImmutableSet.of(new NumericData().setTenantId(DEFAULT_TENANT_ID).setId(new MetricId(id))
-            .setTimestamp(dataPoint.getTimestamp()).setValue(dataPoint.getValue())));
+        Metric metric = new Metric().setTenantId(DEFAULT_TENANT_ID).setId(new MetricId(id));
+        addData(asyncResponse, asList(new NumericData(metric, dataPoint.getTimestamp(), dataPoint.getValue())));
     }
 
     @POST
@@ -89,20 +90,16 @@ public class MetricHandler {
     @Consumes({"application/json","application/xml"})
     @ApiOperation("Add a collection of data. Values can be for different metric ids.")
     public void addMetrics(@Suspended AsyncResponse asyncResponse, Collection<IdDataPoint> dataPoints) {
-
-        Set<NumericData> rawSet = new HashSet<>(dataPoints.size());
+        List<NumericData> data = new ArrayList<>(dataPoints.size());
         for (IdDataPoint dataPoint : dataPoints) {
-            rawSet.add(new NumericData()
-                .setTenantId(DEFAULT_TENANT_ID)
-                .setId(new MetricId(dataPoint.getId()))
-                .setTimestamp(dataPoint.getTimestamp())
-                .setValue(dataPoint.getValue()));
-        }
+            Metric metric = new Metric().setTenantId(DEFAULT_TENANT_ID).setId(new MetricId(dataPoint.getId()));
+            data.add(new NumericData(metric, dataPoint.getTimestamp(), dataPoint.getValue()));
 
-        addData(asyncResponse, rawSet);
+        }
+        addData(asyncResponse, data);
     }
 
-    private void addData(final AsyncResponse asyncResponse, Set<NumericData> rawData) {
+    private void addData(final AsyncResponse asyncResponse, List<NumericData> rawData) {
         ListenableFuture<Void> future = metricsService.addNumericData(rawData);
         Futures.addCallback(future, new FutureCallback<Void>() {
             @Override
@@ -123,34 +120,21 @@ public class MetricHandler {
     @Consumes("application/json")
     public void addNumericData(@Suspended final AsyncResponse asyncResponse, NumericDataParams params) {
         logger.info("params = " + params);
-        Set<NumericData> data;
+        Metric metric = new Metric()
+            .setTenantId(params.getTenantId())
+            .setId(new MetricId(params.getName()))
+            .setAttributes(params.getAttributes());
+        ListenableFuture<Void> future;
 
         if (params.getData().isEmpty()) {
-            if (params.getTimestamp() == null || params.getValue() == null) {
-                data = ImmutableSet.of(new NumericData()
-                    .setTenantId(params.getTenantId())
-                    .setId(new MetricId(params.getName()))
-                    .putAttributes(params.getAttributes()));
-            } else {
-                data = ImmutableSet.of(new NumericData()
-                    .setTenantId(params.getTenantId())
-                    .setId(new MetricId(params.getName()))
-                    .putAttributes(params.getAttributes())
-                    .setTimestamp(params.getTimestamp())
-                    .setValue(params.getValue()));
-            }
+            future = metricsService.insertMetric(metric);
         } else {
-            data = new HashSet<>();
+            List<NumericData> data = new ArrayList<>();
             for (NumericDataPoint p : params.getData()) {
-                data.add(new NumericData()
-                    .setTenantId(params.getTenantId())
-                    .setId(new MetricId(params.getName()))
-                    .putAttributes(params.getAttributes())
-                    .setTimestamp(p.getTimestamp())
-                    .setValue(p.getValue()));
+                data.add(new NumericData(metric, p.getTimestamp(), p.getValue()));
             }
+            future = metricsService.addNumericData(data);
         }
-        ListenableFuture<Void> future = metricsService.addNumericData(data);
         Futures.addCallback(future, new FutureCallback<Void>() {
             @Override
             public void onSuccess(Void result) {
@@ -181,8 +165,8 @@ public class MetricHandler {
                     for (NumericData d : taggedDataMap.get(id)) {
                         if (dataOut == null) {
                             dataOut = new NumericDataOut();
-                            dataOut.setTenantId(d.getTenantId());
-                            dataOut.setName(d.getId().getName());
+                            dataOut.setTenantId(d.getMetric().getTenantId());
+                            dataOut.setName(d.getMetric().getId().getName());
                         }
                         NumericDataPoint p = new NumericDataPoint();
                         p.setTimestamp(d.getTimestamp());
@@ -224,9 +208,9 @@ public class MetricHandler {
                     asyncResponse.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
                 } else {
                     NumericDataOut output = new NumericDataOut();
-                    output.setTenantId(data.get(0).getTenantId());
-                    output.setName(data.get(0).getId().getName());
-                    output.setAttributes(data.get(0).getAttributes());
+                    output.setTenantId(data.get(0).getMetric().getTenantId());
+                    output.setName(data.get(0).getMetric().getId().getName());
+                    output.setAttributes(data.get(0).getMetric().getAttributes());
 
                     List<NumericDataPoint> dataPoints = new ArrayList<>(data.size());
                     for (NumericData d : data) {
@@ -296,8 +280,8 @@ public class MetricHandler {
                         for (NumericData d : taggedDataMap.get(id)) {
                             if (dataOut == null) {
                                 dataOut = new NumericDataOut();
-                                dataOut.setTenantId(d.getTenantId());
-                                dataOut.setName(d.getId().getName());
+                                dataOut.setTenantId(d.getMetric().getTenantId());
+                                dataOut.setName(d.getMetric().getId().getName());
                             }
                             NumericDataPoint p = new NumericDataPoint();
                             p.setTimestamp(d.getTimestamp());
@@ -536,7 +520,7 @@ public class MetricHandler {
                                                 points.add(point);
                                             }
                                         } else {
-                                            point = getBucketDataPoint(tmpList.get(0).getId().getName(),
+                                            point = getBucketDataPoint(tmpList.get(0).getMetric().getId().getName(),
                                                 1000L * i * bucketWidthSeconds, tmpList);
                                             points.add(point);
                                         }

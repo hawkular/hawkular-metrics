@@ -1,9 +1,7 @@
 package org.rhq.metrics.core;
 
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -27,18 +25,17 @@ public class NumericData {
         }
     };
 
-    private String tenantId;
+    private Metric metric;
 
-//    private String metric;
+//    private String tenantId;
 //
-//    private Interval interval = Interval.NONE;
-    private MetricId id;
-
-    private long dpart;
-
+//    private MetricId id;
+//
+//    private long dpart;
+//
     private UUID timeUUID;
-
-    private Map<String, String> attributes = new HashMap<>();
+//
+//    private Map<String, String> attributes = new HashMap<>();
 
     // value and aggregatedValues are mutually exclusive. One or the other should be set
     // but not both. It may make sense to introduce subclasses for raw and aggregated data.
@@ -47,26 +44,36 @@ public class NumericData {
 
     private Set<AggregatedValue> aggregatedValues = new HashSet<>();
 
+    public NumericData(Metric metric, long timestamp, double value) {
+        this(metric, TimeUUIDUtils.getTimeUUID(timestamp), value);
+    }
+
+    public NumericData(Metric metric, UUID timeUUID, double value) {
+        this.metric = metric;
+        this.timeUUID = timeUUID;
+        this.value = value;
+    }
+
     /**
      * The tenant to which this metric belongs.
      */
-    public String getTenantId() {
-        return tenantId;
-    }
+//    public String getTenantId() {
+//        return tenantId;
+//    }
+//
+//    public NumericData setTenantId(String tenantId) {
+//        this.tenantId = tenantId;
+//        return this;
+//    }
 
-    public NumericData setTenantId(String tenantId) {
-        this.tenantId = tenantId;
-        return this;
-    }
-
-    public MetricId getId() {
-        return id;
-    }
-
-    public NumericData setId(MetricId id) {
-        this.id = id;
-        return this;
-    }
+//    public MetricId getId() {
+//        return id;
+//    }
+//
+//    public NumericData setId(MetricId id) {
+//        this.id = id;
+//        return this;
+//    }
 
 //    /**
 //     * The metric name. The metric name and the interval must be unique across numeric metrics.
@@ -100,13 +107,17 @@ public class NumericData {
      * writes, but it will make reads more complicated and potentially more expensive if we make the date partition too
      * small.
      */
-    public long getDpart() {
-        return dpart;
-    }
+//    public long getDpart() {
+//        return dpart;
+//    }
+//
+//    public NumericData setDpart(long dpart) {
+//        this.dpart = dpart;
+//        return this;
+//    }
 
-    public NumericData setDpart(long dpart) {
-        this.dpart = dpart;
-        return this;
+    public Metric getMetric() {
+        return metric;
     }
 
     /**
@@ -136,36 +147,36 @@ public class NumericData {
         return this;
     }
 
-    /**
-     * A set of key/value pairs that are shared by all data points for the metric. A good example is units like KB / sec.
-     */
-    public Map<String, String> getAttributes() {
-        return attributes;
-    }
-
-    /**
-     * Stores an attribute which will be shared by all data points for the metric when it is persisted. If an attribute
-     * with the same name already exists, it will be overwritten.
-     *
-     * @param name The attribute name.
-     * @param value The attribute value
-     */
-    public NumericData putAttribute(String name, String value) {
-        attributes.put(name, value);
-        return this;
-    }
-
-    /**
-     * Stores attributes which will be shared by all data points for the metric. If an attribute with the same name
-     * already exists, it will be overwritten.
-     *
-     * @param attributes The key/value pairs to store.
-     * @return
-     */
-    public NumericData putAttributes(Map<String, String> attributes) {
-        this.attributes.putAll(attributes);
-        return this;
-    }
+//    /**
+//     * A set of key/value pairs that are shared by all data points for the metric. A good example is units like KB / sec.
+//     */
+//    public Map<String, String> getAttributes() {
+//        return attributes;
+//    }
+//
+//    /**
+//     * Stores an attribute which will be shared by all data points for the metric when it is persisted. If an attribute
+//     * with the same name already exists, it will be overwritten.
+//     *
+//     * @param name The attribute name.
+//     * @param value The attribute value
+//     */
+//    public NumericData putAttribute(String name, String value) {
+//        attributes.put(name, value);
+//        return this;
+//    }
+//
+//    /**
+//     * Stores attributes which will be shared by all data points for the metric. If an attribute with the same name
+//     * already exists, it will be overwritten.
+//     *
+//     * @param attributes The key/value pairs to store.
+//     * @return
+//     */
+//    public NumericData putAttributes(Map<String, String> attributes) {
+//        this.attributes.putAll(attributes);
+//        return this;
+//    }
 
     /**
      * The value of the raw data point. This should only be set for raw data. It should be null for aggregated data.
@@ -199,11 +210,8 @@ public class NumericData {
 
         NumericData that = (NumericData) o;
 
-        if (dpart != that.dpart) return false;
         if (Double.compare(that.value, value) != 0) return false;
-        if (!attributes.equals(that.attributes)) return false;
-        if (!id.equals(that.id)) return false;
-        if (!tenantId.equals(that.tenantId)) return false;
+        if (!metric.equals(that.metric)) return false;
         if (!timeUUID.equals(that.timeUUID)) return false;
 
         return true;
@@ -213,11 +221,8 @@ public class NumericData {
     public int hashCode() {
         int result;
         long temp;
-        result = tenantId.hashCode();
-        result = 31 * result + id.hashCode();
-        result = 31 * result + (int) (dpart ^ (dpart >>> 32));
+        result = metric.hashCode();
         result = 31 * result + timeUUID.hashCode();
-        result = 31 * result + attributes.hashCode();
         temp = Double.doubleToLongBits(value);
         result = 31 * result + (int) (temp ^ (temp >>> 32));
         return result;
@@ -226,13 +231,10 @@ public class NumericData {
     @Override
     public String toString() {
         return Objects.toStringHelper(this)
-            .add("tenantId", tenantId)
-            .add("id", id)
-            .add("dpart", dpart)
-            .add("attributes", attributes)
             .add("timeUUID", timeUUID)
             .add("timestamp", UUIDs.unixTimestamp(timeUUID))
             .add("value", value)
+            .add("metric", metric)
             .toString();
     }
 }

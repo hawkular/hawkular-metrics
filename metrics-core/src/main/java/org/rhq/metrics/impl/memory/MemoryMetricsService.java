@@ -18,6 +18,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import org.rhq.metrics.core.Counter;
+import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
@@ -60,24 +61,44 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> addNumericData(Set<NumericData> data) {
+    public ListenableFuture<Void> insertMetric(Metric metric) {
+        return null;
+    }
+
+    @Override
+    public ListenableFuture<Void> addNumericData(List<NumericData> data) {
         for (NumericData d : data) {
-            addMetric(d);
+            TLongDoubleMap map;
+            if (storage.containsKey(d.getMetric().getId().getName())) {
+                map = storage.get(d.getMetric().getId().getName());
+            } else {
+                map = new TLongDoubleHashMap();
+                storage.put(d.getMetric().getId().getName(), map);
+            }
+            map.put(d.getTimestamp(), d.getValue());
         }
         return Futures.immediateFuture(null);
     }
 
-    private void addMetric(NumericData d) {
-        TLongDoubleMap map;
-        String metricId = d.getId().getName();
-        if (storage.containsKey(metricId)) {
-            map = storage.get(metricId);
-        } else {
-            map = new TLongDoubleHashMap();
-            storage.put(metricId,map);
-        }
-        map.put(d.getTimestamp(), d.getValue()); // TODO getAvg() may be wrong in future
-    }
+//    @Override
+//    public ListenableFuture<Void> addNumericData(Set<NumericData> data) {
+//        for (NumericData d : data) {
+//            addMetric(d);
+//        }
+//        return Futures.immediateFuture(null);
+//    }
+//
+//    private void addMetric(NumericData d) {
+//        TLongDoubleMap map;
+//        String metricId = d.getId().getName();
+//        if (storage.containsKey(metricId)) {
+//            map = storage.get(metricId);
+//        } else {
+//            map = new TLongDoubleHashMap();
+//            storage.put(metricId,map);
+//        }
+//        map.put(d.getTimestamp(), d.getValue()); // TODO getAvg() may be wrong in future
+//    }
 
     @Override
     public ListenableFuture<Void> updateCounter(Counter counter) {
@@ -124,17 +145,14 @@ public class MemoryMetricsService implements MetricsService {
 
     @Override
     public ListenableFuture<List<NumericData>> findData(String tenantId, String id, long start, long end) {
+        Metric metric = new Metric().setTenantId(tenantId).setId(new MetricId(id));
         List<NumericData> data = new ArrayList<>();
 
         if (storage.containsKey(id)) {
             TLongDoubleMap map = storage.get(id);
             for (long ts : map.keys()) {
                 if (ts>=start && ts<=end) {
-                    data.add(new NumericData()
-                        .setTenantId(DEFAULT_TENANT_ID)
-                        .setId(new MetricId(id))
-                        .setValue(map.get(ts))
-                        .setTimestamp(ts));
+                    data.add(new NumericData(metric, ts, map.get(ts)));
                 }
 
             }

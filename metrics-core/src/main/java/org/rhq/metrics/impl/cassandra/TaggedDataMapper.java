@@ -10,6 +10,7 @@ import com.datastax.driver.core.Row;
 import com.google.common.base.Function;
 
 import org.rhq.metrics.core.Interval;
+import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.NumericData;
 
@@ -21,35 +22,36 @@ public class TaggedDataMapper implements Function<ResultSet, Map<MetricId, Set<N
     @Override
     public Map<MetricId, Set<NumericData>> apply(ResultSet resultSet) {
         Map<MetricId, Set<NumericData>> taggedData = new HashMap<>();
-        MetricId id = null;
+        Metric metric = null;
         LinkedHashSet<NumericData> set = new LinkedHashSet<>();
         for (Row row : resultSet) {
-            if (id == null) {
-                id = new MetricId(row.getString(3), Interval.parse(row.getString(4)));
-                set.add(createNumericData(row, id));
+            if (metric == null) {
+                metric = createMetric(row);
+                set.add(createNumericData(row, metric));
             } else {
-                MetricId nextId = new MetricId(row.getString(3), Interval.parse(row.getString(4)));
-                if (id.equals(nextId)) {
-                    set.add(createNumericData(row, id));
+                Metric nextMetric = createMetric(row);
+                if (metric.equals(nextMetric)) {
+                    set.add(createNumericData(row, metric));
                 } else {
-                    taggedData.put(id, set);
-                    id = nextId;
+                    taggedData.put(metric.getId(), set);
+                    metric = nextMetric;
                     set = new LinkedHashSet<>();
-                    set.add(createNumericData(row, id));
+                    set.add(createNumericData(row, metric));
                 }
             }
         }
-        if (!set.isEmpty()) {
-            taggedData.put(id, set);
+        if (!(metric == null || set.isEmpty())) {
+            taggedData.put(metric.getId(), set);
         }
         return taggedData;
     }
 
-    private NumericData createNumericData(Row row, MetricId id) {
-        return new NumericData()
-            .setTenantId(row.getString(0))
-            .setId(id)
-            .setTimeUUID(row.getUUID(5))
-            .setValue(row.getDouble(6));
+    private Metric createMetric(Row row) {
+        return new Metric().setTenantId(row.getString(0)).setId(new MetricId(row.getString(3),
+            Interval.parse(row.getString(4))));
+    }
+
+    private NumericData createNumericData(Row row, Metric metric) {
+        return new NumericData(metric, row.getUUID(5), row.getDouble(6));
     }
 }

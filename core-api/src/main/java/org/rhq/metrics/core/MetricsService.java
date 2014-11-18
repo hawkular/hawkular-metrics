@@ -30,7 +30,11 @@ public interface MetricsService {
 
     void shutdown();
 
-    ListenableFuture<Void> addNumericData(Set<NumericData> data);
+//    ListenableFuture<Void> addNumericData(Set<NumericData> data);
+
+    ListenableFuture<Void> insertMetric(Metric metric);
+
+    ListenableFuture<Void> addNumericData(List<NumericData> metrics);
 
     ListenableFuture<Void> updateCounter(Counter counter);
 

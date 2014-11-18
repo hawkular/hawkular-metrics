@@ -47,27 +47,29 @@ public class MetricsServiceTest extends MetricsTest {
     public void addAndFetchRawData() throws Exception {
         DateTime start = now().minusMinutes(30);
         DateTime end = start.plusMinutes(20);
-        String tenantId = "t1";
-        String metric = "m1";
 
-        NumericData d1 = new NumericData().setTenantId(tenantId).setId(new MetricId("m1")).setTimestamp(start.getMillis())
-            .setValue(1.1);
-        NumericData d2 = new NumericData().setTenantId(tenantId).setId(new MetricId("m1"))
-            .setTimestamp(start.plusMinutes(2).getMillis()).setValue(2.2);
-        NumericData d3 = new NumericData().setTenantId(tenantId).setId(new MetricId("m1"))
-            .setTimestamp(start.plusMinutes(4).getMillis()).setValue(3.3);
-        NumericData d4 = new NumericData().setTenantId(tenantId).setId(new MetricId("m1")).setTimestamp(end.getMillis())
-            .setValue(4.4);
+        Metric metric = new Metric()
+            .setTenantId("t1")
+            .setId(new MetricId("m1"));
 
-        ListenableFuture<Void> insertFuture = metricsService.addNumericData(ImmutableSet.of(d1, d2, d3, d4));
+        ListenableFuture<Void> insertFuture = metricsService.addNumericData(asList(
+            new NumericData(metric, start.getMillis(), 1.1),
+            new NumericData(metric, start.plusMinutes(2).getMillis(), 2.2),
+            new NumericData(metric, start.plusMinutes(4).getMillis(), 3.3),
+            new NumericData(metric, end.getMillis(), 4.4)
+        ));
         getUninterruptibly(insertFuture);
 
-        ListenableFuture<List<NumericData>> queryFuture = metricsService.findData(tenantId, metric, start.getMillis(),
-            end.getMillis());
+        ListenableFuture<List<NumericData>> queryFuture = metricsService.findData(metric.getTenantId(),
+            metric.getId().getName(), start.getMillis(), end.getMillis());
         List<NumericData> actual = getUninterruptibly(queryFuture);
-        List<NumericData> expected = asList(d3, d2, d1);
+        List<NumericData> expected = asList(
+            new NumericData(metric, start.plusMinutes(4).getMillis(), 3.3),
+            new NumericData(metric, start.plusMinutes(2).getMillis(), 2.2),
+            new NumericData(metric, start.getMillis(), 1.1)
+        );
 
-        assertEquals(actual, expected, "The numeric raw data does not match");
+        assertEquals(actual, expected, "The data does not match the expected values");
     }
 
     @Test
@@ -75,29 +77,21 @@ public class MetricsServiceTest extends MetricsTest {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
-        NumericData d1 = new NumericData().setTenantId(tenant).setId(new MetricId("m1")).setTimestamp(start.getMillis())
-            .setValue(101.1);
-        NumericData d2 = new NumericData().setTenantId(tenant).setId(new MetricId("m1")).setTimestamp(
-            start.plusMinutes(2).getMillis()).setValue(101.2);
-        NumericData d6 = new NumericData().setTenantId(tenant).setId(new MetricId("m1")).setTimestamp(
-            start.plusMinutes(4).getMillis()).setValue(101.4);
+        Metric m1 = new Metric().setTenantId(tenant).setId(new MetricId("m1"));
+        Metric m2 = new Metric().setTenantId(tenant).setId(new MetricId("m2"));
+        Metric m3 = new Metric().setTenantId(tenant).setId(new MetricId("m3"));
 
-        NumericData d5 = new NumericData().setTenantId(tenant).setId(new MetricId("m2")).setTimestamp(
-            start.plusMinutes(4).getMillis()).setValue(102.1);
-        NumericData d3 = new NumericData().setTenantId(tenant).setId(new MetricId("m2")).setTimestamp(
-            start.plusMinutes(6).getMillis()).setValue(102.2);
-        NumericData d4 = new NumericData().setTenantId(tenant).setId(new MetricId("m2")).setTimestamp(
-            start.plusMinutes(8).getMillis()).setValue(102.3);
-        NumericData d7 = new NumericData().setTenantId(tenant).setId(new MetricId("m2")).setTimestamp(
-            start.plusMinutes(10).getMillis()).setValue(102.4);
+        NumericData d1 = new NumericData(m1, start.getMillis(), 101.1);
+        NumericData d2 = new NumericData(m1, start.plusMinutes(2).getMillis(), 101.2);
+        NumericData d3 = new NumericData(m2, start.plusMinutes(6).getMillis(), 102.2);
+        NumericData d4 = new NumericData(m2, start.plusMinutes(8).getMillis(), 102.3);
+        NumericData d5 = new NumericData(m2, start.plusMinutes(4).getMillis(), 102.1);
+        NumericData d6 = new NumericData(m1, start.plusMinutes(4).getMillis(), 101.4);
+        NumericData d7 = new NumericData(m2, start.plusMinutes(10).getMillis(), 102.4);
+        NumericData d8 = new NumericData(m3, start.plusMinutes(6).getMillis(), 103.1);
+        NumericData d9 = new NumericData(m3, start.plusMinutes(7).getMillis(), 103.1);
 
-        NumericData d8 = new NumericData().setTenantId(tenant).setId(new MetricId("m3")).setTimestamp(
-            start.plusMinutes(6).getMillis()).setValue(103.1);
-        NumericData d9 = new NumericData().setTenantId(tenant).setId(new MetricId("m3")).setTimestamp(
-            start.plusMinutes(7).getMillis()).setValue(103.1);
-
-        ListenableFuture<Void> insertFuture = metricsService.addNumericData(ImmutableSet.of(d1, d2, d3, d4, d5, d6, d7,
-            d8, d9));
+        ListenableFuture<Void> insertFuture = metricsService.addNumericData(asList(d1, d2, d3, d4, d5, d6, d7, d8, d9));
         getUninterruptibly(insertFuture);
 
         ListenableFuture<List<NumericData>> tagFuture1 = metricsService.tagData(tenant, ImmutableSet.of("t1"), "m1",
@@ -133,29 +127,22 @@ public class MetricsServiceTest extends MetricsTest {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
-        NumericData d1 = new NumericData().setTenantId(tenant).setId(new MetricId("m1")).setTimestamp(start.getMillis())
-            .setValue(101.1);
-        NumericData d2 = new NumericData().setTenantId(tenant).setId(new MetricId("m1")).setTimestamp(
-            start.plusMinutes(2).getMillis()).setValue(101.2);
-        NumericData d6 = new NumericData().setTenantId(tenant).setId(new MetricId("m1")).setTimestamp(
-            start.plusMinutes(4).getMillis()).setValue(101.4);
+        Metric m1 = new Metric().setTenantId(tenant).setId(new MetricId("m1"));
+        Metric m2 = new Metric().setTenantId(tenant).setId(new MetricId("m2"));
+        Metric m3 = new Metric().setTenantId(tenant).setId(new MetricId("m3"));
 
-        NumericData d5 = new NumericData().setTenantId(tenant).setId(new MetricId("m2")).setTimestamp(
-            start.plusMinutes(4).getMillis()).setValue(102.1);
-        NumericData d3 = new NumericData().setTenantId(tenant).setId(new MetricId("m2")).setTimestamp(
-            start.plusMinutes(6).getMillis()).setValue(102.2);
-        NumericData d4 = new NumericData().setTenantId(tenant).setId(new MetricId("m2")).setTimestamp(
-            start.plusMinutes(8).getMillis()).setValue(102.3);
-        NumericData d7 = new NumericData().setTenantId(tenant).setId(new MetricId("m2")).setTimestamp(
-            start.plusMinutes(10).getMillis()).setValue(102.4);
+        NumericData d1 = new NumericData(m1, start.getMillis(), 101.1);
+        NumericData d2 = new NumericData(m1, start.plusMinutes(2).getMillis(), 101.2);
+        NumericData d3 = new NumericData(m2, start.plusMinutes(6).getMillis(), 102.2);
+        NumericData d4 = new NumericData(m2, start.plusMinutes(8).getMillis(), 102.3);
+        NumericData d5 = new NumericData(m2, start.plusMinutes(4).getMillis(), 102.1);
+        NumericData d6 = new NumericData(m1, start.plusMinutes(4).getMillis(), 101.4);
+        NumericData d7 = new NumericData(m2, start.plusMinutes(10).getMillis(), 102.4);
+        NumericData d8 = new NumericData(m3, start.plusMinutes(6).getMillis(), 103.1);
+        NumericData d9 = new NumericData(m3, start.plusMinutes(7).getMillis(), 103.1);
 
-        NumericData d8 = new NumericData().setTenantId(tenant).setId(new MetricId("m3")).setTimestamp(
-            start.plusMinutes(6).getMillis()).setValue(103.1);
-        NumericData d9 = new NumericData().setTenantId(tenant).setId(new MetricId("m3")).setTimestamp(
-            start.plusMinutes(7).getMillis()).setValue(103.1);
 
-        ListenableFuture<Void> insertFuture = metricsService.addNumericData(ImmutableSet.of(d1, d2, d3, d4, d5, d6, d7,
-            d8, d9));
+        ListenableFuture<Void> insertFuture = metricsService.addNumericData(asList(d1, d2, d3, d4, d5, d6, d7, d8, d9));
         getUninterruptibly(insertFuture);
 
         ListenableFuture<List<NumericData>> tagFuture = metricsService.tagData(tenant, ImmutableSet.of("t1"),

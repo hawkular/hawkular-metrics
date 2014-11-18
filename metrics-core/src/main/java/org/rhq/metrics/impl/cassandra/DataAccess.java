@@ -3,10 +3,8 @@ package org.rhq.metrics.impl.cassandra;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
@@ -21,10 +19,10 @@ import com.datastax.driver.core.UDTValue;
 import com.datastax.driver.core.UserType;
 import com.datastax.driver.core.utils.UUIDs;
 
-import org.rhq.metrics.core.AggregatedValue;
 import org.rhq.metrics.core.AggregationTemplate;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Interval;
+import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.NumericData;
@@ -86,7 +84,7 @@ public class DataAccess {
 
         insertNumericData = session.prepare(
             "UPDATE numeric_data " +
-            "SET attributes = attributes + ?, raw = ?, aggregates = ? " +
+            "SET attributes = attributes + ?, raw = ? " +
             "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
         findNumericDataByDateRangeExclusive = session.prepare(
@@ -95,7 +93,7 @@ public class DataAccess {
             "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
 
         findNumericDataByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, raw, aggregates " +
+            "SELECT tenant_id, metric, interval, dpart, time, attributes, raw, aggregates " +
             " FROM numeric_data " +
             " WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time <= ?");
 
@@ -163,6 +161,11 @@ public class DataAccess {
             id.getInterval().toString(), dpart));
     }
 
+    public ResultSetFuture addAttributes(Metric metric) {
+        return session.executeAsync(addNumericAttributes.bind(metric.getAttributes(), metric.getTenantId(),
+            metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart()));
+    }
+
 //    public ResultSetFuture insert(Metric metric) {
 //        UserType aggregateDataType = getKeyspace().getUserType("aggregate_data");
 //
@@ -187,23 +190,34 @@ public class DataAccess {
 //        }
 //    }
 
-    public ResultSetFuture insertNumericData(NumericData data) {
-        // TODO determine if we should use separate queries/methods for raw vs aggregated data
+//    public ResultSetFuture insertNumericData(NumericData data) {
+//        UserType aggregateDataType = getKeyspace().getUserType("aggregate_data");
+//        Set<UDTValue> aggregateDataValues = new HashSet<>();
+//
+//        for (AggregatedValue v : data.getAggregatedValues()) {
+//            aggregateDataValues.add(aggregateDataType.newValue()
+//                .setString("type", v.getType())
+//                .setDouble("value", v.getValue())
+//                .setUUID("time", v.getTimeUUID())
+//                .setString("src_metric", v.getSrcMetric())
+//                .setString("src_metric_interval", getInterval(v.getSrcMetricInterval())));
+//        }
+//
+//        return session.executeAsync(insertNumericData.bind(data.getAttributes(), data.getValue(), aggregateDataValues,
+//            data.getTenantId(), data.getId().getName(), data.getId().getInterval().toString(), 0L, data.getTimeUUID()));
+//    }
 
-        UserType aggregateDataType = getKeyspace().getUserType("aggregate_data");
-        Set<UDTValue> aggregateDataValues = new HashSet<>();
-
-        for (AggregatedValue v : data.getAggregatedValues()) {
-            aggregateDataValues.add(aggregateDataType.newValue()
-                .setString("type", v.getType())
-                .setDouble("value", v.getValue())
-                .setUUID("time", v.getTimeUUID())
-                .setString("src_metric", v.getSrcMetric())
-                .setString("src_metric_interval", getInterval(v.getSrcMetricInterval())));
+    public ResultSetFuture insertNumericData(List<NumericData> data) {
+        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
+        for (NumericData d : data) {
+            // TODO Determine what if there is any performance overhead for adding an empty map
+            // If there is some overhead, then we will want to use a different prepared
+            // statement when there are no attributes.
+            batchStatement.add(insertNumericData.bind(d.getMetric().getAttributes(), d.getValue(),
+                d.getMetric().getTenantId(), d.getMetric().getId().getName(),
+                d.getMetric().getId().getInterval().toString(), d.getMetric().getDpart(), d.getTimeUUID()));
         }
-
-        return session.executeAsync(insertNumericData.bind(data.getAttributes(), data.getValue(), aggregateDataValues,
-            data.getTenantId(), data.getId().getName(), data.getId().getInterval().toString(), 0L, data.getTimeUUID()));
+        return session.executeAsync(batchStatement);
     }
 
     private final String getInterval(Interval interval) {
@@ -232,8 +246,9 @@ public class DataAccess {
     public ResultSetFuture insertTag(String tag, List<NumericData> data) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (NumericData d : data) {
-            batchStatement.add(insertTags.bind(d.getTenantId(), tag, MetricType.NUMERIC.getCode(), d.getId().getName(),
-                d.getId().getInterval().toString(), d.getTimeUUID(), d.getValue()));
+            batchStatement.add(insertTags.bind(d.getMetric().getTenantId(), tag, MetricType.NUMERIC.getCode(),
+                d.getMetric().getId().getName(), d.getMetric().getId().getInterval().toString(), d.getTimeUUID(),
+                d.getValue()));
         }
         return session.executeAsync(batchStatement);
     }
