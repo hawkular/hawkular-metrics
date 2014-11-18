@@ -16,10 +16,13 @@
         .metricIdHeader {
             margin: 20px 0 -45px 90px;
         }
+        .chartWrapper {
+            height: 250px;
+        }
     </style>
 
 </head>
-<body ng-app="chartingApp" class="container">
+<body ng-app="chartingApp" >
 
 <h3>Stand Alone Chart Example</h3>
 
@@ -44,25 +47,36 @@
 
     <div class="metricIdHeader"><span class="metricIdLabel"> Metric Id:</span>
         <strong>pintsize.home.pilhuhn.de.cpu_user</strong></div>
-    <div style="height: 250px;">
-        <rhqm-chart chart-type="bar" metric-id="pintsize.home.pilhuhn.de.cpu_user"
-                    data-url="http://10.3.10.81:8080/rhq-metrics/metrics" time-range-in-seconds="86400"
+    <div class="chartWrapper">
+        <rhqm-chart chart-type="bar"
+                    metric-id="pintsize.home.pilhuhn.de.cpu_user"
+                    data-url="http://10.3.10.81:8080/rhq-metrics/metrics"
+                    time-range-in-seconds="7200"
+                    refresh-interval-in-seconds="30"
                     chart-height="250"></rhqm-chart>
     </div>
 
-    <div class="metricIdHeader"><span class="metricIdLabel"> Metric Id:</span> <strong>pintsize.home.pilhuhn.de.load_five</strong>
-    </div>
-    <div style="height: 250px;">
-        <rhqm-chart chart-type="bar" metric-id="pintsize.home.pilhuhn.de.load_five"
-                    data-url="http://10.3.10.81:8080/rhq-metrics/metrics" time-range-in-seconds="86400"
-                    chart-height="250"></rhqm-chart>
-    </div>
     <div class="metricIdHeader"><span class="metricIdLabel"> Metric Id:</span>
         <strong>pintsize.home.pilhuhn.de.mem_free</strong>
     </div>
-    <div style="height: 250px;">
-        <rhqm-chart chart-type="bar" metric-id="pintsize.home.pilhuhn.de.mem_free"
-                    data-url="http://10.3.10.81:8080/rhq-metrics/metrics" time-range-in-seconds="86400"
+    <div class="chartWrapper">
+        <rhqm-chart chart-type="bar"
+                    metric-id="pintsize.home.pilhuhn.de.mem_free"
+                    data-url="http://10.3.10.81:8080/rhq-metrics/metrics"
+                    time-range-in-seconds="604800"
+                    refresh-interval-in-seconds="60"
+                    chart-height="250"></rhqm-chart>
+    </div>
+
+    <div class="metricIdHeader"><span class="metricIdLabel"> Metric Id:</span>
+        <strong>hrupp-rhq-metrics-saas.wildfly.heap-memory-usage.used</strong>
+    </div>
+    <div class="chartWrapper">
+        <rhqm-chart chart-type="area"
+                    metric-id="hrupp-rhq-metrics-saas.wildfly.heap-memory-usage.used"
+                    data-url="http://10.3.10.81:8080/rhq-metrics/metrics"
+                    time-range-in-seconds="86400"
+                    refresh-interval-in-seconds="60"
                     chart-height="250"></rhqm-chart>
     </div>
 

@@ -14,7 +14,7 @@ module Directives {
      *
      */
     angular.module('rhqm.directives', [])
-        .directive('rhqmChart', ['$rootScope', '$http', '$log', 'BASE_URL', function ($rootScope:ng.IRootScopeService, $http:ng.IHttpService, $log:ng.ILogService, BASE_URL):ng.IDirective {
+        .directive('rhqmChart', ['$rootScope', '$http', '$interval','$log', 'BASE_URL', function ($rootScope:ng.IRootScopeService, $http:ng.IHttpService, $interval:ng.IIntervalService,  $log:ng.ILogService, BASE_URL):ng.IDirective {
 
             function link(scope, element, attrs) {
 
@@ -22,7 +22,7 @@ module Directives {
                     dataUrl = attrs.dataUrl || 'http://10.3.10.81:8080/rhq-metrics/metrics/',
                     metricId = attrs.metricId || '',
                     timeRangeInSeconds = +attrs.timeRangeInSeconds || 43200,
-                    refreshInterval = +attrs.refreshInterval || 3600,
+                    refreshIntervalInSeconds = +attrs.refreshIntervalInSeconds || 3600,
                     endTimestamp =  _.now(),
                     startTimestamp =  endTimestamp - timeRangeInSeconds,
                     previousRangeDataPoints = [],
@@ -284,7 +284,7 @@ module Directives {
 
                         processedNewData = formatBucketedChartOutput(response);
                         console.info("DataPoints from standalone URL:");
-                        console.table(processedNewData);
+                        //console.table(processedNewData);
                         scope.render(processedNewData, processedPreviousRangeData);
 
                     }).error(function (reason, status) {
@@ -1369,11 +1369,12 @@ module Directives {
                     }
                 });
 
-                scope.$watch('refreshInterval', (newRefreshInterval) => {
+                scope.$watch('refreshIntervalInSeconds', (newRefreshInterval) => {
                     if (angular.isDefined(newRefreshInterval)) {
-                        console.log("refreshInterval changed.")
-                        refreshInterval = newRefreshInterval;
-                        //@todo: update timeout for refresh interval
+                        refreshIntervalInSeconds = +newRefreshInterval;
+                        var startIntervalPromise = $interval(() => {
+                            loadMetricsTimeRangeFromNow();
+                        }, refreshIntervalInSeconds * 1000);
                     }
                 });
 
@@ -1467,7 +1468,7 @@ module Directives {
                     startTimestamp: '@',
                     endTimestamp: '@',
                     timeRangeInSeconds: '@',
-                    refreshInterval: '@',
+                    refreshIntervalInSeconds: '@',
                     previousRangeData: '@',
                     annotationData: '@',
                     contextData: '@',
