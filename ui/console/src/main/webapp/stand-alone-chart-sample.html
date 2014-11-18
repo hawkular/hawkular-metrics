@@ -24,13 +24,13 @@
 </head>
 <body ng-app="chartingApp" >
 
-<h3>Stand Alone Chart Example</h3>
+<h3>Stand Alone Live Charts Example</h3>
 
-<p>The purpose of this sample is to demonstrate the ability to use the rhqm-chart tag to outside of a full blown angular
+<p>The purpose of this sample is to demonstrate the ability to use the rhqm-chart tag outside of a full blown angular
     application. It's an Angular tag so it will still require Angular but eliminating many of the dependencies of the
     application and getting it down to Angular and a couple libs and css dependencies is the goal. Placing the tag in a
-    normal html web page and have it retrieve and update data is the objective. We are not there yet but here is the
-    first pass. </p>
+    normal html web page and have it retrieve and update data is the objective.
+    We are not there yet but here is the first pass. </p>
 
 <i>Instructions</i>
 <ol>
@@ -41,7 +41,7 @@
 </ol>
  <p>Explanation: Examining the source code, there is an app and a controller required to render the angular directive. The StandAloneController is just a dummy controller required to render directives(tags). It doesn't
     really do anything just required for Angular directives. After that, the only thing that is needed for use is some
-    rhqm-chart tags with relevant metric-id and data-url attributes. So this will all be boiled down to several additional lines of code (&lt; 5) to support angular tags in pages; with one angular tag for each chart. </p>
+    rhqm-chart tags with relevant metric-id and metric-url attributes. So this will all be boiled down to several additional lines of code (&lt; 5) to support angular tags in pages; with one angular tag for each chart. </p>
 
 <div ng-controller="StandAloneController as vm">
 
@@ -50,7 +50,7 @@
     <div class="chartWrapper">
         <rhqm-chart chart-type="bar"
                     metric-id="pintsize.home.pilhuhn.de.cpu_user"
-                    data-url="http://10.3.10.81:8080/rhq-metrics/metrics"
+                    metric-url="http://10.3.10.81:8080/rhq-metrics/metrics/"
                     time-range-in-seconds="7200"
                     refresh-interval-in-seconds="30"
                     chart-height="250"></rhqm-chart>
@@ -62,7 +62,7 @@
     <div class="chartWrapper">
         <rhqm-chart chart-type="bar"
                     metric-id="pintsize.home.pilhuhn.de.mem_free"
-                    data-url="http://10.3.10.81:8080/rhq-metrics/metrics"
+                    metric-url="http://10.3.10.81:8080/rhq-metrics/metrics/"
                     time-range-in-seconds="604800"
                     refresh-interval-in-seconds="60"
                     chart-height="250"></rhqm-chart>
@@ -74,7 +74,7 @@
     <div class="chartWrapper">
         <rhqm-chart chart-type="area"
                     metric-id="hrupp-rhq-metrics-saas.wildfly.heap-memory-usage.used"
-                    data-url="http://10.3.10.81:8080/rhq-metrics/metrics"
+                    metric-url="http://10.3.10.81:8080/rhq-metrics/metrics/"
                     time-range-in-seconds="86400"
                     refresh-interval-in-seconds="60"
                     chart-height="250"></rhqm-chart>
@@ -89,7 +89,6 @@
         into a single js file. This would be the crude way of doing and it needs to be done correctly by eliminating the
         unnecessary dependencies and creating a separate bower package with just the desired artifacts.
     </li>
-    <li>Add auto-refresh to the charts in the page. Current configuration uses manual refresh to grab data.</li>
 </ol>
 
 

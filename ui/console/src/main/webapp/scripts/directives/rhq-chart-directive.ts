@@ -18,8 +18,9 @@ module Directives {
 
             function link(scope, element, attrs) {
 
+                // data specific vars
                 var dataPoints:any[] = [],
-                    dataUrl = attrs.dataUrl || 'http://10.3.10.81:8080/rhq-metrics/metrics/',
+                    dataUrl = attrs.metricUrl,
                     metricId = attrs.metricId || '',
                     timeRangeInSeconds = +attrs.timeRangeInSeconds || 43200,
                     refreshIntervalInSeconds = +attrs.refreshIntervalInSeconds || 3600,
@@ -238,7 +239,6 @@ module Directives {
                                     return d.timestamp;
                                 }));
 
-
                         }
 
                         xAxis = d3.svg.axis()
@@ -266,6 +266,7 @@ module Directives {
                 function loadMetricsForTimeRange(url, metricId, startTimestamp, endTimestamp, buckets) {
                     $log.info('-- Retrieving metrics data for urlData: ' + metricId);
                     $log.info('-- Date Range: ' + new Date(startTimestamp) + ' - ' + new Date(endTimestamp));
+
                     var numBuckets = buckets || 60,
                         searchParams =
                         {
@@ -1463,7 +1464,7 @@ module Directives {
                 replace: true,
                 scope: {
                     data: '@',
-                    dataUrl: '@',
+                    metricUrl: '@',
                     metricId: '@',
                     startTimestamp: '@',
                     endTimestamp: '@',

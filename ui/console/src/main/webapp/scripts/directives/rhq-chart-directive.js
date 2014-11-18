@@ -12,7 +12,8 @@ var Directives;
     angular.module('rhqm.directives', []).directive('rhqmChart', [
         '$rootScope', '$http', '$interval', '$log', 'BASE_URL', function ($rootScope, $http, $interval, $log, BASE_URL) {
             function link(scope, element, attrs) {
-                var dataPoints = [], dataUrl = attrs.dataUrl || 'http://10.3.10.81:8080/rhq-metrics/metrics/', metricId = attrs.metricId || '', timeRangeInSeconds = +attrs.timeRangeInSeconds || 43200, refreshIntervalInSeconds = +attrs.refreshIntervalInSeconds || 3600, endTimestamp = _.now(), startTimestamp = endTimestamp - timeRangeInSeconds, previousRangeDataPoints = [], annotationData = [], contextData = [], multiChartOverlayData = [], chartHeight = +attrs.chartHeight || 250, chartType = attrs.chartType || 'bar', timeLabel = attrs.timeLabel || 'Time', dateLabel = attrs.dateLabel || 'Date', singleValueLabel = attrs.singleValueLabel || 'Raw Value', noDataLabel = attrs.noDataLabel || 'No Data', aggregateLabel = attrs.aggregateLabel || 'Aggregate', startLabel = attrs.startLabel || 'Start', endLabel = attrs.endLabel || 'End', durationLabel = attrs.durationLabel || 'Bar Duration', minLabel = attrs.minLabel || 'Min', maxLabel = attrs.maxLabel || 'Max', avgLabel = attrs.avgLabel || 'Avg', timestampLabel = attrs.timestampLabel || 'Timestamp', highBarColor = attrs.highBarColor || '#1794bc', lowBarColor = attrs.lowBarColor || '#70c4e2', leaderBarColor = attrs.leaderBarColor || '#d3d3d6', rawValueBarColor = attrs.rawValueBarColor || '#50505a', avgLineColor = attrs.avgLineColor || '#2e376a', showAvgLine = true, hideHighLowValues = false, chartHoverDateFormat = attrs.chartHoverDateFormat || '%m/%d/%y', chartHoverTimeFormat = attrs.chartHoverTimeFormat || '%I:%M:%S %p', buttonBarDateTimeFormat = attrs.buttonbarDatetimeFormat || 'MM/DD/YYYY h:mm a';
+                // data specific vars
+                var dataPoints = [], dataUrl = attrs.metricUrl, metricId = attrs.metricId || '', timeRangeInSeconds = +attrs.timeRangeInSeconds || 43200, refreshIntervalInSeconds = +attrs.refreshIntervalInSeconds || 3600, endTimestamp = _.now(), startTimestamp = endTimestamp - timeRangeInSeconds, previousRangeDataPoints = [], annotationData = [], contextData = [], multiChartOverlayData = [], chartHeight = +attrs.chartHeight || 250, chartType = attrs.chartType || 'bar', timeLabel = attrs.timeLabel || 'Time', dateLabel = attrs.dateLabel || 'Date', singleValueLabel = attrs.singleValueLabel || 'Raw Value', noDataLabel = attrs.noDataLabel || 'No Data', aggregateLabel = attrs.aggregateLabel || 'Aggregate', startLabel = attrs.startLabel || 'Start', endLabel = attrs.endLabel || 'End', durationLabel = attrs.durationLabel || 'Bar Duration', minLabel = attrs.minLabel || 'Min', maxLabel = attrs.maxLabel || 'Max', avgLabel = attrs.avgLabel || 'Avg', timestampLabel = attrs.timestampLabel || 'Timestamp', highBarColor = attrs.highBarColor || '#1794bc', lowBarColor = attrs.lowBarColor || '#70c4e2', leaderBarColor = attrs.leaderBarColor || '#d3d3d6', rawValueBarColor = attrs.rawValueBarColor || '#50505a', avgLineColor = attrs.avgLineColor || '#2e376a', showAvgLine = true, hideHighLowValues = false, chartHoverDateFormat = attrs.chartHoverDateFormat || '%m/%d/%y', chartHoverTimeFormat = attrs.chartHoverTimeFormat || '%I:%M:%S %p', buttonBarDateTimeFormat = attrs.buttonbarDatetimeFormat || 'MM/DD/YYYY h:mm a';
 
                 // chart specific vars
                 var margin = { top: 10, right: 5, bottom: 5, left: 90 }, contextMargin = { top: 150, right: 5, bottom: 5, left: 90 }, xAxisContextMargin = { top: 190, right: 5, bottom: 5, left: 90 }, width = 750 - margin.left - margin.right, adjustedChartHeight = chartHeight - 50, height = adjustedChartHeight - margin.top - margin.bottom, smallChartThresholdInPixels = 600, titleHeight = 30, titleSpace = 10, innerChartHeight = height + margin.top - titleHeight - titleSpace + margin.bottom, adjustedChartHeight2 = +titleHeight + titleSpace + margin.top, barOffset = 2, chartData, calcBarWidth, yScale, timeScale, yAxis, xAxis, tip, brush, brushGroup, timeScaleForBrush, timeScaleForContext, chart, chartParent, context, contextArea, svg, lowBound, highBound, avg, peak, min, processedNewData, processedPreviousRangeData;
@@ -156,6 +157,7 @@ var Directives;
                 function loadMetricsForTimeRange(url, metricId, startTimestamp, endTimestamp, buckets) {
                     $log.info('-- Retrieving metrics data for urlData: ' + metricId);
                     $log.info('-- Date Range: ' + new Date(startTimestamp) + ' - ' + new Date(endTimestamp));
+
                     var numBuckets = buckets || 60, searchParams = {
                         params: {
                             start: startTimestamp,
@@ -961,7 +963,7 @@ var Directives;
                 replace: true,
                 scope: {
                     data: '@',
-                    dataUrl: '@',
+                    metricUrl: '@',
                     metricId: '@',
                     startTimestamp: '@',
                     endTimestamp: '@',

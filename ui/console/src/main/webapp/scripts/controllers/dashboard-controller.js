@@ -145,7 +145,7 @@ var Controllers;
         };
 
         DashboardController.prototype.getChartHtmlTextToCopy = function (metricId) {
-            return '<rhqm-chart chart-type="bar" metric-id="' + metricId + '" data-url="' + this.metricDataService.getBaseUrl() + '" timeRangeInSeconds="' + this.currentTimeRange.getIntervalInSeconds() + '"  chart-height="250" ></rhqm-chart>';
+            return '<rhqm-chart chart-type="bar" metric-id="' + metricId + '" metric-url="' + this.metricDataService.getBaseUrl() + '" time-range-in-seconds="' + this.currentTimeRange.getIntervalInSeconds() + '" refresh-interval-in-seconds="30"  chart-height="250" ></rhqm-chart>';
         };
 
         DashboardController.prototype.clickChartHtmlCopy = function () {
