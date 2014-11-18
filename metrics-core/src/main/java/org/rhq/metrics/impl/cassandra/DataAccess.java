@@ -220,6 +220,15 @@ public class DataAccess {
         return session.executeAsync(batchStatement);
     }
 
+    public ResultSetFuture insertData(Metric metric) {
+        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
+        for (NumericData d : metric.getData()) {
+            batchStatement.add(insertNumericData.bind(metric.getAttributes(), d.getValue(), metric.getTenantId(),
+                metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart(), d.getTimeUUID()));
+        }
+        return session.executeAsync(batchStatement);
+    }
+
     private final String getInterval(Interval interval) {
         return interval == null ? "" : interval.toString();
     }

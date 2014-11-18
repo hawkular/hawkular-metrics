@@ -66,6 +66,11 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
+    public ListenableFuture<Void> addData(List<Metric> metrics) {
+        return null;
+    }
+
+    @Override
     public ListenableFuture<Void> addNumericData(List<NumericData> data) {
         for (NumericData d : data) {
             TLongDoubleMap map;
@@ -158,6 +163,11 @@ public class MemoryMetricsService implements MetricsService {
             }
         }
         return Futures.immediateFuture(data);
+    }
+
+    @Override
+    public ListenableFuture<Metric> findMetricData(String tenantId, String id, long start, long end) {
+        return null;
     }
 
     @Override

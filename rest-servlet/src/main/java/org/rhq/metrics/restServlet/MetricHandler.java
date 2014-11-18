@@ -116,26 +116,55 @@ public class MetricHandler {
     }
 
     @POST
+    @Path("/metrics/numeric/{id}")
+    public void addDataForMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
+        NumericDataParams params) {
+        Metric metric = new Metric()
+            .setTenantId(DEFAULT_TENANT_ID)
+            .setId(new MetricId(id));
+        List<NumericData> data = new ArrayList<>(params.getData().size());
+
+        for (NumericDataPoint p : params.getData()) {
+            data.add(new NumericData(metric, p.getTimestamp(), p.getValue()));
+        }
+
+        ListenableFuture<Void> future = metricsService.addNumericData(data);
+        Futures.addCallback(future, new FutureCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                Response jaxrs = Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build();
+                asyncResponse.resume(jaxrs);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
+    }
+
+    @POST
     @Path("/metrics/numeric")
     @Consumes("application/json")
-    public void addNumericData(@Suspended final AsyncResponse asyncResponse, NumericDataParams params) {
-        logger.info("params = " + params);
-        Metric metric = new Metric()
-            .setTenantId(params.getTenantId())
-            .setId(new MetricId(params.getName()))
-            .setAttributes(params.getAttributes());
-        ListenableFuture<Void> future;
-
-        if (params.getData().isEmpty()) {
-            future = metricsService.insertMetric(metric);
-        } else {
-            List<NumericData> data = new ArrayList<>();
-            for (NumericDataPoint p : params.getData()) {
-                data.add(new NumericData(metric, p.getTimestamp(), p.getValue()));
-            }
-            future = metricsService.addNumericData(data);
+    public void addNumericData(@Suspended final AsyncResponse asyncResponse, List<NumericDataParams> paramsList) {
+        if (paramsList.isEmpty()) {
+            asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
         }
-        Futures.addCallback(future, new FutureCallback<Void>() {
+
+        List<Metric> metrics = new ArrayList<>(paramsList.size());
+
+        for (NumericDataParams params : paramsList) {
+            Metric metric = new Metric()
+                .setTenantId(params.getTenantId())
+                .setId(new MetricId(params.getName()))
+                .setAttributes(params.getAttributes());
+            for (NumericDataPoint p : params.getData()) {
+                metric.addData(p.getTimestamp(), p.getValue());
+            }
+            metrics.add(metric);
+        }
+        ListenableFuture<Void> insertFuture = metricsService.addData(metrics);
+        Futures.addCallback(insertFuture, new FutureCallback<Void>() {
             @Override
             public void onSuccess(Void result) {
                 Response jaxrs = Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build();

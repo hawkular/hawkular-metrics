@@ -154,6 +154,21 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
+    public ListenableFuture<Void> addData(List<Metric> metrics) {
+        List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
+        for (Metric metric : metrics) {
+            if (metric.getData().isEmpty()) {
+                // TODO report an error if attributes is null or empty
+                insertFutures.add(dataAccess.addAttributes(metric));
+            } else {
+                insertFutures.add(dataAccess.insertData(metric));
+            }
+        }
+        ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
+        return Futures.transform(insertsFuture, RESULT_SETS_TO_VOID, metricsTasks);
+    }
+
+    @Override
     public ListenableFuture<Void> addNumericData(List<NumericData> data) {
         List<ResultSetFuture> futures = new ArrayList<>(data.size());
 //        for (Metric metric : metrics) {
@@ -208,6 +223,12 @@ public class MetricsServiceCassandra implements MetricsService {
 //        ResultSetFuture future = dataAccess.findCounters(group, counterNames);
 //        return Futures.transform(future, mapCounters, metricsTasks);
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ListenableFuture<Metric> findMetricData(String tenantId, String id, long start, long end) {
+        ResultSetFuture queryFuture = dataAccess.findNumericData(tenantId, new MetricId(id), DPART, start, end);
+        return Futures.transform(queryFuture, new MetricMapper(), metricsTasks);
     }
 
     @Override

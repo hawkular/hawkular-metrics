@@ -3,6 +3,7 @@ package org.rhq.metrics.core;
 import static java.util.Arrays.asList;
 import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNull;
 
 import java.util.Collections;
 import java.util.List;
@@ -70,6 +71,44 @@ public class MetricsServiceTest extends MetricsTest {
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
+    }
+
+    @Test
+    public void addDataForMultipleMetrics() throws Exception {
+        DateTime start = now().minusMinutes(10);
+        DateTime end = start.plusMinutes(8);
+        String tenantId = "test-tenant";
+        List<Metric> metrics = asList(
+            new Metric()
+                .setTenantId(tenantId)
+                .setId(new MetricId("m1"))
+                .addData(start.plusSeconds(30).getMillis(), 11.2)
+                .addData(start.getMillis(), 11.1),
+            new Metric()
+                .setTenantId(tenantId)
+                .setId(new MetricId("m2"))
+                .setAttributes(ImmutableMap.of("a1", "1", "a2", "2"))
+                .addData(start.plusSeconds(30).getMillis(), 12.2)
+                .addData(start.getMillis(), 12.1),
+            new Metric()
+                .setTenantId(tenantId)
+                .setId(new MetricId("m3"))
+                .setAttributes(ImmutableMap.of("a3", "3", "a4", "4"))
+        );
+        ListenableFuture<Void> insertFuture = metricsService.addData(metrics);
+
+        ListenableFuture<Metric> queryFuture = metricsService.findMetricData(tenantId, "m1", start.getMillis(),
+            end.getMillis());
+        Metric actual = getUninterruptibly(queryFuture);
+        assertEquals(actual, metrics.get(0), "The m1 metric does not match the expected value");
+
+        queryFuture = metricsService.findMetricData(tenantId, "m2", start.getMillis(), end.getMillis());
+        actual = getUninterruptibly(queryFuture);
+        assertEquals(actual, metrics.get(1), "The m2 metric does not match the expected value");
+
+        queryFuture = metricsService.findMetricData(tenantId, "m3", start.getMillis(), end.getMillis());
+        actual = getUninterruptibly(queryFuture);
+        assertNull(actual, "Did not expect to get back any data for metric m3");
     }
 
     @Test

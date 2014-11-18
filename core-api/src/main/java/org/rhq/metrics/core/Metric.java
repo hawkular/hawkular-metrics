@@ -1,7 +1,10 @@
 package org.rhq.metrics.core;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import com.google.common.base.Objects;
 
@@ -17,6 +20,8 @@ public class Metric {
     private Map<String, String> attributes = new HashMap<>();
 
     private long dpart;
+
+    private List<NumericData> data = new ArrayList<>();
 
     public String getTenantId() {
         return tenantId;
@@ -66,6 +71,20 @@ public class Metric {
      */
     public Metric setAttribute(String name, String value) {
         attributes.put(name, value);
+        return this;
+    }
+
+    public List<NumericData> getData() {
+        return data;
+    }
+
+    public Metric addData(long timestamp, double value) {
+        data.add(new NumericData(this, timestamp, value));
+        return this;
+    }
+
+    public Metric addData(UUID timeUUID, double value) {
+        data.add(new NumericData(this, timeUUID, value));
         return this;
     }
 
