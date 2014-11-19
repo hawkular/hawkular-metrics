@@ -25,41 +25,54 @@
                 <artifactId>maven-war-plugin</artifactId>
                 <configuration>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
-                    <warSourceExcludes>test/**/*,vendor/**/*,node_modules/**/*,**/.*,*.js,*.json,</warSourceExcludes>
+                    <warSourceExcludes>test/**/*,vendor/**/*,node_modules/**/*,**/.*,*.js,*.json,node/**,.tmp/**,**/*.ts)</warSourceExcludes>
                     <packagingExcludes>WEB-INF/classes</packagingExcludes>
                 </configuration>
             </plugin>
 
+            <!-- Download node.js and related modules to install 3rd party frontend libraries -->
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>0.0.16</version>
+
+                <configuration>
+                    <workingDirectory>${basedir}/src/main/webapp</workingDirectory>
+                </configuration>
+
                 <executions>
                     <execution>
-                        <id>npm-dependencies</id>
-                        <phase>generate-sources</phase>
+                        <id>install node and npm</id>
                         <goals>
-                            <goal>exec</goal>
+                            <goal>install-node-and-npm</goal>
                         </goals>
+                        <phase>generate-sources</phase>
                         <configuration>
-                            <executable>npm</executable>
-                            <arguments>
-                                <argument>install</argument>
-                            </arguments>
-                            <workingDirectory>${basedir}/src/main/webapp</workingDirectory>
+                            <nodeVersion>v0.10.33</nodeVersion>
+                            <npmVersion>1.4.28</npmVersion>
                         </configuration>
                     </execution>
+
                     <execution>
-                        <id>bower-dependencies</id>
-                        <phase>generate-sources</phase>
+                        <id>npm install</id>
                         <goals>
-                            <goal>exec</goal>
+                            <goal>npm</goal>
                         </goals>
+                        <phase>generate-sources</phase>
                         <configuration>
-                            <executable>${basedir}/src/main/webapp/node_modules/bower/bin/bower</executable>
-                            <arguments>
-                                <argument>install</argument>
-                            </arguments>
-                            <workingDirectory>${basedir}/src/main/webapp</workingDirectory>
+                            <arguments>install</arguments>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>grunt build</id>
+                        <goals>
+                            <goal>grunt</goal>
+                        </goals>
+                        <phase>generate-sources</phase>
+
+                        <configuration>
+                            <arguments>build</arguments>
                         </configuration>
                     </execution>
                 </executions>
