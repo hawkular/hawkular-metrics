@@ -29,7 +29,7 @@ public class TenantsMapper implements Function<ResultSet, Set<Tenant>> {
 
             Map<TupleValue, Integer> retentions = row.getMap(1, TupleValue.class, Integer.class);
             for (Map.Entry<TupleValue, Integer> entry : retentions.entrySet()) {
-                MetricType metricType = MetricType.fromCode(entry.getKey().getString(0));
+                MetricType metricType = MetricType.fromCode(entry.getKey().getInt(0));
                 if (entry.getKey().isNull(1)) {
                     tenant.setRetention(metricType, entry.getValue());
                 } else {
@@ -41,7 +41,7 @@ public class TenantsMapper implements Function<ResultSet, Set<Tenant>> {
             List<UDTValue> templateValues = row.getList(2, UDTValue.class);
             for (UDTValue value : templateValues) {
                 tenant.addAggregationTemplate(new AggregationTemplate()
-                    .setType(MetricType.fromCode(value.getString("type")))
+                    .setType(MetricType.fromCode(value.getInt("type")))
                     .setInterval(Interval.parse(value.getString("interval")))
                     .setFunctions(value.getSet("fns", String.class)));
             }

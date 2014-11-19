@@ -48,6 +48,7 @@ import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
+import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
@@ -240,7 +241,7 @@ public class MetricHandler {
     public void findNumericDataByTags(@Suspended final AsyncResponse asyncResponse, @QueryParam("tags") String tags) {
         Set<String> tagSet = ImmutableSet.copyOf(tags.split(","));
         ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findDataByTags(DEFAULT_TENANT_ID,
-            tagSet);
+            tagSet, MetricType.NUMERIC);
         Futures.addCallback(queryFuture, new FutureCallback<Map<MetricId, Set<NumericData>>>() {
             @Override
             public void onSuccess(Map<MetricId, Set<NumericData>> taggedDataMap) {
@@ -392,7 +393,7 @@ public class MetricHandler {
     @Path("/tags/numeric/{tag}")
     public void findTaggedNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tag") String tag) {
         ListenableFuture<Map<MetricId, Set<NumericData>>> future = metricsService.findDataByTags(DEFAULT_TENANT_ID,
-            ImmutableSet.of(tag));
+            ImmutableSet.of(tag), MetricType.NUMERIC);
         Futures.addCallback(future, new FutureCallback<Map<MetricId, Set<NumericData>>>() {
             @Override
             public void onSuccess(Map<MetricId, Set<NumericData>> taggedDataMap) {

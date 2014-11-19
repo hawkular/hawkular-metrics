@@ -12,7 +12,7 @@ CREATE KEYSPACE ${keyspace} WITH replication = {'class': 'SimpleStrategy', 'repl
 -- #
 
 CREATE TYPE ${keyspace}.aggregation_template (
-    type text,
+    type int,
     src text,
     interval text,
     fns set<text>
@@ -20,9 +20,11 @@ CREATE TYPE ${keyspace}.aggregation_template (
 
 -- #
 
+-- The retentions map entries are <metric_type, interval> --> retention
+
 CREATE TABLE ${keyspace}.tenants (
     id text PRIMARY KEY,
-    retentions map<frozen<tuple<text, text>>, int>,
+    retentions map<frozen<tuple<int, text>>, int>,
     aggregation_templates list<frozen<aggregation_template>>
 );
 
@@ -40,6 +42,7 @@ CREATE TYPE ${keyspace}.aggregate_data (
 
 CREATE TABLE ${keyspace}.data (
     tenant_id text,
+    type int,
     metric text,
     interval text,
     dpart bigint,
@@ -48,7 +51,7 @@ CREATE TABLE ${keyspace}.data (
     n_value double,
     availability blob,
     aggregates set<frozen <aggregate_data>>,
-    PRIMARY KEY ((tenant_id, metric, interval, dpart), time)
+    PRIMARY KEY ((tenant_id, type, metric, interval, dpart), time)
 )
 WITH CLUSTERING ORDER BY (time DESC);
 
@@ -67,12 +70,12 @@ CREATE TABLE ${keyspace}.counters (
 CREATE TABLE ${keyspace}.tags (
     tenant_id text,
     tag text,
-    type text,
+    type int,
     metric text,
     interval text,
     time timeuuid,
     n_value double,
     aggregates set<frozen <aggregate_data>>,
     availability blob,
-    PRIMARY KEY ((tenant_id, tag), type, metric, interval, time)
+    PRIMARY KEY ((tenant_id, tag, type), metric, interval, time)
 );

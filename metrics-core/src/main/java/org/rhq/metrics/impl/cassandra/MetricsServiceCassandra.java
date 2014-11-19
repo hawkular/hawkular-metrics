@@ -37,6 +37,7 @@ import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricData;
 import org.rhq.metrics.core.MetricId;
+import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
 import org.rhq.metrics.core.NumericData;
@@ -367,11 +368,12 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Map<MetricId, Set<NumericData>>> findDataByTags(String tenantId, Set<String> tags) {
+    public ListenableFuture<Map<MetricId, Set<NumericData>>> findDataByTags(String tenantId, Set<String> tags,
+        MetricType type) {
         List<ListenableFuture<Map<MetricId, Set<NumericData>>>> queryFutures = new ArrayList<>(tags.size());
         TaggedDataMapper mapper = new TaggedDataMapper();
         for (String tag : tags) {
-            queryFutures.add(Futures.transform(dataAccess.findData(tenantId, tag), mapper, metricsTasks));
+            queryFutures.add(Futures.transform(dataAccess.findData(tenantId, tag, type), mapper, metricsTasks));
         }
         ListenableFuture<List<Map<MetricId, Set<NumericData>>>> queriesFuture = Futures.allAsList(queryFutures);
         return Futures.transform(queriesFuture, new Function<List<Map<MetricId, Set<NumericData>>>, Map<MetricId, Set<NumericData>>>() {

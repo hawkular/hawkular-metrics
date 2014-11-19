@@ -33,6 +33,8 @@ public abstract class Metric<T extends MetricData> {
         this.attributes = attributes;
     }
 
+    public abstract MetricType getType();
+
     public String getTenantId() {
         return tenantId;
     }

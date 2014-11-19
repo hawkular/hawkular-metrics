@@ -178,7 +178,7 @@ public class MetricsServiceTest extends MetricsTest {
         getUninterruptibly(tagFuture5);
 
         ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findDataByTags(tenant,
-            ImmutableSet.of("t1", "t2"));
+            ImmutableSet.of("t1", "t2"), MetricType.NUMERIC);
         Map<MetricId, Set<NumericData>> actual = getUninterruptibly(queryFuture);
         ImmutableMap<MetricId, ImmutableSet<NumericData>> expected = ImmutableMap.of(
             new MetricId("m1"), ImmutableSet.of(d1, d2, d6),
@@ -229,7 +229,7 @@ public class MetricsServiceTest extends MetricsTest {
         assertEquals(getUninterruptibly(tagFuture), asList(d4), "Tagging " + d4 + " returned unexpected results");
 
         ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findDataByTags(tenant,
-            ImmutableSet.of("t2", "t3"));
+            ImmutableSet.of("t2", "t3"), MetricType.NUMERIC);
         Map<MetricId, Set<NumericData>> actual = getUninterruptibly(queryFuture);
         ImmutableMap<MetricId, ImmutableSet<NumericData>> expected = ImmutableMap.of(
             new MetricId("m1"), ImmutableSet.of(d2),

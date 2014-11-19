@@ -13,36 +13,39 @@ package org.rhq.metrics.core;
  */
 public enum MetricType {
 
-    NUMERIC("num", "numeric"),
+    NUMERIC(0, "numeric"),
 
-    AVAILABILITY("avail", "availability"),
+    AVAILABILITY(1, "availability"),
 
-    LOG_EVENT("log", "log event");
+    LOG_EVENT(2, "log event");
 
-    private String code;
+    private int code;
 
-    private String display;
+    private String text;
 
-    private MetricType(String code, String display) {
+    private MetricType(int code, String text) {
         this.code = code;
-        this.display = display;
+        this.text = text;
     }
 
-    public String getCode() {
+    public int getCode() {
         return code;
     }
 
+    public String getText() {
+        return text;
+    }
 
     @Override
     public String toString() {
-        return display;
+        return text;
     }
 
-    public static MetricType fromCode(String code) {
+    public static MetricType fromCode(int code) {
         switch (code) {
-            case "num" : return NUMERIC;
-            case "avail" : return AVAILABILITY;
-            case "log" : return LOG_EVENT;
+            case 0 : return NUMERIC;
+            case 1 : return AVAILABILITY;
+            case 2 : return LOG_EVENT;
             default: throw new IllegalArgumentException(code + " is not a recognized metric type");
         }
     }

@@ -16,6 +16,11 @@ public class NumericMetric2 extends Metric<NumericData> {
         super(tenantId, id, attributes);
     }
 
+    @Override
+    public MetricType getType() {
+        return MetricType.NUMERIC;
+    }
+
     public void addData(long timestamp, double value) {
         addData(new NumericData(this, timestamp, value));
     }

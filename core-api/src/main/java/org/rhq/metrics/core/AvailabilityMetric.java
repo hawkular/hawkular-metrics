@@ -16,6 +16,11 @@ public class AvailabilityMetric extends Metric<Availability> {
         super(tenantId, id, attributes);
     }
 
+    @Override
+    public MetricType getType() {
+        return MetricType.AVAILABILITY;
+    }
+
     public void addAvailability(long timestamp, AvailabilityType availability) {
         addData(new Availability(this, timestamp, availability));
     }
