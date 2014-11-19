@@ -61,7 +61,7 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
     private static final int CLOSE_AFTER_REQUESTS = 200;
     private long numberOfMetrics = 0;
 
-    BoundMetricFifo fifo = new BoundMetricFifo(10, 5000);
+    BoundMetricFifo fifo;
     AttributeKey<List<SingleMetric>> listKey = AttributeKey.valueOf("listToSend");
 
     private Channel senderChannel;
@@ -71,11 +71,17 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
 
     private static final Logger logger = LoggerFactory.getLogger(RestForwardingHandler.class);
     private int closeAfterRequests = CLOSE_AFTER_REQUESTS;
+    private int spoolSize;
+    boolean isConnecting = false;
+
+    final Object connectingMutex;
 
     public RestForwardingHandler(Properties configuration) {
+        connectingMutex = this;
         logger.debug("RestForwardingHandler init");
         loadRestEndpointInfoFromProperties(configuration);
 
+        fifo = new BoundMetricFifo(10, spoolSize);
         try {
             localHostName  = InetAddress.getLocalHost().getCanonicalHostName();
         } catch (UnknownHostException e) {
@@ -97,16 +103,26 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
 
         fifo.addAll(in);
 
+        synchronized (connectingMutex) {
+            // make sure to only open one connection at a time
+            if (isConnecting)
+                return;
+        }
+
         if (senderChannel!=null ) {
             sendToChannel(senderChannel);
             return;
         }
+
 
         ChannelFuture cf = connectRestServer(ctx.channel().eventLoop().parent());
 
         cf.addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
+                synchronized (connectingMutex) {
+                    isConnecting=false;
+                }
                 if (!future.isSuccess()) {
                     Throwable cause = future.cause();
                     if (cause instanceof ConnectException ) {
@@ -115,8 +131,8 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
                     else {
                         logger.warn("Something went wrong: " + cause);
                     }
-                    //   the remote is back up again.
                 } else {
+                    //   the remote is up.
                     senderChannel = future.channel();
                     sendToChannel(senderChannel);
                 }
@@ -174,6 +190,10 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
 
     ChannelFuture connectRestServer(EventLoopGroup group) throws Exception{
 
+        synchronized (connectingMutex) {
+            isConnecting = true;
+        }
+
         Bootstrap clientBootstrap = new Bootstrap();
         clientBootstrap
             .group(group)
@@ -205,6 +225,7 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
         closeAfterRequests = Integer.parseInt(
             configuration.getProperty("rest.close-after", String.valueOf(CLOSE_AFTER_REQUESTS)));
 
+        spoolSize = Integer.parseInt(configuration.getProperty("spool.size", "1000"));
     }
 
     /**

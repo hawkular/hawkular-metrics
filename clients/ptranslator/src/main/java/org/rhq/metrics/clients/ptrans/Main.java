@@ -47,8 +47,9 @@ import org.rhq.metrics.netty.collectd.event.CollectdEventsDecoder;
 import org.rhq.metrics.netty.collectd.packet.CollectdPacketDecoder;
 
 /**
- * Simple client (proxy) that receives messages from other syslogs and
- * forwards the (matching) messages to the rest server
+ * Simple client (proxy) that receives messages from various protocols
+ * and forwards the data to the rest server.
+ * Multiple protocols are supported.
  * @author Heiko W. Rupp
  */
 public class Main {
@@ -71,6 +72,8 @@ public class Main {
     private int udpPort = DEFAULT_PORT;
     private int statsDport = STATSD_DEFAULT_PORT;
     private int collectdPort = COLLETCD_DEFAULT_PORT;
+    private final int minimumBatchSize;
+
 
     private final Properties configuration;
     private final EventLoopGroup group;
@@ -125,6 +128,7 @@ public class Main {
                 stop();
             }
         }));
+        minimumBatchSize = Integer.parseInt(configuration.getProperty("batch.size","5"));
     }
 
     private void run() throws Exception {
@@ -197,7 +201,7 @@ public class Main {
                     pipeline.addLast(new CollectdPacketDecoder());
                     pipeline.addLast(new CollectdEventsDecoder());
                     pipeline.addLast(new CollectdEventHandler());
-                    pipeline.addLast(new MetricBatcher("collectd"));
+                    pipeline.addLast(new MetricBatcher("collectd", minimumBatchSize));
                     pipeline.addLast(forwardingHandler);
                 }
             });
@@ -217,7 +221,7 @@ public class Main {
                 public void initChannel(Channel socketChannel) throws Exception {
                     ChannelPipeline pipeline = socketChannel.pipeline();
                     pipeline.addLast(new StatsdDecoder());
-                    pipeline.addLast(new MetricBatcher("statsd"));
+                    pipeline.addLast(new MetricBatcher("statsd", minimumBatchSize));
                     pipeline.addLast(forwardingHandler);
                 }
             });
@@ -258,7 +262,7 @@ public class Main {
                     public void initChannel(Channel socketChannel) throws Exception {
                         ChannelPipeline pipeline = socketChannel.pipeline();
                         pipeline.addLast(new UdpGangliaDecoder());
-                        pipeline.addLast(new MetricBatcher("ganglia"));
+                        pipeline.addLast(new MetricBatcher("ganglia", minimumBatchSize));
                         pipeline.addLast(fowardingHandler);
                     }
                 })
