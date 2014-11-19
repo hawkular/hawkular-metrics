@@ -25,7 +25,6 @@
     <vertx.version>2.1RC3</vertx.version>
     <vertx.testtools.version>2.0.3-final</vertx.testtools.version>
     <jackson.version>2.3.2</jackson.version>
-    <guava.version>16.0.1</guava.version>
     <resteasy.version>3.0.7.Final</resteasy.version>
     <trove4j.version>3.0.3</trove4j.version>
 
@@ -89,6 +88,11 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>16.0.1</version>
+      </dependency>
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
