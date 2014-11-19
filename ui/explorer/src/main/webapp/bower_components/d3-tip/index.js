@@ -6,7 +6,7 @@
 (function (root, factory) {
   if (typeof define === 'function' && define.amd) {
     // AMD. Register as an anonymous module with d3 as a dependency.
-    define(['../d3/d3'], factory)
+    define(['d3'], factory)
   } else {
     // Browser global.
     root.d3.tip = factory(root.d3)
