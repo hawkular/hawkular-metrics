@@ -82,7 +82,6 @@
     <module>clients</module>
     <module>rest-test</module>
     <module>ui/explorer</module>
-    <module>ui/dummy-ui</module>
     <module>ui/console</module>
   </modules>
 
