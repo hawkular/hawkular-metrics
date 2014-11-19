@@ -12,12 +12,28 @@
         .metricIdLabel {
             color: #999;
         }
-
         .metricIdHeader {
             margin: 20px 0 -45px 90px;
         }
         .chartWrapper {
             height: 250px;
+        }
+        .docTable {
+            border: solid black 1px;;
+        }
+        .docTable  thead {
+            border: solid black 1px;;
+            background-color: #d3d3d3;
+        }
+        .docTable  tr {
+            border: solid black 1px;;
+            font-weight: bold;
+            background-color: #d3d3d3;
+        }
+        .docDesc {
+            border: solid black 1px;;
+            font-weight: normal;
+            background-color: white;
         }
     </style>
 
@@ -26,7 +42,8 @@
 
 <h3>Stand Alone Live Charts Example</h3>
 
-<p>The purpose of this sample is to demonstrate the ability to use the rhqm-chart tag outside of a full blown angular
+<h5>Purpose</h5>
+<p>This example is to demonstrate the ability to use the rhqm-chart tag  on a normal html page. Outside of a full blown angular
     application. It's an Angular tag so it will still require Angular but eliminating many of the dependencies of the
     application and getting it down to Angular and a couple libs and css dependencies is the goal. Placing the tag in a
     normal html web page and have it retrieve and update data is the objective.
@@ -35,13 +52,10 @@
 <i>Instructions</i>
 <ol>
     <li>cd ui/console/src/main/webapp/</li>
-    <li>Optionally, edit stand-alone-chart-sample.html, if desired (add new metrics or change time range)</li>
     <li>Launch http web server of your choice (example: 'python -m SimpleHTTPServer 8000 .')</li>
     <li>View page at: http://localhost:8000/stand-alone-chart-sample.html </li>
+    <li>Optionally, edit stand-alone-chart-sample.html, if desired (add new metrics, change time range or refresh interval)</li>
 </ol>
- <p>Explanation: Examining the source code, there is an app and a controller required to render the angular directive. The StandAloneController is just a dummy controller required to render directives(tags). It doesn't
-    really do anything just required for Angular directives. After that, the only thing that is needed for use is some
-    rhqm-chart tags with relevant metric-id and metric-url attributes. So this will all be boiled down to several additional lines of code (&lt; 5) to support angular tags in pages; with one angular tag for each chart. </p>
 
 <div ng-controller="StandAloneController as vm">
 
@@ -61,7 +75,7 @@
     </div>
     <div class="chartWrapper">
         <rhqm-chart chart-type="bar"
-                    metric-id="pintsize.home.pilhuhn.de.mem_free"
+                    metric-id="hrupp-rhq-metrics-saas.wildfly.heap-memory-usage.used"
                     metric-url="http://10.3.10.81:8080/rhq-metrics/metrics/"
                     time-range-in-seconds="604800"
                     refresh-interval-in-seconds="60"
@@ -82,13 +96,33 @@
 
 </div>
 
-<h4>TODO:</h4>
+<h4>The Code</h4>
+<table class="docTable">
+    <thead>
+    <th colspan="2">rhqm-chart tag</th>
+    </thead>
+    <tr><td style="text-align: center;">Attribute</td><td style="text-align: center;">Description</td></tr>
+    <tr><td>chart-type</td><td class="docDesc">bar, area, scatter, line</td></tr>
+    <tr><td>metric-id</td><td class="docDesc">metric id</td></tr>
+    <tr><td>metric-url</td><td class="docDesc">url/port to the rhq-metrics REST server</td></tr>
+    <tr><td>time-range-in-seconds</td><td class="docDesc">Time period the graph displays</td></tr>
+    <tr><td>refresh-interval-in-seconds</td><td class="docDesc">how often the graph reloads data</td></tr>
+</table>
+
+<p><i>Explanation</i>: Examining the source code, there is an app and a controller required to render the angular directive. The StandAloneController is just a dummy controller required to render directives(tags). It doesn't
+    really do anything just required for Angular directives. After that, the only thing that is needed for use is some
+    rhqm-chart tags with relevant metric-id and metric-url attributes. So this will all be boiled down to several additional lines of code (&lt; 5) to support angular tags in pages; with one angular tag for each chart. </p>
+
+
+
+<h4>Next TODO:</h4>
 <ol>
     <li>Currently, there are still too many dependencies to make it totally standalone. Next task is to thin this down
         and document use. Slimming down can be as simple as creating an optimized build that bundles all the *.js files
-        into a single js file. This would be the crude way of doing and it needs to be done correctly by eliminating the
+        into a single js file. Or, using CDN urls for libs. This would be the crude way of doing and it needs to be done correctly by eliminating the
         unnecessary dependencies and creating a separate bower package with just the desired artifacts.
     </li>
+    <li>Create a standalone bower package for the rhqm-charts component and publish to bower directory. </li>
 </ol>
 
 
