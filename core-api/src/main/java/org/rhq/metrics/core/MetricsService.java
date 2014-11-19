@@ -34,7 +34,9 @@ public interface MetricsService {
 
     ListenableFuture<Void> insertMetric(Metric metric);
 
-    ListenableFuture<Void> addData(List<Metric> metrics);
+    ListenableFuture<Void> addData(List<NumericMetric2> metrics);
+
+    ListenableFuture<Void> addAvailabilityData(List<AvailabilityMetric> metrics);
 
     ListenableFuture<Void> addNumericData(List<NumericData> metrics);
 
@@ -46,7 +48,9 @@ public interface MetricsService {
 
     ListenableFuture<List<Counter>> findCounters(String group, List<String> counterNames);
 
-    ListenableFuture<Metric> findMetricData(String tenantId, String id, long start, long end);
+    ListenableFuture<NumericMetric2> findMetricData(String tenantId, String id, long start, long end);
+
+    ListenableFuture<AvailabilityMetric> findAvailabilityData(String tenantId, String id, long start, long end);
 
     /** Find and return raw metrics for {id} that have a timestamp between {start} and {end} */
     ListenableFuture<List<NumericData>> findData(String tenantId, String id, long start, long end);

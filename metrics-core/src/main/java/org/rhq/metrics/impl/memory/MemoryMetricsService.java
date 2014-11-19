@@ -17,12 +17,14 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
+import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
 import org.rhq.metrics.core.NumericData;
+import org.rhq.metrics.core.NumericMetric2;
 
 import gnu.trove.map.TLongDoubleMap;
 import gnu.trove.map.hash.TLongDoubleHashMap;
@@ -66,7 +68,17 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> addData(List<Metric> metrics) {
+    public ListenableFuture<Void> addData(List<NumericMetric2> metrics) {
+        return null;
+    }
+
+    @Override
+    public ListenableFuture<Void> addAvailabilityData(List<AvailabilityMetric> metrics) {
+        return null;
+    }
+
+    @Override
+    public ListenableFuture<AvailabilityMetric> findAvailabilityData(String tenantId, String id, long start, long end) {
         return null;
     }
 
@@ -150,7 +162,7 @@ public class MemoryMetricsService implements MetricsService {
 
     @Override
     public ListenableFuture<List<NumericData>> findData(String tenantId, String id, long start, long end) {
-        Metric metric = new Metric().setTenantId(tenantId).setId(new MetricId(id));
+        NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(id));
         List<NumericData> data = new ArrayList<>();
 
         if (storage.containsKey(id)) {
@@ -166,7 +178,7 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Metric> findMetricData(String tenantId, String id, long start, long end) {
+    public ListenableFuture<NumericMetric2> findMetricData(String tenantId, String id, long start, long end) {
         return null;
     }
 

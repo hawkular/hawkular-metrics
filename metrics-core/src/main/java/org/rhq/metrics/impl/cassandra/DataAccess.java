@@ -20,12 +20,15 @@ import com.datastax.driver.core.UserType;
 import com.datastax.driver.core.utils.UUIDs;
 
 import org.rhq.metrics.core.AggregationTemplate;
+import org.rhq.metrics.core.Availability;
+import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.NumericData;
+import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.core.RetentionSettings;
 import org.rhq.metrics.core.Tenant;
 import org.rhq.metrics.util.TimeUUIDUtils;
@@ -64,6 +67,10 @@ public class DataAccess {
 
     private PreparedStatement findDataByTag;
 
+    private PreparedStatement insertAvailability;
+
+    private PreparedStatement findAvailabilities;
+
     public DataAccess(Session session) {
         this.session = session;
         initPreparedStatements();
@@ -78,31 +85,31 @@ public class DataAccess {
         findTenants = session.prepare("SELECT id, retentions, aggregation_templates FROM tenants");
 
         addNumericAttributes = session.prepare(
-            "UPDATE numeric_data " +
+            "UPDATE data " +
             "SET attributes = attributes + ? " +
             "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ?");
 
         insertNumericData = session.prepare(
-            "UPDATE numeric_data " +
-            "SET attributes = attributes + ?, raw = ? " +
+            "UPDATE data " +
+            "SET attributes = attributes + ?, n_value = ? " +
             "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
         findNumericDataByDateRangeExclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, attributes, raw, aggregates " +
-            "FROM numeric_data " +
+            "SELECT tenant_id, metric, interval, dpart, time, attributes, n_value, aggregates " +
+            "FROM data " +
             "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
 
         findNumericDataByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, attributes, raw, aggregates " +
-            " FROM numeric_data " +
+            "SELECT tenant_id, metric, interval, dpart, time, attributes, n_value, aggregates " +
+            " FROM data " +
             " WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time <= ?");
 
         deleteNumericMetric = session.prepare(
-            "DELETE FROM numeric_data " +
+            "DELETE FROM data " +
             "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ?");
 
         findNumericMetrics = session.prepare(
-            "SELECT DISTINCT tenant_id, metric, interval, dpart FROM numeric_data;");
+            "SELECT DISTINCT tenant_id, metric, interval, dpart FROM data;");
 
         updateCounter = session.prepare(
             "UPDATE counters " +
@@ -116,12 +123,26 @@ public class DataAccess {
             "SELECT tenant_id, group, c_name, c_value FROM counters WHERE tenant_id = ? AND group = ? AND c_name IN ?");
 
         insertTags = session.prepare(
-            "INSERT INTO tags (tenant_id, tag, type, metric, interval, time, raw_data) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            "INSERT INTO tags (tenant_id, tag, type, metric, interval, time, n_value) VALUES (?, ?, ?, ?, ?, ?, ?)");
 
         findDataByTag = session.prepare(
-            "SELECT tenant_id, tag, type, metric, interval, time, raw_data " +
+            "SELECT tenant_id, tag, type, metric, interval, time, n_value " +
             "FROM tags " +
             "WHERE tenant_id = ? AND tag = ?");
+
+//        insertAvailability = session.prepare(
+//            "INSERT INTO data (tenant_id, metric, interval, dpart, time, availability) " +
+//            "VALUES (?, ?, ?, ?, ?, ?)");
+
+        insertAvailability = session.prepare(
+            "UPDATE data " +
+            "SET attributes = attributes + ?, availability = ? " +
+            "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
+
+        findAvailabilities = session.prepare(
+            "SELECT tenant_id, metric, interval, dpart, time, attributes, availability " +
+            "FROM data " +
+            "WHERE tenant_id = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
     }
 
     public ResultSetFuture insertTenant(Tenant tenant) {
@@ -220,17 +241,13 @@ public class DataAccess {
         return session.executeAsync(batchStatement);
     }
 
-    public ResultSetFuture insertData(Metric metric) {
+    public ResultSetFuture insertData(NumericMetric2 metric) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (NumericData d : metric.getData()) {
             batchStatement.add(insertNumericData.bind(metric.getAttributes(), d.getValue(), metric.getTenantId(),
                 metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart(), d.getTimeUUID()));
         }
         return session.executeAsync(batchStatement);
-    }
-
-    private final String getInterval(Interval interval) {
-        return interval == null ? "" : interval.toString();
     }
 
     public ResultSetFuture findNumericData(String tenantId, MetricId id, long dpart, long startTime, long endTime) {
@@ -264,6 +281,28 @@ public class DataAccess {
 
     public ResultSetFuture findData(String tenantId, String tag) {
         return session.executeAsync(findDataByTag.bind(tenantId, tag));
+    }
+
+    public ResultSetFuture insertAvailability(Availability a) {
+        return session.executeAsync(insertAvailability.bind(a.getMetric().getAttributes(), a.getBytes(),
+            a.getMetric().getTenantId(), a.getMetric().getId().getName(),
+            a.getMetric().getId().getInterval().toString(), a.getMetric().getDpart(), a.getTimeUUID()));
+    }
+
+    public ResultSetFuture insertData(AvailabilityMetric metric) {
+        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
+        for (Availability a : metric.getData()) {
+            batchStatement.add(insertAvailability.bind(metric.getAttributes(), a.getBytes(), metric.getTenantId(),
+                metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart(),
+                a.getTimeUUID()));
+        }
+        return session.executeAsync(batchStatement);
+    }
+
+    public ResultSetFuture findAvailabilityData(String tenantId, String metric, Interval interval, long dpart,
+        long startTime, long endTime) {
+        return session.executeAsync(findAvailabilities.bind(tenantId, metric, interval.toString(), dpart,
+            TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
     }
 
     public ResultSetFuture updateCounter(Counter counter) {

@@ -39,7 +39,7 @@ public class MetricsServiceTest extends MetricsTest {
     @BeforeMethod
     public void initMethod() {
         session.execute("TRUNCATE tenants");
-        session.execute("TRUNCATE numeric_data");
+        session.execute("TRUNCATE data");
         session.execute("TRUNCATE tags");
     }
 
@@ -48,10 +48,7 @@ public class MetricsServiceTest extends MetricsTest {
     public void addAndFetchRawData() throws Exception {
         DateTime start = now().minusMinutes(30);
         DateTime end = start.plusMinutes(20);
-
-        Metric metric = new Metric()
-            .setTenantId("t1")
-            .setId(new MetricId("m1"));
+        NumericMetric2 metric = new NumericMetric2("t1", new MetricId("m1"));
 
         ListenableFuture<Void> insertFuture = metricsService.addNumericData(asList(
             new NumericData(metric, start.getMillis(), 1.1),
@@ -78,37 +75,67 @@ public class MetricsServiceTest extends MetricsTest {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(8);
         String tenantId = "test-tenant";
-        List<Metric> metrics = asList(
-            new Metric()
-                .setTenantId(tenantId)
-                .setId(new MetricId("m1"))
-                .addData(start.plusSeconds(30).getMillis(), 11.2)
-                .addData(start.getMillis(), 11.1),
-            new Metric()
-                .setTenantId(tenantId)
-                .setId(new MetricId("m2"))
-                .setAttributes(ImmutableMap.of("a1", "1", "a2", "2"))
-                .addData(start.plusSeconds(30).getMillis(), 12.2)
-                .addData(start.getMillis(), 12.1),
-            new Metric()
-                .setTenantId(tenantId)
-                .setId(new MetricId("m3"))
-                .setAttributes(ImmutableMap.of("a3", "3", "a4", "4"))
-        );
-        ListenableFuture<Void> insertFuture = metricsService.addData(metrics);
 
-        ListenableFuture<Metric> queryFuture = metricsService.findMetricData(tenantId, "m1", start.getMillis(),
+        NumericMetric2 m1 = new NumericMetric2(tenantId, new MetricId("m1"));
+        m1.addData(start.plusSeconds(30).getMillis(), 11.2);
+        m1.addData(start.getMillis(), 11.1);
+
+        NumericMetric2 m2 = new NumericMetric2(tenantId, new MetricId("m2"), ImmutableMap.of("a1", "1", "a2", "2"));
+        m2.addData(start.plusSeconds(30).getMillis(), 12.2);
+        m2.addData(start.getMillis(), 12.1);
+
+        NumericMetric2 m3 = new NumericMetric2(tenantId, new MetricId("m3"), ImmutableMap.of("a3", "3", "a4", "4"));
+
+        ListenableFuture<Void> insertFuture = metricsService.addData(asList(m1, m2, m3));
+        getUninterruptibly(insertFuture);
+
+        ListenableFuture<NumericMetric2> queryFuture = metricsService.findMetricData(tenantId, "m1", start.getMillis(),
             end.getMillis());
-        Metric actual = getUninterruptibly(queryFuture);
-        assertEquals(actual, metrics.get(0), "The m1 metric does not match the expected value");
+        NumericMetric2 actual = getUninterruptibly(queryFuture);
+        assertMetricEquals(actual, m1);
 
         queryFuture = metricsService.findMetricData(tenantId, "m2", start.getMillis(), end.getMillis());
         actual = getUninterruptibly(queryFuture);
-        assertEquals(actual, metrics.get(1), "The m2 metric does not match the expected value");
+        assertMetricEquals(actual, m2);
 
         queryFuture = metricsService.findMetricData(tenantId, "m3", start.getMillis(), end.getMillis());
         actual = getUninterruptibly(queryFuture);
-        assertNull(actual, "Did not expect to get back any data for metric m3");
+        assertNull(actual, "Did not expect to get back results since there is no data for " + m3);
+    }
+
+    @Test
+    public void addAvailabilityForMultipleMetrics() throws Exception {
+        DateTime start = now().minusMinutes(10);
+        DateTime end = start.plusMinutes(8);
+        String tenantId = "test-tenant";
+
+        AvailabilityMetric m1 = new AvailabilityMetric(tenantId, new MetricId("m1"));
+        m1.addData(new Availability(m1, start.plusSeconds(20).getMillis(), "down"));
+        m1.addData(new Availability(m1, start.plusSeconds(10).getMillis(), "up"));
+
+        AvailabilityMetric m2 = new AvailabilityMetric(tenantId, new MetricId("m2"),
+            ImmutableMap.of("a1", "1", "a2", "2"));
+        m2.addData(new Availability(m2, start.plusSeconds(30).getMillis(), "up"));
+        m2.addData(new Availability(m2, start.plusSeconds(15).getMillis(), "down"));
+
+        AvailabilityMetric m3 = new AvailabilityMetric(tenantId, new MetricId("m3"),
+            ImmutableMap.of("a3", "3", "a4", "4"));
+
+        ListenableFuture<Void> insertFuture = metricsService.addAvailabilityData(asList(m1, m2, m3));
+        getUninterruptibly(insertFuture);
+
+        ListenableFuture<AvailabilityMetric> queryFuture = metricsService.findAvailabilityData(tenantId, "m1",
+            start.getMillis(), end.getMillis());
+        AvailabilityMetric actual = getUninterruptibly(queryFuture);
+        assertMetricEquals(actual, m1);
+
+        queryFuture = metricsService.findAvailabilityData(tenantId, "m2", start.getMillis(), end.getMillis());
+        actual = getUninterruptibly(queryFuture);
+        assertMetricEquals(actual, m2);
+
+        queryFuture = metricsService.findAvailabilityData(tenantId, "m3", start.getMillis(), end.getMillis());
+        actual = getUninterruptibly(queryFuture);
+        assertNull(actual, "Did not expect to get back results since there is no data for " + m3);
     }
 
     @Test
@@ -116,9 +143,9 @@ public class MetricsServiceTest extends MetricsTest {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
-        Metric m1 = new Metric().setTenantId(tenant).setId(new MetricId("m1"));
-        Metric m2 = new Metric().setTenantId(tenant).setId(new MetricId("m2"));
-        Metric m3 = new Metric().setTenantId(tenant).setId(new MetricId("m3"));
+        NumericMetric2 m1 = new NumericMetric2(tenant, new MetricId("m1"));
+        NumericMetric2 m2 = new NumericMetric2(tenant, new MetricId("m2"));
+        NumericMetric2 m3 = new NumericMetric2(tenant, new MetricId("m3"));
 
         NumericData d1 = new NumericData(m1, start.getMillis(), 101.1);
         NumericData d2 = new NumericData(m1, start.plusMinutes(2).getMillis(), 101.2);
@@ -166,9 +193,9 @@ public class MetricsServiceTest extends MetricsTest {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
-        Metric m1 = new Metric().setTenantId(tenant).setId(new MetricId("m1"));
-        Metric m2 = new Metric().setTenantId(tenant).setId(new MetricId("m2"));
-        Metric m3 = new Metric().setTenantId(tenant).setId(new MetricId("m3"));
+        NumericMetric2 m1 = new NumericMetric2(tenant, new MetricId("m1"));
+        NumericMetric2 m2 = new NumericMetric2(tenant, new MetricId("m2"));
+        NumericMetric2 m3 = new NumericMetric2(tenant, new MetricId("m3"));
 
         NumericData d1 = new NumericData(m1, start.getMillis(), 101.1);
         NumericData d2 = new NumericData(m1, start.plusMinutes(2).getMillis(), 101.2);
@@ -210,6 +237,11 @@ public class MetricsServiceTest extends MetricsTest {
         );
 
         assertEquals(actual, expected, "The tagged data does not match");
+    }
+
+    private void assertMetricEquals(Metric actual, Metric expected) {
+        assertEquals(actual, expected, "The metric doe not match the expected value");
+        assertEquals(actual.getData(), expected.getData(), "The data does not match the expected values");
     }
 
 }

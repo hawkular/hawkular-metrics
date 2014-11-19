@@ -5,22 +5,23 @@ import com.datastax.driver.core.Row;
 import com.google.common.base.Function;
 
 import org.rhq.metrics.core.Interval;
-import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
+import org.rhq.metrics.core.NumericMetric2;
 
 /**
  * @author John Sanda
  */
-public class MetricMapper implements Function<ResultSet, Metric> {
+public class NumericMetricMapper implements Function<ResultSet, NumericMetric2> {
 
     @Override
-    public Metric apply(ResultSet resultSet) {
+    public NumericMetric2 apply(ResultSet resultSet) {
         if (resultSet.isExhausted()) {
             return null;
         }
 
         Row firstRow = resultSet.one();
-        Metric metric = getMetric(firstRow).addData(firstRow.getUUID(4), firstRow.getDouble(6));
+        NumericMetric2 metric = getMetric(firstRow);
+        metric.addData(firstRow.getUUID(4), firstRow.getDouble(6));
 
         for (Row row : resultSet) {
             metric.addData(row.getUUID(4), row.getDouble(6));
@@ -55,12 +56,8 @@ public class MetricMapper implements Function<ResultSet, Metric> {
 //        return metrics;
     }
 
-    private Metric getMetric(Row row) {
-        return new Metric()
-            .setTenantId(row.getString(0))
-            .setId(getId(row))
-            .setDpart(row.getLong(3))
-            .setAttributes(row.getMap(5, String.class, String.class));
+    private NumericMetric2 getMetric(Row row) {
+        return new NumericMetric2(row.getString(0), getId(row), row.getMap(5, String.class, String.class));
     }
 
     private MetricId getId(Row row) {

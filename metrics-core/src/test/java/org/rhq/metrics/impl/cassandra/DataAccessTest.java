@@ -24,12 +24,14 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import org.rhq.metrics.core.AggregationTemplate;
+import org.rhq.metrics.core.Availability;
+import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Interval;
-import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.NumericData;
+import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.core.Tenant;
 import org.rhq.metrics.test.MetricsTest;
 
@@ -51,7 +53,7 @@ public class DataAccessTest extends MetricsTest {
         initSession();
         dataAccess = new DataAccess(session);
         truncateTenants = session.prepare("TRUNCATE tenants");
-        truncateNumericData = session.prepare("TRUNCATE numeric_data");
+        truncateNumericData = session.prepare("TRUNCATE data");
         truncateCounters = session.prepare("TRUNCATE counters");
     }
 
@@ -107,7 +109,7 @@ public class DataAccessTest extends MetricsTest {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);
 
-        Metric metric = new Metric().setTenantId("tenant-1").setId(new MetricId("metric-1"));
+        NumericMetric2 metric = new NumericMetric2("tenant-1", new MetricId("metric-1"));
         List<NumericData> data = asList(
             new NumericData(metric, start.getMillis(), 1.23),
             new NumericData(metric, start.plusMinutes(1).getMillis(), 1.234),
@@ -135,10 +137,8 @@ public class DataAccessTest extends MetricsTest {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);
 
-        Metric metric = new Metric()
-            .setTenantId("tenant-1")
-            .setId(new MetricId("metric-1"))
-            .setAttributes(ImmutableMap.of("units", "KB", "env", "test"));
+        NumericMetric2 metric = new NumericMetric2("tenant-1", new MetricId("metric-1"),
+            ImmutableMap.of("units", "KB", "env", "test"));
 
         ResultSetFuture insertFuture = dataAccess.addAttributes(metric);
         getUninterruptibly(insertFuture);
@@ -283,6 +283,24 @@ public class DataAccessTest extends MetricsTest {
 
         assertEquals(actual, expected,
             "The counters do not match the expected values when filtering by group and by counter names");
+    }
+
+    @Test
+    public void insertAndFindAvailabilities() throws Exception {
+        DateTime start = now().minusMinutes(10);
+        DateTime end = start.plusMinutes(6);
+        String tenantId = "avail-test";
+        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId("m1"));
+
+        getUninterruptibly(dataAccess.insertAvailability(new Availability(metric, start.getMillis(), "up")));
+
+        ResultSetFuture future = dataAccess.findAvailabilityData(tenantId, metric.getId().getName(),
+            metric.getId().getInterval(), 0, start.getMillis(), end.getMillis());
+        ListenableFuture<List<Availability>> dataFuture = Futures.transform(future, new AvailabilityDataMapper());
+        List<Availability> actual = getUninterruptibly(dataFuture);
+        List<Availability> expected = asList(new Availability(metric, start.getMillis(), "up"));
+
+        assertEquals(actual, expected, "The availability data does not match the expected values");
     }
 
 }

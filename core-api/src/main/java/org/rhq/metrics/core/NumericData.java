@@ -1,11 +1,9 @@
 package org.rhq.metrics.core;
 
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import com.datastax.driver.core.utils.UUIDs;
 import com.google.common.base.Objects;
 
 import org.rhq.metrics.util.TimeUUIDUtils;
@@ -16,89 +14,21 @@ import org.rhq.metrics.util.TimeUUIDUtils;
  *
  * @author John Sanda
  */
-public class NumericData {
-
-    public static final Comparator<NumericData> TIME_UUID_COMPARATOR = new Comparator<NumericData>() {
-        @Override
-        public int compare(NumericData d1, NumericData d2) {
-            return TimeUUIDUtils.compare(d1.timeUUID, d2.timeUUID);
-        }
-    };
-
-    private Metric metric;
-
-//    private String tenantId;
-//
-//    private MetricId id;
-//
-//    private long dpart;
-//
-    private UUID timeUUID;
-//
-//    private Map<String, String> attributes = new HashMap<>();
-
-    // value and aggregatedValues are mutually exclusive. One or the other should be set
-    // but not both. It may make sense to introduce subclasses for raw and aggregated data.
+public class NumericData extends MetricData {
 
     private double value;
 
     private Set<AggregatedValue> aggregatedValues = new HashSet<>();
 
-    public NumericData(Metric metric, long timestamp, double value) {
+    public NumericData(NumericMetric2 metric, long timestamp, double value) {
         this(metric, TimeUUIDUtils.getTimeUUID(timestamp), value);
     }
 
-    public NumericData(Metric metric, UUID timeUUID, double value) {
+    public NumericData(NumericMetric2 metric, UUID timeUUID, double value) {
+        super(metric, timeUUID);
         this.metric = metric;
-        this.timeUUID = timeUUID;
         this.value = value;
     }
-
-    /**
-     * The tenant to which this metric belongs.
-     */
-//    public String getTenantId() {
-//        return tenantId;
-//    }
-//
-//    public NumericData setTenantId(String tenantId) {
-//        this.tenantId = tenantId;
-//        return this;
-//    }
-
-//    public MetricId getId() {
-//        return id;
-//    }
-//
-//    public NumericData setId(MetricId id) {
-//        this.id = id;
-//        return this;
-//    }
-
-//    /**
-//     * The metric name. The metric name and the interval must be unique across numeric metrics.
-//     */
-//    public String getMetric() {
-//        return metric;
-//    }
-//
-//    public NumericData setMetric(String metric) {
-//        this.metric = metric;
-//        return this;
-//    }
-//
-//    /**
-//     * This is for use with aggregated metrics. It specifies how frequently the metric is updated or computed. If we
-//     * introduce subclasses for raw and aggregated data, I think this would only go in the aggregated data class.
-//     */
-//    public Interval getInterval() {
-//        return interval;
-//    }
-//
-//    public NumericData setInterval(Interval interval) {
-//        this.interval = interval;
-//        return this;
-//    }
 
     /**
      * Currently not used. It wil be used for breaking up a metric time series into multiple partitions by date. For
@@ -120,34 +50,7 @@ public class NumericData {
         return metric;
     }
 
-    /**
-     * The time based UUID for this data point
-     */
-    public UUID getTimeUUID() {
-        return timeUUID;
-    }
-
-    public NumericData setTimeUUID(UUID timeUUID) {
-        this.timeUUID = timeUUID;
-        return this;
-    }
-
-    /**
-     * The UNIX timestamp of the {@link #getTimeUUID() timeUUID}
-     */
-    public long getTimestamp() {
-        return UUIDs.unixTimestamp(timeUUID);
-    }
-
-    /**
-     * Sets the {@link #getTimeUUID() timeUUID} using the UNIX timestamp
-     */
-    public NumericData setTimestamp(long timestamp) {
-        timeUUID = TimeUUIDUtils.getTimeUUID(timestamp);
-        return this;
-    }
-
-//    /**
+    //    /**
 //     * A set of key/value pairs that are shared by all data points for the metric. A good example is units like KB / sec.
 //     */
 //    public Map<String, String> getAttributes() {
@@ -206,23 +109,20 @@ public class NumericData {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (!(o instanceof NumericData)) return false;
+        if (!super.equals(o)) return false;
 
         NumericData that = (NumericData) o;
 
         if (Double.compare(that.value, value) != 0) return false;
-        if (!metric.equals(that.metric)) return false;
-        if (!timeUUID.equals(that.timeUUID)) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        int result;
+        int result = super.hashCode();
         long temp;
-        result = metric.hashCode();
-        result = 31 * result + timeUUID.hashCode();
         temp = Double.doubleToLongBits(value);
         result = 31 * result + (int) (temp ^ (temp >>> 32));
         return result;
@@ -232,7 +132,7 @@ public class NumericData {
     public String toString() {
         return Objects.toStringHelper(this)
             .add("timeUUID", timeUUID)
-            .add("timestamp", UUIDs.unixTimestamp(timeUUID))
+            .add("timestamp", getTimestamp())
             .add("value", value)
             .add("metric", metric)
             .toString();

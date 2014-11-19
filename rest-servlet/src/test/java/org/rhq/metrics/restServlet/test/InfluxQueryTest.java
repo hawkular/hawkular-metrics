@@ -9,9 +9,9 @@ import java.util.UUID;
 
 import org.junit.Test;
 
-import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.NumericData;
+import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.restServlet.influx.InfluxHandler;
 import org.rhq.metrics.restServlet.influx.InfluxQuery;
 import org.rhq.metrics.util.TimeUUIDUtils;
@@ -27,7 +27,7 @@ public class InfluxQueryTest {
 
         double[] input = {1,1,1,3,4,7,9,11,13,13};
 
-        Metric metric = new Metric().setTenantId(DEFAULT_TENANT_ID).setId(new MetricId("influx-test"));
+        NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId("influx-test"));
         UUID timeUUID = TimeUUIDUtils.getTimeUUID(new java.util.Date());
         List<NumericData> metrics = new ArrayList<>(10);
         for (Double val: input) {

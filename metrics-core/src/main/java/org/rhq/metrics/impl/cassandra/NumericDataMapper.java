@@ -10,9 +10,9 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 
 import org.rhq.metrics.core.Interval;
-import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.NumericData;
+import org.rhq.metrics.core.NumericMetric2;
 
 /**
  * @author John Sanda
@@ -35,7 +35,7 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
             return Collections.emptyList();
         }
         Row firstRow = resultSet.one();
-        Metric metric = getMetric(firstRow);
+        NumericMetric2 metric = getMetric(firstRow);
         List<NumericData> data = new ArrayList<>();
         data.add(new NumericData(metric, firstRow.getUUID(4), firstRow.getDouble(6)));
 
@@ -86,12 +86,12 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
 //        }
     }
 
-    private Metric getMetric(Row row) {
-        return new Metric()
-            .setTenantId(row.getString(0))
-            .setId(getId(row))
-            .setDpart(row.getLong(3))
-            .setAttributes(row.getMap(5, String.class, String.class));
+    private NumericMetric2 getMetric(Row row) {
+        NumericMetric2 metric = new NumericMetric2(row.getString(0), getId(row), row.getMap(5, String.class,
+            String.class));
+        metric.setDpart(row.getLong(3));
+
+        return metric;
     }
 
     private MetricId getId(Row row) {

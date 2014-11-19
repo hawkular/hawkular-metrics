@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,11 +43,14 @@ import gnu.trove.map.hash.TLongObjectHashMap;
 
 import org.jboss.resteasy.annotations.GZIP;
 
+import org.rhq.metrics.core.Availability;
+import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericData;
+import org.rhq.metrics.core.NumericMetric2;
 
 /**
  * Interface to deal with metrics
@@ -81,7 +83,7 @@ public class MetricHandler {
     @Consumes({"application/json","application/xml"})
     @ApiOperation("Adds a single data point for the given id.")
     public void addMetric(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id, IdDataPoint dataPoint) {
-        Metric metric = new Metric().setTenantId(DEFAULT_TENANT_ID).setId(new MetricId(id));
+        NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(id));
         addData(asyncResponse, asList(new NumericData(metric, dataPoint.getTimestamp(), dataPoint.getValue())));
     }
 
@@ -92,7 +94,7 @@ public class MetricHandler {
     public void addMetrics(@Suspended AsyncResponse asyncResponse, Collection<IdDataPoint> dataPoints) {
         List<NumericData> data = new ArrayList<>(dataPoints.size());
         for (IdDataPoint dataPoint : dataPoints) {
-            Metric metric = new Metric().setTenantId(DEFAULT_TENANT_ID).setId(new MetricId(dataPoint.getId()));
+            NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(dataPoint.getId()));
             data.add(new NumericData(metric, dataPoint.getTimestamp(), dataPoint.getValue()));
 
         }
@@ -119,9 +121,8 @@ public class MetricHandler {
     @Path("/metrics/numeric/{id}")
     public void addDataForMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
         NumericDataParams params) {
-        Metric metric = new Metric()
-            .setTenantId(DEFAULT_TENANT_ID)
-            .setId(new MetricId(id));
+
+        NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(id));
         List<NumericData> data = new ArrayList<>(params.getData().size());
 
         for (NumericDataPoint p : params.getData()) {
@@ -144,6 +145,30 @@ public class MetricHandler {
     }
 
     @POST
+    @Path("/metrics/availability/{id}")
+    public void addAvailabilityForMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
+        AvailabilityDataParams params) {
+        AvailabilityMetric metric = new AvailabilityMetric(DEFAULT_TENANT_ID, new MetricId(id), params.getAttributes());
+
+        for (AvailabilityDataPoint p : params.getData()) {
+            metric.addData(new Availability(metric, p.getTimestamp(), p.getValue()));
+        }
+
+        ListenableFuture<Void> future = metricsService.addAvailabilityData(asList(metric));
+        Futures.addCallback(future, new FutureCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
+    }
+
+    @POST
     @Path("/metrics/numeric")
     @Consumes("application/json")
     public void addNumericData(@Suspended final AsyncResponse asyncResponse, List<NumericDataParams> paramsList) {
@@ -151,19 +176,51 @@ public class MetricHandler {
             asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
         }
 
-        List<Metric> metrics = new ArrayList<>(paramsList.size());
+        List<NumericMetric2> metrics = new ArrayList<>(paramsList.size());
 
         for (NumericDataParams params : paramsList) {
-            Metric metric = new Metric()
-                .setTenantId(params.getTenantId())
-                .setId(new MetricId(params.getName()))
-                .setAttributes(params.getAttributes());
+            NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(params.getName()),
+                params.getAttributes());
             for (NumericDataPoint p : params.getData()) {
                 metric.addData(p.getTimestamp(), p.getValue());
             }
             metrics.add(metric);
         }
         ListenableFuture<Void> insertFuture = metricsService.addData(metrics);
+        Futures.addCallback(insertFuture, new FutureCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                Response jaxrs = Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build();
+                asyncResponse.resume(jaxrs);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
+    }
+
+    @POST
+    @Path("/metrics/availability")
+    @Consumes("application/json")
+    public void addAvailabilityData(@Suspended final AsyncResponse asyncResponse,
+        List<AvailabilityDataParams> paramsList) {
+        if (paramsList.isEmpty()) {
+            asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
+        }
+
+        List<AvailabilityMetric> metrics = new ArrayList<>(paramsList.size());
+
+        for (AvailabilityDataParams params : paramsList) {
+            AvailabilityMetric metric = new AvailabilityMetric(DEFAULT_TENANT_ID, new MetricId(params.getName()),
+                params.getAttributes());
+            for (AvailabilityDataPoint p : params.getData()) {
+                metric.addData(new Availability(metric, p.getTimestamp(), p.getValue()));
+            }
+            metrics.add(metric);
+        }
+        ListenableFuture<Void> insertFuture = metricsService.addAvailabilityData(metrics);
         Futures.addCallback(insertFuture, new FutureCallback<Void>() {
             @Override
             public void onSuccess(Void result) {
@@ -246,6 +303,52 @@ public class MetricHandler {
                         NumericDataPoint p = new NumericDataPoint();
                         p.setTimestamp(d.getTimestamp());
                         p.setValue(d.getValue());
+                        dataPoints.add(p);
+                    }
+                    output.setData(dataPoints);
+
+                    asyncResponse.resume(Response.ok(output).type(MediaType.APPLICATION_JSON_TYPE).build());
+                }
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
+    }
+
+    @GET
+    @Path("/metrics/availability/{id}")
+    public void findAvailabilityData(@Suspended final AsyncResponse asyncResponse, @PathParam("id") final String id,
+        @QueryParam("start") Long start, @QueryParam("end") Long end) {
+
+        long now = System.currentTimeMillis();
+        if (start == null) {
+            start = now - EIGHT_HOURS;
+        }
+        if (end == null) {
+            end = now;
+        }
+
+        ListenableFuture<AvailabilityMetric> future = metricsService.findAvailabilityData(DEFAULT_TENANT_ID, id, start,
+            end);
+        Futures.addCallback(future, new FutureCallback<AvailabilityMetric>() {
+            @Override
+            public void onSuccess(AvailabilityMetric metric) {
+                if (metric == null) {
+                    asyncResponse.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
+                } else {
+                    AvailabilityDataOut output = new AvailabilityDataOut();
+                    output.setTenantId(metric.getTenantId());
+                    output.setName(metric.getId().getName());
+                    output.setAttributes(metric.getAttributes());
+
+                    List<AvailabilityDataPoint> dataPoints = new ArrayList<>(metric.getData().size());
+                    for (Availability a : metric.getData()) {
+                        AvailabilityDataPoint p = new AvailabilityDataPoint();
+                        p.setTimestamp(a.getTimestamp());
+                        p.setValue(a.getType().getText());
                         dataPoints.add(p);
                     }
                     output.setData(dataPoints);

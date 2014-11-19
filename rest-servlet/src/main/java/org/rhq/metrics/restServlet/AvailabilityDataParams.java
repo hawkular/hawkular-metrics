@@ -8,16 +8,13 @@ import com.google.common.base.Objects;
 /**
  * @author John Sanda
  */
-public class NumericDataParams extends MetricDataParams {
+public class AvailabilityDataParams extends MetricDataParams {
 
     private Long timestamp;
 
-    private Double value;
+    private String value;
 
-    private List<NumericDataPoint> data = new ArrayList<>();
-
-    public NumericDataParams() {
-    }
+    private List<AvailabilityDataPoint> data = new ArrayList<>();
 
     public Long getTimestamp() {
         return timestamp;
@@ -27,19 +24,19 @@ public class NumericDataParams extends MetricDataParams {
         this.timestamp = timestamp;
     }
 
-    public Double getValue() {
+    public String getValue() {
         return value;
     }
 
-    public void setValue(Double value) {
+    public void setValue(String value) {
         this.value = value;
     }
 
-    public List<NumericDataPoint> getData() {
+    public List<AvailabilityDataPoint> getData() {
         return data;
     }
 
-    public void setData(List<NumericDataPoint> data) {
+    public void setData(List<AvailabilityDataPoint> data) {
         this.data = data;
     }
 
@@ -54,4 +51,5 @@ public class NumericDataParams extends MetricDataParams {
             .add("data", data)
             .toString();
     }
+
 }

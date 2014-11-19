@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericData;
+import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.restServlet.ServiceKeeper;
 import org.rhq.metrics.restServlet.StringValue;
 
@@ -268,7 +269,7 @@ public class InfluxHandler {
                     System.out.println("Mapping of " + query + " not yet supported");
 
                 }
-                Metric metric = new Metric().setTenantId(DEFAULT_TENANT_ID).setId(firstElementInList.getMetric().getId());
+                NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, firstElementInList.getMetric().getId());
                 out.add(new NumericData(metric, firstElementInList.getTimestamp(), retVal));
             }
         }

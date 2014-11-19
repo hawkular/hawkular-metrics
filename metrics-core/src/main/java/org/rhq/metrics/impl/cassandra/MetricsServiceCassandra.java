@@ -31,13 +31,16 @@ import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.Metric;
+import org.rhq.metrics.core.MetricData;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
 import org.rhq.metrics.core.NumericData;
+import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.core.RawMetricMapper;
 import org.rhq.metrics.core.RawNumericMetric;
 import org.rhq.metrics.core.SchemaManager;
@@ -154,9 +157,24 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> addData(List<Metric> metrics) {
+    public ListenableFuture<Void> addData(List<NumericMetric2> metrics) {
         List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
-        for (Metric metric : metrics) {
+        for (NumericMetric2 metric : metrics) {
+            if (metric.getData().isEmpty()) {
+                // TODO report an error if attributes is null or empty
+                insertFutures.add(dataAccess.addAttributes(metric));
+            } else {
+                insertFutures.add(dataAccess.insertData(metric));
+            }
+        }
+        ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
+        return Futures.transform(insertsFuture, RESULT_SETS_TO_VOID, metricsTasks);
+    }
+
+    @Override
+    public ListenableFuture<Void> addAvailabilityData(List<AvailabilityMetric> metrics) {
+        List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
+        for (AvailabilityMetric metric : metrics) {
             if (metric.getData().isEmpty()) {
                 // TODO report an error if attributes is null or empty
                 insertFutures.add(dataAccess.addAttributes(metric));
@@ -226,9 +244,15 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Metric> findMetricData(String tenantId, String id, long start, long end) {
+    public ListenableFuture<NumericMetric2> findMetricData(String tenantId, String id, long start, long end) {
         ResultSetFuture queryFuture = dataAccess.findNumericData(tenantId, new MetricId(id), DPART, start, end);
-        return Futures.transform(queryFuture, new MetricMapper(), metricsTasks);
+        return Futures.transform(queryFuture, new NumericMetricMapper(), metricsTasks);
+    }
+
+    @Override
+    public ListenableFuture<AvailabilityMetric> findAvailabilityData(String tenantId, String id, long start, long end) {
+        ResultSetFuture queryFuture = dataAccess.findAvailabilityData(tenantId, id, Interval.NONE, DPART, start, end);
+        return Futures.transform(queryFuture, new AvailabilityMetricMapper());
     }
 
     @Override
@@ -367,7 +391,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
                 Map<MetricId, Set<NumericData>> mergedDataMap = new HashMap<>();
                 for (MetricId id : ids) {
-                    TreeSet<NumericData> set = new TreeSet<>(NumericData.TIME_UUID_COMPARATOR);
+                    TreeSet<NumericData> set = new TreeSet<>(MetricData.TIME_UUID_COMPARATOR);
                     for (Map<MetricId, Set<NumericData>> taggedDataMap : taggedDataMaps) {
                         set.addAll(taggedDataMap.get(id));
                     }

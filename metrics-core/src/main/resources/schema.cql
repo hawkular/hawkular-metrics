@@ -38,14 +38,15 @@ CREATE TYPE ${keyspace}.aggregate_data (
 
 -- #
 
-CREATE TABLE ${keyspace}.numeric_data (
+CREATE TABLE ${keyspace}.data (
     tenant_id text,
     metric text,
     interval text,
     dpart bigint,
     time timeuuid,
     attributes map<text, text> static,
-    raw double,
+    n_value double,
+    availability blob,
     aggregates set<frozen <aggregate_data>>,
     PRIMARY KEY ((tenant_id, metric, interval, dpart), time)
 )
@@ -63,19 +64,6 @@ CREATE TABLE ${keyspace}.counters (
 
 -- #
 
-CREATE TABLE ${keyspace}.availability (
-    tenant_id text,
-    type text,
-    metric text,
-    dpart text,
-    time timeuuid,
-    attributes map<text, text> static,
-    value blob,
-    PRIMARY KEY ((tenant_id, type, metric, dpart), time)
-);
-
--- #
-
 CREATE TABLE ${keyspace}.tags (
     tenant_id text,
     tag text,
@@ -83,7 +71,7 @@ CREATE TABLE ${keyspace}.tags (
     metric text,
     interval text,
     time timeuuid,
-    raw_data double,
+    n_value double,
     aggregates set<frozen <aggregate_data>>,
     availability blob,
     PRIMARY KEY ((tenant_id, tag), type, metric, interval, time)

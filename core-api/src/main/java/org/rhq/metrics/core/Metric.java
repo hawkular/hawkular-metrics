@@ -4,14 +4,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import com.google.common.base.Objects;
 
 /**
  * @author John Sanda
  */
-public class Metric {
+public abstract class Metric<T extends MetricData> {
 
     private String tenantId;
 
@@ -21,7 +20,18 @@ public class Metric {
 
     private long dpart;
 
-    private List<NumericData> data = new ArrayList<>();
+    private List<T> data = new ArrayList<>();
+
+    protected Metric(String tenantId, MetricId id) {
+        this.tenantId = tenantId;
+        this.id = id;
+    }
+
+    protected Metric(String tenantId, MetricId id, Map<String, String> attributes) {
+        this.tenantId = tenantId;
+        this.id = id;
+        this.attributes = attributes;
+    }
 
     public String getTenantId() {
         return tenantId;
@@ -36,18 +46,16 @@ public class Metric {
         return id;
     }
 
-    public Metric setId(MetricId id) {
+    public void setId(MetricId id) {
         this.id = id;
-        return this;
     }
 
     public long getDpart() {
         return dpart;
     }
 
-    public Metric setDpart(long dpart) {
+    public void setDpart(long dpart) {
         this.dpart = dpart;
-        return this;
     }
 
     /**
@@ -57,9 +65,8 @@ public class Metric {
         return attributes;
     }
 
-    public Metric setAttributes(Map<String, String> attributes) {
+    public void setAttributes(Map<String, String> attributes) {
         this.attributes = attributes;
-        return this;
     }
 
     /**
@@ -69,23 +76,16 @@ public class Metric {
      * @param name The attribute name.
      * @param value The attribute value
      */
-    public Metric setAttribute(String name, String value) {
+    public void setAttribute(String name, String value) {
         attributes.put(name, value);
-        return this;
     }
 
-    public List<NumericData> getData() {
+    public List<T> getData() {
         return data;
     }
 
-    public Metric addData(long timestamp, double value) {
-        data.add(new NumericData(this, timestamp, value));
-        return this;
-    }
-
-    public Metric addData(UUID timeUUID, double value) {
-        data.add(new NumericData(this, timeUUID, value));
-        return this;
+    public void addData(T d) {
+        this.data.add(d);
     }
 
     @Override

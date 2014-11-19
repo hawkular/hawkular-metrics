@@ -10,9 +10,9 @@ import com.datastax.driver.core.Row;
 import com.google.common.base.Function;
 
 import org.rhq.metrics.core.Interval;
-import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.NumericData;
+import org.rhq.metrics.core.NumericMetric2;
 
 /**
  * @author John Sanda
@@ -22,14 +22,14 @@ public class TaggedDataMapper implements Function<ResultSet, Map<MetricId, Set<N
     @Override
     public Map<MetricId, Set<NumericData>> apply(ResultSet resultSet) {
         Map<MetricId, Set<NumericData>> taggedData = new HashMap<>();
-        Metric metric = null;
+        NumericMetric2 metric = null;
         LinkedHashSet<NumericData> set = new LinkedHashSet<>();
         for (Row row : resultSet) {
             if (metric == null) {
                 metric = createMetric(row);
                 set.add(createNumericData(row, metric));
             } else {
-                Metric nextMetric = createMetric(row);
+                NumericMetric2 nextMetric = createMetric(row);
                 if (metric.equals(nextMetric)) {
                     set.add(createNumericData(row, metric));
                 } else {
@@ -46,12 +46,11 @@ public class TaggedDataMapper implements Function<ResultSet, Map<MetricId, Set<N
         return taggedData;
     }
 
-    private Metric createMetric(Row row) {
-        return new Metric().setTenantId(row.getString(0)).setId(new MetricId(row.getString(3),
-            Interval.parse(row.getString(4))));
+    private NumericMetric2 createMetric(Row row) {
+        return new NumericMetric2(row.getString(0), new MetricId(row.getString(3), Interval.parse(row.getString(4))));
     }
 
-    private NumericData createNumericData(Row row, Metric metric) {
+    private NumericData createNumericData(Row row, NumericMetric2 metric) {
         return new NumericData(metric, row.getUUID(5), row.getDouble(6));
     }
 }
