@@ -89,6 +89,9 @@
                         <fileset>
                             <directory>src/main/webapp/bower_components</directory>
                         </fileset>
+                        <fileset>
+                            <directory>src/main/webapp/node</directory>
+                        </fileset>
                     </filesets>
                 </configuration>
             </plugin>
