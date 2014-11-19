@@ -13,7 +13,7 @@ module.exports = function (grunt) {
         rhqMetrics: {
             // configurable paths
             app: './',
-            dist: 'dist'
+            dist: '../../../target/dist'
         },
 
         // Watches files for changes and runs tasks based on the changed files
@@ -113,7 +113,10 @@ module.exports = function (grunt) {
                             '!<%= rhqMetrics.dist %>/.git*'
                         ]
                     }
-                ]
+                ],
+                options: {
+                    force: true
+                }
             },
             server: '.tmp'
         },
@@ -143,6 +146,14 @@ module.exports = function (grunt) {
             }
         },
 
+
+        bower: {
+            install: {
+                options: {
+                    targetDir: './bower_components',
+                }
+            }
+        },
 
         // Renames files for browser caching purposes
         rev: {
@@ -175,7 +186,8 @@ module.exports = function (grunt) {
                             'views/{,*/}*.html',
                             'bower_components/**/*',
                             'images/{,*/}*.{webp}',
-                            'fonts/*'
+                            'fonts/*',
+                            'WEB-INF/*'
                         ]
                     },
                     {
@@ -204,8 +216,6 @@ module.exports = function (grunt) {
             ],
             dist: [
                 'copy:styles',
-                'imagemin',
-                'svgmin'
             ]
         },
 
@@ -248,8 +258,8 @@ module.exports = function (grunt) {
 
     grunt.registerTask('build', [
         'clean:dist',
+        'bower:install',
         'bower-install',
-        'useminPrepare',
         'concurrent:dist',
         'autoprefixer',
         'copy:dist',

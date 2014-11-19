@@ -1,9 +1,13 @@
 {
   "name": "charting",
   "version": "0.1.0",
-  "dependencies": {},
+  "dependencies": {
+      "bower": "~1.3.12"
+  },
   "devDependencies": {
+    "grunt-cli": "0.1.13",
     "grunt": "~0.4.5",
+    "grunt-bower-task": "~0.4.0",
     "grunt-autoprefixer": "~0.4.0",
     "grunt-bower-install": "~0.7.0",
     "grunt-concurrent": "~0.4.1",
