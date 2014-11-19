@@ -78,25 +78,34 @@
                     </execution>
                 </executions>
             </plugin>
-
-            <plugin>
-                <artifactId>maven-clean-plugin</artifactId>
-                <version>2.6.1</version>
-                <configuration>
-                    <filesets>
-                        <fileset>
-                            <directory>src/main/webapp/node_modules</directory>
-                        </fileset>
-                        <fileset>
-                            <directory>src/main/webapp/bower_components</directory>
-                        </fileset>
-                        <fileset>
-                            <directory>src/main/webapp/node</directory>
-                        </fileset>
-                    </filesets>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
+
+    <profiles>
+      <profile>
+        <id>cleanAll</id>
+        <build>
+          <plugins>
+            <plugin>
+              <artifactId>maven-clean-plugin</artifactId>
+              <version>2.6.1</version>
+              <configuration>
+                <filesets>
+                  <fileset>
+                    <directory>src/main/webapp/node_modules</directory>
+                  </fileset>
+                  <fileset>
+                    <directory>src/main/webapp/bower_components</directory>
+                  </fileset>
+                  <fileset>
+                    <directory>src/main/webapp/node</directory>
+                  </fileset>
+                </filesets>
+              </configuration>
+            </plugin>
+          </plugins>
+        </build>
+      </profile>
+    </profiles>
 
 </project>
