@@ -46,7 +46,6 @@ import org.jboss.resteasy.annotations.GZIP;
 import org.rhq.metrics.core.Availability;
 import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
-import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.MetricsService;
@@ -84,26 +83,37 @@ public class MetricHandler {
     @Consumes({"application/json","application/xml"})
     @ApiOperation("Adds a single data point for the given id.")
     public void addMetric(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id, IdDataPoint dataPoint) {
-        NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(id));
-        addData(asyncResponse, asList(new NumericData(metric, dataPoint.getTimestamp(), dataPoint.getValue())));
+        addMetrics(asyncResponse, asList(dataPoint));
     }
 
+    // NOTE: This endpoint will be replaced or changed once the schema-changes branch is
+    // merged into master. The request body needs to map to either a single metric or a
+    // collection of metrics.
     @POST
     @Path("/metrics")
     @Consumes({"application/json","application/xml"})
     @ApiOperation("Add a collection of data. Values can be for different metric ids.")
-    public void addMetrics(@Suspended AsyncResponse asyncResponse, Collection<IdDataPoint> dataPoints) {
-        List<NumericData> data = new ArrayList<>(dataPoints.size());
-        for (IdDataPoint dataPoint : dataPoints) {
-            NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(dataPoint.getId()));
-            data.add(new NumericData(metric, dataPoint.getTimestamp(), dataPoint.getValue()));
-
+    public void addMetrics(@Suspended final AsyncResponse asyncResponse, Collection<IdDataPoint> dataPoints) {
+        if (dataPoints.isEmpty()) {
+            asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
         }
-        addData(asyncResponse, data);
-    }
 
-    private void addData(final AsyncResponse asyncResponse, List<NumericData> rawData) {
-        ListenableFuture<Void> future = metricsService.addNumericData(rawData);
+        List<NumericMetric2> metrics = new ArrayList<>();
+        NumericMetric2 metric = null;
+        for (IdDataPoint p : dataPoints) {
+            if (metric == null) {
+                metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(p.getId()));
+            } else {
+                if (!p.getId().equals(metric.getId().getName())) {
+                    metrics.add(metric);
+                    metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(p.getId()));
+                }
+            }
+            metric.addData(p.getTimestamp(), p.getValue());
+        }
+        metrics.add(metric);
+
+        ListenableFuture<Void> future = metricsService.addNumericData(metrics);
         Futures.addCallback(future, new FutureCallback<Void>() {
             @Override
             public void onSuccess(Void errors) {
@@ -124,13 +134,12 @@ public class MetricHandler {
         NumericDataParams params) {
 
         NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(id));
-        List<NumericData> data = new ArrayList<>(params.getData().size());
 
         for (NumericDataPoint p : params.getData()) {
-            data.add(new NumericData(metric, p.getTimestamp(), p.getValue()));
+            metric.addData(p.getTimestamp(), p.getValue());
         }
 
-        ListenableFuture<Void> future = metricsService.addNumericData(data);
+        ListenableFuture<Void> future = metricsService.addNumericData(asList(metric));
         Futures.addCallback(future, new FutureCallback<Void>() {
             @Override
             public void onSuccess(Void result) {
@@ -187,7 +196,7 @@ public class MetricHandler {
             }
             metrics.add(metric);
         }
-        ListenableFuture<Void> insertFuture = metricsService.addData(metrics);
+        ListenableFuture<Void> insertFuture = metricsService.addNumericData(metrics);
         Futures.addCallback(insertFuture, new FutureCallback<Void>() {
             @Override
             public void onSuccess(Void result) {
@@ -287,27 +296,24 @@ public class MetricHandler {
             end = now;
         }
 
-        ListenableFuture<List<NumericData>> future = metricsService.findData(DEFAULT_TENANT_ID, id, start, end);
-        Futures.addCallback(future, new FutureCallback<List<NumericData>>() {
+        NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(id));
+        ListenableFuture<NumericMetric2> future = metricsService.findNumericData(metric, start, end);
+        Futures.addCallback(future, new FutureCallback<NumericMetric2>() {
             @Override
-            public void onSuccess(List<NumericData> data) {
-                if (data.isEmpty()) {
+            public void onSuccess(NumericMetric2 metric) {
+                if (metric == null) {
                     asyncResponse.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
                 } else {
                     NumericDataOut output = new NumericDataOut();
-                    output.setTenantId(data.get(0).getMetric().getTenantId());
-                    output.setName(data.get(0).getMetric().getId().getName());
-                    output.setAttributes(data.get(0).getMetric().getAttributes());
+                    output.setTenantId(metric.getTenantId());
+                    output.setName(metric.getId().getName());
+                    output.setAttributes(metric.getAttributes());
 
-                    List<NumericDataPoint> dataPoints = new ArrayList<>(data.size());
-                    for (NumericData d : data) {
-                        NumericDataPoint p = new NumericDataPoint();
-                        p.setTimestamp(d.getTimestamp());
-                        p.setValue(d.getValue());
-                        dataPoints.add(p);
+                    List<NumericDataPoint> dataPoints = new ArrayList<>(metric.getData().size());
+                    for (NumericData d : metric.getData()) {
+                       dataPoints.add(new NumericDataPoint(d.getTimestamp(), d.getValue()));
                     }
                     output.setData(dataPoints);
-
                     asyncResponse.resume(Response.ok(output).type(MediaType.APPLICATION_JSON_TYPE).build());
                 }
             }
@@ -332,8 +338,8 @@ public class MetricHandler {
             end = now;
         }
 
-        ListenableFuture<AvailabilityMetric> future = metricsService.findAvailabilityData(DEFAULT_TENANT_ID, id, start,
-            end);
+        AvailabilityMetric metric = new AvailabilityMetric(DEFAULT_TENANT_ID, new MetricId(id));
+        ListenableFuture<AvailabilityMetric> future = metricsService.findAvailabilityData(metric, start, end);
         Futures.addCallback(future, new FutureCallback<AvailabilityMetric>() {
             @Override
             public void onSuccess(AvailabilityMetric metric) {
@@ -369,12 +375,11 @@ public class MetricHandler {
     @Path("/tags/numeric")
     public void tagNumericData(@Suspended final AsyncResponse asyncResponse, TagParams params) {
         ListenableFuture<List<NumericData>> future;
+        NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(params.getMetric()));
         if (params.getTimestamp() != null) {
-            future = metricsService.tagData(DEFAULT_TENANT_ID, params.getTags(), params.getMetric(),
-                params.getTimestamp());
+            future = metricsService.tagNumericData(metric, params.getTags(), params.getTimestamp());
         } else {
-            future = metricsService.tagData(DEFAULT_TENANT_ID, params.getTags(),
-                params.getMetric(), params.getStart(), params.getEnd());
+            future = metricsService.tagNumericData(metric, params.getTags(), params.getStart(), params.getEnd());
         }
         Futures.addCallback(future, new FutureCallback<List<NumericData>>() {
             @Override
@@ -582,8 +587,8 @@ public class MetricHandler {
                     asyncResponse.resume(Response.status(404).entity(val).build());
                 }
 
-                final ListenableFuture<List<NumericData>> future = metricsService.findData(DEFAULT_TENANT_ID, id,
-                    finalStart, finalEnd);
+                NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(id));
+                final ListenableFuture<List<NumericData>> future = metricsService.findData(metric, finalStart, finalEnd);
 
                 Futures.addCallback(future, new FutureCallback<List<NumericData>>() {
                     @Override

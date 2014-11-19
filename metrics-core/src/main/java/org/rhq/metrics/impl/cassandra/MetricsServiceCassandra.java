@@ -55,8 +55,6 @@ public class MetricsServiceCassandra implements MetricsService {
 
     public static final String REQUEST_LIMIT = "rhq.metrics.request.limit";
 
-    private static final long DPART = 0;
-
     private static final int RAW_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
     private static final Function<ResultSet, Void> RESULT_SET_TO_VOID = new Function<ResultSet, Void>() {
@@ -152,13 +150,7 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> insertMetric(Metric metric) {
-        ResultSetFuture insertFuture = dataAccess.addAttributes(metric);
-        return Futures.transform(insertFuture, RESULT_SET_TO_VOID);
-    }
-
-    @Override
-    public ListenableFuture<Void> addData(List<NumericMetric2> metrics) {
+    public ListenableFuture<Void> addNumericData(List<NumericMetric2> metrics) {
         List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
         for (NumericMetric2 metric : metrics) {
             if (metric.getData().isEmpty()) {
@@ -185,36 +177,6 @@ public class MetricsServiceCassandra implements MetricsService {
         }
         ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
         return Futures.transform(insertsFuture, RESULT_SETS_TO_VOID, metricsTasks);
-    }
-
-    @Override
-    public ListenableFuture<Void> addNumericData(List<NumericData> data) {
-        List<ResultSetFuture> futures = new ArrayList<>(data.size());
-//        for (Metric metric : metrics) {
-//            // There are several cases to handle
-//            //  1) the metric includes attributes and no data
-//            //  2) the metric includes attributes and data
-//            //  3) the metric includes data and no attributes
-//            //  4) the metric includes neither attributes nor data
-//            //  5) data includes tags
-//            //
-//            // When there are data and attributes, we want to do a separate write for the
-//            // attributes since they apply to all of the data. We can include that write
-//            // in the same batch statement as the the data point writes since they are all
-//            // going to the same partition.
-//            //
-//            // Case 4. should be reported as an error.
-//            permits.acquire();
-//            if (metric.getData().isEmpty()) {
-//                // TODO report an error if attributes is null or empty
-//                futures.add(dataAccess.addNumericAttributes(metric.getTenantId(), metric.getId(), metric.getDpart(),
-//                    metric.getAttributes()));
-//            } else {
-//                futures.add(dataAccess.insertNumericData(metric));
-//            }
-//        }
-        ResultSetFuture insertFuture = dataAccess.insertNumericData(data);
-        return Futures.transform(insertFuture, RESULT_SET_TO_VOID, metricsTasks);
     }
 
     @Override
@@ -245,20 +207,24 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<NumericMetric2> findMetricData(String tenantId, String id, long start, long end) {
-        ResultSetFuture queryFuture = dataAccess.findNumericData(tenantId, new MetricId(id), DPART, start, end);
+    public ListenableFuture<NumericMetric2> findNumericData(NumericMetric2 metric, long start, long end) {
+        // When we implement date partitioning, dpart will have to be determined based on
+        // the start and end params. And it is possible the the date range spans multiple
+        // date partitions.
+        metric.setDpart(Metric.DPART);
+        ResultSetFuture queryFuture = dataAccess.findData(metric, start, end);
         return Futures.transform(queryFuture, new NumericMetricMapper(), metricsTasks);
     }
 
     @Override
-    public ListenableFuture<AvailabilityMetric> findAvailabilityData(String tenantId, String id, long start, long end) {
-        ResultSetFuture queryFuture = dataAccess.findAvailabilityData(tenantId, id, Interval.NONE, DPART, start, end);
+    public ListenableFuture<AvailabilityMetric> findAvailabilityData(AvailabilityMetric metric, long start, long end) {
+        ResultSetFuture queryFuture = dataAccess.findAvailabilityData(metric, start, end);
         return Futures.transform(queryFuture, new AvailabilityMetricMapper());
     }
 
     @Override
-    public ListenableFuture<List<NumericData>> findData(String tenantId, String id, long start, long end) {
-        ResultSetFuture future = dataAccess.findNumericData(tenantId, new MetricId(id), DPART, start, end);
+    public ListenableFuture<List<NumericData>> findData(NumericMetric2 metric, long start, long end) {
+        ResultSetFuture future = dataAccess.findData(metric, start, end);
         return Futures.transform(future, new NumericDataMapper(), metricsTasks);
     }
 
@@ -295,7 +261,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public ListenableFuture<Boolean> deleteMetric(String id) {
-        ResultSetFuture future = dataAccess.deleteNumericMetric(DEFAULT_TENANT_ID, id, Interval.NONE, DPART);
+        ResultSetFuture future = dataAccess.deleteNumericMetric(DEFAULT_TENANT_ID, id, Interval.NONE, Metric.DPART);
         return Futures.transform(future, new Function<ResultSet, Boolean>() {
             @Override
             public Boolean apply(ResultSet input) {
@@ -317,9 +283,9 @@ public class MetricsServiceCassandra implements MetricsService {
     // Data for different metrics and for the same tag are stored within the same partition
     // in the tags table; therefore, it makes sense for the API to support tagging multiple
     // metrics since they could efficiently be inserted in a single batch statement.
-    public ListenableFuture<List<NumericData>> tagData(String tenantId, final Set<String> tags, String metric,
-        long start, long end) {
-        ListenableFuture<List<NumericData>> queryFuture = findData(tenantId, metric, start, end);
+    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric2 metric, final Set<String> tags, long start,
+        long end) {
+        ListenableFuture<List<NumericData>> queryFuture = findData(metric, start, end);
         return Futures.transform(queryFuture, new AsyncFunction<List<NumericData>, List<NumericData>>() {
             @Override
             public ListenableFuture<List<NumericData>> apply(final List<NumericData> taggedData) {
@@ -339,10 +305,9 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<NumericData>> tagData(String tenantId, final Set<String> tags, String metric,
+    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric2 metric, final Set<String> tags,
         long timestamp) {
-        ListenableFuture<ResultSet> queryFuture = dataAccess.findNumericData(tenantId, new MetricId(metric), DPART,
-          timestamp);
+        ListenableFuture<ResultSet> queryFuture = dataAccess.findData(metric, timestamp);
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper(false),
             metricsTasks);
         return Futures.transform(dataFuture, new AsyncFunction<List<NumericData>, List<NumericData>>() {

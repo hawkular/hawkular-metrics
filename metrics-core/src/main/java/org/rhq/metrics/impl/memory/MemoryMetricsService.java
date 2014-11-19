@@ -19,7 +19,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 
 import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
-import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.MetricsService;
@@ -64,13 +63,20 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> insertMetric(Metric metric) {
-        return null;
-    }
-
-    @Override
-    public ListenableFuture<Void> addData(List<NumericMetric2> metrics) {
-        return null;
+    public ListenableFuture<Void> addNumericData(List<NumericMetric2> metrics) {
+        for (NumericMetric2 metric : metrics) {
+            TLongDoubleMap map;
+            if (storage.containsKey(metric.getId().getName())) {
+                map = storage.get(metric.getId().getName());
+            } else {
+                map = new TLongDoubleHashMap();
+            }
+            for (NumericData d : metric.getData()) {
+                map.put(d.getTimestamp(), d.getValue());
+            }
+            storage.put(metric.getId().getName(), map);
+        }
+        return Futures.immediateFuture(null);
     }
 
     @Override
@@ -79,44 +85,9 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<AvailabilityMetric> findAvailabilityData(String tenantId, String id, long start, long end) {
+    public ListenableFuture<AvailabilityMetric> findAvailabilityData(AvailabilityMetric metric, long start, long end) {
         return null;
     }
-
-    @Override
-    public ListenableFuture<Void> addNumericData(List<NumericData> data) {
-        for (NumericData d : data) {
-            TLongDoubleMap map;
-            if (storage.containsKey(d.getMetric().getId().getName())) {
-                map = storage.get(d.getMetric().getId().getName());
-            } else {
-                map = new TLongDoubleHashMap();
-                storage.put(d.getMetric().getId().getName(), map);
-            }
-            map.put(d.getTimestamp(), d.getValue());
-        }
-        return Futures.immediateFuture(null);
-    }
-
-//    @Override
-//    public ListenableFuture<Void> addNumericData(Set<NumericData> data) {
-//        for (NumericData d : data) {
-//            addMetric(d);
-//        }
-//        return Futures.immediateFuture(null);
-//    }
-//
-//    private void addMetric(NumericData d) {
-//        TLongDoubleMap map;
-//        String metricId = d.getId().getName();
-//        if (storage.containsKey(metricId)) {
-//            map = storage.get(metricId);
-//        } else {
-//            map = new TLongDoubleHashMap();
-//            storage.put(metricId,map);
-//        }
-//        map.put(d.getTimestamp(), d.getValue()); // TODO getAvg() may be wrong in future
-//    }
 
     @Override
     public ListenableFuture<Void> updateCounter(Counter counter) {
@@ -162,12 +133,11 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<NumericData>> findData(String tenantId, String id, long start, long end) {
-        NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(id));
+    public ListenableFuture<List<NumericData>> findData(NumericMetric2 metric, long start, long end) {
         List<NumericData> data = new ArrayList<>();
 
-        if (storage.containsKey(id)) {
-            TLongDoubleMap map = storage.get(id);
+        if (storage.containsKey(metric.getId().getName())) {
+            TLongDoubleMap map = storage.get(metric.getId().getName());
             for (long ts : map.keys()) {
                 if (ts>=start && ts<=end) {
                     data.add(new NumericData(metric, ts, map.get(ts)));
@@ -179,7 +149,7 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<NumericMetric2> findMetricData(String tenantId, String id, long start, long end) {
+    public ListenableFuture<NumericMetric2> findNumericData(NumericMetric2 metric, long start, long end) {
         return null;
     }
 
@@ -205,14 +175,13 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<NumericData>> tagData(String tenantId, Set<String> tags, String metric, long start,
+    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric2 metric, Set<String> tags, long start,
         long end) {
         return null;
     }
 
     @Override
-    public ListenableFuture<List<NumericData>> tagData(String tenantId, Set<String> tags, String metric,
-        long timestamp) {
+    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric2 metric, Set<String> tags, long timestamp) {
         return null;
     }
 

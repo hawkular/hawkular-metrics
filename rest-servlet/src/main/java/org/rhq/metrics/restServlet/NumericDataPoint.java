@@ -14,6 +14,11 @@ public class NumericDataPoint {
     public NumericDataPoint() {
     }
 
+    public NumericDataPoint(long timestamp, double value) {
+        this.timestamp = timestamp;
+        this.value = value;
+    }
+
     public long getTimestamp() {
         return timestamp;
     }

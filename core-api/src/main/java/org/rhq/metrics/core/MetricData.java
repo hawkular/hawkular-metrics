@@ -34,8 +34,20 @@ public abstract class MetricData {
         this.timeUUID = TimeUUIDUtils.getTimeUUID(timestamp);
     }
 
+    public MetricData(UUID timeUUID) {
+        this.timeUUID = timeUUID;
+    }
+
+    public MetricData(long timestamp) {
+        timeUUID = TimeUUIDUtils.getTimeUUID(timestamp);
+    }
+
     public Metric getMetric() {
         return metric;
+    }
+
+    public void setMetric(Metric metric) {
+        this.metric = metric;
     }
 
     /**

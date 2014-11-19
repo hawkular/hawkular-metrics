@@ -25,7 +25,6 @@ import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.Metric;
-import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
@@ -45,7 +44,7 @@ public class DataAccess {
 
     private PreparedStatement findTenants;
 
-    private PreparedStatement addNumericAttributes;
+    private PreparedStatement addAttributes;
 
     private PreparedStatement insertNumericData;
 
@@ -84,7 +83,7 @@ public class DataAccess {
 
         findTenants = session.prepare("SELECT id, retentions, aggregation_templates FROM tenants");
 
-        addNumericAttributes = session.prepare(
+        addAttributes = session.prepare(
             "UPDATE data " +
             "SET attributes = attributes + ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
@@ -176,41 +175,11 @@ public class DataAccess {
         return session.executeAsync(findTenants.bind());
     }
 
-//    public ResultSetFuture addNumericAttributes(String tenantId, MetricId id, long dpart,
-//        Map<String, String> attributes) {
-//        return session.executeAsync(addNumericAttributes.bind(attributes, tenantId, id.getName(),
-//            id.getInterval().toString(), dpart));
-//    }
-
     public ResultSetFuture addAttributes(Metric metric) {
-        return session.executeAsync(addNumericAttributes.bind(metric.getAttributes(), metric.getTenantId(),
+        return session.executeAsync(addAttributes.bind(metric.getAttributes(), metric.getTenantId(),
             metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
             metric.getDpart()));
     }
-
-//    public ResultSetFuture insert(Metric metric) {
-//        UserType aggregateDataType = getKeyspace().getUserType("aggregate_data");
-//
-//        for (NumericDataPoint d : metric.getData()) {
-//            Set<UDTValue> aggregateDataValues = new HashSet<>();
-//            for (AggregatedValue v : d.getAggregatedValues()) {
-//
-//            }
-//        }
-//
-//        if (metric.getData().size() > 1) {
-//            BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
-//            for (NumericDataPoint d : metric.getData()) {
-//                batchStatement.add(insertNumericData.bind(metric.getAttributes(), d.getValue(), null,
-//                    metric.getTenantId(), metric.getName(), getInterval(metric.getInterval()), 0L, d.getTimeUUID()));
-//            }
-//            return session.executeAsync(batchStatement);
-//        } else {
-//
-//            statement = insertNumericData.bind(metric.getAttributes(), d.getValue(), null,
-//                metric.getTenantId(), metric.getName(), getInterval(metric.getInterval()), 0L, d.getTimeUUID());
-//        }
-//    }
 
 //    public ResultSetFuture insertNumericData(NumericData data) {
 //        UserType aggregateDataType = getKeyspace().getUserType("aggregate_data");
@@ -252,16 +221,17 @@ public class DataAccess {
         return session.executeAsync(batchStatement);
     }
 
-    public ResultSetFuture findNumericData(String tenantId, MetricId id, long dpart, long startTime, long endTime) {
+    public ResultSetFuture findData(NumericMetric2 metric, long startTime, long endTime) {
         return session.executeAsync(
-            findNumericDataByDateRangeExclusive.bind(tenantId, MetricType.NUMERIC.getCode(), id.getName(),
-                id.getInterval().toString(), dpart, TimeUUIDUtils.getTimeUUID(startTime),
-                TimeUUIDUtils.getTimeUUID(endTime)));
+            findNumericDataByDateRangeExclusive.bind(metric.getTenantId(), MetricType.NUMERIC.getCode(),
+                metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart(),
+                TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
     }
 
-    public ResultSetFuture findNumericData(String tenantId, MetricId id, long dpart, long timestamp) {
-        return session.executeAsync(findNumericDataByDateRangeInclusive.bind(tenantId, MetricType.NUMERIC.getCode(),
-            id.getName(), id.getInterval().toString(), dpart, UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
+    public ResultSetFuture findData(NumericMetric2 metric, long timestamp) {
+        return session.executeAsync(findNumericDataByDateRangeInclusive.bind(metric.getTenantId(),
+            MetricType.NUMERIC.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+            metric.getDpart(), UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
     }
 
     public ResultSetFuture deleteNumericMetric(String tenantId, String metric, Interval interval, long dpart) {
@@ -303,10 +273,10 @@ public class DataAccess {
         return session.executeAsync(batchStatement);
     }
 
-    public ResultSetFuture findAvailabilityData(String tenantId, String metric, Interval interval, long dpart,
-        long startTime, long endTime) {
-        return session.executeAsync(findAvailabilities.bind(tenantId, MetricType.AVAILABILITY.getCode(), metric,
-            interval.toString(), dpart, TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
+    public ResultSetFuture findAvailabilityData(AvailabilityMetric metric, long startTime, long endTime) {
+        return session.executeAsync(findAvailabilities.bind(metric.getTenantId(), MetricType.AVAILABILITY.getCode(),
+            metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart(),
+            TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
     }
 
     public ResultSetFuture updateCounter(Counter counter) {

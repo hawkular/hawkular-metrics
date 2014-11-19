@@ -119,8 +119,7 @@ public class DataAccessTest extends MetricsTest {
 
         getUninterruptibly(dataAccess.insertNumericData(data));
 
-        ResultSetFuture queryFuture = dataAccess.findNumericData(metric.getTenantId(), metric.getId(), 0L,
-            start.getMillis(), end.getMillis());
+        ResultSetFuture queryFuture = dataAccess.findData(metric, start.getMillis(), end.getMillis());
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
         List<NumericData> actual = getUninterruptibly(dataFuture);
         List<NumericData> expected = asList(
@@ -151,8 +150,7 @@ public class DataAccessTest extends MetricsTest {
         );
         getUninterruptibly(dataAccess.insertNumericData(data));
 
-        ResultSetFuture queryFuture = dataAccess.findNumericData(metric.getTenantId(), metric.getId(), 0L,
-            start.getMillis(), end.getMillis());
+        ResultSetFuture queryFuture = dataAccess.findData(metric, start.getMillis(), end.getMillis());
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
         List<NumericData> actual = getUninterruptibly(dataFuture);
         List<NumericData> expected = asList(
@@ -294,8 +292,7 @@ public class DataAccessTest extends MetricsTest {
 
         getUninterruptibly(dataAccess.insertAvailability(new Availability(metric, start.getMillis(), "up")));
 
-        ResultSetFuture future = dataAccess.findAvailabilityData(tenantId, metric.getId().getName(),
-            metric.getId().getInterval(), 0, start.getMillis(), end.getMillis());
+        ResultSetFuture future = dataAccess.findAvailabilityData(metric, start.getMillis(), end.getMillis());
         ListenableFuture<List<Availability>> dataFuture = Futures.transform(future, new AvailabilityDataMapper());
         List<Availability> actual = getUninterruptibly(dataFuture);
         List<Availability> expected = asList(new Availability(metric, start.getMillis(), "up"));

@@ -30,6 +30,16 @@ public class NumericData extends MetricData {
         this.value = value;
     }
 
+    public NumericData(long timestamp, double value) {
+        super(timestamp);
+        this.value = value;
+    }
+
+    public NumericData(UUID timeUUID, double value) {
+        super(timeUUID);
+        this.value = value;
+    }
+
     /**
      * Currently not used. It wil be used for breaking up a metric time series into multiple partitions by date. For
      * example, if we choose to partition by month, then all data collected for a given metric during October would go
@@ -37,49 +47,10 @@ public class NumericData extends MetricData {
      * writes, but it will make reads more complicated and potentially more expensive if we make the date partition too
      * small.
      */
-//    public long getDpart() {
-//        return dpart;
-//    }
-//
-//    public NumericData setDpart(long dpart) {
-//        this.dpart = dpart;
-//        return this;
-//    }
 
     public Metric getMetric() {
         return metric;
     }
-
-    //    /**
-//     * A set of key/value pairs that are shared by all data points for the metric. A good example is units like KB / sec.
-//     */
-//    public Map<String, String> getAttributes() {
-//        return attributes;
-//    }
-//
-//    /**
-//     * Stores an attribute which will be shared by all data points for the metric when it is persisted. If an attribute
-//     * with the same name already exists, it will be overwritten.
-//     *
-//     * @param name The attribute name.
-//     * @param value The attribute value
-//     */
-//    public NumericData putAttribute(String name, String value) {
-//        attributes.put(name, value);
-//        return this;
-//    }
-//
-//    /**
-//     * Stores attributes which will be shared by all data points for the metric. If an attribute with the same name
-//     * already exists, it will be overwritten.
-//     *
-//     * @param attributes The key/value pairs to store.
-//     * @return
-//     */
-//    public NumericData putAttributes(Map<String, String> attributes) {
-//        this.attributes.putAll(attributes);
-//        return this;
-//    }
 
     /**
      * The value of the raw data point. This should only be set for raw data. It should be null for aggregated data.

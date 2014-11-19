@@ -12,13 +12,18 @@ import com.google.common.base.Objects;
  */
 public abstract class Metric<T extends MetricData> {
 
+    public static final long DPART = 0;
+
     private String tenantId;
 
     private MetricId id;
 
     private Map<String, String> attributes = new HashMap<>();
 
-    private long dpart;
+    // When we implement date partitioning, dpart will have to be determined based on the
+    // start and end params of queries. And it is possible the the date range spans
+    // multiple date partitions.
+    private long dpart = DPART;
 
     private List<T> data = new ArrayList<>();
 

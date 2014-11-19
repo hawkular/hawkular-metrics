@@ -30,15 +30,16 @@ public interface MetricsService {
 
     void shutdown();
 
-//    ListenableFuture<Void> addNumericData(Set<NumericData> data);
+    ListenableFuture<Void> addNumericData(List<NumericMetric2> metrics);
 
-    ListenableFuture<Void> insertMetric(Metric metric);
+    ListenableFuture<NumericMetric2> findNumericData(NumericMetric2 metric, long start, long end);
 
-    ListenableFuture<Void> addData(List<NumericMetric2> metrics);
+    /** Find and return raw metrics for {id} that have a timestamp between {start} and {end} */
+    ListenableFuture<List<NumericData>> findData(NumericMetric2 metric, long start, long end);
 
     ListenableFuture<Void> addAvailabilityData(List<AvailabilityMetric> metrics);
 
-    ListenableFuture<Void> addNumericData(List<NumericData> metrics);
+    ListenableFuture<AvailabilityMetric> findAvailabilityData(AvailabilityMetric metric, long start, long end);
 
     ListenableFuture<Void> updateCounter(Counter counter);
 
@@ -47,13 +48,6 @@ public interface MetricsService {
     ListenableFuture<List<Counter>> findCounters(String group);
 
     ListenableFuture<List<Counter>> findCounters(String group, List<String> counterNames);
-
-    ListenableFuture<NumericMetric2> findMetricData(String tenantId, String id, long start, long end);
-
-    ListenableFuture<AvailabilityMetric> findAvailabilityData(String tenantId, String id, long start, long end);
-
-    /** Find and return raw metrics for {id} that have a timestamp between {start} and {end} */
-    ListenableFuture<List<NumericData>> findData(String tenantId, String id, long start, long end);
 
     /** Check if a metric with the passed {id} has been stored in the system */
     ListenableFuture<Boolean> idExists(String id);
@@ -64,10 +58,9 @@ public interface MetricsService {
     /** Delete the metric with the passed id */
     ListenableFuture<Boolean> deleteMetric(String id);
 
-    ListenableFuture<List<NumericData>> tagData(String tenantId, Set<String> tags, String metric, long start, long end);
+    ListenableFuture<List<NumericData>> tagNumericData(NumericMetric2 metric, Set<String> tags, long start, long end);
 
-    ListenableFuture<List<NumericData>> tagData(String tenantId, Set<String> tags, String metric,
-        long timestamp);
+    ListenableFuture<List<NumericData>> tagNumericData(NumericMetric2 metric, Set<String> tags, long timestamp);
 
     ListenableFuture<Map<MetricId, Set<NumericData>>> findDataByTags(String tenantId, Set<String> tags,
         MetricType type);
