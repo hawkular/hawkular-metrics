@@ -119,7 +119,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/metrics/numeric/{id}")
+    @Path("/numeric/{id}")
     public void addDataForMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
         NumericDataParams params) {
 
@@ -146,7 +146,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/metrics/availability/{id}")
+    @Path("/availability/{id}")
     public void addAvailabilityForMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
         AvailabilityDataParams params) {
         AvailabilityMetric metric = new AvailabilityMetric(DEFAULT_TENANT_ID, new MetricId(id), params.getAttributes());
@@ -170,7 +170,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/metrics/numeric")
+    @Path("/numeric")
     @Consumes("application/json")
     public void addNumericData(@Suspended final AsyncResponse asyncResponse, List<NumericDataParams> paramsList) {
         if (paramsList.isEmpty()) {
@@ -203,7 +203,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/metrics/availability")
+    @Path("/availability")
     @Consumes("application/json")
     public void addAvailabilityData(@Suspended final AsyncResponse asyncResponse,
         List<AvailabilityDataParams> paramsList) {
@@ -237,7 +237,7 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/metrics/numeric")
+    @Path("/numeric")
     public void findNumericDataByTags(@Suspended final AsyncResponse asyncResponse, @QueryParam("tags") String tags) {
         Set<String> tagSet = ImmutableSet.copyOf(tags.split(","));
         ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findDataByTags(DEFAULT_TENANT_ID,
@@ -275,7 +275,7 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/metrics/numeric/{id}")
+    @Path("/numeric/{id}")
     public void findNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("id") final String id,
         @QueryParam("start") Long start, @QueryParam("end") Long end) {
 
@@ -320,7 +320,7 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/metrics/availability/{id}")
+    @Path("/availability/{id}")
     public void findAvailabilityData(@Suspended final AsyncResponse asyncResponse, @PathParam("id") final String id,
         @QueryParam("start") Long start, @QueryParam("end") Long end) {
 
@@ -545,12 +545,12 @@ public class MetricHandler {
         });
     }
 
-//    @GZIP
-//    @GET
-//    @Path("/metrics/{id}")
-//    @ApiOperation("Return metrical values for a given metric id. If no parameters are given, the raw data " +
-//        "for a time period of [now-8h,now] is returned.")
-//    @Produces({"application/json","application/xml","application/vnd.rhq.wrapped+json"})
+    @GZIP
+    @GET
+    @Path("/metrics/{id}")
+    @ApiOperation("Return metrical values for a given metric id. If no parameters are given, the raw data " +
+        "for a time period of [now-8h,now] is returned.")
+    @Produces({"application/json","application/xml","application/vnd.rhq.wrapped+json"})
     public void getDataForId(@Suspended final AsyncResponse asyncResponse,
         @ApiParam("Id of the metric to return data for") @PathParam("id") final String id,
         @ApiParam(value = "Start time in millis since epoch", defaultValue = "Now - 8h") @QueryParam("start") Long start,

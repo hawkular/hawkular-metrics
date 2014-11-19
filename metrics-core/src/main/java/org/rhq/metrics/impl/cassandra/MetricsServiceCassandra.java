@@ -269,7 +269,7 @@ public class MetricsServiceCassandra implements MetricsService {
             @Override
             public Boolean apply(ResultSet resultSet) {
                 for (Row row : resultSet) {
-                    if (id.equals(row.getString(1))) {
+                    if (id.equals(row.getString(2))) {
                         return true;
                     }
                 }
@@ -286,7 +286,7 @@ public class MetricsServiceCassandra implements MetricsService {
             public List<String> apply(ResultSet resultSet) {
                 List<String> metrics = new ArrayList<>();
                 for (Row row : resultSet) {
-                    metrics.add(row.getString(1));
+                    metrics.add(row.getString(2));
                 }
                 return metrics;
             }
