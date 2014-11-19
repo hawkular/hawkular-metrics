@@ -81,7 +81,7 @@
               <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>16.0.1</version>
+                <version>${google.guava.version}</version>
               </dependency>
               <dependency>
                 <groupId>org.codehaus.groovy</groupId>

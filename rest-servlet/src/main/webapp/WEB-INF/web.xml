@@ -1,8 +1,8 @@
-<web-app version="3.0"
-         xmlns="http://java.sun.com/xml/ns/javaee"
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
-    >
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+         version="3.1">
 
   <display-name>RHQ Metrics Rest interface</display-name>
 
@@ -13,45 +13,4 @@
     </param-value>
   </context-param>
 
-  <context-param>
-     <param-name>rhq-metrics.backend</param-name>
-     <param-value>org.rhq.metrics.impl.cassandra.MetricsServiceCassandra</param-value>
-    <!--<param-value>org.rhq.metrics.impl.memory.MemoryMetricsService</param-value>-->
-  </context-param>
-
-  <context-param>
-    <description>key space for Cassandra. Only used with C* backend</description>
-    <param-name>keyspace</param-name>
-    <param-value>rhq</param-value>
-  </context-param>
-
-  <context-param>
-    <description>Port to reach the Cassandra database. Only used with C* backend</description>
-    <param-name>cqlport</param-name>
-    <param-value>9042</param-value>
-  </context-param>
-
-
-<!-- TODO
-  <security-constraint>
-    <web-resource-collection>
-      <web-resource-name>REST</web-resource-name>
-      <url-pattern>/*</url-pattern>
-    </web-resource-collection>
-    <auth-constraint>
-      <role-name>rest-user</role-name>
-    </auth-constraint>
-  </security-constraint>
-
-
-  <login-config>
-    <auth-method>BASIC</auth-method>
-    <realm-name>RHQ REST</realm-name>
-  </login-config>
-
-  <security-role>
-    <description>This is valid for all principals, as we do internal checks</description>
-    <role-name>rest-user</role-name>
-  </security-role>
--->
 </web-app>
