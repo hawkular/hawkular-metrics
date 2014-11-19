@@ -186,7 +186,11 @@ module.exports = function (grunt) {
                             'bower_components/**/*',
                             'images/{,*/}*.{webp}',
                             'fonts/*',
-                            'WEB-INF/*'
+                            'scripts/**/*',
+                            'css/**/*',
+                            'img/**/*',
+                            'WEB-INF/*',
+                            '!**/.*'
                         ]
                     },
                     {
@@ -262,7 +266,6 @@ module.exports = function (grunt) {
         'concurrent:dist',
         'autoprefixer',
         'copy:dist',
-        'rev'
     ]);
 
     grunt.registerTask('default', [

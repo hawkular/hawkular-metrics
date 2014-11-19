@@ -26,7 +26,7 @@
                 <artifactId>maven-war-plugin</artifactId>
                 <configuration>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
-                    <warSourceExcludes>test/**/*,vendor/**/*,node_modules/**/*,**/.*,*.js,*.json,node/**,.tmp/**,**/*.ts)</warSourceExcludes>
+                    <warSourceDirectory>${project.build.directory}/dist</warSourceDirectory>
                     <packagingExcludes>WEB-INF/classes</packagingExcludes>
                 </configuration>
             </plugin>
