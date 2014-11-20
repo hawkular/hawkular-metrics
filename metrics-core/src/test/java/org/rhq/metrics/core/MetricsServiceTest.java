@@ -184,6 +184,52 @@ public class MetricsServiceTest extends MetricsTest {
     }
 
     @Test
+    public void fetchAvailabilityDataThatHasTags() throws Exception {
+        DateTime end = now();
+        DateTime start = end.minusMinutes(10);
+
+        AvailabilityMetric metric = new AvailabilityMetric("tenant1", new MetricId("A1"));
+        metric.addAvailability(start.getMillis(), AvailabilityType.UP);
+        metric.addAvailability(start.plusMinutes(1).getMillis(), AvailabilityType.DOWN);
+        metric.addAvailability(start.plusMinutes(2).getMillis(), AvailabilityType.DOWN);
+        metric.addAvailability(start.plusMinutes(3).getMillis(), AvailabilityType.UP);
+        metric.addAvailability(start.plusMinutes(4).getMillis(), AvailabilityType.DOWN);
+        metric.addAvailability(start.plusMinutes(5).getMillis(), AvailabilityType.UP);
+        metric.addAvailability(start.plusMinutes(6).getMillis(), AvailabilityType.UP);
+
+        ListenableFuture<Void> insertFuture = metricsService.addAvailabilityData(asList(metric));
+        getUninterruptibly(insertFuture);
+
+        ListenableFuture<List<Availability>> tagFuture = metricsService.tagAvailabilityData(metric,
+            ImmutableSet.of("t1", "t2"), start.plusMinutes(2).getMillis());
+        getUninterruptibly(tagFuture);
+
+        tagFuture = metricsService.tagAvailabilityData(metric, ImmutableSet.of("t3", "t4"),
+            start.plusMinutes(3).getMillis(), start.plusMinutes(5).getMillis());
+        getUninterruptibly(tagFuture);
+
+        ListenableFuture<AvailabilityMetric> queryFuture = metricsService.findAvailabilityData(metric, start.getMillis(),
+            end.getMillis());
+        AvailabilityMetric actualMetric = getUninterruptibly(queryFuture);
+        List<Availability> actual = actualMetric.getData();
+        List<Availability> expected = asList(
+            new Availability(metric, start.plusMinutes(6).getMillis(), AvailabilityType.UP),
+            new Availability(metric, start.plusMinutes(5).getMillis(), AvailabilityType.UP),
+            new Availability(metric, start.plusMinutes(4).getMillis(), AvailabilityType.DOWN),
+            new Availability(metric, start.plusMinutes(3).getMillis(), AvailabilityType.UP),
+            new Availability(metric, start.plusMinutes(2).getMillis(), AvailabilityType.DOWN),
+            new Availability(metric, start.plusMinutes(1).getMillis(), AvailabilityType.DOWN),
+            new Availability(metric, start.getMillis(), AvailabilityType.UP)
+        );
+
+        assertEquals(actual, expected, "The data does not match the expected values");
+        assertEquals(actual.get(3).getTags(), ImmutableSet.of(new Tag("t3"), new Tag("t4")), "The tags do not match");
+        assertEquals(actual.get(2).getTags(), ImmutableSet.of(new Tag("t3"), new Tag("t4")), "The tags do not match");
+        assertEquals(actual.get(2).getTags(), ImmutableSet.of(new Tag("t3"), new Tag("t4")), "The tags do not match");
+        assertEquals(actual.get(4).getTags(), ImmutableSet.of(new Tag("t1"), new Tag("t2")), "The tags do not match");
+    }
+
+    @Test
     public void tagNumericDataByDateRangeAndQueryByMultipleTags() throws Exception {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);

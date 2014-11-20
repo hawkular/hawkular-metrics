@@ -31,6 +31,7 @@ import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.rhq.metrics.core.Availability;
 import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Interval;
@@ -291,7 +292,7 @@ public class MetricsServiceCassandra implements MetricsService {
             public ListenableFuture<List<NumericData>> apply(final List<NumericData> taggedData) {
                 List<ResultSetFuture> insertFutures = new ArrayList<>(tags.size());
                 for (String tag : tags) {
-                    insertFutures.add(dataAccess.insertTag(tag, taggedData));
+                    insertFutures.add(dataAccess.insertNumericTag(tag, taggedData));
                 }
                 for (NumericData d : taggedData) {
                     insertFutures.add(dataAccess.updateDataWithTag(d, tags));
@@ -305,6 +306,31 @@ public class MetricsServiceCassandra implements MetricsService {
                 });
             }
         }, metricsTasks);
+    }
+
+    @Override
+    public ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, final Set<String> tags,
+        long start, long end) {
+        ListenableFuture<AvailabilityMetric> queryFuture = findAvailabilityData(metric, start, end);
+        return Futures.transform(queryFuture, new AsyncFunction<AvailabilityMetric, List<Availability>>() {
+            @Override
+            public ListenableFuture<List<Availability>> apply(final AvailabilityMetric loadedMetric) throws Exception {
+                List<ResultSetFuture> insertFutures = new ArrayList<>(loadedMetric.getData().size());
+                for (String tag : tags) {
+                    insertFutures.add(dataAccess.insertAvailabilityTag(tag, loadedMetric.getData()));
+                }
+                for (Availability a : loadedMetric.getData()) {
+                    insertFutures.add(dataAccess.updateDataWithTag(a, tags));
+                }
+                ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
+                return Futures.transform(insertsFuture, new Function<List<ResultSet>, List<Availability>>() {
+                    @Override
+                    public List<Availability> apply(List<ResultSet> resultSets) {
+                        return loadedMetric.getData();
+                    }
+                });
+            }
+        });
     }
 
     @Override
@@ -322,7 +348,7 @@ public class MetricsServiceCassandra implements MetricsService {
                 }
                 List<ResultSetFuture> insertFutures = new ArrayList<>(tags.size());
                 for (String tag : tags) {
-                    insertFutures.add(dataAccess.insertTag(tag, data));
+                    insertFutures.add(dataAccess.insertNumericTag(tag, data));
                 }
                 for (NumericData d : data) {
                     insertFutures.add(dataAccess.updateDataWithTag(d, tags));
@@ -331,6 +357,37 @@ public class MetricsServiceCassandra implements MetricsService {
                 return Futures.transform(insertsFuture, new Function<List<ResultSet>, List<NumericData>>() {
                     @Override
                     public List<NumericData> apply(List<ResultSet> resultSets) {
+                        return data;
+                    }
+                });
+            }
+        });
+    }
+
+    @Override
+    public ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, final Set<String> tags,
+        long timestamp) {
+        ListenableFuture<ResultSet> queryFuture = dataAccess.findData(metric, timestamp);
+        ListenableFuture<List<Availability>> dataFuture = Futures.transform(queryFuture, new AvailabilityDataMapper(),
+            metricsTasks);
+        return Futures.transform(dataFuture, new AsyncFunction<List<Availability>, List<Availability>>() {
+            @Override
+            public ListenableFuture<List<Availability>> apply(final List<Availability> data) throws Exception {
+                if (data.isEmpty()) {
+                    List<Availability> results = Collections.emptyList();
+                    return Futures.immediateFuture(results);
+                }
+                List<ResultSetFuture> insertFutures = new ArrayList<>();
+                for (String tag : tags) {
+                    insertFutures.add(dataAccess.insertAvailabilityTag(tag, data));
+                }
+                for (Availability a : data) {
+                    insertFutures.add(dataAccess.updateDataWithTag(a, tags));
+                }
+                ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
+                return Futures.transform(insertsFuture, new Function<List<ResultSet>, List<Availability>>() {
+                    @Override
+                    public List<Availability> apply(List<ResultSet> resultSets) {
                         return data;
                     }
                 });

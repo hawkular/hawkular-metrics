@@ -1,6 +1,7 @@
 package org.rhq.metrics.core;
 
 import java.nio.ByteBuffer;
+import java.util.Set;
 import java.util.UUID;
 
 import com.google.common.base.Objects;
@@ -31,8 +32,13 @@ public class Availability extends MetricData {
         this.type = type;
     }
 
-    public Availability(Metric metric, UUID timeUUID, ByteBuffer bytes) {
+    public Availability(AvailabilityMetric metric, UUID timeUUID, ByteBuffer bytes) {
         super(metric, timeUUID);
+        type = AvailabilityType.fromBytes(bytes);
+    }
+
+    public Availability(AvailabilityMetric metric, UUID timeUUID, ByteBuffer bytes, Set<Tag> tags) {
+        super(metric, timeUUID, tags);
         type = AvailabilityType.fromBytes(bytes);
     }
 

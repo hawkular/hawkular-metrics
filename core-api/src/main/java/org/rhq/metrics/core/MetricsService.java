@@ -60,7 +60,13 @@ public interface MetricsService {
 
     ListenableFuture<List<NumericData>> tagNumericData(NumericMetric2 metric, Set<String> tags, long start, long end);
 
+    ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, Set<String> tags, long start,
+        long end);
+
     ListenableFuture<List<NumericData>> tagNumericData(NumericMetric2 metric, Set<String> tags, long timestamp);
+
+    ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, Set<String> tags,
+        long timestamp);
 
     ListenableFuture<Map<MetricId, Set<NumericData>>> findDataByTags(String tenantId, Set<String> tags,
         MetricType type);
