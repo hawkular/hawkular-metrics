@@ -18,7 +18,7 @@ addons:
       description: Build submitted via Travis CI
     notification_email: hwr@pilhuhn.de
     build_command_prepend: mvn clean
-    build_command: mvn -DskipTests=true -Dmaven.test.skip=true compile
+    build_command: mvn -DskipTests=true compile
     branch_pattern: coverity_scan
-install: 'mvn install -DskipTests=true -Dmaven.test.skip=true -B'
+install: 'mvn install -DskipTests=true -B'
 script: 'mvn verify -Dwildfly.logging.console.level=DEBUG -B'

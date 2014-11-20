@@ -14,6 +14,8 @@
 
 
   <properties>
+    <maven.test.skip>${skipTests}</maven.test.skip>
+
     <test.keyspace>rhqtest</test.keyspace>
     <nodes>127.0.0.1</nodes>
 
