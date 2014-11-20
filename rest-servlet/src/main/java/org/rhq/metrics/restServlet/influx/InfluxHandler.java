@@ -107,8 +107,8 @@ public class InfluxHandler {
                             asyncResponse.resume(Response.status(404).entity(val).build());
                         }
 
-                        final ListenableFuture<List<NumericData>> future = metricsService.findData(DEFAULT_TENANT_ID,
-                            metric, iq.getStart(), iq.getEnd());
+                        final ListenableFuture<List<NumericData>> future = metricsService.findData(
+                            new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(metric)), iq.getStart(), iq.getEnd());
 
                         Futures.addCallback(future, new FutureCallback<List<NumericData>>() {
                             @Override

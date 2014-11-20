@@ -30,6 +30,11 @@ public class NumericData extends MetricData {
         this.value = value;
     }
 
+    public NumericData(NumericMetric2 metric, UUID timeUUID, double value, Set<Tag> tags) {
+        super(metric, timeUUID, tags);
+        this.value = value;
+    }
+
     public NumericData(long timestamp, double value) {
         super(timestamp);
         this.value = value;

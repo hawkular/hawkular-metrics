@@ -51,6 +51,7 @@ CREATE TABLE ${keyspace}.data (
     n_value double,
     availability blob,
     aggregates set<frozen <aggregate_data>>,
+    tags map<text, text>,
     PRIMARY KEY ((tenant_id, type, metric, interval, dpart), time)
 )
 WITH CLUSTERING ORDER BY (time DESC);
@@ -77,5 +78,6 @@ CREATE TABLE ${keyspace}.tags (
     n_value double,
     aggregates set<frozen <aggregate_data>>,
     availability blob,
+    tag_desc text,
     PRIMARY KEY ((tenant_id, tag, type), metric, interval, time)
 );

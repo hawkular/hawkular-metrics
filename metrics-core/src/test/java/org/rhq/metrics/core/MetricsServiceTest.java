@@ -71,6 +71,51 @@ public class MetricsServiceTest extends MetricsTest {
     }
 
     @Test
+    public void fetchNumericDataThatHasTags() throws Exception {
+        DateTime end = now();
+        DateTime start = end.minusMinutes(10);
+
+        NumericMetric2 metric = new NumericMetric2("tenant1", new MetricId("m1"));
+        metric.addData(start.getMillis(), 100.0);
+        metric.addData(start.plusMinutes(1).getMillis(), 101.1);
+        metric.addData(start.plusMinutes(2).getMillis(), 102.2);
+        metric.addData(start.plusMinutes(3).getMillis(), 103.3);
+        metric.addData(start.plusMinutes(4).getMillis(), 104.4);
+        metric.addData(start.plusMinutes(5).getMillis(), 105.5);
+        metric.addData(start.plusMinutes(6).getMillis(), 106.6);
+
+        ListenableFuture<Void> insertFuture = metricsService.addNumericData(asList(metric));
+        getUninterruptibly(insertFuture);
+
+        ListenableFuture<List<NumericData>> tagFuture = metricsService.tagNumericData(metric,
+            ImmutableSet.of("t1", "t2"), start.plusMinutes(2).getMillis());
+        getUninterruptibly(tagFuture);
+
+        tagFuture = metricsService.tagNumericData(metric, ImmutableSet.of("t3", "t4"), start.plusMinutes(3).getMillis(),
+            start.plusMinutes(5).getMillis());
+        getUninterruptibly(tagFuture);
+
+        ListenableFuture<List<NumericData>> queryFuture = metricsService.findData(metric, start.getMillis(),
+            end.getMillis());
+        List<NumericData> actual = getUninterruptibly(queryFuture);
+        List<NumericData> expected = asList(
+            new NumericData(metric, start.plusMinutes(6).getMillis(), 106.6),
+            new NumericData(metric, start.plusMinutes(5).getMillis(), 105.5),
+            new NumericData(metric, start.plusMinutes(4).getMillis(), 104.4),
+            new NumericData(metric, start.plusMinutes(3).getMillis(), 103.3),
+            new NumericData(metric, start.plusMinutes(2).getMillis(), 102.2),
+            new NumericData(metric, start.plusMinutes(1).getMillis(), 101.1),
+            new NumericData(metric, start.getMillis(), 100.0)
+        );
+
+        assertEquals(actual, expected, "The data does not match the expected values");
+        assertEquals(actual.get(3).getTags(), ImmutableSet.of(new Tag("t3"), new Tag("t4")), "The tags do not match");
+        assertEquals(actual.get(2).getTags(), ImmutableSet.of(new Tag("t3"), new Tag("t4")), "The tags do not match");
+        assertEquals(actual.get(2).getTags(), ImmutableSet.of(new Tag("t3"), new Tag("t4")), "The tags do not match");
+        assertEquals(actual.get(4).getTags(), ImmutableSet.of(new Tag("t1"), new Tag("t2")), "The tags do not match");
+    }
+
+    @Test
     public void addDataForMultipleMetrics() throws Exception {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(8);

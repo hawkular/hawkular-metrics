@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
@@ -64,6 +65,8 @@ public class DataAccess {
 
     private PreparedStatement insertTags;
 
+    private PreparedStatement updateDataWithTags;
+
     private PreparedStatement findDataByTag;
 
     private PreparedStatement insertAvailability;
@@ -94,12 +97,12 @@ public class DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
         findNumericDataByDateRangeExclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, attributes, n_value, aggregates " +
+            "SELECT tenant_id, metric, interval, dpart, time, attributes, n_value, aggregates, tags " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
 
         findNumericDataByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, attributes, n_value, aggregates " +
+            "SELECT tenant_id, metric, interval, dpart, time, attributes, n_value, aggregates, tags " +
             " FROM data " +
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time <= ?");
 
@@ -124,6 +127,11 @@ public class DataAccess {
         insertTags = session.prepare(
             "INSERT INTO tags (tenant_id, tag, type, metric, interval, time, n_value) VALUES (?, ?, ?, ?, ?, ?, ?)");
 
+        updateDataWithTags = session.prepare(
+            "UPDATE data " +
+            "SET tags = tags + ? " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
+
         findDataByTag = session.prepare(
             "SELECT tenant_id, tag, type, metric, interval, time, n_value " +
             "FROM tags " +
@@ -139,7 +147,7 @@ public class DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
         findAvailabilities = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, attributes, availability " +
+            "SELECT tenant_id, metric, interval, dpart, time, attributes, availability, tags " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
     }
@@ -251,6 +259,16 @@ public class DataAccess {
                 d.getValue()));
         }
         return session.executeAsync(batchStatement);
+    }
+
+    public ResultSetFuture updateDataWithTag(NumericData data, Set<String> tags) {
+        Map<String, String> tagMap = new HashMap<>();
+        for (String tag : tags) {
+            tagMap.put(tag, "");
+        }
+        return session.executeAsync(updateDataWithTags.bind(tagMap, data.getMetric().getTenantId(),
+            data.getMetric().getType().getCode(), data.getMetric().getId().getName(),
+            data.getMetric().getId().getInterval().toString(), data.getMetric().getDpart(), data.getTimeUUID()));
     }
 
     public ResultSetFuture findData(String tenantId, String tag, MetricType type) {

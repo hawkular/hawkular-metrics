@@ -293,6 +293,9 @@ public class MetricsServiceCassandra implements MetricsService {
                 for (String tag : tags) {
                     insertFutures.add(dataAccess.insertTag(tag, taggedData));
                 }
+                for (NumericData d : taggedData) {
+                    insertFutures.add(dataAccess.updateDataWithTag(d, tags));
+                }
                 ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
                 return Futures.transform(insertsFuture, new Function<List<ResultSet>, List<NumericData>>() {
                     @Override
@@ -320,6 +323,9 @@ public class MetricsServiceCassandra implements MetricsService {
                 List<ResultSetFuture> insertFutures = new ArrayList<>(tags.size());
                 for (String tag : tags) {
                     insertFutures.add(dataAccess.insertTag(tag, data));
+                }
+                for (NumericData d : data) {
+                    insertFutures.add(dataAccess.updateDataWithTag(d, tags));
                 }
                 ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
                 return Futures.transform(insertsFuture, new Function<List<ResultSet>, List<NumericData>>() {

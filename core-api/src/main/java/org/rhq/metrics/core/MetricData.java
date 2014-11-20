@@ -1,6 +1,8 @@
 package org.rhq.metrics.core;
 
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import com.datastax.driver.core.utils.UUIDs;
@@ -24,9 +26,17 @@ public abstract class MetricData {
 
     protected Metric metric;
 
+    protected Set<Tag> tags = new HashSet<>();
+
     public MetricData(Metric metric, UUID timeUUID) {
         this.metric = metric;
         this.timeUUID = timeUUID;
+    }
+
+    public MetricData(Metric metric, UUID timeUUID, Set<Tag> tags) {
+        this.metric = metric;
+        this.timeUUID = timeUUID;
+        this.tags = tags;
     }
 
     public MetricData(Metric metric, long timestamp) {
@@ -62,6 +72,14 @@ public abstract class MetricData {
      */
     public long getTimestamp() {
         return UUIDs.unixTimestamp(timeUUID);
+    }
+
+    public Set<Tag> getTags() {
+        return tags;
+    }
+
+    public void setTags(Set<Tag> tags) {
+        this.tags = tags;
     }
 
     @Override
