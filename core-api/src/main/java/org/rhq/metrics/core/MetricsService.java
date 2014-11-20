@@ -30,6 +30,8 @@ public interface MetricsService {
 
     void shutdown();
 
+    ListenableFuture<Void> createTenant(Tenant tenant);
+
     ListenableFuture<Void> addNumericData(List<NumericMetric2> metrics);
 
     ListenableFuture<NumericMetric2> findNumericData(NumericMetric2 metric, long start, long end);

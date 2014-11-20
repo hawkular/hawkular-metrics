@@ -31,6 +31,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -53,6 +54,7 @@ import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.core.Tag;
+import org.rhq.metrics.core.Tenant;
 
 /**
  * Interface to deal with metrics
@@ -66,19 +68,47 @@ public class MetricHandler {
     @Inject
     private MetricsService metricsService;
 
-	@GET
+    public MetricHandler() {
+        if (logger.isDebugEnabled()) {
+            logger.debug("MetricHandler instantiated");
+        }
+    }
+
+    @GET
     @POST
-	@Path("/ping")
-	@Consumes({ "application/json", "application/xml" })
-	@Produces({ "application/json", "application/xml","application/vnd.rhq.wrapped+json" })
-    @ApiOperation(value = "Returns the current time and serves to check for the availability of the api.", responseClass = "Map<String,String>")
-	public Response ping() {
+    @Path("/ping")
+    @Consumes({"application/json", "application/xml"})
+    @Produces({"application/json", "application/xml", "application/vnd.rhq.wrapped+json"})
+    @ApiOperation(value = "Returns the current time and serves to check for the availability of the api.",
+        responseClass = "Map<String,String>")
+    public Response ping() {
 
         StringValue reply = new StringValue(new Date().toString());
 
-		Response.ResponseBuilder builder = Response.ok(reply);
-		return builder.build();
-	}
+        Response.ResponseBuilder builder = Response.ok(reply);
+        return builder.build();
+    }
+
+    @POST
+    @Path("/tenants")
+    @Consumes("application/json")
+    public void createTenant(@Suspended final AsyncResponse asyncResponse, TenantParams params) {
+        Tenant tenant = new Tenant().setId(params.getId());
+        ListenableFuture<Void> insertFuture = metricsService.createTenant(tenant);
+        Futures.addCallback(insertFuture, new FutureCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                Map<String, String> errors = ImmutableMap.of("errorMsg", t.getMessage());
+                asyncResponse.resume(Response.status(Response.Status.FORBIDDEN).entity(errors).type(
+                    MediaType.APPLICATION_JSON_TYPE).build());
+            }
+        });
+    }
 
     @POST
     @Path("/metrics/{id}")
@@ -132,6 +162,7 @@ public class MetricHandler {
 
     @POST
     @Path("/numeric/{id}")
+    @Consumes("application/json")
     public void addDataForMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
         NumericDataParams params) {
 
@@ -158,6 +189,7 @@ public class MetricHandler {
 
     @POST
     @Path("/availability/{id}")
+    @Consumes("application/json")
     public void addAvailabilityForMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
         AvailabilityDataParams params) {
         AvailabilityMetric metric = new AvailabilityMetric(DEFAULT_TENANT_ID, new MetricId(id), params.getAttributes());

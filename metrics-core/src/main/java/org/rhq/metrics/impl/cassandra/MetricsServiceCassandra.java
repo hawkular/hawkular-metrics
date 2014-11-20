@@ -42,9 +42,9 @@ import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
-import org.rhq.metrics.core.RawMetricMapper;
 import org.rhq.metrics.core.RawNumericMetric;
 import org.rhq.metrics.core.SchemaManager;
+import org.rhq.metrics.core.Tenant;
 
 /**
  * @author John Sanda
@@ -77,8 +77,6 @@ public class MetricsServiceCassandra implements MetricsService {
     private Optional<Session> session;
 
     private DataAccess dataAccess;
-
-    private NumericDataMapper numericDataMapper = new NumericDataMapper();
 
     private ListeningExecutorService metricsTasks = MoreExecutors
         .listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
@@ -147,6 +145,21 @@ public class MetricsServiceCassandra implements MetricsService {
             s.close();
             s.getCluster().close();
         }
+    }
+
+    @Override
+    public ListenableFuture<Void> createTenant(final Tenant tenant) {
+        ResultSetFuture future = dataAccess.insertTenant(tenant);
+        return Futures.transform(future, new Function<ResultSet, Void>() {
+            @Override
+            public Void apply(ResultSet resultSet) {
+                if (resultSet.wasApplied()) {
+                    return null;
+                }
+                throw new RuntimeException("Failed to create tenant. A tenant having id [" + tenant.getId() +
+                    "] already exists");
+            }
+        });
     }
 
     @Override
@@ -500,13 +513,4 @@ public class MetricsServiceCassandra implements MetricsService {
         }
     }
 
-    private static class MapQueryResultSet implements Function<ResultSet, List<RawNumericMetric>> {
-
-        RawMetricMapper mapper = new RawMetricMapper();
-
-        @Override
-        public List<RawNumericMetric> apply(ResultSet resultSet) {
-            return mapper.map(resultSet);
-        }
-    }
 }

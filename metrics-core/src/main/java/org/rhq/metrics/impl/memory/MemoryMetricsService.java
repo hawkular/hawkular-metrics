@@ -25,6 +25,7 @@ import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.core.Tenant;
 
 import gnu.trove.map.TLongDoubleMap;
 import gnu.trove.map.hash.TLongDoubleHashMap;
@@ -60,6 +61,11 @@ public class MemoryMetricsService implements MetricsService {
 
     @Override
     public void shutdown() {
+    }
+
+    @Override
+    public ListenableFuture<Void> createTenant(Tenant tenant) {
+        return null;
     }
 
     @Override
