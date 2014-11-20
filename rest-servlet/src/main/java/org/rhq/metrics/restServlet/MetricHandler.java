@@ -47,7 +47,6 @@ import org.rhq.metrics.core.Availability;
 import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.MetricId;
-import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
@@ -250,8 +249,7 @@ public class MetricHandler {
     public void findNumericDataByTags(@Suspended final AsyncResponse asyncResponse, @QueryParam("tags") String tags) {
         Set<String> tagSet = ImmutableSet.copyOf(tags.split(","));
         ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(
-            DEFAULT_TENANT_ID,
-            tagSet, MetricType.NUMERIC);
+            DEFAULT_TENANT_ID, tagSet);
         Futures.addCallback(queryFuture, new FutureCallback<Map<MetricId, Set<NumericData>>>() {
             @Override
             public void onSuccess(Map<MetricId, Set<NumericData>> taggedDataMap) {
@@ -275,6 +273,49 @@ public class MetricHandler {
                     dataOut = null;
                 }
                 asyncResponse.resume(Response.ok(results).type(MediaType.APPLICATION_JSON_TYPE).build());
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
+    }
+
+    @GET
+    @Path("/availability")
+    public void findAvailabilityDataByTags(@Suspended final AsyncResponse asyncResponse,
+        @QueryParam("tags") String tags) {
+        Set<String> tagSet = ImmutableSet.copyOf(tags.split(","));
+        ListenableFuture<Map<MetricId, Set<Availability>>> queryFuture = metricsService.findAvailabilityByTags(
+            DEFAULT_TENANT_ID, tagSet);
+        Futures.addCallback(queryFuture, new FutureCallback<Map<MetricId, Set<Availability>>>() {
+            @Override
+            public void onSuccess(Map<MetricId, Set<Availability>> taggedDataMap) {
+                if (taggedDataMap.isEmpty()) {
+                    asyncResponse.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
+                } else {
+                    Map<String, AvailabilityDataOut> results = new HashMap<>();
+                    AvailabilityDataOut dataOut = null;
+                    for (MetricId id : taggedDataMap.keySet()) {
+                        List<AvailabilityDataPoint> dataPoints = new ArrayList<>();
+                        for (Availability a : taggedDataMap.get(id)) {
+                            if (dataOut == null) {
+                                dataOut = new AvailabilityDataOut();
+                                dataOut.setTenantId(a.getMetric().getTenantId());
+                                dataOut.setName(a.getMetric().getId().getName());
+                            }
+                            AvailabilityDataPoint p = new AvailabilityDataPoint();
+                            p.setTimestamp(a.getTimestamp());
+                            p.setValue(a.getType().getText());
+                            dataPoints.add(p);
+                        }
+                        dataOut.setData(dataPoints);
+                        results.put(id.getName(), dataOut);
+                        dataOut = null;
+                    }
+                    asyncResponse.resume(Response.ok(results).type(MediaType.APPLICATION_JSON_TYPE).build());
+                }
             }
 
             @Override
@@ -395,12 +436,34 @@ public class MetricHandler {
         });
     }
 
+    @POST
+    @Path("/tags/availability")
+    public void tagAvailabilityData(@Suspended final AsyncResponse asyncResponse, TagParams params) {
+        ListenableFuture<List<Availability>> future;
+        AvailabilityMetric metric = new AvailabilityMetric(DEFAULT_TENANT_ID, new MetricId(params.getMetric()));
+        if (params.getTimestamp() != null) {
+            future = metricsService.tagAvailabilityData(metric, params.getTags(), params.getTimestamp());
+        } else {
+            future = metricsService.tagAvailabilityData(metric, params.getTags(), params.getStart(), params.getEnd());
+        }
+        Futures.addCallback(future, new FutureCallback<List<Availability>>() {
+            @Override
+            public void onSuccess(List<Availability> data) {
+                asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
+    }
+
     @GET
     @Path("/tags/numeric/{tag}")
     public void findTaggedNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tag") String tag) {
         ListenableFuture<Map<MetricId, Set<NumericData>>> future = metricsService.findNumericDataByTags(
-            DEFAULT_TENANT_ID,
-            ImmutableSet.of(tag), MetricType.NUMERIC);
+            DEFAULT_TENANT_ID, ImmutableSet.of(tag));
         Futures.addCallback(future, new FutureCallback<Map<MetricId, Set<NumericData>>>() {
             @Override
             public void onSuccess(Map<MetricId, Set<NumericData>> taggedDataMap) {
@@ -426,6 +489,47 @@ public class MetricHandler {
                             NumericDataPoint p = new NumericDataPoint();
                             p.setTimestamp(d.getTimestamp());
                             p.setValue(d.getValue());
+                            dataPoints.add(p);
+                        }
+                        dataOut.setData(dataPoints);
+                        results.put(id.getName(), dataOut);
+                        dataOut = null;
+                    }
+                    asyncResponse.resume(Response.ok(results).type(MediaType.APPLICATION_JSON_TYPE).build());
+                }
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
+    }
+
+    @GET
+    @Path("/tags/availability/{tag}")
+    public void findTaggedAvailabilityData(@Suspended final AsyncResponse asyncResponse, @PathParam("tag") String tag) {
+        ListenableFuture<Map<MetricId, Set<Availability>>> future = metricsService.findAvailabilityByTags(
+            DEFAULT_TENANT_ID, ImmutableSet.of(tag));
+        Futures.addCallback(future, new FutureCallback<Map<MetricId, Set<Availability>>>() {
+            @Override
+            public void onSuccess(Map<MetricId, Set<Availability>> taggedDataMap) {
+                if (taggedDataMap.isEmpty()) {
+                    asyncResponse.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
+                } else {
+                    Map<String, AvailabilityDataOut> results = new HashMap<>();
+                    AvailabilityDataOut dataOut = null;
+                    for (MetricId id : taggedDataMap.keySet()) {
+                        List<AvailabilityDataPoint> dataPoints = new ArrayList<>();
+                        for (Availability a : taggedDataMap.get(id)) {
+                            if (dataOut == null) {
+                                dataOut = new AvailabilityDataOut();
+                                dataOut.setTenantId(a.getMetric().getTenantId());
+                                dataOut.setName(a.getMetric().getId().getName());
+                            }
+                            AvailabilityDataPoint p = new AvailabilityDataPoint();
+                            p.setTimestamp(a.getTimestamp());
+                            p.setValue(a.getType().getText());
                             dataPoints.add(p);
                         }
                         dataOut.setData(dataPoints);
