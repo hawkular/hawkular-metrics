@@ -1,5 +1,7 @@
 package org.rhq.metrics.restServlet;
 
+import java.util.Set;
+
 import com.google.common.base.Objects;
 
 /**
@@ -10,6 +12,8 @@ public class NumericDataPoint {
     private long timestamp;
 
     private double value;
+
+    private Set<String> tags;
 
     public NumericDataPoint() {
     }
@@ -33,6 +37,14 @@ public class NumericDataPoint {
 
     public void setValue(double value) {
         this.value = value;
+    }
+
+    public Set<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(Set<String> tags) {
+        this.tags = tags;
     }
 
     @Override
@@ -60,6 +72,10 @@ public class NumericDataPoint {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this).add("timestamp", timestamp).add("value", value).toString();
+        return Objects.toStringHelper(this)
+            .add("timestamp", timestamp)
+            .add("value", value)
+            .add("tags", tags)
+            .toString();
     }
 }

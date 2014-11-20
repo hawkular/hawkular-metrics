@@ -1,5 +1,7 @@
 package org.rhq.metrics.restServlet;
 
+import java.util.Set;
+
 import com.google.common.base.Objects;
 
 /**
@@ -10,6 +12,8 @@ public class AvailabilityDataPoint {
     private long timestamp;
 
     private String value;
+
+    private Set<String> tags;
 
     public long getTimestamp() {
         return timestamp;
@@ -25,6 +29,14 @@ public class AvailabilityDataPoint {
 
     public void setValue(String value) {
         this.value = value;
+    }
+
+    public Set<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(Set<String> tags) {
+        this.tags = tags;
     }
 
     @Override
@@ -49,6 +61,10 @@ public class AvailabilityDataPoint {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this).add("timestamp", timestamp).add("value", value).toString();
+        return Objects.toStringHelper(this)
+            .add("timestamp", timestamp)
+            .add("value", value)
+            .add("tags", tags)
+            .toString();
     }
 }

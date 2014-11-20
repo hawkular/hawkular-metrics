@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,10 +47,12 @@ import org.jboss.resteasy.annotations.GZIP;
 import org.rhq.metrics.core.Availability;
 import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
+import org.rhq.metrics.core.MetricData;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.core.Tag;
 
 /**
  * Interface to deal with metrics
@@ -325,6 +328,17 @@ public class MetricHandler {
         });
     }
 
+    private Set<String> getTagNames(MetricData d) {
+        if (d.getTags().isEmpty()) {
+            return null;
+        }
+        Set<String> set = new HashSet<>();
+        for (Tag tag : d.getTags()) {
+            set.add(tag.getValue());
+        }
+        return set;
+    }
+
     @GET
     @Path("/numeric/{id}")
     public void findNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("id") final String id,
@@ -353,7 +367,9 @@ public class MetricHandler {
 
                     List<NumericDataPoint> dataPoints = new ArrayList<>(metric.getData().size());
                     for (NumericData d : metric.getData()) {
-                       dataPoints.add(new NumericDataPoint(d.getTimestamp(), d.getValue()));
+                        NumericDataPoint dataPoint = new NumericDataPoint(d.getTimestamp(), d.getValue());
+                        dataPoint.setTags(getTagNames(d));
+                       dataPoints.add(dataPoint);
                     }
                     output.setData(dataPoints);
                     asyncResponse.resume(Response.ok(output).type(MediaType.APPLICATION_JSON_TYPE).build());
@@ -398,6 +414,7 @@ public class MetricHandler {
                         AvailabilityDataPoint p = new AvailabilityDataPoint();
                         p.setTimestamp(a.getTimestamp());
                         p.setValue(a.getType().getText());
+                        p.setTags(getTagNames(a));
                         dataPoints.add(p);
                     }
                     output.setData(dataPoints);
