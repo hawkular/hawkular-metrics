@@ -15,9 +15,9 @@ import org.rhq.metrics.util.TimeUUIDUtils;
 public abstract class MetricData {
 
 
-    public static final Comparator<NumericData> TIME_UUID_COMPARATOR = new Comparator<NumericData>() {
+    public static final Comparator<MetricData> TIME_UUID_COMPARATOR = new Comparator<MetricData>() {
         @Override
-        public int compare(NumericData d1, NumericData d2) {
+        public int compare(MetricData d1, MetricData d2) {
             return TimeUUIDUtils.compare(d1.timeUUID, d2.timeUUID);
         }
     };

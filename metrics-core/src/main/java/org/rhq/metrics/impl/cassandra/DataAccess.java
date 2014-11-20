@@ -72,7 +72,9 @@ public class DataAccess {
 
     private PreparedStatement updateDataWithTags;
 
-    private PreparedStatement findDataByTag;
+    private PreparedStatement findNumericDataByTag;
+
+    private PreparedStatement findAvailabilityByTag;
 
     private PreparedStatement insertAvailability;
 
@@ -146,8 +148,13 @@ public class DataAccess {
             "SET tags = tags + ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
-        findDataByTag = session.prepare(
+        findNumericDataByTag = session.prepare(
             "SELECT tenant_id, tag, type, metric, interval, time, n_value " +
+            "FROM tags " +
+            "WHERE tenant_id = ? AND tag = ? AND type = ?");
+
+        findAvailabilityByTag = session.prepare(
+            "SELECT tenant_id, tag, type, metric, interval, time, availability " +
             "FROM tags " +
             "WHERE tenant_id = ? AND tag = ? AND type = ?");
 
@@ -301,8 +308,12 @@ public class DataAccess {
             data.getMetric().getId().getInterval().toString(), data.getMetric().getDpart(), data.getTimeUUID()));
     }
 
-    public ResultSetFuture findData(String tenantId, String tag, MetricType type) {
-        return session.executeAsync(findDataByTag.bind(tenantId, tag, type.getCode()));
+    public ResultSetFuture findNumericDataByTag(String tenantId, String tag) {
+        return session.executeAsync(findNumericDataByTag.bind(tenantId, tag, MetricType.NUMERIC.getCode()));
+    }
+
+    public ResultSetFuture findAvailabilityByTag(String tenantId, String tag) {
+        return session.executeAsync(findAvailabilityByTag.bind(tenantId, tag, MetricType.AVAILABILITY.getCode()));
     }
 
     public ResultSetFuture insertAvailability(Availability a) {

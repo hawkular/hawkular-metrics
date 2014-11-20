@@ -249,7 +249,8 @@ public class MetricHandler {
     @Path("/numeric")
     public void findNumericDataByTags(@Suspended final AsyncResponse asyncResponse, @QueryParam("tags") String tags) {
         Set<String> tagSet = ImmutableSet.copyOf(tags.split(","));
-        ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findDataByTags(DEFAULT_TENANT_ID,
+        ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(
+            DEFAULT_TENANT_ID,
             tagSet, MetricType.NUMERIC);
         Futures.addCallback(queryFuture, new FutureCallback<Map<MetricId, Set<NumericData>>>() {
             @Override
@@ -397,7 +398,8 @@ public class MetricHandler {
     @GET
     @Path("/tags/numeric/{tag}")
     public void findTaggedNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tag") String tag) {
-        ListenableFuture<Map<MetricId, Set<NumericData>>> future = metricsService.findDataByTags(DEFAULT_TENANT_ID,
+        ListenableFuture<Map<MetricId, Set<NumericData>>> future = metricsService.findNumericDataByTags(
+            DEFAULT_TENANT_ID,
             ImmutableSet.of(tag), MetricType.NUMERIC);
         Futures.addCallback(future, new FutureCallback<Map<MetricId, Set<NumericData>>>() {
             @Override

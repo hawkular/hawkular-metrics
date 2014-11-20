@@ -38,7 +38,6 @@ import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricData;
 import org.rhq.metrics.core.MetricId;
-import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
 import org.rhq.metrics.core.NumericData;
@@ -396,12 +395,11 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Map<MetricId, Set<NumericData>>> findDataByTags(String tenantId, Set<String> tags,
-        MetricType type) {
+    public ListenableFuture<Map<MetricId, Set<NumericData>>> findNumericDataByTags(String tenantId, Set<String> tags) {
         List<ListenableFuture<Map<MetricId, Set<NumericData>>>> queryFutures = new ArrayList<>(tags.size());
-        TaggedDataMapper mapper = new TaggedDataMapper();
         for (String tag : tags) {
-            queryFutures.add(Futures.transform(dataAccess.findData(tenantId, tag, type), mapper, metricsTasks));
+            queryFutures.add(Futures.transform(dataAccess.findNumericDataByTag(tenantId, tag),
+                new TaggedNumericDataMapper(), metricsTasks));
         }
         ListenableFuture<List<Map<MetricId, Set<NumericData>>>> queriesFuture = Futures.allAsList(queryFutures);
         return Futures.transform(queriesFuture, new Function<List<Map<MetricId, Set<NumericData>>>, Map<MetricId, Set<NumericData>>>() {
@@ -432,6 +430,44 @@ public class MetricsServiceCassandra implements MetricsService {
             }
         }, metricsTasks);
 
+    }
+
+    @Override
+    public ListenableFuture<Map<MetricId, Set<Availability>>> findAvailabilityByTags(String tenantId,
+        Set<String> tags) {
+        List<ListenableFuture<Map<MetricId, Set<Availability>>>> queryFutures = new ArrayList<>(tags.size());
+        for (String tag : tags) {
+            queryFutures.add(Futures.transform(dataAccess.findAvailabilityByTag(tenantId, tag),
+                new TaggedAvailabilityMappper(), metricsTasks));
+        }
+        ListenableFuture<List<Map<MetricId, Set<Availability>>>> queriesFuture = Futures.allAsList(queryFutures);
+        return Futures.transform(queriesFuture, new Function<List<Map<MetricId, Set<Availability>>>, Map<MetricId, Set<Availability>>>() {
+            @Override
+            public Map<MetricId, Set<Availability>> apply(List<Map<MetricId, Set<Availability>>> taggedDataMaps) {
+                if (taggedDataMaps.isEmpty()) {
+                    return Collections.emptyMap();
+                }
+                if (taggedDataMaps.size() == 1) {
+                    return taggedDataMaps.get(0);
+                }
+
+                Set<MetricId> ids = new HashSet<>(taggedDataMaps.get(0).keySet());
+                for (int i = 1; i < taggedDataMaps.size(); ++i) {
+                    ids.retainAll(taggedDataMaps.get(i).keySet());
+                }
+
+                Map<MetricId, Set<Availability>> mergedDataMap = new HashMap<>();
+                for (MetricId id : ids) {
+                    TreeSet<Availability> set = new TreeSet<>(MetricData.TIME_UUID_COMPARATOR);
+                    for (Map<MetricId, Set<Availability>> taggedDataMap : taggedDataMaps) {
+                        set.addAll(taggedDataMap.get(id));
+                    }
+                    mergedDataMap.put(id, set);
+                }
+
+                return mergedDataMap;
+            }
+        }, metricsTasks);
     }
 
     private void updateSchemaIfNecessary(Cluster cluster, String schemaName) {

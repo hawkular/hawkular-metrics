@@ -279,8 +279,8 @@ public class MetricsServiceTest extends MetricsTest {
         getUninterruptibly(tagFuture4);
         getUninterruptibly(tagFuture5);
 
-        ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findDataByTags(tenant,
-            ImmutableSet.of("t1", "t2"), MetricType.NUMERIC);
+        ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(tenant,
+            ImmutableSet.of("t1", "t2"));
         Map<MetricId, Set<NumericData>> actual = getUninterruptibly(queryFuture);
         ImmutableMap<MetricId, ImmutableSet<NumericData>> expected = ImmutableMap.of(
             new MetricId("m1"), ImmutableSet.of(d1, d2, d6),
@@ -291,7 +291,69 @@ public class MetricsServiceTest extends MetricsTest {
     }
 
     @Test
-    public void tagIndividualDataPoints() throws Exception {
+    public void tagAvailabilityByDateRangeAndQueryByMultipleTags() throws Exception {
+        String tenant = "tag-test";
+        DateTime start = now().minusMinutes(20);
+
+        AvailabilityMetric m1 = new AvailabilityMetric(tenant, new MetricId("m1"));
+        AvailabilityMetric m2 = new AvailabilityMetric(tenant, new MetricId("m2"));
+        AvailabilityMetric m3 = new AvailabilityMetric(tenant, new MetricId("m3"));
+
+        Availability a1 = new Availability(m1, start.getMillis(), AvailabilityType.UP);
+        Availability a2 = new Availability(m1, start.plusMinutes(2).getMillis(), AvailabilityType.UP);
+        Availability a3 = new Availability(m2, start.plusMinutes(6).getMillis(), AvailabilityType.DOWN);
+        Availability a4 = new Availability(m2, start.plusMinutes(8).getMillis(), AvailabilityType.DOWN);
+        Availability a5 = new Availability(m2, start.plusMinutes(4).getMillis(), AvailabilityType.UP);
+        Availability a6 = new Availability(m1, start.plusMinutes(4).getMillis(), AvailabilityType.DOWN);
+        Availability a7 = new Availability(m2, start.plusMinutes(10).getMillis(), AvailabilityType.UP);
+        Availability a8 = new Availability(m3, start.plusMinutes(6).getMillis(), AvailabilityType.DOWN);
+        Availability a9 = new Availability(m3, start.plusMinutes(7).getMillis(), AvailabilityType.UP);
+
+        m1.addData(a1);
+        m1.addData(a2);
+        m1.addData(a6);
+
+        m2.addData(a3);
+        m2.addData(a4);
+        m2.addData(a5);
+        m2.addData(a7);
+
+        m3.addData(a8);
+        m3.addData(a9);
+
+        ListenableFuture<Void> insertFuture = metricsService.addAvailabilityData(asList(m1, m2, m3));
+        getUninterruptibly(insertFuture);
+
+        ListenableFuture<List<Availability>> tagFuture1 = metricsService.tagAvailabilityData(m1, ImmutableSet.of("t1"),
+            start.getMillis(), start.plusMinutes(6).getMillis());
+        ListenableFuture<List<Availability>> tagFuture2 = metricsService.tagAvailabilityData(m2, ImmutableSet.of("t1"),
+            start.getMillis(), start.plusMinutes(6).getMillis());
+        ListenableFuture<List<Availability>> tagFuture3 = metricsService.tagAvailabilityData(m1, ImmutableSet.of("t2"),
+            start.plusMinutes(4).getMillis(), start.plusMinutes(8).getMillis());
+        ListenableFuture<List<Availability>> tagFuture4 = metricsService.tagAvailabilityData(m2, ImmutableSet.of("t2"),
+            start.plusMinutes(4).getMillis(), start.plusMinutes(8).getMillis());
+        ListenableFuture<List<Availability>> tagFuture5 = metricsService.tagAvailabilityData(m3, ImmutableSet.of("t2"),
+            start.plusMinutes(4).getMillis(), start.plusMinutes(8).getMillis());
+
+        getUninterruptibly(tagFuture1);
+        getUninterruptibly(tagFuture2);
+        getUninterruptibly(tagFuture3);
+        getUninterruptibly(tagFuture4);
+        getUninterruptibly(tagFuture5);
+
+        ListenableFuture<Map<MetricId, Set<Availability>>> queryFuture = metricsService.findAvailabilityByTags(tenant,
+            ImmutableSet.of("t1", "t2"));
+        Map<MetricId, Set<Availability>> actual = getUninterruptibly(queryFuture);
+        ImmutableMap<MetricId, ImmutableSet<Availability>> expected = ImmutableMap.of(
+            new MetricId("m1"), ImmutableSet.of(a1, a2, a6),
+            new MetricId("m2"), ImmutableSet.of(a5, a3)
+        );
+
+        assertEquals(actual, expected, "The tagged data does not match");
+    }
+
+    @Test
+    public void tagIndividualNumericDataPoints() throws Exception {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
@@ -341,12 +403,74 @@ public class MetricsServiceTest extends MetricsTest {
         tagFuture = metricsService.tagNumericData(m2, ImmutableSet.of("t3", "t4"), d4.getTimestamp());
         assertEquals(getUninterruptibly(tagFuture), asList(d4), "Tagging " + d4 + " returned unexpected results");
 
-        ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findDataByTags(tenant,
-            ImmutableSet.of("t2", "t3"), MetricType.NUMERIC);
+        ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(tenant,
+            ImmutableSet.of("t2", "t3"));
         Map<MetricId, Set<NumericData>> actual = getUninterruptibly(queryFuture);
         ImmutableMap<MetricId, ImmutableSet<NumericData>> expected = ImmutableMap.of(
             new MetricId("m1"), ImmutableSet.of(d2),
             new MetricId("m2"), ImmutableSet.of(d3, d4)
+        );
+
+        assertEquals(actual, expected, "The tagged data does not match");
+    }
+
+    @Test
+    public void tagIndividualAvailabilityDataPoints() throws Exception {
+        String tenant = "tag-test";
+        DateTime start = now().minusMinutes(20);
+
+        AvailabilityMetric m1 = new AvailabilityMetric(tenant, new MetricId("m1"));
+        AvailabilityMetric m2 = new AvailabilityMetric(tenant, new MetricId("m2"));
+        AvailabilityMetric m3 = new AvailabilityMetric(tenant, new MetricId("m3"));
+
+        Availability a1 = new Availability(m1, start.getMillis(), AvailabilityType.UP);
+        Availability a2 = new Availability(m1, start.plusMinutes(2).getMillis(), AvailabilityType.UP);
+        Availability a3 = new Availability(m2, start.plusMinutes(6).getMillis(), AvailabilityType.DOWN);
+        Availability a4 = new Availability(m2, start.plusMinutes(8).getMillis(), AvailabilityType.DOWN);
+        Availability a5 = new Availability(m2, start.plusMinutes(4).getMillis(), AvailabilityType.UP);
+        Availability a6 = new Availability(m1, start.plusMinutes(4).getMillis(), AvailabilityType.DOWN);
+        Availability a7 = new Availability(m2, start.plusMinutes(10).getMillis(), AvailabilityType.UP);
+        Availability a8 = new Availability(m3, start.plusMinutes(6).getMillis(), AvailabilityType.DOWN);
+        Availability a9 = new Availability(m3, start.plusMinutes(7).getMillis(), AvailabilityType.UP);
+
+        m1.addData(a1);
+        m1.addData(a2);
+        m1.addData(a6);
+
+        m2.addData(a3);
+        m2.addData(a4);
+        m2.addData(a5);
+        m2.addData(a7);
+
+        m3.addData(a8);
+        m3.addData(a9);
+
+        ListenableFuture<Void> insertFuture = metricsService.addAvailabilityData(asList(m1, m2, m3));
+        getUninterruptibly(insertFuture);
+
+        ListenableFuture<List<Availability>> tagFuture = metricsService.tagAvailabilityData(m1, ImmutableSet.of("t1"),
+            a1.getTimestamp());
+        assertEquals(getUninterruptibly(tagFuture), asList(a1), "Tagging " + a1 + " returned unexpected results");
+
+        tagFuture = metricsService.tagAvailabilityData(m1, ImmutableSet.of("t1", "t2", "t3"), a2.getTimestamp());
+        assertEquals(getUninterruptibly(tagFuture), asList(a2), "Tagging " + a2 + " returned unexpected results");
+
+        tagFuture = metricsService.tagAvailabilityData(m1, ImmutableSet.of("t1"), start.minusMinutes(10).getMillis());
+        assertEquals(getUninterruptibly(tagFuture), Collections.emptyList(),
+            "No data should be returned since there is no data for this time");
+
+        tagFuture = metricsService.tagAvailabilityData(m2, ImmutableSet.of("t2", "t3"), a3.getTimestamp());
+        assertEquals(getUninterruptibly(tagFuture), asList(a3), "Tagging " + a3 + " returned unexpected results");
+
+        tagFuture = metricsService.tagAvailabilityData(m2, ImmutableSet.of("t3", "t4"), a4.getTimestamp());
+        assertEquals(getUninterruptibly(tagFuture), asList(a4), "Tagging " + a4 + " returned unexpected results");
+
+        ListenableFuture<Map<MetricId, Set<Availability>>> queryFuture = metricsService.findAvailabilityByTags(tenant,
+            ImmutableSet.of("t2", "t3"));
+        Map<MetricId, Set<Availability>> actual = getUninterruptibly(queryFuture);
+        ImmutableMap<MetricId, ImmutableSet<Availability>> expected = ImmutableMap.of(
+            new MetricId("m1"), ImmutableSet.of(a2),
+            new MetricId("m2"), ImmutableSet.of(a3, a4)
         );
 
         assertEquals(actual, expected, "The tagged data does not match");

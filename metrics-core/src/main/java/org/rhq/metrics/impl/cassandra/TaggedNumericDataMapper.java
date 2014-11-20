@@ -17,7 +17,7 @@ import org.rhq.metrics.core.NumericMetric2;
 /**
  * @author John Sanda
  */
-public class TaggedDataMapper implements Function<ResultSet, Map<MetricId, Set<NumericData>>> {
+public class TaggedNumericDataMapper implements Function<ResultSet, Map<MetricId, Set<NumericData>>> {
 
     @Override
     public Map<MetricId, Set<NumericData>> apply(ResultSet resultSet) {
@@ -53,4 +53,5 @@ public class TaggedDataMapper implements Function<ResultSet, Map<MetricId, Set<N
     private NumericData createNumericData(Row row, NumericMetric2 metric) {
         return new NumericData(metric, row.getUUID(5), row.getDouble(6));
     }
+
 }
