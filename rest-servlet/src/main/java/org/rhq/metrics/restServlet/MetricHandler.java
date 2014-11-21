@@ -50,11 +50,13 @@ import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.MetricData;
 import org.rhq.metrics.core.MetricId;
+import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.core.Tag;
 import org.rhq.metrics.core.Tenant;
+import org.rhq.metrics.core.TenantDoesNotExistException;
 
 /**
  * Interface to deal with metrics
@@ -94,6 +96,19 @@ public class MetricHandler {
     @Consumes("application/json")
     public void createTenant(@Suspended final AsyncResponse asyncResponse, TenantParams params) {
         Tenant tenant = new Tenant().setId(params.getId());
+        for (String type : params.getRetentions().keySet()) {
+            if (type.equals(MetricType.NUMERIC.getText())) {
+                tenant.setRetention(MetricType.NUMERIC, params.getRetentions().get(type));
+            } else if (type.equals(MetricType.AVAILABILITY.getText())) {
+                tenant.setRetention(MetricType.AVAILABILITY, params.getRetentions().get(type));
+            } else {
+                Map<String, String> errors = ImmutableMap.of("errorMessage", "The retentions property is invalid. [" +
+                    type + "] is not a recognized metric type");
+                asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity(errors)
+                    .type(MediaType.APPLICATION_JSON_TYPE).build());
+                return;
+            }
+        }
         ListenableFuture<Void> insertFuture = metricsService.createTenant(tenant);
         Futures.addCallback(insertFuture, new FutureCallback<Void>() {
             @Override
@@ -161,17 +176,15 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/numeric/{id}")
+    @Path("/{tenantId}/numeric/{id}")
     @Consumes("application/json")
-    public void addDataForMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
-        NumericDataParams params) {
+    public void addDataForMetric(@Suspended final AsyncResponse asyncResponse,
+        @PathParam("tenantId") final String tenantId, @PathParam("id") String id, List<NumericDataPoint> dataPoints) {
 
-        NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(id));
-
-        for (NumericDataPoint p : params.getData()) {
+        NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(id));
+        for (NumericDataPoint p : dataPoints) {
             metric.addData(p.getTimestamp(), p.getValue());
         }
-
         ListenableFuture<Void> future = metricsService.addNumericData(asList(metric));
         Futures.addCallback(future, new FutureCallback<Void>() {
             @Override
@@ -182,7 +195,14 @@ public class MetricHandler {
 
             @Override
             public void onFailure(Throwable t) {
-                asyncResponse.resume(t);
+                if (t instanceof TenantDoesNotExistException) {
+                    Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to insert data. Tenant [" +
+                        tenantId + "] does not exist.");
+                    asyncResponse.resume(Response.status(Response.Status.FORBIDDEN).entity(errors).type(
+                        MediaType.APPLICATION_JSON_TYPE).build());
+                } else {
+                    asyncResponse.resume(t);
+                }
             }
         });
     }

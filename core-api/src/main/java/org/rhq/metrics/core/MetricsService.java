@@ -16,7 +16,7 @@ public interface MetricsService {
 
     // For now we will use a default or fake tenant id until we get APIs in place for
     // creating tenants.
-    static final String DEFAULT_TENANT_ID = "rhq-metrics";
+    static final String DEFAULT_TENANT_ID = "test";
 
     /** called to start the service up if needed
      * @param params from e.g. servlet context */

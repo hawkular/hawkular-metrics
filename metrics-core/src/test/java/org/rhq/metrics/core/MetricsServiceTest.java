@@ -49,6 +49,8 @@ public class MetricsServiceTest extends MetricsTest {
         DateTime start = now().minusMinutes(30);
         DateTime end = start.plusMinutes(20);
 
+        getUninterruptibly(metricsService.createTenant(new Tenant().setId("t1")));
+
         NumericMetric2 metric = new NumericMetric2("t1", new MetricId("m1"));
         metric.addData(start.getMillis(), 1.1);
         metric.addData(start.plusMinutes(2).getMillis(), 2.2);
@@ -74,6 +76,8 @@ public class MetricsServiceTest extends MetricsTest {
     public void fetchNumericDataThatHasTags() throws Exception {
         DateTime end = now();
         DateTime start = end.minusMinutes(10);
+
+        getUninterruptibly(metricsService.createTenant(new Tenant().setId("tenant1")));
 
         NumericMetric2 metric = new NumericMetric2("tenant1", new MetricId("m1"));
         metric.addData(start.getMillis(), 100.0);
@@ -121,6 +125,8 @@ public class MetricsServiceTest extends MetricsTest {
         DateTime end = start.plusMinutes(8);
         String tenantId = "test-tenant";
 
+        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenantId)));
+
         NumericMetric2 m1 = new NumericMetric2(tenantId, new MetricId("m1"));
         m1.addData(start.plusSeconds(30).getMillis(), 11.2);
         m1.addData(start.getMillis(), 11.1);
@@ -153,6 +159,8 @@ public class MetricsServiceTest extends MetricsTest {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(8);
         String tenantId = "test-tenant";
+
+        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenantId)));
 
         AvailabilityMetric m1 = new AvailabilityMetric(tenantId, new MetricId("m1"));
         m1.addData(new Availability(m1, start.plusSeconds(20).getMillis(), "down"));
@@ -187,6 +195,8 @@ public class MetricsServiceTest extends MetricsTest {
     public void fetchAvailabilityDataThatHasTags() throws Exception {
         DateTime end = now();
         DateTime start = end.minusMinutes(10);
+
+        getUninterruptibly(metricsService.createTenant(new Tenant().setId("tenant1")));
 
         AvailabilityMetric metric = new AvailabilityMetric("tenant1", new MetricId("A1"));
         metric.addAvailability(start.getMillis(), AvailabilityType.UP);
@@ -233,6 +243,8 @@ public class MetricsServiceTest extends MetricsTest {
     public void tagNumericDataByDateRangeAndQueryByMultipleTags() throws Exception {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
+
+        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenant)));
 
         NumericData d1 = new NumericData(start.getMillis(), 101.1);
         NumericData d2 = new NumericData(start.plusMinutes(2).getMillis(), 101.2);
@@ -294,6 +306,8 @@ public class MetricsServiceTest extends MetricsTest {
     public void tagAvailabilityByDateRangeAndQueryByMultipleTags() throws Exception {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
+
+        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenant)));
 
         AvailabilityMetric m1 = new AvailabilityMetric(tenant, new MetricId("m1"));
         AvailabilityMetric m2 = new AvailabilityMetric(tenant, new MetricId("m2"));
@@ -357,6 +371,8 @@ public class MetricsServiceTest extends MetricsTest {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
+        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenant)));
+
         NumericData d1 = new NumericData(start.getMillis(), 101.1);
         NumericData d2 = new NumericData(start.plusMinutes(2).getMillis(), 101.2);
         NumericData d3 = new NumericData(start.plusMinutes(6).getMillis(), 102.2);
@@ -418,6 +434,8 @@ public class MetricsServiceTest extends MetricsTest {
     public void tagIndividualAvailabilityDataPoints() throws Exception {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
+
+        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenant)));
 
         AvailabilityMetric m1 = new AvailabilityMetric(tenant, new MetricId("m1"));
         AvailabilityMetric m2 = new AvailabilityMetric(tenant, new MetricId("m2"));

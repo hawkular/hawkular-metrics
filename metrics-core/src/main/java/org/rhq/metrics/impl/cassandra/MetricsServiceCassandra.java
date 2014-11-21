@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -35,6 +36,7 @@ import org.rhq.metrics.core.Availability;
 import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Interval;
+import org.rhq.metrics.core.TenantDoesNotExistException;
 import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricData;
 import org.rhq.metrics.core.MetricId;
@@ -81,6 +83,11 @@ public class MetricsServiceCassandra implements MetricsService {
     private ListeningExecutorService metricsTasks = MoreExecutors
         .listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
 
+    private Map<String, Tenant> tenants = new ConcurrentHashMap<>();
+
+    public MetricsServiceCassandra() {
+        tenants.put(DEFAULT_TENANT_ID, new Tenant().setId(DEFAULT_TENANT_ID));
+    }
 
     @Override
     public void startUp(Session s) {
@@ -135,7 +142,6 @@ public class MetricsServiceCassandra implements MetricsService {
 
         session = Optional.of(cluster.connect(keyspace));
         dataAccess = new DataAccess(session.get());
-
     }
 
     @Override
@@ -154,6 +160,7 @@ public class MetricsServiceCassandra implements MetricsService {
             @Override
             public Void apply(ResultSet resultSet) {
                 if (resultSet.wasApplied()) {
+                    tenants.put(tenant.getId(), tenant);
                     return null;
                 }
                 throw new RuntimeException("Failed to create tenant. A tenant having id [" + tenant.getId() +
@@ -164,6 +171,21 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public ListenableFuture<Void> addNumericData(List<NumericMetric2> metrics) {
+        List<NumericMetric2> invalidMetrics = new ArrayList<>();
+        for (NumericMetric2 metric : metrics) {
+            if (!tenants.containsKey(metric.getTenantId())) {
+                invalidMetrics.add(metric);
+            }
+        }
+
+        // This is just a first, rough cut at tenant/error handling. Ideally, I think we
+        // we to process whatever data we can and report errors on the stuff we cannot
+        // process. I think this will be much easier to do with RxJava's Observables than
+        // it is with Guava's futures.
+        if (!invalidMetrics.isEmpty()) {
+            return Futures.immediateFailedFuture(new TenantDoesNotExistException(invalidMetrics));
+        }
+
         List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
         for (NumericMetric2 metric : metrics) {
             if (metric.getData().isEmpty()) {

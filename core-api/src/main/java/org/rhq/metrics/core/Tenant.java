@@ -67,19 +67,14 @@ public class Tenant {
 
         Tenant tenant = (Tenant) o;
 
-        if (!aggregationTemplates.equals(tenant.aggregationTemplates)) return false;
         if (!id.equals(tenant.id)) return false;
-        if (!retentionSettings.equals(tenant.retentionSettings)) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        int result = id.hashCode();
-        result = 31 * result + aggregationTemplates.hashCode();
-        result = 31 * result + retentionSettings.hashCode();
-        return result;
+        return id.hashCode();
     }
 
     @Override

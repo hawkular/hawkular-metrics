@@ -9,7 +9,7 @@ public class TenantParams {
 
     private String id;
 
-    private Map<String, String> retentionSettings;
+    private Map<String, Integer> retentions;
 
     public String getId() {
         return id;
@@ -19,11 +19,11 @@ public class TenantParams {
         this.id = id;
     }
 
-    public Map<String, String> getRetentionSettings() {
-        return retentionSettings;
+    public Map<String, Integer> getRetentions() {
+        return retentions;
     }
 
-    public void setRetentionSettings(Map<String, String> retentionSettings) {
-        this.retentionSettings = retentionSettings;
+    public void setRetentions(Map<String, Integer> retentions) {
+        this.retentions = retentions;
     }
 }
