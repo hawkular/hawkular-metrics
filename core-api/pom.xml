@@ -31,6 +31,24 @@
           <version>${datastax.driver.version}</version>
       </dependency>
 
+    <dependency>
+      <groupId>com.github.stephenc.eaio-uuid</groupId>
+      <artifactId>uuid</artifactId>
+      <version>3.4.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>joda-time</groupId>
+      <artifactId>joda-time</artifactId>
+      <version>${joda.time.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.testng</groupId>
+      <artifactId>testng</artifactId>
+      <version>${testng.version}</version>
+    </dependency>
+
   </dependencies>
 
   <profiles>

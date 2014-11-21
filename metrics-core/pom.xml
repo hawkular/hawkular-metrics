@@ -28,12 +28,6 @@
     </dependency>
 
     <dependency>
-      <groupId>joda-time</groupId>
-      <artifactId>joda-time</artifactId>
-      <version>${joda.time.version}</version>
-    </dependency>
-
-    <dependency>
       <groupId>org.testng</groupId>
       <artifactId>testng</artifactId>
     </dependency>
@@ -55,6 +49,7 @@
       <artifactId>trove4j</artifactId>
       <version>${trove4j.version}</version>
     </dependency>
+
   </dependencies>
 
   <profiles>

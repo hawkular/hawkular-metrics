@@ -1,8 +1,9 @@
 package org.rhq.metrics.restServlet.influx;
 
+import static org.rhq.metrics.core.MetricsService.DEFAULT_TENANT_ID;
+
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,8 +26,10 @@ import com.google.common.util.concurrent.ListenableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricsService;
-import org.rhq.metrics.core.RawNumericMetric;
+import org.rhq.metrics.core.NumericData;
+import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.restServlet.ServiceKeeper;
 import org.rhq.metrics.restServlet.StringValue;
 
@@ -94,7 +97,8 @@ public class InfluxHandler {
 
                 final String metric = iq.getMetric();  // metric to query from backend
 
-                ListenableFuture<Boolean> idExistsFuture = metricsService.idExists(metric);
+//                ListenableFuture<Boolean> idExistsFuture = metricsService.idExists(metric);
+                ListenableFuture<Boolean> idExistsFuture = Futures.immediateFuture(Boolean.TRUE);
                 Futures.addCallback(idExistsFuture, new FutureCallback<Boolean>() {
                     @Override
                     public void onSuccess(Boolean result) {
@@ -103,18 +107,12 @@ public class InfluxHandler {
                             asyncResponse.resume(Response.status(404).entity(val).build());
                         }
 
-                        final ListenableFuture<List<RawNumericMetric>> future = metricsService.findData(metric,
-                            iq.getStart(), iq.getEnd());
-                        if (LOG.isDebugEnabled()) {
-                            LOG.debug("Searching for metrics from {} to {}", new Date(iq.getStart()), new Date(iq.getEnd()));
-                        }
+                        final ListenableFuture<List<NumericData>> future = metricsService.findData(
+                            new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(metric)), iq.getStart(), iq.getEnd());
 
-                        Futures.addCallback(future, new FutureCallback<List<RawNumericMetric>>() {
+                        Futures.addCallback(future, new FutureCallback<List<NumericData>>() {
                             @Override
-                            public void onSuccess(List<RawNumericMetric> metrics) {
-                                if (LOG.isDebugEnabled()) {
-                                    LOG.debug("Found {} metric(s): {}", metrics.size(), metrics);
-                                }
+                            public void onSuccess(List<NumericData> metrics) {
 
                                 List<InfluxObject> objects = new ArrayList<>(1);
 
@@ -126,10 +124,10 @@ public class InfluxHandler {
 
                                 metrics = applyMapping(iq,metrics, iq.getBucketLengthSec(), iq.getStart(), iq.getEnd());
 
-                                for (RawNumericMetric m : metrics) {
+                                for (NumericData m : metrics) {
                                     List<Number> data = new ArrayList<>();
                                     data.add(m.getTimestamp()/1000);  // query param "time_precision
-                                    data.add(m.getAvg());
+                                    data.add(m.getValue());
                                     obj.points.add(data);
                                 }
 
@@ -172,7 +170,7 @@ public class InfluxHandler {
      * @param endTime  End time of the query
      * @return The mapped list of values, which could be the input or a longer or shorter list
      */
-    private List<RawNumericMetric> applyMapping(InfluxQuery query, final List<RawNumericMetric> in, int bucketLengthSec,
+    private List<NumericData> applyMapping(InfluxQuery query, final List<NumericData> in, int bucketLengthSec,
                                                 long startTime, long endTime) {
 
         String mapping = query.getMapping();
@@ -182,18 +180,12 @@ public class InfluxHandler {
 
         long timeDiff = endTime - startTime; // Millis
         int numBuckets = (int) ((timeDiff /1000 ) / bucketLengthSec);
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("timeDiff = {}, numBuckets = {}", timeDiff, numBuckets);
-        }
-        Map<Integer,List<RawNumericMetric>> tmpMap = new HashMap<>(numBuckets);
+        Map<Integer,List<NumericData>> tmpMap = new HashMap<>(numBuckets);
 
         // Bucketize
-        for (RawNumericMetric rnm: in) {
+        for (NumericData rnm: in) {
             int pos = (int) ((rnm.getTimestamp()-startTime)/1000) /bucketLengthSec;
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Adding metric {} to bucket {}", rnm, pos);
-            }
-            List<RawNumericMetric> bucket = tmpMap.get(pos);
+            List<NumericData> bucket = tmpMap.get(pos);
             if (bucket==null) {
                 bucket = new ArrayList<>();
                 tmpMap.put(pos, bucket);
@@ -201,20 +193,20 @@ public class InfluxHandler {
             bucket.add(rnm);
         }
 
-        List<RawNumericMetric> out = new ArrayList<>(numBuckets);
+        List<NumericData> out = new ArrayList<>(numBuckets);
         // Apply mapping to buckets to create final value
         SortedSet<Integer> keySet = new TreeSet<>(tmpMap.keySet());
         for (Integer pos: keySet ) {
-            List<RawNumericMetric> list = tmpMap.get(pos);
+            List<NumericData> list = tmpMap.get(pos);
             double retVal = 0.0;
             if (list!=null) {
                 int size = list.size();
-                RawNumericMetric lastElementInList = list.get(size - 1);
-                RawNumericMetric firstElementInList = list.get(0);
+                NumericData lastElementInList = list.get(size - 1);
+                NumericData firstElementInList = list.get(0);
                 switch (mapping) {
                 case "mean":
-                    for (RawNumericMetric rnm : list) {
-                        retVal += rnm.getAvg();
+                    for (NumericData rnm : list) {
+                        retVal += rnm.getValue();
                     }
                     if (LOG.isDebugEnabled()) {
                         LOG.debug("Applying mean mapping, total = {}, size = {}", retVal, size);
@@ -223,23 +215,23 @@ public class InfluxHandler {
                     break;
                 case "max":
                     retVal = Double.MIN_VALUE;
-                    for (RawNumericMetric rnm : list) {
-                        if (rnm.getAvg() > retVal) {
-                            retVal = rnm.getAvg();
+                    for (NumericData rnm : list) {
+                        if (rnm.getValue() > retVal) {
+                            retVal = rnm.getValue();
                         }
                     }
                     break;
                 case "min":
                     retVal = Double.MAX_VALUE;
-                    for (RawNumericMetric rnm : list) {
-                        if (rnm.getAvg() < retVal) {
-                            retVal = rnm.getAvg();
+                    for (NumericData rnm : list) {
+                        if (rnm.getValue() < retVal) {
+                            retVal = rnm.getValue();
                         }
                     }
                     break;
                 case "sum":
-                    for (RawNumericMetric rnm : list) {
-                        retVal += rnm.getAvg();
+                    for (NumericData rnm : list) {
+                        retVal += rnm.getValue();
                     }
                     break;
                 case "count":
@@ -247,22 +239,22 @@ public class InfluxHandler {
                     break;
                 case "first":
                     if (!list.isEmpty()) {
-                        retVal = firstElementInList.getAvg();
+                        retVal = firstElementInList.getValue();
                     }
                     break;
                 case "last":
                     if (!list.isEmpty()) {
-                        retVal = lastElementInList.getAvg();
+                        retVal = lastElementInList.getValue();
                     }
                     break;
                 case "difference":
                     if (!list.isEmpty()) {
-                        retVal = (lastElementInList.getAvg()) - (firstElementInList.getAvg());
+                        retVal = (lastElementInList.getValue()) - (firstElementInList.getValue());
                     }
                     break;
                 case "derivative":
                     if (!list.isEmpty()) {
-                        double y = (lastElementInList.getAvg()) - (firstElementInList.getAvg());
+                        double y = (lastElementInList.getValue()) - (firstElementInList.getValue());
                         long t = (lastElementInList.getTimestamp() - (firstElementInList.getTimestamp())) / 1000; // sec
                         retVal = y/(double)t;
                     }
@@ -277,8 +269,8 @@ public class InfluxHandler {
                     System.out.println("Mapping of " + query + " not yet supported");
 
                 }
-                RawNumericMetric outMetric = new RawNumericMetric(firstElementInList.getId(),retVal, firstElementInList.getTimestamp());
-                out.add(outMetric);
+                NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, firstElementInList.getMetric().getId());
+                out.add(new NumericData(metric, firstElementInList.getTimestamp(), retVal));
             }
         }
 
@@ -291,11 +283,11 @@ public class InfluxHandler {
      * @param val a value between 0 and 100 to determine the <i>val</i>th quantil
      * @return quantil from data
      */
-    public double quantil (List<RawNumericMetric> in, double val) {
+    public double quantil (List<NumericData> in, double val) {
         int n = in.size();
         List<Double> bla = new ArrayList<>(n);
-        for (RawNumericMetric rnm : in) {
-            bla.add(rnm.getAvg());
+        for (NumericData rnm : in) {
+            bla.add(rnm.getValue());
         }
         Collections.sort(bla);
 

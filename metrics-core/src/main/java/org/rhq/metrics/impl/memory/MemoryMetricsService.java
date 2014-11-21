@@ -2,7 +2,6 @@ package org.rhq.metrics.impl.memory;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,16 +17,25 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
+import org.rhq.metrics.core.Availability;
+import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
+import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
-import org.rhq.metrics.core.RawNumericMetric;
+import org.rhq.metrics.core.NumericData;
+import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.core.Tenant;
 
 import gnu.trove.map.TLongDoubleMap;
 import gnu.trove.map.hash.TLongDoubleHashMap;
 
 /**
- * A memory based storage backend for rapid prototyping
+ * A memory based storage backend for rapid prototyping.
+ * <br/><br/>
+ * Note that this implementation currently supports only numeric raw data. There is no multi-tenancy support yet, nor
+ * is there any concurrency control yet.
+ *
  * @author Heiko W. Rupp
  */
 public class MemoryMetricsService implements MetricsService {
@@ -37,7 +45,6 @@ public class MemoryMetricsService implements MetricsService {
     private Map<String,TLongDoubleMap> storage = new HashMap<>();
 
     Table<String, String, Long> counters = TreeBasedTable.create();
-//    private ListMultimap<String, Counter> counters = ArrayListMultimap.create();
 
     private ListeningExecutorService metricsTasks = MoreExecutors
         .listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
@@ -57,33 +64,35 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> addData(RawNumericMetric data) {
-        addMetric(data);
-        return VOID_FUTURE;
+    public ListenableFuture<Void> createTenant(Tenant tenant) {
+        return null;
     }
 
     @Override
-    public ListenableFuture<Map<RawNumericMetric, Throwable>> addData(Set<RawNumericMetric> data) {
-
-        for (RawNumericMetric metric : data) {
-            addMetric(metric);
-
-            // TODO expire an old entry
+    public ListenableFuture<Void> addNumericData(List<NumericMetric2> metrics) {
+        for (NumericMetric2 metric : metrics) {
+            TLongDoubleMap map;
+            if (storage.containsKey(metric.getId().getName())) {
+                map = storage.get(metric.getId().getName());
+            } else {
+                map = new TLongDoubleHashMap();
+            }
+            for (NumericData d : metric.getData()) {
+                map.put(d.getTimestamp(), d.getValue());
+            }
+            storage.put(metric.getId().getName(), map);
         }
-        Map<RawNumericMetric, Throwable> errors = Collections.emptyMap();
-        return Futures.immediateFuture(errors);
+        return Futures.immediateFuture(null);
     }
 
-    private void addMetric(RawNumericMetric metric) {
-        TLongDoubleMap map;
-        String metricId = metric.getId();
-        if (storage.containsKey(metricId)) {
-            map = storage.get(metricId);
-        } else {
-            map = new TLongDoubleHashMap();
-            storage.put(metricId,map);
-        }
-        map.put(metric.getTimestamp(), metric.getAvg()); // TODO getAvg() may be wrong in future
+    @Override
+    public ListenableFuture<Void> addAvailabilityData(List<AvailabilityMetric> metrics) {
+        return null;
+    }
+
+    @Override
+    public ListenableFuture<AvailabilityMetric> findAvailabilityData(AvailabilityMetric metric, long start, long end) {
+        return null;
     }
 
     @Override
@@ -110,7 +119,7 @@ public class MemoryMetricsService implements MetricsService {
         Map<String, Long> row = counters.row(group);
         List<Counter> counters = new ArrayList<>(row.size());
         for (Map.Entry<String, Long> entry : row.entrySet()) {
-            counters.add(new Counter(group, entry.getKey(), entry.getValue()));
+            counters.add(new Counter(DEFAULT_TENANT_ID, group, entry.getKey(), entry.getValue()));
         }
         return Futures.immediateFuture(counters);
     }
@@ -122,7 +131,7 @@ public class MemoryMetricsService implements MetricsService {
         for (String name : counterNames) {
             Long value = row.get(name);
             if (value != null) {
-                counters.add(new Counter(group, name, value));
+                counters.add(new Counter(DEFAULT_TENANT_ID, group, name, value));
             }
         }
         ListenableFuture<List<Counter>> listListenableFuture = Futures.immediateFuture(counters);
@@ -130,27 +139,24 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<RawNumericMetric>> findData(String bucket, String id, long start, long end) {
-        return findData(id, start, end);
-    }
+    public ListenableFuture<List<NumericData>> findData(NumericMetric2 metric, long start, long end) {
+        List<NumericData> data = new ArrayList<>();
 
-    @Override
-    public ListenableFuture<List<RawNumericMetric>> findData(String id, long start, long end) {
-        List<RawNumericMetric> metrics = new ArrayList<>();
-
-        if (storage.containsKey(id)) {
-            TLongDoubleMap map = storage.get(id);
+        if (storage.containsKey(metric.getId().getName())) {
+            TLongDoubleMap map = storage.get(metric.getId().getName());
             for (long ts : map.keys()) {
                 if (ts>=start && ts<=end) {
-                    RawNumericMetric metric = new RawNumericMetric(id,map.get(ts),ts);
-                    metrics.add(metric);
+                    data.add(new NumericData(metric, ts, map.get(ts)));
                 }
 
             }
         }
-        ListenableFuture<List<RawNumericMetric>> listListenableFuture = Futures.immediateFuture(metrics);
+        return Futures.immediateFuture(data);
+    }
 
-        return Futures.transform(listListenableFuture,new NoOpMapper<List<RawNumericMetric>>(),metricsTasks);
+    @Override
+    public ListenableFuture<NumericMetric2> findNumericData(NumericMetric2 metric, long start, long end) {
+        return null;
     }
 
     @Override
@@ -172,6 +178,40 @@ public class MemoryMetricsService implements MetricsService {
     public ListenableFuture<Boolean> deleteMetric(String id) {
         storage.remove(id);
         return Futures.immediateFuture(true);
+    }
+
+    @Override
+    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric2 metric, Set<String> tags, long start,
+        long end) {
+        return null;
+    }
+
+    @Override
+    public ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, Set<String> tags,
+        long start, long end) {
+        return null;
+    }
+
+    @Override
+    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric2 metric, Set<String> tags, long timestamp) {
+        return null;
+    }
+
+    @Override
+    public ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, Set<String> tags,
+        long timestamp) {
+        return null;
+    }
+
+    @Override
+    public ListenableFuture<Map<MetricId, Set<NumericData>>> findNumericDataByTags(String tenantId, Set<String> tags) {
+        return null;
+    }
+
+    @Override
+    public ListenableFuture<Map<MetricId, Set<Availability>>> findAvailabilityByTags(String tenantId,
+        Set<String> tags) {
+        return null;
     }
 
     private static class NoOpMapper<T> implements Function<T,T> {
