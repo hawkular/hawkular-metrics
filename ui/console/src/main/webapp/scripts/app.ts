@@ -2,7 +2,7 @@
 
 'use strict';
 
-angular.module('chartingApp', ['ui.bootstrap', 'ngStorage', 'ui.sortable', 'rhqm.directives', 'rhqm.services', 'cgBusy', 'ngClipboard'])
+angular.module('chartingApp', ['ui.bootstrap', 'ngStorage', 'ui.sortable', 'rhqm.directives', 'rhqm.services', 'rhqmCharts','cgBusy', 'ngClipboard'])
     .constant('BASE_URL', '/rhq-metrics/metrics')
     .constant('DATE_TIME_FORMAT', 'MM/DD/YYYY h:mm a')
     .config(['$httpProvider', ($httpProvider) => {

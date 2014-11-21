@@ -16,7 +16,8 @@
     "patternfly": "1.1.1",
     "angular-ui-sortable": "0.13.0",
     "angular-busy": "4.0.4",
-    "ng-clip" : "0.2.3"
+    "ng-clip": "0.2.3",
+    "rhqm-charts": "~0.1.7"
   },
   "devDependencies": {
     "angular-scenario": "1.2.6"
