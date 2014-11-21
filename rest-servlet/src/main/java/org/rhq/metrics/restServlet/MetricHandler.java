@@ -203,26 +203,19 @@ public class MetricHandler {
 
             @Override
             public void onFailure(Throwable t) {
-                if (t instanceof TenantDoesNotExistException) {
-                    Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to insert data. Tenant [" +
-                        tenantId + "] does not exist.");
-                    asyncResponse.resume(Response.status(Response.Status.FORBIDDEN).entity(errors).type(
-                        MediaType.APPLICATION_JSON_TYPE).build());
-                } else {
-                    asyncResponse.resume(t);
-                }
+                handleTenantDoesNotExist(t, asyncResponse);
             }
         });
     }
 
     @POST
-    @Path("/availability/{id}")
+    @Path("/{tenantId}/availability/{id}")
     @Consumes("application/json")
-    public void addAvailabilityForMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
-        AvailabilityDataParams params) {
-        AvailabilityMetric metric = new AvailabilityMetric(DEFAULT_TENANT_ID, new MetricId(id), params.getAttributes());
+    public void addAvailabilityForMetric(@Suspended final AsyncResponse asyncResponse,
+        @PathParam("tenantId") final String tenantId, @PathParam("id") String id, List<AvailabilityDataPoint> data) {
+        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
 
-        for (AvailabilityDataPoint p : params.getData()) {
+        for (AvailabilityDataPoint p : data) {
             metric.addData(new Availability(metric, p.getTimestamp(), p.getValue()));
         }
 
@@ -235,15 +228,16 @@ public class MetricHandler {
 
             @Override
             public void onFailure(Throwable t) {
-                asyncResponse.resume(t);
+                handleTenantDoesNotExist(t, asyncResponse);
             }
         });
     }
 
     @POST
-    @Path("/numeric")
+    @Path("/{tenantId}/numeric")
     @Consumes("application/json")
-    public void addNumericData(@Suspended final AsyncResponse asyncResponse, List<NumericDataParams> paramsList) {
+    public void addNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
+        List<NumericDataParams> paramsList) {
         if (paramsList.isEmpty()) {
             asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
         }
@@ -251,7 +245,7 @@ public class MetricHandler {
         List<NumericMetric2> metrics = new ArrayList<>(paramsList.size());
 
         for (NumericDataParams params : paramsList) {
-            NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(params.getName()),
+            NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(params.getName()),
                 params.getAttributes());
             for (NumericDataPoint p : params.getData()) {
                 metric.addData(p.getTimestamp(), p.getValue());
@@ -268,16 +262,16 @@ public class MetricHandler {
 
             @Override
             public void onFailure(Throwable t) {
-                asyncResponse.resume(t);
+                handleTenantDoesNotExist(t, asyncResponse);
             }
         });
     }
 
     @POST
-    @Path("/availability")
+    @Path("/{tenantId}/availability")
     @Consumes("application/json")
     public void addAvailabilityData(@Suspended final AsyncResponse asyncResponse,
-        List<AvailabilityDataParams> paramsList) {
+        @PathParam("tenantId") String tenantId, List<AvailabilityDataParams> paramsList) {
         if (paramsList.isEmpty()) {
             asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
         }
@@ -285,7 +279,7 @@ public class MetricHandler {
         List<AvailabilityMetric> metrics = new ArrayList<>(paramsList.size());
 
         for (AvailabilityDataParams params : paramsList) {
-            AvailabilityMetric metric = new AvailabilityMetric(DEFAULT_TENANT_ID, new MetricId(params.getName()),
+            AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(params.getName()),
                 params.getAttributes());
             for (AvailabilityDataPoint p : params.getData()) {
                 metric.addData(new Availability(metric, p.getTimestamp(), p.getValue()));
@@ -302,17 +296,18 @@ public class MetricHandler {
 
             @Override
             public void onFailure(Throwable t) {
-                asyncResponse.resume(t);
+                handleTenantDoesNotExist(t, asyncResponse);
             }
         });
     }
 
     @GET
-    @Path("/numeric")
-    public void findNumericDataByTags(@Suspended final AsyncResponse asyncResponse, @QueryParam("tags") String tags) {
+    @Path("/{tenantId}/numeric")
+    public void findNumericDataByTags(@Suspended final AsyncResponse asyncResponse,
+        @PathParam("tenantId") String tenantId, @QueryParam("tags") String tags) {
         Set<String> tagSet = ImmutableSet.copyOf(tags.split(","));
         ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(
-            DEFAULT_TENANT_ID, tagSet);
+            tenantId, tagSet);
         Futures.addCallback(queryFuture, new FutureCallback<Map<MetricId, Set<NumericData>>>() {
             @Override
             public void onSuccess(Map<MetricId, Set<NumericData>> taggedDataMap) {
@@ -346,12 +341,12 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/availability")
+    @Path("/{tenantId}/availability")
     public void findAvailabilityDataByTags(@Suspended final AsyncResponse asyncResponse,
-        @QueryParam("tags") String tags) {
+        @PathParam("tenantId") String tenantId, @QueryParam("tags") String tags) {
         Set<String> tagSet = ImmutableSet.copyOf(tags.split(","));
         ListenableFuture<Map<MetricId, Set<Availability>>> queryFuture = metricsService.findAvailabilityByTags(
-            DEFAULT_TENANT_ID, tagSet);
+            tenantId, tagSet);
         Futures.addCallback(queryFuture, new FutureCallback<Map<MetricId, Set<Availability>>>() {
             @Override
             public void onSuccess(Map<MetricId, Set<Availability>> taggedDataMap) {
@@ -400,9 +395,10 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/numeric/{id}")
-    public void findNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("id") final String id,
-        @QueryParam("start") Long start, @QueryParam("end") Long end) {
+    @Path("/{tenantId}/numeric/{id}")
+    public void findNumericData(@Suspended final AsyncResponse asyncResponse,
+        @PathParam("tenantId") String tenantId, @PathParam("id") final String id, @QueryParam("start") Long start,
+        @QueryParam("end") Long end) {
 
         long now = System.currentTimeMillis();
         if (start == null) {
@@ -412,7 +408,7 @@ public class MetricHandler {
             end = now;
         }
 
-        NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(id));
+        NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(id));
         ListenableFuture<NumericMetric2> future = metricsService.findNumericData(metric, start, end);
         Futures.addCallback(future, new FutureCallback<NumericMetric2>() {
             @Override
@@ -444,9 +440,10 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/availability/{id}")
-    public void findAvailabilityData(@Suspended final AsyncResponse asyncResponse, @PathParam("id") final String id,
-        @QueryParam("start") Long start, @QueryParam("end") Long end) {
+    @Path("/{tenantId}/availability/{id}")
+    public void findAvailabilityData(@Suspended final AsyncResponse asyncResponse,
+        @PathParam("tenantId") String tenantId, @PathParam("id") final String id, @QueryParam("start") Long start,
+        @QueryParam("end") Long end) {
 
         long now = System.currentTimeMillis();
         if (start == null) {
@@ -456,7 +453,7 @@ public class MetricHandler {
             end = now;
         }
 
-        AvailabilityMetric metric = new AvailabilityMetric(DEFAULT_TENANT_ID, new MetricId(id));
+        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
         ListenableFuture<AvailabilityMetric> future = metricsService.findAvailabilityData(metric, start, end);
         Futures.addCallback(future, new FutureCallback<AvailabilityMetric>() {
             @Override
@@ -491,10 +488,11 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/tags/numeric")
-    public void tagNumericData(@Suspended final AsyncResponse asyncResponse, TagParams params) {
+    @Path("/{tenantId}/tags/numeric")
+    public void tagNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
+        TagParams params) {
         ListenableFuture<List<NumericData>> future;
-        NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(params.getMetric()));
+        NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(params.getMetric()));
         if (params.getTimestamp() != null) {
             future = metricsService.tagNumericData(metric, params.getTags(), params.getTimestamp());
         } else {
@@ -514,10 +512,11 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/tags/availability")
-    public void tagAvailabilityData(@Suspended final AsyncResponse asyncResponse, TagParams params) {
+    @Path("/{tenantId}/tags/availability")
+    public void tagAvailabilityData(@Suspended final AsyncResponse asyncResponse,
+        @PathParam("tenantId") String tenantId, TagParams params) {
         ListenableFuture<List<Availability>> future;
-        AvailabilityMetric metric = new AvailabilityMetric(DEFAULT_TENANT_ID, new MetricId(params.getMetric()));
+        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(params.getMetric()));
         if (params.getTimestamp() != null) {
             future = metricsService.tagAvailabilityData(metric, params.getTags(), params.getTimestamp());
         } else {
@@ -537,10 +536,11 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/tags/numeric/{tag}")
-    public void findTaggedNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tag") String tag) {
+    @Path("/{tenantId}/tags/numeric/{tag}")
+    public void findTaggedNumericData(@Suspended final AsyncResponse asyncResponse,
+        @PathParam("tenantId") String tenantId, @PathParam("tag") String tag) {
         ListenableFuture<Map<MetricId, Set<NumericData>>> future = metricsService.findNumericDataByTags(
-            DEFAULT_TENANT_ID, ImmutableSet.of(tag));
+            tenantId, ImmutableSet.of(tag));
         Futures.addCallback(future, new FutureCallback<Map<MetricId, Set<NumericData>>>() {
             @Override
             public void onSuccess(Map<MetricId, Set<NumericData>> taggedDataMap) {
@@ -584,10 +584,11 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/tags/availability/{tag}")
-    public void findTaggedAvailabilityData(@Suspended final AsyncResponse asyncResponse, @PathParam("tag") String tag) {
-        ListenableFuture<Map<MetricId, Set<Availability>>> future = metricsService.findAvailabilityByTags(
-            DEFAULT_TENANT_ID, ImmutableSet.of(tag));
+    @Path("/{tenantId}/tags/availability/{tag}")
+    public void findTaggedAvailabilityData(@Suspended final AsyncResponse asyncResponse,
+        @PathParam("tenantId") String tenantId, @PathParam("tag") String tag) {
+        ListenableFuture<Map<MetricId, Set<Availability>>> future = metricsService.findAvailabilityByTags(tenantId,
+            ImmutableSet.of(tag));
         Futures.addCallback(future, new FutureCallback<Map<MetricId, Set<Availability>>>() {
             @Override
             public void onSuccess(Map<MetricId, Set<Availability>> taggedDataMap) {
@@ -957,6 +958,18 @@ public class MetricHandler {
 
         });
 
+    }
+
+    private void handleTenantDoesNotExist(Throwable t, AsyncResponse response) {
+        if (t instanceof TenantDoesNotExistException) {
+            TenantDoesNotExistException exception = (TenantDoesNotExistException) t;
+            Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to insert data. Tenant [" +
+                exception.getTenantId() + "] does not exist.");
+            response.resume(Response.status(Response.Status.FORBIDDEN).entity(errors).type(
+                MediaType.APPLICATION_JSON_TYPE).build());
+        } else {
+            response.resume(t);
+        }
     }
 
     private BucketDataPoint createPointInSimpleBucket(String id, long startTime, long bucketsize,

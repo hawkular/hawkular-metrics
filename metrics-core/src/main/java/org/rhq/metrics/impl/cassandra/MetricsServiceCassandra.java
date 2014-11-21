@@ -171,19 +171,10 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public ListenableFuture<Void> addNumericData(List<NumericMetric2> metrics) {
-        List<NumericMetric2> invalidMetrics = new ArrayList<>();
         for (NumericMetric2 metric : metrics) {
             if (!tenants.containsKey(metric.getTenantId())) {
-                invalidMetrics.add(metric);
+                return Futures.immediateFailedFuture(new TenantDoesNotExistException(metric.getTenantId()));
             }
-        }
-
-        // This is just a first, rough cut at tenant/error handling. Ideally, I think we
-        // we to process whatever data we can and report errors on the stuff we cannot
-        // process. I think this will be much easier to do with RxJava's Observables than
-        // it is with Guava's futures.
-        if (!invalidMetrics.isEmpty()) {
-            return Futures.immediateFailedFuture(new TenantDoesNotExistException(invalidMetrics));
         }
 
         List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
@@ -201,6 +192,12 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public ListenableFuture<Void> addAvailabilityData(List<AvailabilityMetric> metrics) {
+        for (AvailabilityMetric metric : metrics) {
+            if (!tenants.containsKey(metric.getTenantId())) {
+                return Futures.immediateFailedFuture(new TenantDoesNotExistException(metric.getTenantId()));
+            }
+        }
+
         List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
         for (AvailabilityMetric metric : metrics) {
             if (metric.getData().isEmpty()) {
