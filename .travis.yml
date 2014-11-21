@@ -1,11 +1,13 @@
 language: java
 jdk:
 - oraclejdk8
-before_install:
-  - sudo rm -rf /var/lib/cassandra/*
-  - wget http://downloads.datastax.com/community/dsc-cassandra-2.1.1-bin.tar.gz && tar -xvzf dsc-cassandra-2.1.1-bin.tar.gz && sudo sh dsc-cassandra-2.1.1/bin/cassandra
 #services:
 #- cassandra
+notifications:
+  irc:
+    channels:
+      - "chat.freenode.net#rhq.next"
+    on_success: change
 env:
   global:
     secure: mDUhAf474mlads7ZEAf2mWecQxZWgdfcjiBn6+yif0hJoWKQs38HU+jm4EE8UMgGvdn7avIYvdrxKJ9MnjWpncaXJ0366ZYbxP+7pybMk/SA80yr3dCg5gSHosJ9UqMvGga1bzgDeqF9UppKt0kqxgSLLwKAFoY+x70Pp0rIwQg=

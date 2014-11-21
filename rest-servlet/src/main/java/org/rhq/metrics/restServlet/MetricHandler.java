@@ -2,6 +2,8 @@ package org.rhq.metrics.restServlet;
 
 import static java.lang.Double.NaN;
 import static java.util.Arrays.asList;
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.rhq.metrics.core.MetricsService.DEFAULT_TENANT_ID;
 
 import java.util.ArrayList;
@@ -40,8 +42,8 @@ import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 
-import gnu.trove.map.TLongObjectMap;
-import gnu.trove.map.hash.TLongObjectHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.jboss.resteasy.annotations.GZIP;
 
@@ -58,6 +60,9 @@ import org.rhq.metrics.core.Tag;
 import org.rhq.metrics.core.Tenant;
 import org.rhq.metrics.core.TenantDoesNotExistException;
 
+import gnu.trove.map.TLongObjectMap;
+import gnu.trove.map.hash.TLongObjectHashMap;
+
 /**
  * Interface to deal with metrics
  * @author Heiko W. Rupp
@@ -65,6 +70,9 @@ import org.rhq.metrics.core.TenantDoesNotExistException;
 @Api(value = "Related to metrics")
 @Path("/")
 public class MetricHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(MetricHandler.class);
+
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
     @Inject
