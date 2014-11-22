@@ -27,6 +27,7 @@ import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricData;
+import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
@@ -46,7 +47,11 @@ public class DataAccess {
 
     private PreparedStatement findTenants;
 
-    private PreparedStatement addAttributes;
+    private PreparedStatement insertMetric;
+
+    private PreparedStatement findMetric;
+
+    private PreparedStatement addMetadata;
 
     private PreparedStatement insertNumericData;
 
@@ -93,28 +98,38 @@ public class DataAccess {
 
         findTenants = session.prepare("SELECT id, retentions, aggregation_templates FROM tenants");
 
-        addAttributes = session.prepare(
+        insertMetric = session.prepare(
+            "INSERT INTO data (tenant_id, type, metric, interval, dpart, meta_data) " +
+            "VALUES (?, ?, ?, ?, ?, ?) " +
+            "IF NOT EXISTS");
+
+        findMetric = session.prepare(
+            "SELECT tenant_id, type, metric, interval, dpart, meta_data " +
+            "FROM data " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
+
+        addMetadata = session.prepare(
             "UPDATE data " +
-            "SET attributes = attributes + ? " +
+            "SET meta_data = meta_data + ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
 
         insertNumericData = session.prepare(
             "UPDATE data " +
-            "SET attributes = attributes + ?, n_value = ? " +
+            "SET meta_data = meta_data + ?, n_value = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
         findNumericDataByDateRangeExclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, attributes, n_value, aggregates, tags " +
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, n_value, aggregates, tags " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
 
         findNumericDataByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, attributes, n_value, aggregates, tags " +
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, n_value, aggregates, tags " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time <= ?");
 
         findAvailabilityByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, attributes, availability, tags " +
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, availability, tags " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time <= ?");
 
@@ -164,11 +179,11 @@ public class DataAccess {
 
         insertAvailability = session.prepare(
             "UPDATE data " +
-            "SET attributes = attributes + ?, availability = ? " +
+            "SET meta_data = meta_data + ?, availability = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
         findAvailabilities = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, attributes, availability, tags " +
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, availability, tags " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
     }
@@ -204,8 +219,19 @@ public class DataAccess {
         return session.executeAsync(findTenants.bind());
     }
 
-    public ResultSetFuture addAttributes(Metric metric) {
-        return session.executeAsync(addAttributes.bind(metric.getAttributes(), metric.getTenantId(),
+    public ResultSetFuture insertMetric(Metric metric) {
+        return session.executeAsync(insertMetric.bind(metric.getTenantId(), metric.getType().getCode(),
+            metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart(),
+            metric.getMetadata()));
+    }
+
+    public ResultSetFuture findMetric(String tenantId, MetricType type, MetricId id, long dpart) {
+        return session.executeAsync(findMetric.bind(tenantId, type.getCode(), id.getName(),
+            id.getInterval().toString(), dpart));
+    }
+
+    public ResultSetFuture addMetadata(Metric metric) {
+        return session.executeAsync(addMetadata.bind(metric.getMetadata(), metric.getTenantId(),
             metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
             metric.getDpart()));
     }
@@ -232,8 +258,8 @@ public class DataAccess {
         for (NumericData d : data) {
             // TODO Determine what if there is any performance overhead for adding an empty map
             // If there is some overhead, then we will want to use a different prepared
-            // statement when there are no attributes.
-            batchStatement.add(insertNumericData.bind(d.getMetric().getAttributes(), d.getValue(),
+            // statement when there are is meta data.
+            batchStatement.add(insertNumericData.bind(d.getMetric().getMetadata(), d.getValue(),
                 d.getMetric().getTenantId(), d.getMetric().getType().getCode(), d.getMetric().getId().getName(),
                 d.getMetric().getId().getInterval().toString(), d.getMetric().getDpart(), d.getTimeUUID()));
         }
@@ -243,7 +269,7 @@ public class DataAccess {
     public ResultSetFuture insertData(NumericMetric2 metric) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (NumericData d : metric.getData()) {
-            batchStatement.add(insertNumericData.bind(metric.getAttributes(), d.getValue(), metric.getTenantId(),
+            batchStatement.add(insertNumericData.bind(metric.getMetadata(), d.getValue(), metric.getTenantId(),
                 metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 metric.getDpart(), d.getTimeUUID()));
         }
@@ -317,7 +343,7 @@ public class DataAccess {
     }
 
     public ResultSetFuture insertAvailability(Availability a) {
-        return session.executeAsync(insertAvailability.bind(a.getMetric().getAttributes(), a.getBytes(),
+        return session.executeAsync(insertAvailability.bind(a.getMetric().getMetadata(), a.getBytes(),
             a.getMetric().getTenantId(), a.getMetric().getType().getCode(), a.getMetric().getId().getName(),
             a.getMetric().getId().getInterval().toString(), a.getMetric().getDpart(), a.getTimeUUID()));
     }
@@ -325,7 +351,7 @@ public class DataAccess {
     public ResultSetFuture insertData(AvailabilityMetric metric) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (Availability a : metric.getData()) {
-            batchStatement.add(insertAvailability.bind(metric.getAttributes(), a.getBytes(), metric.getTenantId(),
+            batchStatement.add(insertAvailability.bind(metric.getMetadata(), a.getBytes(), metric.getTenantId(),
                 metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 metric.getDpart(), a.getTimeUUID()));
         }

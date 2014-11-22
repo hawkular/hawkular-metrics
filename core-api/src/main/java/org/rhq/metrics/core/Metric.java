@@ -18,7 +18,7 @@ public abstract class Metric<T extends MetricData> {
 
     private MetricId id;
 
-    private Map<String, String> attributes = new HashMap<>();
+    private Map<String, String> Metadata = new HashMap<>();
 
     // When we implement date partitioning, dpart will have to be determined based on the
     // start and end params of queries. And it is possible the the date range spans
@@ -32,10 +32,10 @@ public abstract class Metric<T extends MetricData> {
         this.id = id;
     }
 
-    protected Metric(String tenantId, MetricId id, Map<String, String> attributes) {
+    protected Metric(String tenantId, MetricId id, Map<String, String> Metadata) {
         this.tenantId = tenantId;
         this.id = id;
-        this.attributes = attributes;
+        this.Metadata = Metadata;
     }
 
     public abstract MetricType getType();
@@ -68,12 +68,12 @@ public abstract class Metric<T extends MetricData> {
     /**
      * A set of key/value pairs that are shared by all data points for the metric. A good example is units like KB / sec.
      */
-    public Map<String, String> getAttributes() {
-        return attributes;
+    public Map<String, String> getMetadata() {
+        return Metadata;
     }
 
-    public void setAttributes(Map<String, String> attributes) {
-        this.attributes = attributes;
+    public void setMetadata(Map<String, String> metadata) {
+        this.Metadata = metadata;
     }
 
     /**
@@ -84,7 +84,7 @@ public abstract class Metric<T extends MetricData> {
      * @param value The attribute value
      */
     public void setAttribute(String name, String value) {
-        attributes.put(name, value);
+        Metadata.put(name, value);
     }
 
     public List<T> getData() {
@@ -103,7 +103,7 @@ public abstract class Metric<T extends MetricData> {
         Metric metric = (Metric) o;
 
         if (dpart != metric.dpart) return false;
-        if (attributes != null ? !attributes.equals(metric.attributes) : metric.attributes != null) return false;
+        if (Metadata != null ? !Metadata.equals(metric.Metadata) : metric.Metadata != null) return false;
         if (!id.equals(metric.id)) return false;
         if (!tenantId.equals(metric.tenantId)) return false;
 
@@ -114,7 +114,7 @@ public abstract class Metric<T extends MetricData> {
     public int hashCode() {
         int result = tenantId.hashCode();
         result = 31 * result + id.hashCode();
-        result = 31 * result + (attributes != null ? attributes.hashCode() : 0);
+        result = 31 * result + (Metadata != null ? Metadata.hashCode() : 0);
         result = 31 * result + (int) (dpart ^ (dpart >>> 32));
         return result;
     }
@@ -124,7 +124,7 @@ public abstract class Metric<T extends MetricData> {
         return Objects.toStringHelper(this)
             .add("tenantId", tenantId)
             .add("id", id)
-            .add("attributes", attributes)
+            .add("metadata", Metadata)
             .add("dpart", dpart)
             .toString();
     }

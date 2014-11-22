@@ -48,7 +48,7 @@ public class NumericDataParams extends MetricDataParams {
         return Objects.toStringHelper(this)
             .add("tenantId", tenantId)
             .add("name", name)
-            .add("attributes", attributes)
+            .add("metadata", metadata)
             .add("timestamp", timestamp)
             .add("value", value)
             .add("data", data)

@@ -37,8 +37,10 @@ import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.Metric;
+import org.rhq.metrics.core.MetricAlreadyExistsException;
 import org.rhq.metrics.core.MetricData;
 import org.rhq.metrics.core.MetricId;
+import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
 import org.rhq.metrics.core.NumericData;
@@ -165,7 +167,43 @@ public class MetricsServiceCassandra implements MetricsService {
                 }
                 throw new TenantAlreadyExistsException(tenant.getId());
             }
+        }, metricsTasks);
+    }
+
+    @Override
+    public ListenableFuture<Void> createMetric(final Metric metric) {
+        ResultSetFuture future = dataAccess.insertMetric(metric);
+        return Futures.transform(future, new Function<ResultSet, Void>() {
+            @Override
+            public Void apply(ResultSet resultSet) {
+                if (resultSet.wasApplied()) {
+                    return null;
+                }
+                throw new MetricAlreadyExistsException(metric);
+            }
         });
+    }
+
+    @Override
+    public ListenableFuture<Metric> findMetric(final String tenantId, final MetricType type, final MetricId id) {
+        if (type == MetricType.LOG_EVENT) {
+            throw new IllegalArgumentException(MetricType.LOG_EVENT + " is not yet supported");
+        }
+        ResultSetFuture future = dataAccess.findMetric(tenantId, type, id, Metric.DPART);
+        return Futures.transform(future, new Function<ResultSet, Metric>() {
+            @Override
+            public Metric apply(ResultSet resultSet) {
+                if (resultSet.isExhausted()) {
+                    return null;
+                }
+                Row row = resultSet.one();
+                if (type == MetricType.NUMERIC) {
+                    return new NumericMetric2(tenantId, id, row.getMap(5, String.class, String.class));
+                } else {
+                    return new AvailabilityMetric(tenantId, id, row.getMap(5, String.class, String.class));
+                }
+            }
+        }, metricsTasks);
     }
 
     @Override
@@ -173,8 +211,8 @@ public class MetricsServiceCassandra implements MetricsService {
         List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
         for (NumericMetric2 metric : metrics) {
             if (metric.getData().isEmpty()) {
-                // TODO report an error if attributes is null or empty
-                insertFutures.add(dataAccess.addAttributes(metric));
+                // TODO report an error if meta data is null or empty
+                insertFutures.add(dataAccess.addMetadata(metric));
             } else {
                 insertFutures.add(dataAccess.insertData(metric));
             }
@@ -188,8 +226,8 @@ public class MetricsServiceCassandra implements MetricsService {
         List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
         for (AvailabilityMetric metric : metrics) {
             if (metric.getData().isEmpty()) {
-                // TODO report an error if attributes is null or empty
-                insertFutures.add(dataAccess.addAttributes(metric));
+                // TODO report an error if meta data is null or empty
+                insertFutures.add(dataAccess.addMetadata(metric));
             } else {
                 insertFutures.add(dataAccess.insertData(metric));
             }

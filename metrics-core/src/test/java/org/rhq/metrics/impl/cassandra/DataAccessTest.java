@@ -132,14 +132,14 @@ public class DataAccessTest extends MetricsTest {
     }
 
     @Test
-    public void addAttributesToNumericRawData() throws Exception {
+    public void addMetadataToNumericRawData() throws Exception {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);
 
         NumericMetric2 metric = new NumericMetric2("tenant-1", new MetricId("metric-1"),
             ImmutableMap.of("units", "KB", "env", "test"));
 
-        ResultSetFuture insertFuture = dataAccess.addAttributes(metric);
+        ResultSetFuture insertFuture = dataAccess.addMetadata(metric);
         getUninterruptibly(insertFuture);
 
         List<NumericData> data = asList(

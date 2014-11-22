@@ -4,6 +4,7 @@ import static java.util.Arrays.asList;
 import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
+import static org.testng.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.List;
@@ -43,6 +44,34 @@ public class MetricsServiceTest extends MetricsTest {
         session.execute("TRUNCATE tags");
     }
 
+    @Test
+    public void createAndFindMetrics() throws Exception {
+        NumericMetric2 m1 = new NumericMetric2("t1", new MetricId("m1"), ImmutableMap.of("a1", "1", "a2", "2"));
+        ListenableFuture<Void> insertFuture = metricsService.createMetric(m1);
+        getUninterruptibly(insertFuture);
+
+        ListenableFuture<Metric> queryFuture = metricsService.findMetric(m1.getTenantId(), m1.getType(), m1.getId());
+        Metric actual = getUninterruptibly(queryFuture);
+        assertEquals(actual, m1, "The metric does not match the expected value");
+
+        AvailabilityMetric m2 = new AvailabilityMetric("t1", new MetricId("m2"), ImmutableMap.of("a3", "3", "a4", "4"));
+        insertFuture = metricsService.createMetric(m2);
+        getUninterruptibly(insertFuture);
+
+        queryFuture = metricsService.findMetric(m2.getTenantId(), m2.getType(), m2.getId());
+        actual = getUninterruptibly(queryFuture);
+        assertEquals(actual, m2, "The metric does not match the expected value");
+
+        insertFuture = metricsService.createMetric(m1);
+        Throwable exception = null;
+        try {
+            getUninterruptibly(insertFuture);
+        } catch (Exception e) {
+            exception = e.getCause();
+        }
+        assertTrue(exception != null && exception instanceof MetricAlreadyExistsException,
+            "Expected a " + MetricAlreadyExistsException.class.getSimpleName() + " to be thrown");
+    }
 
     @Test
     public void addAndFetchRawData() throws Exception {

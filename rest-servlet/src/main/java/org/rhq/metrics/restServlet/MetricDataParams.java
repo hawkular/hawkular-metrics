@@ -10,7 +10,7 @@ public class MetricDataParams {
 
     protected String tenantId;
     protected String name;
-    protected Map<String, String> attributes = new HashMap<>();
+    protected Map<String, String> metadata = new HashMap<>();
 
     public String getTenantId() {
         return tenantId;
@@ -28,11 +28,11 @@ public class MetricDataParams {
         this.name = name;
     }
 
-    public Map<String, String> getAttributes() {
-        return attributes;
+    public Map<String, String> getMetadata() {
+        return metadata;
     }
 
-    public void setAttributes(Map<String, String> attributes) {
-        this.attributes = attributes;
+    public void setMetadata(Map<String, String> metadata) {
+        this.metadata = metadata;
     }
 }

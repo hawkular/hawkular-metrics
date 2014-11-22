@@ -20,7 +20,9 @@ import com.google.common.util.concurrent.MoreExecutors;
 import org.rhq.metrics.core.Availability;
 import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
+import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
+import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
 import org.rhq.metrics.core.NumericData;
@@ -65,6 +67,16 @@ public class MemoryMetricsService implements MetricsService {
 
     @Override
     public ListenableFuture<Void> createTenant(Tenant tenant) {
+        return null;
+    }
+
+    @Override
+    public ListenableFuture<Void> createMetric(Metric metric) {
+        return null;
+    }
+
+    @Override
+    public ListenableFuture<Metric> findMetric(String tenantId, MetricType type, MetricId id) {
         return null;
     }
 

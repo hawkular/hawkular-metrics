@@ -22,14 +22,14 @@ import org.rhq.metrics.core.Tag;
  */
 public class NumericDataMapper implements Function<ResultSet, List<NumericData>> {
 
-    private boolean includeAttributes;
+    private boolean includeMetadata;
 
     public NumericDataMapper() {
         this(true);
     }
 
-    public NumericDataMapper(boolean includeAttributes) {
-        this.includeAttributes = includeAttributes;
+    public NumericDataMapper(boolean includeMetadata) {
+        this.includeMetadata = includeMetadata;
     }
 
     @Override

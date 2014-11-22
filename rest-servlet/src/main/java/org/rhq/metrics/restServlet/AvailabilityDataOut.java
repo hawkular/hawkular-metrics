@@ -16,7 +16,7 @@ public class AvailabilityDataOut {
 
     private String name;
 
-    private Map<String, String> attributes = new HashMap<>();
+    private Map<String, String> metadata = new HashMap<>();
 
     private List<AvailabilityDataPoint> data = new ArrayList<>();
 
@@ -36,12 +36,12 @@ public class AvailabilityDataOut {
         this.name = name;
     }
 
-    public Map<String, String> getAttributes() {
-        return attributes;
+    public Map<String, String> getMetadata() {
+        return metadata;
     }
 
-    public void setAttributes(Map<String, String> attributes) {
-        this.attributes = attributes;
+    public void setMetadata(Map<String, String> metadata) {
+        this.metadata = metadata;
     }
 
     public List<AvailabilityDataPoint> getData() {
@@ -57,7 +57,7 @@ public class AvailabilityDataOut {
         return Objects.toStringHelper(this)
             .add("tenantId", tenantId)
             .add("name", name)
-            .add("attributes", attributes)
+            .add("metadata", metadata)
             .add("data", data)
             .toString();
     }

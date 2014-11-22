@@ -12,8 +12,8 @@ public class AvailabilityMetric extends Metric<Availability> {
         super(tenantId, id);
     }
 
-    public AvailabilityMetric(String tenantId, MetricId id, Map<String, String> attributes) {
-        super(tenantId, id, attributes);
+    public AvailabilityMetric(String tenantId, MetricId id, Map<String, String> metadata) {
+        super(tenantId, id, metadata);
     }
 
     @Override

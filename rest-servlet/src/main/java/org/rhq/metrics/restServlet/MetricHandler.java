@@ -60,7 +60,6 @@ import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.core.Tag;
 import org.rhq.metrics.core.Tenant;
 import org.rhq.metrics.core.TenantAlreadyExistsException;
-import org.rhq.metrics.core.TenantDoesNotExistException;
 
 import gnu.trove.map.TLongObjectMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
@@ -257,7 +256,7 @@ public class MetricHandler {
 
         for (NumericDataParams params : paramsList) {
             NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(params.getName()),
-                params.getAttributes());
+                params.getMetadata());
             for (NumericDataPoint p : params.getData()) {
                 metric.addData(p.getTimestamp(), p.getValue());
             }
@@ -291,7 +290,7 @@ public class MetricHandler {
 
         for (AvailabilityDataParams params : paramsList) {
             AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(params.getName()),
-                params.getAttributes());
+                params.getMetadata());
             for (AvailabilityDataPoint p : params.getData()) {
                 metric.addData(new Availability(metric, p.getTimestamp(), p.getValue()));
             }
@@ -430,7 +429,7 @@ public class MetricHandler {
                     NumericDataOut output = new NumericDataOut();
                     output.setTenantId(metric.getTenantId());
                     output.setName(metric.getId().getName());
-                    output.setAttributes(metric.getAttributes());
+                    output.setMetadata(metric.getMetadata());
 
                     List<NumericDataPoint> dataPoints = new ArrayList<>(metric.getData().size());
                     for (NumericData d : metric.getData()) {
@@ -475,7 +474,7 @@ public class MetricHandler {
                     AvailabilityDataOut output = new AvailabilityDataOut();
                     output.setTenantId(metric.getTenantId());
                     output.setName(metric.getId().getName());
-                    output.setAttributes(metric.getAttributes());
+                    output.setMetadata(metric.getMetadata());
 
                     List<AvailabilityDataPoint> dataPoints = new ArrayList<>(metric.getData().size());
                     for (Availability a : metric.getData()) {
@@ -559,10 +558,10 @@ public class MetricHandler {
                     asyncResponse.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
                 } else {
                     // TODO Should we return something other than NumericDataOutput?
-                    // Currently we only query the tags table which does not include attributes.
-                    // There is an attributes property in NumericDataOutput so the resulting json
-                    // will always have a null attributes field, which might misleading. We may
-                    // want to use a different return type that does not have an attributes property.
+                    // Currently we only query the tags table which does not include meta data.
+                    // There is a metadata property in NumericDataOutput so the resulting json
+                    // will always have a null metadata field, which might misleading. We may
+                    // want to use a different return type that does not have a meta data property.
 
                     Map<String, NumericDataOut> results = new HashMap<>();
                     NumericDataOut dataOut = null;

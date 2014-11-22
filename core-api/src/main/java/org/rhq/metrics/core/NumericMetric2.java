@@ -13,8 +13,8 @@ public class NumericMetric2 extends Metric<NumericData> {
         super(tenantId, id);
     }
 
-    public NumericMetric2(String tenantId, MetricId id, Map<String, String> attributes) {
-        super(tenantId, id, attributes);
+    public NumericMetric2(String tenantId, MetricId id, Map<String, String> metadata) {
+        super(tenantId, id, metadata);
     }
 
     @Override

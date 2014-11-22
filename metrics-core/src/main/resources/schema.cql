@@ -47,7 +47,7 @@ CREATE TABLE ${keyspace}.data (
     interval text,
     dpart bigint,
     time timeuuid,
-    attributes map<text, text> static,
+    meta_data map<text, text> static,
     n_value double,
     availability blob,
     aggregates set<frozen <aggregate_data>>,
