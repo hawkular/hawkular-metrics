@@ -30,6 +30,22 @@ public interface MetricsService {
 
     void shutdown();
 
+    /**
+     * <p>
+     * This method should be call before ever inserting any data to ensure that the tenant id is unique and to establish
+     * any global configuration for data retention and for pre-computed aggregates. An exception is thrown if a tenant
+     * with the same id already exists.
+     * </p>
+     * <p>
+     * All data ia associated with a {@link org.rhq.metrics.core.Tenant tenant} via the tenant id; however, the foreign
+     * key like relationship is not enforced. Data can be inserted with a non-existent tenant id. More importantly,
+     * data could be inserted with a tenant id that already exists.
+     * </p>
+     *
+     * @param tenant The {@link org.rhq.metrics.core.Tenant tenant} to create
+     * @return
+     * @throws org.rhq.metrics.core.TenantAlreadyExistsException
+     */
     ListenableFuture<Void> createTenant(Tenant tenant);
 
     ListenableFuture<Void> addNumericData(List<NumericMetric2> metrics);

@@ -33,6 +33,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.FutureCallback;
@@ -58,6 +59,7 @@ import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.core.Tag;
 import org.rhq.metrics.core.Tenant;
+import org.rhq.metrics.core.TenantAlreadyExistsException;
 import org.rhq.metrics.core.TenantDoesNotExistException;
 
 import gnu.trove.map.TLongObjectMap;
@@ -126,8 +128,17 @@ public class MetricHandler {
 
             @Override
             public void onFailure(Throwable t) {
-                Map<String, String> errors = ImmutableMap.of("errorMsg", t.getMessage());
-                asyncResponse.resume(Response.status(Response.Status.FORBIDDEN).entity(errors).type(
+
+                if (t instanceof TenantAlreadyExistsException) {
+                    TenantAlreadyExistsException exception = (TenantAlreadyExistsException) t;
+                    Map<String, String> errors = ImmutableMap.of("errorMsg", "A tenant with id [" +
+                        exception.getTenantId() + "] already exists");
+                    asyncResponse.resume(Response.status(Response.Status.CONFLICT).entity(errors).type(
+                        MediaType.APPLICATION_JSON_TYPE).build());
+                }
+                Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to create tenant due to an " +
+                    "unexpected error: " + Throwables.getRootCause(t).getMessage());
+                asyncResponse.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).type(
                     MediaType.APPLICATION_JSON_TYPE).build());
             }
         });
@@ -203,7 +214,7 @@ public class MetricHandler {
 
             @Override
             public void onFailure(Throwable t) {
-                handleTenantDoesNotExist(t, asyncResponse);
+                handleInsertFailure(t, asyncResponse);
             }
         });
     }
@@ -228,7 +239,7 @@ public class MetricHandler {
 
             @Override
             public void onFailure(Throwable t) {
-                handleTenantDoesNotExist(t, asyncResponse);
+                handleInsertFailure(t, asyncResponse);
             }
         });
     }
@@ -262,7 +273,7 @@ public class MetricHandler {
 
             @Override
             public void onFailure(Throwable t) {
-                handleTenantDoesNotExist(t, asyncResponse);
+                handleInsertFailure(t, asyncResponse);
             }
         });
     }
@@ -296,7 +307,7 @@ public class MetricHandler {
 
             @Override
             public void onFailure(Throwable t) {
-                handleTenantDoesNotExist(t, asyncResponse);
+                handleInsertFailure(t, asyncResponse);
             }
         });
     }
@@ -960,16 +971,11 @@ public class MetricHandler {
 
     }
 
-    private void handleTenantDoesNotExist(Throwable t, AsyncResponse response) {
-        if (t instanceof TenantDoesNotExistException) {
-            TenantDoesNotExistException exception = (TenantDoesNotExistException) t;
-            Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to insert data. Tenant [" +
-                exception.getTenantId() + "] does not exist.");
-            response.resume(Response.status(Response.Status.FORBIDDEN).entity(errors).type(
-                MediaType.APPLICATION_JSON_TYPE).build());
-        } else {
-            response.resume(t);
-        }
+    private void handleInsertFailure(Throwable t, AsyncResponse response) {
+        Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to insert data: " +
+            Throwables.getRootCause(t).getMessage());
+        response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).type(
+            MediaType.APPLICATION_JSON_TYPE).build());
     }
 
     private BucketDataPoint createPointInSimpleBucket(String id, long startTime, long bucketsize,

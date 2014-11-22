@@ -36,7 +36,6 @@ import org.rhq.metrics.core.Availability;
 import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Interval;
-import org.rhq.metrics.core.TenantDoesNotExistException;
 import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricData;
 import org.rhq.metrics.core.MetricId;
@@ -47,6 +46,7 @@ import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.core.RawNumericMetric;
 import org.rhq.metrics.core.SchemaManager;
 import org.rhq.metrics.core.Tenant;
+import org.rhq.metrics.core.TenantAlreadyExistsException;
 
 /**
  * @author John Sanda
@@ -163,20 +163,13 @@ public class MetricsServiceCassandra implements MetricsService {
                     tenants.put(tenant.getId(), tenant);
                     return null;
                 }
-                throw new RuntimeException("Failed to create tenant. A tenant having id [" + tenant.getId() +
-                    "] already exists");
+                throw new TenantAlreadyExistsException(tenant.getId());
             }
         });
     }
 
     @Override
     public ListenableFuture<Void> addNumericData(List<NumericMetric2> metrics) {
-        for (NumericMetric2 metric : metrics) {
-            if (!tenants.containsKey(metric.getTenantId())) {
-                return Futures.immediateFailedFuture(new TenantDoesNotExistException(metric.getTenantId()));
-            }
-        }
-
         List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
         for (NumericMetric2 metric : metrics) {
             if (metric.getData().isEmpty()) {
@@ -192,12 +185,6 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public ListenableFuture<Void> addAvailabilityData(List<AvailabilityMetric> metrics) {
-        for (AvailabilityMetric metric : metrics) {
-            if (!tenants.containsKey(metric.getTenantId())) {
-                return Futures.immediateFailedFuture(new TenantDoesNotExistException(metric.getTenantId()));
-            }
-        }
-
         List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
         for (AvailabilityMetric metric : metrics) {
             if (metric.getData().isEmpty()) {
