@@ -1,0 +1,121 @@
+package org.rhq.metrics.rest;
+
+import static com.jayway.restassured.RestAssured.given;
+import static com.jayway.restassured.http.ContentType.JSON;
+import static java.util.Arrays.asList;
+import static org.hamcrest.Matchers.hasSize;
+import static org.joda.time.DateTime.now;
+
+import java.util.List;
+
+import com.google.common.collect.ImmutableMap;
+
+import org.joda.time.DateTime;
+import org.junit.Test;
+
+/**
+ * These are tests that exercise functionality only implemented in the Cassandra implementation.
+ *
+ * @author John Sanda
+ */
+public class CassandraBackendTest extends AbstractTestBase {
+
+    @Test
+    public void insertNumericDataForMultipleMetrics() {
+        DateTime start = now().minusMinutes(10);
+        List<Metric> requestBody = asList(
+            new Metric("m1", asList(new DataPoint(start, 1.1), new DataPoint(start.plusMinutes(1), 1.2))),
+            new Metric("m2", asList(new DataPoint(start, 2.1), new DataPoint(start.plusMinutes(1), 2.2))),
+            new Metric("m3", asList(new DataPoint(start, 3.1), new DataPoint(start.plusMinutes(1), 3.2)))
+        );
+
+        given()
+            .body(ImmutableMap.of("id", "tenant-1"))
+            .contentType(JSON)
+            .expect().statusCode(200).when().post("/tenants");
+
+        given().body(requestBody).pathParam("tenantId", "tenant-1").contentType(JSON)
+            .expect().statusCode(200)
+            .when().post("/{tenantId}/metrics/numeric/data");
+
+        given().pathParam("tenantId", "tenant-1").pathParam("id", "m2").contentType(JSON)
+            .expect().statusCode(200)
+            .when().get("/{tenantId}/metrics/numeric/{id}/data")
+            .then().assertThat().body("data", hasSize(2));
+
+    }
+
+    @Test
+    public void insertAvailabilityDataForMultipleMetrics() {
+        DateTime start = now().minusMinutes(10);
+        List<Metric> requestBody = asList(
+            new Metric("m1", asList(new DataPoint(start, "down"), new DataPoint(start.plusMinutes(1), "up"))),
+            new Metric("m2", asList(new DataPoint(start, "up"), new DataPoint(start.plusMinutes(1), "up"))),
+            new Metric("m3", asList(new DataPoint(start, "down"), new DataPoint(start.plusMinutes(1), "down")))
+        );
+
+        given()
+            .body(ImmutableMap.of("id", "tenant-2"))
+            .contentType(JSON)
+            .expect().statusCode(200).when().post("/tenants");
+
+        given()
+            .body(requestBody)
+            .pathParam("tenantId", "tenant-2")
+            .contentType(JSON)
+            .expect()
+            .statusCode(200)
+            .when().post("/{tenantId}/metrics/availability/data");
+
+    }
+
+    private static class Metric {
+        private String name;
+        private List<DataPoint> data;
+
+        public Metric(String name, List<DataPoint> data) {
+            this.name = name;
+            this.data = data;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public List<DataPoint> getData() {
+            return data;
+        }
+    }
+
+    private static class DataPoint {
+        private long timestamp;
+        private Object value;
+
+        public DataPoint(long timestamp, Object value) {
+            this.timestamp = timestamp;
+            this.value = value;
+        }
+
+        public DataPoint(DateTime timestamp, Object value) {
+            this.timestamp = timestamp.getMillis();
+            this.value = value;
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
+
+        public void setTimestamp(long timestamp) {
+            this.timestamp = timestamp;
+        }
+
+        public Object getValue() {
+            return value;
+        }
+
+        public void setValue(Object value) {
+            this.value = value;
+        }
+    }
+
+}
