@@ -51,6 +51,7 @@ import org.jboss.resteasy.annotations.GZIP;
 import org.rhq.metrics.core.Availability;
 import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
+import org.rhq.metrics.core.MetricAlreadyExistsException;
 import org.rhq.metrics.core.MetricData;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
@@ -144,6 +145,35 @@ public class MetricHandler {
     }
 
     @POST
+    @Path("/{tenantId}/metrics/numeric")
+    public void createNumericMetric(@Suspended final AsyncResponse asyncResponse,
+        @PathParam("tenantId") String tenantId, final MetricParams params) {
+        NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(params.getName()), params.getMetadata());
+        ListenableFuture<Void> future = metricsService.createMetric(metric);
+        Futures.addCallback(future, new FutureCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                if (t instanceof MetricAlreadyExistsException) {
+                    Map<String, String> errors = ImmutableMap.of("errorMsg", "A metric with name [" +
+                        params.getName() + "] already exists");
+                    asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity(errors)
+                        .type(MediaType.APPLICATION_JSON_TYPE).build());
+                } else {
+                    Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to create tenant due to an " +
+                        "unexpected error: " + Throwables.getRootCause(t).getMessage());
+                    asyncResponse.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).type(
+                        MediaType.APPLICATION_JSON_TYPE).build());
+                }
+            }
+        });
+    }
+
+    @POST
     @Path("/metrics/{id}")
     @Consumes({"application/json","application/xml"})
     @ApiOperation("Adds a single data point for the given id.")
@@ -194,7 +224,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/{tenantId}/numeric/{id}")
+    @Path("/{tenantId}/metrics/numeric/{id}/data")
     @Consumes("application/json")
     public void addDataForMetric(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") final String tenantId, @PathParam("id") String id, List<NumericDataPoint> dataPoints) {
@@ -219,7 +249,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/{tenantId}/availability/{id}")
+    @Path("/{tenantId}/metrics/availability/{id}/data")
     @Consumes("application/json")
     public void addAvailabilityForMetric(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") final String tenantId, @PathParam("id") String id, List<AvailabilityDataPoint> data) {
@@ -244,7 +274,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/{tenantId}/numeric")
+    @Path("/{tenantId}/metrics/numeric/data")
     @Consumes("application/json")
     public void addNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         List<NumericDataParams> paramsList) {
@@ -278,7 +308,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/{tenantId}/availability")
+    @Path("/{tenantId}/metrics/availability/data")
     @Consumes("application/json")
     public void addAvailabilityData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, List<AvailabilityDataParams> paramsList) {
@@ -405,7 +435,7 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/{tenantId}/numeric/{id}")
+    @Path("/{tenantId}/metrics/numeric/{id}/data")
     public void findNumericData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @PathParam("id") final String id, @QueryParam("start") Long start,
         @QueryParam("end") Long end) {

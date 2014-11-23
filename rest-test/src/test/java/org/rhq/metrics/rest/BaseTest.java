@@ -330,13 +330,21 @@ public class BaseTest extends AbstractTestBase {
             .contentType(JSON)
             .expect().statusCode(200).when().post("/tenants");
 
-        given()
-            .body(requestBody)
-            .pathParam("tenantId", "tenant-1")
-            .contentType(JSON)
-            .expect()
-            .statusCode(200)
-            .when().post("/{tenantId}/numeric");
+        given().body(requestBody).pathParam("tenantId", "tenant-1").contentType(JSON)
+        .expect().statusCode(200)
+        .when().post("/{tenantId}/metrics/numeric/data");
+
+//        JsonPath jsonPath =
+//        given()
+//            .pathParam("tenantId", "tenant-1").pathParam("id", "m2").contentType(JSON)
+//        .expect()
+//            .statusCode(200).when().get("/{tenantId}/metrics/numeric/{id}/data").body().jsonPath();
+
+        given().pathParam("tenantId", "tenant-1").pathParam("id", "m2").contentType(JSON)
+        .expect().statusCode(200)
+        .when().get("/{tenantId}/metrics/numeric/{id}/data")
+        .then().assertThat().body("data", hasSize(2));
+
     }
 
     @Test
@@ -359,7 +367,7 @@ public class BaseTest extends AbstractTestBase {
             .contentType(JSON)
             .expect()
             .statusCode(200)
-            .when().post("/{tenantId}/availability");
+            .when().post("/{tenantId}/metrics/availability/data");
 
     }
 
