@@ -51,6 +51,7 @@ import org.jboss.resteasy.annotations.GZIP;
 import org.rhq.metrics.core.Availability;
 import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
+import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricAlreadyExistsException;
 import org.rhq.metrics.core.MetricData;
 import org.rhq.metrics.core.MetricId;
@@ -193,6 +194,52 @@ public class MetricHandler {
                 response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).type(
                     MediaType.APPLICATION_JSON_TYPE).build());
             }
+        }
+    }
+
+    @GET
+    @Path("/{tenantId}/metrics/numeric/{id}/meta")
+    public void getNumericMetricMetadata(@Suspended AsyncResponse response, @PathParam("tenantId") String tenantId,
+        @PathParam("id") String id) {
+        ListenableFuture<Metric> future = metricsService.findMetric(tenantId, MetricType.NUMERIC,
+            new MetricId(id));
+        Futures.addCallback(future, new GetMetadataCallback(response));
+    }
+
+    @GET
+    @Path("/{tenantId}/metrics/availability/{id}/meta")
+    public void getAvailabilityMetricMetadata(@Suspended AsyncResponse response,
+        @PathParam("tenantId") String tenantId, @PathParam("id") String id) {
+        ListenableFuture<Metric> future = metricsService.findMetric(tenantId, MetricType.AVAILABILITY,
+            new MetricId(id));
+        Futures.addCallback(future, new GetMetadataCallback(response));
+    }
+
+    private class GetMetadataCallback implements FutureCallback<Metric> {
+
+        AsyncResponse response;
+
+        public GetMetadataCallback(AsyncResponse response) {
+            this.response = response;
+        }
+
+        @Override
+        public void onSuccess(Metric metric) {
+            if (metric == null) {
+                response.resume(Response.status(Response.Status.NO_CONTENT).type(MediaType.APPLICATION_JSON_TYPE)
+                    .build());
+            } else {
+                response.resume(Response.ok(new MetricOut(metric.getTenantId(), metric.getId().getName(),
+                    metric.getMetadata())).type(MediaType.APPLICATION_JSON_TYPE).build());
+            }
+        }
+
+        @Override
+        public void onFailure(Throwable t) {
+            Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to retrieve meta data due to " +
+                "an unexpected errpr: " + Throwables.getRootCause(t).getMessage());
+            response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors)
+                .type(MediaType.APPLICATION_JSON_TYPE).build());
         }
     }
 

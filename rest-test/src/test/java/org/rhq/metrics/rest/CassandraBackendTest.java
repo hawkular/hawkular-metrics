@@ -73,17 +73,19 @@ public class CassandraBackendTest extends AbstractTestBase {
     }
 
     @Test
-    public void createMetrics() {
+    public void createMetricsAndUpdateMetadata() {
         Map<String, ? extends Object> numericData = ImmutableMap.of(
             "name", "N1",
             "metadata", ImmutableMap.of("a1", "A", "B1", "B")
         );
 
+        // Create a numeric metric
         given()
             .body(numericData).pathParam("tenantId", "tenant-3").contentType(JSON)
             .expect().statusCode(200)
             .when().post("/{tenantId}/metrics/numeric");
 
+        // Make sure we do not allow duplicates
         given()
             .body(numericData).pathParam("tenantId", "tenant-3").contentType(JSON)
             .expect().statusCode(400)
@@ -95,16 +97,46 @@ public class CassandraBackendTest extends AbstractTestBase {
             "metadata", ImmutableMap.of("a2", "2", "b2", "2")
         );
 
+        // Create an availability metric
         given()
             .body(availabilityData).pathParam("tenantId", "tenant-3").contentType(JSON)
             .expect().statusCode(200)
             .when().post("/{tenantId}/metrics/availability");
 
+        // Make sure we do not allow duplicates
         given()
             .body(availabilityData).pathParam("tenantId", "tenant-3").contentType(JSON)
             .expect().statusCode(400)
             .when().post("/{tenantId}/metrics/availability")
             .then().assertThat().body("errorMsg", not(isEmptyOrNullString()));
+
+        // Fetch numeric meta data
+        given()
+            .pathParam("tenantId", "tenant-3").pathParam("id", "N1").contentType(JSON)
+            .expect().statusCode(200)
+            .when().get("/{tenantId}/metrics/numeric/{id}/meta")
+            .then().assertThat().body("tenantId", equalTo("tenant-3")).and().body("name", equalTo("N1")).and()
+                .body("metadata", equalTo(ImmutableMap.of("a1", "A", "B1", "B")));
+
+        // Verify the response for a non-existent metric
+        given()
+            .pathParam("tenantId", "tenant-3").pathParam("id", "N2").contentType(JSON)
+            .expect().statusCode(204)
+            .when().get("/{tenantId}/metrics/numeric/{id}/meta");
+
+        // Fetch availability metric meta data
+        given()
+            .pathParam("tenantId", "tenant-3").pathParam("id", "A1").contentType(JSON)
+            .expect().statusCode(200)
+            .when().get("/{tenantId}/metrics/availability/{id}/meta")
+            .then().assertThat().body("tenantId", equalTo("tenant-3")).and().body("name", equalTo("A1")).and()
+            .body("metadata", equalTo(ImmutableMap.of("a2", "2", "b2", "2")));
+
+        // Verify the response for a non-existent metric
+        given()
+            .pathParam("tenantId", "tenant-3").pathParam("id", "A2").contentType(JSON)
+            .expect().statusCode(204)
+            .when().get("/{tenantId}/metrics/availability/{id}/meta");
     }
 
     private Map<String, ? extends Object> data(DateTime timestamp, double value) {
