@@ -153,6 +153,7 @@
           <name>backend</name>
           <value>cass</value>
         </property>
+        <activeByDefault>true</activeByDefault>
       </activation>
       <build>
         <plugins>
