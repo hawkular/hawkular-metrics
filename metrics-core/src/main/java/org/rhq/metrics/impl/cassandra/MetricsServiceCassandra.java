@@ -207,6 +207,12 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
+    public ListenableFuture<Void> updateMetadata(Metric metric, Map<String, String> metadata, Set<String> deletions) {
+        ResultSetFuture insertFuture = dataAccess.updateMetadata(metric, metadata, deletions);
+        return Futures.transform(insertFuture, RESULT_SET_TO_VOID, metricsTasks);
+    }
+
+    @Override
     public ListenableFuture<Void> addNumericData(List<NumericMetric2> metrics) {
         List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
         for (NumericMetric2 metric : metrics) {

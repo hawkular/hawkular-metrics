@@ -76,6 +76,11 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
+    public ListenableFuture<Void> updateMetadata(Metric metric, Map<String, String> metadata, Set<String> deletions) {
+        return null;
+    }
+
+    @Override
     public ListenableFuture<Metric> findMetric(String tenantId, MetricType type, MetricId id) {
         return null;
     }

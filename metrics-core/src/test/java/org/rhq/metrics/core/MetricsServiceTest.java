@@ -74,6 +74,25 @@ public class MetricsServiceTest extends MetricsTest {
     }
 
     @Test
+    public void updateMetadata() throws Exception {
+        NumericMetric2 metric = new NumericMetric2("t1", new MetricId("m1"), ImmutableMap.of("a1", "1", "a2", "2"));
+        ListenableFuture<Void> insertFuture = metricsService.createMetric(metric);
+        getUninterruptibly(insertFuture);
+
+        Map<String, String> additions = ImmutableMap.of("a2", "two", "a3", "3");
+        Set<String> deletions = ImmutableSet.of("a1");
+        insertFuture = metricsService.updateMetadata(metric, additions, deletions);
+        getUninterruptibly(insertFuture);
+
+        ListenableFuture<Metric> queryFuture = metricsService.findMetric(metric.getTenantId(), MetricType.NUMERIC,
+            metric.getId());
+        Metric updatedMetric = getUninterruptibly(queryFuture);
+
+        assertEquals(updatedMetric.getMetadata(), ImmutableMap.of("a2", "two", "a3", "3"),
+            "The updated meta data does not match the expected values");
+    }
+
+    @Test
     public void addAndFetchRawData() throws Exception {
         DateTime start = now().minusMinutes(30);
         DateTime end = start.plusMinutes(20);

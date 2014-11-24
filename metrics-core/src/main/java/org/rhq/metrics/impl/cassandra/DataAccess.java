@@ -53,6 +53,8 @@ public class DataAccess {
 
     private PreparedStatement addMetadata;
 
+    private PreparedStatement deleteMetadata;
+
     private PreparedStatement insertNumericData;
 
     private PreparedStatement findNumericDataByDateRangeExclusive;
@@ -111,6 +113,11 @@ public class DataAccess {
         addMetadata = session.prepare(
             "UPDATE data " +
             "SET meta_data = meta_data + ? " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
+
+        deleteMetadata = session.prepare(
+            "UPDATE data " +
+            "SET meta_data = meta_data - ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
 
         insertNumericData = session.prepare(
@@ -234,6 +241,15 @@ public class DataAccess {
         return session.executeAsync(addMetadata.bind(metric.getMetadata(), metric.getTenantId(),
             metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
             metric.getDpart()));
+    }
+
+    public ResultSetFuture updateMetadata(Metric metric, Map<String, String> additions, Set<String> removals) {
+        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED)
+            .add(addMetadata.bind(additions, metric.getTenantId(), metric.getType().getCode(), metric.getId().getName(),
+                metric.getId().getInterval().toString(), metric.getDpart()))
+            .add(deleteMetadata.bind(removals, metric.getTenantId(), metric.getType().getCode(),
+                metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart()));
+        return session.executeAsync(batchStatement);
     }
 
 //    public ResultSetFuture insertNumericData(NumericData data) {

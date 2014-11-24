@@ -21,6 +21,7 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -204,6 +205,38 @@ public class MetricHandler {
         ListenableFuture<Metric> future = metricsService.findMetric(tenantId, MetricType.NUMERIC,
             new MetricId(id));
         Futures.addCallback(future, new GetMetadataCallback(response));
+    }
+
+    @PUT
+    @Path("/{tenantId}/metrics/numeric/{id}/meta")
+    public void updateNumericMetricMetadata(@Suspended final AsyncResponse response,
+        @PathParam("tenantId") String tenantId, @PathParam("id") String id, Map<String, ? extends Object> updates) {
+        Map<String, String> additions = new HashMap<>();
+        Set<String> deletions = new HashSet<>();
+
+        for (String key : updates.keySet()) {
+            if (key.equals("[delete]")) {
+                deletions.addAll((List<String>) updates.get(key));
+            } else {
+                additions.put(key, (String) updates.get(key));
+            }
+        }
+        NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(id));
+        ListenableFuture<Void> future = metricsService.updateMetadata(metric, additions, deletions);
+        Futures.addCallback(future, new FutureCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                response.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to update meta data due to an " +
+                    "unexpected error: " + Throwables.getRootCause(t).getMessage());
+                response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).type(
+                    MediaType.APPLICATION_JSON_TYPE).build());
+            }
+        });
     }
 
     @GET
