@@ -140,7 +140,7 @@
             <configuration>
               <excludes>
                 <exclude>**/CassandraBackendTest.java</exclude>
-              </excludes>              
+              </excludes>
             </configuration>
           </plugin>
         </plugins>

@@ -3,10 +3,12 @@ package org.rhq.metrics.rest;
 import static com.jayway.restassured.RestAssured.given;
 import static com.jayway.restassured.http.ContentType.JSON;
 import static java.util.Arrays.asList;
-import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.equalTo;
 import static org.joda.time.DateTime.now;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -23,26 +25,26 @@ public class CassandraBackendTest extends AbstractTestBase {
     @Test
     public void insertNumericDataForMultipleMetrics() {
         DateTime start = now().minusMinutes(10);
-        List<Metric> requestBody = asList(
-            new Metric("m1", asList(new DataPoint(start, 1.1), new DataPoint(start.plusMinutes(1), 1.2))),
-            new Metric("m2", asList(new DataPoint(start, 2.1), new DataPoint(start.plusMinutes(1), 2.2))),
-            new Metric("m3", asList(new DataPoint(start, 3.1), new DataPoint(start.plusMinutes(1), 3.2)))
-        );
 
         given()
             .body(ImmutableMap.of("id", "tenant-1"))
             .contentType(JSON)
             .expect().statusCode(200).when().post("/tenants");
 
+        List<Metric> requestBody = asList(
+            new Metric("m1", asList(new DataPoint(start, 1.1), new DataPoint(start.plusMinutes(1), 1.2))),
+            new Metric("m2", asList(new DataPoint(start, 2.1), new DataPoint(start.plusMinutes(1), 2.2))),
+            new Metric("m3", asList(new DataPoint(start, 3.1), new DataPoint(start.plusMinutes(1), 3.2)))
+        );
+
         given().body(requestBody).pathParam("tenantId", "tenant-1").contentType(JSON)
-            .expect().statusCode(200)
-            .when().post("/{tenantId}/metrics/numeric/data");
+        .expect().statusCode(200)
+        .when().post("/{tenantId}/metrics/numeric/data");
 
         given().pathParam("tenantId", "tenant-1").pathParam("id", "m2").contentType(JSON)
-            .expect().statusCode(200)
-            .when().get("/{tenantId}/metrics/numeric/{id}/data")
-            .then().assertThat().body("data", hasSize(2));
-
+        .expect().statusCode(200)
+        .when().get("/{tenantId}/metrics/numeric/{id}/data")
+        .then().assertThat().body("data", equalTo(asList(data(start.plusMinutes(1), 2.2), data(start, 2.1))));
     }
 
     @Test
@@ -54,19 +56,40 @@ public class CassandraBackendTest extends AbstractTestBase {
             new Metric("m3", asList(new DataPoint(start, "down"), new DataPoint(start.plusMinutes(1), "down")))
         );
 
-        given()
-            .body(ImmutableMap.of("id", "tenant-2"))
-            .contentType(JSON)
-            .expect().statusCode(200).when().post("/tenants");
+        given().body(ImmutableMap.of("id", "tenant-2")).contentType(JSON)
+        .expect().statusCode(200)
+        .when().post("/tenants");
 
-        given()
-            .body(requestBody)
-            .pathParam("tenantId", "tenant-2")
-            .contentType(JSON)
-            .expect()
-            .statusCode(200)
-            .when().post("/{tenantId}/metrics/availability/data");
+        given().body(requestBody).pathParam("tenantId", "tenant-2").contentType(JSON)
+        .expect().statusCode(200)
+        .when().post("/{tenantId}/metrics/availability/data");
 
+        given().pathParam("tenantId", "tenant-2").pathParam("id", "m1").contentType(JSON)
+        .expect().statusCode(200)
+        .when().get("/{tenantId}/metrics/availability/{id}/data")
+        .then().assertThat().body("data", equalTo(asList(data(start.plusMinutes(1), "up"), data(start, "down"))));
+    }
+
+    private Map<String, ? extends Object> data(DateTime timestamp, double value) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("timestamp", timestamp.getMillis());
+        map.put("value", new Float(value));
+        // Data points include a tags property even when they have none. We need to
+        // configure Jackson to suppress null fields.
+        map.put("tags", null);
+
+        return map;
+    }
+
+    private Map<String, ? extends Object> data(DateTime timestamp, String value) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("timestamp", timestamp.getMillis());
+        map.put("value", value);
+        // Data points include a tags property even when they have none. We need to
+        // configure Jackson to suppress null fields.
+        map.put("tags", null);
+
+        return map;
     }
 
     private static class Metric {
@@ -90,6 +113,9 @@ public class CassandraBackendTest extends AbstractTestBase {
     private static class DataPoint {
         private long timestamp;
         private Object value;
+
+        public DataPoint() {
+        }
 
         public DataPoint(long timestamp, Object value) {
             this.timestamp = timestamp;

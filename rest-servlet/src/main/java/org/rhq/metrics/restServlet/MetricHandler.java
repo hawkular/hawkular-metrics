@@ -480,7 +480,7 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/{tenantId}/availability/{id}")
+    @Path("/{tenantId}/metrics/availability/{id}/data")
     public void findAvailabilityData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @PathParam("id") final String id, @QueryParam("start") Long start,
         @QueryParam("end") Long end) {
