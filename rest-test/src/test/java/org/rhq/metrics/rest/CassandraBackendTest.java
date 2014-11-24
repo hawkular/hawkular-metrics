@@ -4,6 +4,8 @@ import static com.jayway.restassured.RestAssured.given;
 import static com.jayway.restassured.http.ContentType.JSON;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.isEmptyOrNullString;
+import static org.hamcrest.Matchers.not;
 import static org.joda.time.DateTime.now;
 
 import java.util.HashMap;
@@ -68,6 +70,41 @@ public class CassandraBackendTest extends AbstractTestBase {
         .expect().statusCode(200)
         .when().get("/{tenantId}/metrics/availability/{id}/data")
         .then().assertThat().body("data", equalTo(asList(data(start.plusMinutes(1), "up"), data(start, "down"))));
+    }
+
+    @Test
+    public void createMetrics() {
+        Map<String, ? extends Object> numericData = ImmutableMap.of(
+            "name", "N1",
+            "metadata", ImmutableMap.of("a1", "A", "B1", "B")
+        );
+
+        given()
+            .body(numericData).pathParam("tenantId", "tenant-3").contentType(JSON)
+            .expect().statusCode(200)
+            .when().post("/{tenantId}/metrics/numeric");
+
+        given()
+            .body(numericData).pathParam("tenantId", "tenant-3").contentType(JSON)
+            .expect().statusCode(400)
+            .when().post("/{tenantId}/metrics/numeric")
+            .then().assertThat().body("errorMsg", not(isEmptyOrNullString()));
+
+        Map<String, ? extends Object> availabilityData = ImmutableMap.of(
+            "name", "A1",
+            "metadata", ImmutableMap.of("a2", "2", "b2", "2")
+        );
+
+        given()
+            .body(availabilityData).pathParam("tenantId", "tenant-3").contentType(JSON)
+            .expect().statusCode(200)
+            .when().post("/{tenantId}/metrics/availability");
+
+        given()
+            .body(availabilityData).pathParam("tenantId", "tenant-3").contentType(JSON)
+            .expect().statusCode(400)
+            .when().post("/{tenantId}/metrics/availability")
+            .then().assertThat().body("errorMsg", not(isEmptyOrNullString()));
     }
 
     private Map<String, ? extends Object> data(DateTime timestamp, double value) {

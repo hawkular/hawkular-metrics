@@ -146,31 +146,54 @@ public class MetricHandler {
 
     @POST
     @Path("/{tenantId}/metrics/numeric")
-    public void createNumericMetric(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId, final MetricParams params) {
+    @Consumes("application/json")
+    public void createNumericMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
+        MetricParams params) {
         NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(params.getName()), params.getMetadata());
         ListenableFuture<Void> future = metricsService.createMetric(metric);
-        Futures.addCallback(future, new FutureCallback<Void>() {
-            @Override
-            public void onSuccess(Void result) {
-                asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
-            }
+        Futures.addCallback(future, new MetricCreatedCallback(asyncResponse, params));
+    }
 
-            @Override
-            public void onFailure(Throwable t) {
-                if (t instanceof MetricAlreadyExistsException) {
-                    Map<String, String> errors = ImmutableMap.of("errorMsg", "A metric with name [" +
-                        params.getName() + "] already exists");
-                    asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity(errors)
-                        .type(MediaType.APPLICATION_JSON_TYPE).build());
-                } else {
-                    Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to create tenant due to an " +
-                        "unexpected error: " + Throwables.getRootCause(t).getMessage());
-                    asyncResponse.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).type(
-                        MediaType.APPLICATION_JSON_TYPE).build());
-                }
+    @POST
+    @Path("/{tenantId}/metrics/availability")
+    @Consumes("application/json")
+    public void createAvailabilityMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
+        MetricParams params) {
+        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(params.getName()),
+            params.getMetadata());
+        ListenableFuture<Void> future = metricsService.createMetric(metric);
+        Futures.addCallback(future, new MetricCreatedCallback(asyncResponse, params));
+    }
+
+    private class MetricCreatedCallback implements FutureCallback<Void> {
+
+        AsyncResponse response;
+        MetricParams params;
+
+        public MetricCreatedCallback(AsyncResponse response, MetricParams params) {
+            this.response = response;
+            this.params = params;
+        }
+
+        @Override
+        public void onSuccess(Void result) {
+            response.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
+        }
+
+        @Override
+        public void onFailure(Throwable t) {
+            if (t instanceof MetricAlreadyExistsException) {
+                Map<String, String> errors = ImmutableMap.of("errorMsg", "A metric with name [" + params.getName() +
+                    "] already exists");
+                response.resume(Response.status(Response.Status.BAD_REQUEST).entity(errors)
+                    .type(MediaType.APPLICATION_JSON_TYPE).build());
+            } else {
+                Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to create metric due to an " +
+                    "unexpected error: " + Throwables.getRootCause(t).getMessage());
+                response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).type(
+                    MediaType.APPLICATION_JSON_TYPE).build());
             }
-        });
+        }
     }
 
     @POST
