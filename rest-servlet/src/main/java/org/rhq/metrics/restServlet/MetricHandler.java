@@ -248,6 +248,38 @@ public class MetricHandler {
         Futures.addCallback(future, new GetMetadataCallback(response));
     }
 
+    @PUT
+    @Path("/{tenantId}/metrics/availability/{id}/meta")
+    public void updateAvailabilityMetricMetadata(@Suspended final AsyncResponse response,
+        @PathParam("tenantId") String tenantId, @PathParam("id") String id, Map<String, ? extends Object> updates) {
+        Map<String, String> additions = new HashMap<>();
+        Set<String> deletions = new HashSet<>();
+
+        for (String key : updates.keySet()) {
+            if (key.equals("[delete]")) {
+                deletions.addAll((List<String>) updates.get(key));
+            } else {
+                additions.put(key, (String) updates.get(key));
+            }
+        }
+        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
+        ListenableFuture<Void> future = metricsService.updateMetadata(metric, additions, deletions);
+        Futures.addCallback(future, new FutureCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                response.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to update meta data due to an " +
+                    "unexpected error: " + Throwables.getRootCause(t).getMessage());
+                response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).type(
+                    MediaType.APPLICATION_JSON_TYPE).build());
+            }
+        });
+    }
+
     private class GetMetadataCallback implements FutureCallback<Metric> {
 
         AsyncResponse response;
@@ -270,7 +302,7 @@ public class MetricHandler {
         @Override
         public void onFailure(Throwable t) {
             Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to retrieve meta data due to " +
-                "an unexpected errpr: " + Throwables.getRootCause(t).getMessage());
+                "an unexpected error: " + Throwables.getRootCause(t).getMessage());
             response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors)
                 .type(MediaType.APPLICATION_JSON_TYPE).build());
         }

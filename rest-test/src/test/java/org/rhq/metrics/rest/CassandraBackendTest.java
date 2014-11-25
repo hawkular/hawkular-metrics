@@ -152,6 +152,21 @@ public class CassandraBackendTest extends AbstractTestBase {
             .when().get("/{tenantId}/metrics/numeric/{id}/meta")
             .then().assertThat().body("tenantId", equalTo("tenant-3")).and().body("name", equalTo("N1")).and()
             .body("metadata", equalTo(ImmutableMap.of("a1", "one", "a2", "2")));
+
+        // Update the availability metric data
+        updates = ImmutableMap.of("a2", "two", "a3", "THREE", "[delete]", asList("b2"));
+        given()
+            .body(updates).pathParam("tenantId", "tenant-3").pathParam("id", "A1").contentType(JSON)
+            .expect().statusCode(200)
+            .when().put("/{tenantId}/metrics/availability/{id}/meta");
+
+        // Fetch the updated meta data
+        given()
+            .pathParam("tenantId", "tenant-3").pathParam("id", "A1").contentType(JSON)
+            .expect().statusCode(200)
+            .when().get("/{tenantId}/metrics/availability/{id}/meta")
+            .then().assertThat().body("tenantId", equalTo("tenant-3")).and().body("name", equalTo("A1")).and()
+            .body("metadata", equalTo(ImmutableMap.of("a2", "two", "a3", "THREE")));
     }
 
     private Map<String, ? extends Object> data(DateTime timestamp, double value) {
