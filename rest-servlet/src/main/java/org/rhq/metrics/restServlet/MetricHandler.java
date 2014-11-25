@@ -287,6 +287,7 @@ public class MetricHandler {
     @Consumes({"application/json","application/xml"})
     @ApiOperation("Adds a single data point for the given id.")
     public void addMetric(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id, IdDataPoint dataPoint) {
+        dataPoint.setId(id);
         addMetrics(asyncResponse, asList(dataPoint));
     }
 
