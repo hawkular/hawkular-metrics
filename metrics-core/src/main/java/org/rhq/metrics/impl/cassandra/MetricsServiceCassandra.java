@@ -91,6 +91,10 @@ public class MetricsServiceCassandra implements MetricsService {
         tenants.put(DEFAULT_TENANT_ID, new Tenant().setId(DEFAULT_TENANT_ID));
     }
 
+    DataAccess getDataAccess() {
+        return dataAccess;
+    }
+
     @Override
     public void startUp(Session s) {
         // the session is managed externally
@@ -173,15 +177,19 @@ public class MetricsServiceCassandra implements MetricsService {
     @Override
     public ListenableFuture<Void> createMetric(final Metric metric) {
         ResultSetFuture future = dataAccess.insertMetric(metric);
-        return Futures.transform(future, new Function<ResultSet, Void>() {
+        return Futures.transform(future, new AsyncFunction<ResultSet, Void>() {
             @Override
-            public Void apply(ResultSet resultSet) {
-                if (resultSet.wasApplied()) {
-                    return null;
+            public ListenableFuture<Void> apply(ResultSet resultSet) {
+                if (!resultSet.wasApplied()) {
+                    throw new MetricAlreadyExistsException(metric);
                 }
-                throw new MetricAlreadyExistsException(metric);
+                if (metric.getMetadata().isEmpty()) {
+                    return Futures.immediateFuture(null);
+                }
+                ResultSetFuture metadataFuture = dataAccess.addMetadata(metric);
+                return Futures.transform(metadataFuture, RESULT_SET_TO_VOID);
             }
-        });
+        }, metricsTasks);
     }
 
     @Override
@@ -217,12 +225,12 @@ public class MetricsServiceCassandra implements MetricsService {
         List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
         for (NumericMetric2 metric : metrics) {
             if (metric.getData().isEmpty()) {
-                // TODO report an error if meta data is null or empty
-                insertFutures.add(dataAccess.addMetadata(metric));
+                logger.warn("There is no data to insert for {}", metric);
             } else {
                 insertFutures.add(dataAccess.insertData(metric));
             }
         }
+        insertFutures.add(dataAccess.updateMetricsIndex(metrics));
         ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
         return Futures.transform(insertsFuture, RESULT_SETS_TO_VOID, metricsTasks);
     }
@@ -232,12 +240,12 @@ public class MetricsServiceCassandra implements MetricsService {
         List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
         for (AvailabilityMetric metric : metrics) {
             if (metric.getData().isEmpty()) {
-                // TODO report an error if meta data is null or empty
-                insertFutures.add(dataAccess.addMetadata(metric));
+                logger.warn("There is no data to insert for {}", metric);
             } else {
                 insertFutures.add(dataAccess.insertData(metric));
             }
         }
+        insertFutures.add(dataAccess.updateMetricsIndex(metrics));
         ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
         return Futures.transform(insertsFuture, RESULT_SETS_TO_VOID, metricsTasks);
     }

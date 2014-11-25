@@ -87,6 +87,14 @@ public class DataAccess {
 
     private PreparedStatement findAvailabilities;
 
+    private PreparedStatement updateMetricsIndex;
+
+    private PreparedStatement addMetadataToMetricsIndex;
+
+    private PreparedStatement deleteMetadataFromMetricsIndex;
+
+    private PreparedStatement readMetricsIndex;
+
     public DataAccess(Session session) {
         this.session = session;
         initPreparedStatements();
@@ -99,11 +107,6 @@ public class DataAccess {
             "IF NOT EXISTS");
 
         findTenants = session.prepare("SELECT id, retentions, aggregation_templates FROM tenants");
-
-        insertMetric = session.prepare(
-            "INSERT INTO data (tenant_id, type, metric, interval, dpart, meta_data) " +
-            "VALUES (?, ?, ?, ?, ?, ?) " +
-            "IF NOT EXISTS");
 
         findMetric = session.prepare(
             "SELECT tenant_id, type, metric, interval, dpart, meta_data " +
@@ -119,6 +122,29 @@ public class DataAccess {
             "UPDATE data " +
             "SET meta_data = meta_data - ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
+
+        insertMetric = session.prepare(
+            "INSERT INTO metrics_idx (tenant_id, type, interval, metric, meta_data) " +
+            "VALUES (?, ?, ?, ?, ?) " +
+            "IF NOT EXISTS");
+
+        updateMetricsIndex = session.prepare(
+            "INSERT INTO metrics_idx (tenant_id, type, interval, metric) VALUES (?, ?, ?, ?)");
+
+        addMetadataToMetricsIndex = session.prepare(
+            "UPDATE metrics_idx " +
+            "SET meta_data = meta_data + ? " +
+            "WHERE tenant_id = ? AND type = ? AND interval = ? AND metric = ?");
+
+        deleteMetadataFromMetricsIndex = session.prepare(
+            "UPDATE metrics_idx " +
+            "SET meta_data = meta_data - ?" +
+            "WHERE tenant_id = ? AND type = ? AND interval = ? AND metric = ?");
+
+        readMetricsIndex = session.prepare(
+            "SELECT metric, interval, meta_data " +
+            "FROM metrics_idx " +
+            "WHERE tenant_id = ? AND type = ?");
 
         insertNumericData = session.prepare(
             "UPDATE data " +
@@ -228,8 +254,7 @@ public class DataAccess {
 
     public ResultSetFuture insertMetric(Metric metric) {
         return session.executeAsync(insertMetric.bind(metric.getTenantId(), metric.getType().getCode(),
-            metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart(),
-            metric.getMetadata()));
+            metric.getId().getInterval().toString(), metric.getId().getName(), metric.getMetadata()));
     }
 
     public ResultSetFuture findMetric(String tenantId, MetricType type, MetricId id, long dpart) {
@@ -250,6 +275,24 @@ public class DataAccess {
             .add(deleteMetadata.bind(removals, metric.getTenantId(), metric.getType().getCode(),
                 metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart()));
         return session.executeAsync(batchStatement);
+    }
+
+    public <T extends Metric> ResultSetFuture updateMetricsIndex(List<T> metrics) {
+        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
+        for (T metric : metrics) {
+            batchStatement.add(updateMetricsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
+                metric.getId().getInterval().toString(), metric.getId().getName()));
+        }
+        return session.executeAsync(batchStatement);
+    }
+
+    public ResultSetFuture addMetadataToMetricsIndex(Metric metric) {
+        return session.executeAsync(addMetadataToMetricsIndex.bind(metric.getMetadata(), metric.getTenantId(),
+            metric.getType().getCode(), metric.getId().getInterval().toString(), metric.getId().getName()));
+    }
+
+    public ResultSetFuture findMetricsInMetricsIndex(String tenantId, MetricType type) {
+        return session.executeAsync(readMetricsIndex.bind(tenantId, type.getCode()));
     }
 
 //    public ResultSetFuture insertNumericData(NumericData data) {

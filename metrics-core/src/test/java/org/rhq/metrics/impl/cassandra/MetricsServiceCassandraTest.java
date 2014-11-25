@@ -1,4 +1,4 @@
-package org.rhq.metrics.core;
+package org.rhq.metrics.impl.cassandra;
 
 import static java.util.Arrays.asList;
 import static org.joda.time.DateTime.now;
@@ -11,8 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.datastax.driver.core.ResultSetFuture;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import org.joda.time.DateTime;
@@ -20,13 +22,23 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import org.rhq.metrics.impl.cassandra.MetricsServiceCassandra;
+import org.rhq.metrics.core.Availability;
+import org.rhq.metrics.core.AvailabilityMetric;
+import org.rhq.metrics.core.AvailabilityType;
+import org.rhq.metrics.core.Metric;
+import org.rhq.metrics.core.MetricAlreadyExistsException;
+import org.rhq.metrics.core.MetricId;
+import org.rhq.metrics.core.MetricType;
+import org.rhq.metrics.core.NumericData;
+import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.core.Tag;
+import org.rhq.metrics.core.Tenant;
 import org.rhq.metrics.test.MetricsTest;
 
 /**
  * @author John Sanda
  */
-public class MetricsServiceTest extends MetricsTest {
+public class MetricsServiceCassandraTest extends MetricsTest {
 
     private MetricsServiceCassandra metricsService;
 
@@ -42,6 +54,7 @@ public class MetricsServiceTest extends MetricsTest {
         session.execute("TRUNCATE tenants");
         session.execute("TRUNCATE data");
         session.execute("TRUNCATE tags");
+        session.executeAsync("TRUNCATE metrics_idx");
     }
 
     @Test
@@ -71,6 +84,9 @@ public class MetricsServiceTest extends MetricsTest {
         }
         assertTrue(exception != null && exception instanceof MetricAlreadyExistsException,
             "Expected a " + MetricAlreadyExistsException.class.getSimpleName() + " to be thrown");
+
+        assertMetricIndexMatches("t1", MetricType.NUMERIC, asList(m1));
+        assertMetricIndexMatches("t1", MetricType.AVAILABILITY, asList(m2));
     }
 
     @Test
@@ -118,6 +134,8 @@ public class MetricsServiceTest extends MetricsTest {
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
+
+        assertMetricIndexMatches("t1", MetricType.NUMERIC, asList(metric));
     }
 
     @Test
@@ -179,11 +197,11 @@ public class MetricsServiceTest extends MetricsTest {
         m1.addData(start.plusSeconds(30).getMillis(), 11.2);
         m1.addData(start.getMillis(), 11.1);
 
-        NumericMetric2 m2 = new NumericMetric2(tenantId, new MetricId("m2"), ImmutableMap.of("a1", "1", "a2", "2"));
+        NumericMetric2 m2 = new NumericMetric2(tenantId, new MetricId("m2"));
         m2.addData(start.plusSeconds(30).getMillis(), 12.2);
         m2.addData(start.getMillis(), 12.1);
 
-        NumericMetric2 m3 = new NumericMetric2(tenantId, new MetricId("m3"), ImmutableMap.of("a3", "3", "a4", "4"));
+        NumericMetric2 m3 = new NumericMetric2(tenantId, new MetricId("m3"));
 
         ListenableFuture<Void> insertFuture = metricsService.addNumericData(asList(m1, m2, m3));
         getUninterruptibly(insertFuture);
@@ -200,6 +218,8 @@ public class MetricsServiceTest extends MetricsTest {
         queryFuture = metricsService.findNumericData(m3, start.getMillis(), end.getMillis());
         actual = getUninterruptibly(queryFuture);
         assertNull(actual, "Did not expect to get back results since there is no data for " + m3);
+
+        assertMetricIndexMatches(tenantId, MetricType.NUMERIC, asList(m1, m2, m3));
     }
 
     @Test
@@ -214,13 +234,11 @@ public class MetricsServiceTest extends MetricsTest {
         m1.addData(new Availability(m1, start.plusSeconds(20).getMillis(), "down"));
         m1.addData(new Availability(m1, start.plusSeconds(10).getMillis(), "up"));
 
-        AvailabilityMetric m2 = new AvailabilityMetric(tenantId, new MetricId("m2"),
-            ImmutableMap.of("a1", "1", "a2", "2"));
+        AvailabilityMetric m2 = new AvailabilityMetric(tenantId, new MetricId("m2"));
         m2.addData(new Availability(m2, start.plusSeconds(30).getMillis(), "up"));
         m2.addData(new Availability(m2, start.plusSeconds(15).getMillis(), "down"));
 
-        AvailabilityMetric m3 = new AvailabilityMetric(tenantId, new MetricId("m3"),
-            ImmutableMap.of("a3", "3", "a4", "4"));
+        AvailabilityMetric m3 = new AvailabilityMetric(tenantId, new MetricId("m3"));
 
         ListenableFuture<Void> insertFuture = metricsService.addAvailabilityData(asList(m1, m2, m3));
         getUninterruptibly(insertFuture);
@@ -237,6 +255,8 @@ public class MetricsServiceTest extends MetricsTest {
         queryFuture = metricsService.findAvailabilityData(m3, start.getMillis(), end.getMillis());
         actual = getUninterruptibly(queryFuture);
         assertNull(actual, "Did not expect to get back results since there is no data for " + m3);
+
+        assertMetricIndexMatches(tenantId, MetricType.AVAILABILITY, asList(m1, m2, m3));
     }
 
     @Test
@@ -545,6 +565,16 @@ public class MetricsServiceTest extends MetricsTest {
     private void assertMetricEquals(Metric actual, Metric expected) {
         assertEquals(actual, expected, "The metric doe not match the expected value");
         assertEquals(actual.getData(), expected.getData(), "The data does not match the expected values");
+    }
+
+    private void assertMetricIndexMatches(String tenantId, MetricType type, List<? extends Metric> expected)
+        throws Exception {
+        ResultSetFuture indexFuture = metricsService.getDataAccess().findMetricsInMetricsIndex(tenantId, type);
+        ListenableFuture<List<Metric>> metricsFuture = Futures.transform(indexFuture, new MetricsIndexMapper(tenantId,
+            type));
+        List<Metric> actualIndex = getUninterruptibly(metricsFuture);
+
+        assertEquals(actualIndex, expected, "The metrics index results do not match");
     }
 
 }

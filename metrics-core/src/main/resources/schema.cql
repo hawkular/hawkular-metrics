@@ -81,3 +81,14 @@ CREATE TABLE ${keyspace}.tags (
     tag_desc text,
     PRIMARY KEY ((tenant_id, tag, type), metric, interval, time)
 );
+
+-- #
+
+CREATE TABLE ${keyspace}.metrics_idx (
+    tenant_id text,
+    type int,
+    metric text,
+    interval text,
+    meta_data map<text, text>,
+    PRIMARY KEY ((tenant_id, type), interval, metric)
+) WITH compaction = { 'class': 'LeveledCompactionStrategy' };
