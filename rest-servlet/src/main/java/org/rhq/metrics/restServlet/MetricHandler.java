@@ -223,20 +223,7 @@ public class MetricHandler {
         }
         NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(id));
         ListenableFuture<Void> future = metricsService.updateMetadata(metric, additions, deletions);
-        Futures.addCallback(future, new FutureCallback<Void>() {
-            @Override
-            public void onSuccess(Void result) {
-                response.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to update meta data due to an " +
-                    "unexpected error: " + Throwables.getRootCause(t).getMessage());
-                response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).type(
-                    MediaType.APPLICATION_JSON_TYPE).build());
-            }
-        });
+        Futures.addCallback(future, new DataInsertedCallback(response, "Failed to update meta data"));
     }
 
     @GET
@@ -264,20 +251,7 @@ public class MetricHandler {
         }
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
         ListenableFuture<Void> future = metricsService.updateMetadata(metric, additions, deletions);
-        Futures.addCallback(future, new FutureCallback<Void>() {
-            @Override
-            public void onSuccess(Void result) {
-                response.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to update meta data due to an " +
-                    "unexpected error: " + Throwables.getRootCause(t).getMessage());
-                response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).type(
-                    MediaType.APPLICATION_JSON_TYPE).build());
-            }
-        });
+        Futures.addCallback(future, new DataInsertedCallback(response, "Failed to update meta data"));
     }
 
     private class GetMetadataCallback implements FutureCallback<Metric> {
@@ -369,18 +343,7 @@ public class MetricHandler {
             metric.addData(p.getTimestamp(), p.getValue());
         }
         ListenableFuture<Void> future = metricsService.addNumericData(asList(metric));
-        Futures.addCallback(future, new FutureCallback<Void>() {
-            @Override
-            public void onSuccess(Void result) {
-                Response jaxrs = Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build();
-                asyncResponse.resume(jaxrs);
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                handleInsertFailure(t, asyncResponse);
-            }
-        });
+        Futures.addCallback(future, new DataInsertedCallback(asyncResponse, "Failed to insert data"));
     }
 
     @POST
@@ -395,17 +358,7 @@ public class MetricHandler {
         }
 
         ListenableFuture<Void> future = metricsService.addAvailabilityData(asList(metric));
-        Futures.addCallback(future, new FutureCallback<Void>() {
-            @Override
-            public void onSuccess(Void result) {
-                asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                handleInsertFailure(t, asyncResponse);
-            }
-        });
+        Futures.addCallback(future, new DataInsertedCallback(asyncResponse, "Failed to insert data"));
     }
 
     @POST
@@ -427,19 +380,8 @@ public class MetricHandler {
             }
             metrics.add(metric);
         }
-        ListenableFuture<Void> insertFuture = metricsService.addNumericData(metrics);
-        Futures.addCallback(insertFuture, new FutureCallback<Void>() {
-            @Override
-            public void onSuccess(Void result) {
-                Response jaxrs = Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build();
-                asyncResponse.resume(jaxrs);
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                handleInsertFailure(t, asyncResponse);
-            }
-        });
+        ListenableFuture<Void> future = metricsService.addNumericData(metrics);
+        Futures.addCallback(future, new DataInsertedCallback(asyncResponse, "Failed to insert data"));
     }
 
     @POST
@@ -461,19 +403,8 @@ public class MetricHandler {
             }
             metrics.add(metric);
         }
-        ListenableFuture<Void> insertFuture = metricsService.addAvailabilityData(metrics);
-        Futures.addCallback(insertFuture, new FutureCallback<Void>() {
-            @Override
-            public void onSuccess(Void result) {
-                Response jaxrs = Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build();
-                asyncResponse.resume(jaxrs);
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                handleInsertFailure(t, asyncResponse);
-            }
-        });
+        ListenableFuture<Void> future = metricsService.addAvailabilityData(metrics);
+        Futures.addCallback(future, new DataInsertedCallback(asyncResponse, "Failed to insert data"));
     }
 
     @GET
