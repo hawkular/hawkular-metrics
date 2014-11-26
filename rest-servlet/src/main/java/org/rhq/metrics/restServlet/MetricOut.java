@@ -1,6 +1,8 @@
 package org.rhq.metrics.restServlet;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -17,6 +19,9 @@ public class MetricOut {
 
     @JsonSerialize(include = JsonSerialize.Inclusion.NON_EMPTY)
     private Map<String, String> metadata = new HashMap<>();
+
+    @JsonSerialize(include = JsonSerialize.Inclusion.NON_EMPTY)
+    private List<DataPoint> data = new ArrayList<>();
 
     public MetricOut() {
     }
@@ -49,5 +54,13 @@ public class MetricOut {
 
     public void setMetadata(Map<String, String> metadata) {
         this.metadata = metadata;
+    }
+
+    public List<DataPoint> getData() {
+        return data;
+    }
+
+    public void setData(List<DataPoint> data) {
+        this.data = data;
     }
 }

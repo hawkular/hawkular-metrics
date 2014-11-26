@@ -314,7 +314,7 @@ public class MetricHandler {
                     metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(p.getId()));
                 }
             }
-            metric.addData(p.getTimestamp(), p.getValue());
+            metric.addData(p.getTimestamp(), (double) p.getValue());
         }
         metrics.add(metric);
 
@@ -418,20 +418,15 @@ public class MetricHandler {
         Futures.addCallback(queryFuture, new FutureCallback<Map<MetricId, Set<NumericData>>>() {
             @Override
             public void onSuccess(Map<MetricId, Set<NumericData>> taggedDataMap) {
-                Map<String, NumericDataOut> results = new HashMap<>();
-                NumericDataOut dataOut = null;
+                Map<String, MetricOut> results = new HashMap<>();
+                MetricOut dataOut = null;
                 for (MetricId id : taggedDataMap.keySet()) {
-                    List<NumericDataPoint> dataPoints = new ArrayList<>();
+                    List<DataPoint> dataPoints = new ArrayList<>();
                     for (NumericData d : taggedDataMap.get(id)) {
                         if (dataOut == null) {
-                            dataOut = new NumericDataOut();
-                            dataOut.setTenantId(d.getMetric().getTenantId());
-                            dataOut.setName(d.getMetric().getId().getName());
+                            dataOut = new MetricOut(d.getMetric().getTenantId(), d.getMetric().getId().getName(), null);
                         }
-                        NumericDataPoint p = new NumericDataPoint();
-                        p.setTimestamp(d.getTimestamp());
-                        p.setValue(d.getValue());
-                        dataPoints.add(p);
+                        dataPoints.add(new DataPoint(d.getTimestamp(), d.getValue()));
                     }
                     dataOut.setData(dataPoints);
                     results.put(id.getName(), dataOut);
@@ -460,20 +455,16 @@ public class MetricHandler {
                 if (taggedDataMap.isEmpty()) {
                     asyncResponse.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
                 } else {
-                    Map<String, AvailabilityDataOut> results = new HashMap<>();
-                    AvailabilityDataOut dataOut = null;
+                    Map<String, MetricOut> results = new HashMap<>();
+                    MetricOut dataOut = null;
                     for (MetricId id : taggedDataMap.keySet()) {
-                        List<AvailabilityDataPoint> dataPoints = new ArrayList<>();
+                        List<DataPoint> dataPoints = new ArrayList<>();
                         for (Availability a : taggedDataMap.get(id)) {
                             if (dataOut == null) {
-                                dataOut = new AvailabilityDataOut();
-                                dataOut.setTenantId(a.getMetric().getTenantId());
-                                dataOut.setName(a.getMetric().getId().getName());
+                                dataOut = new MetricOut(a.getMetric().getTenantId(), a.getMetric().getId().getName(),
+                                    null);
                             }
-                            AvailabilityDataPoint p = new AvailabilityDataPoint();
-                            p.setTimestamp(a.getTimestamp());
-                            p.setValue(a.getType().getText());
-                            dataPoints.add(p);
+                            dataPoints.add(new DataPoint(a.getTimestamp(), a.getType().getText()));
                         }
                         dataOut.setData(dataPoints);
                         results.put(id.getName(), dataOut);
@@ -523,18 +514,14 @@ public class MetricHandler {
                 if (metric == null) {
                     asyncResponse.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
                 } else {
-                    NumericDataOut output = new NumericDataOut();
-                    output.setTenantId(metric.getTenantId());
-                    output.setName(metric.getId().getName());
-                    output.setMetadata(metric.getMetadata());
-
-                    List<NumericDataPoint> dataPoints = new ArrayList<>(metric.getData().size());
+                    MetricOut output = new MetricOut(metric.getTenantId(), metric.getId().getName(),
+                        metric.getMetadata());
+                    List<DataPoint> dataPoints = new ArrayList<>();
                     for (NumericData d : metric.getData()) {
-                        NumericDataPoint dataPoint = new NumericDataPoint(d.getTimestamp(), d.getValue());
-                        dataPoint.setTags(getTagNames(d));
-                       dataPoints.add(dataPoint);
+                        dataPoints.add(new DataPoint(d.getTimestamp(), d.getValue(), getTagNames(d)));
                     }
                     output.setData(dataPoints);
+
                     asyncResponse.resume(Response.ok(output).type(MediaType.APPLICATION_JSON_TYPE).build());
                 }
             }
@@ -568,18 +555,11 @@ public class MetricHandler {
                 if (metric == null) {
                     asyncResponse.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
                 } else {
-                    AvailabilityDataOut output = new AvailabilityDataOut();
-                    output.setTenantId(metric.getTenantId());
-                    output.setName(metric.getId().getName());
-                    output.setMetadata(metric.getMetadata());
-
-                    List<AvailabilityDataPoint> dataPoints = new ArrayList<>(metric.getData().size());
+                    MetricOut output = new MetricOut(metric.getTenantId(), metric.getId().getName(),
+                        metric.getMetadata());
+                    List<DataPoint> dataPoints = new ArrayList<>(metric.getData().size());
                     for (Availability a : metric.getData()) {
-                        AvailabilityDataPoint p = new AvailabilityDataPoint();
-                        p.setTimestamp(a.getTimestamp());
-                        p.setValue(a.getType().getText());
-                        p.setTags(getTagNames(a));
-                        dataPoints.add(p);
+                        dataPoints.add(new DataPoint(a.getTimestamp(), a.getType().getText(), getTagNames(a)));
                     }
                     output.setData(dataPoints);
 
@@ -660,20 +640,16 @@ public class MetricHandler {
                     // will always have a null metadata field, which might misleading. We may
                     // want to use a different return type that does not have a meta data property.
 
-                    Map<String, NumericDataOut> results = new HashMap<>();
-                    NumericDataOut dataOut = null;
+                    Map<String, MetricOut> results = new HashMap<>();
+                    MetricOut dataOut = null;
                     for (MetricId id : taggedDataMap.keySet()) {
-                        List<NumericDataPoint> dataPoints = new ArrayList<>();
+                        List<DataPoint> dataPoints = new ArrayList<>();
                         for (NumericData d : taggedDataMap.get(id)) {
                             if (dataOut == null) {
-                                dataOut = new NumericDataOut();
-                                dataOut.setTenantId(d.getMetric().getTenantId());
-                                dataOut.setName(d.getMetric().getId().getName());
+                                dataOut = new MetricOut(d.getMetric().getTenantId(), d.getMetric().getId().getName(),
+                                    null);
                             }
-                            NumericDataPoint p = new NumericDataPoint();
-                            p.setTimestamp(d.getTimestamp());
-                            p.setValue(d.getValue());
-                            dataPoints.add(p);
+                            dataPoints.add(new DataPoint(d.getTimestamp(), d.getValue()));
                         }
                         dataOut.setData(dataPoints);
                         results.put(id.getName(), dataOut);
@@ -702,20 +678,16 @@ public class MetricHandler {
                 if (taggedDataMap.isEmpty()) {
                     asyncResponse.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
                 } else {
-                    Map<String, AvailabilityDataOut> results = new HashMap<>();
-                    AvailabilityDataOut dataOut = null;
+                    Map<String, MetricOut> results = new HashMap<>();
+                    MetricOut dataOut = null;
                     for (MetricId id : taggedDataMap.keySet()) {
-                        List<AvailabilityDataPoint> dataPoints = new ArrayList<>();
+                        List<DataPoint> dataPoints = new ArrayList<>();
                         for (Availability a : taggedDataMap.get(id)) {
                             if (dataOut == null) {
-                                dataOut = new AvailabilityDataOut();
-                                dataOut.setTenantId(a.getMetric().getTenantId());
-                                dataOut.setName(a.getMetric().getId().getName());
+                                dataOut = new MetricOut(a.getMetric().getTenantId(), a.getMetric().getId().getName(),
+                                    null);
                             }
-                            AvailabilityDataPoint p = new AvailabilityDataPoint();
-                            p.setTimestamp(a.getTimestamp());
-                            p.setValue(a.getType().getText());
-                            dataPoints.add(p);
+                            dataPoints.add(new DataPoint(a.getTimestamp(), a.getType().getText()));
                         }
                         dataOut.setData(dataPoints);
                         results.put(id.getName(), dataOut);
