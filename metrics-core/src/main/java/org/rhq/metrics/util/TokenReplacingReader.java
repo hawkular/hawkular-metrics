@@ -201,11 +201,11 @@ public class TokenReplacingReader extends Reader {
         }
     }
 
-    public int read(char cbuf[]) throws IOException {
+    public int read(char[] cbuf) throws IOException {
         return read(cbuf, 0, cbuf.length);
     }
 
-    public int read(char cbuf[], int off, int len) throws IOException {
+    public int read(char[] cbuf, int off, int len) throws IOException {
         int i = 0;
         for (; i < len; i++) {
             int nextChar = read();

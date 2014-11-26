@@ -36,7 +36,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <checkstyle.plugin.version>2.12.1</checkstyle.plugin.version>
     <checkstyleConsoleOutput>true</checkstyleConsoleOutput>
-    <checkstyleFailOnError>false</checkstyleFailOnError>
+    <checkstyleFailOnError>true</checkstyleFailOnError>
     <wildfly.checkstyle-config.version>1.0.2.Final</wildfly.checkstyle-config.version>
   </properties>
 

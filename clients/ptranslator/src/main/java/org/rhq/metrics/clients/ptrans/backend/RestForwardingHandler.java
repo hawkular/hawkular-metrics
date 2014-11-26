@@ -96,7 +96,7 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(final ChannelHandlerContext ctx, Object msg) throws Exception {
 
         @SuppressWarnings("unchecked")
-		final List<SingleMetric> in = (List<SingleMetric>) msg;
+        final List<SingleMetric> in = (List<SingleMetric>) msg;
         if (logger.isTraceEnabled()) {
             logger.trace("Received some metrics :[" + in + "]");
         }
