@@ -39,14 +39,16 @@ public class CassandraBackendTest extends AbstractTestBase {
             new Metric("m3", asList(new DataPoint(start, 3.1), new DataPoint(start.plusMinutes(1), 3.2)))
         );
 
-        given().body(requestBody).pathParam("tenantId", "tenant-1").contentType(JSON)
-        .expect().statusCode(200)
-        .when().post("/{tenantId}/metrics/numeric/data");
+        given()
+            .body(requestBody).pathParam("tenantId", "tenant-1").contentType(JSON)
+            .expect().statusCode(200)
+            .when().post("/{tenantId}/metrics/numeric/data");
 
-        given().pathParam("tenantId", "tenant-1").pathParam("id", "m2").contentType(JSON)
-        .expect().statusCode(200)
-        .when().get("/{tenantId}/metrics/numeric/{id}/data")
-        .then().assertThat().body("data", equalTo(asList(data(start.plusMinutes(1), 2.2), data(start, 2.1))));
+        given()
+            .pathParam("tenantId", "tenant-1").pathParam("id", "m2").contentType(JSON)
+            .expect().statusCode(200)
+            .when().get("/{tenantId}/metrics/numeric/{id}/data")
+            .then().assertThat().body("data", equalTo(asList(data(start.plusMinutes(1), 2.2), data(start, 2.1))));
     }
 
     @Test
@@ -58,18 +60,21 @@ public class CassandraBackendTest extends AbstractTestBase {
             new Metric("m3", asList(new DataPoint(start, "down"), new DataPoint(start.plusMinutes(1), "down")))
         );
 
-        given().body(ImmutableMap.of("id", "tenant-2")).contentType(JSON)
-        .expect().statusCode(200)
-        .when().post("/tenants");
+        given()
+            .body(ImmutableMap.of("id", "tenant-2")).contentType(JSON)
+            .expect().statusCode(200)
+            .when().post("/tenants");
 
-        given().body(requestBody).pathParam("tenantId", "tenant-2").contentType(JSON)
-        .expect().statusCode(200)
-        .when().post("/{tenantId}/metrics/availability/data");
+        given()
+            .body(requestBody).pathParam("tenantId", "tenant-2").contentType(JSON)
+            .expect().statusCode(200)
+            .when().post("/{tenantId}/metrics/availability/data");
 
-        given().pathParam("tenantId", "tenant-2").pathParam("id", "m1").contentType(JSON)
-        .expect().statusCode(200)
-        .when().get("/{tenantId}/metrics/availability/{id}/data")
-        .then().assertThat().body("data", equalTo(asList(data(start.plusMinutes(1), "up"), data(start, "down"))));
+        given()
+            .pathParam("tenantId", "tenant-2").pathParam("id", "m1").contentType(JSON)
+            .expect().statusCode(200)
+            .when().get("/{tenantId}/metrics/availability/{id}/data")
+            .then().assertThat().body("data", equalTo(asList(data(start.plusMinutes(1), "up"), data(start, "down"))));
     }
 
     @Test
@@ -169,13 +174,82 @@ public class CassandraBackendTest extends AbstractTestBase {
             .body("metadata", equalTo(ImmutableMap.of("a2", "two", "a3", "THREE")));
     }
 
+    @Test
+    public void findMetrics() {
+        DateTime start = now().minusMinutes(10);
+        String tenantId = "tenant-4";
+
+        // First create a couple numeric metrics by only inserting data
+        List<Metric> requestBody = asList(
+            new Metric("m11", asList(new DataPoint(start, 1.1), new DataPoint(start.plusMinutes(1), 1.2))),
+            new Metric("m12", asList(new DataPoint(start, 2.1), new DataPoint(start.plusMinutes(1), 2.2)))
+        );
+
+        given()
+            .body(requestBody).pathParam("tenantId", tenantId).contentType(JSON)
+            .expect().statusCode(200)
+            .when().post("/{tenantId}/metrics/numeric/data");
+
+        // Explicitly create a numeric metric
+        Map<String, ? extends Object> numericData = ImmutableMap.of(
+            "name", "m13",
+            "metadata", ImmutableMap.of("a1", "A", "B1", "B")
+        );
+
+        given()
+            .body(numericData).pathParam("tenantId", tenantId).contentType(JSON)
+            .expect().statusCode(200)
+            .when().post("/{tenantId}/metrics/numeric");
+
+        // Now query for the numeric metrics
+        given()
+            .pathParam("tenantId", tenantId).queryParam("type", "num").contentType(JSON)
+            .expect().statusCode(200)
+            .when().get("/{tenantId}/metrics")
+            .then().assertThat().body("", equalTo(asList(
+                ImmutableMap.of("tenantId", tenantId, "name", "m11"),
+                ImmutableMap.of("tenantId", tenantId, "name", "m12"),
+                ImmutableMap.of("tenantId", tenantId, "name", "m13", "metadata", ImmutableMap.of("a1", "A", "B1", "B"))
+        )));
+
+        // Create a couple availability metrics by only inserting data
+        requestBody = asList(
+            new Metric("m14", asList(new DataPoint(start, "up"), new DataPoint(start.plusMinutes(1), "up"))),
+            new Metric("m15", asList(new DataPoint(start, "up"), new DataPoint(start.plusMinutes(1), "down")))
+        );
+
+        given()
+            .body(requestBody).pathParam("tenantId", tenantId).contentType(JSON)
+            .expect().statusCode(200)
+            .when().post("/{tenantId}/metrics/availability/data");
+
+        // Explicitly create an availability metric
+        Map<String, ? extends Object> availabilityData = ImmutableMap.of(
+            "name", "m16",
+            "metadata", ImmutableMap.of("a10", "10", "a11", "11")
+        );
+
+        given()
+            .body(availabilityData).pathParam("tenantId", tenantId).contentType(JSON)
+            .expect().statusCode(200)
+            .when().post("/{tenantId}/metrics/availability");
+
+        // Query for the availability metrics
+        given()
+            .pathParam("tenantId", tenantId).queryParam("type", "avail").contentType(JSON)
+            .expect().statusCode(200)
+            .when().get("/{tenantId}/metrics")
+            .then().assertThat().body("", equalTo(asList(
+                ImmutableMap.of("tenantId", tenantId, "name", "m14"),
+                ImmutableMap.of("tenantId", tenantId, "name", "m15"),
+                ImmutableMap.of("tenantId", tenantId, "name", "m16", "metadata", ImmutableMap.of("a10", "10", "a11", "11"))
+        )));
+    }
+
     private Map<String, ? extends Object> data(DateTime timestamp, double value) {
         Map<String, Object> map = new HashMap<>();
         map.put("timestamp", timestamp.getMillis());
         map.put("value", new Float(value));
-        // Data points include a tags property even when they have none. We need to
-        // configure Jackson to suppress null fields.
-        map.put("tags", null);
 
         return map;
     }
@@ -184,9 +258,6 @@ public class CassandraBackendTest extends AbstractTestBase {
         Map<String, Object> map = new HashMap<>();
         map.put("timestamp", timestamp.getMillis());
         map.put("value", value);
-        // Data points include a tags property even when they have none. We need to
-        // configure Jackson to suppress null fields.
-        map.put("tags", null);
 
         return map;
     }

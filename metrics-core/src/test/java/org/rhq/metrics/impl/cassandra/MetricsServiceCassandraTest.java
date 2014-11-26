@@ -11,10 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.datastax.driver.core.ResultSetFuture;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import org.joda.time.DateTime;
@@ -569,9 +567,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
     private void assertMetricIndexMatches(String tenantId, MetricType type, List<? extends Metric> expected)
         throws Exception {
-        ResultSetFuture indexFuture = metricsService.getDataAccess().findMetricsInMetricsIndex(tenantId, type);
-        ListenableFuture<List<Metric>> metricsFuture = Futures.transform(indexFuture, new MetricsIndexMapper(tenantId,
-            type));
+        ListenableFuture<List<Metric>> metricsFuture = metricsService.findMetrics(tenantId, type);
         List<Metric> actualIndex = getUninterruptibly(metricsFuture);
 
         assertEquals(actualIndex, expected, "The metrics index results do not match");

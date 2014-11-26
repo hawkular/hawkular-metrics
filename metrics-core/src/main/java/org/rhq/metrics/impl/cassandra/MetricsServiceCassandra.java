@@ -91,10 +91,6 @@ public class MetricsServiceCassandra implements MetricsService {
         tenants.put(DEFAULT_TENANT_ID, new Tenant().setId(DEFAULT_TENANT_ID));
     }
 
-    DataAccess getDataAccess() {
-        return dataAccess;
-    }
-
     @Override
     public void startUp(Session s) {
         // the session is managed externally
@@ -212,6 +208,12 @@ public class MetricsServiceCassandra implements MetricsService {
                 }
             }
         }, metricsTasks);
+    }
+
+    @Override
+    public ListenableFuture<List<Metric>> findMetrics(String tenantId, MetricType type) {
+        ResultSetFuture future = dataAccess.findMetricsInMetricsIndex(tenantId, type);
+        return Futures.transform(future, new MetricsIndexMapper(tenantId, type));
     }
 
     @Override

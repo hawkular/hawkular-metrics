@@ -52,6 +52,8 @@ public interface MetricsService {
 
     ListenableFuture<Metric> findMetric(String tenantId, MetricType type, MetricId id);
 
+    ListenableFuture<List<Metric>> findMetrics(String tenantId, MetricType type);
+
     ListenableFuture<Void> updateMetadata(Metric metric, Map<String, String> metadata, Set<String> deletions);
 
     ListenableFuture<Void> addNumericData(List<NumericMetric2> metrics);

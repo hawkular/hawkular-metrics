@@ -3,6 +3,9 @@ package org.rhq.metrics.restServlet;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+
 /**
  * @author John Sanda
  */
@@ -12,6 +15,7 @@ public class MetricOut {
 
     private String name;
 
+    @JsonSerialize(include = JsonSerialize.Inclusion.NON_EMPTY)
     private Map<String, String> metadata = new HashMap<>();
 
     public MetricOut() {

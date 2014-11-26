@@ -50,4 +50,13 @@ public enum MetricType {
         }
     }
 
+    public static MetricType fromTextCode(String textCode) {
+        switch (textCode) {
+        case "num": return NUMERIC;
+        case "avail": return AVAILABILITY;
+        case "log": return LOG_EVENT;
+        default: throw new IllegalArgumentException(textCode + " is not a recognized metric type code");
+        }
+    }
+
 }

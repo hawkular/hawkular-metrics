@@ -995,6 +995,48 @@ public class MetricHandler {
         });
     }
 
+    @GET
+    @Path("/{tenantId}/metrics")
+    @Produces("application/json")
+    public void findMetrics(@Suspended final AsyncResponse response, @PathParam("tenantId") final String tenantId,
+        @QueryParam("type") String type) {
+        logger.info("TYPE = " + type);
+        MetricType metricType = null;
+        try {
+            metricType = MetricType.fromTextCode(type);
+        } catch (IllegalArgumentException e) {
+            ImmutableMap<String, String> errors = ImmutableMap.of("errorMsg", "[" + type + "] is not a valid type. " +
+                "Accepted values are num|avail|log");
+            response.resume(Response.status(Response.Status.BAD_REQUEST).entity(errors).type(
+                MediaType.APPLICATION_JSON_TYPE).build());
+        }
+        ListenableFuture<List<Metric>> future = metricsService.findMetrics(tenantId, metricType);
+        Futures.addCallback(future, new FutureCallback<List<Metric>>() {
+            @Override
+            public void onSuccess(List<Metric> metrics) {
+                if (metrics.isEmpty()) {
+                    response.resume(Response.status(Response.Status.NO_CONTENT).type(MediaType.APPLICATION_JSON_TYPE)
+                        .build());
+                } else {
+                    List<MetricOut> output = new ArrayList<>();
+                    for (Metric metric : metrics) {
+                        output.add(new MetricOut(tenantId, metric.getId().getName(), metric.getMetadata()));
+                    }
+                    response.resume(Response.status(Response.Status.OK).entity(output)
+                        .type(MediaType.APPLICATION_JSON_TYPE).build());
+                }
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to retrieve metrics due to " +
+                    "an unexpected error: " + Throwables.getRootCause(t).getMessage());
+                response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors)
+                    .type(MediaType.APPLICATION_JSON_TYPE).build());
+            }
+        });
+    }
+
     @GZIP
     @GET
     @Path("/metrics")
