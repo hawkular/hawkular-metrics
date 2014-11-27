@@ -5,11 +5,13 @@ import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -33,6 +35,11 @@ import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.core.Tenant;
 import org.rhq.metrics.test.MetricsTest;
+
+import rx.Observable;
+import rx.Subscriber;
+import rx.functions.Func1;
+import rx.functions.Func2;
 
 /**
  * @author John Sanda
@@ -126,6 +133,201 @@ public class DataAccessTest extends MetricsTest {
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
+    }
+
+    @Test
+    public void findDataRx() throws Exception {
+        DateTime start = now().minusMinutes(10);
+        DateTime end = start.plusMinutes(6);
+
+        NumericMetric2 metric = new NumericMetric2("tenant-1", new MetricId("metric-1"));
+        List<NumericData> data = asList(
+            new NumericData(metric, start.getMillis(), 1.23),
+            new NumericData(metric, start.plusMinutes(1).getMillis(), 1.234),
+            new NumericData(metric, start.plusMinutes(2).getMillis(), 1.234),
+            new NumericData(metric, end.getMillis(), 1.234)
+        );
+
+        getUninterruptibly(dataAccess.insertNumericData(data));
+
+        final CountDownLatch latch = new CountDownLatch(1);
+        final List<NumericData> actual = new ArrayList<>();
+
+        Observable<ResultSet> observable = dataAccess.findDataRx(metric, start.getMillis(), end.getMillis());
+        observable.flatMap(new Func1<ResultSet, Observable<Row>>() {
+            @Override
+            public Observable<Row> call(final ResultSet resultSet) {
+                return Observable.create(new Observable.OnSubscribe<Row>() {
+                    @Override
+                    public void call(Subscriber<? super Row> subscriber) {
+                        for (Row row : resultSet) {
+                            subscriber.onNext(row);
+                        }
+                        subscriber.onCompleted();
+                    }
+                });
+            }
+        }).map(new Func1<Row, NumericData>() {
+            @Override
+            public NumericData call(Row row) {
+                return new NumericData(row.getUUID(4), row.getDouble(6));
+            }
+        }).subscribe(new Subscriber<NumericData>() {
+            @Override
+            public void onCompleted() {
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                throwable.printStackTrace();
+                latch.countDown();
+            }
+
+            @Override
+            public void onNext(NumericData numericData) {
+                actual.add(numericData);
+            }
+        });
+
+        List<NumericData> expected = asList(
+            new NumericData(start.plusMinutes(2).getMillis(), 1.234),
+            new NumericData(start.plusMinutes(1).getMillis(), 1.234),
+            new NumericData(start.getMillis(), 1.23)
+        );
+
+        latch.await();
+
+        assertEquals(actual, expected);
+    }
+
+    @Test
+    public void reduceData() throws Exception {
+        DateTime start = now().minusMinutes(10);
+        DateTime end = start.plusMinutes(6);
+
+        NumericMetric2 metric = new NumericMetric2("tenant-1", new MetricId("metric-1"));
+        List<NumericData> data = asList(
+            new NumericData(metric, start.getMillis(), 1.23),
+            new NumericData(metric, start.plusMinutes(1).getMillis(), 1.234),
+            new NumericData(metric, start.plusMinutes(2).getMillis(), 1.234),
+            new NumericData(metric, end.getMillis(), 1.234)
+        );
+
+        getUninterruptibly(dataAccess.insertNumericData(data));
+
+        final AtomicReference<NumericMetric2> reference = new AtomicReference<>();
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        Observable<ResultSet> observable = dataAccess.findDataRx(metric, start.getMillis(), end.getMillis());
+        observable.flatMap(new Func1<ResultSet, Observable<Row>>() {
+            @Override
+            public Observable<Row> call(final ResultSet resultSet) {
+                return Observable.create(new Observable.OnSubscribe<Row>() {
+                    @Override
+                    public void call(Subscriber<? super Row> subscriber) {
+                        for (Row row : resultSet) {
+                            subscriber.onNext(row);
+                        }
+                        subscriber.onCompleted();
+                    }
+                });
+            }
+        }).map(new Func1<Row, NumericData>() {
+            @Override
+            public NumericData call(Row row) {
+                return new NumericData(row.getUUID(4), row.getDouble(6));
+            }
+        }).reduce(new NumericMetric2("tenant-1", new MetricId("metric-1")), new Func2<NumericMetric2, NumericData, NumericMetric2>() {
+            @Override
+            public NumericMetric2 call(NumericMetric2 numericMetric2, NumericData numericData) {
+                numericMetric2.addData(numericData);
+                return numericMetric2;
+            }
+        }).subscribe(new Subscriber<NumericMetric2>() {
+            @Override
+            public void onCompleted() {
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                throwable.printStackTrace();
+                latch.countDown();
+            }
+
+            @Override
+            public void onNext(NumericMetric2 numericMetric2) {
+                reference.set(numericMetric2);
+            }
+        });
+        NumericMetric2 expected = new NumericMetric2("tenant-1", new MetricId("metric-1"));
+        expected.addData(new NumericData(metric, start.plusMinutes(2).getMillis(), 1.234));
+        expected.addData(new NumericData(metric, start.plusMinutes(1).getMillis(), 1.234));
+        expected.addData(new NumericData(metric, start.getMillis(), 1.23));
+
+        assertEquals(reference.get(), expected);
+    }
+
+    @Test
+    public void reduceData2() throws Exception {
+        DateTime start = now().minusMinutes(10);
+        DateTime end = start.plusMinutes(6);
+
+        NumericMetric2 metric = new NumericMetric2("tenant-1", new MetricId("metric-1"));
+        List<NumericData> data = asList(
+            new NumericData(metric, start.getMillis(), 1.23),
+            new NumericData(metric, start.plusMinutes(1).getMillis(), 1.234),
+            new NumericData(metric, start.plusMinutes(2).getMillis(), 1.234),
+            new NumericData(metric, end.getMillis(), 1.234)
+        );
+
+        getUninterruptibly(dataAccess.insertNumericData(data));
+
+        final AtomicReference<NumericMetric2> reference = new AtomicReference<>();
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        Observable<ResultSet> observable = dataAccess.findDataRx(metric, start.getMillis(), end.getMillis());
+        observable.flatMap(new Func1<ResultSet, Observable<Row>>() {
+            @Override
+            public Observable<Row> call(final ResultSet resultSet) {
+                return Observable.create(new Observable.OnSubscribe<Row>() {
+                    @Override
+                    public void call(Subscriber<? super Row> subscriber) {
+                        for (Row row : resultSet) {
+                            subscriber.onNext(row);
+                        }
+                        subscriber.onCompleted();
+                    }
+                });
+            }
+        }).reduce(new NumericMetric2("tenant-1", new MetricId("metric-1")),
+            new Func2<NumericMetric2, Row, NumericMetric2>() {
+                @Override
+                public NumericMetric2 call(NumericMetric2 metric, Row row) {
+                    if (metric.getData().isEmpty()) {
+                        metric.setMetadata(row.getMap(5, String.class, String.class));
+                    }
+                    metric.addData(row.getUUID(4), row.getDouble(6));
+                    return metric;
+                }
+            }).subscribe(new Subscriber<NumericMetric2>() {
+            @Override
+            public void onCompleted() {
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                throwable.printStackTrace();
+                latch.countDown();
+            }
+
+            @Override
+            public void onNext(NumericMetric2 numericMetric2) {
+                reference.set(numericMetric2);
+            }
+        });
     }
 
     @Test

@@ -19,6 +19,8 @@ import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.core.Tenant;
 
+import rx.Observable;
+
 /**
  * @author John Sanda
  */

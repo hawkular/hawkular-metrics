@@ -7,12 +7,15 @@ import static org.rhq.metrics.core.AvailabilityType.UP;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.datastax.driver.core.ResultSetFuture;
 import com.google.common.collect.ImmutableMap;
@@ -40,6 +43,9 @@ import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.core.Tag;
 import org.rhq.metrics.core.Tenant;
 import org.rhq.metrics.test.MetricsTest;
+
+import rx.Observable;
+import rx.Subscriber;
 
 /**
  * @author John Sanda
@@ -313,20 +319,42 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         ListenableFuture<Void> insertFuture = metricsService.addNumericData(asList(m1, m2, m3));
         getUninterruptibly(insertFuture);
 
-        ListenableFuture<NumericMetric2> queryFuture = metricsService.findNumericData(m1, start.getMillis(),
-            end.getMillis());
-        NumericMetric2 actual = getUninterruptibly(queryFuture);
-        assertMetricEquals(actual, m1);
+        Observable<NumericMetric2> observable = metricsService.findNumericData(m1, start.getMillis(), end.getMillis());
+        assertMetricEquals(single(observable), m1);
 
-        queryFuture = metricsService.findNumericData(m2, start.getMillis(), end.getMillis());
-        actual = getUninterruptibly(queryFuture);
-        assertMetricEquals(actual, m2);
+        observable = metricsService.findNumericData(m2, start.getMillis(), end.getMillis());
+        assertMetricEquals(single(observable), m2);
 
-        queryFuture = metricsService.findNumericData(m3, start.getMillis(), end.getMillis());
-        actual = getUninterruptibly(queryFuture);
-        assertNull(actual, "Did not expect to get back results since there is no data for " + m3);
+        observable = metricsService.findNumericData(m3, start.getMillis(), end.getMillis());
+        assertMetricEquals(single(observable), new NumericMetric2("test-tenant", new MetricId("m3")));
+    }
 
-        assertMetricIndexMatches(tenantId, MetricType.NUMERIC, asList(m1, m2, m3));
+    private NumericMetric2 single(Observable<NumericMetric2> observable) throws Exception {
+        final AtomicReference<NumericMetric2> reference = new AtomicReference<>();
+        final AtomicReference<Throwable> error = new AtomicReference<>();
+        final CountDownLatch latch = new CountDownLatch(1);
+        observable.single().subscribe(new Subscriber<NumericMetric2>() {
+            @Override
+            public void onCompleted() {
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                error.set(throwable);
+                latch.countDown();
+            }
+
+            @Override
+            public void onNext(NumericMetric2 numericMetric2) {
+                reference.set(numericMetric2);
+            }
+        });
+        latch.await();
+        if (error.get() != null) {
+            fail("Failed to retrieve metric", error.get());
+        }
+        return reference.get();
     }
 
     @Test

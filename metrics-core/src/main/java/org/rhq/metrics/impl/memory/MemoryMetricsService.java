@@ -31,6 +31,7 @@ import org.rhq.metrics.core.Tenant;
 
 import gnu.trove.map.TLongDoubleMap;
 import gnu.trove.map.hash.TLongDoubleHashMap;
+import rx.Observable;
 
 /**
  * A memory based storage backend for rapid prototyping.
@@ -182,7 +183,7 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<NumericMetric2> findNumericData(NumericMetric2 metric, long start, long end) {
+    public Observable<NumericMetric2> findNumericData(NumericMetric2 metric, long start, long end) {
         return null;
     }
 

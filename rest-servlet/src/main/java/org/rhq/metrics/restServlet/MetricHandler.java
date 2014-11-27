@@ -67,6 +67,8 @@ import org.rhq.metrics.core.TenantAlreadyExistsException;
 
 import gnu.trove.map.TLongObjectMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
+import rx.Observable;
+import rx.Subscriber;
 
 /**
  * Interface to deal with metrics
@@ -575,8 +577,20 @@ public class MetricHandler {
         }
         Futures.addCallback(outputFuture, new FutureCallback<Object>() {
             @Override
-            public void onSuccess(Object output) {
-                asyncResponse.resume(Response.ok(output).type(MediaType.APPLICATION_JSON_TYPE).build());
+            public void onSuccess(NumericMetric2 metric) {
+                if (metric == null) {
+                    asyncResponse.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
+                } else {
+                    MetricOut output = new MetricOut(metric.getTenantId(), metric.getId().getName(),
+                        metric.getMetadata());
+                    List<DataPoint> dataPoints = new ArrayList<>();
+                    for (NumericData d : metric.getData()) {
+                        dataPoints.add(new DataPoint(d.getTimestamp(), d.getValue(), getTagNames(d)));
+                    }
+                    output.setData(dataPoints);
+
+                    asyncResponse.resume(Response.ok(output).type(MediaType.APPLICATION_JSON_TYPE).build());
+                }
             }
 
             @Override
@@ -584,162 +598,6 @@ public class MetricHandler {
                 asyncResponse.resume(t);
             }
         });
-    }
-
-    private class MetricOutMapper implements Function<NumericMetric2, MetricOut> {
-        @Override
-        public MetricOut apply(NumericMetric2 metric) {
-            if (metric == null) {
-                return null;
-            }
-            MetricOut output = new MetricOut(metric.getTenantId(), metric.getId().getName(),
-                metric.getMetadata());
-            List<DataPointOut> dataPoints = new ArrayList<>();
-            for (NumericData d : metric.getData()) {
-                dataPoints.add(new DataPointOut(d.getTimestamp(), d.getValue(), getTagNames(d)));
-            }
-            output.setData(dataPoints);
-
-            return output;
-        }
-    }
-
-    private class CreateSimpleBuckets implements Function<NumericMetric2, BucketedOutput> {
-
-        private long startTime;
-        private long endTime;
-        private int numberOfBuckets;
-        private boolean skipEmpty;
-
-        public CreateSimpleBuckets(long startTime, long endTime, int numberOfBuckets, boolean skipEmpty) {
-            this.startTime = startTime;
-            this.endTime = endTime;
-            this.numberOfBuckets = numberOfBuckets;
-            this.skipEmpty = skipEmpty;
-        }
-
-        @Override
-        public BucketedOutput apply(NumericMetric2 metric) {
-            // we will have numberOfBuckets buckets over the whole time span
-            BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(),
-                metric.getMetadata());
-            long bucketSize = (endTime - startTime) / numberOfBuckets;
-            for (int i = 0; i < numberOfBuckets; ++i) {
-                long bucketStartTime = startTime + (i * bucketSize);
-                BucketDataPoint point = createPointInSimpleBucket(metric.getId().getName(), bucketStartTime, bucketSize,
-                    metric.getData());
-                if (!skipEmpty || !point.isEmpty()) {
-                    output.add(point);
-                }
-            }
-
-            return output;
-        }
-    }
-
-    private class CreateFixedNumberOfBuckets implements Function<NumericMetric2, List<? extends Object>> {
-
-        private int numberOfBuckets;
-        private int bucketWidthSeconds;
-
-        public CreateFixedNumberOfBuckets(int numberOfBuckets, int bucketWidthSeconds) {
-            this.numberOfBuckets = numberOfBuckets;
-            this.bucketWidthSeconds = bucketWidthSeconds;
-        }
-
-        @Override
-        public List<? extends Object> apply(NumericMetric2 metric) {
-            long totalLength = (long) numberOfBuckets * bucketWidthSeconds * 1000L;
-            long minTs = Long.MAX_VALUE;
-            for (NumericData d : metric.getData()) {
-                if (d.getTimestamp() < minTs) {
-                    minTs = d.getTimestamp();
-                }
-            }
-            TLongObjectMap<List<NumericData>> buckets = new TLongObjectHashMap<>(numberOfBuckets);
-            for (NumericData d : metric.getData()) {
-                long bucket = d.getTimestamp() - minTs;
-                bucket = bucket % totalLength;
-                bucket = bucket / (bucketWidthSeconds * 1000L);
-                List<NumericData> tmpList = buckets.get(bucket);
-                if (tmpList == null) {
-                    tmpList = new ArrayList<>();
-                    buckets.put(bucket, tmpList);
-                }
-                tmpList.add(d);
-            }
-            return asList(metric, buckets);
-        }
-    }
-
-    private class FlattenBuckets implements Function<List<? extends Object>, BucketedOutput> {
-
-        private int numberOfBuckets;
-        private boolean skipEmpty;
-        private int bucketWidthSeconds;
-
-        public FlattenBuckets(int numberOfBuckets, int bucketWidthSeconds, boolean skipEmpty) {
-            this.numberOfBuckets = numberOfBuckets;
-            this.bucketWidthSeconds = bucketWidthSeconds;
-            this.skipEmpty = skipEmpty;
-        }
-
-        @Override
-        public BucketedOutput apply(List<? extends Object> args) {
-            // Now that stuff is in buckets - we need to "flatten" them out.
-            // As we collapse stuff from a lot of input timestamps into some
-            // buckets, we only use a relative time for the bucket timestamps.
-            NumericMetric2 metric = (NumericMetric2) args.get(0);
-            TLongObjectMap<List<NumericData>> buckets = (TLongObjectMap<List<NumericData>>) args.get(1);
-            BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(),
-                metric.getMetadata());
-            for (int i = 0; i < numberOfBuckets; ++i) {
-                List<NumericData> tmpList = buckets.get(i);
-                if (tmpList == null) {
-                    if (!skipEmpty) {
-                        output.add(new BucketDataPoint(metric.getId().getName(), 1000 * i * bucketWidthSeconds, NaN,
-                            NaN, NaN));
-                    }
-                } else {
-                    output.add(getBucketDataPoint(tmpList.get(0).getMetric().getId().getName(),
-                        1000L * i * bucketWidthSeconds, tmpList));
-                }
-            }
-            return output;
-        }
-    }
-
-    private class ClusterBucketData implements Function<List<? extends Object>, BucketedOutput> {
-
-        private int numberOfBuckets;
-        private int bucketWidthSeconds;
-
-        public ClusterBucketData(int numberOfBuckets, int bucketWidthSeconds) {
-            this.numberOfBuckets = numberOfBuckets;
-            this.bucketWidthSeconds = bucketWidthSeconds;
-        }
-
-        @Override
-        public BucketedOutput apply(List<? extends Object> args) {
-            // We want to keep the raw values, but put them into clusters anyway
-            // without collapsing them into a single min/avg/max tuple
-            NumericMetric2 metric = (NumericMetric2) args.get(0);
-            TLongObjectMap<List<NumericData>> buckets = (TLongObjectMap<List<NumericData>>) args.get(1);
-            BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(),
-                metric.getMetadata());
-            for (int i = 0; i < numberOfBuckets; ++i) {
-                List<NumericData> tmpList = buckets.get(i);
-                if (tmpList != null) {
-                    for (NumericData d : tmpList) {
-                        BucketDataPoint p = new BucketDataPoint(metric.getId().getName(),
-                            1000L * i * bucketWidthSeconds, NaN, d.getValue(), NaN);
-                        p.setValue(d.getValue());
-                        output.add(p);
-                    }
-                }
-            }
-            return output;
-        }
     }
 
     @GET

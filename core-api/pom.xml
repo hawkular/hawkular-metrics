@@ -50,6 +50,12 @@
       <version>${testng.version}</version>
     </dependency>
 
+    <dependency>
+      <groupId>io.reactivex</groupId>
+      <artifactId>rxjava</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+
   </dependencies>
 
   <profiles>
