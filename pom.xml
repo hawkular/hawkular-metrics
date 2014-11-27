@@ -302,6 +302,10 @@
             <configLocation>wildfly-checkstyle/checkstyle.xml</configLocation>
             <consoleOutput>${checkstyleConsoleOutput}</consoleOutput>
             <failsOnError>${checkstyleFailOnError}</failsOnError>
+            <!-- Make includes relative to ${basedir} -->
+            <sourceDirectory>${basedir}</sourceDirectory>
+            <!-- The following should include both main and test classes -->
+            <includes>src/**/*.java,</includes>
             <useFile />
           </configuration>
           <dependencies>
