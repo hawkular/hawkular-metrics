@@ -105,8 +105,8 @@ public class InfluxQueryTest {
 
         assertEquals("mean", iq.getMapping());
         assertEquals("snert.cpu_user", iq.getMetric());
-        assertEquals(1402826660000l,iq.getStart());
-        assertEquals(1402934869000l,iq.getEnd());
+        assertEquals(1402826660000L,iq.getStart());
+        assertEquals(1402934869000L,iq.getEnd());
         assertEquals("value_mean",iq.getAlias());
 
 
