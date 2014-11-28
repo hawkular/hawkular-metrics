@@ -1,6 +1,8 @@
 package org.rhq.metrics.rest;
 
-import java.io.File;
+import static com.jayway.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
@@ -17,11 +19,8 @@ import org.junit.runner.RunWith;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.jboss.shrinkwrap.resolver.api.maven.archive.importer.MavenImporter;
-
-import static com.jayway.restassured.RestAssured.given;
+import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 
 /**
  * Base class for tests
@@ -37,23 +36,31 @@ public abstract class AbstractTestBase {
     static Header acceptWrappedJson = new Header("Accept", WRAPPED_JSON);
     static Header acceptXml = new Header("Accept", APPLICATION_XML);
 
-
-    @Deployment(testable=false)
+    @Deployment(testable = false)
     public static WebArchive createDeployment() {
-        File pomFile = new File("../rest-servlet/pom.xml");
+        String deploymentGroupId = System.getProperty("deployment.groupId");
+        assertThat(deploymentGroupId).isNotNull().isNotEmpty();
 
-        System.out.println("Pom file path: " + pomFile.getAbsolutePath());
-        System.out.flush();
+        String deploymentArtifactId = System.getProperty("deployment.artifactId");
+        assertThat(deploymentArtifactId).isNotNull().isNotEmpty();
 
-        WebArchive archive =
-        ShrinkWrap.create(MavenImporter.class)
-            .offline()
-            .loadPomFromFile(pomFile)
-            .importBuildOutput()
-            .as(WebArchive.class);
-        System.out.println("archive is " + archive.toString(false));
-        System.out.flush();
-        return archive;
+        String deploymentPackaging = System.getProperty("deployment.packaging");
+        assertThat(deploymentPackaging).isNotNull().isNotEmpty();
+
+        String deploymentVersion = System.getProperty("deployment.version");
+        assertThat(deploymentVersion).isNotNull().isNotEmpty();
+
+        WebArchive[] webArchives = Maven //
+                .configureResolver() //
+                .workOffline() //
+                .resolve( //
+                        deploymentGroupId + ":" + deploymentArtifactId + ":" + deploymentPackaging + ":" + deploymentVersion //
+                ) //
+                .withoutTransitivity() //
+                .as(WebArchive.class);
+        assertThat(webArchives).isNotNull().isNotEmpty().hasSize(1);
+
+        return webArchives[0];
     }
 
     @ArquillianResource

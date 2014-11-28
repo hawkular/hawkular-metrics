@@ -102,6 +102,10 @@
           <systemPropertyVariables>
             <arquillian.launch>wildfly-as-managed</arquillian.launch>
             <arquillian.jboss_home>${project.build.directory}/wildfly-${version.wildfly}</arquillian.jboss_home>
+            <deployment.groupId>${project.parent.groupId}</deployment.groupId>
+            <deployment.artifactId>rest-servlet</deployment.artifactId>
+            <deployment.packaging>war</deployment.packaging>
+            <deployment.version>${project.parent.version}</deployment.version>
           </systemPropertyVariables>
           <environmentVariables>
             <JBOSS_HOME>${project.build.directory}/wildfly-${version.wildfly}</JBOSS_HOME>
@@ -218,6 +222,11 @@
       <groupId>joda-time</groupId>
       <artifactId>joda-time</artifactId>
       <version>${joda.time.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
     </dependency>
   </dependencies>
 
