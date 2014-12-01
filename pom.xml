@@ -37,7 +37,9 @@
     <checkstyle.plugin.version>2.12.1</checkstyle.plugin.version>
     <checkstyleConsoleOutput>true</checkstyleConsoleOutput>
     <checkstyleFailOnError>true</checkstyleFailOnError>
-    <wildfly.checkstyle-config.version>1.0.2.Final</wildfly.checkstyle-config.version>
+    <!-- the default value pointing at suppressions.xml in rhq-checkstyle-config dependency -->
+    <checkstyle.suppressions.file>rhq-checkstyle/suppressions.xml</checkstyle.suppressions.file>
+    <rhq.checkstyle.config.version>1</rhq.checkstyle.config.version>
   </properties>
 
   <organization>
@@ -112,9 +114,9 @@
         <scope>test</scope>
       </dependency>
       <dependency>
-        <groupId>org.wildfly.checkstyle</groupId>
-        <artifactId>wildfly-checkstyle-config</artifactId>
-        <version>${wildfly.checkstyle-config.version}</version>
+        <groupId>org.rhq.checkstyle</groupId>
+        <artifactId>rhq-checkstyle-config</artifactId>
+        <version>${rhq.checkstyle.config.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -299,20 +301,23 @@
           <artifactId>maven-checkstyle-plugin</artifactId>
           <version>${checkstyle.plugin.version}</version>
           <configuration>
-            <configLocation>wildfly-checkstyle/checkstyle.xml</configLocation>
+            <configLocation>rhq-checkstyle/checkstyle.xml</configLocation>
             <consoleOutput>${checkstyleConsoleOutput}</consoleOutput>
             <failsOnError>${checkstyleFailOnError}</failsOnError>
             <!-- Make includes relative to ${basedir} -->
             <sourceDirectory>${basedir}</sourceDirectory>
             <!-- The following should include both main and test classes -->
             <includes>src/**/*.java,</includes>
+            <!-- to override in a submodule, just redefine the checkstyle.suppressions.file property
+                 in the given submodule's pom -->
+            <suppressionsLocation>${checkstyle.suppressions.file}</suppressionsLocation>
             <useFile />
           </configuration>
           <dependencies>
             <dependency>
-              <groupId>org.wildfly.checkstyle</groupId>
-              <artifactId>wildfly-checkstyle-config</artifactId>
-              <version>${wildfly.checkstyle-config.version}</version>
+              <groupId>org.rhq.checkstyle</groupId>
+              <artifactId>rhq-checkstyle-config</artifactId>
+              <version>${rhq.checkstyle.config.version}</version>
             </dependency>
           </dependencies>
           <executions>
