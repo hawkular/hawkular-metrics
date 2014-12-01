@@ -277,6 +277,16 @@ public class DataAccess {
         return session.executeAsync(batchStatement);
     }
 
+    public ResultSetFuture updateMetadataInMetricsIndex(Metric metric, Map<String, String> additions,
+        Set<String> deletions) {
+        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED)
+            .add(addMetadataToMetricsIndex.bind(additions, metric.getTenantId(),
+                metric.getType().getCode(), metric.getId().getInterval().toString(), metric.getId().getName()))
+            .add(deleteMetadataFromMetricsIndex.bind(deletions, metric.getTenantId(), metric.getType().getCode(),
+                metric.getId().getInterval().toString(), metric.getId().getName()));
+        return session.executeAsync(batchStatement);
+    }
+
     public <T extends Metric> ResultSetFuture updateMetricsIndex(List<T> metrics) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (T metric : metrics) {
@@ -284,11 +294,6 @@ public class DataAccess {
                 metric.getId().getInterval().toString(), metric.getId().getName()));
         }
         return session.executeAsync(batchStatement);
-    }
-
-    public ResultSetFuture addMetadataToMetricsIndex(Metric metric) {
-        return session.executeAsync(addMetadataToMetricsIndex.bind(metric.getMetadata(), metric.getTenantId(),
-            metric.getType().getCode(), metric.getId().getInterval().toString(), metric.getId().getName()));
     }
 
     public ResultSetFuture findMetricsInMetricsIndex(String tenantId, MetricType type) {
@@ -311,19 +316,6 @@ public class DataAccess {
 //        return session.executeAsync(insertNumericData.bind(data.getAttributes(), data.getValue(), aggregateDataValues,
 //            data.getTenantId(), data.getId().getName(), data.getId().getInterval().toString(), 0L, data.getTimeUUID()));
 //    }
-
-    public ResultSetFuture insertNumericData(List<NumericData> data) {
-        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
-        for (NumericData d : data) {
-            // TODO Determine what if there is any performance overhead for adding an empty map
-            // If there is some overhead, then we will want to use a different prepared
-            // statement when there are is meta data.
-            batchStatement.add(insertNumericData.bind(d.getMetric().getMetadata(), d.getValue(),
-                d.getMetric().getTenantId(), d.getMetric().getType().getCode(), d.getMetric().getId().getName(),
-                d.getMetric().getId().getInterval().toString(), d.getMetric().getDpart(), d.getTimeUUID()));
-        }
-        return session.executeAsync(batchStatement);
-    }
 
     public ResultSetFuture insertData(NumericMetric2 metric) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);

@@ -104,6 +104,8 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
         assertEquals(updatedMetric.getMetadata(), ImmutableMap.of("a2", "two", "a3", "3"),
             "The updated meta data does not match the expected values");
+
+        assertMetricIndexMatches(metric.getTenantId(), MetricType.NUMERIC, asList(updatedMetric));
     }
 
     @Test
