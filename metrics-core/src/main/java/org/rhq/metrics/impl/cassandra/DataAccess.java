@@ -317,6 +317,19 @@ public class DataAccess {
 //            data.getTenantId(), data.getId().getName(), data.getId().getInterval().toString(), 0L, data.getTimeUUID()));
 //    }
 
+    public ResultSetFuture insertNumericData(List<NumericData> data) {
+        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
+        for (NumericData d : data) {
+            // TODO Determine what if there is any performance overhead for adding an empty map
+            // If there is some overhead, then we will want to use a different prepared
+            // statement when there are is meta data.
+            batchStatement.add(insertNumericData.bind(d.getMetric().getMetadata(), d.getValue(),
+                d.getMetric().getTenantId(), d.getMetric().getType().getCode(), d.getMetric().getId().getName(),
+                d.getMetric().getId().getInterval().toString(), d.getMetric().getDpart(), d.getTimeUUID()));
+        }
+        return session.executeAsync(batchStatement);
+    }
+
     public ResultSetFuture insertData(NumericMetric2 metric) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (NumericData d : metric.getData()) {
