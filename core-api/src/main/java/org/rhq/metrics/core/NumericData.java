@@ -35,6 +35,10 @@ public class NumericData extends MetricData {
         this.value = value;
     }
 
+    public NumericData(NumericMetric2 metric, UUID timeUUID, double value, Set<Tag> tags, Long writeTime) {
+        super(metric, timeUUID, tags, writeTime);
+    }
+
     public NumericData(long timestamp, double value) {
         super(timestamp);
         this.value = value;
@@ -42,6 +46,16 @@ public class NumericData extends MetricData {
 
     public NumericData(UUID timeUUID, double value) {
         super(timeUUID);
+        this.value = value;
+    }
+
+    public NumericData(UUID timeUUID, double value, Set<Tag> tags) {
+        super(timeUUID, tags);
+        this.value = value;
+    }
+
+    public NumericData(UUID timeUUID, double value, Set<Tag> tags, Long writeTime) {
+        super(timeUUID, tags, writeTime);
         this.value = value;
     }
 

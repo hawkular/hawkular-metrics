@@ -1,6 +1,5 @@
 package org.rhq.metrics.impl.cassandra;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -22,14 +21,36 @@ import org.rhq.metrics.core.Tag;
  */
 public class NumericDataMapper implements Function<ResultSet, List<NumericData>> {
 
-    private boolean includeMetadata;
-
-    public NumericDataMapper() {
-        this(true);
+    private interface RowConverter {
+        NumericData getData(Row row);
     }
 
-    public NumericDataMapper(boolean includeMetadata) {
-        this.includeMetadata = includeMetadata;
+    private final RowConverter DEFAULT_CONVERTER = new RowConverter() {
+        @Override
+        public NumericData getData(Row row) {
+            return new NumericData(row.getUUID(4), row.getDouble(6), getTags(row));
+        }
+    };
+
+    private final RowConverter WRITE_TIME_CONVERTER = new RowConverter() {
+        @Override
+        public NumericData getData(Row row) {
+            return new NumericData(row.getUUID(4), row.getDouble(6), getTags(row), row.getLong(9) / 1000);
+        }
+    };
+
+    private RowConverter rowConverter;
+
+    public NumericDataMapper() {
+        this(false);
+    }
+
+    public NumericDataMapper(boolean includeWriteTime) {
+        if (includeWriteTime) {
+            rowConverter = WRITE_TIME_CONVERTER;
+        } else {
+            rowConverter = DEFAULT_CONVERTER;
+        }
     }
 
     @Override
@@ -39,14 +60,13 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
         }
         Row firstRow = resultSet.one();
         NumericMetric2 metric = getMetric(firstRow);
-        List<NumericData> data = new ArrayList<>();
-        data.add(new NumericData(metric, firstRow.getUUID(4), firstRow.getDouble(6), getTags(firstRow)));
+        metric.addData(rowConverter.getData(firstRow));
 
         for (Row row : resultSet) {
-            data.add(new NumericData(metric, row.getUUID(4), row.getDouble(6), getTags(row)));
+            metric.addData(rowConverter.getData(row));
         }
 
-        return data;
+        return metric.getData();
     }
 
     private NumericMetric2 getMetric(Row row) {

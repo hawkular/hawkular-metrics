@@ -93,6 +93,7 @@ public abstract class Metric<T extends MetricData> {
 
     public void addData(T d) {
         this.data.add(d);
+        d.setMetric(this);
     }
 
     @Override

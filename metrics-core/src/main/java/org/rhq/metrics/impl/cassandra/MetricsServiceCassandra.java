@@ -29,6 +29,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.RateLimiter;
 
 import org.joda.time.Duration;
+import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +60,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
     public static final String REQUEST_LIMIT = "rhq.metrics.request.limit";
 
-    private static final int RAW_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
+    public static final int DEFAULT_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
     private static final Function<ResultSet, Void> RESULT_SET_TO_VOID = new Function<ResultSet, Void>() {
         @Override
@@ -96,6 +97,7 @@ public class MetricsServiceCassandra implements MetricsService {
         // the session is managed externally
         this.session = Optional.absent();
         this.dataAccess = new DataAccess(s);
+        loadTenants();
     }
 
     @Override
@@ -144,6 +146,18 @@ public class MetricsServiceCassandra implements MetricsService {
 
         session = Optional.of(cluster.connect(keyspace));
         dataAccess = new DataAccess(session.get());
+        loadTenants();
+    }
+
+    void loadTenants() {
+        TenantMapper mapper = new TenantMapper();
+        ResultSet resultSet = dataAccess.findAllTenantIds().getUninterruptibly();
+        for (Row row : resultSet) {
+            String tenantId = row.getString(0);
+            ResultSetFuture queryFuture = dataAccess.findTenant(tenantId);
+            ResultSet tenantResultSet = queryFuture.getUninterruptibly();
+            tenants.put(tenantId, mapper.apply(tenantResultSet));
+        }
     }
 
     @Override
@@ -153,6 +167,20 @@ public class MetricsServiceCassandra implements MetricsService {
             s.close();
             s.getCluster().close();
         }
+    }
+
+    /**
+     * This is a test hook.
+     */
+    DataAccess getDataAccess() {
+        return dataAccess;
+    }
+
+    /**
+     * This is a test hook.
+     */
+    void setDataAccess(DataAccess dataAccess) {
+        this.dataAccess = dataAccess;
     }
 
     @Override
@@ -232,7 +260,8 @@ public class MetricsServiceCassandra implements MetricsService {
             if (metric.getData().isEmpty()) {
                 logger.warn("There is no data to insert for {}", metric);
             } else {
-                insertFutures.add(dataAccess.insertData(metric));
+                int ttl = getTTL(metric);
+                insertFutures.add(dataAccess.insertData(metric, ttl));
             }
         }
         insertFutures.add(dataAccess.updateMetricsIndex(metrics));
@@ -361,8 +390,13 @@ public class MetricsServiceCassandra implements MetricsService {
     // metrics since they could efficiently be inserted in a single batch statement.
     public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric2 metric, final Set<String> tags, long start,
         long end) {
-        ListenableFuture<List<NumericData>> queryFuture = findData(metric, start, end);
-        return Futures.transform(queryFuture, new AsyncFunction<List<NumericData>, List<NumericData>>() {
+        ResultSetFuture queryFuture = dataAccess.findData(metric, start, end, true);
+        ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper(true),
+            metricsTasks);
+        int ttl = getTTL(metric);
+        ListenableFuture<List<NumericData>> updatedDataFuture = Futures.transform(dataFuture,
+            new ComputeTTL<NumericData>(ttl), metricsTasks);
+        return Futures.transform(updatedDataFuture, new AsyncFunction<List<NumericData>, List<NumericData>>() {
             @Override
             public ListenableFuture<List<NumericData>> apply(final List<NumericData> taggedData) {
                 List<ResultSetFuture> insertFutures = new ArrayList<>(tags.size());
@@ -411,10 +445,13 @@ public class MetricsServiceCassandra implements MetricsService {
     @Override
     public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric2 metric, final Set<String> tags,
         long timestamp) {
-        ListenableFuture<ResultSet> queryFuture = dataAccess.findData(metric, timestamp);
-        ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper(false),
+        ListenableFuture<ResultSet> queryFuture = dataAccess.findData(metric, timestamp, true);
+        ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper(true),
             metricsTasks);
-        return Futures.transform(dataFuture, new AsyncFunction<List<NumericData>, List<NumericData>>() {
+        int ttl = getTTL(metric);
+        ListenableFuture<List<NumericData>> updatedDataFuture = Futures.transform(dataFuture,
+            new ComputeTTL<NumericData>(ttl), metricsTasks);
+        return Futures.transform(updatedDataFuture, new AsyncFunction<List<NumericData>, List<NumericData>>() {
             @Override
             public ListenableFuture<List<NumericData>> apply(final List<NumericData> data) throws Exception {
                 if (data.isEmpty()) {
@@ -544,6 +581,27 @@ public class MetricsServiceCassandra implements MetricsService {
                 return mergedDataMap;
             }
         }, metricsTasks);
+    }
+
+    private int getTTL(NumericMetric2 metric) {
+        // This is an initial implementation just to get something working. We will probably
+        // want to refactor this. Data retention is specified in hours, but Cassandra
+        // expects seconds. Since this method is called every time we insert data, I do not
+        // think we want to incur the overhead of converting from hours to seconds. And I
+        // am not sure if we want/need to cache the whole Tenant object.
+        Tenant tenant = tenants.get(metric.getTenantId());
+        int ttl;
+        if (tenant == null) {
+            ttl = DEFAULT_TTL;
+        } else {
+            Integer hours = tenant.getRetentionSettings().get(MetricType.NUMERIC);
+            if (hours == null) {
+                ttl = DEFAULT_TTL;
+            } else {
+                ttl = Hours.hours(hours).toStandardSeconds().getSeconds();
+            }
+        }
+        return ttl;
     }
 
     private void updateSchemaIfNecessary(Cluster cluster, String schemaName) {

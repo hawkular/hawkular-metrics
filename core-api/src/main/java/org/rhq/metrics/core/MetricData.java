@@ -28,15 +28,28 @@ public abstract class MetricData {
 
     protected Set<Tag> tags = new HashSet<>();
 
+    protected Long writeTime;
+
+    /**
+     * This is only used in calculating an updated TTL for data that has already been inserted. It might make more
+     * sense to move this field closer to where the computations are performed and used.
+     */
+    protected Integer ttl;
+
     public MetricData(Metric metric, UUID timeUUID) {
         this.metric = metric;
         this.timeUUID = timeUUID;
     }
 
     public MetricData(Metric metric, UUID timeUUID, Set<Tag> tags) {
+        this(metric, timeUUID, tags, null);
+    }
+
+    public MetricData(Metric metric, UUID timeUUID, Set<Tag> tags, Long writeTime) {
         this.metric = metric;
         this.timeUUID = timeUUID;
         this.tags = tags;
+        this.writeTime = writeTime;
     }
 
     public MetricData(Metric metric, long timestamp) {
@@ -46,6 +59,17 @@ public abstract class MetricData {
 
     public MetricData(UUID timeUUID) {
         this.timeUUID = timeUUID;
+    }
+
+    public MetricData(UUID timeUUID, Set<Tag> tags) {
+        this.timeUUID = timeUUID;
+        this.tags = tags;
+    }
+
+    public MetricData(UUID timeUUID, Set<Tag> tags, Long writeTime) {
+        this.timeUUID = timeUUID;
+        this.tags = tags;
+        this.writeTime = writeTime;
     }
 
     public MetricData(long timestamp) {
@@ -80,6 +104,22 @@ public abstract class MetricData {
 
     public void setTags(Set<Tag> tags) {
         this.tags = tags;
+    }
+
+    public Long getWriteTime() {
+        return writeTime;
+    }
+
+    public void setWriteTime(Long writeTime) {
+        this.writeTime = writeTime;
+    }
+
+    public Integer getTTL() {
+        return ttl;
+    }
+
+    public void setTTL(Integer ttl) {
+        this.ttl = ttl;
     }
 
     @Override

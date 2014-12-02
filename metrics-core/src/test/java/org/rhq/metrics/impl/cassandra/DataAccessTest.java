@@ -6,7 +6,6 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
 import java.util.List;
-import java.util.Set;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
@@ -89,10 +88,10 @@ public class DataAccessTest extends MetricsTest {
         insertFuture = dataAccess.insertTenant(tenant2);
         getUninterruptibly(insertFuture);
 
-        ResultSetFuture queryFuture = dataAccess.findTenants();
-        ListenableFuture<Set<Tenant>> tenantsFuture = Futures.transform(queryFuture, new TenantsMapper());
-        Set<Tenant> actual = getUninterruptibly(tenantsFuture);
-        Set<Tenant> expected = ImmutableSet.of(tenant1, tenant2);
+        ResultSetFuture queryFuture = dataAccess.findTenant(tenant1.getId());
+        ListenableFuture<Tenant> tenantFuture = Futures.transform(queryFuture, new TenantMapper());
+        Tenant actual = getUninterruptibly(tenantFuture);
+        Tenant expected = tenant1;
 
         assertEquals(actual, expected, "The tenants do not match");
     }
@@ -110,14 +109,12 @@ public class DataAccessTest extends MetricsTest {
         DateTime end = start.plusMinutes(6);
 
         NumericMetric2 metric = new NumericMetric2("tenant-1", new MetricId("metric-1"));
-        List<NumericData> data = asList(
-            new NumericData(metric, start.getMillis(), 1.23),
-            new NumericData(metric, start.plusMinutes(1).getMillis(), 1.234),
-            new NumericData(metric, start.plusMinutes(2).getMillis(), 1.234),
-            new NumericData(metric, end.getMillis(), 1.234)
-        );
+        metric.addData(new NumericData(metric, start.getMillis(), 1.23));
+        metric.addData(new NumericData(metric, start.plusMinutes(1).getMillis(), 1.234));
+        metric.addData(new NumericData(metric, start.plusMinutes(2).getMillis(), 1.234));
+        metric.addData(new NumericData(metric, end.getMillis(), 1.234));
 
-        getUninterruptibly(dataAccess.insertNumericData(data));
+        getUninterruptibly(dataAccess.insertData(metric, MetricsServiceCassandra.DEFAULT_TTL));
 
         ResultSetFuture queryFuture = dataAccess.findData(metric, start.getMillis(), end.getMillis());
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
@@ -142,13 +139,11 @@ public class DataAccessTest extends MetricsTest {
         ResultSetFuture insertFuture = dataAccess.addMetadata(metric);
         getUninterruptibly(insertFuture);
 
-        List<NumericData> data = asList(
-            new NumericData(metric, start.getMillis(), 1.23),
-            new NumericData(metric, start.plusMinutes(2).getMillis(), 1.234),
-            new NumericData(metric, start.plusMinutes(4).getMillis(), 1.234),
-            new NumericData(metric, end.getMillis(), 1.234)
-        );
-        getUninterruptibly(dataAccess.insertNumericData(data));
+        metric.addData(new NumericData(metric, start.getMillis(), 1.23));
+        metric.addData(new NumericData(metric, start.plusMinutes(2).getMillis(), 1.234));
+        metric.addData(new NumericData(metric, start.plusMinutes(4).getMillis(), 1.234));
+        metric.addData(new NumericData(metric, end.getMillis(), 1.234));
+        getUninterruptibly(dataAccess.insertData(metric, MetricsServiceCassandra.DEFAULT_TTL));
 
         ResultSetFuture queryFuture = dataAccess.findData(metric, start.getMillis(), end.getMillis());
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());

@@ -45,7 +45,9 @@ public class DataAccess {
 
     private PreparedStatement insertTenant;
 
-    private PreparedStatement findTenants;
+    private PreparedStatement findAllTenantIds;
+
+    private PreparedStatement findTenant;
 
     private PreparedStatement insertMetric;
 
@@ -59,7 +61,11 @@ public class DataAccess {
 
     private PreparedStatement findNumericDataByDateRangeExclusive;
 
+    private PreparedStatement findNumericDataWithWriteTimeByDateRangeExclusive;
+
     private PreparedStatement findNumericDataByDateRangeInclusive;
+
+    private PreparedStatement findNumericDataWithWriteTimeByDateRangeInclusive;
 
     private PreparedStatement findAvailabilityByDateRangeInclusive;
 
@@ -106,7 +112,9 @@ public class DataAccess {
             "VALUES (?, ?, ?) " +
             "IF NOT EXISTS");
 
-        findTenants = session.prepare("SELECT id, retentions, aggregation_templates FROM tenants");
+        findAllTenantIds = session.prepare("SELECT DISTINCT id FROM tenants");
+
+        findTenant = session.prepare("SELECT id, retentions, aggregation_templates FROM tenants WHERE id = ?");
 
         findMetric = session.prepare(
             "SELECT tenant_id, type, metric, interval, dpart, meta_data " +
@@ -148,16 +156,27 @@ public class DataAccess {
 
         insertNumericData = session.prepare(
             "UPDATE data " +
+            "USING TTL ?" +
             "SET meta_data = meta_data + ?, n_value = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ? ");
 
         findNumericDataByDateRangeExclusive = session.prepare(
             "SELECT tenant_id, metric, interval, dpart, time, meta_data, n_value, aggregates, tags " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
 
+        findNumericDataWithWriteTimeByDateRangeExclusive = session.prepare(
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, n_value, aggregates, tags, WRITETIME(n_value) " +
+            "FROM data " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
+
         findNumericDataByDateRangeInclusive = session.prepare(
             "SELECT tenant_id, metric, interval, dpart, time, meta_data, n_value, aggregates, tags " +
+            "FROM data " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time <= ?");
+
+        findNumericDataWithWriteTimeByDateRangeInclusive = session.prepare(
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, n_value, aggregates, tags, WRITETIME(n_value) " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time <= ?");
 
@@ -185,7 +204,9 @@ public class DataAccess {
             "SELECT tenant_id, group, c_name, c_value FROM counters WHERE tenant_id = ? AND group = ? AND c_name IN ?");
 
         insertNumericTags = session.prepare(
-            "INSERT INTO tags (tenant_id, tag, type, metric, interval, time, n_value) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            "INSERT INTO tags (tenant_id, tag, type, metric, interval, time, n_value) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?) " +
+            "USING TTL ?");
 
         insertAvailabilityTags = session.prepare(
             "INSERT INTO tags (tenant_id, tag, type, metric, interval, time, availability) " +
@@ -248,8 +269,12 @@ public class DataAccess {
         return session.executeAsync(insertTenant.bind(tenant.getId(), retentions, templateValues));
     }
 
-    public ResultSetFuture findTenants() {
-        return session.executeAsync(findTenants.bind());
+    public ResultSetFuture findAllTenantIds() {
+        return session.executeAsync(findAllTenantIds.bind());
+    }
+
+    public ResultSetFuture findTenant(String id) {
+        return session.executeAsync(findTenant.bind(id));
     }
 
     public ResultSetFuture insertMetric(Metric metric) {
@@ -317,23 +342,10 @@ public class DataAccess {
 //            data.getTenantId(), data.getId().getName(), data.getId().getInterval().toString(), 0L, data.getTimeUUID()));
 //    }
 
-    public ResultSetFuture insertNumericData(List<NumericData> data) {
-        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
-        for (NumericData d : data) {
-            // TODO Determine what if there is any performance overhead for adding an empty map
-            // If there is some overhead, then we will want to use a different prepared
-            // statement when there are is meta data.
-            batchStatement.add(insertNumericData.bind(d.getMetric().getMetadata(), d.getValue(),
-                d.getMetric().getTenantId(), d.getMetric().getType().getCode(), d.getMetric().getId().getName(),
-                d.getMetric().getId().getInterval().toString(), d.getMetric().getDpart(), d.getTimeUUID()));
-        }
-        return session.executeAsync(batchStatement);
-    }
-
-    public ResultSetFuture insertData(NumericMetric2 metric) {
+    public ResultSetFuture insertData(NumericMetric2 metric, int ttl) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (NumericData d : metric.getData()) {
-            batchStatement.add(insertNumericData.bind(metric.getMetadata(), d.getValue(), metric.getTenantId(),
+            batchStatement.add(insertNumericData.bind(ttl, metric.getMetadata(), d.getValue(), metric.getTenantId(),
                 metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 metric.getDpart(), d.getTimeUUID()));
         }
@@ -341,16 +353,35 @@ public class DataAccess {
     }
 
     public ResultSetFuture findData(NumericMetric2 metric, long startTime, long endTime) {
-        return session.executeAsync(
-            findNumericDataByDateRangeExclusive.bind(metric.getTenantId(), MetricType.NUMERIC.getCode(),
-                metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart(),
-                TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
+        return findData(metric, startTime, endTime, false);
+    }
+
+    public ResultSetFuture findData(NumericMetric2 metric, long startTime, long endTime, boolean includeWriteTime) {
+        if (includeWriteTime) {
+            return session.executeAsync(findNumericDataWithWriteTimeByDateRangeExclusive.bind(metric.getTenantId(),
+                MetricType.NUMERIC.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+                metric.getDpart(), TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
+        } else {
+            return session.executeAsync(findNumericDataByDateRangeExclusive.bind(metric.getTenantId(),
+                MetricType.NUMERIC.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+                metric.getDpart(), TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
+        }
     }
 
     public ResultSetFuture findData(NumericMetric2 metric, long timestamp) {
-        return session.executeAsync(findNumericDataByDateRangeInclusive.bind(metric.getTenantId(),
-            MetricType.NUMERIC.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
-            metric.getDpart(), UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
+        return findData(metric, timestamp, false);
+    }
+
+    public ResultSetFuture findData(NumericMetric2 metric, long timestamp, boolean includeWriteTime) {
+        if (includeWriteTime) {
+            return session.executeAsync(findNumericDataWithWriteTimeByDateRangeInclusive.bind(metric.getTenantId(),
+                MetricType.NUMERIC.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+                metric.getDpart(), UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
+        } else {
+            return session.executeAsync(findNumericDataByDateRangeInclusive.bind(metric.getTenantId(),
+                MetricType.NUMERIC.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+                metric.getDpart(), UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
+        }
     }
 
     public ResultSetFuture findData(AvailabilityMetric metric, long timestamp) {
@@ -373,7 +404,7 @@ public class DataAccess {
         for (NumericData d : data) {
             batchStatement.add(insertNumericTags.bind(d.getMetric().getTenantId(), tag, MetricType.NUMERIC.getCode(),
                 d.getMetric().getId().getName(), d.getMetric().getId().getInterval().toString(), d.getTimeUUID(),
-                d.getValue()));
+                d.getValue(), d.getTTL()));
         }
         return session.executeAsync(batchStatement);
     }

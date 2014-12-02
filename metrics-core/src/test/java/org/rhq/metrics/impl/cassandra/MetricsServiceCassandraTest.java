@@ -11,11 +11,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import org.joda.time.DateTime;
+import org.joda.time.Days;
+import org.joda.time.Hours;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -40,11 +44,14 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
     private MetricsServiceCassandra metricsService;
 
+    private DataAccess dataAccess;
+
     @BeforeClass
     public void initClass() {
         initSession();
         metricsService = new MetricsServiceCassandra();
         metricsService.startUp(session);
+        dataAccess = metricsService.getDataAccess();
     }
 
     @BeforeMethod
@@ -52,7 +59,8 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         session.execute("TRUNCATE tenants");
         session.execute("TRUNCATE data");
         session.execute("TRUNCATE tags");
-        session.executeAsync("TRUNCATE metrics_idx");
+        session.execute("TRUNCATE metrics_idx");
+        metricsService.setDataAccess(dataAccess);
     }
 
     @Test
@@ -136,6 +144,91 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         assertEquals(actual, expected, "The data does not match the expected values");
 
         assertMetricIndexMatches("t1", MetricType.NUMERIC, asList(metric));
+    }
+
+    @Test
+    public void verifyTTLsSetOnNumericData() throws Exception {
+        DateTime start = now().minusMinutes(10);
+
+        getUninterruptibly(metricsService.createTenant(new Tenant().setId("t1")));
+        getUninterruptibly(metricsService.createTenant(new Tenant().setId("t2")
+            .setRetention(MetricType.NUMERIC, Days.days(14).toStandardHours().getHours())));
+
+        VerifyTTLDataAccess verifyTTLDataAccess = new VerifyTTLDataAccess(session);
+
+        metricsService.loadTenants();
+        metricsService.setDataAccess(verifyTTLDataAccess);
+
+        NumericMetric2 m1 = new NumericMetric2("t1", new MetricId("m1"));
+        m1.addData(start.getMillis(), 1.01);
+        m1.addData(start.plusMinutes(1).getMillis(), 1.02);
+        m1.addData(start.plusMinutes(2).getMillis(), 1.03);
+        getUninterruptibly(metricsService.addNumericData(asList(m1)));
+
+        Set<String> tags = ImmutableSet.of("tag1");
+
+
+        // Sleep for 5 seconds and verify that the TTL of the tagged data points is at
+        // least 5 seconds less than the original TTL.
+        Thread.sleep(5000);
+        verifyTTLDataAccess.setNumericTagTTL(Days.days(14).toStandardSeconds().minus(5).getSeconds());
+        getUninterruptibly(metricsService.tagNumericData(m1, tags, start.getMillis(),
+            start.plusMinutes(2).getMillis()));
+
+        verifyTTLDataAccess.setNumericTTL(Days.days(14).toStandardSeconds().getSeconds());
+        NumericMetric2 m2 = new NumericMetric2("t2", new MetricId("m2"));
+        m2.addData(start.plusMinutes(5).getMillis(), 2.02);
+        getUninterruptibly(metricsService.addNumericData(asList(m2)));
+
+        // Sleep for 3 seconds and verify that the TTL of the tagged data points is at
+        // least 3 seconds less than the original TTL.
+        Thread.sleep(3000);
+        verifyTTLDataAccess.setNumericTagTTL(Days.days(14).toStandardSeconds().minus(3).getSeconds());
+        getUninterruptibly(metricsService.tagNumericData(m2, tags, start.plusMinutes(5).getMillis()));
+
+        getUninterruptibly(metricsService.createTenant(new Tenant().setId("t3")
+            .setRetention(MetricType.NUMERIC, 24)));
+        verifyTTLDataAccess.setNumericTTL(Hours.hours(24).toStandardSeconds().getSeconds());
+        NumericMetric2 m3 = new NumericMetric2("t3", new MetricId("m3"));
+        m3.addData(start.getMillis(), 3.03);
+        getUninterruptibly(metricsService.addNumericData(asList(m3)));
+    }
+
+    private static class VerifyTTLDataAccess extends DataAccess {
+
+        private int numericTTL;
+
+        private int numericTagTTL;
+
+        public VerifyTTLDataAccess(Session session) {
+            super(session);
+            numericTTL = MetricsServiceCassandra.DEFAULT_TTL;
+        }
+
+        public void setNumericTTL(int expectedTTL) {
+            this.numericTTL = expectedTTL;
+        }
+
+        public void setNumericTagTTL(int numericTagTTL) {
+            this.numericTagTTL = numericTagTTL;
+        }
+
+        @Override
+        public ResultSetFuture insertData(NumericMetric2 metric, int ttl) {
+            assertEquals(ttl, numericTTL, "The numeric data TTL does not match the expected value when " +
+                "inserting data");
+            return super.insertData(metric, ttl);
+        }
+
+        @Override
+        public ResultSetFuture insertNumericTag(String tag, List<NumericData> data) {
+            for (NumericData d : data) {
+                assertTrue(d.getTTL() <= numericTagTTL, "Expected the TTL to be <= " + numericTagTTL +
+                    "when tagging numeric data");
+            }
+
+            return super.insertNumericTag(tag, data);
+        }
     }
 
     @Test
