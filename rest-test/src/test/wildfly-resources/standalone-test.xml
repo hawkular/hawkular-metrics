@@ -113,6 +113,9 @@
       <logger category="jacorb.config">
         <level name="ERROR"/>
       </logger>
+      <logger category="com.datastax.driver">
+        <level name="DEBUG"/>
+      </logger>
       <logger category="org.rhq.metrics">
         <level name="DEBUG"/>
       </logger>
