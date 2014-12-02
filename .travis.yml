@@ -23,5 +23,6 @@ addons:
 before_install:
   - sudo rm -rf /var/lib/cassandra/*
   - wget http://downloads.datastax.com/community/dsc-cassandra-2.1.1-bin.tar.gz && tar -xvzf dsc-cassandra-2.1.1-bin.tar.gz && sudo sh dsc-cassandra-2.1.1/bin/cassandra
-install: 'mvn install -DskipTests=true -B'
-script: 'mvn verify -Dwildfly.logging.console.level=DEBUG -B'
+install: 'mvn -s .travis.maven.settings.xml install -DskipTests=true -B'
+script: 'mvn -s .travis.maven.settings.xml verify -Dwildfly.logging.console.level=DEBUG -B'
+
