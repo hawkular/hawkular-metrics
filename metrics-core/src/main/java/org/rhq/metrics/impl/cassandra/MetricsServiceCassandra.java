@@ -276,7 +276,8 @@ public class MetricsServiceCassandra implements MetricsService {
             if (metric.getData().isEmpty()) {
                 logger.warn("There is no data to insert for {}", metric);
             } else {
-                insertFutures.add(dataAccess.insertData(metric));
+                int ttl = getTTL(metric);
+                insertFutures.add(dataAccess.insertData(metric, ttl));
             }
         }
         insertFutures.add(dataAccess.updateMetricsIndex(metrics));
@@ -420,22 +421,27 @@ public class MetricsServiceCassandra implements MetricsService {
     @Override
     public ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, final Set<String> tags,
         long start, long end) {
-        ListenableFuture<AvailabilityMetric> queryFuture = findAvailabilityData(metric, start, end);
-        return Futures.transform(queryFuture, new AsyncFunction<AvailabilityMetric, List<Availability>>() {
+        ResultSetFuture queryFuture = dataAccess.findData(metric, start, end, true);
+        ListenableFuture<List<Availability>> dataFuture = Futures.transform(queryFuture,
+            new AvailabilityDataMapper(true), metricsTasks);
+        int ttl = getTTL(metric);
+        ListenableFuture<List<Availability>> updatedDataFuture = Futures.transform(dataFuture,
+            new ComputeTTL<Availability>(ttl), metricsTasks);
+        return Futures.transform(updatedDataFuture, new AsyncFunction<List<Availability>, List<Availability>>() {
             @Override
-            public ListenableFuture<List<Availability>> apply(final AvailabilityMetric loadedMetric) throws Exception {
-                List<ResultSetFuture> insertFutures = new ArrayList<>(loadedMetric.getData().size());
+            public ListenableFuture<List<Availability>> apply(final List<Availability> taggedData) throws Exception {
+                List<ResultSetFuture> insertFutures = new ArrayList<>(taggedData.size());
                 for (String tag : tags) {
-                    insertFutures.add(dataAccess.insertAvailabilityTag(tag, loadedMetric.getData()));
+                    insertFutures.add(dataAccess.insertAvailabilityTag(tag, taggedData));
                 }
-                for (Availability a : loadedMetric.getData()) {
+                for (Availability a : taggedData) {
                     insertFutures.add(dataAccess.updateDataWithTag(a, tags));
                 }
                 ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
                 return Futures.transform(insertsFuture, new Function<List<ResultSet>, List<Availability>>() {
                     @Override
                     public List<Availability> apply(List<ResultSet> resultSets) {
-                        return loadedMetric.getData();
+                        return taggedData;
                     }
                 });
             }
@@ -480,9 +486,12 @@ public class MetricsServiceCassandra implements MetricsService {
     public ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, final Set<String> tags,
         long timestamp) {
         ListenableFuture<ResultSet> queryFuture = dataAccess.findData(metric, timestamp);
-        ListenableFuture<List<Availability>> dataFuture = Futures.transform(queryFuture, new AvailabilityDataMapper(),
-            metricsTasks);
-        return Futures.transform(dataFuture, new AsyncFunction<List<Availability>, List<Availability>>() {
+        ListenableFuture<List<Availability>> dataFuture = Futures.transform(queryFuture,
+            new AvailabilityDataMapper(true), metricsTasks);
+        int ttl = getTTL(metric);
+        ListenableFuture<List<Availability>> updatedDataFuture = Futures.transform(dataFuture,
+            new ComputeTTL<Availability>(ttl), metricsTasks);
+        return Futures.transform(updatedDataFuture, new AsyncFunction<List<Availability>, List<Availability>>() {
             @Override
             public ListenableFuture<List<Availability>> apply(final List<Availability> data) throws Exception {
                 if (data.isEmpty()) {
@@ -583,7 +592,7 @@ public class MetricsServiceCassandra implements MetricsService {
         }, metricsTasks);
     }
 
-    private int getTTL(NumericMetric2 metric) {
+    private int getTTL(Metric metric) {
         // This is an initial implementation just to get something working. We will probably
         // want to refactor this. Data retention is specified in hours, but Cassandra
         // expects seconds. Since this method is called every time we insert data, I do not
@@ -594,7 +603,7 @@ public class MetricsServiceCassandra implements MetricsService {
         if (tenant == null) {
             ttl = DEFAULT_TTL;
         } else {
-            Integer hours = tenant.getRetentionSettings().get(MetricType.NUMERIC);
+            Integer hours = tenant.getRetentionSettings().get(metric.getType());
             if (hours == null) {
                 ttl = DEFAULT_TTL;
             } else {

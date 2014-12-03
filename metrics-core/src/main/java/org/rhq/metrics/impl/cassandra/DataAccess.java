@@ -101,6 +101,8 @@ public class DataAccess {
 
     private PreparedStatement readMetricsIndex;
 
+    private PreparedStatement findAvailabilitiesWithWriteTime;
+
     public DataAccess(Session session) {
         this.session = session;
         initPreparedStatements();
@@ -181,7 +183,7 @@ public class DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time <= ?");
 
         findAvailabilityByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, availability, tags " +
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, availability, tags, WRITETIME(availability) " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time <= ?");
 
@@ -210,7 +212,8 @@ public class DataAccess {
 
         insertAvailabilityTags = session.prepare(
             "INSERT INTO tags (tenant_id, tag, type, metric, interval, time, availability) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?)");
+            "VALUES (?, ?, ?, ?, ?, ?, ?) " +
+            "USING TTL ?");
 
         updateDataWithTags = session.prepare(
             "UPDATE data " +
@@ -233,11 +236,17 @@ public class DataAccess {
 
         insertAvailability = session.prepare(
             "UPDATE data " +
+            "USING TTL ? " +
             "SET meta_data = meta_data + ?, availability = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
         findAvailabilities = session.prepare(
             "SELECT tenant_id, metric, interval, dpart, time, meta_data, availability, tags " +
+            "FROM data " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
+
+        findAvailabilitiesWithWriteTime = session.prepare(
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, availability, tags, WRITETIME(availability) " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
     }
@@ -368,10 +377,6 @@ public class DataAccess {
         }
     }
 
-    public ResultSetFuture findData(NumericMetric2 metric, long timestamp) {
-        return findData(metric, timestamp, false);
-    }
-
     public ResultSetFuture findData(NumericMetric2 metric, long timestamp, boolean includeWriteTime) {
         if (includeWriteTime) {
             return session.executeAsync(findNumericDataWithWriteTimeByDateRangeInclusive.bind(metric.getTenantId(),
@@ -381,6 +386,22 @@ public class DataAccess {
             return session.executeAsync(findNumericDataByDateRangeInclusive.bind(metric.getTenantId(),
                 MetricType.NUMERIC.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 metric.getDpart(), UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
+        }
+    }
+
+    public ResultSetFuture findData(AvailabilityMetric metric, long startTime, long endTime) {
+        return findData(metric, startTime, endTime, false);
+    }
+
+    public ResultSetFuture findData(AvailabilityMetric metric, long startTime, long endTime, boolean includeWriteTime) {
+        if (includeWriteTime) {
+            return session.executeAsync(findAvailabilitiesWithWriteTime.bind(metric.getTenantId(),
+                MetricType.AVAILABILITY.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+                metric.getDpart(), TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
+        } else {
+            return session.executeAsync(findAvailabilities.bind(metric.getTenantId(), MetricType.AVAILABILITY.getCode(),
+                metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart(),
+                TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
         }
     }
 
@@ -414,7 +435,7 @@ public class DataAccess {
         for (Availability a : data) {
             batchStatement.add(insertAvailabilityTags.bind(a.getMetric().getTenantId(), tag,
                 MetricType.AVAILABILITY.getCode(), a.getMetric().getId().getName(),
-                a.getMetric().getId().getInterval().toString(), a.getTimeUUID(), a.getBytes()));
+                a.getMetric().getId().getInterval().toString(), a.getTimeUUID(), a.getBytes(), a.getTTL()));
         }
         return session.executeAsync(batchStatement);
     }
@@ -443,10 +464,10 @@ public class DataAccess {
             a.getMetric().getId().getInterval().toString(), a.getMetric().getDpart(), a.getTimeUUID()));
     }
 
-    public ResultSetFuture insertData(AvailabilityMetric metric) {
+    public ResultSetFuture insertData(AvailabilityMetric metric, int ttl) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (Availability a : metric.getData()) {
-            batchStatement.add(insertAvailability.bind(metric.getMetadata(), a.getBytes(), metric.getTenantId(),
+            batchStatement.add(insertAvailability.bind(ttl, metric.getMetadata(), a.getBytes(), metric.getTenantId(),
                 metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 metric.getDpart(), a.getTimeUUID()));
         }

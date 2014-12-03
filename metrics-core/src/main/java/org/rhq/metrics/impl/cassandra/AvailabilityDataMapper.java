@@ -1,6 +1,5 @@
 package org.rhq.metrics.impl.cassandra;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -22,6 +21,38 @@ import org.rhq.metrics.core.Tag;
  */
 public class AvailabilityDataMapper implements Function<ResultSet, List<Availability>> {
 
+    private interface RowConverter {
+        Availability getData(Row row);
+    }
+
+    private final RowConverter DEFAULT_CONVERTER = new RowConverter() {
+        @Override
+        public Availability getData(Row row) {
+            return new Availability(row.getUUID(4), row.getBytes(6), getTags(row));
+        }
+    };
+
+    private final RowConverter WRITE_TIME_CONVERTER = new RowConverter() {
+        @Override
+        public Availability getData(Row row) {
+            return new Availability(row.getUUID(4), row.getBytes(6), getTags(row), row.getLong(8) / 1000);
+        }
+    };
+
+    private RowConverter rowConverter;
+
+    public AvailabilityDataMapper() {
+        this(false);
+    }
+
+    public AvailabilityDataMapper(boolean includeWriteTime) {
+        if (includeWriteTime) {
+            rowConverter = WRITE_TIME_CONVERTER;
+        } else {
+            rowConverter = DEFAULT_CONVERTER;
+        }
+    }
+
     @Override
     public List<Availability> apply(ResultSet resultSet) {
         if (resultSet.isExhausted()) {
@@ -29,14 +60,13 @@ public class AvailabilityDataMapper implements Function<ResultSet, List<Availabi
         }
         Row firstRow = resultSet.one();
         AvailabilityMetric metric = getMetric(firstRow);
-        List<Availability> data = new ArrayList<>();
-        data.add(new Availability(metric, firstRow.getUUID(4), firstRow.getBytes(6), getTags(firstRow)));
+        metric.addData(rowConverter.getData(firstRow));
 
         for (Row row : resultSet) {
-            data.add(new Availability(metric, row.getUUID(4), row.getBytes(6), getTags(row)));
+            metric.addData(rowConverter.getData(row));
         }
 
-        return data;
+        return metric.getData();
     }
 
     private AvailabilityMetric getMetric(Row row) {

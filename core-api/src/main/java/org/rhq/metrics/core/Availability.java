@@ -22,6 +22,11 @@ public class Availability extends MetricData {
         this.type = type;
     }
 
+    public Availability(long timestamp, AvailabilityType type) {
+        super(timestamp);
+        this.type = type;
+    }
+
     public Availability(AvailabilityMetric metric, UUID timeUUID, String availability) {
         super(metric, timeUUID);
         this.type = AvailabilityType.fromString(availability);
@@ -39,6 +44,16 @@ public class Availability extends MetricData {
 
     public Availability(AvailabilityMetric metric, UUID timeUUID, ByteBuffer bytes, Set<Tag> tags) {
         super(metric, timeUUID, tags);
+        type = AvailabilityType.fromBytes(bytes);
+    }
+
+    public Availability(UUID timeUUID, ByteBuffer bytes, Set<Tag> tags) {
+        super(timeUUID, tags);
+        type = AvailabilityType.fromBytes(bytes);
+    }
+
+    public Availability(UUID timeUUID, ByteBuffer bytes, Set<Tag> tags, Long writeTime) {
+        super(timeUUID, tags, writeTime);
         type = AvailabilityType.fromBytes(bytes);
     }
 
