@@ -39,7 +39,7 @@ import org.rhq.metrics.test.MetricsTest;
  */
 public class DataAccessTest extends MetricsTest {
 
-    private DataAccess dataAccess;
+    private DataAccessImpl dataAccess;
 
     private PreparedStatement truncateTenants;
 
@@ -50,7 +50,7 @@ public class DataAccessTest extends MetricsTest {
     @BeforeClass
     public void initClass() {
         initSession();
-        dataAccess = new DataAccess(session);
+        dataAccess = new DataAccessImpl(session);
         truncateTenants = session.prepare("TRUNCATE tenants");
         truncateNumericData = session.prepare("TRUNCATE data");
         truncateCounters = session.prepare("TRUNCATE counters");

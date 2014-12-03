@@ -96,7 +96,7 @@ public class MetricsServiceCassandra implements MetricsService {
     public void startUp(Session s) {
         // the session is managed externally
         this.session = Optional.absent();
-        this.dataAccess = new DataAccess(s);
+        this.dataAccess = new DataAccessImpl(s);
         loadTenants();
     }
 
@@ -145,7 +145,7 @@ public class MetricsServiceCassandra implements MetricsService {
         updateSchemaIfNecessary(cluster, keyspace);
 
         session = Optional.of(cluster.connect(keyspace));
-        dataAccess = new DataAccess(session.get());
+        dataAccess = new DataAccessImpl(session.get());
         loadTenants();
     }
 
