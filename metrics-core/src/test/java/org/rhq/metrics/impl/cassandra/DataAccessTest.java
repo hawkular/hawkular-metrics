@@ -284,8 +284,9 @@ public class DataAccessTest extends MetricsTest {
         DateTime end = start.plusMinutes(6);
         String tenantId = "avail-test";
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId("m1"));
+        metric.addData(new Availability(metric, start.getMillis(), "up"));
 
-        getUninterruptibly(dataAccess.insertAvailability(new Availability(metric, start.getMillis(), "up")));
+        getUninterruptibly(dataAccess.insertData(metric, 360));
 
         ResultSetFuture future = dataAccess.findAvailabilityData(metric, start.getMillis(), end.getMillis());
         ListenableFuture<List<Availability>> dataFuture = Futures.transform(future, new AvailabilityDataMapper());

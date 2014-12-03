@@ -458,12 +458,6 @@ public class DataAccess {
         return session.executeAsync(findAvailabilityByTag.bind(tenantId, tag, MetricType.AVAILABILITY.getCode()));
     }
 
-    public ResultSetFuture insertAvailability(Availability a) {
-        return session.executeAsync(insertAvailability.bind(a.getMetric().getMetadata(), a.getBytes(),
-            a.getMetric().getTenantId(), a.getMetric().getType().getCode(), a.getMetric().getId().getName(),
-            a.getMetric().getId().getInterval().toString(), a.getMetric().getDpart(), a.getTimeUUID()));
-    }
-
     public ResultSetFuture insertData(AvailabilityMetric metric, int ttl) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (Availability a : metric.getData()) {
