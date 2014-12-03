@@ -314,7 +314,7 @@ public class MetricHandler {
                     metric = new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(p.getId()));
                 }
             }
-            metric.addData(p.getTimestamp(), (double) p.getValue());
+            metric.addData(p.getTimestamp(), (Double) p.getValue());
         }
         metrics.add(metric);
 
@@ -421,12 +421,12 @@ public class MetricHandler {
                 Map<String, MetricOut> results = new HashMap<>();
                 MetricOut dataOut = null;
                 for (MetricId id : taggedDataMap.keySet()) {
-                    List<DataPoint> dataPoints = new ArrayList<>();
+                    List<DataPointOut> dataPoints = new ArrayList<>();
                     for (NumericData d : taggedDataMap.get(id)) {
                         if (dataOut == null) {
                             dataOut = new MetricOut(d.getMetric().getTenantId(), d.getMetric().getId().getName(), null);
                         }
-                        dataPoints.add(new DataPoint(d.getTimestamp(), d.getValue()));
+                        dataPoints.add(new DataPointOut(d.getTimestamp(), d.getValue()));
                     }
                     dataOut.setData(dataPoints);
                     results.put(id.getName(), dataOut);
@@ -458,13 +458,13 @@ public class MetricHandler {
                     Map<String, MetricOut> results = new HashMap<>();
                     MetricOut dataOut = null;
                     for (MetricId id : taggedDataMap.keySet()) {
-                        List<DataPoint> dataPoints = new ArrayList<>();
+                        List<DataPointOut> dataPoints = new ArrayList<>();
                         for (Availability a : taggedDataMap.get(id)) {
                             if (dataOut == null) {
                                 dataOut = new MetricOut(a.getMetric().getTenantId(), a.getMetric().getId().getName(),
                                     null);
                             }
-                            dataPoints.add(new DataPoint(a.getTimestamp(), a.getType().getText()));
+                            dataPoints.add(new DataPointOut(a.getTimestamp(), a.getType().getText()));
                         }
                         dataOut.setData(dataPoints);
                         results.put(id.getName(), dataOut);
@@ -516,9 +516,9 @@ public class MetricHandler {
                 } else {
                     MetricOut output = new MetricOut(metric.getTenantId(), metric.getId().getName(),
                         metric.getMetadata());
-                    List<DataPoint> dataPoints = new ArrayList<>();
+                    List<DataPointOut> dataPoints = new ArrayList<>();
                     for (NumericData d : metric.getData()) {
-                        dataPoints.add(new DataPoint(d.getTimestamp(), d.getValue(), getTagNames(d)));
+                        dataPoints.add(new DataPointOut(d.getTimestamp(), d.getValue(), getTagNames(d)));
                     }
                     output.setData(dataPoints);
 
@@ -557,9 +557,9 @@ public class MetricHandler {
                 } else {
                     MetricOut output = new MetricOut(metric.getTenantId(), metric.getId().getName(),
                         metric.getMetadata());
-                    List<DataPoint> dataPoints = new ArrayList<>(metric.getData().size());
+                    List<DataPointOut> dataPoints = new ArrayList<>(metric.getData().size());
                     for (Availability a : metric.getData()) {
-                        dataPoints.add(new DataPoint(a.getTimestamp(), a.getType().getText(), getTagNames(a)));
+                        dataPoints.add(new DataPointOut(a.getTimestamp(), a.getType().getText(), getTagNames(a)));
                     }
                     output.setData(dataPoints);
 
@@ -643,13 +643,13 @@ public class MetricHandler {
                     Map<String, MetricOut> results = new HashMap<>();
                     MetricOut dataOut = null;
                     for (MetricId id : taggedDataMap.keySet()) {
-                        List<DataPoint> dataPoints = new ArrayList<>();
+                        List<DataPointOut> dataPoints = new ArrayList<>();
                         for (NumericData d : taggedDataMap.get(id)) {
                             if (dataOut == null) {
                                 dataOut = new MetricOut(d.getMetric().getTenantId(), d.getMetric().getId().getName(),
                                     null);
                             }
-                            dataPoints.add(new DataPoint(d.getTimestamp(), d.getValue()));
+                            dataPoints.add(new DataPointOut(d.getTimestamp(), d.getValue()));
                         }
                         dataOut.setData(dataPoints);
                         results.put(id.getName(), dataOut);
@@ -681,13 +681,13 @@ public class MetricHandler {
                     Map<String, MetricOut> results = new HashMap<>();
                     MetricOut dataOut = null;
                     for (MetricId id : taggedDataMap.keySet()) {
-                        List<DataPoint> dataPoints = new ArrayList<>();
+                        List<DataPointOut> dataPoints = new ArrayList<>();
                         for (Availability a : taggedDataMap.get(id)) {
                             if (dataOut == null) {
                                 dataOut = new MetricOut(a.getMetric().getTenantId(), a.getMetric().getId().getName(),
                                     null);
                             }
-                            dataPoints.add(new DataPoint(a.getTimestamp(), a.getType().getText()));
+                            dataPoints.add(new DataPointOut(a.getTimestamp(), a.getType().getText()));
                         }
                         dataOut.setData(dataPoints);
                         results.put(id.getName(), dataOut);

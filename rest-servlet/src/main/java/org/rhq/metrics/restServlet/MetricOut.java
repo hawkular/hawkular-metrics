@@ -21,7 +21,7 @@ public class MetricOut {
     private Map<String, String> metadata = new HashMap<>();
 
     @JsonSerialize(include = JsonSerialize.Inclusion.NON_EMPTY)
-    private List<DataPoint> data = new ArrayList<>();
+    private List<DataPointOut> data = new ArrayList<>();
 
     public MetricOut() {
     }
@@ -56,11 +56,11 @@ public class MetricOut {
         this.metadata = metadata;
     }
 
-    public List<DataPoint> getData() {
+    public List<DataPointOut> getData() {
         return data;
     }
 
-    public void setData(List<DataPoint> data) {
+    public void setData(List<DataPointOut> data) {
         this.data = data;
     }
 }
