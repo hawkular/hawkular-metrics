@@ -253,15 +253,37 @@
             <failsOnError>${checkstyleFailOnError}</failsOnError>
             <!-- Make includes relative to ${basedir} -->
             <sourceDirectory>${basedir}</sourceDirectory>
-            <!-- For *.java, the following setup should include both main and test classes.
-                 For *.xml it should include pom.xml and all *.xml files under src directory.
-                 using just **/*.xml would pull in also the XML files from all submodules
-                 which we do not want here. -->
+            <!-- in <includes>, it is necessary to avoid using an item-initial **/ wildcard
+                 which pulls in also files from all submodules and target folders. We do not want
+                 that. We rather have to name specific root folder patterns like *.extension
+                 or directory/**/*.extension -->
             <includes>
                 src/**/*.java,
                 *.xml,
                 src/**/*.xml,
-                src/**/*.js
+                src/**/*.js,
+                *.adoc,
+                src/**/*.adoc,
+                *.conf,
+                src/**/*.conf,
+                src/**/*.cql,
+                src/**/*.css,
+                Dockerfile,
+                src/**/Dockerfile,
+                src/**/*.groovy,
+                *.html,
+                src/**/*.html,
+                src/**/*.json,
+                src/**/*.js.map,
+                *.properties,
+                src/**/*.properties,
+                *.sh,
+                src/**/*.sh,
+                *.txt,
+                src/**/*.txt,
+                src/**/*.xsl,
+                *.yml,
+                src/**/*.yml,
             </includes>
             <!-- to override in a submodule, just redefine the checkstyle.suppressions.file property
                  in the given submodule's pom -->
