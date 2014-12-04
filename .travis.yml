@@ -26,5 +26,5 @@ before_install:
 install: 'mvn -s .travis.maven.settings.xml install -DskipTests=true -B'
 script: 'mvn -s .travis.maven.settings.xml verify -Dwildfly.logging.console.level=DEBUG -B'
 #after_failure: 'cat dsc-cassandra-2.1.1/logs/*'
-after_failure: 'cat dsc-cassandra-2.1.1/bin/nodetool status'
+after_failure: 'cat `dsc-cassandra-2.1.1/bin/nodetool status`'
 
