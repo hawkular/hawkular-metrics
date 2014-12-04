@@ -19,6 +19,9 @@
     "ng-clip": "0.2.3",
     "rhqm-charts": "~0.1.7"
   },
+  "devDependencies": {
+    "angular-scenario": "1.2.6"
+  },
   "resolutions": {
     "angular": "1.2.6"
   }
