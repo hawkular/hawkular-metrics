@@ -12,8 +12,9 @@
   </parent>
 
   <artifactId>ptrans</artifactId>
-  <name>Protocol Translator</name>
   <packaging>jar</packaging>
+
+  <name>Protocol Translator</name>
   <description>A protocol translator that can receive data from various system and feed it to the RHQ Metrics REST api.</description>
 
   <dependencies>
