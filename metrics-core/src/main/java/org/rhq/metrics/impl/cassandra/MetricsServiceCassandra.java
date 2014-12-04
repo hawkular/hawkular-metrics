@@ -1,5 +1,6 @@
 package org.rhq.metrics.impl.cassandra;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -136,16 +137,16 @@ public class MetricsServiceCassandra implements MetricsService {
 
         logger.info("Using a key space of '" + keyspace + "'");
 
+        session = Optional.of(cluster.connect(keyspace));
+        dataAccess = new DataAccessImpl(session.get());
+
         if (System.getProperty("cassandra.resetdb")!=null) {
             // We want a fresh DB -- mostly used for tests
-            dropKeyspace(cluster, keyspace);
+            dropKeyspace(keyspace);
         }
 
         // This creates/updates the keyspace + tables if needed
-        updateSchemaIfNecessary(cluster, keyspace);
-
-        session = Optional.of(cluster.connect(keyspace));
-        dataAccess = new DataAccessImpl(session.get());
+        updateSchemaIfNecessary(keyspace);
         loadTenants();
     }
 
@@ -377,11 +378,8 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
 
-    private void dropKeyspace(Cluster cluster, String keyspace) {
-        try (Session session = cluster.connect("system")) {
-            logger.info("Removing keyspace '" + keyspace + "'");
-            session.execute("DROP KEYSPACE IF EXISTS " + keyspace);
-        }
+    private void dropKeyspace(String keyspace) {
+        session.get().execute("DROP KEYSPACE IF EXISTS " + keyspace);
     }
 
     @Override
@@ -613,15 +611,12 @@ public class MetricsServiceCassandra implements MetricsService {
         return ttl;
     }
 
-    private void updateSchemaIfNecessary(Cluster cluster, String schemaName) {
-        try (Session session = cluster.connect("system")) {
-            SchemaManager schemaManager = new SchemaManager(session);
-            try {
-                schemaManager.createSchema(schemaName);
-            } catch (Exception e) {
-                logger.error("Schema update failed: " + e);
-                throw new RuntimeException(e);
-            }
+    private void updateSchemaIfNecessary(String schemaName) {
+        try {
+            SchemaManager schemaManager = new SchemaManager(session.get());
+            schemaManager.createSchema(schemaName);
+        } catch (IOException e) {
+            throw new RuntimeException("Schema creation failed", e);
         }
     }
 
