@@ -6,9 +6,9 @@ module Services {
 
     export class MetricDataService {
 
-        public static  $inject = ['$q', '$rootScope', '$http',  'BASE_URL' ];
+        public static  $inject = ['$q', '$rootScope', '$http', '$log', '$localStorage', 'BASE_URL' ];
 
-        constructor(private $q:ng.IQService, private $rootScope:ng.IRootScopeService, private $http:ng.IHttpService,  private BASE_URL:string) {
+        constructor(private $q:ng.IQService, private $rootScope:ng.IRootScopeService, private $http:ng.IHttpService, private $log:ng.ILogService, public $localStorage:any, private BASE_URL:string) {
 
         }
 
@@ -18,8 +18,8 @@ module Services {
         }
 
         getMetricsForTimeRange(id:string, startDate:Date, endDate:Date, buckets:number):any {
-            console.info("-- Retrieving metrics data for id: " + id);
-            console.info("-- Date Range: " + startDate + " - " + endDate);
+            this.$log.info("-- Retrieving metrics data for id: " + id);
+            this.$log.info("-- Date Range: " + startDate + " - " + endDate);
             var numBuckets = buckets || 60,
                 base = this.makeBaseUrl(),
                 deferred = this.$q.defer(),
@@ -33,14 +33,14 @@ module Services {
                 };
 
             if (startDate >= endDate) {
-                console.warn("Start date was after end date");
+                this.$log.warn("Start date was after end date");
                 deferred.reject("Start date was after end date");
             }
 
             this.$http.get(base + '/' + id, searchParams).success(function (data) {
                 deferred.resolve(data);
             }).error(function (reason, status) {
-                console.error('Error Loading Chart Data:' + status + ", " + reason);
+                this.$log.error('Error Loading Chart Data:' + status + ", " + reason);
                 deferred.reject(status + " - " + reason);
             });
 
