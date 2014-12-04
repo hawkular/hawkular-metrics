@@ -257,7 +257,11 @@
                  For *.xml it should include pom.xml and all *.xml files under src directory.
                  using just **/*.xml would pull in also the XML files from all submodules
                  which we do not want here. -->
-            <includes>src/**/*.java,*.xml,src/**/*.xml</includes>
+            <includes>
+                src/**/*.java,
+                *.xml,
+                src/**/*.xml
+            </includes>
             <!-- to override in a submodule, just redefine the checkstyle.suppressions.file property
                  in the given submodule's pom -->
             <suppressionsLocation>${checkstyle.suppressions.file}</suppressionsLocation>
