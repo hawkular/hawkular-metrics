@@ -147,6 +147,44 @@ public class MetricHandler {
         });
     }
 
+    @GET
+    @Path("/tenants")
+    @Consumes("application/json")
+    public void findTenants(@Suspended final AsyncResponse response) {
+        ListenableFuture<Collection<Tenant>> tenantsFuture = metricsService.getTenants();
+        Futures.addCallback(tenantsFuture, new FutureCallback<Collection<Tenant>>() {
+            @Override
+            public void onSuccess(Collection<Tenant> tenants) {
+                if (tenants.isEmpty()) {
+                    response.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
+                }
+                List<TenantParams> output = new ArrayList<>(tenants.size());
+                for (Tenant t : tenants) {
+                    Map<String, Integer> retentions = new HashMap();
+                    Integer numericRetention = t.getRetentionSettings().get(MetricType.NUMERIC);
+                    Integer availabilityRetention = t.getRetentionSettings().get(MetricType.AVAILABILITY);
+                    if (numericRetention != null) {
+                        retentions.put(MetricType.NUMERIC.getText(), numericRetention);
+                    }
+                    if (availabilityRetention != null) {
+                        retentions.put(MetricType.AVAILABILITY.getText(), availabilityRetention);
+                    }
+                    output.add(new TenantParams(t.getId(), retentions));
+                }
+                response.resume(Response.status(Response.Status.OK).entity(output).type(
+                    MediaType.APPLICATION_JSON_TYPE).build());
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to fetch tenants due to an " +
+                    "unexpected error: " + Throwables.getRootCause(t).getMessage());
+                response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).type(
+                    MediaType.APPLICATION_JSON_TYPE).build());
+            }
+        });
+    }
+
     @POST
     @Path("/{tenantId}/metrics/numeric")
     @Consumes("application/json")
