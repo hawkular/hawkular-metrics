@@ -48,6 +48,8 @@ public interface MetricsService {
      */
     ListenableFuture<Void> createTenant(Tenant tenant);
 
+    ListenableFuture<Collection<Tenant>> getTenants();
+
     ListenableFuture<Void> createMetric(Metric metric);
 
     ListenableFuture<Metric> findMetric(String tenantId, MetricType type, MetricId id);

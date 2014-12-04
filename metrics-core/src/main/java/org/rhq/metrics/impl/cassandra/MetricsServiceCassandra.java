@@ -137,16 +137,17 @@ public class MetricsServiceCassandra implements MetricsService {
 
         logger.info("Using a key space of '" + keyspace + "'");
 
-        session = Optional.of(cluster.connect(keyspace));
-        dataAccess = new DataAccessImpl(session.get());
+        session = Optional.of(cluster.connect("system"));
 
         if (System.getProperty("cassandra.resetdb")!=null) {
             // We want a fresh DB -- mostly used for tests
             dropKeyspace(keyspace);
         }
-
         // This creates/updates the keyspace + tables if needed
         updateSchemaIfNecessary(keyspace);
+        session.get().executeAsync("USE " + keyspace);
+
+        dataAccess = new DataAccessImpl(session.get());
         loadTenants();
     }
 
@@ -197,6 +198,11 @@ public class MetricsServiceCassandra implements MetricsService {
                 throw new TenantAlreadyExistsException(tenant.getId());
             }
         }, metricsTasks);
+    }
+
+    @Override
+    public ListenableFuture<Collection<Tenant>> getTenants() {
+        return Futures.immediateFuture(tenants.values());
     }
 
     @Override

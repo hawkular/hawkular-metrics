@@ -71,6 +71,11 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
+    public ListenableFuture<Collection<Tenant>> getTenants() {
+        return null;
+    }
+
+    @Override
     public ListenableFuture<Void> createMetric(Metric metric) {
         return null;
     }
