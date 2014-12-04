@@ -260,7 +260,8 @@
             <includes>
                 src/**/*.java,
                 *.xml,
-                src/**/*.xml
+                src/**/*.xml,
+                src/**/*.js
             </includes>
             <!-- to override in a submodule, just redefine the checkstyle.suppressions.file property
                  in the given submodule's pom -->

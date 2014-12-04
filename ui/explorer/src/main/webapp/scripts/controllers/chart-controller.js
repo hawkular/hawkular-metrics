@@ -3,7 +3,7 @@ var Controllers;
 (function (Controllers) {
     'use strict';
 
-    
+
 
     /**
     * @ngdoc controller
