@@ -275,6 +275,8 @@
                 src/**/*.html,
                 src/**/*.json,
                 src/**/*.js.map,
+                *.md,
+                src/**/*.md,
                 *.properties,
                 src/**/*.properties,
                 *.sh,
