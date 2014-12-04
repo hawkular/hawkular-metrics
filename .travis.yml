@@ -25,5 +25,6 @@ before_install:
   - wget http://downloads.datastax.com/community/dsc-cassandra-2.1.1-bin.tar.gz && tar -xvzf dsc-cassandra-2.1.1-bin.tar.gz && sudo sh dsc-cassandra-2.1.1/bin/cassandra
 install: 'mvn -s .travis.maven.settings.xml install -DskipTests=true -B'
 script: 'mvn -s .travis.maven.settings.xml verify -Dwildfly.logging.console.level=DEBUG -B'
-after_failure: 'cat dsc-cassandra-2.1.1/logs/*'
+#after_failure: 'cat dsc-cassandra-2.1.1/logs/*'
+after_failure: 'cat dsc-cassandra-2.1.1/bin/nodetool status'
 
