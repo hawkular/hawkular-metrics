@@ -46,17 +46,15 @@ var Controllers;
     * @param $scope
     * @param $rootScope
     * @param $interval
-    * @param $log
     * @param metricDataService
     */
     var DashboardController = (function () {
-        function DashboardController($scope, $rootScope, $interval, $localStorage, $log, metricDataService, dateRange) {
+        function DashboardController($scope, $rootScope, $interval, $localStorage, metricDataService, dateRange) {
             var _this = this;
             this.$scope = $scope;
             this.$rootScope = $rootScope;
             this.$interval = $interval;
             this.$localStorage = $localStorage;
-            this.$log = $log;
             this.metricDataService = metricDataService;
             this.dateRange = dateRange;
             this.chartData = {};
@@ -140,7 +138,7 @@ var Controllers;
             });
         }
         DashboardController.prototype.noDataFoundForId = function (id) {
-            this.$log.warn('No Data found for id: ' + id);
+            console.warn('No Data found for id: ' + id);
             toastr.warning('No Data found for id: ' + id);
         };
 
@@ -210,7 +208,7 @@ var Controllers;
             }
 
             if (startTime >= endTime) {
-                this.$log.warn('Start Date was >= End Date');
+                console.warn('Start Date was >= End Date');
                 toastr.warning('Start Date was after End Date');
                 return;
             }
@@ -218,10 +216,10 @@ var Controllers;
             if (metricId !== '') {
                 this.metricDataPromise = this.metricDataService.getMetricsForTimeRange(metricId, new Date(startTime), new Date(endTime)).then(function (response) {
                     // we want to isolate the response from the data we are feeding to the chart
-                    _this.bucketedDataPoints = _this.formatBucketedChartOutput(response);
+                    _this.bucketedDataPoints = _this.formatBucketedChartOutput(response.data);
 
                     if (_this.bucketedDataPoints.length !== 0) {
-                        _this.$log.info("Retrieving data for metricId: " + metricId);
+                        console.info("Retrieving data for metricId: " + metricId);
 
                         // this is basically the DTO for the chart
                         _this.chartData[metricId] = {
@@ -234,6 +232,7 @@ var Controllers;
                         _this.noDataFoundForId(metricId);
                     }
                 }, function (error) {
+                    console.error('Error Loading Chart Data: ' + error);
                     toastr.error('Error Loading Chart Data: ' + error);
                 });
             }
@@ -242,7 +241,7 @@ var Controllers;
         DashboardController.prototype.refreshAllChartsDataForTimeRange = function (timeRange) {
             var _this = this;
             _.each(this.selectedMetrics, function (aMetric) {
-                _this.$log.info("Reloading Metric Chart Data for: " + aMetric);
+                console.info("Reloading Metric Chart Data for: " + aMetric);
                 _this.refreshHistoricalChartDataForTimestamp(aMetric, timeRange.startTimeStamp, timeRange.endTimeStamp);
             });
         };
@@ -258,7 +257,7 @@ var Controllers;
         DashboardController.prototype.refreshPreviousRangeDataForTimestamp = function (metricId, previousRangeStartTime, previousRangeEndTime) {
             var _this = this;
             if (previousRangeStartTime >= previousRangeEndTime) {
-                this.$log.warn('Previous Range Start Date was >= Previous Range End Date');
+                console.warn('Previous Range Start Date was >= Previous Range End Date');
                 toastr.warning('Previous Range Start Date was after Previous Range End Date');
                 return;
             }
@@ -269,7 +268,7 @@ var Controllers;
                     _this.bucketedDataPoints = _this.formatBucketedChartOutput(response);
 
                     if (_this.bucketedDataPoints.length !== 0) {
-                        _this.$log.info("Retrieving previous range data for metricId: " + metricId);
+                        console.info("Retrieving previous range data for metricId: " + metricId);
                         _this.chartData[metricId].previousStartTimeStamp = previousRangeStartTime;
                         _this.chartData[metricId].previousEndTimeStamp = previousRangeEndTime;
                         _this.chartData[metricId].previousDataPoints = _this.bucketedDataPoints;
@@ -277,6 +276,7 @@ var Controllers;
                         _this.noDataFoundForId(metricId);
                     }
                 }, function (error) {
+                    console.error('Error Loading Chart Data: ' + error);
                     toastr.error('Error Loading Chart Data: ' + error);
                 });
             }
@@ -376,7 +376,7 @@ var Controllers;
                 });
             }
         };
-        DashboardController.$inject = ['$scope', '$rootScope', '$interval', '$localStorage', '$log', 'metricDataService'];
+        DashboardController.$inject = ['$scope', '$rootScope', '$interval', '$localStorage', 'metricDataService'];
         return DashboardController;
     })();
     Controllers.DashboardController = DashboardController;

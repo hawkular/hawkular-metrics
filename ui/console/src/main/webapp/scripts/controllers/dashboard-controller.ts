@@ -72,11 +72,10 @@ module Controllers {
      * @param $scope
      * @param $rootScope
      * @param $interval
-     * @param $log
      * @param metricDataService
      */
     export class DashboardController {
-        public static  $inject = ['$scope', '$rootScope', '$interval', '$localStorage', '$log', 'metricDataService'];
+        public static  $inject = ['$scope', '$rootScope', '$interval', '$localStorage', 'metricDataService'];
 
         private updateLastTimeStampToNowPromise:ng.IPromise<number>;
         private chartData = {};
@@ -106,7 +105,7 @@ module Controllers {
         currentTimeRange:TimeRange;
 
 
-        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $interval:ng.IIntervalService, private $localStorage, private $log:ng.ILogService, private metricDataService, public dateRange:string) {
+        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $interval:ng.IIntervalService, private $localStorage,  private metricDataService, public dateRange:string) {
             $scope.vm = this;
             this.currentTimeRange = new TimeRange(_.now() - (24 * 60 * 60), _.now()); // default to 24 hours
 
@@ -173,7 +172,7 @@ module Controllers {
 
 
         private noDataFoundForId(id:string):void {
-            this.$log.warn('No Data found for id: ' + id);
+            console.warn('No Data found for id: ' + id);
             toastr.warning('No Data found for id: ' + id);
         }
 
@@ -244,7 +243,7 @@ module Controllers {
             }
 
             if (startTime >= endTime) {
-                this.$log.warn('Start Date was >= End Date');
+                console.warn('Start Date was >= End Date');
                 toastr.warning('Start Date was after End Date');
                 return;
             }
@@ -254,10 +253,10 @@ module Controllers {
                 this.metricDataPromise = this.metricDataService.getMetricsForTimeRange(metricId, new Date(startTime), new Date(endTime))
                     .then((response) => {
                         // we want to isolate the response from the data we are feeding to the chart
-                        this.bucketedDataPoints = this.formatBucketedChartOutput(response);
+                        this.bucketedDataPoints = this.formatBucketedChartOutput(response.data);
 
                         if (this.bucketedDataPoints.length !== 0) {
-                            this.$log.info("Retrieving data for metricId: " + metricId);
+                            console.info("Retrieving data for metricId: " + metricId);
                             // this is basically the DTO for the chart
                             this.chartData[metricId] = {
                                 id: metricId,
@@ -271,6 +270,7 @@ module Controllers {
                         }
 
                     }, (error) => {
+                        console.error('Error Loading Chart Data: ' + error);
                         toastr.error('Error Loading Chart Data: ' + error);
                     });
             }
@@ -280,7 +280,7 @@ module Controllers {
         refreshAllChartsDataForTimeRange(timeRange:TimeRange):void {
 
             _.each(this.selectedMetrics, (aMetric) => {
-                this.$log.info("Reloading Metric Chart Data for: " + aMetric);
+                console.info("Reloading Metric Chart Data for: " + aMetric);
                 this.refreshHistoricalChartDataForTimestamp(aMetric, timeRange.startTimeStamp, timeRange.endTimeStamp);
             });
 
@@ -297,7 +297,7 @@ module Controllers {
         refreshPreviousRangeDataForTimestamp(metricId:string, previousRangeStartTime:number, previousRangeEndTime:number):void {
 
             if (previousRangeStartTime >= previousRangeEndTime) {
-                this.$log.warn('Previous Range Start Date was >= Previous Range End Date');
+                console.warn('Previous Range Start Date was >= Previous Range End Date');
                 toastr.warning('Previous Range Start Date was after Previous Range End Date');
                 return;
             }
@@ -310,7 +310,7 @@ module Controllers {
                         this.bucketedDataPoints = this.formatBucketedChartOutput(response);
 
                         if (this.bucketedDataPoints.length !== 0) {
-                            this.$log.info("Retrieving previous range data for metricId: " + metricId);
+                            console.info("Retrieving previous range data for metricId: " + metricId);
                             this.chartData[metricId].previousStartTimeStamp = previousRangeStartTime;
                             this.chartData[metricId].previousEndTimeStamp = previousRangeEndTime;
                             this.chartData[metricId].previousDataPoints = this.bucketedDataPoints;
@@ -320,6 +320,7 @@ module Controllers {
                         }
 
                     }, (error) => {
+                        console.error('Error Loading Chart Data: ' + error);
                         toastr.error('Error Loading Chart Data: ' + error);
                     });
             }

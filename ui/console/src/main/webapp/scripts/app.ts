@@ -3,7 +3,8 @@
 'use strict';
 
 angular.module('chartingApp', ['ui.bootstrap', 'ngStorage', 'ui.sortable', 'rhqm.directives', 'rhqm.services', 'rhqmCharts','cgBusy', 'ngClipboard'])
-    .constant('BASE_URL', '/rhq-metrics/metrics')
+    .constant('BASE_URL', '/rhq-metrics')
+    .constant('TENANT_ID', 'test')
     .constant('DATE_TIME_FORMAT', 'MM/DD/YYYY h:mm a')
     .config(['$httpProvider', ($httpProvider) => {
         // enable CORS

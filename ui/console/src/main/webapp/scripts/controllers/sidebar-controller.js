@@ -4,11 +4,10 @@ var Controllers;
     'use strict';
 
     var SidebarController = (function () {
-        function SidebarController($scope, $rootScope, $log, metricDataService) {
+        function SidebarController($scope, $rootScope, metricDataService) {
             var _this = this;
             this.$scope = $scope;
             this.$rootScope = $rootScope;
-            this.$log = $log;
             this.metricDataService = metricDataService;
             $scope.vm = this;
 
@@ -44,7 +43,7 @@ var Controllers;
                 _this.allMetrics = response;
                 _this.$rootScope.$emit('SidebarRefreshedEvent');
             }, function (error) {
-                _this.$log.error('Error Retrieving all metrics: ' + error);
+                console.error('Error Retrieving all metrics: ' + error);
                 toastr.error('Error Retrieving all metrics: ' + error);
             });
         };
@@ -56,7 +55,7 @@ var Controllers;
                 this.$rootScope.$emit('NewChartEvent', metricId);
             }
         };
-        SidebarController.$inject = ['$scope', '$rootScope', '$log', 'metricDataService'];
+        SidebarController.$inject = ['$scope', '$rootScope', 'metricDataService'];
         return SidebarController;
     })();
     Controllers.SidebarController = SidebarController;

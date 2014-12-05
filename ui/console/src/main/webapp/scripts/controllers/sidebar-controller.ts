@@ -14,12 +14,12 @@ module Controllers {
 
 
     export class SidebarController {
-        public static  $inject = ['$scope', '$rootScope', '$log', 'metricDataService' ];
+        public static  $inject = ['$scope', '$rootScope', 'metricDataService' ];
 
         allMetrics:ISelectedMetric[];
         retrieveMetricsPromise;
 
-        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $log:ng.ILogService, private metricDataService) {
+        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService,  private metricDataService) {
             $scope.vm = this;
 
             $scope.$on('RemoveSelectedMetricEvent', (event, metricId) => {
@@ -60,7 +60,7 @@ module Controllers {
                     this.$rootScope.$emit('SidebarRefreshedEvent');
 
                 }, (error) => {
-                    this.$log.error('Error Retrieving all metrics: ' + error);
+                    console.error('Error Retrieving all metrics: ' + error);
                     toastr.error('Error Retrieving all metrics: ' + error);
                 });
 
