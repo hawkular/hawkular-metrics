@@ -10,7 +10,7 @@ mkdir dsc-cassandra-2.1.1/logs
 
 cat /proc/sys/kernel/core_pattern
 
-ulimit -c unlimited
+ulimit -c unlimited -S
 ulimit -c
 
 export HEAP_NEWSIZE="100M"
