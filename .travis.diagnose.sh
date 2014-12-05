@@ -4,7 +4,7 @@ set -x
 
 nc -z -w5 127.0.0.1 9042; echo $?
 
-CASSANDRA_PID=`sudo bash -c 'cat ${HOME}/cassandra.pid'`
+CASSANDRA_PID=`cat ${HOME}/cassandra.pid`
 
 ps -f -p $CASSANDRA_PID && cat `dsc-cassandra-2.1.1/bin/nodetool status`
 
