@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.rhq.metrics</groupId>
@@ -9,9 +8,90 @@
   <packaging>pom</packaging>
 
   <name>RHQ Metrics</name>
-  <url>https://community.jboss.org/en/rhq/rhq-metrics</url>
   <description>RHQ Metrics is a metrics collection, aggregation, visualization framework.</description>
+  <url>https://community.jboss.org/en/rhq/rhq-metrics</url>
+  <organization>
+    <name>Red Hat, Inc.</name>
+    <url>http://redhat.com/</url>
+  </organization>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
 
+  <developers>
+    <developer>
+      <name>Heiko W. Rupp</name>
+      <email>hrupp@redhat.com</email>
+      <url>http://pilhuhn.blogspot.com/</url>
+      <timezone>+1</timezone>
+      <properties>
+        <picUrl>http://en.gravatar.com/pilhuhn</picUrl>
+      </properties>
+    </developer>
+    <developer>
+      <name>John Sanda</name>
+      <url>http://johnsanda.blogspot.com/</url>
+      <timezone>-5</timezone>
+    </developer>
+    <developer>
+      <name>Mike Thompson</name>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <name>Heiko Braun</name>
+      <timezone>+1</timezone>
+    </developer>
+    <developer>
+      <name>Stefan Negrea</name>
+      <timezone>-6</timezone>
+    </developer>
+  </developers>
+
+  <modules>
+    <module>test-utils</module>
+    <module>core-api</module>
+    <module>metrics-core</module>
+    <module>rest-servlet</module>
+    <module>clients</module>
+    <module>rest-test</module>
+    <module>ui/explorer</module>
+    <module>ui/console</module>
+  </modules>
+
+  <scm>
+    <connection>scm:git:ssh://github.com/rhq-project/rhq-metrics</connection>
+    <developerConnection>scm:git:ssh://github.com/rhq-project/rhq-metrics</developerConnection>
+    <url>https://github.com/rhq-project/rhq-metrics</url>
+  </scm>
+  <ciManagement>
+    <system>Travis-ci</system>
+    <url>https://travis-ci.org/rhq-project/rhq-metrics</url>
+  </ciManagement>
+  <distributionManagement>
+
+    <snapshotRepository>
+      <id>jboss-snapshots-repository</id>
+      <name>JBoss Snapshots Repository</name>
+      <url>https://repository.jboss.org/nexus/content/repositories/snapshots/</url>
+    </snapshotRepository>
+
+    <repository>
+      <id>jboss-releases-repository</id>
+      <name>JBoss Releases Repository</name>
+      <url>https://repository.jboss.org/nexus/service/local/staging/deploy/maven2/</url>
+    </repository>
+
+    <site>
+      <id>local-site-tmp</id>
+      <name>RHQ-metrics</name>
+      <url>file:///tmp/rhq-metrics-site</url>
+    </site>
+
+  </distributionManagement>
 
   <properties>
     <maven.test.skip>${skipTests}</maven.test.skip>
@@ -41,55 +121,6 @@
     <checkstyle.suppressions.file>rhq-checkstyle/suppressions.xml</checkstyle.suppressions.file>
     <rhq.checkstyle.config.version>1</rhq.checkstyle.config.version>
   </properties>
-
-  <organization>
-    <name>Red Hat, Inc.</name>
-    <url>http://redhat.com/</url>
-  </organization>
-
-  <scm>
-    <connection>scm:git:ssh://github.com/rhq-project/rhq-metrics</connection>
-    <developerConnection>scm:git:ssh://github.com/rhq-project/rhq-metrics</developerConnection>
-    <url>https://github.com/rhq-project/rhq-metrics</url>
-  </scm>
-
-  <distributionManagement>
-
-    <snapshotRepository>
-      <id>jboss-snapshots-repository</id>
-      <name>JBoss Snapshots Repository</name>
-      <url>https://repository.jboss.org/nexus/content/repositories/snapshots/</url>
-    </snapshotRepository>
-
-    <repository>
-      <id>jboss-releases-repository</id>
-      <name>JBoss Releases Repository</name>
-      <url>https://repository.jboss.org/nexus/service/local/staging/deploy/maven2/</url>
-    </repository>
-
-    <site>
-      <id>local-site-tmp</id>
-      <name>RHQ-metrics</name>
-      <url>file:///tmp/rhq-metrics-site</url>
-    </site>
-
-  </distributionManagement>
-
-  <ciManagement>
-    <system>Travis-ci</system>
-    <url>https://travis-ci.org/rhq-project/rhq-metrics</url>
-  </ciManagement>
-
-  <modules>
-    <module>test-utils</module>
-    <module>core-api</module>
-    <module>metrics-core</module>
-    <module>rest-servlet</module>
-    <module>clients</module>
-    <module>rest-test</module>
-    <module>ui/explorer</module>
-    <module>ui/console</module>
-  </modules>
 
   <dependencyManagement>
     <dependencies>
@@ -128,96 +159,6 @@
   </dependencyManagement>
 
   <build>
-    <plugins>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <version>1.3.1</version>
-        <executions>
-          <execution>
-            <id>enforce-rules</id>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <rules>
-            <requireMavenVersion>
-              <version>[3.0.4,)</version>
-            </requireMavenVersion>
-            <requireJavaVersion>
-              <version>[1.7,)</version>
-            </requireJavaVersion>
-            <requireNoRepositories/>
-            <requirePluginVersions/>
-          </rules>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <source>1.7</source>
-          <target>1.7</target>
-          <showWarnings>true</showWarnings>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>animal-sniffer-maven-plugin</artifactId>
-        <!-- This depedency upgrade is a workaround for MANIMALSNIFFER-45 -->
-        <!-- MANIMALSNIFFER-45 only affects users building with a JDK 8 -->
-        <!-- It can be removed once MANIMALSNIFFER-45 is fixed -->
-        <!-- See https://jira.codehaus.org/browse/MANIMALSNIFFER-45 -->
-        <dependencies>
-          <dependency>
-            <groupId>org.ow2.asm</groupId>
-            <artifactId>asm-all</artifactId>
-            <version>5.0.3</version>
-          </dependency>
-        </dependencies>
-        <executions>
-          <execution>
-            <id>java-api-check</id>
-            <configuration>
-              <signature>
-                <groupId>org.codehaus.mojo.signature</groupId>
-                <artifactId>java17</artifactId>
-                <version>1.0</version>
-              </signature>
-            </configuration>
-            <phase>verify</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-        <version>${findbugs.version}</version>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.felix</groupId>
-        <artifactId>maven-bundle-plugin</artifactId>
-        <version>2.5.3</version>
-        <extensions>true</extensions>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-      </plugin>
-
-    </plugins>
-
     <pluginManagement>
       <plugins>
         <plugin>
@@ -341,7 +282,132 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>1.3.1</version>
+        <executions>
+          <execution>
+            <id>enforce-rules</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <rules>
+            <requireMavenVersion>
+              <version>[3.0.4,)</version>
+            </requireMavenVersion>
+            <requireJavaVersion>
+              <version>[1.7,)</version>
+            </requireJavaVersion>
+            <requireNoRepositories/>
+            <requirePluginVersions/>
+          </rules>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.7</source>
+          <target>1.7</target>
+          <showWarnings>true</showWarnings>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>animal-sniffer-maven-plugin</artifactId>
+        <!-- This depedency upgrade is a workaround for MANIMALSNIFFER-45 -->
+        <!-- MANIMALSNIFFER-45 only affects users building with a JDK 8 -->
+        <!-- It can be removed once MANIMALSNIFFER-45 is fixed -->
+        <!-- See https://jira.codehaus.org/browse/MANIMALSNIFFER-45 -->
+        <dependencies>
+          <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm-all</artifactId>
+            <version>5.0.3</version>
+          </dependency>
+        </dependencies>
+        <executions>
+          <execution>
+            <id>java-api-check</id>
+            <configuration>
+              <signature>
+                <groupId>org.codehaus.mojo.signature</groupId>
+                <artifactId>java17</artifactId>
+                <version>1.0</version>
+              </signature>
+            </configuration>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>findbugs-maven-plugin</artifactId>
+        <version>${findbugs.version}</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <version>2.5.3</version>
+        <extensions>true</extensions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+      </plugin>
+
+    </plugins>
   </build>
+
+  <reporting>
+    <plugins>
+      <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>findbugs-maven-plugin</artifactId>
+          <version>${findbugs.version}</version>
+          <configuration>
+              <xmlOutput>true</xmlOutput>
+              <effort>Max</effort>
+              <threshold>Default</threshold>
+          </configuration>
+          <inherited>true</inherited>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+        <version>2.7</version>
+        <configuration>
+          <showAvatarImages>true</showAvatarImages>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-report-plugin</artifactId>
+        <version>2.6</version>
+      </plugin>
+      <plugin>
+        <!-- must be last plugin in the list -->
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>dashboard-maven-plugin</artifactId>
+        <version>1.0.0-beta-1</version>
+      </plugin>
+
+    </plugins>
+
+  </reporting>
 
   <profiles>
 
@@ -405,79 +471,4 @@
       </build>
     </profile>
   </profiles>
-
-  <reporting>
-    <plugins>
-      <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>findbugs-maven-plugin</artifactId>
-          <version>${findbugs.version}</version>
-          <configuration>
-              <xmlOutput>true</xmlOutput>
-              <effort>Max</effort>
-              <threshold>Default</threshold>
-          </configuration>
-          <inherited>true</inherited>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-project-info-reports-plugin</artifactId>
-        <version>2.7</version>
-        <configuration>
-          <showAvatarImages>true</showAvatarImages>
-        </configuration>
-      </plugin>
-      <plugin>
-        <artifactId>maven-surefire-report-plugin</artifactId>
-        <version>2.6</version>
-      </plugin>
-      <plugin>
-        <!-- must be last plugin in the list -->
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>dashboard-maven-plugin</artifactId>
-        <version>1.0.0-beta-1</version>
-      </plugin>
-
-    </plugins>
-
-  </reporting>
-
-  <licenses>
-    <license>
-      <name>Apache License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
-
-
-  <developers>
-    <developer>
-      <name>Heiko W. Rupp</name>
-      <email>hrupp@redhat.com</email>
-      <url>http://pilhuhn.blogspot.com/</url>
-      <timezone>+1</timezone>
-      <properties>
-        <picUrl>http://en.gravatar.com/pilhuhn</picUrl>
-      </properties>
-    </developer>
-    <developer>
-      <name>John Sanda</name>
-      <url>http://johnsanda.blogspot.com/</url>
-      <timezone>-5</timezone>
-    </developer>
-    <developer>
-      <name>Mike Thompson</name>
-      <timezone>-8</timezone>
-    </developer>
-    <developer>
-      <name>Heiko Braun</name>
-      <timezone>+1</timezone>
-    </developer>
-    <developer>
-      <name>Stefan Negrea</name>
-      <timezone>-6</timezone>
-    </developer>
-  </developers>
-
 </project>

@@ -2,23 +2,24 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
   <parent>
     <artifactId>rhq-metrics-parent</artifactId>
     <groupId>org.rhq.metrics</groupId>
     <version>0.2.6-SNAPSHOT</version>
   </parent>
-  <modelVersion>4.0.0</modelVersion>
+  <artifactId>rest-servlet</artifactId>
+  <packaging>war</packaging>
 
   <name>RHQ Metrics REST-api</name>
   <description>The REST-api of RHQ-Metrics implemented as a Web archive</description>
-
-  <artifactId>rest-servlet</artifactId>
-  <packaging>war</packaging>
 
   <properties>
     <swagger-annotations.version>1.2.3</swagger-annotations.version>
     <rest-docs-generator.version>4.11.0</rest-docs-generator.version>
   </properties>
+
   <dependencies>
 
     <dependency>
@@ -95,7 +96,6 @@
 
   <build>
       <finalName>rhq-metric-rest</finalName>
-
       <plugins>
 
          <plugin>
@@ -131,7 +131,6 @@
         </plugin>
 
       </plugins>
-
   </build>
 
   <profiles>
@@ -292,5 +291,4 @@
     </build>
   </profile>
   </profiles>
-
 </project>
