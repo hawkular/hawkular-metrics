@@ -29,6 +29,7 @@ import rx.Observable;
 import rx.Subscriber;
 import rx.functions.Func1;
 import rx.functions.Func2;
+import rx.schedulers.Schedulers;
 
 /**
  * @author John Sanda
@@ -84,7 +85,7 @@ public class MetricsServiceCassandraRx implements MetricsServiceRx {
             if (metric.getData().isEmpty()) {
                 logger.warn("There is no data to insert for {}", metric);
             } else {
-                insertFutures.add(dataAccess.insertData(metric));
+                insertFutures.add(dataAccess.insertData(metric, MetricsServiceCassandra.DEFAULT_TTL));
             }
         }
         insertFutures.add(dataAccess.updateMetricsIndex(metrics));
@@ -95,7 +96,8 @@ public class MetricsServiceCassandraRx implements MetricsServiceRx {
     @Override
     public Observable<NumericMetric2> findNumericData(NumericMetric2 metric, long start, long end) {
         metric.setDpart(Metric.DPART);
-        Observable<ResultSet> observable = dataAccess.findDataRx(metric, start, end);
+        ListenableFuture<ResultSet> future = dataAccess.findData(metric, start, end);
+        Observable<ResultSet> observable = Observable.from(future, Schedulers.io());
         return observable.flatMap(new Func1<ResultSet, Observable<Row>>() {
             @Override
             public Observable<Row> call(final ResultSet resultSet) {

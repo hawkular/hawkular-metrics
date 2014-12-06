@@ -52,11 +52,6 @@ import org.rhq.metrics.core.SchemaManager;
 import org.rhq.metrics.core.Tenant;
 import org.rhq.metrics.core.TenantAlreadyExistsException;
 
-import rx.Observable;
-import rx.Subscriber;
-import rx.functions.Func1;
-import rx.functions.Func2;
-
 /**
  * @author John Sanda
  */
@@ -324,44 +319,14 @@ public class MetricsServiceCassandra implements MetricsService {
         throw new UnsupportedOperationException();
     }
 
-//    @Override
-//    public ListenableFuture<NumericMetric2> findNumericData(NumericMetric2 metric, long start, long end) {
-//        // When we implement date partitioning, dpart will have to be determined based on
-//        // the start and end params. And it is possible the the date range spans multiple
-//        // date partitions.
-//        metric.setDpart(Metric.DPART);
-//        ResultSetFuture queryFuture = dataAccess.findData(metric, start, end);
-//        return Futures.transform(queryFuture, new NumericMetricMapper(), metricsTasks);
-//    }
-
     @Override
-    public Observable<NumericMetric2> findNumericData(NumericMetric2 metric, long start, long end) {
+    public ListenableFuture<NumericMetric2> findNumericData(NumericMetric2 metric, long start, long end) {
+        // When we implement date partitioning, dpart will have to be determined based on
+        // the start and end params. And it is possible the the date range spans multiple
+        // date partitions.
         metric.setDpart(Metric.DPART);
-        Observable<ResultSet> observable = dataAccess.findDataRx(metric, start, end);
-        return observable.flatMap(new Func1<ResultSet, Observable<Row>>() {
-            @Override
-            public Observable<Row> call(final ResultSet resultSet) {
-                return Observable.create(new Observable.OnSubscribe<Row>() {
-                    @Override
-                    public void call(Subscriber<? super Row> subscriber) {
-                        for (Row row : resultSet) {
-                            subscriber.onNext(row);
-                        }
-                        subscriber.onCompleted();
-                    }
-                });
-            }
-        }).reduce(new NumericMetric2(metric.getTenantId(), metric.getId()),
-            new Func2<NumericMetric2, Row, NumericMetric2>() {
-                @Override
-                public NumericMetric2 call(NumericMetric2 metric, Row row) {
-                    if (metric.getData().isEmpty()) {
-                        metric.setMetadata(row.getMap(5, String.class, String.class));
-                    }
-                    metric.addData(row.getUUID(4), row.getDouble(6));
-                    return metric;
-                }
-            });
+        ResultSetFuture queryFuture = dataAccess.findData(metric, start, end);
+        return Futures.transform(queryFuture, new NumericMetricMapper(), metricsTasks);
     }
 
     @Override

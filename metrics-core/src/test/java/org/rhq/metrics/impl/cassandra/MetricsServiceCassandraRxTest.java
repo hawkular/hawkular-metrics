@@ -34,7 +34,7 @@ public class MetricsServiceCassandraRxTest extends MetricsTest {
     @BeforeClass
     public void initClass() {
         initSession();
-        DataAccess dataAccess = new DataAccess(session);
+        DataAccess dataAccess = new DataAccessImpl(session);
         metricsService = new MetricsServiceCassandraRx(dataAccess);
     }
 

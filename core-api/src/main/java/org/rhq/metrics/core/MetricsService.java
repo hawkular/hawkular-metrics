@@ -8,8 +8,6 @@ import java.util.Set;
 import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import rx.Observable;
-
 /**
  * Interface that defines the functionality of the Metrics Service.
  * @author Heiko W. Rupp
@@ -62,8 +60,7 @@ public interface MetricsService {
 
     ListenableFuture<Void> addNumericData(List<NumericMetric2> metrics);
 
-//    ListenableFuture<NumericMetric2> findNumericData(NumericMetric2 metric, long start, long end);
-    Observable<NumericMetric2> findNumericData(NumericMetric2 metric, long start, long end);
+    ListenableFuture<NumericMetric2> findNumericData(NumericMetric2 metric, long start, long end);
 
     /** Find and return raw metrics for {id} that have a timestamp between {start} and {end} */
     ListenableFuture<List<NumericData>> findData(NumericMetric2 metric, long start, long end);
