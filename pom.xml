@@ -57,7 +57,8 @@
     <module>metrics-core</module>
     <module>rest-servlet</module>
     <module>clients</module>
-    <module>rest-test</module>
+    <!--<module>rest-test</module>-->
+    <module>groovy-rest-tests</module>
     <module>ui/explorer</module>
     <module>ui/console</module>
   </modules>

@@ -145,7 +145,7 @@ public class MetricsServiceCassandra implements MetricsService {
         }
         // This creates/updates the keyspace + tables if needed
         updateSchemaIfNecessary(keyspace);
-        session.get().executeAsync("USE " + keyspace);
+        session.get().execute("USE " + keyspace);
 
         dataAccess = new DataAccessImpl(session.get());
         loadTenants();
