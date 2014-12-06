@@ -601,6 +601,46 @@ public class MetricHandler {
     }
 
     @GET
+    @Path("/rx/{tenantId}/metrics/numeric/{id}/data")
+    public void findNumericDataRx(@Suspended final AsyncResponse response,
+        @PathParam("tenantId") String tenantId, @PathParam("id") final String id, @QueryParam("start") Long start,
+        @QueryParam("end") Long end) {
+
+        long now = System.currentTimeMillis();
+        if (start == null) {
+            start = now - EIGHT_HOURS;
+        }
+        if (end == null) {
+            end = now;
+        }
+
+        NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(id));
+        Observable<NumericMetric2> observable = metricsService.findNumericData(metric, start, end);
+        final MetricOut output = new MetricOut(tenantId, id, null);
+        observable.subscribe(new Subscriber<NumericMetric2>() {
+            @Override
+            public void onCompleted() {
+                response.resume(Response.ok(output).type(MediaType.APPLICATION_JSON_TYPE).build());
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                response.resume(throwable);
+            }
+
+            @Override
+            public void onNext(NumericMetric2 metric) {
+                output.setMetadata(metric.getMetadata());
+                List<DataPoint> dataPoints = new ArrayList<>();
+                for (NumericData d : metric.getData()) {
+                    dataPoints.add(new DataPoint(d.getTimestamp(), d.getValue(), getTagNames(d)));
+                }
+                output.setData(dataPoints);
+            }
+        });
+    }
+
+    @GET
     @Path("/{tenantId}/metrics/availability/{id}/data")
     public void findAvailabilityData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @PathParam("id") final String id, @QueryParam("start") Long start,
