@@ -1,12 +1,12 @@
 package org.rhq.metrics.restServlet.influx.query.validation;
 
+import static org.rhq.metrics.restServlet.influx.query.parse.definition.OperandUtils.isInstantOperand;
+import static org.rhq.metrics.restServlet.influx.query.parse.definition.OperandUtils.isTimeOperand;
+
 import org.rhq.metrics.restServlet.influx.query.parse.definition.AndBooleanExpression;
 import org.rhq.metrics.restServlet.influx.query.parse.definition.BooleanExpression;
-import org.rhq.metrics.restServlet.influx.query.parse.definition.DateOperand;
 import org.rhq.metrics.restServlet.influx.query.parse.definition.GtBooleanExpression;
 import org.rhq.metrics.restServlet.influx.query.parse.definition.LtBooleanExpression;
-import org.rhq.metrics.restServlet.influx.query.parse.definition.MomentOperand;
-import org.rhq.metrics.restServlet.influx.query.parse.definition.NameOperand;
 import org.rhq.metrics.restServlet.influx.query.parse.definition.Operand;
 import org.rhq.metrics.restServlet.influx.query.parse.definition.SelectQueryDefinitions;
 
@@ -82,20 +82,12 @@ public class SimpleTimeRangesOnlyRule implements SelectQueryValidationRule {
         }
     }
 
-    private boolean isTimeOperand(Operand operand) {
-        return operand instanceof NameOperand && ((NameOperand) operand).getName().equals("time");
-    }
-
     private void checkOneDateOrMomentOperand(Operand leftOperand, Operand rightOperand)
         throws QueryNotSupportedException {
 
         // We want exactly one of the operands to be a date or moment operand
-        if (isDateOrMomentOperandOperand(leftOperand) == isDateOrMomentOperandOperand(rightOperand)) {
+        if (isInstantOperand(leftOperand) == isInstantOperand(rightOperand)) {
             throw new QueryNotSupportedException("Expected exactly one time operand");
         }
-    }
-
-    private boolean isDateOrMomentOperandOperand(Operand operand) {
-        return operand instanceof MomentOperand || operand instanceof DateOperand;
     }
 }
