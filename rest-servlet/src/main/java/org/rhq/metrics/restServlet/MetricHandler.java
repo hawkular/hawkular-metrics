@@ -534,7 +534,7 @@ public class MetricHandler {
     @GET
     @Path("/{tenantId}/metrics/numeric/{id}/data")
     public void findNumericData(
-        @Suspended final AsyncResponse asyncResponse,
+        @Suspended final AsyncResponse response,
         @PathParam("tenantId") String tenantId,
         @PathParam("id") final String id,
         @QueryParam("start") Long start,
@@ -576,22 +576,26 @@ public class MetricHandler {
         Futures.addCallback(outputFuture, new FutureCallback<Object>() {
             @Override
             public void onSuccess(Object output) {
-                asyncResponse.resume(Response.ok(output).type(MediaType.APPLICATION_JSON_TYPE).build());
+                response.resume(Response.ok(output).type(MediaType.APPLICATION_JSON_TYPE).build());
             }
 
             @Override
             public void onFailure(Throwable t) {
-                asyncResponse.resume(t);
+                if (t instanceof NoResultsException) {
+                    response.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
+                } else {
+                    Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to retrieve data due to " +
+                        "an unexpected error: " + Throwables.getRootCause(t).getMessage());
+                    response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors)
+                        .type(MediaType.APPLICATION_JSON_TYPE).build());
+                }
             }
         });
     }
 
-    private class MetricOutMapper implements Function<NumericMetric2, MetricOut> {
+    private class MetricOutMapper extends MetricMapper<MetricOut> {
         @Override
-        public MetricOut apply(NumericMetric2 metric) {
-            if (metric == null) {
-                return null;
-            }
+        public MetricOut doApply(NumericMetric2 metric) {
             MetricOut output = new MetricOut(metric.getTenantId(), metric.getId().getName(),
                 metric.getMetadata());
             List<DataPointOut> dataPoints = new ArrayList<>();
@@ -604,7 +608,7 @@ public class MetricHandler {
         }
     }
 
-    private class CreateSimpleBuckets implements Function<NumericMetric2, BucketedOutput> {
+    private class CreateSimpleBuckets extends MetricMapper<BucketedOutput> {
 
         private long startTime;
         private long endTime;
@@ -619,7 +623,7 @@ public class MetricHandler {
         }
 
         @Override
-        public BucketedOutput apply(NumericMetric2 metric) {
+        public BucketedOutput doApply(NumericMetric2 metric) {
             // we will have numberOfBuckets buckets over the whole time span
             BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(),
                 metric.getMetadata());
@@ -637,7 +641,7 @@ public class MetricHandler {
         }
     }
 
-    private class CreateFixedNumberOfBuckets implements Function<NumericMetric2, List<? extends Object>> {
+    private class CreateFixedNumberOfBuckets extends MetricMapper<List<? extends Object>> {
 
         private int numberOfBuckets;
         private int bucketWidthSeconds;
@@ -648,7 +652,7 @@ public class MetricHandler {
         }
 
         @Override
-        public List<? extends Object> apply(NumericMetric2 metric) {
+        public List<? extends Object> doApply(NumericMetric2 metric) {
             long totalLength = (long) numberOfBuckets * bucketWidthSeconds * 1000L;
             long minTs = Long.MAX_VALUE;
             for (NumericData d : metric.getData()) {
