@@ -41,7 +41,11 @@ public class SimpleTimeRangesOnlyRule implements SelectQueryValidationRule {
                     checkOneTimeOperand(gt.getLeftOperand(), gt.getRightOperand());
                     checkOneDateOrMomentOperand(gt.getLeftOperand(), gt.getRightOperand());
                     checkRestrictionIsARange(lt, gt);
-
+                } else if (right instanceof LtBooleanExpression) {
+                    LtBooleanExpression lt2 = (LtBooleanExpression) right;
+                    checkOneTimeOperand(lt2.getLeftOperand(), lt2.getRightOperand());
+                    checkOneDateOrMomentOperand(lt2.getLeftOperand(), lt2.getRightOperand());
+                    checkRestrictionIsARange(lt, lt2);
                 } else {
                     throw new QueryNotSupportedException("Not a simple time range restriction");
                 }
@@ -54,6 +58,11 @@ public class SimpleTimeRangesOnlyRule implements SelectQueryValidationRule {
                     checkOneTimeOperand(lt.getLeftOperand(), lt.getRightOperand());
                     checkOneDateOrMomentOperand(lt.getLeftOperand(), lt.getRightOperand());
                     checkRestrictionIsARange(lt, gt);
+                } else if (right instanceof GtBooleanExpression) {
+                    GtBooleanExpression gt2 = (GtBooleanExpression) right;
+                    checkOneTimeOperand(gt2.getLeftOperand(), gt2.getRightOperand());
+                    checkOneDateOrMomentOperand(gt2.getLeftOperand(), gt2.getRightOperand());
+                    checkRestrictionIsARange(gt, gt2);
                 } else {
                     throw new QueryNotSupportedException("Not a simple time range restriction");
                 }
@@ -68,9 +77,29 @@ public class SimpleTimeRangesOnlyRule implements SelectQueryValidationRule {
     private void checkRestrictionIsARange(LtBooleanExpression lt, GtBooleanExpression gt)
         throws QueryNotSupportedException {
 
-        // Don't allow "time < y and z > time"
+        // Don't allow "time < y and z > time" or "z > time and time < y"
         if ((isTimeOperand(lt.getLeftOperand()) && isTimeOperand(gt.getRightOperand()))
             || (isTimeOperand(lt.getRightOperand()) && isTimeOperand(gt.getLeftOperand()))) {
+            throw new QueryNotSupportedException("Not a simple time range restriction");
+        }
+    }
+
+    private void checkRestrictionIsARange(GtBooleanExpression gt1, GtBooleanExpression gt2)
+        throws QueryNotSupportedException {
+
+        // Don't allow "time > y and time > z" or "y > time and z > time"
+        if ((isTimeOperand(gt1.getLeftOperand()) && isTimeOperand(gt2.getLeftOperand()))
+            || (isTimeOperand(gt1.getRightOperand()) && isTimeOperand(gt2.getRightOperand()))) {
+            throw new QueryNotSupportedException("Not a simple time range restriction");
+        }
+    }
+
+    private void checkRestrictionIsARange(LtBooleanExpression lt1, LtBooleanExpression lt2)
+        throws QueryNotSupportedException {
+
+        // Don't allow "time < y and time < z" or "y < time and z < time"
+        if ((isTimeOperand(lt1.getLeftOperand()) && isTimeOperand(lt2.getLeftOperand()))
+            || (isTimeOperand(lt1.getRightOperand()) && isTimeOperand(lt2.getRightOperand()))) {
             throw new QueryNotSupportedException("Not a simple time range restriction");
         }
     }
