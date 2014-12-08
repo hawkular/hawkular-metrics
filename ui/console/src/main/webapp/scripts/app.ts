@@ -2,7 +2,7 @@
 
 'use strict';
 
-angular.module('chartingApp', ['ui.bootstrap', 'ngStorage', 'ui.sortable', 'rhqm.directives', 'rhqm.services', 'rhqmCharts','cgBusy', 'ngClipboard'])
+angular.module('chartingApp', ['ui.bootstrap', 'ngStorage', 'ui.sortable', 'rhqm.directives', 'rhqm.services', 'rhqmCharts','cgBusy', 'ngClipboard','angularytics'])
     .constant('BASE_URL', '/rhq-metrics')
     .constant('TENANT_ID', 'test')
     .constant('DATE_TIME_FORMAT', 'MM/DD/YYYY h:mm a')
@@ -11,7 +11,13 @@ angular.module('chartingApp', ['ui.bootstrap', 'ngStorage', 'ui.sortable', 'rhqm
         $httpProvider.defaults.useXDomain = true;
         // just a good security precaution to delete this
         delete $httpProvider.defaults.headers.common['X-Requested-With'];
-    }]).run(($rootScope, $localStorage, $location, $interval) => {
+    }]).config(['AngularyticsProvider',
+    function(AngularyticsProvider) {
+        AngularyticsProvider.setEventHandlers(
+            ['GoogleUniversal', 'Console']);
+    }]).run(['Angularytics', function(Angularytics) {
+    Angularytics.init();
+}]).run(($rootScope, $localStorage, $location, $interval) => {
 
         //NOTE: if we are then use port 8080 not 9000 that livereload server uses
         $rootScope.$storage = $localStorage.$default({
