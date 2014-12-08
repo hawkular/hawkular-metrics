@@ -14,13 +14,14 @@ module Controllers {
 
 
     export class SidebarController {
-        public static  $inject = ['$scope', '$rootScope', 'metricDataService' ];
+        public static  $inject = ['$scope', '$rootScope', 'metricDataService','Angularytics' ];
 
         allMetrics:ISelectedMetric[];
         retrieveMetricsPromise;
 
-        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService,  private metricDataService) {
+        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService,  private metricDataService, private Angularytics) {
             $scope.vm = this;
+
 
             $scope.$on('RemoveSelectedMetricEvent', (event, metricId) => {
                 angular.forEach(this.allMetrics, function (value:ISelectedMetric) {
@@ -30,6 +31,7 @@ module Controllers {
                 });
             });
             $scope.$on('LoadAllSidebarMetricsEvent', () => {
+                this.Angularytics.trackEvent('LoadAllSidebarMetricsEvent', 'true');
                 this.populateMetricsSidebar();
                 this.$rootScope.$emit('LoadInitialChartGroup');
             });
@@ -69,8 +71,10 @@ module Controllers {
         addRemoveChart(metricId:string, checked:boolean) {
 
             if (checked) {
+                this.Angularytics.trackEvent('SideBar', 'RemoveChart',metricId);
                 this.$rootScope.$emit('RemoveChartEvent', metricId);
             } else {
+                this.Angularytics.trackEvent('SideBar', 'AddChart',metricId );
                 this.$rootScope.$emit('NewChartEvent', metricId);
             }
         }
