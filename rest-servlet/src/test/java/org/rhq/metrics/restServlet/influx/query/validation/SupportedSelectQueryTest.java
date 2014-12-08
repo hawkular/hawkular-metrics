@@ -51,13 +51,15 @@ public class SupportedSelectQueryTest {
     @Rule
     public final ExpectedException exception = ExpectedException.none();
     private final ValidationRulesProducer rulesProducer = new ValidationRulesProducer();
-    private final QueryValidator queryValidator = new QueryValidator(rulesProducer.selectQueryValidationRules());
+    private final QueryValidator queryValidator;
     private final InfluxQueryParserFactory parserFactory = new InfluxQueryParserFactory();
 
     private final String selectQuery;
 
     public SupportedSelectQueryTest(String selectQuery) {
         this.selectQuery = selectQuery;
+        queryValidator = new QueryValidator();
+        queryValidator.selectQueryValidationRules = rulesProducer.selectQueryValidationRules();
     }
 
     @Test

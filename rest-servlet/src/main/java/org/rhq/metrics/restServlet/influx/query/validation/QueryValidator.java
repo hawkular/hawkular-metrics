@@ -13,12 +13,9 @@ import org.rhq.metrics.restServlet.influx.query.parse.definition.SelectQueryDefi
 @ApplicationScoped
 public class QueryValidator {
 
-    private final List<SelectQueryValidationRule> selectQueryValidationRules;
-
     @Inject
-    public QueryValidator(@InfluxSelectQueryRules List<SelectQueryValidationRule> selectQueryValidationRules) {
-        this.selectQueryValidationRules = selectQueryValidationRules;
-    }
+    @InfluxSelectQueryRules
+    List<SelectQueryValidationRule> selectQueryValidationRules;
 
     public void validateSelectQuery(SelectQueryDefinitions definitions) throws IllegalQueryException {
         for (SelectQueryValidationRule rule : selectQueryValidationRules) {
