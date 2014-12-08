@@ -116,11 +116,13 @@
     <findbugs.version>3.0.0</findbugs.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <checkstyle.plugin.version>2.13</checkstyle.plugin.version>
+    <checkstyle.version>6.1.1</checkstyle.version>
     <checkstyleConsoleOutput>true</checkstyleConsoleOutput>
     <checkstyleFailOnError>true</checkstyleFailOnError>
     <!-- the default value pointing at suppressions.xml in rhq-checkstyle-config dependency -->
     <checkstyle.suppressions.file>rhq-checkstyle/suppressions.xml</checkstyle.suppressions.file>
-    <rhq.checkstyle.config.version>1</rhq.checkstyle.config.version>
+    <rhq.checkstyle.config.version>2</rhq.checkstyle.config.version>
   </properties>
 
   <dependencyManagement>
@@ -263,7 +265,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>2.12.1</version>
+          <version>${checkstyle.plugin.version}</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -404,7 +406,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>6.1.1</version>
+            <version>${checkstyle.version}</version>
           </dependency>
           <dependency>
             <groupId>org.rhq.checkstyle</groupId>
@@ -429,15 +431,15 @@
   <reporting>
     <plugins>
       <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>findbugs-maven-plugin</artifactId>
-          <version>${findbugs.version}</version>
-          <configuration>
-              <xmlOutput>true</xmlOutput>
-              <effort>Max</effort>
-              <threshold>Default</threshold>
-          </configuration>
-          <inherited>true</inherited>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>findbugs-maven-plugin</artifactId>
+        <version>${findbugs.version}</version>
+        <configuration>
+          <xmlOutput>true</xmlOutput>
+          <effort>Max</effort>
+          <threshold>Default</threshold>
+        </configuration>
+        <inherited>true</inherited>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -465,17 +467,17 @@
   <profiles>
 
     <profile>
-       <id>test.debug</id>
-       <activation>
-          <property>
-             <name>test.debug</name>
-          </property>
-       </activation>
+      <id>test.debug</id>
+      <activation>
+        <property>
+          <name>test.debug</name>
+        </property>
+      </activation>
 
-       <properties>
-          <!-- See: http://maven.apache.org/plugins/maven-surefire-plugin/test-mojo.html#debugForkedProcess -->
-          <maven.surefire.debug>-Xdebug -Xnoagent -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,address=8797,server=y,suspend=y</maven.surefire.debug>
-       </properties>
+      <properties>
+        <!-- See: http://maven.apache.org/plugins/maven-surefire-plugin/test-mojo.html#debugForkedProcess -->
+        <maven.surefire.debug>-Xdebug -Xnoagent -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,address=8797,server=y,suspend=y</maven.surefire.debug>
+      </properties>
     </profile>
 
     <profile>

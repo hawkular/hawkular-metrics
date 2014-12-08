@@ -1,13 +1,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-      <groupId>org.rhq.metrics</groupId>
-      <artifactId>rhq-metrics-parent</artifactId>
-      <version>0.2.6-SNAPSHOT</version>
-    </parent>
+  <parent>
+    <groupId>org.rhq.metrics</groupId>
+    <artifactId>rhq-metrics-parent</artifactId>
+    <version>0.2.6-SNAPSHOT</version>
+  </parent>
 
   <artifactId>rhq-metrics-groovy-rest-tests</artifactId>
   <name>RHQ Metrics Groovy Rest Tests</name>
@@ -166,16 +166,17 @@
 
   <profiles>
     <profile>
-       <id>test.debug</id>
-       <activation>
-          <property>
-             <name>test.debug</name>
-          </property>
-       </activation>
-       <properties>
-          <!-- See: http://maven.apache.org/plugins/maven-surefire-plugin/test-mojo.html#debugForkedProcess -->
-          <maven.surefire.debug>-Xdebug -Xnoagent -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,address=8797,server=y,suspend=y</maven.surefire.debug>
-       </properties>
+      <id>test.debug</id>
+      <activation>
+        <property>
+          <name>test.debug</name>
+        </property>
+      </activation>
+      <properties>
+        <!-- See: http://maven.apache.org/plugins/maven-surefire-plugin/test-mojo.html#debugForkedProcess -->
+        <maven.surefire.debug>-Xdebug -Xnoagent -Djava.compiler=NONE
+          -Xrunjdwp:transport=dt_socket,address=8797,server=y,suspend=y</maven.surefire.debug>
+      </properties>
     </profile>
   </profiles>
 

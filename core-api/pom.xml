@@ -26,11 +26,11 @@
       <version>${slf4j.version}</version>
     </dependency>
 
-      <dependency>
-          <groupId>com.datastax.cassandra</groupId>
-          <artifactId>cassandra-driver-core</artifactId>
-          <version>${datastax.driver.version}</version>
-      </dependency>
+    <dependency>
+      <groupId>com.datastax.cassandra</groupId>
+      <artifactId>cassandra-driver-core</artifactId>
+      <version>${datastax.driver.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>com.github.stephenc.eaio-uuid</groupId>
