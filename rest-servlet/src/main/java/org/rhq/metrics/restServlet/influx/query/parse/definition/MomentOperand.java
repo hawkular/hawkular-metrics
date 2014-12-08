@@ -1,9 +1,13 @@
 package org.rhq.metrics.restServlet.influx.query.parse.definition;
 
+import java.util.concurrent.TimeUnit;
+
+import org.joda.time.Instant;
+
 /**
  * @author Thomas Segismont
  */
-public class MomentOperand implements Operand {
+public class MomentOperand implements InstantOperand {
     private final String functionName;
     private final int timeshift;
     private final InfluxTimeUnit timeshiftUnit;
@@ -24,5 +28,10 @@ public class MomentOperand implements Operand {
 
     public InfluxTimeUnit getTimeshiftUnit() {
         return timeshiftUnit;
+    }
+
+    @Override
+    public Instant getInstant() {
+        return Instant.now().plus(timeshiftUnit.convertTo(TimeUnit.MILLISECONDS, timeshift));
     }
 }
