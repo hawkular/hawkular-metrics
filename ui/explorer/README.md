@@ -50,7 +50,7 @@ Grunt is a build tool for javscript webapps just like maven is for java. The bui
 
 Grunt will automatically launch a url for you in your browser and will reload any changes in real time to the browser. Feel Free to play around.
 
-Tip: Make sure that you have a rest backend running so that the UI console can connect to something. 
+Tip: Make sure that you have a rest backend running so that the UI console can connect to something.
 
 1. **'cd rest-servlet'**
 2. **'mvn wildfly:run'**
