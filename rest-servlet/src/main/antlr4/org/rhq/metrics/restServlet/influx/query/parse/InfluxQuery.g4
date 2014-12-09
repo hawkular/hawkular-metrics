@@ -6,7 +6,9 @@ query: listSeries EOF
 
 listSeries: LIST SERIES;
 
-selectQuery: SELECT selectColumns fromClause (groupByClause? whereClause | whereClause? groupByClause)? limitClause?;
+selectQuery: SELECT selectColumns fromClause (groupByClause? whereClause | whereClause? groupByClause)? limitClause?
+           orderClause?
+           ;
 
 selectColumns: STAR #starColumn
              | columnDefinition (',' columnDefinition)* #columnDefinitionList
@@ -46,6 +48,10 @@ operand: prefix? name #nameOperand
 
 limitClause: LIMIT INT;
 
+orderClause: ORDER 'asc' #orderAsc
+           | ORDER 'desc' #orderDesc
+           ;
+
 name: ID # idName
     | DOUBLE_QUOTED_STRING # stringName
     ;
@@ -72,6 +78,7 @@ OR: O R;
 GROUP: G R O U P;
 BY: B Y;
 LIMIT: L I M I T;
+ORDER: O R D E R;
 
 TIMESPAN: INT TIMEUNIT;
 fragment TIMEUNIT: U | S | M | H | D | W;

@@ -30,3 +30,5 @@ select a from "b" group by time (7z) where (c=2 and ((d=7) OR 7 <> _qsk4jlj(a."5
 select a from "b" where '2012-05-14' = '2007-0' OR '2007-05' > '2007-05-14 18:12:'
 # Function call
 select a from "b" where '2012-05-14' = '2007-0' OR '2007-05' > _dsqkjdqs()
+# Malformed order clause
+SeleCt dup.time fROm "z" as bi order bing
