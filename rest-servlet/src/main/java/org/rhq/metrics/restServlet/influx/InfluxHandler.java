@@ -22,11 +22,13 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
 
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import org.joda.time.Instant;
 import org.joda.time.Interval;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +44,7 @@ import org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParser;
 import org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParserFactory;
 import org.rhq.metrics.restServlet.influx.query.parse.QueryParseException;
 import org.rhq.metrics.restServlet.influx.query.parse.definition.AggregatedColumnDefinition;
+import org.rhq.metrics.restServlet.influx.query.parse.definition.BooleanExpression;
 import org.rhq.metrics.restServlet.influx.query.parse.definition.FunctionArgument;
 import org.rhq.metrics.restServlet.influx.query.parse.definition.GroupByClause;
 import org.rhq.metrics.restServlet.influx.query.parse.definition.InfluxTimeUnit;
@@ -160,7 +163,13 @@ public class InfluxHandler {
         }
 
         final String metric = queryDefinitions.getFromClause().getName(); // metric to query from backend
-        final Interval timeInterval = toIntervalTranslator.toInterval(queryDefinitions.getWhereClause());
+        BooleanExpression whereClause = queryDefinitions.getWhereClause();
+        final Interval timeInterval;
+        if (whereClause == null) {
+            timeInterval = new Interval(new Instant(0), Instant.now());
+        } else {
+            timeInterval = toIntervalTranslator.toInterval(whereClause);
+        }
         if (timeInterval == null) {
             StringValue errMsg = new StringValue("Invalid time interval");
             asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity(errMsg).build());
@@ -202,6 +211,10 @@ public class InfluxHandler {
                             metrics = applyMapping(aggregatedColumnDefinition.getAggregationFunction(),
                                 aggregatedColumnDefinition.getAggregationFunctionArguments(), metrics,
                                 (int) bucketSizeSec, timeInterval.getStartMillis(), timeInterval.getEndMillis());
+                        }
+
+                        if (!queryDefinitions.isOrderDesc()) {
+                            metrics = Lists.reverse(metrics);
                         }
 
                         for (NumericData m : metrics) {
