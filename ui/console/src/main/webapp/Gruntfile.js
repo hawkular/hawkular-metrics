@@ -1,10 +1,12 @@
-'use strict';
 
 
 module.exports = function (grunt) {
+    'use strict';
 
     require('load-grunt-tasks')(grunt);
     require('time-grunt')(grunt);
+
+    grunt.loadNpmTasks('grunt-typescript');
 
     // Define the configuration for all the tasks
     grunt.initConfig({
@@ -13,7 +15,35 @@ module.exports = function (grunt) {
         rhqMetrics: {
             // configurable paths
             app: './',
-            dist: '../../../target/dist',
+            dist: '../../../target/dist'
+        },
+        // http://www.npmjs.org/package/grunt-typescript
+        typescript: {
+            base: {
+                src: [ 'vendor/**/*.d.ts', 'scripts/**/*.ts' ],
+                dest: '../../../target/dist',
+                options: {
+                    removeComments: true,
+                    target: 'ES5',
+                    declaration: false,
+                    sourceMap: true,
+                    watch: false
+                }
+            },
+            dev: {
+                src: [ 'vendor/**/*.d.ts', 'scripts/**/*.ts'  ],
+                dest: 'scripts',
+                options: {
+                    removeComments: true,
+                    target: 'ES5',
+                    declaration: false,
+                    sourceMap: true,
+                    watch: grunt.option('watch') ? {
+                        path: 'scripts',
+                        atBegin: true
+                    } : false
+                }
+            }
         },
 
         // Watches files for changes and runs tasks based on the changed files
@@ -244,12 +274,13 @@ module.exports = function (grunt) {
             'concurrent:server',
             'autoprefixer',
             'connect:livereload',
+            'typescript:dev',
             'watch'
         ]);
     });
 
 
-    //grunt.registerTask("ts", ["ts:dev"]);
+    grunt.registerTask("ts", ["typescript:base"]);
 
     grunt.registerTask('test', [
         'clean:server',
@@ -262,7 +293,7 @@ module.exports = function (grunt) {
     grunt.registerTask('build', [
         'clean:dist',
         'bower:install',
-        'bower-install',
+        'typescript:base',
         'concurrent:dist',
         'autoprefixer',
         'copy:dist',
@@ -270,7 +301,7 @@ module.exports = function (grunt) {
 
     grunt.registerTask('default', [
         'newer:jshint',
-        'test',
+        //'test',
         'build'
     ]);
 };

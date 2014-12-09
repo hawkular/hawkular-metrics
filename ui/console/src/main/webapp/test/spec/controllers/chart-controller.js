@@ -13,10 +13,10 @@ describe('Controller: ChartControllerCtrl', function () {
         scope = $rootScope.$new();
         ChartControllerCtrl = $controller('ChartController', {
             $scope: scope
-        });
-    }));
+          });
+      }));
 
     it('should have this variable in scope', function () {
         expect(scope.vm.dateTimeRanges).toBeDefined();
-    });
-});
+      });
+  });
