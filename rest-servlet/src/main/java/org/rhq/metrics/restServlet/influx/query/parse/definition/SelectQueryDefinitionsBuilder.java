@@ -12,6 +12,7 @@ public class SelectQueryDefinitionsBuilder {
     private GroupByClause groupByClause = null;
     private BooleanExpression whereClause = null;
     private LimitClause limitClause = null;
+    private boolean orderDesc = true;
 
     public SelectQueryDefinitionsBuilder setColumnDefinitions(List<ColumnDefinition> columnDefinitions) {
         this.columnDefinitions = columnDefinitions;
@@ -39,8 +40,13 @@ public class SelectQueryDefinitionsBuilder {
         return this;
     }
 
+    public SelectQueryDefinitionsBuilder setOrderDesc(boolean orderDesc) {
+        this.orderDesc = orderDesc;
+        return this;
+    }
+
     public SelectQueryDefinitions createSelectQueryDefinitions() {
         return new SelectQueryDefinitions(starColumn, columnDefinitions, fromClause, groupByClause, whereClause,
-            limitClause);
+            limitClause, orderDesc);
     }
 }

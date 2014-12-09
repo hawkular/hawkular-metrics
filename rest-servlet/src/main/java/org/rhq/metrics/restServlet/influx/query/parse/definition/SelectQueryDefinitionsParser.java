@@ -24,6 +24,7 @@ import static org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParser.N
 import static org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParser.NameOperandContext;
 import static org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParser.NeqExpressionContext;
 import static org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParser.OrExpressionContext;
+import static org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParser.OrderAscContext;
 import static org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParser.PastMomentOperandContext;
 import static org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParser.PrefixContext;
 import static org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParser.PresentMomentOperandContext;
@@ -178,6 +179,11 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     @Override
     public void exitWhereClause(@NotNull WhereClauseContext ctx) {
         definitionsBuilder.setWhereClause(booleanExpressionQueue.removeLast());
+    }
+
+    @Override
+    public void exitOrderAsc(@NotNull OrderAscContext ctx) {
+        definitionsBuilder.setOrderDesc(false);
     }
 
     @Override
