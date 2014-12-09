@@ -38,5 +38,5 @@ class BaseITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(start + 10, response.data[0].timestamp)
   }
- 
+
 }
