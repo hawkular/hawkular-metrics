@@ -1,37 +1,17 @@
-import groovyx.net.http.RESTClient
+package org.rhq.metrics.rest
+
 import org.joda.time.DateTime
-import org.testng.annotations.Test
+import org.junit.Test
 
-import static groovyx.net.http.ContentType.JSON
+import static junit.framework.Assert.fail
+import static junit.framework.TestCase.assertEquals
 import static org.joda.time.DateTime.now
-import static org.testng.Assert.assertEquals
-import static org.testng.Assert.fail
 
-/**
- * Created by IntelliJ IDEA.
- * User: John Sanda
- * Date: 12/5/14
- * Time: 4:14 PM
- * To change this template use File | Settings | File Templates.
- */
-class CassandraBackendITest {
+class CassandraBackendITest extends RESTTest {
 
-  def rhqm = new RESTClient("http://127.0.0.1:8080/rhq-metrics/", JSON)
-
-//  @Test
-//  void createTenants() {
-//    def response = rhqm.post(path: 'tenants', body: [id: 'tenant-1'])
-//    assertEquals(response.status, 200)
-//
-//    response = rhqm.post(path: 'tenants', body: [
-//        id: 'tenant-2',
-//        retentions: [
-//          numeric: 72,
-//          availability: 48
-//        ]
-//    ])
-//    assertEquals(response.status, 200)
-//  }
+//  Session session;
+//  MetricsServiceCassandra metricsServer;
+//  String keyspace = System.getProperty("keyspace") ?: "rhq_metrics_rest_tests"
 
   @Test
   void insertNumericDataForMultipleMetrics() {
@@ -39,7 +19,7 @@ class CassandraBackendITest {
     def tenantId = 'tenant-1'
 
     def response = rhqm.post(path: 'tenants', body: [id: tenantId])
-    assertEquals(response.status, 200, 'The response status is wrong')
+    assertEquals(response.status, 200)
 
     response = rhqm.post(path: "${tenantId}/metrics/numeric/data", body: [
         [
@@ -64,10 +44,10 @@ class CassandraBackendITest {
           ]
         ]
     ])
-    assertEquals(response.status, 200, 'The status code is wrong when insert multiple numeric metrics')
+    assertEquals(response.status, 200)
 
     response = rhqm.get(path: "${tenantId}/metrics/numeric/m2/data")
-    assertEquals(response.status, 200, 'The status code is wrong when fetching numeric data')
+    assertEquals(response.status, 200)
     assertEquals(response.data,
         [
           tenantId: 'tenant-1',
@@ -76,8 +56,7 @@ class CassandraBackendITest {
             [timestamp: start.plusMinutes(1).millis, value: 2.2],
             [timestamp: start.millis, value: 2.1],
           ]
-        ],
-        "The response body is wrong when fetching numeric data"
+        ]
     )
   }
 
