@@ -20,27 +20,27 @@ module.exports = function (grunt) {
         // http://www.npmjs.org/package/grunt-typescript
         typescript: {
             base: {
-                src: [ "vendor/**/*.d.ts", "scripts/**/*.ts" ],
-                dest: "../../../target/dist",
+                src: [ 'vendor/**/*.d.ts', 'scripts/**/*.ts' ],
+                dest: '../../../target/dist',
+                ///dest: 'src/main/webapp/app/app.js',
                 options: {
                     removeComments: true,
-                    target: "ES5",
-                    declaration: true,
+                    target: 'ES5',
+                    declaration: false,
                     sourceMap: true,
                     watch: false
                 }
             },
             dev: {
-                src: [ "vendor/**/*.d.ts", "scripts/**/*.ts"  ],
-                ///dest: "src/main/webapp/app/app.js",
-                dest: "scripts",
+                src: [ 'vendor/**/*.d.ts', 'scripts/**/*.ts'  ],
+                dest: 'scripts',
                 options: {
                     removeComments: true,
-                    target: "ES5",
+                    target: 'ES5',
                     declaration: false,
                     sourceMap: true,
-                    watch: grunt.option("watch") ? {
-                        path: "scripts",
+                    watch: grunt.option('watch') ? {
+                        path: 'scripts',
                         atBegin: true
                     } : false
                 }
