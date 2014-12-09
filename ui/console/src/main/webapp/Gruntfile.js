@@ -1,7 +1,7 @@
-'use strict';
 
 
 module.exports = function (grunt) {
+    'use strict';
 
     require('load-grunt-tasks')(grunt);
     require('time-grunt')(grunt);
@@ -22,7 +22,6 @@ module.exports = function (grunt) {
             base: {
                 src: [ 'vendor/**/*.d.ts', 'scripts/**/*.ts' ],
                 dest: '../../../target/dist',
-                ///dest: 'src/main/webapp/app/app.js',
                 options: {
                     removeComments: true,
                     target: 'ES5',
@@ -281,7 +280,7 @@ module.exports = function (grunt) {
     });
 
 
-    //grunt.registerTask("ts", ["ts:dev"]);
+    grunt.registerTask("ts", ["typescript:base"]);
 
     grunt.registerTask('test', [
         'clean:server',
@@ -294,14 +293,14 @@ module.exports = function (grunt) {
     grunt.registerTask('build', [
         'clean:dist',
         'bower:install',
+        'typescript:base',
         'concurrent:dist',
         'autoprefixer',
         'copy:dist',
     ]);
 
     grunt.registerTask('default', [
-       // 'newer:jshint',
-        'typescript:base',
+        'newer:jshint',
         //'test',
         'build'
     ]);
