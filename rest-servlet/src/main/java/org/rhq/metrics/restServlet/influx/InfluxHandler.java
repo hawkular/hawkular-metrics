@@ -1,6 +1,9 @@
 package org.rhq.metrics.restServlet.influx;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.rhq.metrics.core.MetricsService.DEFAULT_TENANT_ID;
+import static org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParser.QueryContext;
+import static org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParser.SelectQueryContext;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,6 +26,8 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import org.joda.time.Interval;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +37,23 @@ import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.restServlet.ServiceKeeper;
 import org.rhq.metrics.restServlet.StringValue;
+import org.rhq.metrics.restServlet.influx.query.InfluxQueryParseTreeWalker;
+import org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParser;
+import org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParserFactory;
+import org.rhq.metrics.restServlet.influx.query.parse.QueryParseException;
+import org.rhq.metrics.restServlet.influx.query.parse.definition.AggregatedColumnDefinition;
+import org.rhq.metrics.restServlet.influx.query.parse.definition.FunctionArgument;
+import org.rhq.metrics.restServlet.influx.query.parse.definition.GroupByClause;
+import org.rhq.metrics.restServlet.influx.query.parse.definition.InfluxTimeUnit;
+import org.rhq.metrics.restServlet.influx.query.parse.definition.NumberFunctionArgument;
+import org.rhq.metrics.restServlet.influx.query.parse.definition.SelectQueryDefinitions;
+import org.rhq.metrics.restServlet.influx.query.parse.definition.SelectQueryDefinitionsParser;
+import org.rhq.metrics.restServlet.influx.query.parse.type.QueryType;
+import org.rhq.metrics.restServlet.influx.query.parse.type.QueryTypeVisitor;
+import org.rhq.metrics.restServlet.influx.query.translate.ToIntervalTranslator;
+import org.rhq.metrics.restServlet.influx.query.validation.AggregationFunction;
+import org.rhq.metrics.restServlet.influx.query.validation.IllegalQueryException;
+import org.rhq.metrics.restServlet.influx.query.validation.QueryValidator;
 
 /**
  * Some support for InfluxDB clients like Grafana.
@@ -43,140 +65,200 @@ import org.rhq.metrics.restServlet.StringValue;
 public class InfluxHandler {
     private static final Logger LOG = LoggerFactory.getLogger(InfluxHandler.class);
 
-    private static final String SELECT_FROM = "select ";
-
     @Inject
     private MetricsService metricsService;
+    @Inject
+    @InfluxQueryParseTreeWalker
+    private ParseTreeWalker parseTreeWalker;
+    @Inject
+    private InfluxQueryParserFactory parserFactory;
+    @Inject
+    private QueryValidator queryValidator;
+    @Inject
+    private ToIntervalTranslator toIntervalTranslator;
 
     @GET
     @Path("/series")
-    public void series(@Suspended final AsyncResponse asyncResponse,
-                           @QueryParam("q") String queryString) {
+    public void series(@Suspended final AsyncResponse asyncResponse, @QueryParam("q") String queryString) {
 
         if (queryString==null || queryString.isEmpty()) {
             asyncResponse.cancel();
             return;
         }
 
-        if (queryString.equals("list series")) {
+        InfluxQueryParser queryParser = parserFactory.newInstanceForQuery(queryString);
+        QueryContext queryContext = queryParser.query();
 
-            // Copied from MetricsHandler
-            ListenableFuture<List<String>> future = ServiceKeeper.getInstance().service.listMetrics();
-            Futures.addCallback(future, new FutureCallback<List<String>>() {
-                @Override
-                public void onSuccess(List<String> result) {
+        QueryType queryType;
+        try {
+            queryType = new QueryTypeVisitor().visit(queryContext);
+        } catch (QueryParseException e) {
+            StringValue errMsg = new StringValue("Syntactically incorrect query: " + e.getMessage());
+            asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity(errMsg).build());
+            return;
+        } catch (Exception e) {
+            asyncResponse.resume(e);
+            return;
+        }
 
-                    List<InfluxObject> objects = new ArrayList<>(result.size());
+        switch (queryType) {
+        case LIST_SERIES:
+            listSeries(asyncResponse);
+            break;
+        case SELECT:
+            select(asyncResponse, queryContext.selectQuery());
+            break;
+        default:
+            StringValue errMsg = new StringValue("Query not yet supported: " + queryString);
+            asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity(errMsg).build());
+        }
+    }
 
-                    for (String name : result) {
-                InfluxObject obj = new InfluxObject(name);
-                obj.columns = new ArrayList<>(2);
-                obj.columns.add("time");
-                obj.columns.add("sequence_number");
-                obj.columns.add("val");
-                obj.points = new ArrayList<>(1);
-                objects.add(obj);
+    private void listSeries(final AsyncResponse asyncResponse) {
+        ListenableFuture<List<String>> future = ServiceKeeper.getInstance().service.listMetrics();
+        Futures.addCallback(future, new FutureCallback<List<String>>() {
+            @Override
+            public void onSuccess(List<String> result) {
+
+                List<InfluxObject> objects = new ArrayList<>(result.size());
+
+                for (String name : result) {
+                    InfluxObject obj = new InfluxObject(name);
+                    obj.columns = new ArrayList<>(2);
+                    obj.columns.add("time");
+                    obj.columns.add("sequence_number");
+                    obj.columns.add("val");
+                    obj.points = new ArrayList<>(1);
+                    objects.add(obj);
+                }
+
+                Response.ResponseBuilder builder = Response.ok(objects);
+
+                asyncResponse.resume(builder.build());
             }
 
-            Response.ResponseBuilder builder = Response.ok(objects);
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
+            }
+        });
+    }
 
-            asyncResponse.resume(builder.build());
+    private void select(final AsyncResponse asyncResponse, SelectQueryContext selectQueryContext) {
+
+        final SelectQueryDefinitionsParser definitionsParser = new SelectQueryDefinitionsParser();
+        parseTreeWalker.walk(definitionsParser, selectQueryContext);
+
+        final SelectQueryDefinitions queryDefinitions = definitionsParser.getSelectQueryDefinitions();
+
+        try {
+            queryValidator.validateSelectQuery(queryDefinitions);
+        } catch (IllegalQueryException e) {
+            StringValue errMsg = new StringValue("Illegal query: " + e.getMessage());
+            asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity(errMsg).build());
+            return;
+        }
+
+        final String metric = queryDefinitions.getFromClause().getName(); // metric to query from backend
+        final Interval timeInterval = toIntervalTranslator.toInterval(queryDefinitions.getWhereClause());
+        if (timeInterval == null) {
+            StringValue errMsg = new StringValue("Invalid time interval");
+            asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity(errMsg).build());
+            return;
+        }
+        final String columnName = getColumnName(queryDefinitions);
+
+        ListenableFuture<Boolean> idExistsFuture = metricsService.idExists(metric);
+        Futures.addCallback(idExistsFuture, new FutureCallback<Boolean>() {
+            @Override
+            public void onSuccess(Boolean result) {
+                if (!result) {
+                    StringValue val = new StringValue("Metric with id [" + metric + "] not found. ");
+                    asyncResponse.resume(Response.status(404).entity(val).build());
                 }
 
-                @Override
-                public void onFailure(Throwable t) {
-                    asyncResponse.resume(t);
-                }
-            });
-        } else {
-            // Example query: select  mean("value") as "value_mean" from "snert.cpu_user" where  time > now() - 6h     group by time(30s)  order asc
-            final String query = queryString.toLowerCase();
-            if (query.startsWith(SELECT_FROM)) {
-                final InfluxQuery iq = new InfluxQuery(query);
-                LOG.debug("Parsed Influx query: {}", iq);
+                final ListenableFuture<List<NumericData>> future = metricsService.findData(new NumericMetric2(
+                    DEFAULT_TENANT_ID, new MetricId(metric)), timeInterval.getStartMillis(), timeInterval
+                    .getEndMillis());
 
-                final String metric = iq.getMetric();  // metric to query from backend
-
-//                ListenableFuture<Boolean> idExistsFuture = metricsService.idExists(metric);
-                ListenableFuture<Boolean> idExistsFuture = Futures.immediateFuture(Boolean.TRUE);
-                Futures.addCallback(idExistsFuture, new FutureCallback<Boolean>() {
+                Futures.addCallback(future, new FutureCallback<List<NumericData>>() {
                     @Override
-                    public void onSuccess(Boolean result) {
-                        if (!result) {
-                            StringValue val = new StringValue("Metric with id [" + metric + "] not found. ");
-                            asyncResponse.resume(Response.status(404).entity(val).build());
+                    public void onSuccess(List<NumericData> metrics) {
+
+                        List<InfluxObject> objects = new ArrayList<>(1);
+
+                        InfluxObject obj = new InfluxObject(metric);
+                        obj.columns = new ArrayList<>(2);
+                        obj.columns.add("time");
+                        obj.columns.add(columnName);
+                        obj.points = new ArrayList<>();
+
+                        if (shouldApplyMapping(queryDefinitions)) {
+                            GroupByClause groupByClause = queryDefinitions.getGroupByClause();
+                            InfluxTimeUnit bucketSizeUnit = groupByClause.getBucketSizeUnit();
+                            long bucketSizeSec = bucketSizeUnit.convertTo(SECONDS, groupByClause.getBucketSize());
+                            AggregatedColumnDefinition aggregatedColumnDefinition = (AggregatedColumnDefinition) queryDefinitions
+                                .getColumnDefinitions().get(0);
+                            metrics = applyMapping(aggregatedColumnDefinition.getAggregationFunction(),
+                                aggregatedColumnDefinition.getAggregationFunctionArguments(), metrics,
+                                (int) bucketSizeSec, timeInterval.getStartMillis(), timeInterval.getEndMillis());
                         }
 
-                        final ListenableFuture<List<NumericData>> future = metricsService.findData(
-                            new NumericMetric2(DEFAULT_TENANT_ID, new MetricId(metric)), iq.getStart(), iq.getEnd());
+                        for (NumericData m : metrics) {
+                            List<Number> data = new ArrayList<>();
+                            data.add(m.getTimestamp() / 1000); // query param "time_precision
+                            data.add(m.getValue());
+                            obj.points.add(data);
+                        }
 
-                        Futures.addCallback(future, new FutureCallback<List<NumericData>>() {
-                            @Override
-                            public void onSuccess(List<NumericData> metrics) {
+                        objects.add(obj);
 
-                                List<InfluxObject> objects = new ArrayList<>(1);
+                        Response.ResponseBuilder builder = Response.ok(objects);
 
-                                InfluxObject obj = new InfluxObject(metric);
-                                obj.columns = new ArrayList<>(1);
-                                obj.columns.add("time");
-                                obj.columns.add(iq.getAlias());
-                                obj.points = new ArrayList<>(1);
-
-                                metrics = applyMapping(iq,metrics, iq.getBucketLengthSec(), iq.getStart(), iq.getEnd());
-
-                                for (NumericData m : metrics) {
-                                    List<Number> data = new ArrayList<>();
-                                    data.add(m.getTimestamp()/1000);  // query param "time_precision
-                                    data.add(m.getValue());
-                                    obj.points.add(data);
-                                }
-
-                                objects.add(obj);
-
-                                Response.ResponseBuilder builder = Response.ok(objects);
-
-                                asyncResponse.resume(builder.build());
-                            }
-
-                            @Override
-                            public void onFailure(Throwable t) {
-                                asyncResponse.resume(t);
-                            }
-
-                        });
+                        asyncResponse.resume(builder.build());
                     }
 
                     @Override
                     public void onFailure(Throwable t) {
                         asyncResponse.resume(t);
                     }
+
                 });
             }
-            else {
-                // Fallback if nothing matched
-                StringValue errMsg = new StringValue("Query not yet supported: " + queryString);
-                asyncResponse.resume(
-                    Response.status(Response.Status.BAD_REQUEST).entity(errMsg).build());
+
+            @Override
+            public void onFailure(Throwable t) {
+                asyncResponse.resume(t);
             }
+        });
+    }
+
+    private boolean shouldApplyMapping(SelectQueryDefinitions queryDefinitions) {
+        return !queryDefinitions.isStarColumn()
+            && queryDefinitions.getColumnDefinitions().get(0) instanceof AggregatedColumnDefinition
+            && queryDefinitions.getGroupByClause() != null;
+    }
+
+    private String getColumnName(SelectQueryDefinitions queryDefinitions) {
+        if (queryDefinitions.isStarColumn()) {
+            return "value";
         }
+        return queryDefinitions.getColumnDefinitions().get(0).getDisplayName();
     }
 
     /**
      * Apply a mapping function to the incoming data
-     * @param query Object that describes the query
+     * @param aggregationFunction
+     * @param aggregationFunctionArguments
      * @param in Input list of data
      * @param bucketLengthSec the length of the buckets
      * @param startTime Start time of the query
      * @param endTime  End time of the query
      * @return The mapped list of values, which could be the input or a longer or shorter list
      */
-    private List<NumericData> applyMapping(InfluxQuery query, final List<NumericData> in, int bucketLengthSec,
-                                                long startTime, long endTime) {
-
-        String mapping = query.getMapping();
-        if (mapping==null || mapping.isEmpty() || mapping.equals("none")) {
-            return  in;
-        }
+    private List<NumericData> applyMapping(String aggregationFunction,
+        List<FunctionArgument> aggregationFunctionArguments, List<NumericData> in, int bucketLengthSec, long startTime,
+        long endTime) {
 
         long timeDiff = endTime - startTime; // Millis
         int numBuckets = (int) ((timeDiff /1000 ) / bucketLengthSec);
@@ -203,8 +285,9 @@ public class InfluxHandler {
                 int size = list.size();
                 NumericData lastElementInList = list.get(size - 1);
                 NumericData firstElementInList = list.get(0);
-                switch (mapping) {
-                case "mean":
+                AggregationFunction function = AggregationFunction.findByName(aggregationFunction);
+                switch (function) {
+                case MEAN:
                     for (NumericData rnm : list) {
                         retVal += rnm.getValue();
                     }
@@ -213,7 +296,7 @@ public class InfluxHandler {
                     }
                     retVal /= size;
                     break;
-                case "max":
+                case MAX:
                     retVal = Double.MIN_VALUE;
                     for (NumericData rnm : list) {
                         if (rnm.getValue() > retVal) {
@@ -221,7 +304,7 @@ public class InfluxHandler {
                         }
                     }
                     break;
-                case "min":
+                case MIN:
                     retVal = Double.MAX_VALUE;
                     for (NumericData rnm : list) {
                         if (rnm.getValue() < retVal) {
@@ -229,45 +312,45 @@ public class InfluxHandler {
                         }
                     }
                     break;
-                case "sum":
+                case SUM:
                     for (NumericData rnm : list) {
                         retVal += rnm.getValue();
                     }
                     break;
-                case "count":
+                case COUNT:
                     retVal = size;
                     break;
-                case "first":
+                case FIRST:
                     if (!list.isEmpty()) {
                         retVal = firstElementInList.getValue();
                     }
                     break;
-                case "last":
+                case LAST:
                     if (!list.isEmpty()) {
                         retVal = lastElementInList.getValue();
                     }
                     break;
-                case "difference":
+                case DIFFERENCE:
                     if (!list.isEmpty()) {
                         retVal = (lastElementInList.getValue()) - (firstElementInList.getValue());
                     }
                     break;
-                case "derivative":
+                case DERIVATIVE:
                     if (!list.isEmpty()) {
                         double y = (lastElementInList.getValue()) - (firstElementInList.getValue());
                         long t = (lastElementInList.getTimestamp() - (firstElementInList.getTimestamp())) / 1000; // sec
                         retVal = y/(double)t;
                     }
                     break;
-                case "median":
+                case MEDIAN:
                     retVal = quantil(list,50.0);
                     break;
-                case "percentile":
-                    retVal = quantil(list,Double.valueOf(query.getMappingArgs()));
+                case PERCENTILE:
+                    NumberFunctionArgument argument = (NumberFunctionArgument) aggregationFunctionArguments.get(1);
+                    retVal = quantil(list, argument.getDoubleValue());
                     break;
                 default:
-                    System.out.println("Mapping of " + query + " not yet supported");
-
+                    LOG.warn("Mapping of '{}' function not yet supported", function);
                 }
                 NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, firstElementInList.getMetric().getId());
                 out.add(new NumericData(metric, firstElementInList.getTimestamp(), retVal));

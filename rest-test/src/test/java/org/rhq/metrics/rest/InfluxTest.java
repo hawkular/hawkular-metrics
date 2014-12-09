@@ -30,7 +30,7 @@ public class InfluxTest extends AbstractTestBase {
         postDataPoints(data);
 
 
-        String query = "select mean(value) from  \"influx.foo\" where time > now() - 30s group by time(30s) order asc ";
+        String query = "select mean(value) from  \"influx.foo\" where time > now() - 30s group by time(30s) ";
 
 
         given()
@@ -67,7 +67,7 @@ public class InfluxTest extends AbstractTestBase {
         postDataPoints(data);
 
 
-        String query = "select mean(value) from  \"influx.foo3\" where time > '2013-08-12 23:32:01.232' and time < '2013-08-13' group by time(30s) order asc ";
+        String query = "select mean(value) from  \"influx.foo3\" where time > '2013-08-12 23:32:01.232' and time < '2013-08-13' group by time(30s) ";
 
 
         given()
@@ -107,7 +107,7 @@ public class InfluxTest extends AbstractTestBase {
 
         postDataPoints(data);
 
-        String query = "select mean(value) from  \"influx.bar2\" where time > now() - 30s group by time(30s) order asc ";
+        String query = "select mean(value) from  \"influx.bar2\" where time > now() - 30s group by time(30s) ";
 
 
         given()
@@ -126,7 +126,7 @@ public class InfluxTest extends AbstractTestBase {
             .and()
                 .body("[0].points[0][1]", Matchers.hasToString("21.0"));
 
-        query = "select mean(value) from  \"influx.foo2\" where time > now() - 30s group by time(30s) order asc ";
+        query = "select mean(value) from  \"influx.foo2\" where time > now() - 30s group by time(30s) ";
 
         given()
             .queryParam("q",query)
