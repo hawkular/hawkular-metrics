@@ -93,6 +93,32 @@ class InfluxITest extends RESTTest {
   }
 
   @Test
+  void testInfluxLimitClause() {
+    def timeseriesName = "influx.limitclause"
+    def start = now().minus(2000)
+    postData(timeseriesName, start)
+
+    def influxQuery = 'select value from "' + timeseriesName + '" limit 2 order asc '
+
+    def response = rhqm.get(path: "influx/series", query: [q: influxQuery])
+    assertEquals(200, response.status)
+
+    assertEquals(
+        [
+            [
+                columns: ["time", "value"],
+                name   : timeseriesName,
+                points : [
+                    [start.millis, 40.1],
+                    [start.plus(1000).millis, 41.1]
+                ]
+            ]
+        ],
+        response.data
+    )
+  }
+
+  @Test
   void testInfluxAddGetOneSillyMetric() {
     def timeseriesName = "influx.foo3"
     def start = now().minus(2000)

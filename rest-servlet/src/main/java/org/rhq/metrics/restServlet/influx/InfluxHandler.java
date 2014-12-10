@@ -217,6 +217,10 @@ public class InfluxHandler {
                             metrics = Lists.reverse(metrics);
                         }
 
+                        if (queryDefinitions.getLimitClause() != null) {
+                            metrics = metrics.subList(0, queryDefinitions.getLimitClause().getLimit());
+                        }
+
                         for (NumericData m : metrics) {
                             List<Object> data = new ArrayList<>();
                             data.add(m.getTimestamp());
