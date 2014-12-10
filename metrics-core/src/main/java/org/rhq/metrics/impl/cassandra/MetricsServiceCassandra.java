@@ -132,23 +132,16 @@ public class MetricsServiceCassandra implements MetricsService {
     private ListeningExecutorService metricsTasks = MoreExecutors
         .listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
 
-    private Map<String, Tenant> tenants = new ConcurrentHashMap<>();
-
     /**
      * Note that while user specifies the durations in hours, we store them in seconds.
      */
     private Map<DataRetentionKey, Integer> dataRetentions = new ConcurrentHashMap<>();
-
-    public MetricsServiceCassandra() {
-        tenants.put(DEFAULT_TENANT_ID, new Tenant().setId(DEFAULT_TENANT_ID));
-    }
 
     @Override
     public void startUp(Session s) {
         // the session is managed externally
         this.session = Optional.absent();
         this.dataAccess = new DataAccessImpl(s);
-        loadTenants();
         loadDataRetentions();
     }
 
@@ -199,38 +192,23 @@ public class MetricsServiceCassandra implements MetricsService {
         session.get().execute("USE " + keyspace);
 
         dataAccess = new DataAccessImpl(session.get());
-        loadTenants();
         loadDataRetentions();
-    }
-
-    void loadTenants() {
-        TenantMapper mapper = new TenantMapper();
-        ResultSet resultSet = dataAccess.findAllTenantIds().getUninterruptibly();
-        for (Row row : resultSet) {
-            String tenantId = row.getString(0);
-            ResultSetFuture queryFuture = dataAccess.findTenant(tenantId);
-            ResultSet tenantResultSet = queryFuture.getUninterruptibly();
-            tenants.put(tenantId, mapper.apply(tenantResultSet));
-        }
-    }
-
-    void unloadTenants() {
-        tenants.clear();
     }
 
     void loadDataRetentions() {
         DataRetentionsMapper mapper = new DataRetentionsMapper();
-        CountDownLatch latch = new CountDownLatch(tenants.size() * 2);
-        for (Tenant t : tenants.values()) {
-            ResultSetFuture numericFuture = dataAccess.findDataRetentions(t.getId(), MetricType.NUMERIC);
-            ResultSetFuture availabilityFuture = dataAccess.findDataRetentions(t.getId(), MetricType.AVAILABILITY);
+        List<String> tenantIds = loadTenantIds();
+        CountDownLatch latch = new CountDownLatch(tenantIds.size() * 2);
+        for (String tenantId : tenantIds) {
+            ResultSetFuture numericFuture = dataAccess.findDataRetentions(tenantId, MetricType.NUMERIC);
+            ResultSetFuture availabilityFuture = dataAccess.findDataRetentions(tenantId, MetricType.AVAILABILITY);
             ListenableFuture<Set<Retention>> numericRetentions = Futures.transform(numericFuture, mapper,
                 metricsTasks);
             ListenableFuture<Set<Retention>> availabilityRetentions = Futures.transform(availabilityFuture, mapper,
                 metricsTasks);
-            Futures.addCallback(numericRetentions, new DataRetentionsLoadedCallback(t.getId(), MetricType.NUMERIC,
+            Futures.addCallback(numericRetentions, new DataRetentionsLoadedCallback(tenantId, MetricType.NUMERIC,
                     latch), metricsTasks);
-            Futures.addCallback(availabilityRetentions, new DataRetentionsLoadedCallback(t.getId(),
+            Futures.addCallback(availabilityRetentions, new DataRetentionsLoadedCallback(tenantId,
                 MetricType.AVAILABILITY, latch), metricsTasks);
         }
         try {
@@ -307,7 +285,6 @@ public class MetricsServiceCassandra implements MetricsService {
                 if (!resultSet.wasApplied()) {
                     throw new TenantAlreadyExistsException(tenant.getId());
                 }
-                tenants.put(tenant.getId(), tenant);
                 Map<MetricType, Set<Retention>> retentionsMap = new HashMap<>();
                 for (RetentionSettings.RetentionKey key : tenant.getRetentionSettings().keySet()) {
                     Set<Retention> retentions = retentionsMap.get(key.metricType);
@@ -339,8 +316,25 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Collection<Tenant>> getTenants() {
-        return Futures.immediateFuture(tenants.values());
+    public ListenableFuture<List<Tenant>> getTenants() {
+        TenantMapper mapper = new TenantMapper();
+        List<String> ids = loadTenantIds();
+        List<ListenableFuture<Tenant>> tenantFutures = new ArrayList<>(ids.size());
+        for (String id : ids) {
+            ResultSetFuture queryFuture = dataAccess.findTenant(id);
+            ListenableFuture<Tenant> tenantFuture = Futures.transform(queryFuture, mapper, metricsTasks);
+            tenantFutures.add(tenantFuture);
+        }
+        return Futures.allAsList(tenantFutures);
+    }
+
+    private List<String> loadTenantIds() {
+        ResultSet resultSet = dataAccess.findAllTenantIds().getUninterruptibly();
+        List<String> ids = new ArrayList<>();
+        for (Row row : resultSet) {
+            ids.add(row.getString(0));
+        }
+        return ids;
     }
 
     @Override

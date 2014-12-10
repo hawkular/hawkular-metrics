@@ -76,8 +76,6 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
     @Test
     public void createTenants() throws Exception {
-        metricsService.unloadTenants();
-
         Tenant t1 = new Tenant().setId("t1").setRetention(NUMERIC, 24).setRetention(AVAILABILITY, 24);
         Tenant t2 = new Tenant().setId("t2").setRetention(NUMERIC, 72);
         Tenant t3 = new Tenant().setId("t3").setRetention(AVAILABILITY, 48);
@@ -205,9 +203,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
         VerifyTTLDataAccess verifyTTLDataAccess = new VerifyTTLDataAccess(dataAccess);
 
-        metricsService.unloadTenants();
         metricsService.unloadDataRetentions();
-        metricsService.loadTenants();
         metricsService.loadDataRetentions();
         metricsService.setDataAccess(verifyTTLDataAccess);
 
@@ -256,9 +252,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
         VerifyTTLDataAccess verifyTTLDataAccess = new VerifyTTLDataAccess(dataAccess);
 
-        metricsService.unloadTenants();
         metricsService.unloadDataRetentions();
-        metricsService.loadTenants();
         metricsService.loadDataRetentions();
         metricsService.setDataAccess(verifyTTLDataAccess);
         metricsService.setDataAccess(verifyTTLDataAccess);
