@@ -83,12 +83,6 @@ public class MetricHandler {
     @Inject
     private MetricsService metricsService;
 
-    public MetricHandler() {
-        if (logger.isDebugEnabled()) {
-            logger.debug("MetricHandler instantiated");
-        }
-    }
-
     @GET
     @POST
     @Path("/ping")
