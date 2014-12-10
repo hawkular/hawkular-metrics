@@ -22,7 +22,9 @@ addons:
     branch_pattern: coverity_scan
 before_install:
   - bash .travis.install.cassandra.sh
--install: 'mvn -s .travis.maven.settings.xml install -DskipTests=true -B'
--script: 'mvn -s .travis.maven.settings.xml verify -Dwildfly.logging.console.level=DEBUG -B'
+install:
+  - mvn -version -B
+script:
+  - mvn -s .travis.maven.settings.xml verify -Dwildfly.logging.console.level=DEBUG -B | grep -vF "[INFO] Downloading:" | grep -vF "[INFO] Downloaded:"
 after_failure: 'bash .travis.diagnose.sh'
 
