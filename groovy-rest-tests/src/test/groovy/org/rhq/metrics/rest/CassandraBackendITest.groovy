@@ -3,9 +3,9 @@ package org.rhq.metrics.rest
 import org.joda.time.DateTime
 import org.junit.Test
 
-import static junit.framework.Assert.fail
-import static junit.framework.TestCase.assertEquals
 import static org.joda.time.DateTime.now
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.fail
 
 class CassandraBackendITest extends RESTTest {
 
@@ -167,8 +167,6 @@ class CassandraBackendITest extends RESTTest {
     response = rhqm.get(path: "tenant-3/metrics/numeric/A2/meta")
     assertEquals(204, response.status)
 
-    String delete = '[delete]'
-
     // Update the numeric metric meta data
     response = rhqm.put(path: "tenant-3/metrics/numeric/N1/meta", body: [a1: 'one', a2: '2', '[delete]': ['b1']])
     assertEquals(200, response.status)
@@ -284,10 +282,11 @@ class CassandraBackendITest extends RESTTest {
     )
   }
 
-  def badPost(args, errorHandler) {
+  static def badPost(args, errorHandler) {
     try {
-      return rhqm.post(args)
+      def object = rhqm.post(args)
       fail("Expected exception to be thrown")
+      return object
     } catch (e) {
       errorHandler(e)
     }

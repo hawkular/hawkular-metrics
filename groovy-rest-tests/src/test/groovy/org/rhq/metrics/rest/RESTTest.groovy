@@ -1,5 +1,6 @@
 package org.rhq.metrics.rest
 
+import groovyx.net.http.ContentType
 import groovyx.net.http.RESTClient
 import org.junit.BeforeClass
 
@@ -10,7 +11,7 @@ class RESTTest {
   @BeforeClass
   static void initClient() {
     String baseURI = System.getProperty('rhq-metrics.base-uri') ?: '127.0.0.1:8080/rhq-metrics'
-    rhqm = new RESTClient("http://$baseURI/", groovyx.net.http.ContentType.JSON)
+    rhqm = new RESTClient("http://$baseURI/", ContentType.JSON)
   }
 
 }
