@@ -1,2 +1,12 @@
-bower_components
+src/main/webapp/bower_components
+src/main/webapp/node_modules
 src/main/webapp/node
+src/main/webapp/scripts/**/*.js
+logs
+*.log
+.DS_Store
+._*
+.idea/
+*.ipr
+*.iws
+*.iml

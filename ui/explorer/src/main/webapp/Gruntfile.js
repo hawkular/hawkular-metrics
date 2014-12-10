@@ -19,11 +19,10 @@ module.exports = function (grunt) {
             dist: '../../../target/dist'
         },
 
-        // http://www.npmjs.org/package/grunt-typescript
         typescript: {
             base: {
                 src: [ 'vendor/**/*.d.ts', 'scripts/**/*.ts' ],
-                dest: '../../../target/dist',
+                dest: '<%= rhqMetrics.dist %>',
                 options: {
                     removeComments: true,
                     target: 'ES5',
@@ -34,7 +33,6 @@ module.exports = function (grunt) {
             },
             dev: {
                 src: [ 'vendor/**/*.d.ts', 'scripts/**/*.ts'  ],
-                dest: 'scripts',
                 options: {
                     removeComments: true,
                     target: 'ES5',
@@ -122,8 +120,7 @@ module.exports = function (grunt) {
                 reporter: require('jshint-stylish')
             },
             all: [
-                'Gruntfile.js',
-                '<%= rhqMetrics.app %>/scripts/{,*/}*.js'
+                'Gruntfile.js'
             ],
             test: {
                 options: {
@@ -182,7 +179,7 @@ module.exports = function (grunt) {
         bower: {
             install: {
                 options: {
-                    targetDir: './bower_components',
+                    targetDir: './bower_components'
                 }
             }
         },
@@ -282,7 +279,7 @@ module.exports = function (grunt) {
         ]);
     });
 
-    grunt.registerTask("ts", ["typescript:base"]);
+    grunt.registerTask('ts', ['typescript:base']);
 
     grunt.registerTask('test', [
         'clean:server',
@@ -302,8 +299,8 @@ module.exports = function (grunt) {
     ]);
 
     grunt.registerTask('default', [
-        'newer:jshint',
-        'test',
+        //'newer:jshint',
+        //'test',
         'build'
     ]);
 };
