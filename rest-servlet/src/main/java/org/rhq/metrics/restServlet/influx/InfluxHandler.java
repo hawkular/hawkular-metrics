@@ -218,8 +218,8 @@ public class InfluxHandler {
                         }
 
                         for (NumericData m : metrics) {
-                            List<Number> data = new ArrayList<>();
-                            data.add(m.getTimestamp() / 1000); // query param "time_precision
+                            List<Object> data = new ArrayList<>();
+                            data.add(m.getTimestamp());
                             data.add(m.getValue());
                             obj.points.add(data);
                         }
