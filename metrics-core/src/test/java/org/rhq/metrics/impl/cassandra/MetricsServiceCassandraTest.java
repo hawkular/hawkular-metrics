@@ -4,10 +4,14 @@ import static java.util.Arrays.asList;
 import static org.joda.time.DateTime.now;
 import static org.rhq.metrics.core.AvailabilityType.DOWN;
 import static org.rhq.metrics.core.AvailabilityType.UP;
+import static org.rhq.metrics.core.MetricType.AVAILABILITY;
+import static org.rhq.metrics.core.MetricType.NUMERIC;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -17,6 +21,7 @@ import java.util.Set;
 import com.datastax.driver.core.ResultSetFuture;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import org.joda.time.DateTime;
@@ -37,6 +42,7 @@ import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.core.Retention;
 import org.rhq.metrics.core.Tag;
 import org.rhq.metrics.core.Tenant;
 import org.rhq.metrics.test.MetricsTest;
@@ -64,7 +70,46 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         session.execute("TRUNCATE data");
         session.execute("TRUNCATE tags");
         session.execute("TRUNCATE metrics_idx");
+        session.execute("TRUNCATE retentions_idx");
         metricsService.setDataAccess(dataAccess);
+    }
+
+    @Test
+    public void createTenants() throws Exception {
+        metricsService.unloadTenants();
+
+        Tenant t1 = new Tenant().setId("t1").setRetention(NUMERIC, 24).setRetention(AVAILABILITY, 24);
+        Tenant t2 = new Tenant().setId("t2").setRetention(NUMERIC, 72);
+        Tenant t3 = new Tenant().setId("t3").setRetention(AVAILABILITY, 48);
+        Tenant t4 = new Tenant().setId("t4");
+
+        List<ListenableFuture<Void>> insertFutures = new ArrayList<>();
+        insertFutures.add(metricsService.createTenant(t1));
+        insertFutures.add(metricsService.createTenant(t2));
+        insertFutures.add(metricsService.createTenant(t3));
+        insertFutures.add(metricsService.createTenant(t4));
+        ListenableFuture<List<Void>> insertsFuture = Futures.allAsList(insertFutures);
+        getUninterruptibly(insertsFuture);
+
+        Collection<Tenant> tenants = getUninterruptibly(metricsService.getTenants());
+        Set<Tenant> actualTenants = ImmutableSet.copyOf(tenants);
+        Set<Tenant> expectedTenants = ImmutableSet.of(t1, t2, t3, t4);
+
+        for (Tenant expected : expectedTenants) {
+            Tenant actual = null;
+            for (Tenant t : actualTenants) {
+                if (t.getId().equals(expected.getId())) {
+                    actual = t;
+                }
+            }
+            assertNotNull(actual, "Expected to find a tenant with id [" + expected.getId() + "]");
+            assertEquals(actual, expected, "The tenant does not match");
+        }
+
+        assertDataRetentionsIndexMatches(t1.getId(), NUMERIC, ImmutableSet.of(new Retention(
+            new MetricId("[" + NUMERIC.getText() + "]"), 24)));
+        assertDataRetentionsIndexMatches(t1.getId(), AVAILABILITY, ImmutableSet.of(new Retention(
+            new MetricId("[" + AVAILABILITY.getText() + "]"), 24)));
     }
 
     @Test
@@ -95,8 +140,8 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         assertTrue(exception != null && exception instanceof MetricAlreadyExistsException,
             "Expected a " + MetricAlreadyExistsException.class.getSimpleName() + " to be thrown");
 
-        assertMetricIndexMatches("t1", MetricType.NUMERIC, asList(m1));
-        assertMetricIndexMatches("t1", MetricType.AVAILABILITY, asList(m2));
+        assertMetricIndexMatches("t1", NUMERIC, asList(m1));
+        assertMetricIndexMatches("t1", AVAILABILITY, asList(m2));
     }
 
     @Test
@@ -110,14 +155,14 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         insertFuture = metricsService.updateMetadata(metric, additions, deletions);
         getUninterruptibly(insertFuture);
 
-        ListenableFuture<Metric> queryFuture = metricsService.findMetric(metric.getTenantId(), MetricType.NUMERIC,
+        ListenableFuture<Metric> queryFuture = metricsService.findMetric(metric.getTenantId(), NUMERIC,
             metric.getId());
         Metric updatedMetric = getUninterruptibly(queryFuture);
 
         assertEquals(updatedMetric.getMetadata(), ImmutableMap.of("a2", "two", "a3", "3"),
             "The updated meta data does not match the expected values");
 
-        assertMetricIndexMatches(metric.getTenantId(), MetricType.NUMERIC, asList(updatedMetric));
+        assertMetricIndexMatches(metric.getTenantId(), NUMERIC, asList(updatedMetric));
     }
 
     @Test
@@ -147,7 +192,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
         assertEquals(actual, expected, "The data does not match the expected values");
 
-        assertMetricIndexMatches("t1", MetricType.NUMERIC, asList(metric));
+        assertMetricIndexMatches("t1", NUMERIC, asList(metric));
     }
 
     @Test
@@ -156,11 +201,14 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t1")));
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t2")
-            .setRetention(MetricType.NUMERIC, Days.days(14).toStandardHours().getHours())));
+            .setRetention(NUMERIC, Days.days(14).toStandardHours().getHours())));
 
         VerifyTTLDataAccess verifyTTLDataAccess = new VerifyTTLDataAccess(dataAccess);
 
+        metricsService.unloadTenants();
+        metricsService.unloadDataRetentions();
         metricsService.loadTenants();
+        metricsService.loadDataRetentions();
         metricsService.setDataAccess(verifyTTLDataAccess);
 
         NumericMetric2 m1 = new NumericMetric2("t1", new MetricId("m1"));
@@ -191,7 +239,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         getUninterruptibly(metricsService.tagNumericData(m2, tags, start.plusMinutes(5).getMillis()));
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t3")
-            .setRetention(MetricType.NUMERIC, 24)));
+            .setRetention(NUMERIC, 24)));
         verifyTTLDataAccess.setNumericTTL(Hours.hours(24).toStandardSeconds().getSeconds());
         NumericMetric2 m3 = new NumericMetric2("t3", new MetricId("m3"));
         m3.addData(start.getMillis(), 3.03);
@@ -204,11 +252,15 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t1")));
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t2")
-            .setRetention(MetricType.AVAILABILITY, Days.days(14).toStandardHours().getHours())));
+            .setRetention(AVAILABILITY, Days.days(14).toStandardHours().getHours())));
 
         VerifyTTLDataAccess verifyTTLDataAccess = new VerifyTTLDataAccess(dataAccess);
 
+        metricsService.unloadTenants();
+        metricsService.unloadDataRetentions();
         metricsService.loadTenants();
+        metricsService.loadDataRetentions();
+        metricsService.setDataAccess(verifyTTLDataAccess);
         metricsService.setDataAccess(verifyTTLDataAccess);
 
         AvailabilityMetric m1 = new AvailabilityMetric("t1", new MetricId("m1"));
@@ -238,7 +290,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         getUninterruptibly(metricsService.tagAvailabilityData(m2, tags, start.plusMinutes(5).getMillis()));
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t3")
-            .setRetention(MetricType.AVAILABILITY, 24)));
+            .setRetention(AVAILABILITY, 24)));
         verifyTTLDataAccess.setAvailabilityTTL(Hours.hours(24).toStandardSeconds().getSeconds());
         AvailabilityMetric m3 = new AvailabilityMetric("t3", new MetricId("m3"));
         m3.addData(new Availability(start.getMillis(), UP));
@@ -326,7 +378,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         actual = getUninterruptibly(queryFuture);
         assertNull(actual, "Did not expect to get back results since there is no data for " + m3);
 
-        assertMetricIndexMatches(tenantId, MetricType.NUMERIC, asList(m1, m2, m3));
+        assertMetricIndexMatches(tenantId, NUMERIC, asList(m1, m2, m3));
     }
 
     @Test
@@ -363,7 +415,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         actual = getUninterruptibly(queryFuture);
         assertNull(actual, "Did not expect to get back results since there is no data for " + m3);
 
-        assertMetricIndexMatches(tenantId, MetricType.AVAILABILITY, asList(m1, m2, m3));
+        assertMetricIndexMatches(tenantId, AVAILABILITY, asList(m1, m2, m3));
     }
 
     @Test
@@ -682,6 +734,15 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         assertEquals(actualIndex, expected, "The metrics index results do not match");
     }
 
+    private void assertDataRetentionsIndexMatches(String tenantId, MetricType type, Set<Retention> expected)
+        throws Exception {
+        ResultSetFuture queryFuture = dataAccess.findDataRetentions(tenantId, type);
+        ListenableFuture<Set<Retention>> retentionsFuture = Futures.transform(queryFuture, new DataRetentionsMapper());
+        Set<Retention> actual = getUninterruptibly(retentionsFuture);
+
+        assertEquals(actual, expected, "The data retentions are wrong");
+    }
+
     private static class VerifyTTLDataAccess implements DataAccess {
 
         private DataAccess instance;
@@ -870,6 +931,16 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         @Override
         public ResultSetFuture updateCounters(Collection<Counter> counters) {
             return instance.updateCounters(counters);
+        }
+
+        @Override
+        public ResultSetFuture updateRetentionsIndex(String tenantId, MetricType type, Set<Retention> retentions) {
+            return instance.updateRetentionsIndex(tenantId, type, retentions);
+        }
+
+        @Override
+        public ResultSetFuture findDataRetentions(String tenantId, MetricType type) {
+            return instance.findDataRetentions(tenantId, type);
         }
     }
 

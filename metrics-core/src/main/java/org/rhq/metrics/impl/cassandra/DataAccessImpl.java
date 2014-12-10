@@ -31,6 +31,7 @@ import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.core.Retention;
 import org.rhq.metrics.core.RetentionSettings;
 import org.rhq.metrics.core.Tenant;
 import org.rhq.metrics.util.TimeUUIDUtils;
@@ -102,6 +103,10 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement readMetricsIndex;
 
     private PreparedStatement findAvailabilitiesWithWriteTime;
+
+    private PreparedStatement updateRetentionsIndex;
+
+    private PreparedStatement findDataRetentions;
 
     public DataAccessImpl(Session session) {
         this.session = session;
@@ -249,6 +254,14 @@ public class DataAccessImpl implements DataAccess {
             "SELECT tenant_id, metric, interval, dpart, time, meta_data, availability, tags, WRITETIME(availability) " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
+
+        updateRetentionsIndex = session.prepare(
+            "INSERT INTO retentions_idx (tenant_id, type, interval, metric, retention) VALUES (?, ?, ?, ?, ?)");
+
+        findDataRetentions = session.prepare(
+            "SELECT tenant_id, type, interval, metric, retention " +
+            "FROM retentions_idx " +
+            "WHERE tenant_id = ? AND type = ?");
     }
 
     @Override
@@ -513,6 +526,21 @@ public class DataAccessImpl implements DataAccess {
         for (Counter counter : counters) {
             batchStatement.add(updateCounter.bind(counter.getValue(), counter.getTenantId(), counter.getGroup(),
                 counter.getName()));
+        }
+        return session.executeAsync(batchStatement);
+    }
+
+    @Override
+    public ResultSetFuture findDataRetentions(String tenantId, MetricType type) {
+        return session.executeAsync(findDataRetentions.bind(tenantId, type.getCode()));
+    }
+
+    @Override
+    public ResultSetFuture updateRetentionsIndex(String tenantId, MetricType type, Set<Retention> retentions) {
+        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
+        for (Retention r : retentions) {
+            batchStatement.add(updateRetentionsIndex.bind(tenantId, type.getCode(), r.getId().getInterval().toString(),
+                r.getId().getName(), r.getValue()));
         }
         return session.executeAsync(batchStatement);
     }

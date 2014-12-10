@@ -92,3 +92,24 @@ CREATE TABLE ${keyspace}.metrics_idx (
     meta_data map<text, text>,
     PRIMARY KEY ((tenant_id, type), interval, metric)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' };
+
+-- #
+
+-- For the retentions_idx table a partial metric id is used as clustering
+-- columns. Remember that a metric id consists of the type, the metric name,
+-- and the interval. The type is used in the partition key, while the name and
+-- interval are used as clustering columns. We also store tenant-level
+-- retentions in this table. They will be stored using some special, reserved
+-- names, e.g., [numeric], [availability]. Square brackets are reserved
+-- characters, so we can safely use these.
+--
+-- The retention is stored in hours.
+
+CREATE TABLE ${keyspace}.retentions_idx (
+    tenant_id text,
+    type int,
+    interval text,
+    metric text,
+    retention int,
+    PRIMARY KEY ((tenant_id, type), interval, metric)
+) WITH compaction = { 'class': 'LeveledCompactionStrategy' };

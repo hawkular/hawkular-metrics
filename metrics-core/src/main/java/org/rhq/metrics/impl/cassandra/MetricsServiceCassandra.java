@@ -1,5 +1,7 @@
 package org.rhq.metrics.impl.cassandra;
 
+import static org.joda.time.Hours.hours;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -11,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -22,6 +25,7 @@ import com.datastax.driver.core.Session;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.FutureFallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -30,7 +34,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.RateLimiter;
 
 import org.joda.time.Duration;
-import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +51,8 @@ import org.rhq.metrics.core.MetricsThreadFactory;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.core.RawNumericMetric;
+import org.rhq.metrics.core.Retention;
+import org.rhq.metrics.core.RetentionSettings;
 import org.rhq.metrics.core.SchemaManager;
 import org.rhq.metrics.core.Tenant;
 import org.rhq.metrics.core.TenantAlreadyExistsException;
@@ -77,6 +82,46 @@ public class MetricsServiceCassandra implements MetricsService {
         }
     };
 
+    private static class DataRetentionKey {
+        private String tenantId;
+        private MetricId metricId;
+        private MetricType type;
+
+        public DataRetentionKey(String tenantId, MetricType type) {
+            this.tenantId = tenantId;
+            this.type = type;
+            metricId = new MetricId("[" + type.getText() + "]");
+        }
+
+        public DataRetentionKey(String tenantId, MetricId metricId, MetricType type) {
+            this.tenantId = tenantId;
+            this.metricId = metricId;
+            this.type = type;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            DataRetentionKey that = (DataRetentionKey) o;
+
+            if (!metricId.equals(that.metricId)) return false;
+            if (!tenantId.equals(that.tenantId)) return false;
+            if (type != that.type) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = tenantId.hashCode();
+            result = 31 * result + metricId.hashCode();
+            result = 31 * result + type.hashCode();
+            return result;
+        }
+    }
+
     private RateLimiter permits = RateLimiter.create(Double.parseDouble(
         System.getProperty(REQUEST_LIMIT, "30000")), 3, TimeUnit.MINUTES);
 
@@ -89,6 +134,11 @@ public class MetricsServiceCassandra implements MetricsService {
 
     private Map<String, Tenant> tenants = new ConcurrentHashMap<>();
 
+    /**
+     * Note that while user specifies the durations in hours, we store them in seconds.
+     */
+    private Map<DataRetentionKey, Integer> dataRetentions = new ConcurrentHashMap<>();
+
     public MetricsServiceCassandra() {
         tenants.put(DEFAULT_TENANT_ID, new Tenant().setId(DEFAULT_TENANT_ID));
     }
@@ -99,6 +149,7 @@ public class MetricsServiceCassandra implements MetricsService {
         this.session = Optional.absent();
         this.dataAccess = new DataAccessImpl(s);
         loadTenants();
+        loadDataRetentions();
     }
 
     @Override
@@ -149,6 +200,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
         dataAccess = new DataAccessImpl(session.get());
         loadTenants();
+        loadDataRetentions();
     }
 
     void loadTenants() {
@@ -159,6 +211,68 @@ public class MetricsServiceCassandra implements MetricsService {
             ResultSetFuture queryFuture = dataAccess.findTenant(tenantId);
             ResultSet tenantResultSet = queryFuture.getUninterruptibly();
             tenants.put(tenantId, mapper.apply(tenantResultSet));
+        }
+    }
+
+    void unloadTenants() {
+        tenants.clear();
+    }
+
+    void loadDataRetentions() {
+        DataRetentionsMapper mapper = new DataRetentionsMapper();
+        CountDownLatch latch = new CountDownLatch(tenants.size() * 2);
+        for (Tenant t : tenants.values()) {
+            ResultSetFuture numericFuture = dataAccess.findDataRetentions(t.getId(), MetricType.NUMERIC);
+            ResultSetFuture availabilityFuture = dataAccess.findDataRetentions(t.getId(), MetricType.AVAILABILITY);
+            ListenableFuture<Set<Retention>> numericRetentions = Futures.transform(numericFuture, mapper,
+                metricsTasks);
+            ListenableFuture<Set<Retention>> availabilityRetentions = Futures.transform(availabilityFuture, mapper,
+                metricsTasks);
+            Futures.addCallback(numericRetentions, new DataRetentionsLoadedCallback(t.getId(), MetricType.NUMERIC,
+                    latch), metricsTasks);
+            Futures.addCallback(availabilityRetentions, new DataRetentionsLoadedCallback(t.getId(),
+                MetricType.AVAILABILITY, latch), metricsTasks);
+        }
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    void unloadDataRetentions() {
+        dataRetentions.clear();
+    }
+
+    private class DataRetentionsLoadedCallback implements FutureCallback<Set<Retention>> {
+
+        private String tenantId;
+
+        private MetricType type;
+
+        private CountDownLatch latch;
+
+        public DataRetentionsLoadedCallback(String tenantId, MetricType type, CountDownLatch latch) {
+            this.tenantId = tenantId;
+            this.type = type;
+            this.latch = latch;
+        }
+
+        @Override
+        public void onSuccess(Set<Retention> dataRetentionsSet) {
+            for (Retention r : dataRetentionsSet) {
+                Integer seconds = hours(r.getValue()).toStandardSeconds().getSeconds();
+                dataRetentions.put(new DataRetentionKey(tenantId, r.getId(), type), seconds);
+            }
+            latch.countDown();
+        }
+
+        @Override
+        public void onFailure(Throwable t) {
+            logger.warn("Failed to load data retentions for {tenantId: " + tenantId + ", metricType: " +
+                    type.getText() + "}", t);
+            latch.countDown();
+            // TODO We probably should not let initialization proceed on this error
         }
     }
 
@@ -188,14 +302,38 @@ public class MetricsServiceCassandra implements MetricsService {
     @Override
     public ListenableFuture<Void> createTenant(final Tenant tenant) {
         ResultSetFuture future = dataAccess.insertTenant(tenant);
-        return Futures.transform(future, new Function<ResultSet, Void>() {
-            @Override
-            public Void apply(ResultSet resultSet) {
-                if (resultSet.wasApplied()) {
-                    tenants.put(tenant.getId(), tenant);
-                    return null;
+        return Futures.transform(future, new AsyncFunction<ResultSet, Void>() {
+            public ListenableFuture<Void> apply(ResultSet resultSet) {
+                if (!resultSet.wasApplied()) {
+                    throw new TenantAlreadyExistsException(tenant.getId());
                 }
-                throw new TenantAlreadyExistsException(tenant.getId());
+                tenants.put(tenant.getId(), tenant);
+                Map<MetricType, Set<Retention>> retentionsMap = new HashMap<>();
+                for (RetentionSettings.RetentionKey key : tenant.getRetentionSettings().keySet()) {
+                    Set<Retention> retentions = retentionsMap.get(key.metricType);
+                    if (retentions == null) {
+                        retentions = new HashSet<>();
+                    }
+                    Interval interval = key.interval == null ? Interval.NONE : key.interval;
+                    retentions.add(new Retention(new MetricId("[" + key.metricType.getText() + "]", interval),
+                        tenant.getRetentionSettings().get(key)));
+                    retentionsMap.put(key.metricType, retentions);
+                }
+                if (retentionsMap.isEmpty()) {
+                    return Futures.immediateFuture(null);
+                } else {
+                    List<ResultSetFuture> updateRetentionFutures = new ArrayList<>();
+                    for (MetricType type : retentionsMap.keySet()) {
+                        updateRetentionFutures.add(dataAccess.updateRetentionsIndex(tenant.getId(), type,
+                            retentionsMap.get(type)));
+                        for (Retention r : retentionsMap.get(type)) {
+                            dataRetentions.put(new DataRetentionKey(tenant.getId(), type),
+                                hours(r.getValue()).toStandardSeconds().getSeconds());
+                        }
+                    }
+                    ListenableFuture<List<ResultSet>> updateRetentionsFuture = Futures.allAsList(updateRetentionFutures);
+                    return Futures.transform(updateRetentionsFuture, RESULT_SETS_TO_VOID, metricsTasks);
+                }
             }
         }, metricsTasks);
     }
@@ -597,21 +735,12 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     private int getTTL(Metric metric) {
-        // This is an initial implementation just to get something working. We will probably
-        // want to refactor this. Data retention is specified in hours, but Cassandra
-        // expects seconds. Since this method is called every time we insert data, I do not
-        // think we want to incur the overhead of converting from hours to seconds. And I
-        // am not sure if we want/need to cache the whole Tenant object.
-        Tenant tenant = tenants.get(metric.getTenantId());
-        int ttl;
-        if (tenant == null) {
-            ttl = DEFAULT_TTL;
-        } else {
-            Integer hours = tenant.getRetentionSettings().get(metric.getType());
-            if (hours == null) {
+        Integer ttl = dataRetentions.get(new DataRetentionKey(metric.getTenantId(), metric.getId(), metric.getType()));
+        if (ttl == null) {
+            MetricId id = new MetricId("[" + metric.getType().getText() + "]");
+            ttl = dataRetentions.get(new DataRetentionKey(metric.getTenantId(), id, metric.getType()));
+            if (ttl == null) {
                 ttl = DEFAULT_TTL;
-            } else {
-                ttl = Hours.hours(hours).toStandardSeconds().getSeconds();
             }
         }
         return ttl;
