@@ -731,8 +731,7 @@ public class MetricsServiceCassandra implements MetricsService {
     private int getTTL(Metric metric) {
         Integer ttl = dataRetentions.get(new DataRetentionKey(metric.getTenantId(), metric.getId(), metric.getType()));
         if (ttl == null) {
-            MetricId id = new MetricId("[" + metric.getType().getText() + "]");
-            ttl = dataRetentions.get(new DataRetentionKey(metric.getTenantId(), id, metric.getType()));
+            ttl = dataRetentions.get(new DataRetentionKey(metric.getTenantId(), metric.getType()));
             if (ttl == null) {
                 ttl = DEFAULT_TTL;
             }
