@@ -190,62 +190,9 @@ public class InfluxHandler {
 
         ListenableFuture<Boolean> idExistsFuture = metricsService.idExists(metric);
         ListenableFuture<List<NumericData>> loadMetricsFuture = Futures.transform(idExistsFuture,
-            new AsyncFunction<Boolean, List<NumericData>>() {
-                @Override
-                public ListenableFuture<List<NumericData>> apply(Boolean idExists) throws Exception {
-                    if (idExists != Boolean.TRUE) {
-                        return Futures.immediateFuture(null);
-                    }
-                    return metricsService.findData(new NumericMetric2(tenantId, new MetricId(metric)),
-                        timeInterval.getStartMillis(), timeInterval.getEndMillis());
-                }
-            }, executor);
+            new LoadMetricsAsyncFunction(tenantId, metric, timeInterval), executor);
         ListenableFuture<List<InfluxObject>> influxObjectTranslatorFuture = Futures.transform(loadMetricsFuture,
-            new Function<List<NumericData>, List<InfluxObject>>() {
-                @Override
-                public List<InfluxObject> apply(List<NumericData> metrics) {
-                    if (metrics == null) {
-                        return null;
-                    }
-                    List<InfluxObject> objects = new ArrayList<>(1);
-
-                    InfluxObject obj = new InfluxObject(metric);
-                    obj.columns = new ArrayList<>(2);
-                    obj.columns.add("time");
-                    obj.columns.add(columnName);
-                    obj.points = new ArrayList<>();
-
-                    if (shouldApplyMapping(queryDefinitions)) {
-                        GroupByClause groupByClause = queryDefinitions.getGroupByClause();
-                        InfluxTimeUnit bucketSizeUnit = groupByClause.getBucketSizeUnit();
-                        long bucketSizeSec = bucketSizeUnit.convertTo(SECONDS, groupByClause.getBucketSize());
-                        AggregatedColumnDefinition aggregatedColumnDefinition = (AggregatedColumnDefinition) queryDefinitions
-                            .getColumnDefinitions().get(0);
-                        metrics = applyMapping(aggregatedColumnDefinition.getAggregationFunction(),
-                            aggregatedColumnDefinition.getAggregationFunctionArguments(), metrics, (int) bucketSizeSec,
-                            timeInterval.getStartMillis(), timeInterval.getEndMillis());
-                    }
-
-                    if (!queryDefinitions.isOrderDesc()) {
-                        metrics = Lists.reverse(metrics);
-                    }
-
-                    if (queryDefinitions.getLimitClause() != null) {
-                        metrics = metrics.subList(0, queryDefinitions.getLimitClause().getLimit());
-                    }
-
-                    for (NumericData m : metrics) {
-                        List<Object> data = new ArrayList<>();
-                        data.add(m.getTimestamp());
-                        data.add(m.getValue());
-                        obj.points.add(data);
-                    }
-
-                    objects.add(obj);
-
-                    return objects;
-                }
-            }, executor);
+            new InfluxObjectTranslatorFunction(metric, columnName, queryDefinitions, timeInterval), executor);
         Futures.addCallback(influxObjectTranslatorFuture, new FutureCallback<List<InfluxObject>>() {
             @Override
             public void onSuccess(List<InfluxObject> objects) {
@@ -412,6 +359,86 @@ public class InfluxHandler {
         }
         else {
             return bla.get((int) Math.ceil(x-1));
+        }
+    }
+
+    private class LoadMetricsAsyncFunction implements AsyncFunction<Boolean, List<NumericData>> {
+        private final String tenantId;
+        private final String metric;
+        private final Interval timeInterval;
+
+        public LoadMetricsAsyncFunction(String tenantId, String metric, Interval timeInterval) {
+            this.tenantId = tenantId;
+            this.metric = metric;
+            this.timeInterval = timeInterval;
+        }
+
+        @Override
+        public ListenableFuture<List<NumericData>> apply(Boolean idExists) throws Exception {
+            if (idExists != Boolean.TRUE) {
+                return Futures.immediateFuture(null);
+            }
+            return metricsService.findData(new NumericMetric2(tenantId, new MetricId(metric)),
+                timeInterval.getStartMillis(), timeInterval.getEndMillis());
+        }
+    }
+
+    private class InfluxObjectTranslatorFunction implements Function<List<NumericData>, List<InfluxObject>> {
+        private final String metric;
+        private final String columnName;
+        private final SelectQueryDefinitions queryDefinitions;
+        private final Interval timeInterval;
+
+        public InfluxObjectTranslatorFunction(String metric, String columnName,
+            SelectQueryDefinitions queryDefinitions, Interval timeInterval) {
+            this.metric = metric;
+            this.columnName = columnName;
+            this.queryDefinitions = queryDefinitions;
+            this.timeInterval = timeInterval;
+        }
+
+        @Override
+        public List<InfluxObject> apply(List<NumericData> metrics) {
+            if (metrics == null) {
+                return null;
+            }
+            List<InfluxObject> objects = new ArrayList<>(1);
+
+            InfluxObject obj = new InfluxObject(metric);
+            obj.columns = new ArrayList<>(2);
+            obj.columns.add("time");
+            obj.columns.add(columnName);
+            obj.points = new ArrayList<>();
+
+            if (shouldApplyMapping(queryDefinitions)) {
+                GroupByClause groupByClause = queryDefinitions.getGroupByClause();
+                InfluxTimeUnit bucketSizeUnit = groupByClause.getBucketSizeUnit();
+                long bucketSizeSec = bucketSizeUnit.convertTo(SECONDS, groupByClause.getBucketSize());
+                AggregatedColumnDefinition aggregatedColumnDefinition = (AggregatedColumnDefinition) queryDefinitions
+                    .getColumnDefinitions().get(0);
+                metrics = applyMapping(aggregatedColumnDefinition.getAggregationFunction(),
+                    aggregatedColumnDefinition.getAggregationFunctionArguments(), metrics, (int) bucketSizeSec,
+                    timeInterval.getStartMillis(), timeInterval.getEndMillis());
+            }
+
+            if (!queryDefinitions.isOrderDesc()) {
+                metrics = Lists.reverse(metrics);
+            }
+
+            if (queryDefinitions.getLimitClause() != null) {
+                metrics = metrics.subList(0, queryDefinitions.getLimitClause().getLimit());
+            }
+
+            for (NumericData m : metrics) {
+                List<Object> data = new ArrayList<>();
+                data.add(m.getTimestamp());
+                data.add(m.getValue());
+                obj.points.add(data);
+            }
+
+            objects.add(obj);
+
+            return objects;
         }
     }
 }
