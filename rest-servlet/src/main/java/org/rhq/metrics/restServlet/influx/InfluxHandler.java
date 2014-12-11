@@ -85,7 +85,7 @@ public class InfluxHandler {
     public void series(@Suspended final AsyncResponse asyncResponse, @QueryParam("q") String queryString) {
 
         if (queryString==null || queryString.isEmpty()) {
-            asyncResponse.cancel();
+            asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity("Missing query").build());
             return;
         }
 
