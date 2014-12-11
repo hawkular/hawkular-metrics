@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import javax.annotation.Resource;
+import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
@@ -24,7 +26,9 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -83,6 +87,9 @@ public class InfluxHandler {
     private QueryValidator queryValidator;
     @Inject
     private ToIntervalTranslator toIntervalTranslator;
+
+    @Resource
+    private ManagedExecutorService executor;
 
     @GET
     @Path("/{tenantId}/series")
@@ -182,68 +189,73 @@ public class InfluxHandler {
         final String columnName = getColumnName(queryDefinitions);
 
         ListenableFuture<Boolean> idExistsFuture = metricsService.idExists(metric);
-        Futures.addCallback(idExistsFuture, new FutureCallback<Boolean>() {
+        ListenableFuture<List<NumericData>> loadMetricsFuture = Futures.transform(idExistsFuture,
+            new AsyncFunction<Boolean, List<NumericData>>() {
+                @Override
+                public ListenableFuture<List<NumericData>> apply(Boolean idExists) throws Exception {
+                    if (idExists != Boolean.TRUE) {
+                        return Futures.immediateFuture(null);
+                    }
+                    return metricsService.findData(new NumericMetric2(tenantId, new MetricId(metric)),
+                        timeInterval.getStartMillis(), timeInterval.getEndMillis());
+                }
+            }, executor);
+        ListenableFuture<List<InfluxObject>> influxObjectTranslatorFuture = Futures.transform(loadMetricsFuture,
+            new Function<List<NumericData>, List<InfluxObject>>() {
+                @Override
+                public List<InfluxObject> apply(List<NumericData> metrics) {
+                    if (metrics == null) {
+                        return null;
+                    }
+                    List<InfluxObject> objects = new ArrayList<>(1);
+
+                    InfluxObject obj = new InfluxObject(metric);
+                    obj.columns = new ArrayList<>(2);
+                    obj.columns.add("time");
+                    obj.columns.add(columnName);
+                    obj.points = new ArrayList<>();
+
+                    if (shouldApplyMapping(queryDefinitions)) {
+                        GroupByClause groupByClause = queryDefinitions.getGroupByClause();
+                        InfluxTimeUnit bucketSizeUnit = groupByClause.getBucketSizeUnit();
+                        long bucketSizeSec = bucketSizeUnit.convertTo(SECONDS, groupByClause.getBucketSize());
+                        AggregatedColumnDefinition aggregatedColumnDefinition = (AggregatedColumnDefinition) queryDefinitions
+                            .getColumnDefinitions().get(0);
+                        metrics = applyMapping(aggregatedColumnDefinition.getAggregationFunction(),
+                            aggregatedColumnDefinition.getAggregationFunctionArguments(), metrics, (int) bucketSizeSec,
+                            timeInterval.getStartMillis(), timeInterval.getEndMillis());
+                    }
+
+                    if (!queryDefinitions.isOrderDesc()) {
+                        metrics = Lists.reverse(metrics);
+                    }
+
+                    if (queryDefinitions.getLimitClause() != null) {
+                        metrics = metrics.subList(0, queryDefinitions.getLimitClause().getLimit());
+                    }
+
+                    for (NumericData m : metrics) {
+                        List<Object> data = new ArrayList<>();
+                        data.add(m.getTimestamp());
+                        data.add(m.getValue());
+                        obj.points.add(data);
+                    }
+
+                    objects.add(obj);
+
+                    return objects;
+                }
+            }, executor);
+        Futures.addCallback(influxObjectTranslatorFuture, new FutureCallback<List<InfluxObject>>() {
             @Override
-            public void onSuccess(Boolean result) {
-                if (!result) {
+            public void onSuccess(List<InfluxObject> objects) {
+                if (objects == null) {
                     StringValue val = new StringValue("Metric with id [" + metric + "] not found. ");
                     asyncResponse.resume(Response.status(404).entity(val).build());
+                } else {
+                    Response.ResponseBuilder builder = Response.ok(objects);
+                    asyncResponse.resume(builder.build());
                 }
-
-                final ListenableFuture<List<NumericData>> future = metricsService.findData(new NumericMetric2(
-                    tenantId, new MetricId(metric)), timeInterval.getStartMillis(), timeInterval.getEndMillis());
-
-                Futures.addCallback(future, new FutureCallback<List<NumericData>>() {
-                    @Override
-                    public void onSuccess(List<NumericData> metrics) {
-
-                        List<InfluxObject> objects = new ArrayList<>(1);
-
-                        InfluxObject obj = new InfluxObject(metric);
-                        obj.columns = new ArrayList<>(2);
-                        obj.columns.add("time");
-                        obj.columns.add(columnName);
-                        obj.points = new ArrayList<>();
-
-                        if (shouldApplyMapping(queryDefinitions)) {
-                            GroupByClause groupByClause = queryDefinitions.getGroupByClause();
-                            InfluxTimeUnit bucketSizeUnit = groupByClause.getBucketSizeUnit();
-                            long bucketSizeSec = bucketSizeUnit.convertTo(SECONDS, groupByClause.getBucketSize());
-                            AggregatedColumnDefinition aggregatedColumnDefinition = (AggregatedColumnDefinition) queryDefinitions
-                                .getColumnDefinitions().get(0);
-                            metrics = applyMapping(aggregatedColumnDefinition.getAggregationFunction(),
-                                aggregatedColumnDefinition.getAggregationFunctionArguments(), metrics,
-                                (int) bucketSizeSec, timeInterval.getStartMillis(), timeInterval.getEndMillis());
-                        }
-
-                        if (!queryDefinitions.isOrderDesc()) {
-                            metrics = Lists.reverse(metrics);
-                        }
-
-                        if (queryDefinitions.getLimitClause() != null) {
-                            metrics = metrics.subList(0, queryDefinitions.getLimitClause().getLimit());
-                        }
-
-                        for (NumericData m : metrics) {
-                            List<Object> data = new ArrayList<>();
-                            data.add(m.getTimestamp());
-                            data.add(m.getValue());
-                            obj.points.add(data);
-                        }
-
-                        objects.add(obj);
-
-                        Response.ResponseBuilder builder = Response.ok(objects);
-
-                        asyncResponse.resume(builder.build());
-                    }
-
-                    @Override
-                    public void onFailure(Throwable t) {
-                        asyncResponse.resume(t);
-                    }
-
-                });
             }
 
             @Override
