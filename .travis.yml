@@ -25,6 +25,6 @@ before_install:
 install:
   - mvn -version -B
 script:
-  - mvn -s .travis.maven.settings.xml verify -Dwildfly.logging.console.level=DEBUG -B | grep -vF "[INFO] Downloading:" | grep -vF "[INFO] Downloaded:"
+  - mvn -s .travis.maven.settings.xml verify -Dwildfly.logging.console.level=DEBUG -B | grep -vF "[INFO] Downloading:" | grep -vF "[INFO] Downloaded:"; test ${PIPESTATUS[0]} -eq 0
 after_failure: 'bash .travis.diagnose.sh'
 
