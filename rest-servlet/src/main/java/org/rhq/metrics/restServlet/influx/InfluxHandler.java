@@ -383,7 +383,7 @@ public class InfluxHandler {
      * @param val a value between 0 and 100 to determine the <i>val</i>th quantil
      * @return quantil from data
      */
-    public double quantil (List<NumericData> in, double val) {
+    private double quantil (List<NumericData> in, double val) {
         int n = in.size();
         List<Double> bla = new ArrayList<>(n);
         for (NumericData rnm : in) {
