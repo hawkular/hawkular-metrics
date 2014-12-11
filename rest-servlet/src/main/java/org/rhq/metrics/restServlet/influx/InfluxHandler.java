@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -65,6 +66,7 @@ import org.rhq.metrics.restServlet.influx.query.validation.QueryValidator;
  */
 @Path("/influx")
 @Produces("application/json")
+@ApplicationScoped
 public class InfluxHandler {
     private static final Logger LOG = LoggerFactory.getLogger(InfluxHandler.class);
 
