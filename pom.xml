@@ -372,22 +372,23 @@
             <version>5.0.3</version>
           </dependency>
         </dependencies>
-        <executions>
-          <execution>
-            <id>java-api-check</id>
-            <configuration>
-              <signature>
-                <groupId>org.codehaus.mojo.signature</groupId>
-                <artifactId>java17</artifactId>
-                <version>1.0</version>
-              </signature>
-            </configuration>
-            <phase>verify</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
+        <!-- Copy paste and uncomment the following block in sub-projects where Java 7 compatibility is required -->
+        <!--<executions>-->
+          <!--<execution>-->
+            <!--<id>java-api-check</id>-->
+            <!--<configuration>-->
+              <!--<signature>-->
+                <!--<groupId>org.codehaus.mojo.signature</groupId>-->
+                <!--<artifactId>java17</artifactId>-->
+                <!--<version>1.0</version>-->
+              <!--</signature>-->
+            <!--</configuration>-->
+            <!--<phase>verify</phase>-->
+            <!--<goals>-->
+              <!--<goal>check</goal>-->
+            <!--</goals>-->
+          <!--</execution>-->
+        <!--</executions>-->
       </plugin>
 
       <plugin>
