@@ -115,7 +115,6 @@
     <findbugs.version>3.0.0</findbugs.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <checkstyle.plugin.version>2.12.1</checkstyle.plugin.version>
     <checkstyleConsoleOutput>true</checkstyleConsoleOutput>
     <checkstyleFailOnError>true</checkstyleFailOnError>
     <!-- the default value pointing at suppressions.xml in rhq-checkstyle-config dependency -->
@@ -250,72 +249,10 @@
             <version>${version.wildfly}</version>
           </configuration>
         </plugin>
-        <!-- Checkstyle -->
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>${checkstyle.plugin.version}</version>
-          <configuration>
-            <configLocation>rhq-checkstyle/checkstyle.xml</configLocation>
-            <consoleOutput>${checkstyleConsoleOutput}</consoleOutput>
-            <failsOnError>${checkstyleFailOnError}</failsOnError>
-            <!-- Make includes relative to ${basedir} -->
-            <sourceDirectory>${basedir}</sourceDirectory>
-            <!-- in <includes>, it is necessary to avoid using an item-initial **/ wildcard
-                 which pulls in also files from all submodules and target folders. We do not want
-                 that. We rather have to name specific root folder patterns like *.extension
-                 or directory/**/*.extension -->
-            <includes>
-                src/**/*.java,
-                *.xml,
-                src/**/*.xml,
-                src/**/*.js,
-                *.adoc,
-                src/**/*.adoc,
-                *.conf,
-                src/**/*.conf,
-                src/**/*.cql,
-                src/**/*.css,
-                Dockerfile,
-                src/**/Dockerfile,
-                src/**/*.groovy,
-                *.html,
-                src/**/*.html,
-                src/**/*.json,
-                src/**/*.js.map,
-                *.md,
-                src/**/*.md,
-                *.properties,
-                src/**/*.properties,
-                *.sh,
-                src/**/*.sh,
-                *.txt,
-                src/**/*.txt,
-                src/**/*.xsl,
-                *.yml,
-                src/**/*.yml,
-            </includes>
-            <!-- to override in a submodule, just redefine the checkstyle.suppressions.file property
-                 in the given submodule's pom -->
-            <suppressionsLocation>${checkstyle.suppressions.file}</suppressionsLocation>
-            <useFile />
-          </configuration>
-          <dependencies>
-            <dependency>
-              <groupId>org.rhq.checkstyle</groupId>
-              <artifactId>rhq-checkstyle-config</artifactId>
-              <version>${rhq.checkstyle.config.version}</version>
-            </dependency>
-          </dependencies>
-          <executions>
-            <execution>
-              <id>check-style</id>
-              <phase>compile</phase>
-              <goals>
-                <goal>checkstyle</goal>
-              </goals>
-            </execution>
-          </executions>
+          <version>2.12.1</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -407,6 +344,67 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
+        <configuration>
+          <configLocation>rhq-checkstyle/checkstyle.xml</configLocation>
+          <consoleOutput>${checkstyleConsoleOutput}</consoleOutput>
+          <failsOnError>${checkstyleFailOnError}</failsOnError>
+          <!-- Make includes relative to ${basedir} -->
+          <sourceDirectory>${basedir}</sourceDirectory>
+          <!-- in <includes>, it is necessary to avoid using an item-initial **/ wildcard
+               which pulls in also files from all submodules and target folders. We do not want
+               that. We rather have to name specific root folder patterns like *.extension
+               or directory/**/*.extension -->
+          <includes>
+            src/**/*.java,
+            *.xml,
+            src/**/*.xml,
+            src/**/*.js,
+            *.adoc,
+            src/**/*.adoc,
+            *.conf,
+            src/**/*.conf,
+            src/**/*.cql,
+            src/**/*.css,
+            Dockerfile,
+            src/**/Dockerfile,
+            src/**/*.groovy,
+            *.html,
+            src/**/*.html,
+            src/**/*.json,
+            src/**/*.js.map,
+            *.md,
+            src/**/*.md,
+            *.properties,
+            src/**/*.properties,
+            *.sh,
+            src/**/*.sh,
+            *.txt,
+            src/**/*.txt,
+            src/**/*.xsl,
+            *.yml,
+            src/**/*.yml,
+          </includes>
+          <!-- to override in a submodule, just redefine the checkstyle.suppressions.file property
+               in the given submodule's pom -->
+          <suppressionsLocation>${checkstyle.suppressions.file}</suppressionsLocation>
+          <useFile />
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.rhq.checkstyle</groupId>
+            <artifactId>rhq-checkstyle-config</artifactId>
+            <version>${rhq.checkstyle.config.version}</version>
+          </dependency>
+        </dependencies>
+        <executions>
+          <execution>
+            <id>check-style</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>checkstyle</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
 
     </plugins>

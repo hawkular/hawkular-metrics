@@ -17,11 +17,23 @@
     <properties>
         <endorsed.dir>${project.build.directory}/endorsed</endorsed.dir>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <checkstyle.suppressions.file>${basedir}/src/main/build/rhq-checkstyle/suppressions.xml</checkstyle.suppressions.file>
     </properties>
 
     <build>
         <plugins>
+
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <configuration>
+              <excludes>
+                src/main/webapp/bower_components/**/*,
+                src/main/webapp/node_modules/**/*,
+                src/main/webapp/node/**/*,
+              </excludes>
+            </configuration>
+          </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
