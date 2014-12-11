@@ -30,7 +30,7 @@ public interface DataAccess {
 
     ResultSetFuture findTenant(String id);
 
-    ResultSetFuture insertMetric(Metric metric);
+    ResultSetFuture insertMetricInMetricsIndex(Metric metric);
 
     ResultSetFuture findMetric(String tenantId, MetricType type, MetricId id, long dpart);
 

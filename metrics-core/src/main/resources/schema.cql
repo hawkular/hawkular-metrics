@@ -103,7 +103,7 @@ CREATE TABLE ${keyspace}.metrics_idx (
 -- names, e.g., [numeric], [availability]. Square brackets are reserved
 -- characters, so we can safely use these.
 --
--- The retention is stored in hours.
+-- The retention is stored in seconds.
 
 CREATE TABLE ${keyspace}.retentions_idx (
     tenant_id text,

@@ -34,6 +34,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.RateLimiter;
 
 import org.joda.time.Duration;
+import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -239,8 +240,7 @@ public class MetricsServiceCassandra implements MetricsService {
         @Override
         public void onSuccess(Set<Retention> dataRetentionsSet) {
             for (Retention r : dataRetentionsSet) {
-                Integer seconds = hours(r.getValue()).toStandardSeconds().getSeconds();
-                dataRetentions.put(new DataRetentionKey(tenantId, r.getId(), type), seconds);
+                dataRetentions.put(new DataRetentionKey(tenantId, r.getId(), type), r.getValue());
             }
             latch.countDown();
         }
@@ -292,8 +292,9 @@ public class MetricsServiceCassandra implements MetricsService {
                         retentions = new HashSet<>();
                     }
                     Interval interval = key.interval == null ? Interval.NONE : key.interval;
+                    Hours hours = hours(tenant.getRetentionSettings().get(key));
                     retentions.add(new Retention(new MetricId("[" + key.metricType.getText() + "]", interval),
-                        tenant.getRetentionSettings().get(key)));
+                        hours.toStandardSeconds().getSeconds()));
                     retentionsMap.put(key.metricType, retentions);
                 }
                 if (retentionsMap.isEmpty()) {
@@ -304,8 +305,7 @@ public class MetricsServiceCassandra implements MetricsService {
                         updateRetentionFutures.add(dataAccess.updateRetentionsIndex(tenant.getId(), type,
                             retentionsMap.get(type)));
                         for (Retention r : retentionsMap.get(type)) {
-                            dataRetentions.put(new DataRetentionKey(tenant.getId(), type),
-                                hours(r.getValue()).toStandardSeconds().getSeconds());
+                            dataRetentions.put(new DataRetentionKey(tenant.getId(), type), r.getValue());
                         }
                     }
                     ListenableFuture<List<ResultSet>> updateRetentionsFuture = Futures.allAsList(updateRetentionFutures);
@@ -339,7 +339,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public ListenableFuture<Void> createMetric(final Metric metric) {
-        ResultSetFuture future = dataAccess.insertMetric(metric);
+        ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric);
         return Futures.transform(future, new AsyncFunction<ResultSet, Void>() {
             @Override
             public ListenableFuture<Void> apply(ResultSet resultSet) {

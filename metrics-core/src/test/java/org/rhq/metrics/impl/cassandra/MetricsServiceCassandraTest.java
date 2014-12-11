@@ -3,6 +3,7 @@ package org.rhq.metrics.impl.cassandra;
 import static java.util.Arrays.asList;
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Days.days;
+import static org.joda.time.Hours.hours;
 import static org.rhq.metrics.core.AvailabilityType.DOWN;
 import static org.rhq.metrics.core.AvailabilityType.UP;
 import static org.rhq.metrics.core.Metric.DPART;
@@ -31,7 +32,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
-import org.joda.time.Hours;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -122,9 +122,9 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         }
 
         assertDataRetentionsIndexMatches(t1.getId(), NUMERIC, ImmutableSet.of(new Retention(
-            new MetricId("[" + NUMERIC.getText() + "]"), 24)));
+            new MetricId("[" + NUMERIC.getText() + "]"), hours(24).toStandardSeconds().getSeconds())));
         assertDataRetentionsIndexMatches(t1.getId(), AVAILABILITY, ImmutableSet.of(new Retention(
-            new MetricId("[" + AVAILABILITY.getText() + "]"), 24)));
+            new MetricId("[" + AVAILABILITY.getText() + "]"), hours(24).toStandardSeconds().getSeconds())));
     }
 
     @Test
@@ -247,7 +247,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t3")
             .setRetention(NUMERIC, 24)));
-        verifyTTLDataAccess.setNumericTTL(Hours.hours(24).toStandardSeconds().getSeconds());
+        verifyTTLDataAccess.setNumericTTL(hours(24).toStandardSeconds().getSeconds());
         NumericMetric2 m3 = new NumericMetric2("t3", new MetricId("m3"));
         m3.addData(start.getMillis(), 3.03);
         getUninterruptibly(metricsService.addNumericData(asList(m3)));
@@ -290,7 +290,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t3")
             .setRetention(AVAILABILITY, 24)));
-        verifyTTLDataAccess.setAvailabilityTTL(Hours.hours(24).toStandardSeconds().getSeconds());
+        verifyTTLDataAccess.setAvailabilityTTL(hours(24).toStandardSeconds().getSeconds());
         AvailabilityMetric m3 = new AvailabilityMetric("t3", new MetricId("m3"));
         m3.addData(new Availability(start.getMillis(), UP));
         getUninterruptibly(metricsService.addAvailabilityData(asList(m3)));

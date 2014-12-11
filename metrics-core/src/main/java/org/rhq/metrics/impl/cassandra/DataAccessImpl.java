@@ -303,7 +303,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertMetric(Metric metric) {
+    public ResultSetFuture insertMetricInMetricsIndex(Metric metric) {
         return session.executeAsync(insertMetric.bind(metric.getTenantId(), metric.getType().getCode(),
             metric.getId().getInterval().toString(), metric.getId().getName(), metric.getMetadata()));
     }
