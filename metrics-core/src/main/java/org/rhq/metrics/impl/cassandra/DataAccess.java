@@ -84,4 +84,6 @@ public interface DataAccess {
     ResultSetFuture findDataRetentions(String tenantId, MetricType type);
 
     ResultSetFuture updateRetentionsIndex(String tenantId, MetricType type, Set<Retention> retentions);
+
+    ResultSetFuture updateRetentionsIndex(Metric metric);
 }

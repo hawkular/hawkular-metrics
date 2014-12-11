@@ -100,6 +100,12 @@ public class MetricsServiceCassandra implements MetricsService {
             this.type = type;
         }
 
+        public DataRetentionKey(Metric metric) {
+            this.tenantId = metric.getTenantId();
+            this.metricId = metric.getId();
+            this.type = metric.getType();
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -346,11 +352,19 @@ public class MetricsServiceCassandra implements MetricsService {
                 if (!resultSet.wasApplied()) {
                     throw new MetricAlreadyExistsException(metric);
                 }
-                if (metric.getMetadata().isEmpty()) {
-                    return Futures.immediateFuture(null);
-                }
+                // TODO Need error handling if either of the following updates fail
+                // If adding meta data fails, then we want to report the error to the
+                // client. Updating the retentions_idx table could also fail. We need to
+                // report that failure as well.
                 ResultSetFuture metadataFuture = dataAccess.addMetadata(metric);
-                return Futures.transform(metadataFuture, RESULT_SET_TO_VOID);
+                if (metric.getDataRetention() == null) {
+                    return Futures.transform(metadataFuture, RESULT_SET_TO_VOID);
+                }
+                ResultSetFuture dataRetentionFuture = dataAccess.updateRetentionsIndex(metric);
+                ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(metadataFuture,
+                    dataRetentionFuture);
+                dataRetentions.put(new DataRetentionKey(metric), metric.getDataRetention());
+                return Futures.transform(insertsFuture, RESULT_SETS_TO_VOID);
             }
         }, metricsTasks);
     }

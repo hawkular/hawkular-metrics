@@ -155,8 +155,15 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         assertTrue(exception != null && exception instanceof MetricAlreadyExistsException,
             "Expected a " + MetricAlreadyExistsException.class.getSimpleName() + " to be thrown");
 
-        assertMetricIndexMatches("t1", NUMERIC, asList(m1));
+        NumericMetric2 m3 = new NumericMetric2("t1", new MetricId("m3"));
+        m3.setDataRetention(24);
+        insertFuture = metricsService.createMetric(m3);
+        getUninterruptibly(insertFuture);
+
+        assertMetricIndexMatches("t1", NUMERIC, asList(m1, m3));
         assertMetricIndexMatches("t1", AVAILABILITY, asList(m2));
+
+        assertDataRetentionsIndexMatches("t1", NUMERIC, ImmutableSet.of(new Retention(m3.getId(), 24)));
     }
 
     @Test

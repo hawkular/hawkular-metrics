@@ -16,6 +16,10 @@ public class AvailabilityMetric extends Metric<Availability> {
         super(tenantId, id, metadata);
     }
 
+    public AvailabilityMetric(String tenantId, MetricId id, Map<String, String> metadata, Integer dataRetention) {
+        super(tenantId, id, metadata, dataRetention);
+    }
+
     @Override
     public MetricType getType() {
         return MetricType.AVAILABILITY;

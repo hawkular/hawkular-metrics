@@ -50,11 +50,13 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findTenant;
 
-    private PreparedStatement insertMetric;
+    private PreparedStatement insertIntoMetricsIndex;
 
     private PreparedStatement findMetric;
 
     private PreparedStatement addMetadata;
+
+    private PreparedStatement addMetadataAndDataRetention;
 
     private PreparedStatement deleteMetadata;
 
@@ -133,14 +135,19 @@ public class DataAccessImpl implements DataAccess {
             "SET meta_data = meta_data + ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
 
+        addMetadataAndDataRetention = session.prepare(
+            "UPDATE data " +
+            "SET meta_data = meta_data + ?, data_retention = ? " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
+
         deleteMetadata = session.prepare(
             "UPDATE data " +
             "SET meta_data = meta_data - ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
 
-        insertMetric = session.prepare(
-            "INSERT INTO metrics_idx (tenant_id, type, interval, metric, meta_data) " +
-            "VALUES (?, ?, ?, ?, ?) " +
+        insertIntoMetricsIndex = session.prepare(
+            "INSERT INTO metrics_idx (tenant_id, type, interval, metric, data_retention, meta_data) " +
+            "VALUES (?, ?, ?, ?, ?, ?) " +
             "IF NOT EXISTS");
 
         updateMetricsIndex = session.prepare(
@@ -157,7 +164,7 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? AND interval = ? AND metric = ?");
 
         readMetricsIndex = session.prepare(
-            "SELECT metric, interval, meta_data " +
+            "SELECT metric, interval, meta_data, data_retention " +
             "FROM metrics_idx " +
             "WHERE tenant_id = ? AND type = ?");
 
@@ -304,8 +311,9 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public ResultSetFuture insertMetricInMetricsIndex(Metric metric) {
-        return session.executeAsync(insertMetric.bind(metric.getTenantId(), metric.getType().getCode(),
-            metric.getId().getInterval().toString(), metric.getId().getName(), metric.getMetadata()));
+        return session.executeAsync(insertIntoMetricsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
+            metric.getId().getInterval().toString(), metric.getId().getName(), metric.getDataRetention(),
+            metric.getMetadata()));
     }
 
     @Override
@@ -316,9 +324,9 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public ResultSetFuture addMetadata(Metric metric) {
-        return session.executeAsync(addMetadata.bind(metric.getMetadata(), metric.getTenantId(),
-            metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
-            metric.getDpart()));
+        return session.executeAsync(addMetadataAndDataRetention.bind(metric.getMetadata(), metric.getDataRetention(),
+            metric.getTenantId(), metric.getType().getCode(), metric.getId().getName(),
+            metric.getId().getInterval().toString(), metric.getDpart()));
     }
 
     @Override
@@ -543,6 +551,12 @@ public class DataAccessImpl implements DataAccess {
                 r.getId().getName(), r.getValue()));
         }
         return session.executeAsync(batchStatement);
+    }
+
+    @Override
+    public ResultSetFuture updateRetentionsIndex(Metric metric) {
+        return session.executeAsync(updateRetentionsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
+            metric.getId().getInterval().toString(), metric.getId().getName(), metric.getDataRetention()));
     }
 
     public ResultSetFuture findCounters(String tenantId, String group) {

@@ -43,8 +43,13 @@ public class MetricsIndexMapper implements Function<ResultSet, List<Metric>> {
     private List<Metric> getNumericMetrics(ResultSet resultSet) {
         List<Metric> metrics = new ArrayList<>();
         for (Row row : resultSet) {
-            metrics.add(new NumericMetric2(tenantId, new MetricId(row.getString(0), Interval.parse(row.getString(1))),
-                row.getMap(2, String.class, String.class)));
+            if (row.isNull(3)) {
+                metrics.add(new NumericMetric2(tenantId, new MetricId(row.getString(0),
+                    Interval.parse(row.getString(1))), row.getMap(2, String.class, String.class)));
+            } else {
+                metrics.add(new NumericMetric2(tenantId, new MetricId(row.getString(0),
+                    Interval.parse(row.getString(1))), row.getMap(2, String.class, String.class), row.getInt(3)));
+            }
         }
         return metrics;
     }
@@ -52,8 +57,13 @@ public class MetricsIndexMapper implements Function<ResultSet, List<Metric>> {
     private List<Metric> getAvailabilityMetrics(ResultSet resultSet) {
         List<Metric> metrics = new ArrayList<>();
         for (Row row : resultSet) {
-            metrics.add(new AvailabilityMetric(tenantId, new MetricId(row.getString(0), Interval.parse(row.getString(1))),
-                row.getMap(2, String.class, String.class)));
+            if (row.isNull(3)) {
+                metrics.add(new AvailabilityMetric(tenantId, new MetricId(row.getString(0),
+                    Interval.parse(row.getString(1))), row.getMap(2, String.class, String.class)));
+            } else {
+                metrics.add(new AvailabilityMetric(tenantId, new MetricId(row.getString(0),
+                    Interval.parse(row.getString(1))), row.getMap(2, String.class, String.class), row.getInt(3)));
+            }
         }
         return metrics;
     }

@@ -47,6 +47,7 @@ CREATE TABLE ${keyspace}.data (
     interval text,
     dpart bigint,
     time timeuuid,
+    data_retention int static,
     meta_data map<text, text> static,
     n_value double,
     availability blob,
@@ -90,6 +91,7 @@ CREATE TABLE ${keyspace}.metrics_idx (
     metric text,
     interval text,
     meta_data map<text, text>,
+    data_retention int,
     PRIMARY KEY ((tenant_id, type), interval, metric)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' };
 

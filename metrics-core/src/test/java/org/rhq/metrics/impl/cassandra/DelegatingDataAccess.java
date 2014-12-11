@@ -181,4 +181,9 @@ public class DelegatingDataAccess implements DataAccess {
     public ResultSetFuture updateRetentionsIndex(String tenantId, MetricType type, Set<Retention> retentions) {
         return delegate.updateRetentionsIndex(tenantId, type, retentions);
     }
+
+    @Override
+    public ResultSetFuture updateRetentionsIndex(Metric metric) {
+        return delegate.updateRetentionsIndex(metric);
+    }
 }
