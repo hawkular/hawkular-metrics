@@ -17,6 +17,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
@@ -34,11 +35,12 @@ import org.joda.time.Interval;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
+import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
-import org.rhq.metrics.restServlet.ServiceKeeper;
 import org.rhq.metrics.restServlet.StringValue;
 import org.rhq.metrics.restServlet.influx.query.InfluxQueryParseTreeWalker;
 import org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParser;
@@ -83,8 +85,9 @@ public class InfluxHandler {
     private ToIntervalTranslator toIntervalTranslator;
 
     @GET
-    @Path("/series")
-    public void series(@Suspended final AsyncResponse asyncResponse, @QueryParam("q") String queryString) {
+    @Path("/{tenantId}/series")
+    public void series(@Suspended
+    final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId, @QueryParam("q") String queryString) {
 
         if (queryString==null || queryString.isEmpty()) {
             asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity("Missing query").build());
@@ -108,10 +111,10 @@ public class InfluxHandler {
 
         switch (queryType) {
         case LIST_SERIES:
-            listSeries(asyncResponse);
+            listSeries(asyncResponse, tenantId);
             break;
         case SELECT:
-            select(asyncResponse, queryContext.selectQuery());
+            select(asyncResponse, tenantId, queryContext.selectQuery());
             break;
         default:
             StringValue errMsg = new StringValue("Query not yet supported: " + queryString);
@@ -119,16 +122,15 @@ public class InfluxHandler {
         }
     }
 
-    private void listSeries(final AsyncResponse asyncResponse) {
-        ListenableFuture<List<String>> future = ServiceKeeper.getInstance().service.listMetrics();
-        Futures.addCallback(future, new FutureCallback<List<String>>() {
+    private void listSeries(final AsyncResponse asyncResponse, String tenantId) {
+        ListenableFuture<List<Metric>> future = metricsService.findMetrics(tenantId, MetricType.NUMERIC);
+        Futures.addCallback(future, new FutureCallback<List<Metric>>() {
             @Override
-            public void onSuccess(List<String> result) {
-
+            public void onSuccess(List<Metric> result) {
                 List<InfluxObject> objects = new ArrayList<>(result.size());
 
-                for (String name : result) {
-                    InfluxObject obj = new InfluxObject(name);
+                for (Metric metric : result) {
+                    InfluxObject obj = new InfluxObject(metric.getId().getName());
                     obj.columns = new ArrayList<>(2);
                     obj.columns.add("time");
                     obj.columns.add("sequence_number");
@@ -149,7 +151,7 @@ public class InfluxHandler {
         });
     }
 
-    private void select(final AsyncResponse asyncResponse, SelectQueryContext selectQueryContext) {
+    private void select(final AsyncResponse asyncResponse, final String tenantId, SelectQueryContext selectQueryContext) {
 
         final SelectQueryDefinitionsParser definitionsParser = new SelectQueryDefinitionsParser();
         parseTreeWalker.walk(definitionsParser, selectQueryContext);
@@ -189,8 +191,7 @@ public class InfluxHandler {
                 }
 
                 final ListenableFuture<List<NumericData>> future = metricsService.findData(new NumericMetric2(
-                    DEFAULT_TENANT_ID, new MetricId(metric)), timeInterval.getStartMillis(), timeInterval
-                    .getEndMillis());
+                    tenantId, new MetricId(metric)), timeInterval.getStartMillis(), timeInterval.getEndMillis());
 
                 Futures.addCallback(future, new FutureCallback<List<NumericData>>() {
                     @Override

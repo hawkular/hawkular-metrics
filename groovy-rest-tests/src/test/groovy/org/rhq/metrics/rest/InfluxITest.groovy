@@ -11,7 +11,7 @@ import static org.junit.Assert.assertEquals
  */
 class InfluxITest extends RESTTest {
 
-  static def tenantId = "test"
+  static def tenantId = "influxtest"
 
   @Test
   void testInfluxDataOrderedAsc() {
@@ -21,7 +21,7 @@ class InfluxITest extends RESTTest {
 
     def influxQuery = 'select value from "' + timeseriesName + '" order asc'
 
-    def response = rhqm.get(path: "influx/series", query: [q: influxQuery])
+    def response = rhqm.get(path: "influx/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
 
     assertEquals(
@@ -48,7 +48,7 @@ class InfluxITest extends RESTTest {
 
     def influxQuery = 'select value from "' + timeseriesName + '"'
 
-    def response = rhqm.get(path: "influx/series", query: [q: influxQuery])
+    def response = rhqm.get(path: "influx/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
 
     assertEquals(
@@ -75,7 +75,7 @@ class InfluxITest extends RESTTest {
 
     def influxQuery = 'select mean(value) from "' + timeseriesName + '" where time > now() - 30s group by time(30s) '
 
-    def response = rhqm.get(path: "influx/series", query: [q: influxQuery])
+    def response = rhqm.get(path: "influx/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
 
     assertEquals(
@@ -100,7 +100,7 @@ class InfluxITest extends RESTTest {
 
     def influxQuery = 'select value from "' + timeseriesName + '" limit 2 order asc '
 
-    def response = rhqm.get(path: "influx/series", query: [q: influxQuery])
+    def response = rhqm.get(path: "influx/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
 
     assertEquals(
@@ -128,7 +128,7 @@ class InfluxITest extends RESTTest {
                         and time < '2013-08-13' group by time(30s) '''
 
 
-    def response = rhqm.get(path: "influx/series", query: [q: influxQuery])
+    def response = rhqm.get(path: "influx/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
 
     assertEquals(
