@@ -93,8 +93,8 @@ public class InfluxHandler {
 
     @GET
     @Path("/{tenantId}/series")
-    public void series(@Suspended
-    final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId, @QueryParam("q") String queryString) {
+    public void series(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
+                       @QueryParam("q") String queryString) {
 
         if (queryString==null || queryString.isEmpty()) {
             asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity("Missing query").build());
@@ -129,7 +129,7 @@ public class InfluxHandler {
         }
     }
 
-    private void listSeries(final AsyncResponse asyncResponse, String tenantId) {
+    private void listSeries(AsyncResponse asyncResponse, String tenantId) {
         ListenableFuture<List<Metric>> future = metricsService.findMetrics(tenantId, MetricType.NUMERIC);
         Futures.addCallback(future, new FutureCallback<List<Metric>>() {
             @Override
@@ -158,12 +158,12 @@ public class InfluxHandler {
         });
     }
 
-    private void select(final AsyncResponse asyncResponse, final String tenantId, SelectQueryContext selectQueryContext) {
+    private void select(AsyncResponse asyncResponse, String tenantId, SelectQueryContext selectQueryContext) {
 
-        final SelectQueryDefinitionsParser definitionsParser = new SelectQueryDefinitionsParser();
+        SelectQueryDefinitionsParser definitionsParser = new SelectQueryDefinitionsParser();
         parseTreeWalker.walk(definitionsParser, selectQueryContext);
 
-        final SelectQueryDefinitions queryDefinitions = definitionsParser.getSelectQueryDefinitions();
+        SelectQueryDefinitions queryDefinitions = definitionsParser.getSelectQueryDefinitions();
 
         try {
             queryValidator.validateSelectQuery(queryDefinitions);
@@ -173,9 +173,9 @@ public class InfluxHandler {
             return;
         }
 
-        final String metric = queryDefinitions.getFromClause().getName(); // metric to query from backend
+        String metric = queryDefinitions.getFromClause().getName(); // metric to query from backend
         BooleanExpression whereClause = queryDefinitions.getWhereClause();
-        final Interval timeInterval;
+        Interval timeInterval;
         if (whereClause == null) {
             timeInterval = new Interval(new Instant(0), Instant.now());
         } else {
@@ -186,7 +186,7 @@ public class InfluxHandler {
             asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity(errMsg).build());
             return;
         }
-        final String columnName = getColumnName(queryDefinitions);
+        String columnName = getColumnName(queryDefinitions);
 
         ListenableFuture<Boolean> idExistsFuture = metricsService.idExists(metric);
         ListenableFuture<List<NumericData>> loadMetricsFuture = Futures.transform(idExistsFuture,
