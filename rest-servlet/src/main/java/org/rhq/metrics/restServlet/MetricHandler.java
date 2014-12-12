@@ -5,7 +5,10 @@ import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 import static javax.ws.rs.core.MediaType.APPLICATION_XML;
+import static javax.ws.rs.core.Response.ResponseBuilder;
+import static javax.ws.rs.core.Response.Status;
 import static org.rhq.metrics.core.MetricsService.DEFAULT_TENANT_ID;
 import static org.rhq.metrics.restServlet.CustomMediaTypes.APPLICATION_VND_RHQ_WRAPPED_JSON;
 
@@ -34,7 +37,6 @@ import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.google.common.base.Function;
@@ -91,7 +93,7 @@ public class MetricHandler {
 
         StringValue reply = new StringValue(new Date().toString());
 
-        Response.ResponseBuilder builder = Response.ok(reply);
+        ResponseBuilder builder = Response.ok(reply);
         return builder.build();
     }
 
@@ -108,8 +110,8 @@ public class MetricHandler {
             } else {
                 Map<String, String> errors = ImmutableMap.of("errorMessage", "The retentions property is invalid. [" +
                     type + "] is not a recognized metric type");
-                asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity(errors)
-                    .type(MediaType.APPLICATION_JSON_TYPE).build());
+                asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity(errors).type(APPLICATION_JSON_TYPE)
+                    .build());
                 return;
             }
         }
@@ -117,7 +119,7 @@ public class MetricHandler {
         Futures.addCallback(insertFuture, new FutureCallback<Void>() {
             @Override
             public void onSuccess(Void result) {
-                asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
+                asyncResponse.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
             }
 
             @Override
@@ -127,13 +129,13 @@ public class MetricHandler {
                     TenantAlreadyExistsException exception = (TenantAlreadyExistsException) t;
                     Map<String, String> errors = ImmutableMap.of("errorMsg", "A tenant with id [" +
                         exception.getTenantId() + "] already exists");
-                    asyncResponse.resume(Response.status(Response.Status.CONFLICT).entity(errors).type(
-                        MediaType.APPLICATION_JSON_TYPE).build());
+                    asyncResponse.resume(Response.status(Status.CONFLICT).entity(errors).type(APPLICATION_JSON_TYPE)
+                        .build());
                 }
                 Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to create tenant due to an " +
                     "unexpected error: " + Throwables.getRootCause(t).getMessage());
-                asyncResponse.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).type(
-                    MediaType.APPLICATION_JSON_TYPE).build());
+                asyncResponse.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors)
+                    .type(APPLICATION_JSON_TYPE).build());
             }
         });
     }
@@ -147,7 +149,7 @@ public class MetricHandler {
             @Override
             public void onSuccess(Collection<Tenant> tenants) {
                 if (tenants.isEmpty()) {
-                    response.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
+                    response.resume(Response.ok().status(Status.NO_CONTENT).build());
                 }
                 List<TenantParams> output = new ArrayList<>(tenants.size());
                 for (Tenant t : tenants) {
@@ -162,16 +164,15 @@ public class MetricHandler {
                     }
                     output.add(new TenantParams(t.getId(), retentions));
                 }
-                response.resume(Response.status(Response.Status.OK).entity(output).type(
-                    MediaType.APPLICATION_JSON_TYPE).build());
+                response.resume(Response.status(Status.OK).entity(output).type(APPLICATION_JSON_TYPE).build());
             }
 
             @Override
             public void onFailure(Throwable t) {
                 Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to fetch tenants due to an " +
                     "unexpected error: " + Throwables.getRootCause(t).getMessage());
-                response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).type(
-                    MediaType.APPLICATION_JSON_TYPE).build());
+                response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors)
+                    .type(APPLICATION_JSON_TYPE).build());
             }
         });
     }
@@ -209,7 +210,7 @@ public class MetricHandler {
 
         @Override
         public void onSuccess(Void result) {
-            response.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
+            response.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
         }
 
         @Override
@@ -217,13 +218,12 @@ public class MetricHandler {
             if (t instanceof MetricAlreadyExistsException) {
                 Map<String, String> errors = ImmutableMap.of("errorMsg", "A metric with name [" + params.getName() +
                     "] already exists");
-                response.resume(Response.status(Response.Status.BAD_REQUEST).entity(errors)
-                    .type(MediaType.APPLICATION_JSON_TYPE).build());
+                response.resume(Response.status(Status.BAD_REQUEST).entity(errors).type(APPLICATION_JSON_TYPE).build());
             } else {
                 Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to create metric due to an " +
                     "unexpected error: " + Throwables.getRootCause(t).getMessage());
-                response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).type(
-                    MediaType.APPLICATION_JSON_TYPE).build());
+                response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors)
+                    .type(APPLICATION_JSON_TYPE).build());
             }
         }
     }
@@ -295,11 +295,10 @@ public class MetricHandler {
         @Override
         public void onSuccess(Metric metric) {
             if (metric == null) {
-                response.resume(Response.status(Response.Status.NO_CONTENT).type(MediaType.APPLICATION_JSON_TYPE)
-                    .build());
+                response.resume(Response.status(Status.NO_CONTENT).type(APPLICATION_JSON_TYPE).build());
             } else {
                 response.resume(Response.ok(new MetricOut(metric.getTenantId(), metric.getId().getName(),
-                    metric.getMetadata())).type(MediaType.APPLICATION_JSON_TYPE).build());
+                    metric.getMetadata())).type(APPLICATION_JSON_TYPE).build());
             }
         }
 
@@ -307,8 +306,8 @@ public class MetricHandler {
         public void onFailure(Throwable t) {
             Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to retrieve meta data due to " +
                 "an unexpected error: " + Throwables.getRootCause(t).getMessage());
-            response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors)
-                .type(MediaType.APPLICATION_JSON_TYPE).build());
+            response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors).type(APPLICATION_JSON_TYPE)
+                .build());
         }
     }
 
@@ -330,7 +329,7 @@ public class MetricHandler {
     @ApiOperation("Add a collection of data. Values can be for different metric ids.")
     public void addMetrics(@Suspended final AsyncResponse asyncResponse, Collection<IdDataPoint> dataPoints) {
         if (dataPoints.isEmpty()) {
-            asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
+            asyncResponse.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
         }
 
         List<NumericMetric2> metrics = new ArrayList<>();
@@ -352,7 +351,7 @@ public class MetricHandler {
         Futures.addCallback(future, new FutureCallback<Void>() {
             @Override
             public void onSuccess(Void errors) {
-                Response jaxrs = Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build();
+                Response jaxrs = Response.ok().type(APPLICATION_JSON_TYPE).build();
                 asyncResponse.resume(jaxrs);
             }
 
@@ -398,7 +397,7 @@ public class MetricHandler {
     public void addNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         List<NumericDataParams> paramsList) {
         if (paramsList.isEmpty()) {
-            asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
+            asyncResponse.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
         }
 
         List<NumericMetric2> metrics = new ArrayList<>(paramsList.size());
@@ -421,7 +420,7 @@ public class MetricHandler {
     public void addAvailabilityData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, List<AvailabilityDataParams> paramsList) {
         if (paramsList.isEmpty()) {
-            asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
+            asyncResponse.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
         }
 
         List<AvailabilityMetric> metrics = new ArrayList<>(paramsList.size());
@@ -462,7 +461,7 @@ public class MetricHandler {
                     results.put(id.getName(), dataOut);
                     dataOut = null;
                 }
-                asyncResponse.resume(Response.ok(results).type(MediaType.APPLICATION_JSON_TYPE).build());
+                asyncResponse.resume(Response.ok(results).type(APPLICATION_JSON_TYPE).build());
             }
 
             @Override
@@ -483,7 +482,7 @@ public class MetricHandler {
             @Override
             public void onSuccess(Map<MetricId, Set<Availability>> taggedDataMap) {
                 if (taggedDataMap.isEmpty()) {
-                    asyncResponse.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
+                    asyncResponse.resume(Response.ok().status(Status.NO_CONTENT).build());
                 } else {
                     Map<String, MetricOut> results = new HashMap<>();
                     MetricOut dataOut = null;
@@ -500,7 +499,7 @@ public class MetricHandler {
                         results.put(id.getName(), dataOut);
                         dataOut = null;
                     }
-                    asyncResponse.resume(Response.ok(results).type(MediaType.APPLICATION_JSON_TYPE).build());
+                    asyncResponse.resume(Response.ok(results).type(APPLICATION_JSON_TYPE).build());
                 }
             }
 
@@ -567,18 +566,18 @@ public class MetricHandler {
         Futures.addCallback(outputFuture, new FutureCallback<Object>() {
             @Override
             public void onSuccess(Object output) {
-                response.resume(Response.ok(output).type(MediaType.APPLICATION_JSON_TYPE).build());
+                response.resume(Response.ok(output).type(APPLICATION_JSON_TYPE).build());
             }
 
             @Override
             public void onFailure(Throwable t) {
                 if (t instanceof NoResultsException) {
-                    response.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
+                    response.resume(Response.ok().status(Status.NO_CONTENT).build());
                 } else {
                     Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to retrieve data due to " +
                         "an unexpected error: " + Throwables.getRootCause(t).getMessage());
-                    response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors)
-                        .type(MediaType.APPLICATION_JSON_TYPE).build());
+                    response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors)
+                        .type(APPLICATION_JSON_TYPE).build());
                 }
             }
         });
@@ -757,7 +756,7 @@ public class MetricHandler {
             @Override
             public void onSuccess(AvailabilityMetric metric) {
                 if (metric == null) {
-                    asyncResponse.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
+                    asyncResponse.resume(Response.ok().status(Status.NO_CONTENT).build());
                 } else {
                     MetricOut output = new MetricOut(metric.getTenantId(), metric.getId().getName(),
                         metric.getMetadata());
@@ -767,7 +766,7 @@ public class MetricHandler {
                     }
                     output.setData(dataPoints);
 
-                    asyncResponse.resume(Response.ok(output).type(MediaType.APPLICATION_JSON_TYPE).build());
+                    asyncResponse.resume(Response.ok(output).type(APPLICATION_JSON_TYPE).build());
                 }
             }
 
@@ -792,7 +791,7 @@ public class MetricHandler {
         Futures.addCallback(future, new FutureCallback<List<NumericData>>() {
             @Override
             public void onSuccess(List<NumericData> data) {
-                asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
+                asyncResponse.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
             }
 
             @Override
@@ -816,7 +815,7 @@ public class MetricHandler {
         Futures.addCallback(future, new FutureCallback<List<Availability>>() {
             @Override
             public void onSuccess(List<Availability> data) {
-                asyncResponse.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
+                asyncResponse.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
             }
 
             @Override
@@ -836,7 +835,7 @@ public class MetricHandler {
             @Override
             public void onSuccess(Map<MetricId, Set<NumericData>> taggedDataMap) {
                 if (taggedDataMap.isEmpty()) {
-                    asyncResponse.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
+                    asyncResponse.resume(Response.ok().status(Status.NO_CONTENT).build());
                 } else {
                     // TODO Should we return something other than NumericDataOutput?
                     // Currently we only query the tags table which does not include meta data.
@@ -859,7 +858,7 @@ public class MetricHandler {
                         results.put(id.getName(), dataOut);
                         dataOut = null;
                     }
-                    asyncResponse.resume(Response.ok(results).type(MediaType.APPLICATION_JSON_TYPE).build());
+                    asyncResponse.resume(Response.ok(results).type(APPLICATION_JSON_TYPE).build());
                 }
             }
 
@@ -880,7 +879,7 @@ public class MetricHandler {
             @Override
             public void onSuccess(Map<MetricId, Set<Availability>> taggedDataMap) {
                 if (taggedDataMap.isEmpty()) {
-                    asyncResponse.resume(Response.ok().status(Response.Status.NO_CONTENT).build());
+                    asyncResponse.resume(Response.ok().status(Status.NO_CONTENT).build());
                 } else {
                     Map<String, MetricOut> results = new HashMap<>();
                     MetricOut dataOut = null;
@@ -897,7 +896,7 @@ public class MetricHandler {
                         results.put(id.getName(), dataOut);
                         dataOut = null;
                     }
-                    asyncResponse.resume(Response.ok(results).type(MediaType.APPLICATION_JSON_TYPE).build());
+                    asyncResponse.resume(Response.ok(results).type(APPLICATION_JSON_TYPE).build());
                 }
             }
 
@@ -931,7 +930,7 @@ public class MetricHandler {
         Futures.addCallback(future, new FutureCallback<Void>() {
             @Override
             public void onSuccess(Void result) {
-                Response jaxrs = Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build();
+                Response jaxrs = Response.ok().type(APPLICATION_JSON_TYPE).build();
                 asyncResponse.resume(jaxrs);
             }
 
@@ -962,7 +961,7 @@ public class MetricHandler {
         Futures.addCallback(future, new FutureCallback<Void>() {
             @Override
             public void onSuccess(Void result) {
-                Response jaxrs = Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build();
+                Response jaxrs = Response.ok().type(APPLICATION_JSON_TYPE).build();
                 asyncResponse.resume(jaxrs);
             }
 
@@ -981,7 +980,7 @@ public class MetricHandler {
         Futures.addCallback(future, new FutureCallback<List<Counter>>() {
             @Override
             public void onSuccess(List<Counter> counters) {
-                Response jaxrs = Response.ok(counters).type(MediaType.APPLICATION_JSON_TYPE).build();
+                Response jaxrs = Response.ok(counters).type(APPLICATION_JSON_TYPE).build();
                 asyncResponse.resume(jaxrs);
             }
 
@@ -1005,7 +1004,7 @@ public class MetricHandler {
                     asyncResponse.resume(Response.status(404).entity("Counter[group: " + group + ", name: " +
                         counter + "] not found").build());
                 } else {
-                    Response jaxrs = Response.ok(counters.get(0)).type(MediaType.APPLICATION_JSON_TYPE).build();
+                    Response jaxrs = Response.ok(counters.get(0)).type(APPLICATION_JSON_TYPE).build();
                     asyncResponse.resume(jaxrs);
                 }
             }
@@ -1182,23 +1181,20 @@ public class MetricHandler {
         } catch (IllegalArgumentException e) {
             ImmutableMap<String, String> errors = ImmutableMap.of("errorMsg", "[" + type + "] is not a valid type. " +
                 "Accepted values are num|avail|log");
-            response.resume(Response.status(Response.Status.BAD_REQUEST).entity(errors).type(
-                MediaType.APPLICATION_JSON_TYPE).build());
+            response.resume(Response.status(Status.BAD_REQUEST).entity(errors).type(APPLICATION_JSON_TYPE).build());
         }
         ListenableFuture<List<Metric>> future = metricsService.findMetrics(tenantId, metricType);
         Futures.addCallback(future, new FutureCallback<List<Metric>>() {
             @Override
             public void onSuccess(List<Metric> metrics) {
                 if (metrics.isEmpty()) {
-                    response.resume(Response.status(Response.Status.NO_CONTENT).type(MediaType.APPLICATION_JSON_TYPE)
-                        .build());
+                    response.resume(Response.status(Status.NO_CONTENT).type(APPLICATION_JSON_TYPE).build());
                 } else {
                     List<MetricOut> output = new ArrayList<>();
                     for (Metric metric : metrics) {
                         output.add(new MetricOut(tenantId, metric.getId().getName(), metric.getMetadata()));
                     }
-                    response.resume(Response.status(Response.Status.OK).entity(output)
-                        .type(MediaType.APPLICATION_JSON_TYPE).build());
+                    response.resume(Response.status(Status.OK).entity(output).type(APPLICATION_JSON_TYPE).build());
                 }
             }
 
@@ -1206,8 +1202,8 @@ public class MetricHandler {
             public void onFailure(Throwable t) {
                 Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to retrieve metrics due to " +
                     "an unexpected error: " + Throwables.getRootCause(t).getMessage());
-                response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors)
-                    .type(MediaType.APPLICATION_JSON_TYPE).build());
+                response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors)
+                    .type(APPLICATION_JSON_TYPE).build());
             }
         });
     }
@@ -1231,7 +1227,7 @@ public class MetricHandler {
                 }
 
                 GenericEntity<List<SimpleLink>> list = new GenericEntity<List<SimpleLink>>(listWithLinks) {} ;
-                Response.ResponseBuilder builder = Response.ok(list);
+                ResponseBuilder builder = Response.ok(list);
 
                 asyncResponse.resume(builder.build());
 
@@ -1257,13 +1253,13 @@ public class MetricHandler {
                 Futures.addCallback(future, new FutureCallback<Boolean>() {
                     @Override
                     public void onSuccess(Boolean result) {
-                        Response.ResponseBuilder builder;
+                        ResponseBuilder builder;
                         if (result) {
                             StringValue deleted = new StringValue("Metric with id " + id + " deleted");
                             builder = Response.ok(deleted);
                         } else {
                             StringValue res = new StringValue("Deletion failed");
-                            builder = Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(res);
+                            builder = Response.status(Status.INTERNAL_SERVER_ERROR).entity(res);
                         }
                         asyncResponse.resume(builder.build());
                     }
@@ -1287,8 +1283,8 @@ public class MetricHandler {
     private void handleInsertFailure(Throwable t, AsyncResponse response) {
         Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to insert data: " +
             Throwables.getRootCause(t).getMessage());
-        response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).type(
-            MediaType.APPLICATION_JSON_TYPE).build());
+        response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors).type(APPLICATION_JSON_TYPE)
+            .build());
     }
 
     private BucketDataPoint createPointInSimpleBucket(String id, long startTime, long bucketsize,
