@@ -1,0 +1,34 @@
+# Each line in this file will be used as a syntactically incorrect sample
+# for org.rhq.metrics.restServlet.influx.query.InvalidQuerySyntaxTest
+# Lines starting with the hash-sign are ignored
+#
+# Next line is intentionally left blank to test the empty query case
+
+# Missing from clause
+select 1
+# Name staring with digit
+select * frOm 1_sqlkd_j0504
+# Malformed column definition list
+select a, from a
+# Aggregated function name cannot be a string
+select a, "dsqd"(alxwcklmw) from a as b
+# Limit clause must give provide an int
+select * from b limit .5
+# Missing parenthesis
+select * from b where (a=7 limit 3
+# Missing right side of AND
+select * from b where (a=7 AND )
+# Timespan starts with an int
+select a from "b" group by time (.15u) where (c=2 and ((d=7) OR 7 <> _qsk4jlj(a."56465"))) limit 15
+# Timespan needs a unit
+select a from "b" group by time (7) where (c=2 and ((d=7) OR 7 <> _qsk4jlj(a."56465"))) limit 15
+# Timeunit is single letter
+select a from "b" group by time (7dd) where (c=2 and ((d=7) OR 7 <> _qsk4jlj(a."56465"))) limit 15
+# Timeunit must be u, s, m, h, d or w
+select a from "b" group by time (7z) where (c=2 and ((d=7) OR 7 <> _qsk4jlj(a."56465"))) limit 15
+# Broken dates
+select a from "b" where '2012-05-14' = '2007-0' OR '2007-05' > '2007-05-14 18:12:'
+# Function call
+select a from "b" where '2012-05-14' = '2007-0' OR '2007-05' > _dsqkjdqs()
+# Malformed order clause
+SeleCt dup.time fROm "z" as bi order bing

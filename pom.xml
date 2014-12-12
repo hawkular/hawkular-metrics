@@ -108,8 +108,9 @@
     <vertx.version>2.1RC3</vertx.version>
     <vertx.testtools.version>2.0.3-final</vertx.testtools.version>
     <jackson.version>2.3.2</jackson.version>
-    <resteasy.version>3.0.7.Final</resteasy.version>
     <trove4j.version>3.0.3</trove4j.version>
+    <google.guava.version>16.0.1</google.guava.version>
+    <antlr.version>4.3</antlr.version>
 
     <version.wildfly>8.1.0.Final</version.wildfly>
     <findbugs.version>3.0.0</findbugs.version>
@@ -127,7 +128,12 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>16.0.1</version>
+        <version>${google.guava.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.antlr</groupId>
+        <artifactId>antlr4-runtime</artifactId>
+        <version>${antlr.version}</version>
       </dependency>
       <dependency>
         <groupId>org.assertj</groupId>
@@ -165,6 +171,11 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-clean-plugin</artifactId>
           <version>2.6</version>
+        </plugin>
+        <plugin>
+          <groupId>org.antlr</groupId>
+          <artifactId>antlr4-maven-plugin</artifactId>
+          <version>${antlr.version}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -514,3 +525,4 @@
     </profile>
   </profiles>
 </project>
+
