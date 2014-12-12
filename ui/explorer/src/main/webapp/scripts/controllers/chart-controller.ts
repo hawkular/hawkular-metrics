@@ -92,7 +92,7 @@ module Controllers {
         showContextZoom = true;
         showAutoRefreshCancel = false;
         chartType = 'bar';
-        chartTypes = ['bar', 'line', 'area', 'scatter', 'scatterline', 'candlestick', 'histogram'];
+        chartTypes:string[] = ['bar', 'line', 'area', 'scatter', 'scatterline', 'candlestick', 'histogram'];
 
         dateTimeRanges:IDateTimeRangeDropDown[] = [
             { 'range': '1h', 'rangeInSeconds': 60 * 60 } ,
@@ -258,11 +258,11 @@ module Controllers {
                 startTime = this.startTimeStamp.getTime();
             }
 
-//
-//        if (startTime >= endTime) {
-//            $log.warn('Start Date was >= End Date');
-//            return;
-//        }
+///
+///       if (startTime >= endTime) {
+///            $log.warn('Start Date was >= End Date');
+///            return;
+///        }
 
             if (this.searchId !== '') {
 
