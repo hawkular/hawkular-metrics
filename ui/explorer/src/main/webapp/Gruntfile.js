@@ -28,6 +28,9 @@ module.exports = function (grunt) {
                     target: 'ES5',
                     declaration: false,
                     sourceMap: true,
+                    ignoreError: true,
+                    indentStep: 5,
+                    references: ['vendor/**/*.d.ts'],
                     watch: false
                 }
             },
@@ -38,6 +41,9 @@ module.exports = function (grunt) {
                     target: 'ES5',
                     declaration: false,
                     sourceMap: true,
+                    ignoreError: true,
+                    indentStep: 5,
+                    references: ['vendor/**/*.d.ts'],
                     watch: grunt.option('watch') ? {
                         path: 'scripts',
                         atBegin: true

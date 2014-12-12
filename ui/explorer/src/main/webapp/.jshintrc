@@ -17,7 +17,7 @@
   "noarg": true,
   "noempty": true,
   "nonew": true,
-  "quotmark": "single",
+  "quotmark": "",
   "regexp": true,
   "undef": true,
   "unused": true,
@@ -31,6 +31,7 @@
     "module": false,
     "require": false,
     "toastr": false,
-    "moment": false
+    "moment": false,
+    "_": false
   }
 }
