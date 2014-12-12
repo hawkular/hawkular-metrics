@@ -34,7 +34,7 @@ import org.rhq.metrics.core.TenantAlreadyExistsException;
  * @author Thomas Segismont
  */
 @Path("/tenants")
-public class TenantHandler {
+public class TenantsHandler {
 
     @Inject
     private MetricsService metricsService;
