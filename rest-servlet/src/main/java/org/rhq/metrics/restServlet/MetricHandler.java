@@ -82,21 +82,6 @@ public class MetricHandler {
     @Inject
     private MetricsService metricsService;
 
-    @GET
-    @POST
-    @Path("/ping")
-    @Consumes({APPLICATION_JSON, APPLICATION_XML})
-    @Produces({APPLICATION_JSON, APPLICATION_XML, APPLICATION_VND_RHQ_WRAPPED_JSON})
-    @ApiOperation(value = "Returns the current time and serves to check for the availability of the api.",
-        responseClass = "Map<String,String>")
-    public Response ping() {
-
-        StringValue reply = new StringValue(new Date().toString());
-
-        ResponseBuilder builder = Response.ok(reply);
-        return builder.build();
-    }
-
     @POST
     @Path("/tenants")
     @Consumes(APPLICATION_JSON)
