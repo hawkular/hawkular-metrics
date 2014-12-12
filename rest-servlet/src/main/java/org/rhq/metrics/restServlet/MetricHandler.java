@@ -4,7 +4,10 @@ import static java.lang.Double.NaN;
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static javax.ws.rs.core.MediaType.APPLICATION_XML;
 import static org.rhq.metrics.core.MetricsService.DEFAULT_TENANT_ID;
+import static org.rhq.metrics.restServlet.CustomMediaTypes.APPLICATION_VND_RHQ_WRAPPED_JSON;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,8 +48,8 @@ import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import gnu.trove.map.TLongObjectMap;
+import gnu.trove.map.hash.TLongObjectHashMap;
 
 import org.jboss.resteasy.annotations.GZIP;
 
@@ -65,9 +68,6 @@ import org.rhq.metrics.core.Tag;
 import org.rhq.metrics.core.Tenant;
 import org.rhq.metrics.core.TenantAlreadyExistsException;
 
-import gnu.trove.map.TLongObjectMap;
-import gnu.trove.map.hash.TLongObjectHashMap;
-
 /**
  * Interface to deal with metrics
  * @author Heiko W. Rupp
@@ -75,9 +75,6 @@ import gnu.trove.map.hash.TLongObjectHashMap;
 @Api(value = "Related to metrics")
 @Path("/")
 public class MetricHandler {
-
-    private static final Logger logger = LoggerFactory.getLogger(MetricHandler.class);
-
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
     @Inject
@@ -86,8 +83,8 @@ public class MetricHandler {
     @GET
     @POST
     @Path("/ping")
-    @Consumes({"application/json", "application/xml"})
-    @Produces({"application/json", "application/xml", "application/vnd.rhq.wrapped+json"})
+    @Consumes({APPLICATION_JSON, APPLICATION_XML})
+    @Produces({APPLICATION_JSON, APPLICATION_XML, APPLICATION_VND_RHQ_WRAPPED_JSON})
     @ApiOperation(value = "Returns the current time and serves to check for the availability of the api.",
         responseClass = "Map<String,String>")
     public Response ping() {
@@ -100,7 +97,7 @@ public class MetricHandler {
 
     @POST
     @Path("/tenants")
-    @Consumes("application/json")
+    @Consumes(APPLICATION_JSON)
     public void createTenant(@Suspended final AsyncResponse asyncResponse, TenantParams params) {
         Tenant tenant = new Tenant().setId(params.getId());
         for (String type : params.getRetentions().keySet()) {
@@ -143,7 +140,7 @@ public class MetricHandler {
 
     @GET
     @Path("/tenants")
-    @Consumes("application/json")
+    @Consumes(APPLICATION_JSON)
     public void findTenants(@Suspended final AsyncResponse response) {
         ListenableFuture<Collection<Tenant>> tenantsFuture = metricsService.getTenants();
         Futures.addCallback(tenantsFuture, new FutureCallback<Collection<Tenant>>() {
@@ -181,7 +178,7 @@ public class MetricHandler {
 
     @POST
     @Path("/{tenantId}/metrics/numeric")
-    @Consumes("application/json")
+    @Consumes(APPLICATION_JSON)
     public void createNumericMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         MetricParams params) {
         NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(params.getName()), params.getMetadata());
@@ -191,7 +188,7 @@ public class MetricHandler {
 
     @POST
     @Path("/{tenantId}/metrics/availability")
-    @Consumes("application/json")
+    @Consumes(APPLICATION_JSON)
     public void createAvailabilityMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         MetricParams params) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(params.getName()),
@@ -317,7 +314,7 @@ public class MetricHandler {
 
     @POST
     @Path("/metrics/{id}")
-    @Consumes({"application/json","application/xml"})
+    @Consumes({APPLICATION_JSON,APPLICATION_XML})
     @ApiOperation("Adds a single data point for the given id.")
     public void addMetric(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id, IdDataPoint dataPoint) {
         dataPoint.setId(id);
@@ -329,7 +326,7 @@ public class MetricHandler {
     // collection of metrics.
     @POST
     @Path("/metrics")
-    @Consumes({"application/json","application/xml"})
+    @Consumes({APPLICATION_JSON,APPLICATION_XML})
     @ApiOperation("Add a collection of data. Values can be for different metric ids.")
     public void addMetrics(@Suspended final AsyncResponse asyncResponse, Collection<IdDataPoint> dataPoints) {
         if (dataPoints.isEmpty()) {
@@ -368,7 +365,7 @@ public class MetricHandler {
 
     @POST
     @Path("/{tenantId}/metrics/numeric/{id}/data")
-    @Consumes("application/json")
+    @Consumes(APPLICATION_JSON)
     public void addDataForMetric(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") final String tenantId, @PathParam("id") String id, List<NumericDataPoint> dataPoints) {
 
@@ -382,7 +379,7 @@ public class MetricHandler {
 
     @POST
     @Path("/{tenantId}/metrics/availability/{id}/data")
-    @Consumes("application/json")
+    @Consumes(APPLICATION_JSON)
     public void addAvailabilityForMetric(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") final String tenantId, @PathParam("id") String id, List<AvailabilityDataPoint> data) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
@@ -397,7 +394,7 @@ public class MetricHandler {
 
     @POST
     @Path("/{tenantId}/metrics/numeric/data")
-    @Consumes("application/json")
+    @Consumes(APPLICATION_JSON)
     public void addNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         List<NumericDataParams> paramsList) {
         if (paramsList.isEmpty()) {
@@ -420,7 +417,7 @@ public class MetricHandler {
 
     @POST
     @Path("/{tenantId}/metrics/availability/data")
-    @Consumes("application/json")
+    @Consumes(APPLICATION_JSON)
     public void addAvailabilityData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, List<AvailabilityDataParams> paramsList) {
         if (paramsList.isEmpty()) {
@@ -913,14 +910,14 @@ public class MetricHandler {
 
     @POST
     @Path("/counters")
-    @Produces({"application/json"})
+    @Produces({APPLICATION_JSON})
     public void updateCountersForGroups(@Suspended final AsyncResponse asyncResponse, Collection<Counter> counters) {
         updateCounters(asyncResponse, counters);
     }
 
     @POST
     @Path("/counters/{group}")
-    @Produces("application/json")
+    @Produces(APPLICATION_JSON)
     public void updateCounterForGroup(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group,
         Collection<Counter> counters) {
         for (Counter counter : counters) {
@@ -978,7 +975,7 @@ public class MetricHandler {
 
     @GET
     @Path("/counters/{group}")
-    @Produces({"application/json","application/vnd.rhq.wrapped+json"})
+    @Produces({APPLICATION_JSON,APPLICATION_VND_RHQ_WRAPPED_JSON})
     public void getCountersForGroup(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group) {
         ListenableFuture<List<Counter>> future = metricsService.findCounters(group);
         Futures.addCallback(future, new FutureCallback<List<Counter>>() {
@@ -997,7 +994,7 @@ public class MetricHandler {
 
     @GET
     @Path("/counters/{group}/{counter}")
-    @Produces({"application/json","application/vnd.rhq.wrapped+json"})
+    @Produces({APPLICATION_JSON,APPLICATION_VND_RHQ_WRAPPED_JSON})
     public void getCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") final String group,
         @PathParam("counter") final String counter) {
         ListenableFuture<List<Counter>> future = metricsService.findCounters(group, asList(counter));
@@ -1025,7 +1022,7 @@ public class MetricHandler {
     @Path("/metrics/{id}")
     @ApiOperation("Return metrical values for a given metric id. If no parameters are given, the raw data " +
         "for a time period of [now-8h,now] is returned.")
-    @Produces({"application/json","application/xml","application/vnd.rhq.wrapped+json"})
+    @Produces({APPLICATION_JSON,APPLICATION_XML,APPLICATION_VND_RHQ_WRAPPED_JSON})
     public void getDataForId(@Suspended final AsyncResponse asyncResponse,
         @ApiParam("Id of the metric to return data for") @PathParam("id") final String id,
         @ApiParam(value = "Start time in millis since epoch", defaultValue = "Now - 8h") @QueryParam("start") Long start,
@@ -1176,7 +1173,7 @@ public class MetricHandler {
 
     @GET
     @Path("/{tenantId}/metrics")
-    @Produces("application/json")
+    @Produces(APPLICATION_JSON)
     public void findMetrics(@Suspended final AsyncResponse response, @PathParam("tenantId") final String tenantId,
         @QueryParam("type") String type) {
         MetricType metricType = null;
@@ -1218,7 +1215,7 @@ public class MetricHandler {
     @GZIP
     @GET
     @Path("/metrics")
-    @Produces({"application/json","application/xml","application/vnd.rhq.wrapped+json"})
+    @Produces({APPLICATION_JSON,APPLICATION_XML,APPLICATION_VND_RHQ_WRAPPED_JSON})
     public void listMetrics(@Suspended final AsyncResponse asyncResponse, @QueryParam("q") final String filter) {
 
         ListenableFuture<List<String>> future = ServiceKeeper.getInstance().service.listMetrics();
@@ -1249,7 +1246,7 @@ public class MetricHandler {
 
     @DELETE
     @Path("/metrics/{id}")
-    @Produces({"application/json","application/xml"})
+    @Produces({APPLICATION_JSON,APPLICATION_XML})
     public void deleteMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") final String id) {
 
         ListenableFuture<Boolean> idExistsFuture = metricsService.idExists(id);
