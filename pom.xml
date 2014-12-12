@@ -391,6 +391,11 @@
         </configuration>
         <dependencies>
           <dependency>
+            <groupId>com.puppycrawl.tools</groupId>
+            <artifactId>checkstyle</artifactId>
+            <version>6.1.1</version>
+          </dependency>
+          <dependency>
             <groupId>org.rhq.checkstyle</groupId>
             <artifactId>rhq-checkstyle-config</artifactId>
             <version>${rhq.checkstyle.config.version}</version>
