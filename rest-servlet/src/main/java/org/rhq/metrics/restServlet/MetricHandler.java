@@ -66,8 +66,6 @@ import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.core.Tag;
-import org.rhq.metrics.core.Tenant;
-import org.rhq.metrics.core.TenantAlreadyExistsException;
 
 /**
  * Interface to deal with metrics
@@ -80,86 +78,6 @@ public class MetricHandler {
 
     @Inject
     private MetricsService metricsService;
-
-    @POST
-    @Path("/tenants")
-    @Consumes(APPLICATION_JSON)
-    public void createTenant(@Suspended final AsyncResponse asyncResponse, TenantParams params) {
-        Tenant tenant = new Tenant().setId(params.getId());
-        for (String type : params.getRetentions().keySet()) {
-            if (type.equals(MetricType.NUMERIC.getText())) {
-                tenant.setRetention(MetricType.NUMERIC, params.getRetentions().get(type));
-            } else if (type.equals(MetricType.AVAILABILITY.getText())) {
-                tenant.setRetention(MetricType.AVAILABILITY, params.getRetentions().get(type));
-            } else {
-                Map<String, String> errors = ImmutableMap.of("errorMessage", "The retentions property is invalid. [" +
-                    type + "] is not a recognized metric type");
-                asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity(errors).type(APPLICATION_JSON_TYPE)
-                    .build());
-                return;
-            }
-        }
-        ListenableFuture<Void> insertFuture = metricsService.createTenant(tenant);
-        Futures.addCallback(insertFuture, new FutureCallback<Void>() {
-            @Override
-            public void onSuccess(Void result) {
-                asyncResponse.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-
-                if (t instanceof TenantAlreadyExistsException) {
-                    TenantAlreadyExistsException exception = (TenantAlreadyExistsException) t;
-                    Map<String, String> errors = ImmutableMap.of("errorMsg", "A tenant with id [" +
-                        exception.getTenantId() + "] already exists");
-                    asyncResponse.resume(Response.status(Status.CONFLICT).entity(errors).type(APPLICATION_JSON_TYPE)
-                        .build());
-                }
-                Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to create tenant due to an " +
-                    "unexpected error: " + Throwables.getRootCause(t).getMessage());
-                asyncResponse.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors)
-                    .type(APPLICATION_JSON_TYPE).build());
-            }
-        });
-    }
-
-    @GET
-    @Path("/tenants")
-    @Consumes(APPLICATION_JSON)
-    public void findTenants(@Suspended final AsyncResponse response) {
-        ListenableFuture<Collection<Tenant>> tenantsFuture = metricsService.getTenants();
-        Futures.addCallback(tenantsFuture, new FutureCallback<Collection<Tenant>>() {
-            @Override
-            public void onSuccess(Collection<Tenant> tenants) {
-                if (tenants.isEmpty()) {
-                    response.resume(Response.ok().status(Status.NO_CONTENT).build());
-                }
-                List<TenantParams> output = new ArrayList<>(tenants.size());
-                for (Tenant t : tenants) {
-                    Map<String, Integer> retentions = new HashMap();
-                    Integer numericRetention = t.getRetentionSettings().get(MetricType.NUMERIC);
-                    Integer availabilityRetention = t.getRetentionSettings().get(MetricType.AVAILABILITY);
-                    if (numericRetention != null) {
-                        retentions.put(MetricType.NUMERIC.getText(), numericRetention);
-                    }
-                    if (availabilityRetention != null) {
-                        retentions.put(MetricType.AVAILABILITY.getText(), availabilityRetention);
-                    }
-                    output.add(new TenantParams(t.getId(), retentions));
-                }
-                response.resume(Response.status(Status.OK).entity(output).type(APPLICATION_JSON_TYPE).build());
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to fetch tenants due to an " +
-                    "unexpected error: " + Throwables.getRootCause(t).getMessage());
-                response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors)
-                    .type(APPLICATION_JSON_TYPE).build());
-            }
-        });
-    }
 
     @POST
     @Path("/{tenantId}/metrics/numeric")
@@ -1262,13 +1180,6 @@ public class MetricHandler {
 
         });
 
-    }
-
-    private void handleInsertFailure(Throwable t, AsyncResponse response) {
-        Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to insert data: " +
-            Throwables.getRootCause(t).getMessage());
-        response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors).type(APPLICATION_JSON_TYPE)
-            .build());
     }
 
     private BucketDataPoint createPointInSimpleBucket(String id, long startTime, long bucketsize,
