@@ -44,7 +44,10 @@ public abstract class Metric<T extends MetricData> {
         this.tenantId = tenantId;
         this.id = id;
         this.Metadata = Metadata;
-        this.dataRetention = dataRetention;
+        // If the data_retention column is not set, the driver returns zero instead of null.
+        // We are (at least for now) using null to indicate that the metric does not have
+        // the data retention set.
+        this.dataRetention = dataRetention == 0 ? null : dataRetention;
     }
 
     public abstract MetricType getType();

@@ -126,7 +126,7 @@ public class DataAccessImpl implements DataAccess {
         findTenant = session.prepare("SELECT id, retentions, aggregation_templates FROM tenants WHERE id = ?");
 
         findMetric = session.prepare(
-            "SELECT tenant_id, type, metric, interval, dpart, meta_data " +
+            "SELECT tenant_id, type, metric, interval, dpart, meta_data, data_retention " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
 
@@ -175,27 +175,27 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ? ");
 
         findNumericDataByDateRangeExclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, n_value, aggregates, tags " +
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, n_value, tags " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
 
         findNumericDataWithWriteTimeByDateRangeExclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, n_value, aggregates, tags, WRITETIME(n_value) " +
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, n_value, tags, WRITETIME(n_value) " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
 
         findNumericDataByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, n_value, aggregates, tags " +
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, n_value, tags " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time <= ?");
 
         findNumericDataWithWriteTimeByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, n_value, aggregates, tags, WRITETIME(n_value) " +
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, n_value, tags, WRITETIME(n_value) " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time <= ?");
 
         findAvailabilityByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, availability, tags, WRITETIME(availability) " +
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, availability, tags, WRITETIME(availability) " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time <= ?");
 
@@ -242,10 +242,6 @@ public class DataAccessImpl implements DataAccess {
             "FROM tags " +
             "WHERE tenant_id = ? AND tag = ? AND type = ?");
 
-//        insertAvailability = session.prepare(
-//            "INSERT INTO data (tenant_id, metric, interval, dpart, time, availability) " +
-//            "VALUES (?, ?, ?, ?, ?, ?)");
-
         insertAvailability = session.prepare(
             "UPDATE data " +
             "USING TTL ? " +
@@ -253,12 +249,12 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
         findAvailabilities = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, availability, tags " +
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, availability, tags " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
 
         findAvailabilitiesWithWriteTime = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, availability, tags, WRITETIME(availability) " +
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, availability, tags, WRITETIME(availability) " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
 

@@ -129,7 +129,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
     @Test
     public void createAndFindMetrics() throws Exception {
-        NumericMetric2 m1 = new NumericMetric2("t1", new MetricId("m1"), ImmutableMap.of("a1", "1", "a2", "2"));
+        NumericMetric2 m1 = new NumericMetric2("t1", new MetricId("m1"), ImmutableMap.of("a1", "1", "a2", "2"), 24);
         ListenableFuture<Void> insertFuture = metricsService.createMetric(m1);
         getUninterruptibly(insertFuture);
 
@@ -163,7 +163,8 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         assertMetricIndexMatches("t1", NUMERIC, asList(m1, m3));
         assertMetricIndexMatches("t1", AVAILABILITY, asList(m2));
 
-        assertDataRetentionsIndexMatches("t1", NUMERIC, ImmutableSet.of(new Retention(m3.getId(), 24)));
+        assertDataRetentionsIndexMatches("t1", NUMERIC, ImmutableSet.of(new Retention(m3.getId(), 24),
+            new Retention(m1.getId(), 24)));
     }
 
     @Test
@@ -188,33 +189,32 @@ public class MetricsServiceCassandraTest extends MetricsTest {
     }
 
     @Test
-    public void addAndFetchRawData() throws Exception {
+    public void addAndFetchNumericData() throws Exception {
         DateTime start = now().minusMinutes(30);
         DateTime end = start.plusMinutes(20);
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t1")));
 
-        NumericMetric2 metric = new NumericMetric2("t1", new MetricId("m1"));
-        metric.addData(start.getMillis(), 1.1);
-        metric.addData(start.plusMinutes(2).getMillis(), 2.2);
-        metric.addData(start.plusMinutes(4).getMillis(), 3.3);
-        metric.addData(end.getMillis(), 4.4);
+        NumericMetric2 m1 = new NumericMetric2("t1", new MetricId("m1"));
+        m1.addData(start.getMillis(), 1.1);
+        m1.addData(start.plusMinutes(2).getMillis(), 2.2);
+        m1.addData(start.plusMinutes(4).getMillis(), 3.3);
+        m1.addData(end.getMillis(), 4.4);
 
-        ListenableFuture<Void> insertFuture = metricsService.addNumericData(asList(metric));
+        ListenableFuture<Void> insertFuture = metricsService.addNumericData(asList(m1));
         getUninterruptibly(insertFuture);
 
-        ListenableFuture<List<NumericData>> queryFuture = metricsService.findData(metric, start.getMillis(),
+        ListenableFuture<List<NumericData>> queryFuture = metricsService.findData(m1, start.getMillis(),
             end.getMillis());
         List<NumericData> actual = getUninterruptibly(queryFuture);
         List<NumericData> expected = asList(
-            new NumericData(metric, start.plusMinutes(4).getMillis(), 3.3),
-            new NumericData(metric, start.plusMinutes(2).getMillis(), 2.2),
-            new NumericData(metric, start.getMillis(), 1.1)
+            new NumericData(m1, start.plusMinutes(4).getMillis(), 3.3),
+            new NumericData(m1, start.plusMinutes(2).getMillis(), 2.2),
+            new NumericData(m1, start.getMillis(), 1.1)
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
-
-        assertMetricIndexMatches("t1", NUMERIC, asList(metric));
+        assertMetricIndexMatches("t1", NUMERIC, asList(m1));
     }
 
     @Test
@@ -258,6 +258,14 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         NumericMetric2 m3 = new NumericMetric2("t3", new MetricId("m3"));
         m3.addData(start.getMillis(), 3.03);
         getUninterruptibly(metricsService.addNumericData(asList(m3)));
+
+        NumericMetric2 m4 = new NumericMetric2("t2", new MetricId("m4"), Collections.EMPTY_MAP, 28);
+        getUninterruptibly(metricsService.createMetric(m4));
+
+        verifyTTLDataAccess.setNumericTTL(28);
+        m4.addData(start.plusMinutes(3).getMillis(), 4.1);
+        m4.addData(start.plusMinutes(4).getMillis(), 4.2);
+        getUninterruptibly(metricsService.addNumericData(asList(m4)));
     }
 
     @Test
@@ -397,7 +405,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
     }
 
     @Test
-    public void addDataForMultipleMetrics() throws Exception {
+    public void addNumericDataForMultipleMetrics() throws Exception {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(8);
         String tenantId = "test-tenant";
@@ -414,7 +422,12 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
         NumericMetric2 m3 = new NumericMetric2(tenantId, new MetricId("m3"));
 
-        ListenableFuture<Void> insertFuture = metricsService.addNumericData(asList(m1, m2, m3));
+        NumericMetric2 m4 = new NumericMetric2(tenantId, new MetricId("m4"), Collections.EMPTY_MAP, 24);
+        getUninterruptibly(metricsService.createMetric(m4));
+        m4.addData(start.plusSeconds(30).getMillis(), 55.5);
+        m4.addData(end.getMillis(), 66.6);
+
+        ListenableFuture<Void> insertFuture = metricsService.addNumericData(asList(m1, m2, m3, m4));
         getUninterruptibly(insertFuture);
 
         ListenableFuture<NumericMetric2> queryFuture = metricsService.findNumericData(m1, start.getMillis(),
@@ -430,7 +443,14 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         actual = getUninterruptibly(queryFuture);
         assertNull(actual, "Did not expect to get back results since there is no data for " + m3);
 
-        assertMetricIndexMatches(tenantId, NUMERIC, asList(m1, m2, m3));
+        queryFuture = metricsService.findNumericData(m4, start.getMillis(), end.getMillis());
+        actual = getUninterruptibly(queryFuture);
+        NumericMetric2 expected = new NumericMetric2(tenantId, new MetricId("m4"));
+        expected.setDataRetention(24);
+        expected.addData(start.plusSeconds(30).getMillis(), 55.5);
+        assertMetricEquals(actual, expected);
+
+        assertMetricIndexMatches(tenantId, NUMERIC, asList(m1, m2, m3, m4));
     }
 
     @Test
@@ -467,7 +487,21 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         actual = getUninterruptibly(queryFuture);
         assertNull(actual, "Did not expect to get back results since there is no data for " + m3);
 
-        assertMetricIndexMatches(tenantId, AVAILABILITY, asList(m1, m2, m3));
+        AvailabilityMetric m4 = new AvailabilityMetric(tenantId, new MetricId("m4"), Collections.EMPTY_MAP, 24);
+        getUninterruptibly(metricsService.createMetric(m4));
+        m4.addData(new Availability(start.plusMinutes(2).getMillis(), UP));
+        m4.addData(new Availability(end.plusMinutes(2).getMillis(), UP));
+
+        insertFuture = metricsService.addAvailabilityData(asList(m4));
+        getUninterruptibly(insertFuture);
+
+        queryFuture = metricsService.findAvailabilityData(m4, start.getMillis(), end.getMillis());
+        actual = getUninterruptibly(queryFuture);
+        AvailabilityMetric expected = new AvailabilityMetric(tenantId, m4.getId(), Collections.EMPTY_MAP, 24);
+        expected.addData(new Availability(start.plusMinutes(2).getMillis(), UP));
+        assertMetricEquals(actual, expected);
+
+        assertMetricIndexMatches(tenantId, AVAILABILITY, asList(m1, m2, m3, m4));
     }
 
     @Test

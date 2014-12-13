@@ -19,6 +19,13 @@ import org.rhq.metrics.core.NumericMetric2;
  */
 public class MetricsIndexMapper implements Function<ResultSet, List<Metric>> {
 
+    private enum ColumnIndex {
+        METRIC_NAME,
+        INTERVAL,
+        META_DATA,
+        DATA_RETENTION
+    }
+
     private String tenantId;
 
     private MetricType type;
@@ -43,13 +50,10 @@ public class MetricsIndexMapper implements Function<ResultSet, List<Metric>> {
     private List<Metric> getNumericMetrics(ResultSet resultSet) {
         List<Metric> metrics = new ArrayList<>();
         for (Row row : resultSet) {
-            if (row.isNull(3)) {
-                metrics.add(new NumericMetric2(tenantId, new MetricId(row.getString(0),
-                    Interval.parse(row.getString(1))), row.getMap(2, String.class, String.class)));
-            } else {
-                metrics.add(new NumericMetric2(tenantId, new MetricId(row.getString(0),
-                    Interval.parse(row.getString(1))), row.getMap(2, String.class, String.class), row.getInt(3)));
-            }
+            metrics.add(new NumericMetric2(tenantId, new MetricId(row.getString(ColumnIndex.METRIC_NAME.ordinal()),
+                Interval.parse(row.getString(ColumnIndex.INTERVAL.ordinal()))), row.getMap(
+                ColumnIndex.META_DATA.ordinal(), String.class, String.class), row.getInt(
+                ColumnIndex.DATA_RETENTION.ordinal())));
         }
         return metrics;
     }
@@ -57,13 +61,10 @@ public class MetricsIndexMapper implements Function<ResultSet, List<Metric>> {
     private List<Metric> getAvailabilityMetrics(ResultSet resultSet) {
         List<Metric> metrics = new ArrayList<>();
         for (Row row : resultSet) {
-            if (row.isNull(3)) {
-                metrics.add(new AvailabilityMetric(tenantId, new MetricId(row.getString(0),
-                    Interval.parse(row.getString(1))), row.getMap(2, String.class, String.class)));
-            } else {
-                metrics.add(new AvailabilityMetric(tenantId, new MetricId(row.getString(0),
-                    Interval.parse(row.getString(1))), row.getMap(2, String.class, String.class), row.getInt(3)));
-            }
+            metrics.add(new AvailabilityMetric(tenantId, new MetricId(row.getString(ColumnIndex.METRIC_NAME.ordinal()),
+                Interval.parse(row.getString(ColumnIndex.INTERVAL.ordinal()))), row.getMap(
+                ColumnIndex.META_DATA.ordinal(), String.class, String.class), row.getInt(
+                ColumnIndex.DATA_RETENTION.ordinal())));
         }
         return metrics;
     }

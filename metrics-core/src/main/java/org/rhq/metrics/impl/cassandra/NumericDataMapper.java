@@ -21,6 +21,19 @@ import org.rhq.metrics.core.Tag;
  */
 public class NumericDataMapper implements Function<ResultSet, List<NumericData>> {
 
+    private enum ColumnIndex {
+        TENANT_ID,
+        METRIC_NAME,
+        INTERVAL,
+        DPART,
+        TIME,
+        META_DATA,
+        DATA_RETENTION,
+        VALUE,
+        TAGS,
+        WRITE_TIME
+    }
+
     private interface RowConverter {
         NumericData getData(Row row);
     }
@@ -28,14 +41,16 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
     private final RowConverter DEFAULT_CONVERTER = new RowConverter() {
         @Override
         public NumericData getData(Row row) {
-            return new NumericData(row.getUUID(4), row.getDouble(6), getTags(row));
+            return new NumericData(row.getUUID(ColumnIndex.TIME.ordinal()), row.getDouble(ColumnIndex.VALUE.ordinal()),
+                getTags(row));
         }
     };
 
     private final RowConverter WRITE_TIME_CONVERTER = new RowConverter() {
         @Override
         public NumericData getData(Row row) {
-            return new NumericData(row.getUUID(4), row.getDouble(6), getTags(row), row.getLong(9) / 1000);
+            return new NumericData(row.getUUID(ColumnIndex.TIME.ordinal()), row.getDouble(ColumnIndex.VALUE.ordinal()),
+                getTags(row), row.getLong(ColumnIndex.WRITE_TIME.ordinal()) / 1000);
         }
     };
 
@@ -70,9 +85,10 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
     }
 
     private NumericMetric2 getMetric(Row row) {
-        NumericMetric2 metric = new NumericMetric2(row.getString(0), getId(row), row.getMap(5, String.class,
-            String.class));
-        metric.setDpart(row.getLong(3));
+        NumericMetric2 metric = new NumericMetric2(row.getString(ColumnIndex.TENANT_ID.ordinal()), getId(row),
+            row.getMap(ColumnIndex.META_DATA.ordinal(), String.class, String.class),
+            row.getInt(ColumnIndex.DATA_RETENTION.ordinal()));
+        metric.setDpart(row.getLong(ColumnIndex.DPART.ordinal()));
 
         return metric;
     }
