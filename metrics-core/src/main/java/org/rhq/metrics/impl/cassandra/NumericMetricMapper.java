@@ -19,6 +19,18 @@ import org.rhq.metrics.core.Tag;
  */
 public class NumericMetricMapper implements Function<ResultSet, NumericMetric2> {
 
+    private enum ColumnIndex {
+        TENANT_ID,
+        METRIC_NAME,
+        INTERVAL,
+        DPART,
+        TIME,
+        META_DATA,
+        DATA_RETENTION,
+        VALUE,
+        TAGS
+    }
+
     @Override
     public NumericMetric2 apply(ResultSet resultSet) {
         if (resultSet.isExhausted()) {
@@ -27,25 +39,33 @@ public class NumericMetricMapper implements Function<ResultSet, NumericMetric2> 
 
         Row firstRow = resultSet.one();
         NumericMetric2 metric = getMetric(firstRow);
-        metric.addData(firstRow.getUUID(4), firstRow.getDouble(6), getTags(firstRow));
+        metric.addData(firstRow.getUUID(ColumnIndex.TIME.ordinal()), firstRow.getDouble(ColumnIndex.VALUE.ordinal()),
+            getTags(firstRow));
 
         for (Row row : resultSet) {
-            metric.addData(row.getUUID(4), row.getDouble(6), getTags(row));
+            metric.addData(row.getUUID(ColumnIndex.TIME.ordinal()), row.getDouble(ColumnIndex.VALUE.ordinal()),
+                getTags(row));
         }
 
         return metric;
     }
 
     private NumericMetric2 getMetric(Row row) {
-        return new NumericMetric2(row.getString(0), getId(row), row.getMap(5, String.class, String.class));
+        NumericMetric2 metric = new NumericMetric2(row.getString(ColumnIndex.TENANT_ID.ordinal()), getId(row),
+            row.getMap(ColumnIndex.META_DATA.ordinal(), String.class, String.class),
+            row.getInt(ColumnIndex.DATA_RETENTION.ordinal()));
+        metric.setDpart(row.getLong(ColumnIndex.DPART.ordinal()));
+
+        return metric;
     }
 
     private MetricId getId(Row row) {
-        return new MetricId(row.getString(1), Interval.parse(row.getString(2)));
+        return new MetricId(row.getString(ColumnIndex.METRIC_NAME.ordinal()), Interval.parse(row.getString(
+            ColumnIndex.INTERVAL.ordinal())));
     }
 
     private Set<Tag> getTags(Row row) {
-        Map<String, String> map = row.getMap(8, String.class, String.class);
+        Map<String, String> map = row.getMap(ColumnIndex.TAGS.ordinal(), String.class, String.class);
         Set<Tag> tags;
         if (map.isEmpty()) {
             tags = Collections.emptySet();

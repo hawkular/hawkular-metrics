@@ -17,6 +17,10 @@ public class NumericMetric2 extends Metric<NumericData> {
         super(tenantId, id, metadata);
     }
 
+    public NumericMetric2(String tenantId, MetricId id, Map<String, String> metadata, Integer dataRetention) {
+        super(tenantId, id, metadata, dataRetention);
+    }
+
     @Override
     public MetricType getType() {
         return MetricType.NUMERIC;

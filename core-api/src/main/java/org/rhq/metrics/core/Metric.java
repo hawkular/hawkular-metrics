@@ -27,6 +27,8 @@ public abstract class Metric<T extends MetricData> {
 
     private List<T> data = new ArrayList<>();
 
+    private Integer dataRetention;
+
     protected Metric(String tenantId, MetricId id) {
         this.tenantId = tenantId;
         this.id = id;
@@ -36,6 +38,16 @@ public abstract class Metric<T extends MetricData> {
         this.tenantId = tenantId;
         this.id = id;
         this.Metadata = Metadata;
+    }
+
+    protected Metric(String tenantId, MetricId id, Map<String, String> Metadata, Integer dataRetention) {
+        this.tenantId = tenantId;
+        this.id = id;
+        this.Metadata = Metadata;
+        // If the data_retention column is not set, the driver returns zero instead of null.
+        // We are (at least for now) using null to indicate that the metric does not have
+        // the data retention set.
+        this.dataRetention = dataRetention == 0 ? null : dataRetention;
     }
 
     public abstract MetricType getType();
@@ -96,6 +108,14 @@ public abstract class Metric<T extends MetricData> {
         d.setMetric(this);
     }
 
+    public Integer getDataRetention() {
+        return dataRetention;
+    }
+
+    public void setDataRetention(Integer dataRetention) {
+        this.dataRetention = dataRetention;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -105,6 +125,8 @@ public abstract class Metric<T extends MetricData> {
 
         if (dpart != metric.dpart) return false;
         if (Metadata != null ? !Metadata.equals(metric.Metadata) : metric.Metadata != null) return false;
+        if (dataRetention != null ? !dataRetention.equals(metric.dataRetention) : metric.dataRetention != null)
+            return false;
         if (!id.equals(metric.id)) return false;
         if (!tenantId.equals(metric.tenantId)) return false;
 
@@ -117,6 +139,7 @@ public abstract class Metric<T extends MetricData> {
         result = 31 * result + id.hashCode();
         result = 31 * result + (Metadata != null ? Metadata.hashCode() : 0);
         result = 31 * result + (int) (dpart ^ (dpart >>> 32));
+        result = 31 * result + (dataRetention != null ? dataRetention.hashCode() : 0);
         return result;
     }
 
@@ -127,6 +150,7 @@ public abstract class Metric<T extends MetricData> {
             .add("id", id)
             .add("metadata", Metadata)
             .add("dpart", dpart)
+            .add("dataRetention", dataRetention)
             .toString();
     }
 }

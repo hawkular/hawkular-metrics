@@ -17,6 +17,7 @@ import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.core.Retention;
 import org.rhq.metrics.core.Tenant;
 
 /**
@@ -29,7 +30,7 @@ public interface DataAccess {
 
     ResultSetFuture findTenant(String id);
 
-    ResultSetFuture insertMetric(Metric metric);
+    ResultSetFuture insertMetricInMetricsIndex(Metric metric);
 
     ResultSetFuture findMetric(String tenantId, MetricType type, MetricId id, long dpart);
 
@@ -79,4 +80,10 @@ public interface DataAccess {
     ResultSetFuture updateCounter(Counter counter);
 
     ResultSetFuture updateCounters(Collection<Counter> counters);
+
+    ResultSetFuture findDataRetentions(String tenantId, MetricType type);
+
+    ResultSetFuture updateRetentionsIndex(String tenantId, MetricType type, Set<Retention> retentions);
+
+    ResultSetFuture updateRetentionsIndex(Metric metric);
 }

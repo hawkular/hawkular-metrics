@@ -84,7 +84,7 @@ public class TenantsHandler {
     @GET
     @Consumes(APPLICATION_JSON)
     public void findTenants(@Suspended AsyncResponse response) {
-        ListenableFuture<Collection<Tenant>> tenantsFuture = metricsService.getTenants();
+        ListenableFuture<List<Tenant>> tenantsFuture = metricsService.getTenants();
         Futures.addCallback(tenantsFuture, new FutureCallback<Collection<Tenant>>() {
             @Override
             public void onSuccess(Collection<Tenant> tenants) {

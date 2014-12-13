@@ -20,6 +20,18 @@ import org.rhq.metrics.core.Tag;
  */
 public class AvailabilityMetricMapper implements Function<ResultSet, AvailabilityMetric> {
 
+    private enum ColumnIndex {
+        TENANT_ID,
+        METRIC_NAME,
+        INTERVAL,
+        DPART,
+        TIME,
+        META_DATA,
+        DATA_RETENTION,
+        AVAILABILITY,
+        TAGS
+    }
+
     @Override
     public AvailabilityMetric apply(ResultSet resultSet) {
         if (resultSet.isExhausted()) {
@@ -27,29 +39,33 @@ public class AvailabilityMetricMapper implements Function<ResultSet, Availabilit
         }
         Row firstRow = resultSet.one();
         AvailabilityMetric metric = getMetric(firstRow);
-        metric.addData(new Availability(metric, firstRow.getUUID(4), firstRow.getBytes(6), getTags(firstRow)));
+        metric.addData(new Availability(metric, firstRow.getUUID(ColumnIndex.TIME.ordinal()), firstRow.getBytes(
+            ColumnIndex.AVAILABILITY.ordinal()), getTags(firstRow)));
 
         for (Row row : resultSet) {
-            metric.addData(new Availability(metric, row.getUUID(4), row.getBytes(6), getTags(row)));
+            metric.addData(new Availability(metric, row.getUUID(ColumnIndex.TIME.ordinal()), row.getBytes(
+                ColumnIndex.AVAILABILITY.ordinal()), getTags(row)));
         }
 
         return metric;
     }
 
     private AvailabilityMetric getMetric(Row row) {
-        AvailabilityMetric metric = new AvailabilityMetric(row.getString(0), getId(row),
-            row.getMap(5, String.class, String.class));
-        metric.setDpart(row.getLong(3));
+        AvailabilityMetric metric = new AvailabilityMetric(row.getString(ColumnIndex.TENANT_ID.ordinal()), getId(row),
+            row.getMap(ColumnIndex.META_DATA.ordinal(), String.class, String.class), row.getInt(
+            ColumnIndex.DATA_RETENTION.ordinal()));
+        metric.setDpart(row.getLong(ColumnIndex.DPART.ordinal()));
 
         return metric;
     }
 
     private MetricId getId(Row row) {
-        return new MetricId(row.getString(1), Interval.parse(row.getString(2)));
+        return new MetricId(row.getString(ColumnIndex.METRIC_NAME.ordinal()), Interval.parse(row.getString(
+            ColumnIndex.INTERVAL.ordinal())));
     }
 
     private Set<Tag> getTags(Row row) {
-        Map<String, String> map = row.getMap(7, String.class, String.class);
+        Map<String, String> map = row.getMap(ColumnIndex.TAGS.ordinal(), String.class, String.class);
         Set<Tag> tags;
         if (map.isEmpty()) {
             tags = Collections.emptySet();
