@@ -41,9 +41,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.wordnik.swagger.annotations.Api;
 
-import gnu.trove.map.TLongObjectMap;
-import gnu.trove.map.hash.TLongObjectHashMap;
-
 import org.rhq.metrics.core.Availability;
 import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
@@ -56,6 +53,9 @@ import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.core.Tag;
+
+import gnu.trove.map.TLongObjectMap;
+import gnu.trove.map.hash.TLongObjectHashMap;
 
 /**
  * Interface to deal with metrics
@@ -74,7 +74,8 @@ public class MetricHandler {
     @Consumes(APPLICATION_JSON)
     public void createNumericMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         MetricParams params) {
-        NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(params.getName()), params.getMetadata());
+        NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(params.getName()), params.getMetadata(),
+            params.getDataRetention());
         ListenableFuture<Void> future = metricsService.createMetric(metric);
         Futures.addCallback(future, new MetricCreatedCallback(asyncResponse, params));
     }
@@ -85,7 +86,7 @@ public class MetricHandler {
     public void createAvailabilityMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         MetricParams params) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(params.getName()),
-            params.getMetadata());
+            params.getMetadata(), params.getDataRetention());
         ListenableFuture<Void> future = metricsService.createMetric(metric);
         Futures.addCallback(future, new MetricCreatedCallback(asyncResponse, params));
     }
@@ -190,7 +191,7 @@ public class MetricHandler {
                 response.resume(Response.status(Status.NO_CONTENT).type(APPLICATION_JSON_TYPE).build());
             } else {
                 response.resume(Response.ok(new MetricOut(metric.getTenantId(), metric.getId().getName(),
-                    metric.getMetadata())).type(APPLICATION_JSON_TYPE).build());
+                    metric.getMetadata(), metric.getDataRetention())).type(APPLICATION_JSON_TYPE).build());
             }
         }
 
@@ -428,7 +429,7 @@ public class MetricHandler {
         @Override
         public MetricOut doApply(NumericMetric2 metric) {
             MetricOut output = new MetricOut(metric.getTenantId(), metric.getId().getName(),
-                metric.getMetadata());
+                metric.getMetadata(), metric.getDataRetention());
             List<DataPointOut> dataPoints = new ArrayList<>();
             for (NumericData d : metric.getData()) {
                 dataPoints.add(new DataPointOut(d.getTimestamp(), d.getValue(), getTagNames(d)));
@@ -600,7 +601,7 @@ public class MetricHandler {
                     asyncResponse.resume(Response.ok().status(Status.NO_CONTENT).build());
                 } else {
                     MetricOut output = new MetricOut(metric.getTenantId(), metric.getId().getName(),
-                        metric.getMetadata());
+                        metric.getMetadata(), metric.getDataRetention());
                     List<DataPointOut> dataPoints = new ArrayList<>(metric.getData().size());
                     for (Availability a : metric.getData()) {
                         dataPoints.add(new DataPointOut(a.getTimestamp(), a.getType().getText(), getTagNames(a)));
@@ -879,7 +880,8 @@ public class MetricHandler {
                 } else {
                     List<MetricOut> output = new ArrayList<>();
                     for (Metric metric : metrics) {
-                        output.add(new MetricOut(tenantId, metric.getId().getName(), metric.getMetadata()));
+                        output.add(new MetricOut(tenantId, metric.getId().getName(), metric.getMetadata(),
+                            metric.getDataRetention()));
                     }
                     response.resume(Response.status(Status.OK).entity(output).type(APPLICATION_JSON_TYPE).build());
                 }

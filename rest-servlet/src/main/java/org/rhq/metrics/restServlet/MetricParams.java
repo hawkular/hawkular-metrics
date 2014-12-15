@@ -12,6 +12,8 @@ public class MetricParams {
 
     private Map<String, String> metadata = new HashMap<>();
 
+    private Integer dataRetention;
+
     public String getName() {
         return name;
     }
@@ -26,5 +28,13 @@ public class MetricParams {
 
     public void setMetadata(Map<String, String> metadata) {
         this.metadata = metadata;
+    }
+
+    public Integer getDataRetention() {
+        return dataRetention;
+    }
+
+    public void setDataRetention(Integer dataRetention) {
+        this.dataRetention = dataRetention;
     }
 }
