@@ -6,22 +6,41 @@ module Services {
 
     export class MetricDataService {
 
-        public static  $inject = ['$q', '$rootScope', '$http', '$localStorage', 'BASE_URL' ];
+        public static  $inject = ['$q', '$rootScope', '$http', '$localStorage', 'BASE_URL', 'TENANT_ID'];
 
-        constructor(private $q:ng.IQService, private $rootScope:ng.IRootScopeService, private $http:ng.IHttpService,  public $localStorage:any, private BASE_URL:string) {
+        constructor(private $q:ng.IQService, private $rootScope:ng.IRootScopeService, private $http:ng.IHttpService,  public $localStorage:any, private BASE_URL:string, private TENANT_ID:string) {
 
         }
 
-        private makeBaseUrl():string {
-            var baseUrl = 'http://' + this.$rootScope.$storage.server + ':' + this.$rootScope.$storage.port + this.BASE_URL;
+        getBaseUrl():string {
+            var baseUrl = 'http://' + this.$rootScope.$storage.server.replace(/['"]+/g, '') + ':' + this.$rootScope.$storage.port + this.BASE_URL + '/'+this.TENANT_ID;
             return baseUrl;
         }
 
+        getAllMetrics() {
+            console.info('-- Retrieving all metrics');
+            var base = this.getBaseUrl()+'/metrics/?type=num',
+                deferred = this.$q.defer();
+
+
+            this.$http.get(base).success((data) => {
+                deferred.resolve(data);
+            }).error((reason, status) => {
+                console.error('Error Retrieving all metrics :' + status + ", " + reason);
+                toastr.warning('No Metrics retrieved.');
+                deferred.reject(status + " - " + reason);
+            });
+
+            return deferred.promise;
+        }
+
+
+
         getMetricsForTimeRange(id:string, startDate:Date, endDate:Date, buckets:number):any {
-            console.info("-- Retrieving metrics data for id: " + id);
-            console.info("-- Date Range: " + startDate + " - " + endDate);
+            console.info('-- Retrieving metrics data for id: ' + id);
+            console.info('-- Date Range: ' + startDate + ' - ' + endDate);
             var numBuckets = buckets || 60,
-                base = this.makeBaseUrl(),
+                base = this.getBaseUrl(),
                 deferred = this.$q.defer(),
                 searchParams =
                 {
@@ -37,9 +56,9 @@ module Services {
                 deferred.reject("Start date was after end date");
             }
 
-            this.$http.get(base + '/' + id, searchParams).success(function (data) {
+            this.$http.get(base + '/metrics/numeric/' + id+'/data', searchParams).success((data) => {
                 deferred.resolve(data);
-            }).error(function (reason, status) {
+            }).error((reason, status) => {
                 console.error('Error Loading Chart Data:' + status + ", " + reason);
                 deferred.reject(status + " - " + reason);
             });
@@ -48,7 +67,7 @@ module Services {
         }
 
         insertSinglePayload(id, jsonPayload):any {
-            var url = this.makeBaseUrl(),
+            var url = this.getBaseUrl(),
                 deferred = this.$q.defer();
             this.$http.post(url + '/' + id, jsonPayload
             ).success(function () {
@@ -61,7 +80,7 @@ module Services {
         }
 
         insertMultiplePayload(jsonPayload):any {
-            var url = this.makeBaseUrl(),
+            var url = this.getBaseUrl(),
                 deferred = this.$q.defer();
             this.$http.post(url + '/', jsonPayload
             ).success(function () {
