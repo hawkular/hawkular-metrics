@@ -69,7 +69,7 @@ import org.rhq.metrics.restServlet.influx.query.validation.QueryValidator;
  * This is very rough at the moment (to say it politely)
  * @author Heiko W. Rupp
  */
-@Path("/influx")
+@Path("/tenants/{tenantId}/influx")
 @Produces("application/json")
 @ApplicationScoped
 public class InfluxHandler {
@@ -91,7 +91,7 @@ public class InfluxHandler {
     private ManagedExecutorService executor;
 
     @GET
-    @Path("/{tenantId}/series")
+    @Path("/series")
     public void series(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
                        @QueryParam("q") String queryString) {
 
