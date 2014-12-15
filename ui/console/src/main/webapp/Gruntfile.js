@@ -17,7 +17,6 @@ module.exports = function (grunt) {
             app: './',
             dist: '../../../target/dist'
         },
-        // http://www.npmjs.org/package/grunt-typescript
         typescript: {
             base: {
                 src: [ 'vendor/**/*.d.ts', 'scripts/**/*.ts' ],
