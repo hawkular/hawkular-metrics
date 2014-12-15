@@ -385,7 +385,8 @@ public class MetricsServiceCassandra implements MetricsService {
                 if (type == MetricType.NUMERIC) {
                     return new NumericMetric2(tenantId, id, row.getMap(5, String.class, String.class), row.getInt(6));
                 } else {
-                    return new AvailabilityMetric(tenantId, id, row.getMap(5, String.class, String.class));
+                    return new AvailabilityMetric(tenantId, id, row.getMap(5, String.class, String.class),
+                        row.getInt(6));
                 }
             }
         }, metricsTasks);

@@ -23,6 +23,9 @@ public class MetricOut {
     @JsonSerialize(include = JsonSerialize.Inclusion.NON_EMPTY)
     private List<DataPointOut> data = new ArrayList<>();
 
+    @JsonSerialize(include = JsonSerialize.Inclusion.NON_EMPTY)
+    private Integer dataRetention;
+
     public MetricOut() {
     }
 
@@ -30,6 +33,13 @@ public class MetricOut {
         this.tenantId = tenantId;
         this.name = name;
         this.metadata = metadata;
+    }
+
+    public MetricOut(String tenantId, String name, Map<String, String> metadata, Integer dataRetention) {
+        this.tenantId = tenantId;
+        this.name = name;
+        this.metadata = metadata;
+        this.dataRetention = dataRetention;
     }
 
     public String getTenantId() {
@@ -62,5 +72,13 @@ public class MetricOut {
 
     public void setData(List<DataPointOut> data) {
         this.data = data;
+    }
+
+    public Integer getDataRetention() {
+        return dataRetention;
+    }
+
+    public void setDataRetention(Integer dataRetention) {
+        this.dataRetention = dataRetention;
     }
 }
