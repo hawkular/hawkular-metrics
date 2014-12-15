@@ -66,14 +66,14 @@ import org.rhq.metrics.restServlet.influx.query.validation.QueryValidator;
 
 /**
  * Some support for InfluxDB clients like Grafana.
- * This is very rough at the moment (to say it politely)
+ *
  * @author Heiko W. Rupp
  */
-@Path("/tenants/{tenantId}/influx")
+@Path("/tenants/{tenantId}/influx/series")
 @Produces("application/json")
 @ApplicationScoped
-public class InfluxHandler {
-    private static final Logger LOG = LoggerFactory.getLogger(InfluxHandler.class);
+public class InfluxSeriesHandler {
+    private static final Logger LOG = LoggerFactory.getLogger(InfluxSeriesHandler.class);
 
     @Inject
     private MetricsService metricsService;
@@ -91,7 +91,6 @@ public class InfluxHandler {
     private ManagedExecutorService executor;
 
     @GET
-    @Path("/series")
     public void series(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
                        @QueryParam("q") String queryString) {
 
@@ -154,7 +153,7 @@ public class InfluxHandler {
             public void onFailure(Throwable t) {
                 asyncResponse.resume(t);
             }
-        });
+        }, executor);
     }
 
     private void select(AsyncResponse asyncResponse, String tenantId, SelectQueryContext selectQueryContext) {
@@ -256,7 +255,7 @@ public class InfluxHandler {
             public void onFailure(Throwable t) {
                 asyncResponse.resume(t);
             }
-        });
+        }, executor);
     }
 
     private boolean shouldApplyMapping(SelectQueryDefinitions queryDefinitions) {
