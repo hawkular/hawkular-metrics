@@ -1,17 +1,20 @@
 #!/bin/bash
 
-# Usage start.sh [mem|cass] [bind_addr]
+# Usage start.sh [mem|cass|em_cass] [bind_addr]
 
 # set -x
 
-BACKEND=mem
-# uncomment the next line if you want to use an already running Cassandra server for the backend.
+BACKEND=em_cass
+
+# uncomment the next lines if you want to use an already running Cassandra server for the backend or
+# a limited in-memory data store
+# BACKEND=mem
 # BACKEND=cass
 
 # By default bind user ports to all interfaces
 BIND_ADDR=0.0.0.0
 
-if [ x$1 == "xcass" -o x$1 == "xmem" ]
+if [ x$1 == "xcass" -o x$1 == "xmem" -o x$1 == "xem_cass" ]
 then
     BACKEND=$1
     shift

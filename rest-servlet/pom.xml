@@ -140,7 +140,7 @@
           <groupId>org.wildfly.plugins</groupId>
           <artifactId>wildfly-maven-plugin</artifactId>
           <configuration>
-            <jvmArgs>-Drhq-metrics.backend=cass -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</jvmArgs>
+            <jvmArgs>-Drhq-metrics.backend=em_cass -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</jvmArgs>
           </configuration>
         </plugin>
 

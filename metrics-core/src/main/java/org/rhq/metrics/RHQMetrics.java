@@ -1,3 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.rhq.metrics;
 
 import java.util.HashMap;
@@ -5,6 +23,7 @@ import java.util.Map;
 
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.impl.cassandra.MetricsServiceCassandra;
+import org.rhq.metrics.impl.embedded.MetricsServiceEmbeddedCassandra;
 import org.rhq.metrics.impl.memory.MemoryMetricsService;
 
 /**
@@ -14,9 +33,13 @@ public class RHQMetrics {
 
     public static class Builder {
 
-        private boolean usingCassandra;
+        private enum DataStoreType {
+            Cassandra, EmbeddedCassandra, InMemory
+        };
 
-        private Map<String, String> options;
+        private DataStoreType dataStoreType = DataStoreType.EmbeddedCassandra;
+
+        private final Map<String, String> options;
 
         public Builder() {
             String cassandraCqlPortString = System.getenv("CASSANDRA_CQL_PORT");
@@ -41,12 +64,17 @@ public class RHQMetrics {
         }
 
         public Builder withInMemoryDataStore() {
-            usingCassandra = false;
+            dataStoreType = DataStoreType.InMemory;
+            return this;
+        }
+
+        public Builder withEmbeddedCassandraDataStore() {
+            dataStoreType = DataStoreType.EmbeddedCassandra;
             return this;
         }
 
         public Builder withCassandraDataStore() {
-            usingCassandra = true;
+            dataStoreType = DataStoreType.Cassandra;
             return this;
         }
 
@@ -75,11 +103,14 @@ public class RHQMetrics {
         public MetricsService build() {
             MetricsService metricsService;
 
-            if (usingCassandra) {
+            if (DataStoreType.Cassandra.equals(dataStoreType)) {
                 metricsService = new MetricsServiceCassandra();
-            } else {
+            } else if (DataStoreType.InMemory.equals(dataStoreType)) {
                 metricsService = new MemoryMetricsService();
+            } else {
+                metricsService = new MetricsServiceEmbeddedCassandra();
             }
+
             metricsService.startUp(options);
 
             return metricsService;
@@ -87,7 +118,7 @@ public class RHQMetrics {
 
     }
 
-    private MetricsService metricsService;
+    private final MetricsService metricsService;
 
     private RHQMetrics(MetricsService metricsService) {
         this.metricsService = metricsService;
