@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jboss-web>
-      <context-root>/rhq-metrics</context-root>
-      <!--<security-domain>RHQRESTSecurityDomain</security-domain>  TODO -->
+  <context-root>/rhq-metrics</context-root>
+  <!--<security-domain>RHQRESTSecurityDomain</security-domain>  TODO -->
 
-      <!-- see https://community.jboss.org/wiki/JBossAS7SecurityAuditing for the next tag -->
-      <!--<disable-audit>false</disable-audit>-->
+  <!-- see https://community.jboss.org/wiki/JBossAS7SecurityAuditing for the next tag -->
+  <!--<disable-audit>false</disable-audit>-->
 </jboss-web>

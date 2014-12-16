@@ -1,123 +1,123 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <artifactId>rhq-metrics-parent</artifactId>
-        <groupId>org.rhq.metrics</groupId>
-        <version>0.2.6-SNAPSHOT</version>
-        <relativePath>../../pom.xml</relativePath>
-    </parent>
-    <artifactId>explorer</artifactId>
-    <packaging>war</packaging>
+  <parent>
+    <artifactId>rhq-metrics-parent</artifactId>
+    <groupId>org.rhq.metrics</groupId>
+    <version>0.2.6-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+  <artifactId>explorer</artifactId>
+  <packaging>war</packaging>
 
-    <name>metrics-explorer</name>
+  <name>metrics-explorer</name>
 
-    <properties>
-        <endorsed.dir>${project.build.directory}/endorsed</endorsed.dir>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
+  <properties>
+    <endorsed.dir>${project.build.directory}/endorsed</endorsed.dir>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
 
-    <build>
-        <plugins>
+  <build>
+    <plugins>
 
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-checkstyle-plugin</artifactId>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <configuration>
+          <excludes>
+            src/main/webapp/bower_components/**/*,
+            src/main/webapp/node_modules/**/*,
+            src/main/webapp/node/**/*,
+          </excludes>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-war-plugin</artifactId>
+        <configuration>
+          <failOnMissingWebXml>false</failOnMissingWebXml>
+          <warSourceDirectory>${project.build.directory}/dist</warSourceDirectory>
+          <packagingExcludes>WEB-INF/classes</packagingExcludes>
+        </configuration>
+      </plugin>
+
+      <!-- Download node.js and related modules to install 3rd party frontend libraries -->
+      <plugin>
+        <groupId>com.github.eirslett</groupId>
+        <artifactId>frontend-maven-plugin</artifactId>
+        <version>0.0.16</version>
+
+        <configuration>
+          <workingDirectory>${basedir}/src/main/webapp</workingDirectory>
+        </configuration>
+
+        <executions>
+          <execution>
+            <id>install node and npm</id>
+            <goals>
+              <goal>install-node-and-npm</goal>
+            </goals>
+            <phase>generate-sources</phase>
             <configuration>
-              <excludes>
-                src/main/webapp/bower_components/**/*,
-                src/main/webapp/node_modules/**/*,
-                src/main/webapp/node/**/*,
-              </excludes>
+              <nodeVersion>v0.10.33</nodeVersion>
+              <npmVersion>1.4.28</npmVersion>
+            </configuration>
+          </execution>
+
+          <execution>
+            <id>npm install</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <arguments>install</arguments>
+            </configuration>
+          </execution>
+
+          <execution>
+            <id>grunt build</id>
+            <goals>
+              <goal>grunt</goal>
+            </goals>
+            <phase>generate-sources</phase>
+
+            <configuration>
+              <arguments>build</arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>cleanAll</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-clean-plugin</artifactId>
+            <version>2.6.1</version>
+            <configuration>
+              <filesets>
+                <fileset>
+                  <directory>src/main/webapp/node_modules</directory>
+                </fileset>
+                <fileset>
+                  <directory>src/main/webapp/bower_components</directory>
+                </fileset>
+                <fileset>
+                  <directory>src/main/webapp/node</directory>
+                </fileset>
+              </filesets>
             </configuration>
           </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-war-plugin</artifactId>
-                <configuration>
-                    <failOnMissingWebXml>false</failOnMissingWebXml>
-                    <warSourceDirectory>${project.build.directory}/dist</warSourceDirectory>
-                    <packagingExcludes>WEB-INF/classes</packagingExcludes>
-                </configuration>
-            </plugin>
-
-            <!-- Download node.js and related modules to install 3rd party frontend libraries -->
-            <plugin>
-                <groupId>com.github.eirslett</groupId>
-                <artifactId>frontend-maven-plugin</artifactId>
-                <version>0.0.16</version>
-
-                <configuration>
-                    <workingDirectory>${basedir}/src/main/webapp</workingDirectory>
-                </configuration>
-
-                <executions>
-                    <execution>
-                        <id>install node and npm</id>
-                        <goals>
-                            <goal>install-node-and-npm</goal>
-                        </goals>
-                        <phase>generate-sources</phase>
-                        <configuration>
-                            <nodeVersion>v0.10.33</nodeVersion>
-                            <npmVersion>1.4.28</npmVersion>
-                        </configuration>
-                    </execution>
-
-                    <execution>
-                        <id>npm install</id>
-                        <goals>
-                            <goal>npm</goal>
-                        </goals>
-                        <phase>generate-sources</phase>
-                        <configuration>
-                            <arguments>install</arguments>
-                        </configuration>
-                    </execution>
-
-                    <execution>
-                        <id>grunt build</id>
-                        <goals>
-                            <goal>grunt</goal>
-                        </goals>
-                        <phase>generate-sources</phase>
-
-                        <configuration>
-                            <arguments>build</arguments>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
-    </build>
-
-    <profiles>
-      <profile>
-        <id>cleanAll</id>
-        <build>
-          <plugins>
-            <plugin>
-              <artifactId>maven-clean-plugin</artifactId>
-              <version>2.6.1</version>
-              <configuration>
-                <filesets>
-                  <fileset>
-                    <directory>src/main/webapp/node_modules</directory>
-                  </fileset>
-                  <fileset>
-                    <directory>src/main/webapp/bower_components</directory>
-                  </fileset>
-                  <fileset>
-                    <directory>src/main/webapp/node</directory>
-                  </fileset>
-                </filesets>
-              </configuration>
-            </plugin>
-          </plugins>
-        </build>
-      </profile>
-    </profiles>
+      </build>
+    </profile>
+  </profiles>
 </project>
