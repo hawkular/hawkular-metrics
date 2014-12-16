@@ -142,12 +142,15 @@ public class LegacyMetricsHandler {
     @Produces({ APPLICATION_JSON, APPLICATION_XML, APPLICATION_VND_RHQ_WRAPPED_JSON })
     public void getDataForId(@Suspended AsyncResponse asyncResponse,
         @ApiParam("Id of the metric to return data for") @PathParam("id") String id,
-        @ApiParam(value = "Start time in millis since epoch", defaultValue = "Now - 8h") @QueryParam("start") Long start,
+        @ApiParam(value = "Start time in millis since epoch", defaultValue = "Now - 8h")
+            @QueryParam("start") Long start,
         @ApiParam(value = "End time in millis since epoch", defaultValue = "Now") @QueryParam("end") Long end,
-        @ApiParam(value = "If non-zero: number of buckets to partition the data into. Raw data otherwise", defaultValue = "0")
+        @ApiParam(value = "If non-zero: number of buckets to partition the data into. Raw data otherwise",
+            defaultValue = "0")
         @QueryParam("buckets") int numberOfBuckets,
         @QueryParam("bucketWidthSeconds") int bucketWidthSeconds,
-        @ApiParam("If true, empty buckets are not returned.") @QueryParam("skipEmpty") @DefaultValue("false") boolean skipEmpty,
+        @ApiParam("If true, empty buckets are not returned.") @QueryParam("skipEmpty") @DefaultValue("false")
+            boolean skipEmpty,
         @QueryParam("bucketCluster") @DefaultValue("true") boolean bucketCluster,
         @Context HttpHeaders headers) {
 
@@ -270,8 +273,8 @@ public class LegacyMetricsHandler {
                                 }
                             }
 
-                            GenericEntity<List<BucketDataPoint>> list = new GenericEntity<List<BucketDataPoint>>(points) {
-                            };
+                            GenericEntity<List<BucketDataPoint>> list
+                                = new GenericEntity<List<BucketDataPoint>>(points) {};
                             Response jaxrs = Response.ok(list).build();
                             asyncResponse.resume(jaxrs);
                         }

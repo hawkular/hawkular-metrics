@@ -213,11 +213,12 @@ public class InfluxSeriesHandler {
                         GroupByClause groupByClause = queryDefinitions.getGroupByClause();
                         InfluxTimeUnit bucketSizeUnit = groupByClause.getBucketSizeUnit();
                         long bucketSizeSec = bucketSizeUnit.convertTo(SECONDS, groupByClause.getBucketSize());
-                        AggregatedColumnDefinition aggregatedColumnDefinition = (AggregatedColumnDefinition) queryDefinitions
-                                .getColumnDefinitions().get(0);
+                        AggregatedColumnDefinition aggregatedColumnDefinition =
+                                (AggregatedColumnDefinition) queryDefinitions
+                                    .getColumnDefinitions().get(0);
                         metrics = applyMapping(aggregatedColumnDefinition.getAggregationFunction(),
-                                aggregatedColumnDefinition.getAggregationFunctionArguments(), metrics, (int) bucketSizeSec,
-                                timeInterval.getStartMillis(), timeInterval.getEndMillis());
+                                aggregatedColumnDefinition.getAggregationFunctionArguments(), metrics,
+                                (int) bucketSizeSec, timeInterval.getStartMillis(), timeInterval.getEndMillis());
                     }
 
                     if (!queryDefinitions.isOrderDesc()) {

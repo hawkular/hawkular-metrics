@@ -177,27 +177,35 @@ public class DataAccessImpl implements DataAccess {
         findNumericDataByDateRangeExclusive = session.prepare(
             "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, n_value, tags " +
             "FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
+                + " AND time < ?");
 
         findNumericDataWithWriteTimeByDateRangeExclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, n_value, tags, WRITETIME(n_value) " +
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, n_value, tags,"
+                + " WRITETIME(n_value) " +
             "FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
+                + " AND time < ?");
 
         findNumericDataByDateRangeInclusive = session.prepare(
             "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, n_value, tags " +
             "FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time <= ?");
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
+                + " AND time <= ?");
 
         findNumericDataWithWriteTimeByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, n_value, tags, WRITETIME(n_value) " +
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, n_value, tags,"
+                + " WRITETIME(n_value) " +
             "FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time <= ?");
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
+                + " AND time <= ?");
 
         findAvailabilityByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, availability, tags, WRITETIME(availability) " +
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, availability, tags,"
+                + " WRITETIME(availability) " +
             "FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time <= ?");
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
+                + " AND time <= ?");
 
         deleteNumericMetric = session.prepare(
             "DELETE FROM data " +
@@ -251,12 +259,15 @@ public class DataAccessImpl implements DataAccess {
         findAvailabilities = session.prepare(
             "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, availability, tags " +
             "FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
+                + " AND time < ?");
 
         findAvailabilitiesWithWriteTime = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, availability, tags, WRITETIME(availability) " +
+            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, availability, tags,"
+                + " WRITETIME(availability) " +
             "FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? AND time < ?");
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
+                + " AND time < ?");
 
         updateRetentionsIndex = session.prepare(
             "INSERT INTO retentions_idx (tenant_id, type, interval, metric, retention) VALUES (?, ?, ?, ?, ?)");
@@ -375,7 +386,8 @@ public class DataAccessImpl implements DataAccess {
 //        }
 //
 //        return session.executeAsync(insertNumericData.bind(data.getAttributes(), data.getValue(), aggregateDataValues,
-//            data.getTenantId(), data.getId().getName(), data.getId().getInterval().toString(), 0L, data.getTimeUUID()));
+//            data.getTenantId(), data.getId().getName(), data.getId().getInterval().toString(), 0L,
+//              data.getTimeUUID()));
 //    }
 
     @Override

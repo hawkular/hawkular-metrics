@@ -34,7 +34,8 @@ public class SelectQueryWhereClauseTest {
     public void shouldParseBooleanExpressionTree() {
         InfluxQueryParser parser = parserFactory
             .newInstanceForQuery("select a from c "
-                + "where a=2 and .35 =  '2005-11-09 15:12:01.623' and (b.\"z\"<>c or (d = _1 and 3 = '2005-11-09')) or time > now() -  30w");
+                + "where a=2 and .35 =  '2005-11-09 15:12:01.623' and (b.\"z\"<>c or (d = _1 and 3 = '2005-11-09'))"
+                + " or time > now() -  30w");
         parseTreeWalker.walk(definitionsParser, parser.selectQuery());
         SelectQueryDefinitions definitions = definitionsParser.getSelectQueryDefinitions();
         BooleanExpression whereClause = definitions.getWhereClause();
@@ -124,7 +125,8 @@ public class SelectQueryWhereClauseTest {
         assertEquals(name, nameOperand.getName());
     }
 
-    private void assertMomentOperand(Operand operand, String functionName, int timeshift, InfluxTimeUnit timeshiftUnit) {
+    private void assertMomentOperand(Operand operand, String functionName, int timeshift,
+            InfluxTimeUnit timeshiftUnit) {
         assertEquals(MomentOperand.class, operand.getClass());
         MomentOperand momentOperand = (MomentOperand) operand;
         assertEquals(functionName, momentOperand.getFunctionName());

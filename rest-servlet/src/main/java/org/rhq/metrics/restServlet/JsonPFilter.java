@@ -29,7 +29,8 @@ import javax.servlet.http.HttpServletResponseWrapper;
  * @author Heiko W. Rupp
  */
 @WebFilter(urlPatterns = "/*", asyncSupported = true)
-@WebInitParam(name = "filter.jsonp.callback", value = "jsonp", description = "Name of the callback to use for JsonP (?jsonp=...)")
+@WebInitParam(name = "filter.jsonp.callback", value = "jsonp",
+    description = "Name of the callback to use for JsonP (?jsonp=...)")
 public class JsonPFilter implements Filter {
     private static final String DEFAULT_CALLBACK_NAME = "jsonp";
     private String callbackName;

@@ -29,7 +29,8 @@ public class OnlyOneColumnRule implements SelectQueryValidationRule {
             }
         } else if (columnDefinition instanceof AggregatedColumnDefinition) {
             AggregatedColumnDefinition definition = (AggregatedColumnDefinition) columnDefinition;
-            if (!((NameFunctionArgument) definition.getAggregationFunctionArguments().get(0)).getName().equals("value")) {
+            NameFunctionArgument arg = (NameFunctionArgument) definition.getAggregationFunctionArguments().get(0);
+            if (!arg.getName().equals("value")) {
                 throw new QueryNotSupportedException("Column name is not 'value'");
             }
         }

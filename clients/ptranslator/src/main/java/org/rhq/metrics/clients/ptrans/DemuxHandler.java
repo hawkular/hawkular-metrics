@@ -32,7 +32,8 @@ public class DemuxHandler extends ByteToMessageDecoder {
     }
 
     @Override
-    protected void decode(ChannelHandlerContext ctx, ByteBuf msg, @SuppressWarnings("rawtypes") List out) throws Exception {
+    protected void decode(ChannelHandlerContext ctx, ByteBuf msg, @SuppressWarnings("rawtypes") List out)
+            throws Exception {
 
         if (msg.readableBytes()<5) {
             msg.clear();

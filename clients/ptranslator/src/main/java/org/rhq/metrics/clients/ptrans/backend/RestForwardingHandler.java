@@ -168,8 +168,8 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
                 } else {
                     sendCounter++;
                     if (sendCounter >= closeAfterRequests) {
-                        SingleMetric perfMetric = new SingleMetric(localHostName + ".ptrans.counter", System.currentTimeMillis(),
-                            (double) (numberOfMetrics + metricsToSend.size()));
+                        SingleMetric perfMetric = new SingleMetric(localHostName + ".ptrans.counter",
+                                System.currentTimeMillis(), (double) (numberOfMetrics + metricsToSend.size()));
                         fifo.offer(perfMetric);
                         logger.info("Doing a periodic close after " + closeAfterRequests + " requests (" +
                             numberOfMetrics + ") items");
@@ -250,8 +250,8 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
                     List<SingleMetric> metricsSent = ctx.channel().attr(listKey).getAndRemove();
 
                     if (metricsSent!=null) {
-                        fifo.cleanout(
-                            metricsSent); // only clear the ones we sent - new ones may have arrived between batching and now
+                        // only clear the ones we sent - new ones may have arrived between batching and now
+                        fifo.cleanout(metricsSent);
                         numberOfMetrics += metricsSent.size();
                         if (logger.isDebugEnabled()) {
                             logger.debug("sent " + metricsSent.size() + " items");

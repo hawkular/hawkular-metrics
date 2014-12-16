@@ -49,8 +49,10 @@ public class AvailabilityDataMapper implements Function<ResultSet, List<Availabi
     private final RowConverter WRITE_TIME_CONVERTER = new RowConverter() {
         @Override
         public Availability getData(Row row) {
-            return new Availability(row.getUUID(ColumnIndex.TIME.ordinal()), row.getBytes(
-                ColumnIndex.AVAILABILITY.ordinal()), getTags(row), row.getLong(ColumnIndex.WRITE_TIME.ordinal()) / 1000);
+            return new Availability(row.getUUID(ColumnIndex.TIME.ordinal()),
+                    row.getBytes(ColumnIndex.AVAILABILITY.ordinal()),
+                    getTags(row),
+                    row.getLong(ColumnIndex.WRITE_TIME.ordinal()) / 1000);
         }
     };
 

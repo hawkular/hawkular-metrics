@@ -322,8 +322,8 @@ public class MetricsServiceCassandraTest extends MetricsTest {
                     BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
                     for (NumericData d : m.getData()) {
                         batchStatement.add(insertNumericDataWithTimestamp.bind(m.getTenantId(), NUMERIC.getCode(),
-                            m.getId().getName(), m.getId().getInterval().toString(), DPART, d.getTimeUUID(), d.getValue(),
-                            actualTTL, writeTime));
+                                m.getId().getName(), m.getId().getInterval().toString(), DPART, d.getTimeUUID(),
+                                d.getValue(), actualTTL, writeTime));
                     }
                     return session.executeAsync(batchStatement);
                 }
@@ -531,8 +531,8 @@ public class MetricsServiceCassandraTest extends MetricsTest {
             start.plusMinutes(3).getMillis(), start.plusMinutes(5).getMillis());
         getUninterruptibly(tagFuture);
 
-        ListenableFuture<AvailabilityMetric> queryFuture = metricsService.findAvailabilityData(metric, start.getMillis(),
-            end.getMillis());
+        ListenableFuture<AvailabilityMetric> queryFuture = metricsService.findAvailabilityData(metric,
+                start.getMillis(), end.getMillis());
         AvailabilityMetric actualMetric = getUninterruptibly(queryFuture);
         List<Availability> actual = actualMetric.getData();
         List<Availability> expected = asList(

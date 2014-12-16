@@ -314,7 +314,8 @@ public class MetricsServiceCassandra implements MetricsService {
                             dataRetentions.put(new DataRetentionKey(tenant.getId(), type), r.getValue());
                         }
                     }
-                    ListenableFuture<List<ResultSet>> updateRetentionsFuture = Futures.allAsList(updateRetentionFutures);
+                    ListenableFuture<List<ResultSet>> updateRetentionsFuture = Futures
+                            .allAsList(updateRetentionFutures);
                     return Futures.transform(updateRetentionsFuture, RESULT_SETS_TO_VOID, metricsTasks);
                 }
             }
@@ -675,7 +676,8 @@ public class MetricsServiceCassandra implements MetricsService {
                 new TaggedNumericDataMapper(), metricsTasks));
         }
         ListenableFuture<List<Map<MetricId, Set<NumericData>>>> queriesFuture = Futures.allAsList(queryFutures);
-        return Futures.transform(queriesFuture, new Function<List<Map<MetricId, Set<NumericData>>>, Map<MetricId, Set<NumericData>>>() {
+        return Futures.transform(queriesFuture,
+                new Function<List<Map<MetricId, Set<NumericData>>>, Map<MetricId, Set<NumericData>>>() {
             @Override
             public Map<MetricId, Set<NumericData>> apply(List<Map<MetricId, Set<NumericData>>> taggedDataMaps) {
                 if (taggedDataMaps.isEmpty()) {
@@ -714,7 +716,8 @@ public class MetricsServiceCassandra implements MetricsService {
                 new TaggedAvailabilityMappper(), metricsTasks));
         }
         ListenableFuture<List<Map<MetricId, Set<Availability>>>> queriesFuture = Futures.allAsList(queryFutures);
-        return Futures.transform(queriesFuture, new Function<List<Map<MetricId, Set<Availability>>>, Map<MetricId, Set<Availability>>>() {
+        return Futures.transform(queriesFuture,
+                new Function<List<Map<MetricId, Set<Availability>>>, Map<MetricId, Set<Availability>>>() {
             @Override
             public Map<MetricId, Set<Availability>> apply(List<Map<MetricId, Set<Availability>>> taggedDataMaps) {
                 if (taggedDataMaps.isEmpty()) {
