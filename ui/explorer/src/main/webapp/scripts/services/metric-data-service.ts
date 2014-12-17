@@ -13,13 +13,13 @@ module Services {
         }
 
         getBaseUrl():string {
-            var baseUrl = 'http://' + this.$rootScope.$storage.server.replace(/['"]+/g, '') + ':' + this.$rootScope.$storage.port + this.BASE_URL + '/'+this.TENANT_ID;
+            var baseUrl = 'http://' + this.$rootScope.$storage.server.replace(/['"]+/g, '') + ':' + this.$rootScope.$storage.port + this.BASE_URL + '/'+this.TENANT_ID +'/metrics';
             return baseUrl;
         }
 
         getAllMetrics() {
             console.info('-- Retrieving all metrics');
-            var base = this.getBaseUrl()+'/metrics/?type=num',
+            var base = this.getBaseUrl()+'/?type=num',
                 deferred = this.$q.defer();
 
 
@@ -36,11 +36,10 @@ module Services {
 
 
 
-        getMetricsForTimeRange(id:string, startDate:Date, endDate:Date, buckets:number):any {
+        getMetricsForTimeRange(id:string, startDate:Date, endDate:Date, buckets:number):ng.IPromise<any> {
             console.info('-- Retrieving metrics data for id: ' + id);
             console.info('-- Date Range: ' + startDate + ' - ' + endDate);
             var numBuckets = buckets || 60,
-                base = this.getBaseUrl(),
                 deferred = this.$q.defer(),
                 searchParams =
                 {
@@ -56,7 +55,7 @@ module Services {
                 deferred.reject("Start date was after end date");
             }
 
-            this.$http.get(base + '/metrics/numeric/' + id+'/data', searchParams).success((data) => {
+            this.$http.get(this.getBaseUrl() + '/numeric/' + id+'/data', searchParams).success((data) => {
                 deferred.resolve(data);
             }).error((reason, status) => {
                 console.error('Error Loading Chart Data:' + status + ", " + reason);
@@ -66,23 +65,21 @@ module Services {
             return deferred.promise;
         }
 
-        insertSinglePayload(id, jsonPayload):any {
-            var url = this.getBaseUrl(),
-                deferred = this.$q.defer();
-            this.$http.post(url + '/' + id, jsonPayload
-            ).success(function () {
-                    deferred.resolve("Success");
-                }).error(function (response, status) {
-                    console.error("Error: " + status + " --> " + response);
-                    deferred.reject(status);
-                });
-            return deferred.promise;
-        }
+        //insertSinglePayload(id, jsonPayload):any {
+        //    var deferred = this.$q.defer();
+        //    this.$http.post(this.getBaseUrl() + '/metrics/numeric/' + id+'/data', jsonPayload
+        //    ).success(function () {
+        //            deferred.resolve("Success");
+        //        }).error(function (response, status) {
+        //            console.error("Error: " + status + " --> " + response);
+        //            deferred.reject(status);
+        //        });
+        //    return deferred.promise;
+        //}
 
-        insertMultiplePayload(jsonPayload):any {
-            var url = this.getBaseUrl(),
-                deferred = this.$q.defer();
-            this.$http.post(url + '/', jsonPayload
+        insertMultiplePayload(jsonPayload):ng.IPromise<any> {
+            var deferred = this.$q.defer();
+            this.$http.post(this.getBaseUrl() + '/numeric/data', jsonPayload
             ).success(function () {
                     deferred.resolve("Success");
                 }).error(function (response, status) {
