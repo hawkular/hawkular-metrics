@@ -20,10 +20,12 @@ import static org.junit.runners.Parameterized.Parameters;
 
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.Collections;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 import com.google.common.io.Resources;
 
 import org.junit.Rule;
@@ -40,22 +42,27 @@ public class InvalidQuerySyntaxTest {
 
     @Parameters(name = "invalidQuery: {0}")
     public static Iterable<Object[]> testValidQueries() throws Exception {
-        URL resource = Resources.getResource("influx/query/syntactically-incorrect-queries");
-        return FluentIterable //
-            .from(Resources.readLines(resource, Charset.forName("UTF-8"))) //
-            // Filter out comment lines
-            .filter(new Predicate<String>() {
-                @Override
-                public boolean apply(String input) {
-                    return !input.startsWith("#");
-                }
-            }) //
-            .transform(new Function<String, Object[]>() {
-                @Override
-                public Object[] apply(String input) {
-                    return new Object[] { input };
-                }
-            });
+        URL resource = Resources.getResource("influx/query/syntactically-incorrect-queries.iql");
+        return Iterables.concat(
+                // add an empty string as an invalid query
+                Collections.singletonList(new Object[] { "" }),
+                // plus the queries from the file
+                FluentIterable //
+                    .from(Resources.readLines(resource, Charset.forName("UTF-8"))) //
+                    // Filter out comment lines
+                    .filter(new Predicate<String>() {
+                        @Override
+                        public boolean apply(String input) {
+                            return !input.startsWith("--") && !input.trim().isEmpty();
+                        }
+                    }) //
+                    .transform(new Function<String, Object[]>() {
+                        @Override
+                        public Object[] apply(String input) {
+                            return new Object[] { input };
+                        }
+                    })
+                );
     }
 
     @Rule

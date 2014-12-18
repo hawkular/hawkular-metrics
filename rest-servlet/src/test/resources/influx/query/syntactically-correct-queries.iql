@@ -1,7 +1,7 @@
-# Each line in this file will be used as a syntactically correct sample
-# for org.rhq.metrics.restServlet.influx.query.ValidQuerySyntaxTest
-# Lines starting with the hash-sign are ignored
-#
+-- Each line in this file will be used as a syntactically correct sample
+-- for org.rhq.metrics.restServlet.influx.query.ValidQuerySyntaxTest
+-- Empty lines and lines starting with double dash are ignored
+--
 lIst    seRIes
 select * frOm _sqlkd_j0504
 select * frOm " dmqsqsj kà\"qsdqsdq"

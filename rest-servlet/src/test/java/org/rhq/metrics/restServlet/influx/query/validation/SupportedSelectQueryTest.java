@@ -46,14 +46,14 @@ public class SupportedSelectQueryTest {
 
     @Parameters(name = "supportedQuery: {0}")
     public static Iterable<Object[]> testSupportedQueries() throws Exception {
-        URL resource = Resources.getResource("influx/query/supported-select-queries");
+        URL resource = Resources.getResource("influx/query/supported-select-queries.iql");
         return FluentIterable //
             .from(Resources.readLines(resource, Charset.forName("UTF-8"))) //
             // Filter out comment lines
             .filter(new Predicate<String>() {
                 @Override
                 public boolean apply(String input) {
-                    return !input.startsWith("#");
+                    return !input.startsWith("--") && !input.trim().isEmpty();
                 }
             }) //
             .transform(new Function<String, Object[]>() {

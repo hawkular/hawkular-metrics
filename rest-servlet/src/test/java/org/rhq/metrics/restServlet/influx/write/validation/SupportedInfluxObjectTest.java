@@ -46,14 +46,14 @@ public class SupportedInfluxObjectTest {
     @Parameters(name = "supportedInfluxObject: {1}")
     public static Iterable<Object[]> testSupportedObjects() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
-        URL resource = Resources.getResource("influx/write/supported-write-objects");
+        URL resource = Resources.getResource("influx/write/supported-write-objects.list.json");
         return FluentIterable //
             .from(Resources.readLines(resource, Charset.forName("UTF-8"))) //
             // Filter out comment lines
             .filter(new Predicate<String>() {
                 @Override
                 public boolean apply(String input) {
-                    return !input.startsWith("#");
+                    return !input.startsWith("//") && !input.trim().isEmpty();
                 }
             }) //
             .transform(new Function<String, Object[]>() {
@@ -75,7 +75,7 @@ public class SupportedInfluxObjectTest {
 
     private final InfluxObject[] influxObjects;
 
-    public SupportedInfluxObjectTest(InfluxObject[] influxObjects, @SuppressWarnings("unused") String objectsAsText) {
+    public SupportedInfluxObjectTest(InfluxObject[] influxObjects, String objectsAsText) {
         this.influxObjects = influxObjects;
         influxObjectValidator = new InfluxObjectValidator();
         influxObjectValidator.validationRules = rulesProducer.influxObjectValidationRules();
