@@ -46,6 +46,20 @@
             src/main/webapp/bower_components/**/*,
             src/main/webapp/node_modules/**/*,
             src/main/webapp/node/**/*,
+            src/main/webapp/.tmp/**/*,
+          </excludes>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <configuration>
+          <excludes combine.children="append">
+            <exclude>src/main/webapp/bower_components/**</exclude>
+            <exclude>src/main/webapp/node_modules/**</exclude>
+            <exclude>src/main/webapp/node/**</exclude>
+            <exclude>src/main/webapp/.tmp/**</exclude>
           </excludes>
         </configuration>
       </plugin>
