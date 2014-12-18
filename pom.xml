@@ -26,6 +26,7 @@
   <name>RHQ Metrics</name>
   <description>RHQ Metrics is a metrics collection, aggregation, visualization framework.</description>
   <url>https://community.jboss.org/en/rhq/rhq-metrics</url>
+  <inceptionYear>2014</inceptionYear>
   <organization>
     <name>Red Hat, Inc.</name>
     <url>http://redhat.com/</url>
@@ -138,7 +139,8 @@
     <checkstyleFailOnError>true</checkstyleFailOnError>
     <!-- the default value pointing at suppressions.xml in rhq-checkstyle-config dependency -->
     <checkstyle.suppressions.file>hawkular-checkstyle/suppressions.xml</checkstyle.suppressions.file>
-    <rhq.checkstyle.config.version>4-SNAPSHOT</rhq.checkstyle.config.version>
+    <version.org.hawkular.hawkular-build-tools>5</version.org.hawkular.hawkular-build-tools>
+    <license.failIfMissing>false</license.failIfMissing>
   </properties>
 
   <dependencyManagement>
@@ -185,7 +187,7 @@
       <dependency>
         <groupId>org.hawkular</groupId>
         <artifactId>hawkular-build-tools</artifactId>
-        <version>${rhq.checkstyle.config.version}</version>
+        <version>${version.org.hawkular.hawkular-build-tools}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -290,6 +292,11 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
           <version>${checkstyle.plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>com.mycila</groupId>
+          <artifactId>license-maven-plugin</artifactId>
+          <version>2.7</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -420,6 +427,7 @@
             src/**/*.xsl,
             *.yml,
             src/**/*.yml,
+            src/**/*.yaml,
           </includes>
           <!-- to override in a submodule, just redefine the checkstyle.suppressions.file property
                in the given submodule's pom -->
@@ -435,7 +443,7 @@
           <dependency>
             <groupId>org.hawkular</groupId>
             <artifactId>hawkular-build-tools</artifactId>
-            <version>${rhq.checkstyle.config.version}</version>
+            <version>${version.org.hawkular.hawkular-build-tools}</version>
           </dependency>
         </dependencies>
         <executions>
@@ -444,6 +452,53 @@
             <phase>compile</phase>
             <goals>
               <goal>checkstyle</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <configuration>
+          <header>hawkular-license/jboss-apache-2-template.txt</header>
+          <excludes>
+            <exclude>**/.bowerrc</exclude>
+            <exclude>**/.jshintrc</exclude>
+            <exclude>**/LICENSE</exclude>
+            <exclude>**/README</exclude>
+            <exclude>**/README.*</exclude>
+            <exclude>**/*.eot</exclude>
+            <exclude>**/*.otf</exclude>
+            <exclude>**/*.ttf</exclude>
+            <exclude>**/*.svg</exclude>
+            <exclude>**/*.woff</exclude>
+            <exclude>**/*.html</exclude>
+            <exclude>**/*.htm</exclude>
+          </excludes>
+          <mapping>
+            <conf>SCRIPT_STYLE</conf>
+            <cql>DOUBLEDASHES_STYLE</cql>
+            <Dockerfile>SCRIPT_STYLE</Dockerfile>
+            <g4>SLASHSTAR_STYLE</g4>
+            <iql>DOUBLEDASHES_STYLE</iql>
+            <jshintrc>SLASHSTAR_STYLE</jshintrc>
+            <java>SLASHSTAR_STYLE</java>
+            <ts>SLASHSTAR_STYLE</ts>
+            <yaml>SCRIPT_STYLE</yaml>
+            <yml>SCRIPT_STYLE</yml>
+          </mapping>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.hawkular</groupId>
+            <artifactId>hawkular-build-tools</artifactId>
+            <version>${version.org.hawkular.hawkular-build-tools}</version>
+          </dependency>
+        </dependencies>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
             </goals>
           </execution>
         </executions>
