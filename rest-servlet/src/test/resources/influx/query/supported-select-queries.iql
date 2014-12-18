@@ -1,7 +1,7 @@
-# Each line in this file will be used as a supported sample
-# for org.rhq.metrics.restServlet.influx.query.validation.SupportedSelectQueryTest
-# Lines starting with the hash-sign are ignored
-#
+-- Each line in this file will be used as a supported sample
+-- for org.rhq.metrics.restServlet.influx.query.validation.SupportedSelectQueryTest
+-- Empty lines and lines starting with double dash are ignored
+--
 select * from test
 select value from test group by time(30s)
 select a.value from c as a
