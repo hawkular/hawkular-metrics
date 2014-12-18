@@ -1,0 +1,25 @@
+{
+  "id": "rhq-metrics-one",
+  "kind": "Pod",
+  "apiVersion": "v1beta1",
+  "desiredState": {
+    "manifest": {
+      "version": "v1beta1",
+      "id": "rhqmetrics-1",
+      "containers": [{
+        "name": "server",
+        "image": "vnguyen/rhq-metrics:latest",
+        "ports": [{
+          "name": "rhqmetrics-endpoint-port", "containerPort": 8080, 
+        }]},
+        {
+        "name": "db",
+        "image": "vnguyen/docker-cassandra:latest",
+        "ports": [{ "containerPort":9042}, { "containerPort":9160} ]
+      }]
+    }
+  },
+  "labels": {
+    "name": "rhq-metrics-one"
+  }
+}
