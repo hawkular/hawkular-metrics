@@ -28,15 +28,27 @@ module Controllers {
         rangeInSeconds:number;
     }
 
+    export interface IMetricDataPoint {
+        timeStamp:number;
+        value:number;
+    }
+
+    export interface IInsertRequestBody {
+        tenantId:string;
+        name:string;
+        data:IMetricDataPoint[];
+    }
+
+
     /**
      * @ngdoc controller
      * @name InsertMetricsController
      * @description A controller for inserting metrics into the rhq-metrics data store (either in-memory or Cassandra).
      *
      */
-    export class InsertMetricsController implements IInsertMetricsController {
+    export class InsertMetricsController {
 
-        public static  $inject = ['$scope', '$rootScope', '$log', '$interval', 'metricDataService'];
+        public static  $inject = ['$scope', '$rootScope', '$log', '$interval', 'metricDataService', 'TENANT_ID'];
 
         showOpenGroup = true;
 
@@ -44,7 +56,8 @@ module Controllers {
                     private $rootScope:ng.IRootScopeService,
                     private $log:ng.ILogService,
                     private $interval:ng.IIntervalService,
-                    private metricDataService:any) {
+                    private metricDataService:any,
+                    private TENANT_ID:string) {
             $scope.vm = this;
 
         }
@@ -114,9 +127,9 @@ module Controllers {
             }
             this.$log.debug('Generated Timestamp is: ' + computedTimestamp);
 
-            this.quickInsertData.jsonPayload = {timestamp: computedTimestamp, value: this.quickInsertData.value};
+            this.quickInsertData.jsonPayload = [{ name: this.quickInsertData.id, tenantId: this.TENANT_ID, data: [{timestamp: computedTimestamp, value: this.quickInsertData.value}]}];
 
-            this.metricDataService.insertSinglePayload(this.quickInsertData.id, this.quickInsertData.jsonPayload).then((success) => {
+            this.metricDataService.insertMultiplePayload(this.quickInsertData.jsonPayload).then((success) => {
                 toastr.success('Inserted value: ' + this.quickInsertData.value + ' for ID: ' + this.quickInsertData.id, 'Success');
                 this.quickInsertData.value = '';
             }, (error) => {
@@ -136,16 +149,35 @@ module Controllers {
 
 
         rangeInsert():void {
-            var jsonPayload = this.calculateRangeTimestamps(this.rangeInsertData.id, this.rangeInsertData.selectedDuration,
-                this.rangeInsertData.selectedIntervalInMinutes, this.rangeInsertData.startNumber,
-                this.rangeInsertData.endNumber);
-            this.$log.debug("JsonPayload: " + jsonPayload);
+            var jsonPayload :IInsertRequestBody[] = [];
+               jsonPayload.push(
+                this.calculateRangeDataForMetric(this.rangeInsertData.id, this.TENANT_ID, this.rangeInsertData.selectedDuration,
+                    this.rangeInsertData.selectedIntervalInMinutes, this.rangeInsertData.startNumber,
+                    this.rangeInsertData.endNumber));
+
+            console.dir(jsonPayload);
             this.metricDataService.insertMultiplePayload(jsonPayload).then((success) => {
                 toastr.success('Advanced Range Inserted Multiple values Successfully for id: ' + this.rangeInsertData.id, 'Success');
                 this.rangeInsertData.id = "";
             }, (error) => {
                 InsertMetricsController.insertError(error);
             });
+        }
+
+        private  calculateRangeDataForMetric(metricId:string, tenantId:string, numberOfDays:number, intervalInMinutes:number, randomStart:number, randomEnd:number):IInsertRequestBody {
+            var intervalTimestamps = [],
+                startDate = moment().subtract('days', numberOfDays).valueOf(),
+                endDate = _.now(),
+                step = intervalInMinutes * 60 * 1000,
+                startSeed = _.random(randomStart, randomEnd),
+                dbData = [];
+
+            intervalTimestamps = _.range(startDate, endDate, step);
+            dbData = _.map(intervalTimestamps, (ts) => {
+                return {timestamp: ts, value: startSeed + _.random(-5, 5)};
+            });
+
+            return {tenantId: tenantId, name: metricId, data: dbData};
         }
 
         startStreaming():void {
@@ -163,12 +195,19 @@ module Controllers {
                 this.$log.log("Timer has Run! for seconds: " + selectedTimeRangeInSeconds);
                 this.streamingInsertData.count = this.streamingInsertData.count + 1;
                 this.streamingInsertData.lastStreamedValue = _.random(this.streamingInsertData.startNumber, this.streamingInsertData.endNumber);
-                this.streamingInsertData.jsonPayload = {
-                    timestamp: _.now(),
-                    value: this.streamingInsertData.lastStreamedValue
-                };
 
-                this.metricDataService.insertSinglePayload(this.streamingInsertData.id, this.streamingInsertData.jsonPayload).then((success) => {
+                this.streamingInsertData.jsonPayload =
+                    [
+                        {
+                            tenantId: this.TENANT_ID,
+                            name: this.streamingInsertData.id,
+                            timestamp: _.now(),
+                            value: this.streamingInsertData.lastStreamedValue,
+                            data: [{ timestamp: _.now(), value: this.streamingInsertData.lastStreamedValue}]
+                        }
+                    ];
+
+                this.metricDataService.insertMultiplePayload(this.streamingInsertData.jsonPayload).then((success) => {
                     toastr.success('Successfully inserted: ' + this.streamingInsertData.lastStreamedValue, 'Streaming Insert');
                 }, (error) => {
                     InsertMetricsController.insertError(error);
@@ -194,21 +233,7 @@ module Controllers {
             toastr.error('An issue with inserting data has occurred. Please see the console logs. Status: ' + error);
         }
 
-        private  calculateRangeTimestamps(id:string, numberOfDays:number, intervalInMinutes:number, randomStart:number, randomEnd:number):any {
-            var intervalTimestamps = [],
-                startDate = moment().subtract('days', numberOfDays).valueOf(),
-                endDate = _.now(),
-                step = intervalInMinutes * 60 * 1000,
-                startSeed = _.random(randomStart, randomEnd),
-                dbData = [];
 
-            intervalTimestamps = _.range(startDate, endDate, step);
-            dbData = _.map(intervalTimestamps, (ts) => {
-                return {id: id, timestamp: ts, value: startSeed + _.random(-5, 5)};
-            });
-
-            return angular.toJson(dbData);
-        }
     }
 
     angular.module('chartingApp')

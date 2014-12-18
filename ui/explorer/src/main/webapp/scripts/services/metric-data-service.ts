@@ -3,8 +3,15 @@
 module Services {
     'use strict';
 
+    export interface IMetricDataService {
+        getBaseUrl():string;
+        getAllMetrics();
+        getMetricsForTimeRange(id:string, startDate:Date, endDate:Date, buckets:number):ng.IPromise<any> ;
+        insertMultiplePayload(jsonPayload):ng.IPromise<any> ;
 
-    export class MetricDataService {
+    }
+
+    export class MetricDataService implements IMetricDataService {
 
         public static  $inject = ['$q', '$rootScope', '$http', '$localStorage', 'BASE_URL', 'TENANT_ID'];
 
@@ -33,7 +40,6 @@ module Services {
 
             return deferred.promise;
         }
-
 
 
         getMetricsForTimeRange(id:string, startDate:Date, endDate:Date, buckets:number):ng.IPromise<any> {
@@ -65,24 +71,12 @@ module Services {
             return deferred.promise;
         }
 
-        //insertSinglePayload(id, jsonPayload):any {
-        //    var deferred = this.$q.defer();
-        //    this.$http.post(this.getBaseUrl() + '/metrics/numeric/' + id+'/data', jsonPayload
-        //    ).success(function () {
-        //            deferred.resolve("Success");
-        //        }).error(function (response, status) {
-        //            console.error("Error: " + status + " --> " + response);
-        //            deferred.reject(status);
-        //        });
-        //    return deferred.promise;
-        //}
-
         insertMultiplePayload(jsonPayload):ng.IPromise<any> {
             var deferred = this.$q.defer();
             this.$http.post(this.getBaseUrl() + '/numeric/data', jsonPayload
-            ).success(function () {
+            ).success(() => {
                     deferred.resolve("Success");
-                }).error(function (response, status) {
+                }).error((response, status) => {
                     console.error("Error: " + status + " --> " + response);
                     deferred.reject(status);
                 });
