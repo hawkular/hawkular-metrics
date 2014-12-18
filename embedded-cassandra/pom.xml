@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -89,50 +88,51 @@
   </dependencies>
 
   <build>
-      <finalName>rhq-metrics-embedded-cassandra</finalName>
-      <plugins>
+    <finalName>rhq-metrics-embedded-cassandra</finalName>
+    <plugins>
 
-         <plugin>
-           <groupId>org.antlr</groupId>
-           <artifactId>antlr4-maven-plugin</artifactId>
-           <executions>
-             <execution>
-               <id>antlr4</id>
-               <goals>
-                 <goal>antlr4</goal>
-               </goals>
-               <phase>generate-sources</phase>
-               <configuration>
-                 <listener>true</listener>
-                 <visitor>true</visitor>
-               </configuration>
-             </execution>
-           </executions>
-         </plugin>
-
-         <plugin>
-            <artifactId>maven-war-plugin</artifactId>
+      <plugin>
+        <groupId>org.antlr</groupId>
+        <artifactId>antlr4-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>antlr4</id>
+            <goals>
+              <goal>antlr4</goal>
+            </goals>
+            <phase>generate-sources</phase>
             <configuration>
-               <failOnMissingWebXml>false</failOnMissingWebXml>
-               <archive>
-                  <manifest>
-                     <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
-                     <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-                  </manifest>
-               </archive>
+              <listener>true</listener>
+              <visitor>true</visitor>
             </configuration>
-         </plugin>
+          </execution>
+        </executions>
+      </plugin>
 
-        <plugin>
-          <groupId>org.wildfly.plugins</groupId>
-          <artifactId>wildfly-maven-plugin</artifactId>
-          <version>1.0.2.Final</version>
-          <configuration>
-            <jvmArgs>-Drhq-metrics.backend=em_cass -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</jvmArgs>
-          </configuration>
-        </plugin>
+      <plugin>
+        <artifactId>maven-war-plugin</artifactId>
+        <configuration>
+          <failOnMissingWebXml>false</failOnMissingWebXml>
+          <archive>
+            <manifest>
+              <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
 
-      </plugins>
+      <plugin>
+        <groupId>org.wildfly.plugins</groupId>
+        <artifactId>wildfly-maven-plugin</artifactId>
+        <version>1.0.2.Final</version>
+        <configuration>
+          <jvmArgs>-Drhq-metrics.backend=em_cass -Xdebug
+            -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</jvmArgs>
+        </configuration>
+      </plugin>
+
+    </plugins>
   </build>
 
 </project>
