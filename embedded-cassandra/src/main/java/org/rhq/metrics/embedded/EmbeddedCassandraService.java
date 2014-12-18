@@ -20,8 +20,11 @@ package org.rhq.metrics.embedded;
 
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
-import javax.annotation.PostConstruct;
+import javax.ejb.Schedule;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import javax.annotation.PreDestroy;
+import javax.annotation.PostConstruct;
 
 import org.apache.cassandra.service.CassandraDaemon;
 import org.slf4j.Logger;
@@ -68,5 +71,12 @@ public class EmbeddedCassandraService {
                 cassandraDaemon.deactivate();
             }
         }
+    }
+
+    @Schedule(second="*/6", minute="*",hour="*", persistent=false)
+    public void doWork(){
+        Date currentTime = new Date();
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy.MM.dd G 'at' HH:mm:ss z");
+        logger.error( "ScheduleExample.doWork() invoked at " + simpleDateFormat.format(currentTime) );
     }
 }
