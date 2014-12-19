@@ -18,26 +18,17 @@ package org.rhq.metrics.impl.cassandra;
 
 import static java.util.Arrays.asList;
 import static org.joda.time.DateTime.now;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import java.util.List;
 
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-
 import org.joda.time.DateTime;
 import org.joda.time.Days;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
-
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.rules.ExternalResource;
 import org.rhq.metrics.core.AggregationTemplate;
 import org.rhq.metrics.core.Availability;
 import org.rhq.metrics.core.AvailabilityMetric;
@@ -48,35 +39,61 @@ import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.Tenant;
-import org.rhq.metrics.test.MetricsTest;
+import org.rhq.metrics.test.MetricsTestUtils;
+
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Session;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * @author John Sanda
  */
-public class DataAccessTest extends MetricsTest {
+public class DataAccessTest {
 
-    private DataAccessImpl dataAccess;
+    private static class Context extends ExternalResource {
+        private DataAccessImpl dataAccess;
 
-    private PreparedStatement truncateTenants;
+        private PreparedStatement truncateTenants;
+        private PreparedStatement truncateNumericData;
+        private PreparedStatement truncateCounters;
+        private Session session;
 
-    private PreparedStatement truncateNumericData;
+        private Context() {
+        }
 
-    private PreparedStatement truncateCounters;
+        @Override
+        protected void before() throws Throwable {
+            session = MetricsTestUtils.getSession();
+            dataAccess = new DataAccessImpl(session);
+            truncateTenants = session.prepare("TRUNCATE tenants");
+            truncateNumericData = session.prepare("TRUNCATE data");
+            truncateCounters = session.prepare("TRUNCATE counters");
+        }
 
-    @BeforeClass
-    public void initClass() {
-        initSession();
-        dataAccess = new DataAccessImpl(session);
-        truncateTenants = session.prepare("TRUNCATE tenants");
-        truncateNumericData = session.prepare("TRUNCATE data");
-        truncateCounters = session.prepare("TRUNCATE counters");
+        protected void resetDB() {
+            session.execute(truncateTenants.bind());
+            session.execute(truncateNumericData.bind());
+            session.execute(truncateCounters.bind());
+        }
+
+        public DataAccessImpl getDataAccess() {
+            return dataAccess;
+        }
+
     }
 
-    @BeforeMethod
+    @ClassRule
+    public static Context context = new Context();
+
+    @Before
     public void initMethod() {
-        session.execute(truncateTenants.bind());
-        session.execute(truncateNumericData.bind());
-        session.execute(truncateCounters.bind());
+        context.resetDB();
     }
 
     @Test
@@ -98,25 +115,26 @@ public class DataAccessTest extends MetricsTest {
                 .setFunctions(ImmutableSet.of("sum", "count")));
 
 
-        ResultSetFuture insertFuture = dataAccess.insertTenant(tenant1);
-        getUninterruptibly(insertFuture);
+        ResultSetFuture insertFuture = context.getDataAccess().insertTenant(tenant1);
+        MetricsTestUtils.getUninterruptibly(insertFuture);
 
-        insertFuture = dataAccess.insertTenant(tenant2);
-        getUninterruptibly(insertFuture);
+        insertFuture = context.getDataAccess().insertTenant(tenant2);
+        MetricsTestUtils.getUninterruptibly(insertFuture);
 
-        ResultSetFuture queryFuture = dataAccess.findTenant(tenant1.getId());
+        ResultSetFuture queryFuture = context.getDataAccess().findTenant(tenant1.getId());
         ListenableFuture<Tenant> tenantFuture = Futures.transform(queryFuture, new TenantMapper());
-        Tenant actual = getUninterruptibly(tenantFuture);
+        Tenant actual = MetricsTestUtils.getUninterruptibly(tenantFuture);
         Tenant expected = tenant1;
 
-        assertEquals(actual, expected, "The tenants do not match");
+        assertEquals("The tenants do not match", expected, actual);
     }
 
     @Test
     public void doNotAllowDuplicateTenants() throws Exception {
-        getUninterruptibly(dataAccess.insertTenant(new Tenant().setId("tenant-1")));
-        ResultSet resultSet = getUninterruptibly(dataAccess.insertTenant(new Tenant().setId("tenant-1")));
-        assertFalse(resultSet.wasApplied(), "Tenants should not be overwritten");
+        MetricsTestUtils.getUninterruptibly(context.getDataAccess().insertTenant(new Tenant().setId("tenant-1")));
+        ResultSet resultSet = MetricsTestUtils.getUninterruptibly(context.getDataAccess().insertTenant(
+                new Tenant().setId("tenant-1")));
+        assertFalse("Tenants should not be overwritten", resultSet.wasApplied());
     }
 
     @Test
@@ -130,18 +148,19 @@ public class DataAccessTest extends MetricsTest {
         metric.addData(new NumericData(metric, start.plusMinutes(2).getMillis(), 1.234));
         metric.addData(new NumericData(metric, end.getMillis(), 1.234));
 
-        getUninterruptibly(dataAccess.insertData(metric, MetricsServiceCassandra.DEFAULT_TTL));
+        MetricsTestUtils.getUninterruptibly(context.getDataAccess().insertData(metric,
+                MetricsServiceCassandra.DEFAULT_TTL));
 
-        ResultSetFuture queryFuture = dataAccess.findData(metric, start.getMillis(), end.getMillis());
+        ResultSetFuture queryFuture = context.getDataAccess().findData(metric, start.getMillis(), end.getMillis());
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
-        List<NumericData> actual = getUninterruptibly(dataFuture);
+        List<NumericData> actual = MetricsTestUtils.getUninterruptibly(dataFuture);
         List<NumericData> expected = asList(
             new NumericData(metric, start.plusMinutes(2).getMillis(), 1.234),
             new NumericData(metric, start.plusMinutes(1).getMillis(), 1.234),
             new NumericData(metric, start.getMillis(), 1.23)
         );
 
-        assertEquals(actual, expected, "The data does not match the expected values");
+        assertEquals("The data does not match the expected values", expected, actual);
     }
 
     @Test
@@ -152,25 +171,26 @@ public class DataAccessTest extends MetricsTest {
         NumericMetric metric = new NumericMetric("tenant-1", new MetricId("metric-1"),
             ImmutableMap.of("units", "KB", "env", "test"));
 
-        ResultSetFuture insertFuture = dataAccess.addMetadata(metric);
-        getUninterruptibly(insertFuture);
+        ResultSetFuture insertFuture = context.getDataAccess().addMetadata(metric);
+        MetricsTestUtils.getUninterruptibly(insertFuture);
 
         metric.addData(new NumericData(metric, start.getMillis(), 1.23));
         metric.addData(new NumericData(metric, start.plusMinutes(2).getMillis(), 1.234));
         metric.addData(new NumericData(metric, start.plusMinutes(4).getMillis(), 1.234));
         metric.addData(new NumericData(metric, end.getMillis(), 1.234));
-        getUninterruptibly(dataAccess.insertData(metric, MetricsServiceCassandra.DEFAULT_TTL));
+        MetricsTestUtils.getUninterruptibly(context.getDataAccess().insertData(metric,
+                MetricsServiceCassandra.DEFAULT_TTL));
 
-        ResultSetFuture queryFuture = dataAccess.findData(metric, start.getMillis(), end.getMillis());
+        ResultSetFuture queryFuture = context.getDataAccess().findData(metric, start.getMillis(), end.getMillis());
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
-        List<NumericData> actual = getUninterruptibly(dataFuture);
+        List<NumericData> actual = MetricsTestUtils.getUninterruptibly(dataFuture);
         List<NumericData> expected = asList(
             new NumericData(metric, start.plusMinutes(4).getMillis(), 1.234),
             new NumericData(metric, start.plusMinutes(2).getMillis(), 1.234),
             new NumericData(metric, start.getMillis(), 1.23)
         );
 
-        assertEquals(actual, expected, "The data does not match the expected values");
+        assertEquals("The data does not match the expected values", expected, actual);
     }
 
 //    @Test
@@ -211,15 +231,15 @@ public class DataAccessTest extends MetricsTest {
 //            .setTimestamp(end.getMillis())
 //            .setValue(22.2);
 //
-//        getUninterruptibly(dataAccess.insertNumericData(d1));
-//        getUninterruptibly(dataAccess.insertNumericData(d2));
-//        getUninterruptibly(dataAccess.insertNumericData(d3));
-//        getUninterruptibly(dataAccess.insertNumericData(d4));
+//        CoreMetricsSuite.getUninterruptibly(context.getDataAccess().insertNumericData(d1));
+//        CoreMetricsSuite.getUninterruptibly(context.getDataAccess().insertNumericData(d2));
+//        CoreMetricsSuite.getUninterruptibly(context.getDataAccess().insertNumericData(d3));
+//        CoreMetricsSuite.getUninterruptibly(context.getDataAccess().insertNumericData(d4));
 //
-//        ResultSetFuture queryFuture = dataAccess.findNumericData(d1.getTenantId(), d1.getId(), 0L, start.getMillis(),
-//            end.getMillis());
+//        ResultSetFuture queryFuture = context.getDataAccess().findNumericData(d1.getTenantId(), d1.getId(), 0L,
+//            start.getMillis(), end.getMillis());
 //        ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
-//        List<NumericData> actual = getUninterruptibly(dataFuture);
+//        List<NumericData> actual = CoreMetricsSuite.getUninterruptibly(dataFuture);
 //        List<NumericData> expected = asList(d3, d2, d1);
 //
 //        assertEquals(actual, expected, "The aggregated numeric data does not match");
@@ -229,14 +249,15 @@ public class DataAccessTest extends MetricsTest {
     public void updateCounterAndFindCounter() throws Exception {
         Counter counter = new Counter("t1", "simple-test", "c1", 1);
 
-        ResultSetFuture future = dataAccess.updateCounter(counter);
-        getUninterruptibly(future);
+        ResultSetFuture future = context.getDataAccess().updateCounter(counter);
+        MetricsTestUtils.getUninterruptibly(future);
 
-        ResultSetFuture queryFuture = dataAccess.findCounters("t1", "simple-test", asList("c1"));
-        List<Counter> actual = getUninterruptibly(Futures.transform(queryFuture, new CountersMapper()));
+        ResultSetFuture queryFuture = context.getDataAccess().findCounters("t1", "simple-test", asList("c1"));
+        List<Counter> actual = MetricsTestUtils
+                .getUninterruptibly(Futures.transform(queryFuture, new CountersMapper()));
         List<Counter> expected = asList(counter);
 
-        assertEquals(actual, expected, "The counters do not match");
+        assertEquals("The counters do not match", expected, actual);
     }
 
     @Test
@@ -249,13 +270,14 @@ public class DataAccessTest extends MetricsTest {
             new Counter(tenantId, group, "c3", 3)
         );
 
-        ResultSetFuture future = dataAccess.updateCounters(expected);
-        getUninterruptibly(future);
+        ResultSetFuture future = context.getDataAccess().updateCounters(expected);
+        MetricsTestUtils.getUninterruptibly(future);
 
-        ResultSetFuture queryFuture = dataAccess.findCounters(tenantId, group);
-        List<Counter> actual = getUninterruptibly(Futures.transform(queryFuture, new CountersMapper()));
+        ResultSetFuture queryFuture = context.getDataAccess().findCounters(tenantId, group);
+        List<Counter> actual = MetricsTestUtils
+                .getUninterruptibly(Futures.transform(queryFuture, new CountersMapper()));
 
-        assertEquals(actual, expected, "The counters do not match the expected values");
+        assertEquals("The counters do not match the expected values", expected, actual);
     }
 
     @Test
@@ -265,14 +287,15 @@ public class DataAccessTest extends MetricsTest {
         Counter c3 = new Counter("t2", "group2", "c1", 1);
         Counter c4 = new Counter("t2", "group2", "c2", 2);
 
-        ResultSetFuture future = dataAccess.updateCounters(asList(c1, c2, c3, c4));
-        getUninterruptibly(future);
+        ResultSetFuture future = context.getDataAccess().updateCounters(asList(c1, c2, c3, c4));
+        MetricsTestUtils.getUninterruptibly(future);
 
-        ResultSetFuture queryFuture = dataAccess.findCounters("t1", c1.getGroup());
-        List<Counter> actual = getUninterruptibly(Futures.transform(queryFuture, new CountersMapper()));
+        ResultSetFuture queryFuture = context.getDataAccess().findCounters("t1", c1.getGroup());
+        List<Counter> actual = MetricsTestUtils
+                .getUninterruptibly(Futures.transform(queryFuture, new CountersMapper()));
         List<Counter> expected = asList(c1, c2);
 
-        assertEquals(actual, expected, "The counters do not match the expected values when filtering by group");
+        assertEquals("The counters do not match the expected values when filtering by group", expected, actual);
     }
 
     @Test
@@ -283,15 +306,16 @@ public class DataAccessTest extends MetricsTest {
         Counter c2 = new Counter(tenantId, group, "c2", 2);
         Counter c3 = new Counter(tenantId, group, "c3", 3);
 
-        ResultSetFuture future = dataAccess.updateCounters(asList(c1, c2, c3));
-        getUninterruptibly(future);
+        ResultSetFuture future = context.getDataAccess().updateCounters(asList(c1, c2, c3));
+        MetricsTestUtils.getUninterruptibly(future);
 
-        ResultSetFuture queryFuture = dataAccess.findCounters(tenantId, group, asList("c1", "c3"));
-        List<Counter> actual = getUninterruptibly(Futures.transform(queryFuture, new CountersMapper()));
+        ResultSetFuture queryFuture = context.getDataAccess().findCounters(tenantId, group, asList("c1", "c3"));
+        List<Counter> actual = MetricsTestUtils
+                .getUninterruptibly(Futures.transform(queryFuture, new CountersMapper()));
         List<Counter> expected = asList(c1, c3);
 
-        assertEquals(actual, expected,
-            "The counters do not match the expected values when filtering by group and by counter names");
+        assertEquals("The counters do not match the expected values when filtering by group and by counter names",
+                expected, actual);
     }
 
     @Test
@@ -302,14 +326,15 @@ public class DataAccessTest extends MetricsTest {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId("m1"));
         metric.addData(new Availability(metric, start.getMillis(), "up"));
 
-        getUninterruptibly(dataAccess.insertData(metric, 360));
+        MetricsTestUtils.getUninterruptibly(context.getDataAccess().insertData(metric, 360));
 
-        ResultSetFuture future = dataAccess.findAvailabilityData(metric, start.getMillis(), end.getMillis());
+        ResultSetFuture future = context.getDataAccess().findAvailabilityData(metric, start.getMillis(),
+                end.getMillis());
         ListenableFuture<List<Availability>> dataFuture = Futures.transform(future, new AvailabilityDataMapper());
-        List<Availability> actual = getUninterruptibly(dataFuture);
+        List<Availability> actual = MetricsTestUtils.getUninterruptibly(dataFuture);
         List<Availability> expected = asList(new Availability(metric, start.getMillis(), "up"));
 
-        assertEquals(actual, expected, "The availability data does not match the expected values");
+        assertEquals("The availability data does not match the expected values", expected, actual);
     }
 
 }

@@ -20,10 +20,11 @@ import static org.rhq.metrics.core.Interval.Units.DAYS;
 import static org.rhq.metrics.core.Interval.Units.HOURS;
 import static org.rhq.metrics.core.Interval.Units.MINUTES;
 import static org.rhq.metrics.core.Interval.parse;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
-import org.testng.annotations.Test;
+import org.junit.Test;
+
 
 /**
  * @author John Sanda
@@ -32,9 +33,9 @@ public class IntervalTest {
 
     @Test
     public void parseIntervals() {
-        assertEquals(parse("15min"), new Interval(15, MINUTES));
-        assertEquals(parse("1hr"), new Interval(1, HOURS));
-        assertEquals(parse("1d"), new Interval(1, DAYS));
+        assertEquals(new Interval(15, MINUTES), parse("15min"));
+        assertEquals(new Interval(1, HOURS), parse("1hr"));
+        assertEquals(new Interval(1, DAYS), parse("1d"));
 
         assertExceptionThrown("15minutes");
         assertExceptionThrown("15 minutes");
