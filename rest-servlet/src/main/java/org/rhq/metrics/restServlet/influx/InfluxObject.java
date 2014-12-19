@@ -9,18 +9,18 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @SuppressWarnings("unused")
 @XmlRootElement
-class InfluxObject {
+public class InfluxObject {
 
-    InfluxObject() {
+    public InfluxObject() {
     }
 
-    InfluxObject(String name) {
+    public InfluxObject(String name) {
         this.name = name;
     }
 
-    String name;
-    List<String> columns;
-    List<List<?>> points;
+    public String name;
+    public List<String> columns;
+    public List<List<?>> points;
 
     public String getName() {
         return name;
