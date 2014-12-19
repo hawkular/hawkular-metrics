@@ -11,6 +11,14 @@ BACKEND=mem
 # By default bind user ports to all interfaces
 BIND_ADDR=0.0.0.0
 
+# Use the path to maven settings.xml file from the environment if available
+if [ -n "${MVN_SETTINGS}" ]
+then
+    MVN_SETTINGS_OPT="-s \"${MVN_SETTINGS}\""
+else
+    MVN_SETTINGS_OPT=""
+fi
+
 if [ x$1 == "xcass" -o x$1 == "xmem" ]
 then
     BACKEND=$1
@@ -24,7 +32,7 @@ fi
 
 WFLY_VERSION=`grep "<version.wildfly>" pom.xml | sed -E 's/^.*y>(8.*l)<.*$/\1/'`
 
-mvn install -DskipTests
+mvn install -DskipTests ${MVN_SETTINGS_OPT}
 if [ $? -ne 0 ]
 then
    exit;
@@ -35,7 +43,7 @@ then
     mkdir target
 fi
 
-MVN_REPO=`mvn help:evaluate -Dexpression=settings.localRepository | grep -vF "[INFO]" | tail -1`
+MVN_REPO=`mvn help:evaluate -Dexpression=settings.localRepository ${MVN_SETTINGS_OPT} | grep -vF "[INFO]" | tail -1`
 WFLY_ZIP=${MVN_REPO}/org/wildfly/wildfly-dist/${WFLY_VERSION}/wildfly-dist-${WFLY_VERSION}.zip
 
 if [ ! -e target/wild* ]
