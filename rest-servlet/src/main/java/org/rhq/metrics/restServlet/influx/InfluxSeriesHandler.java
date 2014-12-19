@@ -16,6 +16,7 @@ import java.util.TreeSet;
 import javax.annotation.Resource;
 import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -38,14 +39,13 @@ import org.joda.time.Interval;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
-import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
 import org.rhq.metrics.restServlet.StringValue;
 import org.rhq.metrics.restServlet.influx.query.InfluxQueryParseTreeWalker;
+import org.rhq.metrics.restServlet.influx.query.ListSeriesEvent;
 import org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParser;
 import org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParserFactory;
 import org.rhq.metrics.restServlet.influx.query.parse.QueryParseException;
@@ -86,6 +86,8 @@ public class InfluxSeriesHandler {
     private QueryValidator queryValidator;
     @Inject
     private ToIntervalTranslator toIntervalTranslator;
+    @Inject
+    private Event<ListSeriesEvent> listSeriesEvent;
 
     @Resource
     private ManagedExecutorService executor;
@@ -116,7 +118,7 @@ public class InfluxSeriesHandler {
 
         switch (queryType) {
         case LIST_SERIES:
-            listSeries(asyncResponse, tenantId);
+            listSeriesEvent.fire(new ListSeriesEvent(asyncResponse, tenantId));
             break;
         case SELECT:
             select(asyncResponse, tenantId, queryContext.selectQuery());
@@ -125,35 +127,6 @@ public class InfluxSeriesHandler {
             StringValue errMsg = new StringValue("Query not yet supported: " + queryString);
             asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity(errMsg).build());
         }
-    }
-
-    private void listSeries(AsyncResponse asyncResponse, String tenantId) {
-        ListenableFuture<List<Metric>> future = metricsService.findMetrics(tenantId, MetricType.NUMERIC);
-        Futures.addCallback(future, new FutureCallback<List<Metric>>() {
-            @Override
-            public void onSuccess(List<Metric> result) {
-                List<InfluxObject> objects = new ArrayList<>(result.size());
-
-                for (Metric metric : result) {
-                    InfluxObject obj = new InfluxObject(metric.getId().getName());
-                    obj.columns = new ArrayList<>(2);
-                    obj.columns.add("time");
-                    obj.columns.add("sequence_number");
-                    obj.columns.add("val");
-                    obj.points = new ArrayList<>(1);
-                    objects.add(obj);
-                }
-
-                Response.ResponseBuilder builder = Response.ok(objects);
-
-                asyncResponse.resume(builder.build());
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                asyncResponse.resume(t);
-            }
-        }, executor);
     }
 
     private void select(AsyncResponse asyncResponse, String tenantId, SelectQueryContext selectQueryContext) {
