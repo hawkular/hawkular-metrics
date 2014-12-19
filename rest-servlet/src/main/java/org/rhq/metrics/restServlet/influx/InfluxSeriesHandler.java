@@ -31,6 +31,7 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.FutureCallback;
@@ -49,6 +50,7 @@ import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.restServlet.DataInsertedCallback;
 import org.rhq.metrics.restServlet.StringValue;
 import org.rhq.metrics.restServlet.influx.query.InfluxQueryParseTreeWalker;
 import org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParser;
@@ -113,6 +115,28 @@ public class InfluxSeriesHandler {
             asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build());
             return;
         }
+        List<NumericMetric2> numericMetrics = FluentIterable.from(influxObjects) //
+            .transform(influxObject -> {
+                List<String> influxObjectColumns = influxObject.getColumns();
+                int valueColumnIndex = influxObjectColumns.indexOf("value");
+                List<List<?>> influxObjectPoints = influxObject.getPoints();
+                NumericMetric2 numericMetric = new NumericMetric2(tenantId, new MetricId(influxObject.getName()));
+                for (List<?> point : influxObjectPoints) {
+                    double value;
+                    long timestamp;
+                    if (influxObjectColumns.size() == 1) {
+                        timestamp = System.currentTimeMillis();
+                        value = ((Number) point.get(0)).doubleValue();
+                    } else {
+                        timestamp = ((Number) point.get((valueColumnIndex + 1) % 2)).longValue();
+                        value = ((Number) point.get(valueColumnIndex)).doubleValue();
+                    }
+                    numericMetric.addData(timestamp, value);
+                }
+                return numericMetric;
+            }).toList();
+        ListenableFuture<Void> future = metricsService.addNumericData(numericMetrics);
+        Futures.addCallback(future, new DataInsertedCallback(asyncResponse, "Failed to insert data"));
     }
 
     @GET

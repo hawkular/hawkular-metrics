@@ -144,13 +144,14 @@ class InfluxITest extends RESTTest {
   }
 
   private static void postData(String timeseriesName, DateTime start) {
-    def response = rhqm.post(path: "${tenantId}/metrics/numeric/data", body: [
+    def response = rhqm.post(path: "tenants/${tenantId}/influx/series", body: [
         [
             name: timeseriesName,
-            data: [
-                [timestamp: start.millis, value: 40.1],
-                [timestamp: start.plus(1000).millis, value: 41.1],
-                [timestamp: start.plus(2000).millis, value: 42.1]
+            columns: ["time", "value"],
+            points: [
+                [start.millis, 40.1],
+                [start.plus(1000).millis, 41.1],
+                [start.plus(2000).millis, 42.1]
             ]
         ]
     ])
