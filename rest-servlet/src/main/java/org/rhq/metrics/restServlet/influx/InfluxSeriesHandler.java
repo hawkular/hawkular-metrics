@@ -1,6 +1,9 @@
 package org.rhq.metrics.restServlet.influx;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static javax.ws.rs.core.Response.ResponseBuilder;
+import static javax.ws.rs.core.Response.Status;
 import static org.rhq.metrics.core.MetricsService.DEFAULT_TENANT_ID;
 import static org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParser.QueryContext;
 import static org.rhq.metrics.restServlet.influx.query.parse.InfluxQueryParser.SelectQueryContext;
@@ -17,7 +20,9 @@ import javax.annotation.Resource;
 import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -63,6 +68,8 @@ import org.rhq.metrics.restServlet.influx.query.translate.ToIntervalTranslator;
 import org.rhq.metrics.restServlet.influx.query.validation.AggregationFunction;
 import org.rhq.metrics.restServlet.influx.query.validation.IllegalQueryException;
 import org.rhq.metrics.restServlet.influx.query.validation.QueryValidator;
+import org.rhq.metrics.restServlet.influx.write.validation.InfluxObjectValidator;
+import org.rhq.metrics.restServlet.influx.write.validation.InvalidObjectException;
 
 /**
  * Some support for InfluxDB clients like Grafana.
@@ -70,32 +77,50 @@ import org.rhq.metrics.restServlet.influx.query.validation.QueryValidator;
  * @author Heiko W. Rupp
  */
 @Path("/tenants/{tenantId}/influx/series")
-@Produces("application/json")
+@Produces(APPLICATION_JSON)
 @ApplicationScoped
 public class InfluxSeriesHandler {
     private static final Logger LOG = LoggerFactory.getLogger(InfluxSeriesHandler.class);
 
     @Inject
-    private MetricsService metricsService;
+    MetricsService metricsService;
+    @Inject
+    InfluxObjectValidator objectValidator;
     @Inject
     @InfluxQueryParseTreeWalker
-    private ParseTreeWalker parseTreeWalker;
+    ParseTreeWalker parseTreeWalker;
     @Inject
-    private InfluxQueryParserFactory parserFactory;
+    InfluxQueryParserFactory parserFactory;
     @Inject
-    private QueryValidator queryValidator;
+    QueryValidator queryValidator;
     @Inject
-    private ToIntervalTranslator toIntervalTranslator;
+    ToIntervalTranslator toIntervalTranslator;
 
     @Resource
-    private ManagedExecutorService executor;
+    ManagedExecutorService executor;
+
+    @POST
+    @Consumes(APPLICATION_JSON)
+    public void write(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
+        List<InfluxObject> influxObjects) {
+        if (influxObjects == null) {
+            asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity("Null objects").build());
+            return;
+        }
+        try {
+            objectValidator.validateInfluxObjects(influxObjects);
+        } catch (InvalidObjectException e) {
+            asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build());
+            return;
+        }
+    }
 
     @GET
-    public void series(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
+    public void query(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
                        @QueryParam("q") String queryString) {
 
         if (queryString==null || queryString.isEmpty()) {
-            asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity("Missing query").build());
+            asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity("Missing query").build());
             return;
         }
 
@@ -107,7 +132,7 @@ public class InfluxSeriesHandler {
             queryType = new QueryTypeVisitor().visit(queryContext);
         } catch (QueryParseException e) {
             StringValue errMsg = new StringValue("Syntactically incorrect query: " + e.getMessage());
-            asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity(errMsg).build());
+            asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity(errMsg).build());
             return;
         } catch (Exception e) {
             asyncResponse.resume(e);
@@ -123,7 +148,7 @@ public class InfluxSeriesHandler {
             break;
         default:
             StringValue errMsg = new StringValue("Query not yet supported: " + queryString);
-            asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity(errMsg).build());
+            asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity(errMsg).build());
         }
     }
 
@@ -135,16 +160,19 @@ public class InfluxSeriesHandler {
                 List<InfluxObject> objects = new ArrayList<>(result.size());
 
                 for (Metric metric : result) {
-                    InfluxObject obj = new InfluxObject(metric.getId().getName());
-                    obj.columns = new ArrayList<>(2);
-                    obj.columns.add("time");
-                    obj.columns.add("sequence_number");
-                    obj.columns.add("val");
-                    obj.points = new ArrayList<>(1);
+                    InfluxObject obj = new InfluxObject();
+                    obj.setName(metric.getId().getName());
+                    List<String> columns = new ArrayList<>(2);
+                    columns.add("time");
+                    columns.add("sequence_number");
+                    columns.add("val");
+                    obj.setColumns(columns);
+                    List<List<?>> points = new ArrayList<>(1);
+                    obj.setPoints(points);
                     objects.add(obj);
                 }
 
-                Response.ResponseBuilder builder = Response.ok(objects);
+                ResponseBuilder builder = Response.ok(objects);
 
                 asyncResponse.resume(builder.build());
             }
@@ -167,7 +195,7 @@ public class InfluxSeriesHandler {
             queryValidator.validateSelectQuery(queryDefinitions);
         } catch (IllegalQueryException e) {
             StringValue errMsg = new StringValue("Illegal query: " + e.getMessage());
-            asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity(errMsg).build());
+            asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity(errMsg).build());
             return;
         }
 
@@ -181,7 +209,7 @@ public class InfluxSeriesHandler {
         }
         if (timeInterval == null) {
             StringValue errMsg = new StringValue("Invalid time interval");
-            asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity(errMsg).build());
+            asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity(errMsg).build());
             return;
         }
         String columnName = getColumnName(queryDefinitions);
@@ -203,11 +231,14 @@ public class InfluxSeriesHandler {
 
                     List<InfluxObject> objects = new ArrayList<>(1);
 
-                    InfluxObject obj = new InfluxObject(metric);
-                    obj.columns = new ArrayList<>(2);
-                    obj.columns.add("time");
-                    obj.columns.add(columnName);
-                    obj.points = new ArrayList<>();
+                    InfluxObject obj = new InfluxObject();
+                    obj.setName(metric);
+                    List<String>columns = new ArrayList<>(2);
+                    columns.add("time");
+                    columns.add(columnName);
+                    obj.setColumns(columns);
+                    List<List<?>> points = new ArrayList<>();
+                    obj.setPoints(points);
 
                     if (shouldApplyMapping(queryDefinitions)) {
                         GroupByClause groupByClause = queryDefinitions.getGroupByClause();
@@ -233,7 +264,7 @@ public class InfluxSeriesHandler {
                         List<Object> data = new ArrayList<>();
                         data.add(m.getTimestamp());
                         data.add(m.getValue());
-                        obj.points.add(data);
+                        points.add(data);
                     }
 
                     objects.add(obj);
@@ -247,7 +278,7 @@ public class InfluxSeriesHandler {
                     StringValue val = new StringValue("Metric with id [" + metric + "] not found. ");
                     asyncResponse.resume(Response.status(404).entity(val).build());
                 } else {
-                    Response.ResponseBuilder builder = Response.ok(objects);
+                    ResponseBuilder builder = Response.ok(objects);
                     asyncResponse.resume(builder.build());
                 }
             }

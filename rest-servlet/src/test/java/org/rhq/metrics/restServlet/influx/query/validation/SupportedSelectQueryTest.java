@@ -29,7 +29,7 @@ import org.rhq.metrics.restServlet.influx.query.parse.definition.SelectQueryDefi
 public class SupportedSelectQueryTest {
 
     @Parameters(name = "supportedQuery: {0}")
-    public static Iterable<Object[]> testValidQueries() throws Exception {
+    public static Iterable<Object[]> testSupportedQueries() throws Exception {
         URL resource = Resources.getResource("influx/query/supported-select-queries");
         return FluentIterable //
             .from(Resources.readLines(resource, Charset.forName("UTF-8"))) //

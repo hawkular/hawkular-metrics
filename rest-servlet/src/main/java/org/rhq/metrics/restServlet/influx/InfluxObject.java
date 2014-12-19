@@ -2,25 +2,13 @@ package org.rhq.metrics.restServlet.influx;
 
 import java.util.List;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * Transfer object which is returned by Influx queries
  */
-@SuppressWarnings("unused")
-@XmlRootElement
-class InfluxObject {
-
-    InfluxObject() {
-    }
-
-    InfluxObject(String name) {
-        this.name = name;
-    }
-
-    String name;
-    List<String> columns;
-    List<List<?>> points;
+public class InfluxObject {
+    private String name;
+    private List<String> columns;
+    private List<List<?>> points;
 
     public String getName() {
         return name;
