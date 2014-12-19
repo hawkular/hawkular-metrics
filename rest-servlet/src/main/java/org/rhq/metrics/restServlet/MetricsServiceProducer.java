@@ -13,17 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.rhq.metrics.restServlet;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.rhq.metrics.RHQMetrics;
 import org.rhq.metrics.core.MetricsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author John Sanda
@@ -43,17 +41,20 @@ public class MetricsServiceProducer {
 
             if (backend != null) {
                 switch (backend) {
-                    case "cass":
-                        LOG.info("Using Cassandra backend implementation");
-                        metricsServiceBuilder.withCassandraDataStore();
-                        break;
-                    case "mem":
-                    default:
-                        LOG.info("Using memory backend implementation");
-                        metricsServiceBuilder.withInMemoryDataStore();
+                case "cass":
+                    LOG.info("Using Cassandra backend implementation");
+                    metricsServiceBuilder.withCassandraDataStore();
+                    break;
+                case "mem":
+                    LOG.info("Using memory backend implementation");
+                    metricsServiceBuilder.withInMemoryDataStore();
+                case "embedded_cass":
+                default:
+                    LOG.info("Using Cassandra backend implementation with an embedded Server");
+                    metricsServiceBuilder.withCassandraDataStore();
                 }
             } else {
-                metricsServiceBuilder.withInMemoryDataStore();
+                metricsServiceBuilder.withCassandraDataStore();
             }
 
             metricsService = metricsServiceBuilder.build();

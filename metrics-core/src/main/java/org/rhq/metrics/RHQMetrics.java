@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.impl.cassandra.MetricsServiceCassandra;
+import org.rhq.metrics.impl.embedded.MetricsServiceEmbeddedCassandra;
 import org.rhq.metrics.impl.memory.MemoryMetricsService;
 
 /**
@@ -30,9 +31,13 @@ public class RHQMetrics {
 
     public static class Builder {
 
-        private boolean usingCassandra;
+        private enum DataStoreType {
+            Cassandra, EmbeddedCassandra, InMemory
+        };
 
-        private Map<String, String> options;
+        private DataStoreType dataStoreType = DataStoreType.EmbeddedCassandra;
+
+        private final Map<String, String> options;
 
         public Builder() {
             String cassandraCqlPortString = System.getenv("CASSANDRA_CQL_PORT");
@@ -57,12 +62,17 @@ public class RHQMetrics {
         }
 
         public Builder withInMemoryDataStore() {
-            usingCassandra = false;
+            dataStoreType = DataStoreType.InMemory;
+            return this;
+        }
+
+        public Builder withEmbeddedCassandraDataStore() {
+            dataStoreType = DataStoreType.EmbeddedCassandra;
             return this;
         }
 
         public Builder withCassandraDataStore() {
-            usingCassandra = true;
+            dataStoreType = DataStoreType.Cassandra;
             return this;
         }
 
@@ -91,11 +101,14 @@ public class RHQMetrics {
         public MetricsService build() {
             MetricsService metricsService;
 
-            if (usingCassandra) {
+            if (DataStoreType.Cassandra.equals(dataStoreType)) {
                 metricsService = new MetricsServiceCassandra();
-            } else {
+            } else if (DataStoreType.InMemory.equals(dataStoreType)) {
                 metricsService = new MemoryMetricsService();
+            } else {
+                metricsService = new MetricsServiceCassandra();
             }
+
             metricsService.startUp(options);
 
             return metricsService;
@@ -103,7 +116,7 @@ public class RHQMetrics {
 
     }
 
-    private MetricsService metricsService;
+    private final MetricsService metricsService;
 
     private RHQMetrics(MetricsService metricsService) {
         this.metricsService = metricsService;

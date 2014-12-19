@@ -9,7 +9,7 @@
     <version>0.2.6-SNAPSHOT</version>
   </parent>
   <artifactId>embedded-cassandra</artifactId>
-  <packaging>war</packaging>
+  <packaging>pom</packaging>
 
   <name>Embedded Cassandra for RHQ Metrics</name>
   <description>Embedded Cassandra server for RHQ-Metrics</description>
@@ -17,108 +17,26 @@
   <properties>
     <swagger-annotations.version>1.2.3</swagger-annotations.version>
     <rest-docs-generator.version>4.11.0</rest-docs-generator.version>
+    <version.ear.plugin>2.9.1</version.ear.plugin>
+    <version.compiler.plugin>3.1</version.compiler.plugin>
+    <version.ejb.plugin>2.3</version.ejb.plugin>
   </properties>
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.wildfly.bom</groupId>
-        <artifactId>jboss-javaee-7.0-with-resteasy</artifactId>
-        <version>${version.wildfly}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
-  <dependencies>
-    <dependency>
-      <groupId>org.rhq.metrics</groupId>
-      <artifactId>rhq-metrics-core</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <!-- Wildfly provided -->
-    <dependency>
-      <groupId>org.jboss.spec.javax.servlet</groupId>
-      <artifactId>jboss-servlet-api_3.1_spec</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>javax.enterprise</groupId>
-      <artifactId>cdi-api</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.spec.javax.enterprise.concurrent</groupId>
-      <artifactId>jboss-concurrency-api_1.0_spec</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.jboss.spec.javax.annotation</groupId>
-      <artifactId>jboss-annotations-api_1.1_spec</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.jboss.spec.javax.ejb</groupId>
-      <artifactId>jboss-ejb-api_3.2_spec</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
-    <!-- documentation -->
-    <dependency>
-      <groupId>com.wordnik</groupId>
-      <artifactId>swagger-annotations_2.9.1</artifactId>
-      <version>${swagger-annotations.version}</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <!-- test -->
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.assertj</groupId>
-      <artifactId>assertj-core</artifactId>
-    </dependency>
-
-  </dependencies>
+  <modules>
+    <module>embedded-cassandra-service</module>
+    <module>embedded-cassandra-ear</module>
+  </modules>
 
   <build>
     <finalName>rhq-metrics-embedded-cassandra</finalName>
     <plugins>
-
       <plugin>
-        <groupId>org.antlr</groupId>
-        <artifactId>antlr4-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>antlr4</id>
-            <goals>
-              <goal>antlr4</goal>
-            </goals>
-            <phase>generate-sources</phase>
-            <configuration>
-              <listener>true</listener>
-              <visitor>true</visitor>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
-      <plugin>
-        <artifactId>maven-war-plugin</artifactId>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-ear-plugin</artifactId>
+        <version>${version.ear.plugin}</version>
         <configuration>
-          <failOnMissingWebXml>false</failOnMissingWebXml>
-          <archive>
-            <manifest>
-              <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
-              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-            </manifest>
-          </archive>
+          <version>6</version>
+          <defaultLibBundleDir>lib</defaultLibBundleDir>
         </configuration>
       </plugin>
 
@@ -127,6 +45,7 @@
         <artifactId>wildfly-maven-plugin</artifactId>
         <version>1.0.2.Final</version>
         <configuration>
+          <skip>false</skip>
           <jvmArgs>-Drhq-metrics.backend=em_cass -Xdebug
             -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</jvmArgs>
         </configuration>

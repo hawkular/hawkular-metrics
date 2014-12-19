@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <artifactId>rhq-metrics-parent</artifactId>
+    <groupId>org.rhq.metrics</groupId>
+    <version>0.2.6-SNAPSHOT</version>
+  </parent>
+  <artifactId>embedded-cassandra-ear</artifactId>
+  <packaging>ear</packaging>
+
+  <name>Embedded Cassandra EAR for RHQ Metrics</name>
+  <description>Embedded Cassandra Server EAR for RHQ-Metrics</description>
+
+  <properties>
+    <version.ear.plugin>2.9.1</version.ear.plugin>
+    <version.compiler.plugin>3.1</version.compiler.plugin>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.wildfly.bom</groupId>
+        <artifactId>jboss-javaee-7.0-with-resteasy</artifactId>
+        <version>${version.wildfly}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.rhq.metrics</groupId>
+      <artifactId>embedded-cassandra-service</artifactId>
+      <type>ejb</type>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>rhq-metrics-embedded-cassandra</finalName>
+    <plugins>
+
+      <plugin>
+        <groupId>org.antlr</groupId>
+        <artifactId>antlr4-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>antlr4</id>
+            <goals>
+              <goal>antlr4</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <listener>true</listener>
+              <visitor>true</visitor>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-ear-plugin</artifactId>
+        <version>${version.ear.plugin}</version>
+        <configuration>
+          <version>6</version>
+          <defaultLibBundleDir>lib</defaultLibBundleDir>
+          <modules>
+           <ejbModule>
+              <groupId>org.rhq.metrics</groupId>
+              <artifactId>embedded-cassandra-service</artifactId>
+            </ejbModule>
+          </modules>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.wildfly.plugins</groupId>
+        <artifactId>wildfly-maven-plugin</artifactId>
+        <version>1.0.2.Final</version>
+        <configuration>
+          <skip>false</skip>
+          <jvmArgs>-Drhq-metrics.backend=embedded_cass -Xdebug
+            -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</jvmArgs>
+        </configuration>
+      </plugin>
+
+    </plugins>
+  </build>
+
+</project>
+

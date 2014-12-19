@@ -18,13 +18,10 @@
  */
 package org.rhq.metrics.embedded;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
-import javax.ejb.Schedule;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import javax.annotation.PreDestroy;
-import javax.annotation.PostConstruct;
 
 import org.apache.cassandra.service.CassandraDaemon;
 import org.slf4j.Logger;
@@ -41,6 +38,8 @@ public class EmbeddedCassandraService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmbeddedCassandraService.class);
 
+    private static final String EMBEDDED_CASSANDRA_OPTION = "embedded_cass";
+
     private CassandraDaemon cassandraDaemon;
 
     public EmbeddedCassandraService() {
@@ -50,7 +49,8 @@ public class EmbeddedCassandraService {
     @PostConstruct
     public void start() {
         synchronized (this) {
-            if(cassandraDaemon == null) {
+            String backend = System.getProperty("rhq-metrics.backend");
+            if (cassandraDaemon == null && EMBEDDED_CASSANDRA_OPTION.equals(backend)) {
                 try {
                     ConfigEditor editor = new ConfigEditor();
                     editor.initEmbeddedConfiguration();
@@ -67,16 +67,9 @@ public class EmbeddedCassandraService {
     @PreDestroy
     void stop() {
         synchronized (this) {
-            if(cassandraDaemon != null) {
+            if (cassandraDaemon != null) {
                 cassandraDaemon.deactivate();
             }
         }
-    }
-
-    @Schedule(second="*/6", minute="*",hour="*", persistent=false)
-    public void doWork(){
-        Date currentTime = new Date();
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy.MM.dd G 'at' HH:mm:ss z");
-        logger.error( "ScheduleExample.doWork() invoked at " + simpleDateFormat.format(currentTime) );
     }
 }
