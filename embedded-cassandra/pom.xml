@@ -26,33 +26,5 @@
     <module>embedded-cassandra-service</module>
     <module>embedded-cassandra-ear</module>
   </modules>
-
-  <build>
-    <finalName>rhq-metrics-embedded-cassandra</finalName>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-ear-plugin</artifactId>
-        <version>${version.ear.plugin}</version>
-        <configuration>
-          <version>6</version>
-          <defaultLibBundleDir>lib</defaultLibBundleDir>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.wildfly.plugins</groupId>
-        <artifactId>wildfly-maven-plugin</artifactId>
-        <version>1.0.2.Final</version>
-        <configuration>
-          <skip>false</skip>
-          <jvmArgs>-Drhq-metrics.backend=em_cass -Xdebug
-            -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</jvmArgs>
-        </configuration>
-      </plugin>
-
-    </plugins>
-  </build>
-
 </project>
 

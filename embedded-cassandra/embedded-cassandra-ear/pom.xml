@@ -45,24 +45,6 @@
     <plugins>
 
       <plugin>
-        <groupId>org.antlr</groupId>
-        <artifactId>antlr4-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>antlr4</id>
-            <goals>
-              <goal>antlr4</goal>
-            </goals>
-            <phase>generate-sources</phase>
-            <configuration>
-              <listener>true</listener>
-              <visitor>true</visitor>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-ear-plugin</artifactId>
         <version>${version.ear.plugin}</version>
@@ -70,7 +52,7 @@
           <version>6</version>
           <defaultLibBundleDir>lib</defaultLibBundleDir>
           <modules>
-           <ejbModule>
+            <ejbModule>
               <groupId>org.rhq.metrics</groupId>
               <artifactId>embedded-cassandra-service</artifactId>
             </ejbModule>
@@ -83,6 +65,7 @@
         <artifactId>wildfly-maven-plugin</artifactId>
         <version>1.0.2.Final</version>
         <configuration>
+          <version>${version.wildfly}</version>
           <skip>false</skip>
           <jvmArgs>-Drhq-metrics.backend=embedded_cass -Xdebug
             -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</jvmArgs>
