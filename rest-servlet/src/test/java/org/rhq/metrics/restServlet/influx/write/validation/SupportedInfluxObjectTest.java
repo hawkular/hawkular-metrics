@@ -1,0 +1,72 @@
+package org.rhq.metrics.restServlet.influx.write.validation;
+
+import static org.junit.runners.Parameterized.Parameters;
+
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.Charset;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Lists;
+import com.google.common.io.Resources;
+
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import org.rhq.metrics.restServlet.influx.InfluxObject;
+
+/**
+ * @author Thomas Segismont
+ */
+@RunWith(Parameterized.class)
+public class SupportedInfluxObjectTest {
+
+    @Parameters(name = "supportedInfluxObject: {1}")
+    public static Iterable<Object[]> testSupportedObjects() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        URL resource = Resources.getResource("influx/write/supported-write-objects");
+        return FluentIterable //
+            .from(Resources.readLines(resource, Charset.forName("UTF-8"))) //
+            // Filter out comment lines
+            .filter(new Predicate<String>() {
+                @Override
+                public boolean apply(String input) {
+                    return !input.startsWith("#");
+                }
+            }) //
+            .transform(new Function<String, Object[]>() {
+                @Override
+                public Object[] apply(String input) {
+                    try {
+                        return new Object[] { mapper.readValue(input, InfluxObject[].class), input };
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
+    }
+
+    @Rule
+    public final ExpectedException exception = ExpectedException.none();
+    private final InfluxObjectValidationRulesProducer rulesProducer = new InfluxObjectValidationRulesProducer();
+    private final InfluxObjectValidator influxObjectValidator;
+
+    private final InfluxObject[] influxObjects;
+
+    public SupportedInfluxObjectTest(InfluxObject[] influxObjects, @SuppressWarnings("unused") String objectsAsText) {
+        this.influxObjects = influxObjects;
+        influxObjectValidator = new InfluxObjectValidator();
+        influxObjectValidator.validationRules = rulesProducer.influxObjectValidationRules();
+    }
+
+    @Test
+    public void supportedObjectsShouldPassValidation() throws Exception {
+        influxObjectValidator.validateInfluxObjects(Lists.newArrayList(influxObjects));
+    }
+}

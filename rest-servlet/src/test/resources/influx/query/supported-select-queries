@@ -1,4 +1,4 @@
-# Each line in this file will be used as a syntactically correct sample
+# Each line in this file will be used as a supported sample
 # for org.rhq.metrics.restServlet.influx.query.validation.SupportedSelectQueryTest
 # Lines starting with the hash-sign are ignored
 #
