@@ -184,16 +184,13 @@ public class InfluxSeriesHandler {
                 List<InfluxObject> objects = new ArrayList<>(result.size());
 
                 for (Metric metric : result) {
-                    InfluxObject obj = new InfluxObject();
-                    obj.setName(metric.getId().getName());
                     List<String> columns = new ArrayList<>(2);
                     columns.add("time");
                     columns.add("sequence_number");
                     columns.add("val");
-                    obj.setColumns(columns);
-                    List<List<?>> points = new ArrayList<>(1);
-                    obj.setPoints(points);
-                    objects.add(obj);
+                    InfluxObject.Builder builder = new InfluxObject.Builder(metric.getId().getName(), columns)
+                            .withForeseenPoints(0);
+                    objects.add(builder.createInfluxObject());
                 }
 
                 ResponseBuilder builder = Response.ok(objects);
@@ -253,17 +250,6 @@ public class InfluxSeriesHandler {
                         return null;
                     }
 
-                    List<InfluxObject> objects = new ArrayList<>(1);
-
-                    InfluxObject obj = new InfluxObject();
-                    obj.setName(metric);
-                    List<String>columns = new ArrayList<>(2);
-                    columns.add("time");
-                    columns.add(columnName);
-                    obj.setColumns(columns);
-                    List<List<?>> points = new ArrayList<>();
-                    obj.setPoints(points);
-
                     if (shouldApplyMapping(queryDefinitions)) {
                         GroupByClause groupByClause = queryDefinitions.getGroupByClause();
                         InfluxTimeUnit bucketSizeUnit = groupByClause.getBucketSizeUnit();
@@ -284,14 +270,23 @@ public class InfluxSeriesHandler {
                         metrics = metrics.subList(0, queryDefinitions.getLimitClause().getLimit());
                     }
 
+                    List<InfluxObject> objects = new ArrayList<>(1);
+
+                    List<String> columns = new ArrayList<>(2);
+                    columns.add("time");
+                    columns.add(columnName);
+
+                    InfluxObject.Builder builder = new InfluxObject.Builder(metric, columns)
+                            .withForeseenPoints(metrics.size());
+
                     for (NumericData m : metrics) {
                         List<Object> data = new ArrayList<>();
                         data.add(m.getTimestamp());
                         data.add(m.getValue());
-                        points.add(data);
+                        builder.addPoint(data);
                     }
 
-                    objects.add(obj);
+                    objects.add(builder.createInfluxObject());
 
                     return objects;
                 }, executor);
