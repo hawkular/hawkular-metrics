@@ -42,7 +42,8 @@ public class TokenReplacingReader extends Reader {
         this.resolvedTokens = new HashMap<String, String>();
     }
 
-    public TokenReplacingReader(String source, Map<String, String> tokens, Deque<String> activeTokens, Map<String, String> resolvedTokens) {
+    public TokenReplacingReader(String source, Map<String, String> tokens, Deque<String> activeTokens,
+            Map<String, String> resolvedTokens) {
         pushbackReader = new PushbackReader(new StringReader(source));
         this.tokens = tokens;
         this.activeTokens = activeTokens;
@@ -260,7 +261,8 @@ public class TokenReplacingReader extends Reader {
         }
 
         if (activeTokens.contains(tokenName)) {
-            throw new IllegalArgumentException("Token '" + tokenName + "' (indirectly) contains reference to itself in its value.");
+            throw new IllegalArgumentException("Token '" + tokenName
+                    + "' (indirectly) contains reference to itself in its value.");
         }
 
         activeTokens.push(tokenName);
@@ -269,7 +271,8 @@ public class TokenReplacingReader extends Reader {
 
         if (tokenValue != null) {
             if (tokenValue.contains("${")) {
-                TokenReplacingReader childReader = new TokenReplacingReader(tokenValue, tokens, activeTokens, resolvedTokens);
+                TokenReplacingReader childReader = new TokenReplacingReader(tokenValue, tokens, activeTokens,
+                        resolvedTokens);
 
                 tokenValue = readAll(childReader);
             }

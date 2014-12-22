@@ -82,7 +82,7 @@ public abstract class Metric<T extends MetricData> {
     }
 
     /**
-     * A set of key/value pairs that are shared by all data points for the metric. A good example is units like KB / sec.
+     * A set of key/value pairs that are shared by all data points for the metric. A good example is units like KB/sec.
      */
     public Map<String, String> getMetadata() {
         return Metadata;

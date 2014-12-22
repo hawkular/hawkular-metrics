@@ -122,7 +122,7 @@
     <checkstyleFailOnError>true</checkstyleFailOnError>
     <!-- the default value pointing at suppressions.xml in rhq-checkstyle-config dependency -->
     <checkstyle.suppressions.file>rhq-checkstyle/suppressions.xml</checkstyle.suppressions.file>
-    <rhq.checkstyle.config.version>2</rhq.checkstyle.config.version>
+    <rhq.checkstyle.config.version>3</rhq.checkstyle.config.version>
   </properties>
 
   <dependencyManagement>

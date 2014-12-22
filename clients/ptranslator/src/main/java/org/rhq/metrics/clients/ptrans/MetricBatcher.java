@@ -10,8 +10,8 @@ import io.netty.util.AttributeKey;
 import org.rhq.metrics.client.common.SingleMetric;
 
 /**
- * Batch several individual {@link org.rhq.metrics.client.common.SingleMetric} objects in a batch of {@link MetricBatcher#minimumBatchSize}
- * items to reduce backend communication overhead.
+ * Batch several individual {@link org.rhq.metrics.client.common.SingleMetric} objects in a batch of
+ * {@link MetricBatcher#minimumBatchSize} items to reduce backend communication overhead.
  *
  * @author Heiko W. Rupp
  */

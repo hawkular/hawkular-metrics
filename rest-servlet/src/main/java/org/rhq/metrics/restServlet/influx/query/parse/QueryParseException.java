@@ -21,7 +21,8 @@ public class QueryParseException extends RuntimeException {
         super(cause);
     }
 
-    protected QueryParseException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    protected QueryParseException(String message, Throwable cause, boolean enableSuppression,
+            boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 }

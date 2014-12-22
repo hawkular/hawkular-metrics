@@ -33,7 +33,8 @@ public class JsonPAsyncListener implements AsyncListener {
         // Async processing is complete. We can now wrap the
         // returned output stream and set the content type.
 
-        JsonPFilter.JsonPResponseWrapper responseWrapper = (JsonPFilter.JsonPResponseWrapper) asyncEvent.getSuppliedResponse();
+        JsonPFilter.JsonPResponseWrapper responseWrapper = (JsonPFilter.JsonPResponseWrapper) asyncEvent
+                .getSuppliedResponse();
 
         OutputStream responseOutputStream = origResponse.getOutputStream();
 
