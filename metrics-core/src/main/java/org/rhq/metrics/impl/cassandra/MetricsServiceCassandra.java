@@ -186,6 +186,7 @@ public class MetricsServiceCassandra implements MetricsService {
             nodes = new String[] {"127.0.0.1"};
         }
 
+        // TODO: extend this to remote C* by using C* defaults
         if (embeddedCassandraServer) {
             verifyNodeIsUp(nodes[0], 9990, 10, 1000);
         }
