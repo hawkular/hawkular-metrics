@@ -105,6 +105,8 @@ public class RHQMetrics {
                 metricsService = new MetricsServiceCassandra();
             } else if (DataStoreType.InMemory.equals(dataStoreType)) {
                 metricsService = new MemoryMetricsService();
+            } else if (DataStoreType.EmbeddedCassandra.equals(dataStoreType)) {
+                metricsService = new MetricsServiceCassandra(true);
             } else {
                 metricsService = new MetricsServiceCassandra();
             }

@@ -3,6 +3,7 @@ package org.rhq.metrics.impl.cassandra;
 import static org.joda.time.Hours.hours;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -23,26 +24,8 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.RateLimiter;
-
 import org.joda.time.Duration;
 import org.joda.time.Hours;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.rhq.metrics.core.Availability;
 import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
@@ -62,6 +45,24 @@ import org.rhq.metrics.core.RetentionSettings;
 import org.rhq.metrics.core.SchemaManager;
 import org.rhq.metrics.core.Tenant;
 import org.rhq.metrics.core.TenantAlreadyExistsException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.FutureFallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.RateLimiter;
 
 /**
  * @author John Sanda
@@ -89,9 +90,9 @@ public class MetricsServiceCassandra implements MetricsService {
     };
 
     private static class DataRetentionKey {
-        private String tenantId;
-        private MetricId metricId;
-        private MetricType type;
+        private final String tenantId;
+        private final MetricId metricId;
+        private final MetricType type;
 
         public DataRetentionKey(String tenantId, MetricType type) {
             this.tenantId = tenantId;
@@ -134,20 +135,30 @@ public class MetricsServiceCassandra implements MetricsService {
         }
     }
 
-    private RateLimiter permits = RateLimiter.create(Double.parseDouble(
+    private final RateLimiter permits = RateLimiter.create(Double.parseDouble(
         System.getProperty(REQUEST_LIMIT, "30000")), 3, TimeUnit.MINUTES);
 
     private Optional<Session> session;
 
     private DataAccess dataAccess;
 
-    private ListeningExecutorService metricsTasks = MoreExecutors
+    private final ListeningExecutorService metricsTasks = MoreExecutors
         .listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
 
     /**
      * Note that while user specifies the durations in hours, we store them in seconds.
      */
-    private Map<DataRetentionKey, Integer> dataRetentions = new ConcurrentHashMap<>();
+    private final Map<DataRetentionKey, Integer> dataRetentions = new ConcurrentHashMap<>();
+
+    private final Boolean embeddedCassandraServer;
+
+    public MetricsServiceCassandra() {
+        this(false);
+    }
+
+    public MetricsServiceCassandra(boolean embeddedCassandraServer) {
+        this.embeddedCassandraServer = embeddedCassandraServer;
+    }
 
     @Override
     public void startUp(Session s) {
@@ -173,6 +184,10 @@ public class MetricsServiceCassandra implements MetricsService {
             nodes = params.get("nodes").split(",");
         } else {
             nodes = new String[] {"127.0.0.1"};
+        }
+
+        if (embeddedCassandraServer) {
+            verifyNodeIsUp(nodes[0], 9990, 10, 1000);
         }
 
         Cluster cluster = new Cluster.Builder()
@@ -207,6 +222,62 @@ public class MetricsServiceCassandra implements MetricsService {
         loadDataRetentions();
     }
 
+    boolean verifyNodeIsUp(String address, int jmxPort, int retries, long timeout) {
+        Boolean nativeTransportRunning = false;
+        for (int i = 0; i < retries || nativeTransportRunning; ++i) {
+            try {
+                MBeanServerConnection serverConnection = this.getMbeanServerConnection(address, jmxPort);
+                ObjectName storageService = new ObjectName("org.apache.cassandra.db:type=StorageService");
+                nativeTransportRunning = (Boolean) serverConnection.getAttribute(storageService,
+                        "NativeTransportRunning");
+
+                return nativeTransportRunning;
+            } catch (Exception e) {
+                if (i < retries) {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("The storage node is not up.", e);
+                    } else {
+                        Throwable rootCause = e.getCause();
+                        logger.error("The storage node is not up.", rootCause);
+                    }
+                    logger.error("Checking storage node status again in " + (timeout * (i + 1)) + " ms...");
+                }
+                try {
+                    Thread.sleep(timeout * (i + 1));
+                } catch (InterruptedException e1) {
+                    logger.error("Failed to connect to Cassandra cluster.", e1);
+                }
+            }
+        }
+        return false;
+    }
+
+    private MBeanServerConnection getMbeanServerConnection(String address, int jmxPort) throws IOException {
+        if (embeddedCassandraServer) {
+            return ManagementFactory.getPlatformMBeanServer();
+        }
+
+        String url = "service:jmx:rmi:///jndi/rmi://" + address + ":" + jmxPort + "/jmxrmi";
+        JMXServiceURL serviceURL;
+        try {
+            serviceURL = new JMXServiceURL(url);
+        } catch (MalformedURLException ex) {
+            logger.error("Failed to verify that Cassandra cluster is running", ex);
+            throw ex;
+        }
+
+        // Sleep a few seconds to work around
+        // https://issues.apache.org/jira/browse/CASSANDRA-5467
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException ignored) {
+        }
+
+        Map<String, String> env = new HashMap<String, String>();
+        JMXConnector connector = JMXConnectorFactory.connect(serviceURL, env);
+        return connector.getMBeanServerConnection();
+    }
+
     void loadDataRetentions() {
         DataRetentionsMapper mapper = new DataRetentionsMapper();
         List<String> tenantIds = loadTenantIds();
@@ -236,11 +307,11 @@ public class MetricsServiceCassandra implements MetricsService {
 
     private class DataRetentionsLoadedCallback implements FutureCallback<Set<Retention>> {
 
-        private String tenantId;
+        private final String tenantId;
 
-        private MetricType type;
+        private final MetricType type;
 
-        private CountDownLatch latch;
+        private final CountDownLatch latch;
 
         public DataRetentionsLoadedCallback(String tenantId, MetricType type, CountDownLatch latch) {
             this.tenantId = tenantId;
@@ -292,6 +363,7 @@ public class MetricsServiceCassandra implements MetricsService {
     public ListenableFuture<Void> createTenant(final Tenant tenant) {
         ResultSetFuture future = dataAccess.insertTenant(tenant);
         return Futures.transform(future, new AsyncFunction<ResultSet, Void>() {
+            @Override
             public ListenableFuture<Void> apply(ResultSet resultSet) {
                 if (!resultSet.wasApplied()) {
                     throw new TenantAlreadyExistsException(tenant.getId());
@@ -770,9 +842,9 @@ public class MetricsServiceCassandra implements MetricsService {
 
     private static class RawDataFallback implements FutureFallback<ResultSet> {
 
-        private Map<RawNumericMetric, Throwable> errors;
+        private final Map<RawNumericMetric, Throwable> errors;
 
-        private RawNumericMetric data;
+        private final RawNumericMetric data;
 
         public RawDataFallback(Map<RawNumericMetric, Throwable> errors, RawNumericMetric data) {
             this.errors = errors;
