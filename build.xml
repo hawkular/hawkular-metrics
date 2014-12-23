@@ -22,25 +22,38 @@
     </license>
   </licenses>
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.rhq.metrics</groupId>
-        <artifactId>rest-servlet</artifactId>
-        <version>0.2.5</version>
-      </dependency>
-      <dependency>
-        <groupId>org.rhq.metrics</groupId>
-        <artifactId>metrics-console</artifactId>
-        <version>0.2.5</version>
-      </dependency>
-      <dependency>
-        <groupId>org.rhq.metrics</groupId>
-        <artifactId>explorer</artifactId>
-        <version>0.2.5</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
+  <distributionManagement>
+    <snapshotRepository>
+      <id>jboss-snapshots-repository</id>
+      <name>JBoss Snapshots Repository</name>
+      <url>https://repository.jboss.org/nexus/content/repositories/snapshots/</url>
+    </snapshotRepository>
+
+    <repository>
+      <id>jboss-releases-repository</id>
+      <name>JBoss Releases Repository</name>
+      <url>https://repository.jboss.org/nexus/service/local/staging/deploy/maven2/</url>
+    </repository>
+  </distributionManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.rhq.metrics</groupId>
+      <artifactId>rest-servlet</artifactId>
+      <version>0.2.5</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.rhq.metrics</groupId>
+      <artifactId>metrics-console</artifactId>
+      <version>0.2.5</version>
+    </dependency>
+    <dependency>
+      <groupId>org.rhq.metrics</groupId>
+      <artifactId>explorer</artifactId>
+      <version>0.2.5</version>
+    </dependency>
+  </dependencies>
 
   <build>
     <pluginManagement>
