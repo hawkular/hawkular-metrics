@@ -63,13 +63,11 @@
       <groupId>org.apache.deltaspike.core</groupId>
       <artifactId>deltaspike-core-api</artifactId>
       <version>${deltaspike.version}</version>
-      <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.deltaspike.core</groupId>
       <artifactId>deltaspike-core-impl</artifactId>
       <version>${deltaspike.version}</version>
-      <scope>runtime</scope>
     </dependency>
 
     <!-- Wildfly provided -->
