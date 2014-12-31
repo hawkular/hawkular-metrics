@@ -34,15 +34,13 @@ module Services {
         }
 
         getBaseUrl():string {
-            var baseUrl = 'http://' + this.$rootScope.$storage.server.replace(/['"]+/g, '') + ':' + this.$rootScope.$storage.port + this.BASE_URL + '/'+this.TENANT_ID +'/metrics';
-            return baseUrl;
+            return 'http://' + this.$rootScope.$storage.server.replace(/['"]+/g, '') + ':' + this.$rootScope.$storage.port + this.BASE_URL + '/'+this.TENANT_ID +'/metrics';
         }
 
         getAllMetrics() {
             console.info('-- Retrieving all metrics');
             var base = this.getBaseUrl()+'/?type=num',
                 deferred = this.$q.defer();
-
 
             this.$http.get(base).success((data) => {
                 deferred.resolve(data);
