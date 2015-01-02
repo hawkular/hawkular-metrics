@@ -83,19 +83,9 @@ public class MetricsServiceCassandra implements MetricsService {
 
     public static final int DEFAULT_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
-    private static final Function<ResultSet, Void> RESULT_SET_TO_VOID = new Function<ResultSet, Void>() {
-        @Override
-        public Void apply(ResultSet resultSet) {
-            return null;
-        }
-    };
+    private static final Function<ResultSet, Void> RESULT_SET_TO_VOID = resultSet -> null;
 
-    private static final Function<List<ResultSet>, Void> RESULT_SETS_TO_VOID = new Function<List<ResultSet>, Void>() {
-        @Override
-        public Void apply(List<ResultSet> resultSets) {
-            return null;
-        }
-    };
+    private static final Function<List<ResultSet>, Void> RESULT_SETS_TO_VOID = resultSets -> null;
 
     private static class DataRetentionKey {
         private String tenantId;
@@ -129,9 +119,8 @@ public class MetricsServiceCassandra implements MetricsService {
 
             if (!metricId.equals(that.metricId)) return false;
             if (!tenantId.equals(that.tenantId)) return false;
-            if (type != that.type) return false;
+            return type == that.type;
 
-            return true;
         }
 
         @Override
@@ -535,7 +524,7 @@ public class MetricsServiceCassandra implements MetricsService {
             metricsTasks);
         int ttl = getTTL(metric);
         ListenableFuture<List<NumericData>> updatedDataFuture = Futures.transform(dataFuture,
-            new ComputeTTL<NumericData>(ttl), metricsTasks);
+            new ComputeTTL<>(ttl), metricsTasks);
         return Futures.transform(updatedDataFuture, new AsyncFunction<List<NumericData>, List<NumericData>>() {
             @Override
             public ListenableFuture<List<NumericData>> apply(final List<NumericData> taggedData) {
@@ -547,12 +536,7 @@ public class MetricsServiceCassandra implements MetricsService {
                     insertFutures.add(dataAccess.updateDataWithTag(d, tags));
                 }
                 ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
-                return Futures.transform(insertsFuture, new Function<List<ResultSet>, List<NumericData>>() {
-                    @Override
-                    public List<NumericData> apply(List<ResultSet> resultSets) {
-                        return taggedData;
-                    }
-                });
+                return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> taggedData);
             }
         }, metricsTasks);
     }
@@ -565,7 +549,7 @@ public class MetricsServiceCassandra implements MetricsService {
             new AvailabilityDataMapper(true), metricsTasks);
         int ttl = getTTL(metric);
         ListenableFuture<List<Availability>> updatedDataFuture = Futures.transform(dataFuture,
-            new ComputeTTL<Availability>(ttl), metricsTasks);
+            new ComputeTTL<>(ttl), metricsTasks);
         return Futures.transform(updatedDataFuture, new AsyncFunction<List<Availability>, List<Availability>>() {
             @Override
             public ListenableFuture<List<Availability>> apply(final List<Availability> taggedData) throws Exception {
@@ -577,12 +561,7 @@ public class MetricsServiceCassandra implements MetricsService {
                     insertFutures.add(dataAccess.updateDataWithTag(a, tags));
                 }
                 ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
-                return Futures.transform(insertsFuture, new Function<List<ResultSet>, List<Availability>>() {
-                    @Override
-                    public List<Availability> apply(List<ResultSet> resultSets) {
-                        return taggedData;
-                    }
-                });
+                return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> taggedData);
             }
         });
     }
@@ -595,7 +574,7 @@ public class MetricsServiceCassandra implements MetricsService {
             metricsTasks);
         int ttl = getTTL(metric);
         ListenableFuture<List<NumericData>> updatedDataFuture = Futures.transform(dataFuture,
-            new ComputeTTL<NumericData>(ttl), metricsTasks);
+            new ComputeTTL<>(ttl), metricsTasks);
         return Futures.transform(updatedDataFuture, new AsyncFunction<List<NumericData>, List<NumericData>>() {
             @Override
             public ListenableFuture<List<NumericData>> apply(final List<NumericData> data) throws Exception {
@@ -611,12 +590,7 @@ public class MetricsServiceCassandra implements MetricsService {
                     insertFutures.add(dataAccess.updateDataWithTag(d, tags));
                 }
                 ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
-                return Futures.transform(insertsFuture, new Function<List<ResultSet>, List<NumericData>>() {
-                    @Override
-                    public List<NumericData> apply(List<ResultSet> resultSets) {
-                        return data;
-                    }
-                });
+                return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> data);
             }
         });
     }
@@ -629,7 +603,7 @@ public class MetricsServiceCassandra implements MetricsService {
             new AvailabilityDataMapper(true), metricsTasks);
         int ttl = getTTL(metric);
         ListenableFuture<List<Availability>> updatedDataFuture = Futures.transform(dataFuture,
-            new ComputeTTL<Availability>(ttl), metricsTasks);
+            new ComputeTTL<>(ttl), metricsTasks);
         return Futures.transform(updatedDataFuture, new AsyncFunction<List<Availability>, List<Availability>>() {
             @Override
             public ListenableFuture<List<Availability>> apply(final List<Availability> data) throws Exception {
@@ -645,12 +619,7 @@ public class MetricsServiceCassandra implements MetricsService {
                     insertFutures.add(dataAccess.updateDataWithTag(a, tags));
                 }
                 ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
-                return Futures.transform(insertsFuture, new Function<List<ResultSet>, List<Availability>>() {
-                    @Override
-                    public List<Availability> apply(List<ResultSet> resultSets) {
-                        return data;
-                    }
-                });
+                return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> data);
             }
         });
     }

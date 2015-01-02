@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
@@ -87,9 +88,7 @@ public class NumericMetricMapper implements Function<ResultSet, NumericMetric> {
             tags = Collections.emptySet();
         } else {
             tags = new HashSet<>();
-            for (String tag : map.keySet()) {
-                tags.add(new Tag(tag, map.get(tag)));
-            }
+            tags.addAll(map.keySet().stream().map(tag -> new Tag(tag, map.get(tag))).collect(Collectors.toList()));
         }
         return tags;
     }

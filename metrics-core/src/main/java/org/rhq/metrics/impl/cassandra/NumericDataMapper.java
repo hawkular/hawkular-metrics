@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
@@ -54,22 +55,6 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
         NumericData getData(Row row);
     }
 
-    private final RowConverter DEFAULT_CONVERTER = new RowConverter() {
-        @Override
-        public NumericData getData(Row row) {
-            return new NumericData(row.getUUID(ColumnIndex.TIME.ordinal()), row.getDouble(ColumnIndex.VALUE.ordinal()),
-                getTags(row));
-        }
-    };
-
-    private final RowConverter WRITE_TIME_CONVERTER = new RowConverter() {
-        @Override
-        public NumericData getData(Row row) {
-            return new NumericData(row.getUUID(ColumnIndex.TIME.ordinal()), row.getDouble(ColumnIndex.VALUE.ordinal()),
-                getTags(row), row.getLong(ColumnIndex.WRITE_TIME.ordinal()) / 1000);
-        }
-    };
-
     private RowConverter rowConverter;
 
     public NumericDataMapper() {
@@ -78,9 +63,12 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
 
     public NumericDataMapper(boolean includeWriteTime) {
         if (includeWriteTime) {
-            rowConverter = WRITE_TIME_CONVERTER;
+            rowConverter = row -> new NumericData(row.getUUID(ColumnIndex.TIME.ordinal()),
+                row.getDouble(ColumnIndex.VALUE.ordinal()), getTags(row),
+                row.getLong(ColumnIndex.WRITE_TIME.ordinal()) / 1000);
         } else {
-            rowConverter = DEFAULT_CONVERTER;
+            rowConverter = row -> new NumericData(row.getUUID(ColumnIndex.TIME.ordinal()),
+                row.getDouble(ColumnIndex.VALUE.ordinal()), getTags(row));
         }
     }
 
@@ -120,9 +108,7 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
             tags = Collections.emptySet();
         } else {
             tags = new HashSet<>();
-            for (String tag : map.keySet()) {
-                tags.add(new Tag(tag, map.get(tag)));
-            }
+            tags.addAll(map.keySet().stream().map(tag -> new Tag(tag, map.get(tag))).collect(Collectors.toList()));
         }
         return tags;
     }
