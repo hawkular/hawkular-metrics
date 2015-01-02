@@ -31,6 +31,8 @@ USAGE:   start.sh OPTIONS
    --version=version                      [OPTIONAL]
       Released version to be downloaded and used, only applicable if this script is run in 'release' mode.
       Script default is the latest published version.
+   --bind-address                         [OPTIONAL]
+      Set bind address for the underlying container. Defaults to 0.0.0.0
    --dev                                  [OPTIONAL]
       Set script mode to dev: build from source and use the artifacts just built. 'version' will be ignored.
 EOF
@@ -52,9 +54,10 @@ parse_and_validate_options()
    BACKEND='mem'
    VERSION=
    DEV=false
+   BIND_ADDRESS=0.0.0.0
 
    short_options="h"
-   long_options="help,version:,backend:,dev"
+   long_options="help,version:,backend:,bind-address:,dev"
 
    PROGNAME=${0##*/}
    ARGS=$(getopt -s bash --options $short_options --longoptions $long_options --name $PROGNAME -- "$@" )
@@ -91,6 +94,11 @@ parse_and_validate_options()
                   ;;
             esac
             ;;
+         --bind-address)
+            shift
+            BIND_ADDRESS="$1"
+            shift
+            ;;
          --dev)
             DEV=true
             shift
@@ -110,9 +118,6 @@ parse_and_validate_options()
 parse_and_validate_options $@
 
 
-# By default bind user ports to all interfaces
-BIND_ADDR=0.0.0.0
-
 # Use the path to maven settings.xml file from the environment if available
 if [ -n "${MVN_SETTINGS}" ]
 then
@@ -127,10 +132,6 @@ then
     shift
 fi
 
-if [ ! x$1 == "x" ]
-then
-    BIND_ADDR=$1
-fi
 
 MVN_REPO=`mvn help:evaluate -Dexpression=settings.localRepository ${MVN_SETTINGS_OPT} | grep -vF "[INFO]" | tail -1`
 
@@ -147,17 +148,17 @@ else
     REST_SERVLET_VERSION=`grep "<version>" pom.xml | head -n 1| awk -F '(<|>)' '{print $3}'`
     EXPLORER_VERSION=`grep "<version>" pom.xml | head -n 1| awk -F '(<|>)' '{print $3}'`
 
-    #mvn install -DskipTests ${MVN_SETTINGS_OPT}
+    mvn install -DskipTests ${MVN_SETTINGS_OPT}
     if [ $? -ne 0 ]
     then
         exit;
     fi
 fi
 
-
-echo ${METRICS_CONSOLE_VERSION}
-echo ${REST_SERVLET_VERSION}
-echo ${EXPLORER_VERSION}
+echo 'Using: '
+echo 'RHQ Metrics Console: ${METRICS_CONSOLE_VERSION}'
+echo 'RHQ REST: ${REST_SERVLET_VERSION}'
+echo 'RHQ Explorer: ${EXPLORER_VERSION}'
 
 if [ ! -e target ]
 then
@@ -181,4 +182,4 @@ fi
 cp ${MVN_REPO}/org/rhq/metrics/rest-servlet/${REST_SERVLET_VERSION}/rest-servlet-${REST_SERVLET_VERSION}.war target/wildfly-${WFLY_VERSION}/standalone/deployments/
 cp ${MVN_REPO}/org/rhq/metrics/metrics-console/${METRICS_CONSOLE_VERSION}/metrics-console-${METRICS_CONSOLE_VERSION}.war target/wildfly-${WFLY_VERSION}/standalone/deployments/
 cp ${MVN_REPO}/org/rhq/metrics/explorer/${EXPLORER_VERSION}/explorer-${EXPLORER_VERSION}.war target/wildfly-${WFLY_VERSION}/standalone/deployments/
-target/wildfly-${WFLY_VERSION}/bin/standalone.sh -Drhq-metrics.backend=${BACKEND} --debug 8787 -b ${BIND_ADDR}
+target/wildfly-${WFLY_VERSION}/bin/standalone.sh -Drhq-metrics.backend=${BACKEND} --debug 8787 -b ${BIND_ADDRESS}
