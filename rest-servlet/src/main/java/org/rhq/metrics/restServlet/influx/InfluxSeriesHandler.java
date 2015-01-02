@@ -65,7 +65,7 @@ import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericData;
-import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.restServlet.DataInsertedCallback;
 import org.rhq.metrics.restServlet.StringValue;
 import org.rhq.metrics.restServlet.influx.query.InfluxQueryParseTreeWalker;
@@ -131,12 +131,12 @@ public class InfluxSeriesHandler {
             asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build());
             return;
         }
-        List<NumericMetric2> numericMetrics = FluentIterable.from(influxObjects) //
+        List<NumericMetric> numericMetrics = FluentIterable.from(influxObjects) //
             .transform(influxObject -> {
                 List<String> influxObjectColumns = influxObject.getColumns();
                 int valueColumnIndex = influxObjectColumns.indexOf("value");
                 List<List<?>> influxObjectPoints = influxObject.getPoints();
-                NumericMetric2 numericMetric = new NumericMetric2(tenantId, new MetricId(influxObject.getName()));
+                NumericMetric numericMetric = new NumericMetric(tenantId, new MetricId(influxObject.getName()));
                 for (List<?> point : influxObjectPoints) {
                     double value;
                     long timestamp;
@@ -257,7 +257,7 @@ public class InfluxSeriesHandler {
                     if (idExists != Boolean.TRUE) {
                         return Futures.immediateFuture(null);
                     }
-                    return metricsService.findData(new NumericMetric2(tenantId, new MetricId(metric)),
+                    return metricsService.findData(new NumericMetric(tenantId, new MetricId(metric)),
                         timeInterval.getStartMillis(), timeInterval.getEndMillis());
                 }, executor);
         ListenableFuture<List<InfluxObject>> influxObjectTranslatorFuture = Futures.transform(loadMetricsFuture,
@@ -444,7 +444,7 @@ public class InfluxSeriesHandler {
                 default:
                     LOG.warn("Mapping of '{}' function not yet supported", function);
                 }
-                NumericMetric2 metric = new NumericMetric2(DEFAULT_TENANT_ID, firstElementInList.getMetric().getId());
+                NumericMetric metric = new NumericMetric(DEFAULT_TENANT_ID, firstElementInList.getMetric().getId());
                 out.add(new NumericData(metric, firstElementInList.getTimestamp(), retVal));
             }
         }

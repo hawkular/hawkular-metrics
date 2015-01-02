@@ -74,12 +74,12 @@ public interface MetricsService {
 
     ListenableFuture<Void> updateMetadata(Metric metric, Map<String, String> metadata, Set<String> deletions);
 
-    ListenableFuture<Void> addNumericData(List<NumericMetric2> metrics);
+    ListenableFuture<Void> addNumericData(List<NumericMetric> metrics);
 
-    ListenableFuture<NumericMetric2> findNumericData(NumericMetric2 metric, long start, long end);
+    ListenableFuture<NumericMetric> findNumericData(NumericMetric metric, long start, long end);
 
     /** Find and return raw metrics for {id} that have a timestamp between {start} and {end} */
-    ListenableFuture<List<NumericData>> findData(NumericMetric2 metric, long start, long end);
+    ListenableFuture<List<NumericData>> findData(NumericMetric metric, long start, long end);
 
     ListenableFuture<Void> addAvailabilityData(List<AvailabilityMetric> metrics);
 
@@ -102,12 +102,12 @@ public interface MetricsService {
     /** Delete the metric with the passed id */
     ListenableFuture<Boolean> deleteMetric(String id);
 
-    ListenableFuture<List<NumericData>> tagNumericData(NumericMetric2 metric, Set<String> tags, long start, long end);
+    ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Set<String> tags, long start, long end);
 
     ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, Set<String> tags, long start,
         long end);
 
-    ListenableFuture<List<NumericData>> tagNumericData(NumericMetric2 metric, Set<String> tags, long timestamp);
+    ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Set<String> tags, long timestamp);
 
     ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, Set<String> tags,
         long timestamp);

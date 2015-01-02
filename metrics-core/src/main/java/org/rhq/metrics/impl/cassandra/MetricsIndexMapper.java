@@ -28,7 +28,7 @@ import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
-import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.core.NumericMetric;
 
 /**
  * @author John Sanda
@@ -66,7 +66,7 @@ public class MetricsIndexMapper implements Function<ResultSet, List<Metric>> {
     private List<Metric> getNumericMetrics(ResultSet resultSet) {
         List<Metric> metrics = new ArrayList<>();
         for (Row row : resultSet) {
-            metrics.add(new NumericMetric2(tenantId, new MetricId(row.getString(ColumnIndex.METRIC_NAME.ordinal()),
+            metrics.add(new NumericMetric(tenantId, new MetricId(row.getString(ColumnIndex.METRIC_NAME.ordinal()),
                 Interval.parse(row.getString(ColumnIndex.INTERVAL.ordinal()))), row.getMap(
                 ColumnIndex.META_DATA.ordinal(), String.class, String.class), row.getInt(
                 ColumnIndex.DATA_RETENTION.ordinal())));

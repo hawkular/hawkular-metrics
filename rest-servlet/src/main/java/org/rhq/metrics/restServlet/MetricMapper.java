@@ -18,20 +18,20 @@ package org.rhq.metrics.restServlet;
 
 import com.google.common.base.Function;
 
-import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.core.NumericMetric;
 
 /**
  * @author John Sanda
  */
-public abstract class MetricMapper<T> implements Function<NumericMetric2, T> {
+public abstract class MetricMapper<T> implements Function<NumericMetric, T> {
 
     @Override
-    public T apply(NumericMetric2 metric) {
+    public T apply(NumericMetric metric) {
         if (metric == null) {
             throw new NoResultsException();
         }
         return doApply(metric);
     }
 
-    abstract T doApply(NumericMetric2 metric);
+    abstract T doApply(NumericMetric metric);
 }

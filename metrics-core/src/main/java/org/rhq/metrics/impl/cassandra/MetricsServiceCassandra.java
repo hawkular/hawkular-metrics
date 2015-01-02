@@ -42,7 +42,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.FutureFallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -66,8 +65,7 @@ import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
 import org.rhq.metrics.core.NumericData;
-import org.rhq.metrics.core.NumericMetric2;
-import org.rhq.metrics.core.RawNumericMetric;
+import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.Retention;
 import org.rhq.metrics.core.RetentionSettings;
 import org.rhq.metrics.core.SchemaManager;
@@ -400,7 +398,7 @@ public class MetricsServiceCassandra implements MetricsService {
                 }
                 Row row = resultSet.one();
                 if (type == MetricType.NUMERIC) {
-                    return new NumericMetric2(tenantId, id, row.getMap(5, String.class, String.class), row.getInt(6));
+                    return new NumericMetric(tenantId, id, row.getMap(5, String.class, String.class), row.getInt(6));
                 } else {
                     return new AvailabilityMetric(tenantId, id, row.getMap(5, String.class, String.class),
                         row.getInt(6));
@@ -425,9 +423,9 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> addNumericData(List<NumericMetric2> metrics) {
+    public ListenableFuture<Void> addNumericData(List<NumericMetric> metrics) {
         List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
-        for (NumericMetric2 metric : metrics) {
+        for (NumericMetric metric : metrics) {
             if (metric.getData().isEmpty()) {
                 logger.warn("There is no data to insert for {}", metric);
             } else {
@@ -484,7 +482,7 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<NumericMetric2> findNumericData(NumericMetric2 metric, long start, long end) {
+    public ListenableFuture<NumericMetric> findNumericData(NumericMetric metric, long start, long end) {
         // When we implement date partitioning, dpart will have to be determined based on
         // the start and end params. And it is possible the the date range spans multiple
         // date partitions.
@@ -500,7 +498,7 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<NumericData>> findData(NumericMetric2 metric, long start, long end) {
+    public ListenableFuture<List<NumericData>> findData(NumericMetric metric, long start, long end) {
         ResultSetFuture future = dataAccess.findData(metric, start, end);
         return Futures.transform(future, new NumericDataMapper(), metricsTasks);
     }
@@ -557,7 +555,7 @@ public class MetricsServiceCassandra implements MetricsService {
     // Data for different metrics and for the same tag are stored within the same partition
     // in the tags table; therefore, it makes sense for the API to support tagging multiple
     // metrics since they could efficiently be inserted in a single batch statement.
-    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric2 metric, final Set<String> tags, long start,
+    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, final Set<String> tags, long start,
         long end) {
         ResultSetFuture queryFuture = dataAccess.findData(metric, start, end, true);
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper(true),
@@ -617,7 +615,7 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric2 metric, final Set<String> tags,
+    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, final Set<String> tags,
         long timestamp) {
         ListenableFuture<ResultSet> queryFuture = dataAccess.findData(metric, timestamp, true);
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper(true),
@@ -779,24 +777,6 @@ public class MetricsServiceCassandra implements MetricsService {
             schemaManager.createSchema(schemaName);
         } catch (IOException e) {
             throw new RuntimeException("Schema creation failed", e);
-        }
-    }
-
-    private static class RawDataFallback implements FutureFallback<ResultSet> {
-
-        private Map<RawNumericMetric, Throwable> errors;
-
-        private RawNumericMetric data;
-
-        public RawDataFallback(Map<RawNumericMetric, Throwable> errors, RawNumericMetric data) {
-            this.errors = errors;
-            this.data = data;
-        }
-
-        @Override
-        public ListenableFuture<ResultSet> create(Throwable t) throws Exception {
-            errors.put(data, t);
-            return Futures.immediateFailedFuture(t);
         }
     }
 

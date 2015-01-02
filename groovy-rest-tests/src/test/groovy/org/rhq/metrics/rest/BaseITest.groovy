@@ -75,11 +75,13 @@ class BaseITest extends RESTTest {
   void addAndGetValue() {
     def end = now().millis
     def start = end - 100
-    def response = rhqm.post(path: "metrics/foo", body: [id: 'foo', timestamp: start + 10, value: 42])
+    def tenantId = 'test-tenant'
+    def metric = 'foo'
+    def response = rhqm.post(path: "$tenantId/metrics/numeric/$metric/data", body: [[timestamp: start + 10, value: 42]])
     assertEquals(200, response.status)
 
-    response = rhqm.get(path: 'metrics/foo', query: [start: start, end: end])
+    response = rhqm.get(path: "$tenantId/metrics/numeric/$metric/data", query: [start: start, end: end])
     assertEquals(200, response.status)
-    assertEquals(start + 10, response.data[0].timestamp)
+    assertEquals(start + 10, response.data.data[0].timestamp)
   }
 }

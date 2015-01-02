@@ -59,7 +59,7 @@ import org.rhq.metrics.core.MetricAlreadyExistsException;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.NumericData;
-import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.Retention;
 import org.rhq.metrics.core.Tag;
 import org.rhq.metrics.core.Tenant;
@@ -145,7 +145,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
     @Test
     public void createAndFindMetrics() throws Exception {
-        NumericMetric2 m1 = new NumericMetric2("t1", new MetricId("m1"), ImmutableMap.of("a1", "1", "a2", "2"), 24);
+        NumericMetric m1 = new NumericMetric("t1", new MetricId("m1"), ImmutableMap.of("a1", "1", "a2", "2"), 24);
         ListenableFuture<Void> insertFuture = metricsService.createMetric(m1);
         getUninterruptibly(insertFuture);
 
@@ -171,7 +171,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         assertTrue(exception != null && exception instanceof MetricAlreadyExistsException,
             "Expected a " + MetricAlreadyExistsException.class.getSimpleName() + " to be thrown");
 
-        NumericMetric2 m3 = new NumericMetric2("t1", new MetricId("m3"));
+        NumericMetric m3 = new NumericMetric("t1", new MetricId("m3"));
         m3.setDataRetention(24);
         insertFuture = metricsService.createMetric(m3);
         getUninterruptibly(insertFuture);
@@ -185,7 +185,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
     @Test
     public void updateMetadata() throws Exception {
-        NumericMetric2 metric = new NumericMetric2("t1", new MetricId("m1"), ImmutableMap.of("a1", "1", "a2", "2"));
+        NumericMetric metric = new NumericMetric("t1", new MetricId("m1"), ImmutableMap.of("a1", "1", "a2", "2"));
         ListenableFuture<Void> insertFuture = metricsService.createMetric(metric);
         getUninterruptibly(insertFuture);
 
@@ -211,7 +211,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t1")));
 
-        NumericMetric2 m1 = new NumericMetric2("t1", new MetricId("m1"));
+        NumericMetric m1 = new NumericMetric("t1", new MetricId("m1"));
         m1.addData(start.getMillis(), 1.1);
         m1.addData(start.plusMinutes(2).getMillis(), 2.2);
         m1.addData(start.plusMinutes(4).getMillis(), 3.3);
@@ -247,7 +247,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         metricsService.loadDataRetentions();
         metricsService.setDataAccess(verifyTTLDataAccess);
 
-        NumericMetric2 m1 = new NumericMetric2("t1", new MetricId("m1"));
+        NumericMetric m1 = new NumericMetric("t1", new MetricId("m1"));
         m1.addData(start.getMillis(), 1.01);
         m1.addData(start.plusMinutes(1).getMillis(), 1.02);
         m1.addData(start.plusMinutes(2).getMillis(), 1.03);
@@ -261,7 +261,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
             start.plusMinutes(2).getMillis()));
 
         verifyTTLDataAccess.setNumericTTL(days(14).toStandardSeconds().getSeconds());
-        NumericMetric2 m2 = new NumericMetric2("t2", new MetricId("m2"));
+        NumericMetric m2 = new NumericMetric("t2", new MetricId("m2"));
         m2.addData(start.plusMinutes(5).getMillis(), 2.02);
         addDataInThePast(m2, days(3).toStandardDuration());
 
@@ -271,11 +271,11 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t3")
             .setRetention(NUMERIC, 24)));
         verifyTTLDataAccess.setNumericTTL(hours(24).toStandardSeconds().getSeconds());
-        NumericMetric2 m3 = new NumericMetric2("t3", new MetricId("m3"));
+        NumericMetric m3 = new NumericMetric("t3", new MetricId("m3"));
         m3.addData(start.getMillis(), 3.03);
         getUninterruptibly(metricsService.addNumericData(asList(m3)));
 
-        NumericMetric2 m4 = new NumericMetric2("t2", new MetricId("m4"), Collections.EMPTY_MAP, 28);
+        NumericMetric m4 = new NumericMetric("t2", new MetricId("m4"), Collections.EMPTY_MAP, 28);
         getUninterruptibly(metricsService.createMetric(m4));
 
         verifyTTLDataAccess.setNumericTTL(28);
@@ -327,12 +327,12 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         getUninterruptibly(metricsService.addAvailabilityData(asList(m3)));
     }
 
-    private void addDataInThePast(NumericMetric2 metric, final Duration duration) throws Exception {
+    private void addDataInThePast(NumericMetric metric, final Duration duration) throws Exception {
         DataAccess originalDataAccess = metricsService.getDataAccess();
         try {
             metricsService.setDataAccess(new DelegatingDataAccess(dataAccess) {
                 @Override
-                public ResultSetFuture insertData(NumericMetric2 m, int ttl) {
+                public ResultSetFuture insertData(NumericMetric m, int ttl) {
                     int actualTTL = ttl - duration.toStandardSeconds().getSeconds();
                     long writeTime = now().minus(duration).getMillis() * 1000;
                     BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
@@ -380,7 +380,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("tenant1")));
 
-        NumericMetric2 metric = new NumericMetric2("tenant1", new MetricId("m1"));
+        NumericMetric metric = new NumericMetric("tenant1", new MetricId("m1"));
         metric.addData(start.getMillis(), 100.0);
         metric.addData(start.plusMinutes(1).getMillis(), 101.1);
         metric.addData(start.plusMinutes(2).getMillis(), 102.2);
@@ -428,17 +428,17 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenantId)));
 
-        NumericMetric2 m1 = new NumericMetric2(tenantId, new MetricId("m1"));
+        NumericMetric m1 = new NumericMetric(tenantId, new MetricId("m1"));
         m1.addData(start.plusSeconds(30).getMillis(), 11.2);
         m1.addData(start.getMillis(), 11.1);
 
-        NumericMetric2 m2 = new NumericMetric2(tenantId, new MetricId("m2"));
+        NumericMetric m2 = new NumericMetric(tenantId, new MetricId("m2"));
         m2.addData(start.plusSeconds(30).getMillis(), 12.2);
         m2.addData(start.getMillis(), 12.1);
 
-        NumericMetric2 m3 = new NumericMetric2(tenantId, new MetricId("m3"));
+        NumericMetric m3 = new NumericMetric(tenantId, new MetricId("m3"));
 
-        NumericMetric2 m4 = new NumericMetric2(tenantId, new MetricId("m4"), Collections.EMPTY_MAP, 24);
+        NumericMetric m4 = new NumericMetric(tenantId, new MetricId("m4"), Collections.EMPTY_MAP, 24);
         getUninterruptibly(metricsService.createMetric(m4));
         m4.addData(start.plusSeconds(30).getMillis(), 55.5);
         m4.addData(end.getMillis(), 66.6);
@@ -446,9 +446,9 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         ListenableFuture<Void> insertFuture = metricsService.addNumericData(asList(m1, m2, m3, m4));
         getUninterruptibly(insertFuture);
 
-        ListenableFuture<NumericMetric2> queryFuture = metricsService.findNumericData(m1, start.getMillis(),
+        ListenableFuture<NumericMetric> queryFuture = metricsService.findNumericData(m1, start.getMillis(),
             end.getMillis());
-        NumericMetric2 actual = getUninterruptibly(queryFuture);
+        NumericMetric actual = getUninterruptibly(queryFuture);
         assertMetricEquals(actual, m1);
 
         queryFuture = metricsService.findNumericData(m2, start.getMillis(), end.getMillis());
@@ -461,7 +461,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
         queryFuture = metricsService.findNumericData(m4, start.getMillis(), end.getMillis());
         actual = getUninterruptibly(queryFuture);
-        NumericMetric2 expected = new NumericMetric2(tenantId, new MetricId("m4"));
+        NumericMetric expected = new NumericMetric(tenantId, new MetricId("m4"));
         expected.setDataRetention(24);
         expected.addData(start.plusSeconds(30).getMillis(), 55.5);
         assertMetricEquals(actual, expected);
@@ -585,18 +585,18 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         NumericData d8 = new NumericData(start.plusMinutes(6).getMillis(), 103.1);
         NumericData d9 = new NumericData(start.plusMinutes(7).getMillis(), 103.1);
 
-        NumericMetric2 m1 = new NumericMetric2(tenant, new MetricId("m1"));
+        NumericMetric m1 = new NumericMetric(tenant, new MetricId("m1"));
         m1.addData(d1);
         m1.addData(d2);
         m1.addData(d6);
 
-        NumericMetric2 m2 = new NumericMetric2(tenant, new MetricId("m2"));
+        NumericMetric m2 = new NumericMetric(tenant, new MetricId("m2"));
         m2.addData(d3);
         m2.addData(d4);
         m2.addData(d5);
         m2.addData(d7);
 
-        NumericMetric2 m3 = new NumericMetric2(tenant, new MetricId("m3"));
+        NumericMetric m3 = new NumericMetric(tenant, new MetricId("m3"));
         m3.addData(d8);
         m3.addData(d9);
 
@@ -712,18 +712,18 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         NumericData d8 = new NumericData(start.plusMinutes(6).getMillis(), 103.1);
         NumericData d9 = new NumericData(start.plusMinutes(7).getMillis(), 103.1);
 
-        NumericMetric2 m1 = new NumericMetric2(tenant, new MetricId("m1"));
+        NumericMetric m1 = new NumericMetric(tenant, new MetricId("m1"));
         m1.addData(d1);
         m1.addData(d2);
         m1.addData(d6);
 
-        NumericMetric2 m2 = new NumericMetric2(tenant, new MetricId("m2"));
+        NumericMetric m2 = new NumericMetric(tenant, new MetricId("m2"));
         m2.addData(d3);
         m2.addData(d4);
         m2.addData(d5);
         m2.addData(d7);
 
-        NumericMetric2 m3 = new NumericMetric2(tenant, new MetricId("m3"));
+        NumericMetric m3 = new NumericMetric(tenant, new MetricId("m3"));
         m3.addData(d8);
         m3.addData(d9);
 
@@ -880,7 +880,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         }
 
         @Override
-        public ResultSetFuture insertData(NumericMetric2 metric, int ttl) {
+        public ResultSetFuture insertData(NumericMetric metric, int ttl) {
             assertEquals(ttl, numericTTL, "The numeric data TTL does not match the expected value when " +
                 "inserting data");
             return super.insertData(metric, ttl);

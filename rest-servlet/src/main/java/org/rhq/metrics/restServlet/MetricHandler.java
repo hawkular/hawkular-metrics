@@ -67,7 +67,7 @@ import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericData;
-import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.Tag;
 
 import gnu.trove.map.TLongObjectMap;
@@ -90,7 +90,7 @@ public class MetricHandler {
     @Consumes(APPLICATION_JSON)
     public void createNumericMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         MetricParams params) {
-        NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(params.getName()), params.getMetadata(),
+        NumericMetric metric = new NumericMetric(tenantId, new MetricId(params.getName()), params.getMetadata(),
             params.getDataRetention());
         ListenableFuture<Void> future = metricsService.createMetric(metric);
         Futures.addCallback(future, new MetricCreatedCallback(asyncResponse, params));
@@ -160,7 +160,7 @@ public class MetricHandler {
                 additions.put(key, (String) updates.get(key));
             }
         }
-        NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(id));
+        NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
         ListenableFuture<Void> future = metricsService.updateMetadata(metric, additions, deletions);
         Futures.addCallback(future, new DataInsertedCallback(response, "Failed to update meta data"));
     }
@@ -226,7 +226,7 @@ public class MetricHandler {
     public void addDataForMetric(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") final String tenantId, @PathParam("id") String id, List<NumericDataPoint> dataPoints) {
 
-        NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(id));
+        NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
         for (NumericDataPoint p : dataPoints) {
             metric.addData(p.getTimestamp(), p.getValue());
         }
@@ -258,10 +258,10 @@ public class MetricHandler {
             asyncResponse.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
         }
 
-        List<NumericMetric2> metrics = new ArrayList<>(paramsList.size());
+        List<NumericMetric> metrics = new ArrayList<>(paramsList.size());
 
         for (NumericDataParams params : paramsList) {
-            NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(params.getName()),
+            NumericMetric metric = new NumericMetric(tenantId, new MetricId(params.getName()),
                 params.getMetadata());
             for (NumericDataPoint p : params.getData()) {
                 metric.addData(p.getTimestamp(), p.getValue());
@@ -400,8 +400,8 @@ public class MetricHandler {
             end = now;
         }
 
-        NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(id));
-        ListenableFuture<NumericMetric2> dataFuture = metricsService.findNumericData(metric, start, end);
+        NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
+        ListenableFuture<NumericMetric> dataFuture = metricsService.findNumericData(metric, start, end);
         ListenableFuture<? extends Object> outputFuture = null;
         if (numberOfBuckets == 0) {
             outputFuture = Futures.transform(dataFuture, new MetricOutMapper());
@@ -443,7 +443,7 @@ public class MetricHandler {
 
     private class MetricOutMapper extends MetricMapper<MetricOut> {
         @Override
-        public MetricOut doApply(NumericMetric2 metric) {
+        public MetricOut doApply(NumericMetric metric) {
             MetricOut output = new MetricOut(metric.getTenantId(), metric.getId().getName(),
                 metric.getMetadata(), metric.getDataRetention());
             List<DataPointOut> dataPoints = new ArrayList<>();
@@ -471,7 +471,7 @@ public class MetricHandler {
         }
 
         @Override
-        public BucketedOutput doApply(NumericMetric2 metric) {
+        public BucketedOutput doApply(NumericMetric metric) {
             // we will have numberOfBuckets buckets over the whole time span
             BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(),
                 metric.getMetadata());
@@ -500,7 +500,7 @@ public class MetricHandler {
         }
 
         @Override
-        public List<? extends Object> doApply(NumericMetric2 metric) {
+        public List<? extends Object> doApply(NumericMetric metric) {
             long totalLength = (long) numberOfBuckets * bucketWidthSeconds * 1000L;
             long minTs = Long.MAX_VALUE;
             for (NumericData d : metric.getData()) {
@@ -541,7 +541,7 @@ public class MetricHandler {
             // Now that stuff is in buckets - we need to "flatten" them out.
             // As we collapse stuff from a lot of input timestamps into some
             // buckets, we only use a relative time for the bucket timestamps.
-            NumericMetric2 metric = (NumericMetric2) args.get(0);
+            NumericMetric metric = (NumericMetric) args.get(0);
             TLongObjectMap<List<NumericData>> buckets = (TLongObjectMap<List<NumericData>>) args.get(1);
             BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(),
                 metric.getMetadata());
@@ -575,7 +575,7 @@ public class MetricHandler {
         public BucketedOutput apply(List<? extends Object> args) {
             // We want to keep the raw values, but put them into clusters anyway
             // without collapsing them into a single min/avg/max tuple
-            NumericMetric2 metric = (NumericMetric2) args.get(0);
+            NumericMetric metric = (NumericMetric) args.get(0);
             TLongObjectMap<List<NumericData>> buckets = (TLongObjectMap<List<NumericData>>) args.get(1);
             BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(),
                 metric.getMetadata());
@@ -640,7 +640,7 @@ public class MetricHandler {
     public void tagNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         TagParams params) {
         ListenableFuture<List<NumericData>> future;
-        NumericMetric2 metric = new NumericMetric2(tenantId, new MetricId(params.getMetric()));
+        NumericMetric metric = new NumericMetric(tenantId, new MetricId(params.getMetric()));
         if (params.getTimestamp() != null) {
             future = metricsService.tagNumericData(metric, params.getTags(), params.getTimestamp());
         } else {

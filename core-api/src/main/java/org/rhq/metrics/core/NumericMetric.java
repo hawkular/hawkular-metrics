@@ -16,40 +16,42 @@
 
 package org.rhq.metrics.core;
 
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
 /**
- * A set of pre-computed aggregates over a time interval (called <i>bucket</i> here) or a raw
- * numeric data for a time instant.
- *
  * @author John Sanda
  */
-public interface NumericMetric {
+public class NumericMetric extends Metric<NumericData> {
 
-    /**
-     * Returns the identifier that defines a time interval such as 1 minute, 5 minutes, 1 hour,
-     * 1 day, etc. over which the aggregates available in  this {@link NumericMetric} were computed.
-     * Another possible names for <i>bucket</i> are <i>roll-up</i> or <i>time window</i>.
-     * <p>
-     * {@code "raw"} is a special value meaning that this {@link NumericMetric} stores a raw instant
-     * data rather than data aggregated over a time window.
-     *
-     * @return the identifier of the bucket.
-     */
-    String getBucket();
+    public NumericMetric(String tenantId, MetricId id) {
+        super(tenantId, id);
+    }
 
-    String getId();
+    public NumericMetric(String tenantId, MetricId id, Map<String, String> metadata) {
+        super(tenantId, id, metadata);
+    }
 
-    Double getMin();
+    public NumericMetric(String tenantId, MetricId id, Map<String, String> metadata, Integer dataRetention) {
+        super(tenantId, id, metadata, dataRetention);
+    }
 
-    Double getMax();
+    @Override
+    public MetricType getType() {
+        return MetricType.NUMERIC;
+    }
 
-    Double getAvg();
+    public void addData(long timestamp, double value) {
+        addData(new NumericData(this, timestamp, value));
+    }
 
-    /**
-     * For aggregate Metrics, returns the beginning of the bucket, whereas for raw metrics, returns
-     * time when the data point was collected
-     *
-     * @return the timestamp
-     */
-    long getTimestamp();
+    public void addData(UUID timeUUID, double value) {
+        addData(new NumericData(this, timeUUID, value));
+    }
+
+    public void addData(UUID timeUUID, double value, Set<Tag> tags) {
+        addData(new NumericData(this, timeUUID, value, tags));
+    }
 
 }

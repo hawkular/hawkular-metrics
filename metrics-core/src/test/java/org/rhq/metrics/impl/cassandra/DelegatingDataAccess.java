@@ -32,7 +32,7 @@ import org.rhq.metrics.core.MetricData;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.NumericData;
-import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.Retention;
 import org.rhq.metrics.core.Tenant;
 
@@ -99,22 +99,22 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertData(NumericMetric2 metric, int ttl) {
+    public ResultSetFuture insertData(NumericMetric metric, int ttl) {
         return delegate.insertData(metric, ttl);
     }
 
     @Override
-    public ResultSetFuture findData(NumericMetric2 metric, long startTime, long endTime) {
+    public ResultSetFuture findData(NumericMetric metric, long startTime, long endTime) {
         return delegate.findData(metric, startTime, endTime);
     }
 
     @Override
-    public ResultSetFuture findData(NumericMetric2 metric, long startTime, long endTime, boolean includeWriteTime) {
+    public ResultSetFuture findData(NumericMetric metric, long startTime, long endTime, boolean includeWriteTime) {
         return delegate.findData(metric, startTime, endTime, includeWriteTime);
     }
 
     @Override
-    public ResultSetFuture findData(NumericMetric2 metric, long timestamp, boolean includeWriteTime) {
+    public ResultSetFuture findData(NumericMetric metric, long timestamp, boolean includeWriteTime) {
         return delegate.findData(metric, timestamp, includeWriteTime);
     }
 

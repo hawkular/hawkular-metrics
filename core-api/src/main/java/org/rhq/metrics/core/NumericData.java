@@ -36,22 +36,22 @@ public class NumericData extends MetricData {
 
     private Set<AggregatedValue> aggregatedValues = new HashSet<>();
 
-    public NumericData(NumericMetric2 metric, long timestamp, double value) {
+    public NumericData(NumericMetric metric, long timestamp, double value) {
         this(metric, TimeUUIDUtils.getTimeUUID(timestamp), value);
     }
 
-    public NumericData(NumericMetric2 metric, UUID timeUUID, double value) {
+    public NumericData(NumericMetric metric, UUID timeUUID, double value) {
         super(metric, timeUUID);
         this.metric = metric;
         this.value = value;
     }
 
-    public NumericData(NumericMetric2 metric, UUID timeUUID, double value, Set<Tag> tags) {
+    public NumericData(NumericMetric metric, UUID timeUUID, double value, Set<Tag> tags) {
         super(metric, timeUUID, tags);
         this.value = value;
     }
 
-    public NumericData(NumericMetric2 metric, UUID timeUUID, double value, Set<Tag> tags, Long writeTime) {
+    public NumericData(NumericMetric metric, UUID timeUUID, double value, Set<Tag> tags, Long writeTime) {
         super(metric, timeUUID, tags, writeTime);
     }
 

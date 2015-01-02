@@ -32,7 +32,7 @@ import org.rhq.metrics.core.MetricData;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.NumericData;
-import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.Retention;
 import org.rhq.metrics.core.Tenant;
 
@@ -61,13 +61,13 @@ public interface DataAccess {
 
     ResultSetFuture findMetricsInMetricsIndex(String tenantId, MetricType type);
 
-    ResultSetFuture insertData(NumericMetric2 metric, int ttl);
+    ResultSetFuture insertData(NumericMetric metric, int ttl);
 
-    ResultSetFuture findData(NumericMetric2 metric, long startTime, long endTime);
+    ResultSetFuture findData(NumericMetric metric, long startTime, long endTime);
 
-    ResultSetFuture findData(NumericMetric2 metric, long startTime, long endTime, boolean includeWriteTime);
+    ResultSetFuture findData(NumericMetric metric, long startTime, long endTime, boolean includeWriteTime);
 
-    ResultSetFuture findData(NumericMetric2 metric, long timestamp, boolean includeWriteTime);
+    ResultSetFuture findData(NumericMetric metric, long timestamp, boolean includeWriteTime);
 
     ResultSetFuture findData(AvailabilityMetric metric, long startTime, long endTime);
 

@@ -46,7 +46,7 @@ import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.NumericData;
-import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.Tenant;
 import org.rhq.metrics.test.MetricsTest;
 
@@ -124,7 +124,7 @@ public class DataAccessTest extends MetricsTest {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);
 
-        NumericMetric2 metric = new NumericMetric2("tenant-1", new MetricId("metric-1"));
+        NumericMetric metric = new NumericMetric("tenant-1", new MetricId("metric-1"));
         metric.addData(new NumericData(metric, start.getMillis(), 1.23));
         metric.addData(new NumericData(metric, start.plusMinutes(1).getMillis(), 1.234));
         metric.addData(new NumericData(metric, start.plusMinutes(2).getMillis(), 1.234));
@@ -149,7 +149,7 @@ public class DataAccessTest extends MetricsTest {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);
 
-        NumericMetric2 metric = new NumericMetric2("tenant-1", new MetricId("metric-1"),
+        NumericMetric metric = new NumericMetric("tenant-1", new MetricId("metric-1"),
             ImmutableMap.of("units", "KB", "env", "test"));
 
         ResultSetFuture insertFuture = dataAccess.addMetadata(metric);

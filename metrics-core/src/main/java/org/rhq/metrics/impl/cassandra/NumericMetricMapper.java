@@ -27,13 +27,13 @@ import com.google.common.base.Function;
 
 import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.MetricId;
-import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.Tag;
 
 /**
  * @author John Sanda
  */
-public class NumericMetricMapper implements Function<ResultSet, NumericMetric2> {
+public class NumericMetricMapper implements Function<ResultSet, NumericMetric> {
 
     private enum ColumnIndex {
         TENANT_ID,
@@ -48,13 +48,13 @@ public class NumericMetricMapper implements Function<ResultSet, NumericMetric2> 
     }
 
     @Override
-    public NumericMetric2 apply(ResultSet resultSet) {
+    public NumericMetric apply(ResultSet resultSet) {
         if (resultSet.isExhausted()) {
             return null;
         }
 
         Row firstRow = resultSet.one();
-        NumericMetric2 metric = getMetric(firstRow);
+        NumericMetric metric = getMetric(firstRow);
         metric.addData(firstRow.getUUID(ColumnIndex.TIME.ordinal()), firstRow.getDouble(ColumnIndex.VALUE.ordinal()),
             getTags(firstRow));
 
@@ -66,8 +66,8 @@ public class NumericMetricMapper implements Function<ResultSet, NumericMetric2> 
         return metric;
     }
 
-    private NumericMetric2 getMetric(Row row) {
-        NumericMetric2 metric = new NumericMetric2(row.getString(ColumnIndex.TENANT_ID.ordinal()), getId(row),
+    private NumericMetric getMetric(Row row) {
+        NumericMetric metric = new NumericMetric(row.getString(ColumnIndex.TENANT_ID.ordinal()), getId(row),
             row.getMap(ColumnIndex.META_DATA.ordinal(), String.class, String.class),
             row.getInt(ColumnIndex.DATA_RETENTION.ordinal()));
         metric.setDpart(row.getLong(ColumnIndex.DPART.ordinal()));

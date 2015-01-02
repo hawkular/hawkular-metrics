@@ -29,7 +29,7 @@ import com.google.common.base.Function;
 import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.NumericData;
-import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.Tag;
 
 /**
@@ -90,7 +90,7 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
             return Collections.emptyList();
         }
         Row firstRow = resultSet.one();
-        NumericMetric2 metric = getMetric(firstRow);
+        NumericMetric metric = getMetric(firstRow);
         metric.addData(rowConverter.getData(firstRow));
 
         for (Row row : resultSet) {
@@ -100,8 +100,8 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
         return metric.getData();
     }
 
-    private NumericMetric2 getMetric(Row row) {
-        NumericMetric2 metric = new NumericMetric2(row.getString(ColumnIndex.TENANT_ID.ordinal()), getId(row),
+    private NumericMetric getMetric(Row row) {
+        NumericMetric metric = new NumericMetric(row.getString(ColumnIndex.TENANT_ID.ordinal()), getId(row),
             row.getMap(ColumnIndex.META_DATA.ordinal(), String.class, String.class),
             row.getInt(ColumnIndex.DATA_RETENTION.ordinal()));
         metric.setDpart(row.getLong(ColumnIndex.DPART.ordinal()));

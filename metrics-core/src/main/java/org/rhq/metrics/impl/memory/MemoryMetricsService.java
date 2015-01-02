@@ -42,7 +42,7 @@ import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.MetricsThreadFactory;
 import org.rhq.metrics.core.NumericData;
-import org.rhq.metrics.core.NumericMetric2;
+import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.Tenant;
 
 import gnu.trove.map.TLongDoubleMap;
@@ -112,8 +112,8 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> addNumericData(List<NumericMetric2> metrics) {
-        for (NumericMetric2 metric : metrics) {
+    public ListenableFuture<Void> addNumericData(List<NumericMetric> metrics) {
+        for (NumericMetric metric : metrics) {
             TLongDoubleMap map;
             if (storage.containsKey(metric.getId().getName())) {
                 map = storage.get(metric.getId().getName());
@@ -182,7 +182,7 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<NumericData>> findData(NumericMetric2 metric, long start, long end) {
+    public ListenableFuture<List<NumericData>> findData(NumericMetric metric, long start, long end) {
         List<NumericData> data = new ArrayList<>();
 
         if (storage.containsKey(metric.getId().getName())) {
@@ -198,7 +198,7 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<NumericMetric2> findNumericData(NumericMetric2 metric, long start, long end) {
+    public ListenableFuture<NumericMetric> findNumericData(NumericMetric metric, long start, long end) {
         return null;
     }
 
@@ -224,7 +224,7 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric2 metric, Set<String> tags, long start,
+    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Set<String> tags, long start,
         long end) {
         return null;
     }
@@ -236,7 +236,7 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric2 metric, Set<String> tags, long timestamp) {
+    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Set<String> tags, long timestamp) {
         return null;
     }
 
