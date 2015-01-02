@@ -209,21 +209,6 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<String>> listMetrics() {
-        List<String> metrics = new ArrayList<>(storage.keySet().size());
-        metrics.addAll(storage.keySet());
-
-        ListenableFuture<List<String>> future = Futures.immediateFuture(metrics);
-        return Futures.transform(future, new NoOpMapper<List<String>>(), metricsTasks);
-    }
-
-    @Override
-    public ListenableFuture<Boolean> deleteMetric(String id) {
-        storage.remove(id);
-        return Futures.immediateFuture(true);
-    }
-
-    @Override
     public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Set<String> tags, long start,
         long end) {
         return null;

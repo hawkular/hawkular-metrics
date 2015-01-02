@@ -96,12 +96,6 @@ public interface MetricsService {
     /** Check if a metric with the passed {id} has been stored in the system */
     ListenableFuture<Boolean> idExists(String id);
 
-    /** Return a list of all metric names */
-    ListenableFuture<List<String>> listMetrics();
-
-    /** Delete the metric with the passed id */
-    ListenableFuture<Boolean> deleteMetric(String id);
-
     ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Set<String> tags, long start, long end);
 
     ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, Set<String> tags, long start,

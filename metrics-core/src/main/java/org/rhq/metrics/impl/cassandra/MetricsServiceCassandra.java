@@ -519,33 +519,6 @@ public class MetricsServiceCassandra implements MetricsService {
         }, metricsTasks);
     }
 
-    @Override
-    public ListenableFuture<List<String>> listMetrics() {
-        ResultSetFuture future = dataAccess.findAllNumericMetrics();
-        return Futures.transform(future, new Function<ResultSet, List<String>>() {
-            @Override
-            public List<String> apply(ResultSet resultSet) {
-                List<String> metrics = new ArrayList<>();
-                for (Row row : resultSet) {
-                    metrics.add(row.getString(2));
-                }
-                return metrics;
-            }
-        }, metricsTasks);
-    }
-
-    @Override
-    public ListenableFuture<Boolean> deleteMetric(String id) {
-        ResultSetFuture future = dataAccess.deleteNumericMetric(DEFAULT_TENANT_ID, id, Interval.NONE, Metric.DPART);
-        return Futures.transform(future, new Function<ResultSet, Boolean>() {
-            @Override
-            public Boolean apply(ResultSet input) {
-                return input.isExhausted();
-            }
-        });
-    }
-
-
     private void dropKeyspace(String keyspace) {
         session.get().execute("DROP KEYSPACE IF EXISTS " + keyspace);
     }
