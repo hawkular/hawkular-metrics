@@ -215,7 +215,9 @@ PUT /rhq-metrics/{tenantId}/numeric/{id}/meta
 
 *Example Request*
 
+----
 curl -X PUT http://localhost:8080/rhq-metrics/{tenantId}/metrics/numeric -d@request.json -HContent-Type:application/json
+----
 
 *Description*
 
