@@ -25,8 +25,8 @@
     <version>0.2.6-SNAPSHOT</version>
   </parent>
 
-  <artifactId>rhq-metrics-groovy-rest-tests</artifactId>
-  <name>RHQ Metrics Groovy Rest Tests</name>
+  <artifactId>rhq-metrics-rest-tests</artifactId>
+  <name>RHQ Metrics Rest Tests</name>
 
   <properties>
     <rhq-metrics.backend>cass</rhq-metrics.backend>
