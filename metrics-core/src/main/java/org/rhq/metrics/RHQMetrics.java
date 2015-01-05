@@ -21,7 +21,6 @@ import java.util.Map;
 
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.impl.cassandra.MetricsServiceCassandra;
-import org.rhq.metrics.impl.embedded.MetricsServiceEmbeddedCassandra;
 import org.rhq.metrics.impl.memory.MemoryMetricsService;
 
 /**

@@ -136,11 +136,8 @@
               <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
               <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
             </manifest>
-            <!--
-            <manifestEntries>
-              <Build-Number>${buildNumber}</Build-Number>
-            </manifestEntries>
-            -->
+            <!-- <manifestEntries> <Build-Number>${buildNumber}</Build-Number>
+              </manifestEntries> -->
           </archive>
           <webResources>
             <resource>
@@ -196,11 +193,12 @@
                 <AtargetDirectory>${project.build.directory}/docs/xml</AtargetDirectory>
                 <AmodelPkg>org.rhq.metrics.restServlet</AmodelPkg>
                 <!--<AskipPkg>org.rhq.enterprise.server.rest.reporting</AskipPkg> -->
-                <!-- enable the next line to have the output of the processor shown on console -->
+                <!-- enable the next line to have the output of the processor
+                  shown on console -->
                 <!--<Averbose>true</Averbose> -->
               </compilerArguments>
-              <!-- set the next to true to enable verbose output of the compiler plugin; default from
-                the evn is true, but this is too noisy -->
+              <!-- set the next to true to enable verbose output of the compiler
+                plugin; default from the evn is true, but this is too noisy -->
               <verbose>false</verbose>
             </configuration>
             <executions>
@@ -230,8 +228,8 @@
               <transformationSets>
                 <transformationSet>
                   <!-- Generate a html rendering -->
-                  <!-- org.rhq.helpers.rest_docs_generator.test plugin wrote to target/docs/xml (see
-                    -AtargetDirectory above) -->
+                  <!-- org.rhq.helpers.rest_docs_generator.test plugin wrote
+                    to target/docs/xml (see -AtargetDirectory above) -->
                   <dir>target/docs/xml</dir>
                   <includes>
                     <include>rest-api-out.xml</include>
@@ -245,15 +243,16 @@
                   </parameters>
                   <outputDir>${project.build.directory}/docs/html</outputDir>
                   <fileMappers>
-                    <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
+                    <fileMapper
+                      implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
                       <targetExtension>.html</targetExtension>
                     </fileMapper>
                   </fileMappers>
                 </transformationSet>
                 <transformationSet>
                   <!-- Generate a html rendering of a short form -->
-                  <!-- org.rhq.helpers.rest_docs_generator.test plugin wrote to target/docs/xml (see
-                    -AtargetDirectory above) -->
+                  <!-- org.rhq.helpers.rest_docs_generator.test plugin wrote
+                    to target/docs/xml (see -AtargetDirectory above) -->
                   <dir>target/docs/xml</dir>
                   <includes>
                     <include>rest-api-out.xml</include>
@@ -267,18 +266,20 @@
                   </parameters>
                   <outputDir>${project.build.directory}/docs/html</outputDir>
                   <fileMappers>
-                    <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.MergeFileMapper">
+                    <fileMapper
+                      implementation="org.codehaus.plexus.components.io.filemappers.MergeFileMapper">
                       <targetName>rest-api-overview</targetName>
                     </fileMapper>
-                    <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
+                    <fileMapper
+                      implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
                       <targetExtension>.html</targetExtension>
                     </fileMapper>
                   </fileMappers>
                 </transformationSet>
                 <transformationSet>
                   <!-- Generate a docbook file as input to fop -->
-                  <!-- org.rhq.helpers.rest_docs_generator.test plugin wrote to target/docs/xml (see
-                    -AtargetDirectory above) -->
+                  <!-- org.rhq.helpers.rest_docs_generator.test plugin wrote
+                    to target/docs/xml (see -AtargetDirectory above) -->
                   <dir>target/docs/xml</dir>
                   <includes>
                     <include>rest-api-out.xml</include>
@@ -292,7 +293,8 @@
                   </parameters>
                   <outputDir>${project.build.directory}/docs/xml</outputDir>
                   <fileMappers>
-                    <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
+                    <fileMapper
+                      implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
                       <targetExtension>.dbx.xml</targetExtension>
                     </fileMapper>
                   </fileMappers>
@@ -301,29 +303,29 @@
             </configuration>
           </plugin>
 
-        <plugin>
-          <groupId>com.agilejava.docbkx</groupId>
-          <artifactId>docbkx-maven-plugin</artifactId>
-          <version>2.0.14</version>
-          <executions>
-            <execution>
-              <phase>process-classes</phase>
-              <goals>
-                <goal>generate-pdf</goal>
-                <goal>generate-html</goal>
-              </goals>
-            </execution>
-          </executions>
-          <configuration>
-            <sourceDirectory>target/docs/xml</sourceDirectory> <!-- from previous plugin, 2nd transformation set -->
-            <includes>rest-api-out.dbx.xml</includes>
-            <hyphenate>true</hyphenate>
-            <generateToc>true</generateToc>
-          </configuration>
-        </plugin>
-      </plugins>
-    </build>
-  </profile>
+          <plugin>
+            <groupId>com.agilejava.docbkx</groupId>
+            <artifactId>docbkx-maven-plugin</artifactId>
+            <version>2.0.14</version>
+            <executions>
+              <execution>
+                <phase>process-classes</phase>
+                <goals>
+                  <goal>generate-pdf</goal>
+                  <goal>generate-html</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <sourceDirectory>target/docs/xml</sourceDirectory> <!-- from previous plugin, 2nd transformation set -->
+              <includes>rest-api-out.dbx.xml</includes>
+              <hyphenate>true</hyphenate>
+              <generateToc>true</generateToc>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
   </profiles>
 </project>
 
