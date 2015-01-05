@@ -47,7 +47,6 @@ module.exports = function (grunt) {
             },
             dev: {
                 src: [ 'vendor/**/*.d.ts', 'scripts/**/*.ts'  ],
-                dest: 'scripts',
                 options: {
                     removeComments: true,
                     target: 'ES5',
@@ -153,6 +152,8 @@ module.exports = function (grunt) {
                         dot: true,
                         src: [
                             '.tmp',
+                            'scripts/**/*.js',
+                            'scripts/**/*.js.map',
                             '<%= rhqMetrics.dist %>/*',
                             '!<%= rhqMetrics.dist %>/.git*'
                         ]
