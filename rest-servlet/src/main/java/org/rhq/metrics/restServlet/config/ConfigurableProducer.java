@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
@@ -42,6 +43,7 @@ public class ConfigurableProducer {
     private Optional<File> configurationFile;
     // Value needs to be Optional as ConcurrentHashMap does not allow null values
     private ConcurrentMap<String, Optional<String>> effectiveConfiguration;
+    private CopyOnWriteArraySet<String> readSystemProperties;
 
     @PostConstruct
     void init() {
@@ -53,6 +55,7 @@ public class ConfigurableProducer {
             Map<String, String> configurationFileProperties = loadConfigurationFileProperties(file);
             configurationFileProperties.forEach((k, v) -> effectiveConfiguration.put(k, Optional.ofNullable(v)));
         });
+        readSystemProperties = new CopyOnWriteArraySet<>();
     }
 
     @Produces
@@ -63,9 +66,14 @@ public class ConfigurableProducer {
 
     private String lookupConfigurationProperty(InjectionPoint injectionPoint) {
         String propertyName = getConfigurationPropertyName(injectionPoint);
-        Optional<String> value = effectiveConfiguration.computeIfAbsent(propertyName,
-            key -> Optional.ofNullable(System.getProperty(key)));
-        return value.orElse(null);
+        if (!readSystemProperties.contains(propertyName)) {
+            String sysprop = System.getProperty(propertyName);
+            if (sysprop != null) {
+                effectiveConfiguration.put(propertyName, Optional.of(sysprop));
+            }
+            readSystemProperties.add(propertyName);
+        }
+        return effectiveConfiguration.get(propertyName).orElse(null);
     }
 
     private String getConfigurationPropertyName(InjectionPoint injectionPoint) {
