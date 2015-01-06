@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Usage start.sh [mem|cass] [bind_addr]
+# Usage start.sh [mem|cass|em_cass] [bind_addr]
 
 # set -x
 

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <artifactId>rhq-metrics-parent</artifactId>
+    <groupId>org.rhq.metrics</groupId>
+    <version>0.2.6-SNAPSHOT</version>
+  </parent>
+  <artifactId>embedded-cassandra</artifactId>
+  <packaging>pom</packaging>
+
+  <name>Embedded Cassandra for RHQ Metrics</name>
+  <description>Embedded Cassandra server for RHQ-Metrics</description>
+
+  <properties>
+    <swagger-annotations.version>1.2.3</swagger-annotations.version>
+    <rest-docs-generator.version>4.11.0</rest-docs-generator.version>
+    <version.ear.plugin>2.9.1</version.ear.plugin>
+    <version.compiler.plugin>3.1</version.compiler.plugin>
+    <version.ejb.plugin>2.3</version.ejb.plugin>
+  </properties>
+
+  <modules>
+    <module>embedded-cassandra-service</module>
+    <module>embedded-cassandra-ear</module>
+  </modules>
+</project>
+
