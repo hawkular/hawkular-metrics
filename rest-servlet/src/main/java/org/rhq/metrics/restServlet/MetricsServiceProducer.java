@@ -16,14 +16,19 @@
 
 package org.rhq.metrics.restServlet;
 
+import static org.rhq.metrics.restServlet.config.ConfigurationKey.BACKEND;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
+import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.rhq.metrics.RHQMetrics;
 import org.rhq.metrics.core.MetricsService;
+import org.rhq.metrics.restServlet.config.Configurable;
+import org.rhq.metrics.restServlet.config.ConfigurationProperty;
 
 /**
  * @author John Sanda
@@ -32,13 +37,16 @@ import org.rhq.metrics.core.MetricsService;
 public class MetricsServiceProducer {
     private static final Logger LOG = LoggerFactory.getLogger(MetricsServiceProducer.class);
 
+    @Inject
+    @Configurable
+    @ConfigurationProperty(BACKEND)
+    private String backend;
+
     private MetricsService metricsService;
 
     @Produces
     public MetricsService getMetricsService() {
         if (metricsService == null) {
-            String backend = System.getProperty("rhq-metrics.backend");
-
             RHQMetrics.Builder metricsServiceBuilder = new RHQMetrics.Builder();
 
             if (backend != null) {
