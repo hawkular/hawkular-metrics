@@ -27,28 +27,27 @@ module Controllers {
 
 
     export class SidebarController {
-        public static  $inject = ['$scope', '$rootScope', 'metricDataService','Angularytics' ];
+        public static  $inject = ['$scope', '$rootScope', 'metricDataService','dashboardStateService','Angularytics' ];
 
         allMetrics:ISelectedMetric[];
         retrieveMetricsPromise;
 
-        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService,  private metricDataService, private Angularytics) {
+        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService,  private metricDataService, private dashboardStateService, private Angularytics) {
             $scope.vm = this;
 
-
             $scope.$on('RemoveSelectedMetricEvent', (event, metricId) => {
-                angular.forEach(this.allMetrics, function (value:ISelectedMetric) {
+                angular.forEach(this.allMetrics, (value:ISelectedMetric) => {
                     if (value.title === metricId) {
                          value.selected = false;
                     }
                 });
             });
+
             $scope.$on('LoadAllSidebarMetricsEvent', () => {
                 this.Angularytics.trackEvent('LoadAllSidebarMetricsEvent', 'true');
                 this.populateMetricsSidebar();
                 this.$rootScope.$emit('LoadInitialChartGroup');
             });
-
 
             $scope.$on('SelectedMetricsChangedEvent', (event, selectedMetrics:string[]) => {
                 this.selectedMetricsChanged(selectedMetrics);
@@ -58,8 +57,8 @@ module Controllers {
         }
 
         private selectedMetricsChanged(selectedMetrics:string[]) {
-            _.each(this.allMetrics, function(metric:ISelectedMetric){
-                _.each(selectedMetrics, function(selectedMetric:string){
+            _.each(this.allMetrics, (metric:ISelectedMetric) =>{
+                _.each(selectedMetrics, (selectedMetric:string) => {
                     if(selectedMetric === metric.title){
                         metric.selected = true;
                     }
@@ -68,10 +67,11 @@ module Controllers {
         }
 
         populateMetricsSidebar() {
-
+            console.info("Populating Sidebar");
             this.retrieveMetricsPromise = this.metricDataService.getAllMetrics()
                 .then((response) => {
                     this.allMetrics = response;
+                    console.dir(this.allMetrics);
                     this.$rootScope.$emit('SidebarRefreshedEvent');
 
                 }, (error) => {
@@ -82,12 +82,13 @@ module Controllers {
         }
 
         addRemoveChart(metricId:string, checked:boolean) {
-
             if (checked) {
                 this.Angularytics.trackEvent('SideBar', 'RemoveChart',metricId);
+                this.dashboardStateService.remove(metricId);
                 this.$rootScope.$emit('RemoveChartEvent', metricId);
             } else {
                 this.Angularytics.trackEvent('SideBar', 'AddChart',metricId );
+                this.dashboardStateService.add(metricId);
                 this.$rootScope.$emit('NewChartEvent', metricId);
             }
         }
