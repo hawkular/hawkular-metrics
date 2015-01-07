@@ -16,11 +16,10 @@
 
 package org.rhq.metrics.impl.cassandra;
 
-import java.util.Collections;
-import java.util.HashSet;
+import static java.util.stream.Collectors.toSet;
+
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
@@ -83,13 +82,6 @@ public class AvailabilityMetricMapper implements Function<ResultSet, Availabilit
 
     private Set<Tag> getTags(Row row) {
         Map<String, String> map = row.getMap(ColumnIndex.TAGS.ordinal(), String.class, String.class);
-        Set<Tag> tags;
-        if (map.isEmpty()) {
-            tags = Collections.emptySet();
-        } else {
-            tags = new HashSet<>();
-            tags.addAll(map.keySet().stream().map(tag -> new Tag(tag, map.get(tag))).collect(Collectors.toList()));
-        }
-        return tags;
+        return map.entrySet().stream().map(entry -> new Tag(entry.getKey(), entry.getValue())).collect(toSet());
     }
 }

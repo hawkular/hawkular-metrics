@@ -18,8 +18,13 @@ package org.rhq.metrics.restServlet;
 
 import static java.lang.Double.NaN;
 import static java.util.Arrays.asList;
+import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.summarizingDouble;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 import static javax.ws.rs.core.Response.Status;
@@ -28,11 +33,13 @@ import static org.rhq.metrics.restServlet.CustomMediaTypes.APPLICATION_VND_RHQ_W
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.DoubleSummaryStatistics;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.LongStream;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -476,17 +483,38 @@ public class MetricHandler {
             BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(),
                 metric.getMetadata());
             long bucketSize = (endTime - startTime) / numberOfBuckets;
-            for (int i = 0; i < numberOfBuckets; ++i) {
-                long bucketStartTime = startTime + (i * bucketSize);
-                BucketDataPoint point = createPointInSimpleBucket(metric.getId().getName(), bucketStartTime, bucketSize,
-                    metric.getData());
-                if (!skipEmpty || !point.isEmpty()) {
-                    output.add(point);
-                }
+
+            long[] buckets = LongStream.iterate(0, i -> i + 1).limit(numberOfBuckets)
+                .map(i -> startTime + (i * bucketSize)).toArray();
+
+            Map<Long, List<NumericData>> map = metric.getData().stream().collect(
+                groupingBy(dataPoint -> findBucket(buckets, bucketSize, dataPoint.getTimestamp())));
+
+            Map<Long, DoubleSummaryStatistics> statsMap = map.entrySet().stream()
+                .collect(toMap(Map.Entry::getKey, entry -> entry.getValue().stream().collect(summarizingDouble(
+                    NumericData::getValue))));
+
+            for (Long bucket : buckets) {
+                statsMap.computeIfAbsent(bucket, key -> new DoubleSummaryStatistics());
             }
+
+            output.setData(statsMap.entrySet().stream()
+                .sorted((left, right) -> left.getKey().compareTo(right.getKey()))
+                .filter(e -> !skipEmpty || e.getValue().getCount() > 0)
+                .map(e -> getBucketedDataPoint(metric.getId(), e.getKey(), e.getValue()))
+                .collect(toList()));
 
             return output;
         }
+    }
+
+    private BucketDataPoint getBucketedDataPoint(MetricId id, long timestamp, DoubleSummaryStatistics stats) {
+        // Currently, if a bucket does not contain any data, we set max/min/avg to Double.NaN.
+        // DoubleSummaryStatistics however uses Double.Infinity for max/min and 0.0 for avg.
+        if (stats.getCount() > 0) {
+            return new BucketDataPoint(id.getName(), timestamp, stats.getMin(), stats.getAverage(), stats.getMax());
+        }
+        return new BucketDataPoint(id.getName(), timestamp, Double.NaN, Double.NaN, Double.NaN);
     }
 
     private class CreateFixedNumberOfBuckets extends MetricMapper<List<? extends Object>> {
@@ -913,20 +941,26 @@ public class MetricHandler {
         });
     }
 
-    static BucketDataPoint createPointInSimpleBucket(String id, long startTime, long bucketsize,
-        List<NumericData> metrics) {
-        List<NumericData> bucketMetrics = new ArrayList<>(metrics.size());
-        // Find matching metrics
-        for (NumericData raw : metrics) {
-            if (raw.getTimestamp() >= startTime && raw.getTimestamp() < startTime + bucketsize) {
-                bucketMetrics.add((NumericData) raw);
-            }
-        }
+//    static BucketDataPoint createPointInSimpleBucket(String id, long startTime, long bucketsize,
+//        List<NumericData> metrics) {
+//        List<NumericData> bucketMetrics = new ArrayList<>(metrics.size());
+//        // Find matching metrics
+//        for (NumericData raw : metrics) {
+//            if (raw.getTimestamp() >= startTime && raw.getTimestamp() < startTime + bucketsize) {
+//                bucketMetrics.add((NumericData) raw);
+//            }
+//        }
+//
+//        return getBucketDataPoint(id, startTime, bucketMetrics);
+//    }
 
-        return getBucketDataPoint(id, startTime, bucketMetrics);
+    static long findBucket(long[] buckets, long bucketSize, long timestamp) {
+        return stream(buckets).filter(bucket -> timestamp >= bucket && timestamp < bucket + bucketSize)
+            .findFirst().getAsLong();
     }
 
     static BucketDataPoint getBucketDataPoint(String id, long startTime, List<NumericData> bucketMetrics) {
+
         Double min = null;
         Double max = null;
         double sum = 0;
