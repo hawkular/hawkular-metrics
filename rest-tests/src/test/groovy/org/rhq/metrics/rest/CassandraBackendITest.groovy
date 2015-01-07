@@ -17,13 +17,115 @@
 package org.rhq.metrics.rest
 
 import org.joda.time.DateTime
+import org.joda.time.Seconds
 import org.junit.Test
+import org.rhq.metrics.impl.DateTimeService
 
 import static org.joda.time.DateTime.now
+import static org.joda.time.Seconds.seconds
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.fail
 
 class CassandraBackendITest extends RESTTest {
+
+  static final double DELTA = 0.001
+
+  @Test
+  void queryForBucketedNumericData() {
+    DateTimeService dateTimeService = new DateTimeService()
+    String tenantId = 'tenant-0'
+    String metric = 'n1'
+    DateTime start = dateTimeService.currentHour().minusHours(1)
+    DateTime end = start.plusHours(1)
+
+    int numBuckets = 10
+    long bucketSize = (end.millis - start.millis) / numBuckets
+    def buckets = []
+    numBuckets.times { buckets.add(start.millis + (it * bucketSize))}
+
+    def response = rhqm.post(path: "$tenantId/metrics/numeric/$metric/data", body: [
+        [timestamp: buckets[0], value: 12.22],
+        [timestamp: buckets[0] + seconds(10).toStandardDuration().millis, value: 12.37],
+        [timestamp: buckets[4], value: 25],
+        [timestamp: buckets[4] + seconds(15).toStandardDuration().millis, value: 25],
+        [timestamp: buckets[9], value: 18.367],
+        [timestamp: buckets[9] + seconds(10).toStandardDuration().millis, value: 19.01]
+    ])
+    assertEquals(200, response.status)
+
+    response = rhqm.get(path: "${tenantId}/metrics/numeric/$metric/data", query: [start: start.millis, end: end.millis,
+        buckets: 10, bucketWidthSeconds: 0])
+    assertEquals(200, response.status)
+
+    def expectedData = [
+      tenantId: tenantId,
+      name: metric,
+      data: [
+        [timestamp: buckets[0], empty: false, max: 12.37, min: 12.22, avg: (12.22 + 12.37) / 2, value: 0, id: metric],
+        [timestamp: buckets[1], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0, id: metric],
+        [timestamp: buckets[2], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0, id: metric],
+        [timestamp: buckets[3], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0, id: metric],
+        [timestamp: buckets[4], empty: false, max: 25.0, min: 25.0, avg: 25.0, value: 0, id: metric],
+        [timestamp: buckets[5], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0, id: metric],
+        [timestamp: buckets[6], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0, id: metric],
+        [timestamp: buckets[7], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0, id: metric],
+        [timestamp: buckets[8], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0, id: metric],
+        [timestamp: buckets[9], empty: false, max: 19.01, min: 18.367, avg: (18.367 + 19.01) / 2, value: 0, id: metric],
+      ]
+    ]
+
+    def assertBucketEquals = { expected, actual ->
+      assertEquals(expected.timestamp, actual.timestamp)
+      assertEquals(expected.empty, actual.empty)
+      assertEquals(expected.id, actual.id)
+      assertDoubleEquals(expected.max, actual.max)
+      assertDoubleEquals(expected.min, actual.min)
+      assertDoubleEquals(expected.avg, actual.avg)
+    }
+
+    assertBucketedDataEquals(expectedData, response.data, assertBucketEquals)
+
+    response = rhqm.get(path: "$tenantId/metrics/numeric/$metric/data", query: [start: start.millis, end: end.millis,
+        buckets: 10, bucketWidthSeconds: 0, skipEmpty: true])
+    assertEquals(200, response.status)
+
+    expectedData = [
+      tenantId: tenantId,
+      name: metric,
+      data: [
+        [timestamp: buckets[0], empty: false, max: 12.37, min: 12.22, avg: (12.22 + 12.37) / 2, value: 0, id: metric],
+        [timestamp: buckets[4], empty: false, max: 25.0, min: 25.0, avg: 25.0, value: 0, id: metric],
+        [timestamp: buckets[9], empty: false, max: 19.01, min: 18.367, avg: (18.367 + 19.01) / 2, value: 0, id: metric],
+      ]
+    ]
+
+    assertBucketedDataEquals(expectedData, response.data, assertBucketEquals)
+  }
+
+  void assertBucketedDataEquals(def expected, def actual, Closure verifyBucket) {
+    // When I first wrote this method, I was thinking that different verifications on the
+    // buckets might be performed based on the query parameters used, hence the
+    // verifyBucket argument. If different verifications are not needed, then we should
+    // just put the additional verification code directly in this method.
+
+    assertEquals(expected.tenantId, actual.tenantId)
+    assertEquals(expected.name, actual.name)
+    assertEquals('The number of bucketed data points is wrong', expected.size(), actual.size())
+    expected.size().times { verifyBucket(expected.data[it], actual.data[it]) }
+  }
+
+  void assertDoubleEquals(expected, actual) {
+    // If a bucket does not contain any data points, then the server returns
+    // Double.NaN for max/min/avg. NaN is returned on the client and parsed as
+    // a string. If the bucket contains data points, then the returned values
+    // will be numeric.
+
+    if (actual instanceof String) {
+      assertEquals((Double) expected, Double.parseDouble(actual), DELTA)
+    } else {
+      assertEquals((Double) expected, (Double) actual, DELTA)
+    }
+  }
 
   @Test
   void insertNumericDataForMultipleMetrics() {
