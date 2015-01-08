@@ -412,11 +412,13 @@ public class InfluxSeriesHandler {
                 case COUNT:
                     retVal = size;
                     break;
+                case TOP:
                 case FIRST:
                     if (!list.isEmpty()) {
                         retVal = firstElementInList.getValue();
                     }
                     break;
+                case BOTTOM:
                 case LAST:
                     if (!list.isEmpty()) {
                         retVal = lastElementInList.getValue();
@@ -441,6 +443,32 @@ public class InfluxSeriesHandler {
                     NumberFunctionArgument argument = (NumberFunctionArgument) aggregationFunctionArguments.get(1);
                     retVal = quantil(list, argument.getDoubleValue());
                     break;
+                case HISTOGRAM:
+				case MODE:
+					int maxCount=0;
+					for (NumericData rnm : list) {
+						int count = 0;
+						for (NumericData rnm2 : list) {
+							if (rnm.getValue() == rnm2.getValue()) ++count;
+						}
+						if (count > maxCount) {
+							maxCount = count;
+							retVal = rnm.getValue();
+        	    	    }
+					}
+					break;
+				case STDDEV:
+					double meanValue = 0.0;
+					double sd = 0.0;
+					for (NumericData rnm : list) {
+						meanValue += rnm.getValue();
+					}
+					meanValue /= size;
+					for (NumericData rnm : list) {
+						sd += Math.pow(rnm.getValue() - meanValue, 2) / (size - 1);
+					}
+					retVal = Math.sqrt(sd);
+					break;
                 default:
                     LOG.warn("Mapping of '{}' function not yet supported", function);
                 }
