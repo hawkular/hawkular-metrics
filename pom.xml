@@ -15,8 +15,7 @@
   ~ limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.rhq.metrics</groupId>
@@ -128,7 +127,6 @@
     <trove4j.version>3.0.3</trove4j.version>
     <google.guava.version>16.0.1</google.guava.version>
     <antlr.version>4.3</antlr.version>
-    <deltaspike.version>1.2.0</deltaspike.version>
 
     <version.wildfly>8.2.0.Final</version.wildfly>
     <findbugs.version>3.0.0</findbugs.version>
@@ -342,20 +340,20 @@
         </dependencies>
         <!-- Copy paste and uncomment the following block in sub-projects where Java 7 compatibility is required -->
         <!--<executions>-->
-        <!--<execution>-->
-        <!--<id>java-api-check</id>-->
-        <!--<configuration>-->
-        <!--<signature>-->
-        <!--<groupId>org.codehaus.mojo.signature</groupId>-->
-        <!--<artifactId>java17</artifactId>-->
-        <!--<version>1.0</version>-->
-        <!--</signature>-->
-        <!--</configuration>-->
-        <!--<phase>verify</phase>-->
-        <!--<goals>-->
-        <!--<goal>check</goal>-->
-        <!--</goals>-->
-        <!--</execution>-->
+          <!--<execution>-->
+            <!--<id>java-api-check</id>-->
+            <!--<configuration>-->
+              <!--<signature>-->
+                <!--<groupId>org.codehaus.mojo.signature</groupId>-->
+                <!--<artifactId>java17</artifactId>-->
+                <!--<version>1.0</version>-->
+              <!--</signature>-->
+            <!--</configuration>-->
+            <!--<phase>verify</phase>-->
+            <!--<goals>-->
+              <!--<goal>check</goal>-->
+            <!--</goals>-->
+          <!--</execution>-->
         <!--</executions>-->
       </plugin>
 
@@ -418,7 +416,7 @@
           <!-- to override in a submodule, just redefine the checkstyle.suppressions.file property
                in the given submodule's pom -->
           <suppressionsLocation>${checkstyle.suppressions.file}</suppressionsLocation>
-          <useFile/>
+          <useFile />
         </configuration>
         <dependencies>
           <dependency>
@@ -494,9 +492,7 @@
 
       <properties>
         <!-- See: http://maven.apache.org/plugins/maven-surefire-plugin/test-mojo.html#debugForkedProcess -->
-        <maven.surefire.debug>-Xdebug -Xnoagent -Djava.compiler=NONE
-          -Xrunjdwp:transport=dt_socket,address=8797,server=y,suspend=y
-        </maven.surefire.debug>
+        <maven.surefire.debug>-Xdebug -Xnoagent -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,address=8797,server=y,suspend=y</maven.surefire.debug>
       </properties>
     </profile>
 
