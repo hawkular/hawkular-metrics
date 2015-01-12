@@ -24,21 +24,30 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.InjectionPoint;
+import javax.inject.Inject;
+
+import org.rhq.metrics.restServlet.management.MBeanRegistrar;
 
 /**
  * @author Thomas Segismont
  * @see Configurable
  */
 @ApplicationScoped
-public class ConfigurableProducer {
+public class ConfigurableProducer implements ConfigurationManagement {
+
+    @Inject
+    private MBeanRegistrar mBeanRegistrar;
+
     // Empty if external configuration file should be ignored
     private Optional<File> configurationFile;
     // Value needs to be Optional as ConcurrentHashMap does not allow null values
@@ -56,16 +65,23 @@ public class ConfigurableProducer {
             configurationFileProperties.forEach((k, v) -> effectiveConfiguration.put(k, Optional.ofNullable(v)));
         });
         readSystemProperties = new CopyOnWriteArraySet<>();
+        mBeanRegistrar.registerMBean(this);
+    }
+
+    @PreDestroy
+    void tearDown() {
+        mBeanRegistrar.unregisterMBean(this);
     }
 
     @Produces
     @Configurable
     String getConfigurationPropertyAsString(InjectionPoint injectionPoint) {
-        return lookupConfigurationProperty(injectionPoint);
+        ConfigurationProperty configProp = injectionPoint.getAnnotated().getAnnotation(ConfigurationProperty.class);
+        String propertyName = configProp.value().getExternalForm();
+        return lookupConfigurationProperty(propertyName);
     }
 
-    private String lookupConfigurationProperty(InjectionPoint injectionPoint) {
-        String propertyName = getConfigurationPropertyName(injectionPoint);
+    private String lookupConfigurationProperty(String propertyName) {
         if (!readSystemProperties.contains(propertyName)) {
             String sysprop = System.getProperty(propertyName);
             if (sysprop != null) {
@@ -74,11 +90,6 @@ public class ConfigurableProducer {
             readSystemProperties.add(propertyName);
         }
         return effectiveConfiguration.get(propertyName).orElse(null);
-    }
-
-    private String getConfigurationPropertyName(InjectionPoint injectionPoint) {
-        ConfigurationProperty annotation = injectionPoint.getAnnotated().getAnnotation(ConfigurationProperty.class);
-        return annotation.value().getExternalForm();
     }
 
     private void evalConfigurationFile() {
@@ -136,5 +147,21 @@ public class ConfigurableProducer {
         Map<String, String> map = new HashMap<>(properties.size());
         properties.stringPropertyNames().forEach(name -> map.put(name, properties.getProperty(name)));
         return map;
+    }
+
+    @Override
+    public String[] getConfigurationPropertyKeys() {
+        Set<String> keys = effectiveConfiguration.keySet();
+        return keys.toArray(new String[keys.size()]);
+    }
+
+    @Override
+    public String getConfigurationProperty(String key) {
+        return lookupConfigurationProperty(key);
+    }
+
+    @Override
+    public void updateConfigurationProperty(String key, String value) {
+        effectiveConfiguration.put(key, Optional.ofNullable(value));
     }
 }
