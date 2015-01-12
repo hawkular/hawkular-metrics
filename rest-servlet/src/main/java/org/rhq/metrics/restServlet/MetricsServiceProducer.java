@@ -48,6 +48,7 @@ public class MetricsServiceProducer {
                 case "mem":
                     LOG.info("Using memory backend implementation");
                     metricsServiceBuilder.withInMemoryDataStore();
+                    break;
                 case "embedded_cass":
                 default:
                     LOG.info("Using Cassandra backend implementation with an embedded Server");
