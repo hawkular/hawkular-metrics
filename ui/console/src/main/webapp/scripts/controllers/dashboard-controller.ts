@@ -141,10 +141,7 @@ module Controllers {
 
             $rootScope.$on('RemoveChartEvent', (event, metricId) => {
                 if (_.contains(this.dashboardStateService.getSelectedMetrics(), metricId)) {
-                    this.dashboardStateService.remove(metricId);
-                    this.searchId = metricId;
-                    toastr.info('Removed: ' + metricId + ' from Dashboard!');
-                    this.refreshAllChartsDataForTimeRange(this.currentTimeRange);
+                   this.deleteChart(metricId)
                 }
             });
 
@@ -180,6 +177,14 @@ module Controllers {
         }
 
 
+        deleteChart(metricId:string){
+            this.dashboardStateService.remove(metricId);
+            this.searchId = metricId;
+            this.$rootScope.$broadcast('RemoveSelectedMetricEvent', metricId);
+            toastr.info('Removed: ' + metricId + ' from Dashboard!');
+            this.refreshAllChartsDataForTimeRange(this.currentTimeRange);
+        }
+
         private noDataFoundForId(id:string):void {
             console.info('No Data found for id: ' + id);
             toastr.info('No Data found for id: ' + id);
@@ -192,11 +197,6 @@ module Controllers {
 
         clickChartHtmlCopy():void {
             toastr.info("Copied Chart to Clipboard");
-        }
-
-        deleteChart(metricId:string):void {
-            this.dashboardStateService.remove(metricId);
-            this.$rootScope.$broadcast('RemoveSelectedMetricEvent', metricId);
         }
 
 
@@ -264,7 +264,6 @@ module Controllers {
                         this.bucketedDataPoints = this.formatBucketedChartOutput(response.data);
 
                         if (this.bucketedDataPoints.length !== 0) {
-                            console.info("Retrieving data for metricId: " + metricId);
                             // this is basically the DTO for the chart
                             this.chartData[metricId] = {
                                 id: metricId,

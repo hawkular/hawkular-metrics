@@ -18,10 +18,9 @@ module Controllers {
     'use strict';
 
 
-    export interface ISelectedMetric {
-        title: string;
-        href: string;
-        rel:string;
+    export interface ITenantMetric {
+       name: string;
+       tenantId: string;
         selected: boolean;
     }
 
@@ -29,16 +28,17 @@ module Controllers {
     export class SidebarController {
         public static  $inject = ['$scope', '$rootScope', 'metricDataService','dashboardStateService','Angularytics' ];
 
-        allMetrics:ISelectedMetric[];
+        allMetrics: ITenantMetric[];
         retrieveMetricsPromise;
 
         constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService,  private metricDataService, private dashboardStateService, private Angularytics) {
             $scope.vm = this;
 
             $scope.$on('RemoveSelectedMetricEvent', (event, metricId) => {
-                angular.forEach(this.allMetrics, (value:ISelectedMetric) => {
-                    if (value.title === metricId) {
+                angular.forEach(this.allMetrics, (value:ITenantMetric) => {
+                    if (value.name === metricId) {
                          value.selected = false;
+                        return;
                     }
                 });
             });
@@ -56,10 +56,9 @@ module Controllers {
         }
 
         private selectedMetricsChanged() {
-            _.each(this.allMetrics, (metric:ISelectedMetric) =>{
+            _.each(this.allMetrics, (metric) =>{
                 _.each(this.dashboardStateService.getSelectedMetrics(), (selectedMetric:string) => {
-                    if(selectedMetric === metric.title){
-                        console.log("selected metric: "+selectedMetric);
+                    if(selectedMetric === metric.name){
                         metric.selected = true;
                     }
                 });
@@ -67,7 +66,6 @@ module Controllers {
         }
 
         populateMetricsSidebar() {
-            console.info('Populating Sidebar');
             this.retrieveMetricsPromise = this.metricDataService.getAllMetrics()
                 .then((response) => {
                     this.allMetrics = response;
