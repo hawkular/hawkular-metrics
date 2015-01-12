@@ -27,8 +27,7 @@ module Services {
         }
 
         getBaseUrl():string {
-            var baseUrl = 'http://' + this.$rootScope.$storage.server.replace(/['"]+/g, '') + ':' + this.$rootScope.$storage.port + this.BASE_URL + '/'+this.TENANT_ID;
-            return baseUrl;
+            return 'http://' + this.$rootScope.$storage.server.replace(/['"]+/g, '') + ':' + this.$rootScope.$storage.port + this.BASE_URL + '/'+this.TENANT_ID;
         }
 
         getAllMetrics() {

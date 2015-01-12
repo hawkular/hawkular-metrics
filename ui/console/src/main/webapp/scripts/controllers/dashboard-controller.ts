@@ -89,7 +89,7 @@ module Controllers {
      * @param metricDataService
      */
     export class DashboardController {
-        public static  $inject = ['$scope', '$rootScope', '$interval', '$localStorage', 'metricDataService'];
+        public static  $inject = ['$scope', '$rootScope', '$interval', '$localStorage', 'metricDataService','dashboardStateService',];
 
         private updateLastTimeStampToNowPromise:ng.IPromise<number>;
         private chartData = {};
@@ -98,7 +98,7 @@ module Controllers {
         // this promise needs to be exposed so the page can render busy wait spinning icons
         metricDataPromise;
 
-        selectedMetrics:string[] = [];
+        //selectedMetrics:string[] = [];
         searchId = '';
         updateEndTimeStampToNow = false;
         showAutoRefreshCancel = false;
@@ -119,7 +119,7 @@ module Controllers {
         currentTimeRange:TimeRange;
 
 
-        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $interval:ng.IIntervalService, private $localStorage,  private metricDataService, public dateRange:string) {
+        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $interval:ng.IIntervalService, private $localStorage,  private metricDataService, public dashboardStateService, public dateRange:string) {
             $scope.vm = this;
             this.currentTimeRange = new TimeRange(_.now() - (24 * 60 * 60), _.now()); // default to 24 hours
 
@@ -131,28 +131,21 @@ module Controllers {
             });
 
             $rootScope.$on('NewChartEvent', (event, metricId) => {
-                if (_.contains(this.selectedMetrics, metricId)) {
-                    toastr.warning(metricId + ' is already selected');
-                } else {
-                    this.selectedMetrics.push(metricId);
+                if (!_.contains(this.dashboardStateService.getSelectedMetrics(), metricId)) {
+                    this.dashboardStateService.add(metricId);
                     this.searchId = metricId;
-                    this.refreshHistoricalChartData(metricId, this.currentTimeRange);
                     toastr.success(metricId + ' Added to Dashboard!');
                 }
+                this.refreshHistoricalChartData(metricId, this.currentTimeRange);
             });
 
             $rootScope.$on('RemoveChartEvent', (event, metricId) => {
-                if (_.contains(this.selectedMetrics, metricId)) {
-                    var pos = _.indexOf(this.selectedMetrics, metricId);
-                    this.selectedMetrics.splice(pos, 1);
-                    this.searchId = metricId;
-                    toastr.info('Removed: ' + metricId + ' from Dashboard!');
-                    this.refreshAllChartsDataForTimeRange(this.currentTimeRange);
+                if (_.contains(this.dashboardStateService.getSelectedMetrics(), metricId)) {
+                   this.deleteChart(metricId)
                 }
             });
 
             $rootScope.$on('SidebarRefreshedEvent', () => {
-                this.selectedMetrics = [];
                 this.selectedGroup = '';
                 this.loadAllChartGroupNames();
                 this.loadSelectedChartGroup(this.defaultGroupName);
@@ -174,20 +167,27 @@ module Controllers {
                     this.loadSelectedChartGroup(newValue);
                 });
 
-            this.$scope.$watchCollection(() => this.selectedMetrics,
+            this.$scope.$watchCollection(() => this.dashboardStateService.getSelectedMetrics(),
                 () => {
-                    if(this.selectedMetrics.length > 0){
+                    if(this.dashboardStateService.getSelectedMetrics().length > 0){
                         this.saveChartGroup(this.defaultGroupName);
-                        this.$rootScope.$broadcast('SelectedMetricsChangedEvent', this.selectedMetrics);
+                        this.$rootScope.$broadcast('SelectedMetricsChangedEvent', this.dashboardStateService.getSelectedMetrics());
                     }
                 });
-
         }
 
 
+        deleteChart(metricId:string){
+            this.dashboardStateService.remove(metricId);
+            this.searchId = metricId;
+            this.$rootScope.$broadcast('RemoveSelectedMetricEvent', metricId);
+            toastr.info('Removed: ' + metricId + ' from Dashboard!');
+            this.refreshAllChartsDataForTimeRange(this.currentTimeRange);
+        }
+
         private noDataFoundForId(id:string):void {
-            console.warn('No Data found for id: ' + id);
-            toastr.warning('No Data found for id: ' + id);
+            console.info('No Data found for id: ' + id);
+            toastr.info('No Data found for id: ' + id);
         }
 
 
@@ -197,12 +197,6 @@ module Controllers {
 
         clickChartHtmlCopy():void {
             toastr.info("Copied Chart to Clipboard");
-        }
-
-        deleteChart(metricId:string):void {
-            var pos = _.indexOf(this.selectedMetrics, metricId);
-            this.selectedMetrics.splice(pos, 1);
-            this.$rootScope.$broadcast('RemoveSelectedMetricEvent', metricId);
         }
 
 
@@ -270,7 +264,6 @@ module Controllers {
                         this.bucketedDataPoints = this.formatBucketedChartOutput(response.data);
 
                         if (this.bucketedDataPoints.length !== 0) {
-                            console.info("Retrieving data for metricId: " + metricId);
                             // this is basically the DTO for the chart
                             this.chartData[metricId] = {
                                 id: metricId,
@@ -293,7 +286,7 @@ module Controllers {
 
         refreshAllChartsDataForTimeRange(timeRange:TimeRange):void {
 
-            _.each(this.selectedMetrics, (aMetric) => {
+            _.each(this.dashboardStateService.getSelectedMetrics(), (aMetric:string) => {
                 console.info("Reloading Metric Chart Data for: " + aMetric);
                 this.refreshHistoricalChartDataForTimestamp(aMetric, timeRange.startTimeStamp, timeRange.endTimeStamp);
             });
@@ -387,7 +380,6 @@ module Controllers {
 
 
         saveChartGroup(groupName:string) {
-            console.debug("Saving GroupName: " + groupName);
             var savedGroups:IMetricGroup[] = [];
             var previousGroups = localStorage.getItem('groups');
             var aGroupName = angular.isUndefined(groupName) ? this.selectedGroup : groupName;
@@ -401,13 +393,13 @@ module Controllers {
             }
 
             // Add the 'Default Group'
-            var defaultGroupEntry:IMetricGroup = {'groupName': this.defaultGroupName, 'metrics': this.selectedMetrics};
-            if(this.selectedMetrics.length > 0){
+            var defaultGroupEntry:IMetricGroup = {'groupName': this.defaultGroupName, 'metrics': this.dashboardStateService.getSelectedMetrics()};
+            if(this.dashboardStateService.getSelectedMetrics().length > 0){
                 savedGroups.push(defaultGroupEntry);
             }
 
             // Add the new group name
-            var newEntry:IMetricGroup = {'groupName': aGroupName, 'metrics': this.selectedMetrics};
+            var newEntry:IMetricGroup = {'groupName': aGroupName, 'metrics': this.dashboardStateService.getSelectedMetrics()};
             if(aGroupName !== this.defaultGroupName){
                 savedGroups.push(newEntry);
             }
@@ -432,7 +424,7 @@ module Controllers {
             if (angular.isDefined(groups)) {
                 _.each(groups, (item:IMetricGroup) => {
                     if (item.groupName === selectedGroup) {
-                        this.selectedMetrics = item.metrics;
+                        //this.dashboardStateService.setSelectedMetrics(item.metrics);
                         this.refreshAllChartsDataForTimeRange(this.currentTimeRange);
                     }
                 });

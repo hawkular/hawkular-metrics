@@ -1,17 +1,13 @@
 <div>
-    <!--<ol class="breadcrumb">-->
-    <!--<li><a href="#">Home</a></li>-->
-    <!--<li>Dashboard</li>-->
-    <!--</ol>-->
 
     <h3 class="sub-header" style="margin-top:10px;">Dashboard
         <small style="margin-left: 5px;">Graphs</small>
-        <span class="badge" ng-hide="vm.selectedMetrics.length < 1">{{vm.selectedMetrics.length}}</span>
+        <span class="badge" ng-hide="vm.dashboardStateService.selectedMetricIds.length < 1">{{vm.dashboardStateService.selectedMetricIds.length}}</span>
 
-        <select ng-class="{'pull-right selectGroupNamesAndSelected': vm.selectedMetrics.length > 0, 'pull-right selectGroupNamesOnly':vm.selectedMetrics.length === 0}" ng-model="vm.selectedGroup" ng-options="group for group in vm.groupNames" ng-show="vm.groupNames.length > 0" >
+        <select ng-class="{'pull-right selectGroupNamesAndSelected': vm.dashboardStateService.selectedMetricIds.length > 0, 'pull-right selectGroupNamesOnly':vm.dashboardStateService.selectedMetricIds.length === 0}" ng-model="vm.selectedGroup" ng-options="group for group in vm.groupNames" ng-show="vm.groupNames.length > 0" >
             <option value="">-- Choose Group --</option>
         </select>
-        <div class="input-group " ng-show="vm.selectedMetrics.length > 0" >
+        <div class="input-group " ng-show="vm.dashboardStateService.selectedMetricIds.length > 0" >
             <input type="text" class="form-control input-sm pull-right"  style="width:150px;" placeholder="Save Group..." ng-model="vm.selectedGroup" ng-enter="vm.saveGraphsAsGroup(vm.selectedGroup);">
             <span class="input-group-btn">
             <button class="btn btn-default btn-sm" type="button" ng-click="vm.saveChartGroup(vm.selectedGroup)"><span class="pficon pficon-save"></span> </button>
@@ -27,7 +23,7 @@
             <div class="col-md-12">
                 <relative-time-range-button-bar
                         start-time-stamp="vm.startTimestamp"
-                        end-time-stamp="vm..endTimeStamp">
+                        end-time-stamp="vm.endTimeStamp">
                 </relative-time-range-button-bar>
 
                 <button type="button" class="btn btn-default btn-xs"
@@ -56,31 +52,31 @@
 
                 <!-- Refresh Button -->
                 <div class="btn-group pull-right" style="margin-left:15px;"
-                     ng-disabled="vm.selectedMetrics.length === 0"
+                     ng-disabled="vm.dashboardStateService.selectedMetricIds.length === 0"
                      dropdown>
                     <button type="button" class="btn btn-primary btn-xs"
-                            ng-disabled="vm.selectedMetrics.length === 0"
+                            ng-disabled="vm.dashboardStateService.selectedMetricIds.length === 0"
                             ng-click="vm.refreshChartDataNow()">Refresh
                     </button>
                     <button type="button" class="btn btn-primary btn-xs dropdown-toggle"
-                            ng-disabled="vm.selectedMetrics.length === 0">
+                            ng-disabled="vm.dashboardStateService.selectedMetricIds.length === 0">
                         <span class="caret"></span>
                         <span class="sr-only">Refresh</span>
                     </button>
-                    <ul class="dropdown-menu" role="menu" ng-disabled="vm.selectedMetrics.length === 0">
+                    <ul class="dropdown-menu" role="menu" ng-disabled="vm.dashboardStateService.selectedMetricIds.length === 0">
                         <li><a href="#" ng-click="vm.autoRefresh(5)">Auto Refresh (every 5s)</a></li>
                         <li><a href="#" ng-click="vm.autoRefresh(30)">Auto Refresh (every 30s)</a></li>
                         <li><a href="#" ng-click="vm.autoRefresh(60)">Auto Refresh (every 1m)</a></li>
                     </ul>
                 </div>
-                <!--<button style="margin-left: 15px" type="button" class="btn-small btn-danger" ng-hide="vm.selectedMetrics.length == 0" ng-click="vm.cancelAutoRefresh()">Stop</button>-->
+                <!--<button style="margin-left: 15px" type="button" class="btn-small btn-danger" ng-hide="vm.dashboardStateService.selectedMetricIds.length == 0" ng-click="vm.cancelAutoRefresh()">Stop</button>-->
             </div>
 
         </div>
     </div>
 
-    <ul ui-sortable ng-model="vm.selectedMetrics" class="sortableList">
-        <li ng-repeat="selectedMetric in vm.selectedMetrics">
+    <ul ui-sortable ng-model="vm.dashboardStateService.selectedMetricIds" class="sortableList">
+        <li ng-repeat="selectedMetric in vm.dashboardStateService.selectedMetricIds">
             <div class="panel panel-default">
                 <div class="panel-heading">
                     <button type="button" ng-click="vm.deleteChart(selectedMetric)"
