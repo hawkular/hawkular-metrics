@@ -98,6 +98,7 @@ module Controllers {
         // this promise needs to be exposed so the page can render busy wait spinning icons
         metricDataPromise;
 
+        //selectedMetrics:string[] = [];
         searchId = '';
         updateEndTimeStampToNow = false;
         showAutoRefreshCancel = false;
@@ -118,7 +119,7 @@ module Controllers {
         currentTimeRange:TimeRange;
 
 
-        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $interval:ng.IIntervalService, private $localStorage,  private metricDataService, private dashboardStateService, public dateRange:string) {
+        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService, private $interval:ng.IIntervalService, private $localStorage,  private metricDataService, public dashboardStateService, public dateRange:string) {
             $scope.vm = this;
             this.currentTimeRange = new TimeRange(_.now() - (24 * 60 * 60), _.now()); // default to 24 hours
 
@@ -130,14 +131,12 @@ module Controllers {
             });
 
             $rootScope.$on('NewChartEvent', (event, metricId) => {
-                if (_.contains(this.dashboardStateService.getSelectedMetrics(), metricId)) {
-                    toastr.warning(metricId + ' is already selected');
-                } else {
+                if (!_.contains(this.dashboardStateService.getSelectedMetrics(), metricId)) {
                     this.dashboardStateService.add(metricId);
                     this.searchId = metricId;
-                    this.refreshHistoricalChartData(metricId, this.currentTimeRange);
                     toastr.success(metricId + ' Added to Dashboard!');
                 }
+                this.refreshHistoricalChartData(metricId, this.currentTimeRange);
             });
 
             $rootScope.$on('RemoveChartEvent', (event, metricId) => {
@@ -150,7 +149,6 @@ module Controllers {
             });
 
             $rootScope.$on('SidebarRefreshedEvent', () => {
-                this.dashboardStateService.clear();
                 this.selectedGroup = '';
                 this.loadAllChartGroupNames();
                 this.loadSelectedChartGroup(this.defaultGroupName);
@@ -383,7 +381,6 @@ module Controllers {
 
 
         saveChartGroup(groupName:string) {
-            console.debug("Saving GroupName: " + groupName);
             var savedGroups:IMetricGroup[] = [];
             var previousGroups = localStorage.getItem('groups');
             var aGroupName = angular.isUndefined(groupName) ? this.selectedGroup : groupName;
@@ -428,7 +425,7 @@ module Controllers {
             if (angular.isDefined(groups)) {
                 _.each(groups, (item:IMetricGroup) => {
                     if (item.groupName === selectedGroup) {
-                        this.dashboardStateService.setSelectedMetrics(item.metrics);
+                        //this.dashboardStateService.setSelectedMetrics(item.metrics);
                         this.refreshAllChartsDataForTimeRange(this.currentTimeRange);
                     }
                 });

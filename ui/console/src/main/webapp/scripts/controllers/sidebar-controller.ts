@@ -49,17 +49,17 @@ module Controllers {
                 this.$rootScope.$emit('LoadInitialChartGroup');
             });
 
-            $scope.$on('SelectedMetricsChangedEvent', (event, selectedMetrics:string[]) => {
-                this.selectedMetricsChanged(selectedMetrics);
-
+            $scope.$on('SelectedMetricsChangedEvent', () => {
+                this.selectedMetricsChanged();
             });
 
         }
 
-        private selectedMetricsChanged(selectedMetrics:string[]) {
+        private selectedMetricsChanged() {
             _.each(this.allMetrics, (metric:ISelectedMetric) =>{
-                _.each(selectedMetrics, (selectedMetric:string) => {
+                _.each(this.dashboardStateService.getSelectedMetrics(), (selectedMetric:string) => {
                     if(selectedMetric === metric.title){
+                        console.log("selected metric: "+selectedMetric);
                         metric.selected = true;
                     }
                 });
@@ -67,11 +67,11 @@ module Controllers {
         }
 
         populateMetricsSidebar() {
-            console.info("Populating Sidebar");
+            console.info('Populating Sidebar');
             this.retrieveMetricsPromise = this.metricDataService.getAllMetrics()
                 .then((response) => {
                     this.allMetrics = response;
-                    console.dir(this.allMetrics);
+                    this.selectedMetricsChanged();
                     this.$rootScope.$emit('SidebarRefreshedEvent');
 
                 }, (error) => {
@@ -84,11 +84,9 @@ module Controllers {
         addRemoveChart(metricId:string, checked:boolean) {
             if (checked) {
                 this.Angularytics.trackEvent('SideBar', 'RemoveChart',metricId);
-                this.dashboardStateService.remove(metricId);
                 this.$rootScope.$emit('RemoveChartEvent', metricId);
             } else {
                 this.Angularytics.trackEvent('SideBar', 'AddChart',metricId );
-                this.dashboardStateService.add(metricId);
                 this.$rootScope.$emit('NewChartEvent', metricId);
             }
         }

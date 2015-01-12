@@ -26,11 +26,11 @@ module Services {
 
     export class DashboardStateService implements  IDashboardStateService {
 
-        public static  $inject = ['$q', '$rootScope', '$localStorage', 'BASE_URL','TENANT_ID'];
+        public static  $inject = ['$q', '$rootScope' ];
 
-        private selectedMetricIds : string[] = [];
+        public selectedMetricIds : string[] = [];
 
-        constructor(private $q:ng.IQService, private $rootScope:ng.IRootScopeService,  public $localStorage:any, private BASE_URL:string, private TENANT_ID:string ) {
+        constructor(private $q:ng.IQService, private $rootScope:ng.IRootScopeService) {
 
         }
 
@@ -43,7 +43,9 @@ module Services {
         }
 
         add(metricId:string):void{
-            this.selectedMetricIds.push(metricId);
+            if(!_.contains(this.selectedMetricIds, metricId)){
+                this.selectedMetricIds.push(metricId);
+            }
         }
 
         remove(metricId:string):void {
