@@ -6,7 +6,7 @@ jdk:
 notifications:
   irc:
     channels:
-      - "chat.freenode.net#rhq.next"
+      - "chat.freenode.net#hawkular"
     on_success: change
 env:
   global:
