@@ -32,7 +32,7 @@ import javax.management.ObjectName;
 @ApplicationScoped
 public class MBeanRegistrar {
 
-    private MBeanServer mBeanServer;
+    MBeanServer mBeanServer;
 
     @PostConstruct
     void init() {
