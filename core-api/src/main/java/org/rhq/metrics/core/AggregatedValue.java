@@ -28,13 +28,13 @@ import com.google.common.base.Objects;
  */
 public class AggregatedValue {
 
-    private String type;
+    private final String type;
 
     private String srcMetric;
 
     private Interval srcMetricInterval;
 
-    private double value;
+    private final double value;
 
     private UUID timeUUID;
 
@@ -52,30 +52,40 @@ public class AggregatedValue {
     }
 
     /**
-     * The aggregation function used to produce this value, e.g., max, min, sum, count, etc.
-     * <br/><br/>
-     * <strong>Note:</strong> Once we have more functions support in place, this will likely be replaced by a more
-     * strongly typed object.
+     * The aggregation function used to produce this value, e.g., max, min, sum,
+     * count, etc. <br>
+     * <br>
+     * <strong>Note:</strong> Once we have more functions support in place, this
+     * will likely be replaced by a more strongly typed object.
+     *
+     * @return type
      */
     public String getType() {
         return type;
     }
 
     /**
-     * When the aggregated value is the result of applying a function to data from multiple metrics, this might be set
-     * for certain functions. For example, if we are computing the max or min from a set of data points from multiple
-     * metrics, then <code>srcMetric</code> along with {@link #srcMetricInterval} will tell us from which metric that
-     * value came.
+     * When the aggregated value is the result of applying a function to data
+     * from multiple metrics, this might be set for certain functions. For
+     * example, if we are computing the max or min from a set of data points
+     * from multiple metrics, then <code>srcMetric</code> along with
+     * {@link #srcMetricInterval} will tell us from which metric that value
+     * came.
+     *
+     * @return source metrics
      */
     public String getSrcMetric() {
         return srcMetric;
     }
 
     /**
-     * When the aggregated value is the result of applying a function to data from multiple metrics, this might be
-     * set for particular functions. For example, if we are computing the max or min from a set of data points from
-     * multiple metrics, <code>srcMetricInterval</code> along with {@link #srcMetric} will tell us from which metric
-     * that value came.
+     * When the aggregated value is the result of applying a function to data
+     * from multiple metrics, this might be set for particular functions. For
+     * example, if we are computing the max or min from a set of data points
+     * from multiple metrics, <code>srcMetricInterval</code> along with
+     * {@link #srcMetric} will tell us from which metric that value came.
+     *
+     * @return source metric interval
      */
     public Interval getSrcMetricInterval() {
         return srcMetricInterval;
@@ -86,8 +96,12 @@ public class AggregatedValue {
     }
 
     /**
-     * This will be set for certain functions that basically perform filtering. For example, if we are computing the max
-     * or min, then <code>timestamp</code> gives us the collection time of the input data point that is the max or min.
+     * This will be set for certain functions that basically perform filtering.
+     * For example, if we are computing the max or min, then
+     * <code>timestamp</code> gives us the collection time of the input data
+     * point that is the max or min.
+     *
+     * @return time UUID
      */
     public UUID getTimeUUID() {
         return timeUUID;

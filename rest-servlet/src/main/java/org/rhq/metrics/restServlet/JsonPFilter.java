@@ -39,9 +39,9 @@ import javax.servlet.http.HttpServletResponseWrapper;
 
 /**
  * A filter to wrap json answers as jsonp
- * For this to happen, the user has to pass ?&lt;filter.jsonp.callback>=&lt;name> in the url like
+ * For this to happen, the user has to pass ?&lt;filter.jsonp.callback&gt;=&lt;name&gt; in the url like
  * <pre>http://localhost:7080/rest/metric/data/10001/raw.json?jsonp=foo</pre>
- * The &lt;filter.jsonp.callback> is defined in web.xml and defaults to 'jsonp'.
+ * The &lt;filter.jsonp.callback&gt; is defined in web.xml and defaults to 'jsonp'.
  * @author Heiko W. Rupp
  */
 @WebFilter(urlPatterns = "/*", asyncSupported = true)

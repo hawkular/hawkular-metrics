@@ -31,7 +31,7 @@ import org.rhq.metrics.client.common.SingleMetric;
 
 /**
  * Decoder for plaintext metric data sent from Graphite
- * See {@see http://graphite.readthedocs.org/en/latest/feeding-carbon.html}
+ * @see <a href="http://graphite.readthedocs.org/en/latest/feeding-carbon.html">Graphite - Feeding Carbon</a>
  *
  * Format is source value path[\nsource value path]?
  *

@@ -29,9 +29,8 @@ import java.util.Map;
 /**
  * Copied from http://tutorials.jenkov.com/java-howto/replace-strings-in-streams-arrays-files.html
  * with fixes to {@link #read(char[], int, int)} and added support for escaping.
- * <p/>
- * Since RHQ 4.13, this class has been enhanced to be in line with the formats supported by the
- * {@link org.rhq.core.util.StringPropertyReplacer}. The following constructs have been added:
+ * <p>
+ * The following constructs have been added:
  * <ul>
  *     <li>{@code ${p:v}} if token {@code p} is not found in the backing map, the provided value {@code v} is used
  *     instead of keeping the literal "${p}" in the output.</li>

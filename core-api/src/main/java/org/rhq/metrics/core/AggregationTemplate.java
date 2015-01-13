@@ -44,7 +44,10 @@ public class AggregationTemplate {
     private Set<String> functions;
 
     /**
-     * The {@link org.rhq.metrics.core.MetricType type} of metric to which the template applies.
+     * The {@link org.rhq.metrics.core.MetricType type} of metric to which the
+     * template applies.
+     *
+     * @return type
      */
     public MetricType getType() {
         return type;
@@ -56,7 +59,10 @@ public class AggregationTemplate {
     }
 
     /**
-     * How frequently the aggregate metrics created from this template should be updated.
+     * How frequently the aggregate metrics created from this template should be
+     * updated.
+     *
+     * @return interval
      */
     public Interval getInterval() {
         return interval;
@@ -68,10 +74,10 @@ public class AggregationTemplate {
     }
 
     /**
-     * The functions to apply on the source data.
-     * <br/><br/>
-     * <strong>Note:</strong> Once we have some of the functions support in place, this will most likely change to be
-     * a strongly typed collection.
+     * The functions to apply on the source data. <br>
+     * <br>
+     * <strong>Note:</strong> Once we have some of the functions support in
+     * place, this will most likely change to be a strongly typed collection.
      */
     public Set<String> getFunctions() {
         return functions;

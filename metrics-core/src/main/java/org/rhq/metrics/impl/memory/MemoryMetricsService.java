@@ -50,7 +50,7 @@ import gnu.trove.map.hash.TLongDoubleHashMap;
 
 /**
  * A memory based storage backend for rapid prototyping.
- * <br/><br/>
+ * <br><br>
  * Note that this implementation currently supports only numeric raw data. There is no multi-tenancy support yet, nor
  * is there any concurrency control yet.
  *
