@@ -21,7 +21,7 @@
   <parent>
     <artifactId>rhq-metrics-parent</artifactId>
     <groupId>org.rhq.metrics</groupId>
-    <version>0.2.6</version>
+    <version>0.2.7-SNAPSHOT</version>
   </parent>
   <artifactId>clients</artifactId>
   <packaging>pom</packaging>

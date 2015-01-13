@@ -20,7 +20,7 @@
 
   <groupId>org.rhq.metrics</groupId>
   <artifactId>rhq-metrics-parent</artifactId>
-  <version>0.2.6</version>
+  <version>0.2.7-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>RHQ Metrics</name>
