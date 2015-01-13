@@ -44,9 +44,10 @@ import org.rhq.metrics.restServlet.management.MBeanRegistrar;
  */
 @ApplicationScoped
 public class ConfigurableProducer implements ConfigurationManagement {
+    static final String METRICS_CONF = "metrics.conf";
 
     @Inject
-    private MBeanRegistrar mBeanRegistrar;
+    MBeanRegistrar mBeanRegistrar;
 
     // Empty if external configuration file should be ignored
     private Optional<File> configurationFile;
@@ -77,6 +78,11 @@ public class ConfigurableProducer implements ConfigurationManagement {
     @Configurable
     String getConfigurationPropertyAsString(InjectionPoint injectionPoint) {
         ConfigurationProperty configProp = injectionPoint.getAnnotated().getAnnotation(ConfigurationProperty.class);
+        if (configProp == null) {
+            String message = "Any field or parameter annotated with @Configurable "
+                + "must also be annotated with @ConfigurationProperty";
+            throw new IllegalArgumentException(message);
+        }
         String propertyName = configProp.value().getExternalForm();
         return lookupConfigurationProperty(propertyName);
     }
@@ -93,7 +99,7 @@ public class ConfigurableProducer implements ConfigurationManagement {
     }
 
     private void evalConfigurationFile() {
-        String configurationFilePath = System.getProperty("metrics.conf");
+        String configurationFilePath = System.getProperty(METRICS_CONF);
         if (configurationFilePath != null) {
             File file = new File(configurationFilePath);
             checkExplicitConfigurationFile(file);
