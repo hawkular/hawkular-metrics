@@ -6,7 +6,7 @@
   <parent>
     <artifactId>rhq-metrics-parent</artifactId>
     <groupId>org.rhq.metrics</groupId>
-    <version>0.2.6-SNAPSHOT</version>
+    <version>0.2.6</version>
   </parent>
   <artifactId>embedded-cassandra</artifactId>
   <packaging>pom</packaging>
