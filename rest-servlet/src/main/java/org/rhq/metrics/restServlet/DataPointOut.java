@@ -19,7 +19,8 @@ package org.rhq.metrics.restServlet;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 /**
  * @author John Sanda
@@ -29,7 +30,7 @@ public class DataPointOut {
     private long timestamp;
     private Object value;
 
-    @JsonSerialize(include = JsonSerialize.Inclusion.NON_EMPTY)
+    @JsonInclude(Include.NON_EMPTY)
     private Set<String> tags = new HashSet<>();
 
     public DataPointOut() {

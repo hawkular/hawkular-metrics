@@ -21,7 +21,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 /**
  * @author John Sanda
@@ -32,10 +33,10 @@ public class BucketedOutput {
 
     private String name;
 
-    @JsonSerialize(include = JsonSerialize.Inclusion.NON_EMPTY)
+    @JsonInclude(Include.NON_EMPTY)
     private Map<String, String> metadata = new HashMap<>();
 
-    @JsonSerialize(include = JsonSerialize.Inclusion.NON_EMPTY)
+    @JsonInclude(Include.NON_EMPTY)
     private List<BucketDataPoint> data = new ArrayList<>();
 
     public BucketedOutput() {

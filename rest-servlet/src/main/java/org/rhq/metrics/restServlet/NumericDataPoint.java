@@ -18,7 +18,8 @@ package org.rhq.metrics.restServlet;
 
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.google.common.base.Objects;
 
 /**
@@ -30,7 +31,7 @@ public class NumericDataPoint {
 
     private double value;
 
-    @JsonSerialize(include = JsonSerialize.Inclusion.NON_EMPTY)
+    @JsonInclude(Include.NON_EMPTY)
     private Set<String> tags;
 
     public NumericDataPoint() {
