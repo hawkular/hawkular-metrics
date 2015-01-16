@@ -137,8 +137,8 @@
     <checkstyleConsoleOutput>true</checkstyleConsoleOutput>
     <checkstyleFailOnError>true</checkstyleFailOnError>
     <!-- the default value pointing at suppressions.xml in rhq-checkstyle-config dependency -->
-    <checkstyle.suppressions.file>rhq-checkstyle/suppressions.xml</checkstyle.suppressions.file>
-    <rhq.checkstyle.config.version>3</rhq.checkstyle.config.version>
+    <checkstyle.suppressions.file>hawkular-checkstyle/suppressions.xml</checkstyle.suppressions.file>
+    <rhq.checkstyle.config.version>4-SNAPSHOT</rhq.checkstyle.config.version>
   </properties>
 
   <dependencyManagement>
@@ -183,8 +183,8 @@
       </dependency>
       <!-- Other -->
       <dependency>
-        <groupId>org.rhq.checkstyle</groupId>
-        <artifactId>rhq-checkstyle-config</artifactId>
+        <groupId>org.hawkular</groupId>
+        <artifactId>hawkular-build-tools</artifactId>
         <version>${rhq.checkstyle.config.version}</version>
       </dependency>
     </dependencies>
@@ -382,7 +382,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
         <configuration>
-          <configLocation>rhq-checkstyle/checkstyle.xml</configLocation>
+          <configLocation>hawkular-checkstyle/checkstyle.xml</configLocation>
           <consoleOutput>${checkstyleConsoleOutput}</consoleOutput>
           <failsOnError>${checkstyleFailOnError}</failsOnError>
           <!-- Make includes relative to ${basedir} -->
@@ -433,8 +433,8 @@
             <version>${checkstyle.version}</version>
           </dependency>
           <dependency>
-            <groupId>org.rhq.checkstyle</groupId>
-            <artifactId>rhq-checkstyle-config</artifactId>
+            <groupId>org.hawkular</groupId>
+            <artifactId>hawkular-build-tools</artifactId>
             <version>${rhq.checkstyle.config.version}</version>
           </dependency>
         </dependencies>
