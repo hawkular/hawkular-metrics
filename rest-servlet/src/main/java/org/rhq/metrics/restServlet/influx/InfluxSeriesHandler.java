@@ -32,8 +32,6 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import javax.annotation.Resource;
-import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -113,9 +111,6 @@ public class InfluxSeriesHandler {
     QueryValidator queryValidator;
     @Inject
     ToIntervalTranslator toIntervalTranslator;
-
-    @Resource
-    ManagedExecutorService executor;
 
     @POST
     @Consumes(APPLICATION_JSON)
@@ -218,7 +213,7 @@ public class InfluxSeriesHandler {
             public void onFailure(Throwable t) {
                 asyncResponse.resume(t);
             }
-        }, executor);
+        });
     }
 
     private void select(AsyncResponse asyncResponse, String tenantId, SelectQueryContext selectQueryContext) {
@@ -259,7 +254,7 @@ public class InfluxSeriesHandler {
                     }
                     return metricsService.findData(new NumericMetric(tenantId, new MetricId(metric)),
                         timeInterval.getStartMillis(), timeInterval.getEndMillis());
-                }, executor);
+                });
         ListenableFuture<List<InfluxObject>> influxObjectTranslatorFuture = Futures.transform(loadMetricsFuture,
                 (List<NumericData> metrics) -> {
                     if (metrics == null) {
@@ -305,7 +300,7 @@ public class InfluxSeriesHandler {
                     objects.add(builder.createInfluxObject());
 
                     return objects;
-                }, executor);
+                });
         Futures.addCallback(influxObjectTranslatorFuture, new FutureCallback<List<InfluxObject>>() {
             @Override
             public void onSuccess(List<InfluxObject> objects) {
@@ -322,7 +317,7 @@ public class InfluxSeriesHandler {
             public void onFailure(Throwable t) {
                 asyncResponse.resume(t);
             }
-        }, executor);
+        });
     }
 
     private boolean shouldApplyMapping(SelectQueryDefinitions queryDefinitions) {

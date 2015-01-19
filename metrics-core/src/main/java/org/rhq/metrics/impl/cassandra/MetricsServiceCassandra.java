@@ -238,9 +238,9 @@ public class MetricsServiceCassandra implements MetricsService {
             ListenableFuture<Set<Retention>> availabilityRetentions = Futures.transform(availabilityFuture, mapper,
                     metricsTasks);
             Futures.addCallback(numericRetentions,
-                    new DataRetentionsLoadedCallback(tenantId, MetricType.NUMERIC, latch), metricsTasks);
+                    new DataRetentionsLoadedCallback(tenantId, MetricType.NUMERIC, latch));
             Futures.addCallback(availabilityRetentions, new DataRetentionsLoadedCallback(tenantId,
-                    MetricType.AVAILABILITY, latch), metricsTasks);
+                    MetricType.AVAILABILITY, latch));
         }
         try {
             latch.await();
@@ -477,7 +477,7 @@ public class MetricsServiceCassandra implements MetricsService {
     @Override
     public ListenableFuture<List<Metric>> findMetrics(String tenantId, MetricType type) {
         ResultSetFuture future = dataAccess.findMetricsInMetricsIndex(tenantId, type);
-        return Futures.transform(future, new MetricsIndexMapper(tenantId, type));
+        return Futures.transform(future, new MetricsIndexMapper(tenantId, type), metricsTasks);
     }
 
     @Override
@@ -561,7 +561,7 @@ public class MetricsServiceCassandra implements MetricsService {
     @Override
     public ListenableFuture<AvailabilityMetric> findAvailabilityData(AvailabilityMetric metric, long start, long end) {
         ResultSetFuture queryFuture = dataAccess.findAvailabilityData(metric, start, end);
-        return Futures.transform(queryFuture, new AvailabilityMetricMapper());
+        return Futures.transform(queryFuture, new AvailabilityMetricMapper(), metricsTasks);
     }
 
     @Override
@@ -601,8 +601,7 @@ public class MetricsServiceCassandra implements MetricsService {
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper(true),
             metricsTasks);
         int ttl = getTTL(metric);
-        ListenableFuture<List<NumericData>> updatedDataFuture = Futures.transform(dataFuture,
-            new ComputeTTL<>(ttl), metricsTasks);
+        ListenableFuture<List<NumericData>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
         return Futures.transform(updatedDataFuture, new AsyncFunction<List<NumericData>, List<NumericData>>() {
             @Override
             public ListenableFuture<List<NumericData>> apply(final List<NumericData> taggedData) {
@@ -616,7 +615,7 @@ public class MetricsServiceCassandra implements MetricsService {
                 ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
                 return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> taggedData);
             }
-        }, metricsTasks);
+        });
     }
 
     @Override
@@ -626,8 +625,7 @@ public class MetricsServiceCassandra implements MetricsService {
         ListenableFuture<List<Availability>> dataFuture = Futures.transform(queryFuture,
             new AvailabilityDataMapper(true), metricsTasks);
         int ttl = getTTL(metric);
-        ListenableFuture<List<Availability>> updatedDataFuture = Futures.transform(dataFuture,
-            new ComputeTTL<>(ttl), metricsTasks);
+        ListenableFuture<List<Availability>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
         return Futures.transform(updatedDataFuture, new AsyncFunction<List<Availability>, List<Availability>>() {
             @Override
             public ListenableFuture<List<Availability>> apply(final List<Availability> taggedData) throws Exception {
@@ -651,8 +649,7 @@ public class MetricsServiceCassandra implements MetricsService {
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper(true),
             metricsTasks);
         int ttl = getTTL(metric);
-        ListenableFuture<List<NumericData>> updatedDataFuture = Futures.transform(dataFuture,
-            new ComputeTTL<>(ttl), metricsTasks);
+        ListenableFuture<List<NumericData>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
         return Futures.transform(updatedDataFuture, new AsyncFunction<List<NumericData>, List<NumericData>>() {
             @Override
             public ListenableFuture<List<NumericData>> apply(final List<NumericData> data) throws Exception {
@@ -680,8 +677,7 @@ public class MetricsServiceCassandra implements MetricsService {
         ListenableFuture<List<Availability>> dataFuture = Futures.transform(queryFuture,
             new AvailabilityDataMapper(true), metricsTasks);
         int ttl = getTTL(metric);
-        ListenableFuture<List<Availability>> updatedDataFuture = Futures.transform(dataFuture,
-            new ComputeTTL<>(ttl), metricsTasks);
+        ListenableFuture<List<Availability>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
         return Futures.transform(updatedDataFuture, new AsyncFunction<List<Availability>, List<Availability>>() {
             @Override
             public ListenableFuture<List<Availability>> apply(final List<Availability> data) throws Exception {
@@ -737,7 +733,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
                 return mergedDataMap;
             }
-        }, metricsTasks);
+        });
 
     }
 
@@ -777,7 +773,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
                 return mergedDataMap;
             }
-        }, metricsTasks);
+        });
     }
 
     private int getTTL(Metric metric) {
