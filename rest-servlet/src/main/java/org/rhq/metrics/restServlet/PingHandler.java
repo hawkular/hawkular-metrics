@@ -18,6 +18,7 @@ package org.rhq.metrics.restServlet;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.APPLICATION_XML;
+import static org.rhq.metrics.restServlet.CustomMediaTypes.APPLICATION_JAVASCRIPT;
 import static org.rhq.metrics.restServlet.CustomMediaTypes.APPLICATION_VND_RHQ_WRAPPED_JSON;
 
 import java.util.Date;
@@ -46,7 +47,7 @@ public class PingHandler {
     @GET
     @POST
     @Consumes({ APPLICATION_JSON, APPLICATION_XML })
-    @Produces({ APPLICATION_JSON, APPLICATION_XML, APPLICATION_VND_RHQ_WRAPPED_JSON })
+    @Produces({ APPLICATION_JSON, APPLICATION_XML, APPLICATION_VND_RHQ_WRAPPED_JSON, APPLICATION_JAVASCRIPT })
     @ApiOperation(value = "Returns the current time and serves to check for the availability of the api.",
             responseClass = "Map<String,String>")
     public Response ping() {
