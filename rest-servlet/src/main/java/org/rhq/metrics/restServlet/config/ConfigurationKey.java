@@ -31,7 +31,10 @@ public enum ConfigurationKey {
      * </ul>
      * Memory backend will be used whenever the value is not <em>cass</em>.
      */
-    BACKEND("rhq-metrics.backend");
+    BACKEND("rhq-metrics.backend"),
+    CASSANDRA_CQL_PORT("rhq-metrics.cassandra-cql-port"),
+    CASSANDRA_NODES("rhq-metrics.cassandra-nodes"),
+    CASSANDRA_KEYSPACE("cassandra.keyspace");
 
     private String externalForm;
 
