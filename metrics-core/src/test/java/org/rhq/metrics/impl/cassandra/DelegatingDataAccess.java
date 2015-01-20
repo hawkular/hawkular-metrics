@@ -73,19 +73,19 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture addMetadata(Metric metric) {
-        return delegate.addMetadata(metric);
+    public ResultSetFuture addTagsAndDataRetention(Metric metric) {
+        return delegate.addTagsAndDataRetention(metric);
     }
 
     @Override
-    public ResultSetFuture updateMetadata(Metric metric, Map<String, String> additions, Set<String> removals) {
-        return delegate.updateMetadata(metric, additions, removals);
+    public ResultSetFuture updateTags(Metric metric, Map<String, String> additions, Set<String> removals) {
+        return delegate.updateTags(metric, additions, removals);
     }
 
     @Override
-    public ResultSetFuture updateMetadataInMetricsIndex(Metric metric, Map<String, String> additions,
+    public ResultSetFuture updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
         Set<String> deletions) {
-        return delegate.updateMetadataInMetricsIndex(metric, additions, deletions);
+        return delegate.updateTagsInMetricsIndex(metric, additions, deletions);
     }
 
     @Override

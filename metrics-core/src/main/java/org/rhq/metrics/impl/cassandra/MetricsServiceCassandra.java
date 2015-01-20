@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -41,8 +42,25 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.google.common.base.Function;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.RateLimiter;
+
 import org.joda.time.Duration;
 import org.joda.time.Hours;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.rhq.metrics.core.Availability;
 import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
@@ -61,23 +79,6 @@ import org.rhq.metrics.core.RetentionSettings;
 import org.rhq.metrics.core.SchemaManager;
 import org.rhq.metrics.core.Tenant;
 import org.rhq.metrics.core.TenantAlreadyExistsException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.RateLimiter;
 
 /**
  * @author John Sanda
@@ -167,7 +168,7 @@ public class MetricsServiceCassandra implements MetricsService {
     @Override
     public void startUp(Session s) {
         // the session is managed externally
-        this.session = Optional.absent();
+        this.session = Optional.empty();
         this.dataAccess = new DataAccessImpl(s);
         loadDataRetentions();
     }
@@ -396,7 +397,7 @@ public class MetricsServiceCassandra implements MetricsService {
                         }
                     }
                     ListenableFuture<List<ResultSet>> updateRetentionsFuture = Futures
-                            .allAsList(updateRetentionFutures);
+                        .allAsList(updateRetentionFutures);
                     return Futures.transform(updateRetentionsFuture, RESULT_SETS_TO_VOID, metricsTasks);
                 }
             }
@@ -435,10 +436,10 @@ public class MetricsServiceCassandra implements MetricsService {
                     throw new MetricAlreadyExistsException(metric);
                 }
                 // TODO Need error handling if either of the following updates fail
-                // If adding meta data fails, then we want to report the error to the
+                // If adding tags/retention fails, then we want to report the error to the
                 // client. Updating the retentions_idx table could also fail. We need to
                 // report that failure as well.
-                ResultSetFuture metadataFuture = dataAccess.addMetadata(metric);
+                ResultSetFuture metadataFuture = dataAccess.addTagsAndDataRetention(metric);
                 if (metric.getDataRetention() == null) {
                     return Futures.transform(metadataFuture, RESULT_SET_TO_VOID);
                 }
@@ -465,10 +466,11 @@ public class MetricsServiceCassandra implements MetricsService {
                 }
                 Row row = resultSet.one();
                 if (type == MetricType.NUMERIC) {
-                    return new NumericMetric(tenantId, id, row.getMap(5, String.class, String.class), row.getInt(6));
+                    return new NumericMetric(tenantId, id, MetricUtils.getTags(row.getMap(5, String.class,
+                        String.class)), row.getInt(6));
                 } else {
-                    return new AvailabilityMetric(tenantId, id, row.getMap(5, String.class, String.class),
-                        row.getInt(6));
+                    return new AvailabilityMetric(tenantId, id, MetricUtils.getTags(row.getMap(5, String.class,
+                        String.class)), row.getInt(6));
                 }
             }
         }, metricsTasks);
@@ -481,10 +483,10 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> updateMetadata(Metric metric, Map<String, String> metadata, Set<String> deletions) {
+    public ListenableFuture<Void> updateTags(Metric metric, Map<String, String> tags, Set<String> deletions) {
         ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(
-            dataAccess.updateMetadata(metric, metadata, deletions),
-            dataAccess.updateMetadataInMetricsIndex(metric, metadata, deletions)
+            dataAccess.updateTags(metric, tags, deletions),
+            dataAccess.updateTagsInMetricsIndex(metric, tags, deletions)
         );
         return Futures.transform(insertsFuture, RESULT_SETS_TO_VOID, metricsTasks);
     }

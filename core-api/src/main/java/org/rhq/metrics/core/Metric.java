@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import com.google.common.base.Objects;
 
@@ -34,7 +35,7 @@ public abstract class Metric<T extends MetricData> {
 
     private MetricId id;
 
-    private Map<String, String> Metadata = new HashMap<>();
+    private Map<String, Optional<String>> tags = new HashMap<>();
 
     // When we implement date partitioning, dpart will have to be determined based on the
     // start and end params of queries. And it is possible the the date range spans
@@ -50,16 +51,16 @@ public abstract class Metric<T extends MetricData> {
         this.id = id;
     }
 
-    protected Metric(String tenantId, MetricId id, Map<String, String> Metadata) {
+    protected Metric(String tenantId, MetricId id, Map<String, Optional<String>> tags) {
         this.tenantId = tenantId;
         this.id = id;
-        this.Metadata = Metadata;
+        this.tags = tags;
     }
 
-    protected Metric(String tenantId, MetricId id, Map<String, String> Metadata, Integer dataRetention) {
+    protected Metric(String tenantId, MetricId id, Map<String, Optional<String>> tags, Integer dataRetention) {
         this.tenantId = tenantId;
         this.id = id;
-        this.Metadata = Metadata;
+        this.tags = tags;
         // If the data_retention column is not set, the driver returns zero instead of null.
         // We are (at least for now) using null to indicate that the metric does not have
         // the data retention set.
@@ -100,23 +101,12 @@ public abstract class Metric<T extends MetricData> {
     /**
      * A set of key/value pairs that are shared by all data points for the metric. A good example is units like KB/sec.
      */
-    public Map<String, String> getMetadata() {
-        return Metadata;
+    public Map<String, Optional<String>> getTags() {
+        return tags;
     }
 
-    public void setMetadata(Map<String, String> metadata) {
-        this.Metadata = metadata;
-    }
-
-    /**
-     * Stores an attribute which will be shared by all data points for the metric when it is persisted. If an attribute
-     * with the same name already exists, it will be overwritten.
-     *
-     * @param name The attribute name.
-     * @param value The attribute value
-     */
-    public void setAttribute(String name, String value) {
-        Metadata.put(name, value);
+    public void setTags(Map<String, Optional<String>> tags) {
+        this.tags = tags;
     }
 
     public List<T> getData() {
@@ -144,7 +134,7 @@ public abstract class Metric<T extends MetricData> {
         Metric metric = (Metric) o;
 
         if (dpart != metric.dpart) return false;
-        if (Metadata != null ? !Metadata.equals(metric.Metadata) : metric.Metadata != null) return false;
+        if (tags != null ? !tags.equals(metric.tags) : metric.tags != null) return false;
         if (dataRetention != null ? !dataRetention.equals(metric.dataRetention) : metric.dataRetention != null)
             return false;
         if (!id.equals(metric.id)) return false;
@@ -157,7 +147,7 @@ public abstract class Metric<T extends MetricData> {
     public int hashCode() {
         int result = tenantId.hashCode();
         result = 31 * result + id.hashCode();
-        result = 31 * result + (Metadata != null ? Metadata.hashCode() : 0);
+        result = 31 * result + (tags != null ? tags.hashCode() : 0);
         result = 31 * result + (int) (dpart ^ (dpart >>> 32));
         result = 31 * result + (dataRetention != null ? dataRetention.hashCode() : 0);
         return result;
@@ -168,7 +158,7 @@ public abstract class Metric<T extends MetricData> {
         return Objects.toStringHelper(this)
             .add("tenantId", tenantId)
             .add("id", id)
-            .add("metadata", Metadata)
+            .add("tags", tags)
             .add("dpart", dpart)
             .add("dataRetention", dataRetention)
             .toString();

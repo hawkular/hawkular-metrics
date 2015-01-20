@@ -23,27 +23,27 @@ import com.google.common.base.Objects;
  */
 public class Tag {
 
-    public static final String NO_DESCRIPTION = "";
+    public static final String NO_VALUE = "";
 
-    private String value;
+    private final String name;
 
-    private String description = NO_DESCRIPTION;
+    private final String value;
 
     public Tag(String tag) {
-        value = tag;
+        this(tag, NO_VALUE);
     }
 
-    public Tag(String tag, String description) {
-        value = tag;
-        this.description = description;
+    public Tag(String tag, String value) {
+        name = tag;
+        this.value = value == null ? NO_VALUE : value;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public String getValue() {
         return value;
-    }
-
-    public String getDescription() {
-        return description;
     }
 
     @Override
@@ -53,6 +53,7 @@ public class Tag {
 
         Tag tag = (Tag) o;
 
+        if (!name.equals(tag.name)) return false;
         if (!value.equals(tag.value)) return false;
 
         return true;
@@ -60,11 +61,13 @@ public class Tag {
 
     @Override
     public int hashCode() {
-        return value.hashCode();
+        int result = name.hashCode();
+        result = 31 * result + value.hashCode();
+        return result;
     }
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this).add("value", value).add("description", description).toString();
+        return Objects.toStringHelper(this).add("value", name).add("value", value).toString();
     }
 }

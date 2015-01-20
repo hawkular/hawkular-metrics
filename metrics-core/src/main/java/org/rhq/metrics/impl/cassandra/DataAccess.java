@@ -50,11 +50,11 @@ public interface DataAccess {
 
     ResultSetFuture findMetric(String tenantId, MetricType type, MetricId id, long dpart);
 
-    ResultSetFuture addMetadata(Metric metric);
+    ResultSetFuture addTagsAndDataRetention(Metric metric);
 
-    ResultSetFuture updateMetadata(Metric metric, Map<String, String> additions, Set<String> removals);
+    ResultSetFuture updateTags(Metric metric, Map<String, String> additions, Set<String> removals);
 
-    ResultSetFuture updateMetadataInMetricsIndex(Metric metric, Map<String, String> additions,
+    ResultSetFuture updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
         Set<String> deletions);
 
     <T extends Metric> ResultSetFuture updateMetricsIndex(List<T> metrics);

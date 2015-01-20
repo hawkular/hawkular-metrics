@@ -42,7 +42,7 @@ public class AvailabilityMetricMapper implements Function<ResultSet, Availabilit
         INTERVAL,
         DPART,
         TIME,
-        META_DATA,
+        METRIC_TAGS,
         DATA_RETENTION,
         AVAILABILITY,
         TAGS
@@ -68,8 +68,8 @@ public class AvailabilityMetricMapper implements Function<ResultSet, Availabilit
 
     private AvailabilityMetric getMetric(Row row) {
         AvailabilityMetric metric = new AvailabilityMetric(row.getString(ColumnIndex.TENANT_ID.ordinal()), getId(row),
-            row.getMap(ColumnIndex.META_DATA.ordinal(), String.class, String.class), row.getInt(
-            ColumnIndex.DATA_RETENTION.ordinal()));
+            MetricUtils.getTags(row.getMap(ColumnIndex.METRIC_TAGS.ordinal(), String.class, String.class)),
+            row.getInt(ColumnIndex.DATA_RETENTION.ordinal()));
         metric.setDpart(row.getLong(ColumnIndex.DPART.ordinal()));
 
         return metric;

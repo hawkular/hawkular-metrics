@@ -36,6 +36,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import com.datastax.driver.core.BatchStatement;
@@ -145,7 +146,10 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
     @Test
     public void createAndFindMetrics() throws Exception {
-        NumericMetric m1 = new NumericMetric("t1", new MetricId("m1"), ImmutableMap.of("a1", "1", "a2", "2"), 24);
+        NumericMetric m1 = new NumericMetric("t1", new MetricId("m1"), ImmutableMap.of(
+            "a1", Optional.of("1"),
+            "a2", Optional.of("2")),
+            24);
         ListenableFuture<Void> insertFuture = metricsService.createMetric(m1);
         getUninterruptibly(insertFuture);
 
@@ -153,7 +157,9 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         Metric actual = getUninterruptibly(queryFuture);
         assertEquals(actual, m1, "The metric does not match the expected value");
 
-        AvailabilityMetric m2 = new AvailabilityMetric("t1", new MetricId("m2"), ImmutableMap.of("a3", "3", "a4", "4"));
+        AvailabilityMetric m2 = new AvailabilityMetric("t1", new MetricId("m2"), ImmutableMap.of(
+            "a3", Optional.of("3"),
+            "a4", Optional.of("3")));
         insertFuture = metricsService.createMetric(m2);
         getUninterruptibly(insertFuture);
 
@@ -185,20 +191,22 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
     @Test
     public void updateMetadata() throws Exception {
-        NumericMetric metric = new NumericMetric("t1", new MetricId("m1"), ImmutableMap.of("a1", "1", "a2", "2"));
+        NumericMetric metric = new NumericMetric("t1", new MetricId("m1"), ImmutableMap.of(
+            "a1", Optional.of("1"),
+            "a2", Optional.of("2")));
         ListenableFuture<Void> insertFuture = metricsService.createMetric(metric);
         getUninterruptibly(insertFuture);
 
         Map<String, String> additions = ImmutableMap.of("a2", "two", "a3", "3");
         Set<String> deletions = ImmutableSet.of("a1");
-        insertFuture = metricsService.updateMetadata(metric, additions, deletions);
+        insertFuture = metricsService.updateTags(metric, additions, deletions);
         getUninterruptibly(insertFuture);
 
         ListenableFuture<Metric> queryFuture = metricsService.findMetric(metric.getTenantId(), NUMERIC,
             metric.getId());
         Metric updatedMetric = getUninterruptibly(queryFuture);
 
-        assertEquals(updatedMetric.getMetadata(), ImmutableMap.of("a2", "two", "a3", "3"),
+        assertEquals(updatedMetric.getTags(), ImmutableMap.of("a2", Optional.of("two"), "a3", Optional.of("3")),
             "The updated meta data does not match the expected values");
 
         assertMetricIndexMatches(metric.getTenantId(), NUMERIC, asList(updatedMetric));

@@ -44,7 +44,7 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
         INTERVAL,
         DPART,
         TIME,
-        META_DATA,
+        METRIC_TAGS,
         DATA_RETENTION,
         VALUE,
         TAGS,
@@ -90,7 +90,7 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
 
     private NumericMetric getMetric(Row row) {
         NumericMetric metric = new NumericMetric(row.getString(ColumnIndex.TENANT_ID.ordinal()), getId(row),
-            row.getMap(ColumnIndex.META_DATA.ordinal(), String.class, String.class),
+            MetricUtils.getTags(row.getMap(ColumnIndex.METRIC_TAGS.ordinal(), String.class, String.class)),
             row.getInt(ColumnIndex.DATA_RETENTION.ordinal()));
         metric.setDpart(row.getLong(ColumnIndex.DPART.ordinal()));
 

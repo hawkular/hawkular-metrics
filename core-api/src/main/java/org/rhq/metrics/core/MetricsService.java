@@ -72,7 +72,7 @@ public interface MetricsService {
 
     ListenableFuture<List<Metric>> findMetrics(String tenantId, MetricType type);
 
-    ListenableFuture<Void> updateMetadata(Metric metric, Map<String, String> metadata, Set<String> deletions);
+    ListenableFuture<Void> updateTags(Metric metric, Map<String, String> metadata, Set<String> deletions);
 
     ListenableFuture<Void> addNumericData(List<NumericMetric> metrics);
 

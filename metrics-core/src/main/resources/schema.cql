@@ -57,6 +57,21 @@ CREATE TYPE ${keyspace}.aggregate_data (
 
 -- #
 
+-- The type column identifies the type of metric. We currently only support
+-- numeric and availability. More types may be added in the future. For numeric
+-- metrics the n_value column will be set, and the availability column will not
+-- be set. For availability metrics the availability column will be set, and
+-- the n_value column will not be set.
+--
+-- The m_tags column is a map of tags that apply to the metric whereas the tags
+-- column is a map of tags for individual data points.
+--
+-- The dpart column is used for bucketing data. For example, we might decide
+-- that a partition should store no more than a day's worth of data. dpart
+-- would then be rounded down to the start time of each day. dpart is currently
+-- set to zero because it is not yet supported. We still have to determine what
+-- sensible bucket sizes are.
+
 CREATE TABLE ${keyspace}.data (
     tenant_id text,
     type int,
@@ -65,7 +80,7 @@ CREATE TABLE ${keyspace}.data (
     dpart bigint,
     time timeuuid,
     data_retention int static,
-    meta_data map<text, text> static,
+    m_tags map<text, text> static,
     n_value double,
     availability blob,
     aggregates set<frozen <aggregate_data>>,
@@ -76,13 +91,15 @@ WITH CLUSTERING ORDER BY (time DESC);
 
 -- #
 
-CREATE TABLE ${keyspace}.counters (
+CREATE TABLE ${keyspace}.metrics_tags_idx (
     tenant_id text,
-    group text,
-    c_name text,
-    c_value counter,
-    PRIMARY KEY ((tenant_id, group), c_name)
-);
+    tname text,
+    tvalue text,
+    type int,
+    metric text,
+    interval text,
+    PRIMARY KEY ((tenant_id, tname), tvalue, type)
+) WITH compaction = { 'class': 'LeveledCompactionStrategy' };
 
 -- #
 
@@ -98,7 +115,7 @@ CREATE TABLE ${keyspace}.tags (
     availability blob,
     tag_desc text,
     PRIMARY KEY ((tenant_id, tag, type), metric, interval, time)
-);
+) WITH compaction = { 'class': 'LeveledCompactionStrategy' };
 
 -- #
 
@@ -107,7 +124,7 @@ CREATE TABLE ${keyspace}.metrics_idx (
     type int,
     metric text,
     interval text,
-    meta_data map<text, text>,
+    tags map<text, text>,
     data_retention int,
     PRIMARY KEY ((tenant_id, type), interval, metric)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' };
@@ -132,3 +149,13 @@ CREATE TABLE ${keyspace}.retentions_idx (
     retention int,
     PRIMARY KEY ((tenant_id, type), interval, metric)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' };
+
+-- #
+
+CREATE TABLE ${keyspace}.counters (
+    tenant_id text,
+    group text,
+    c_name text,
+    c_value counter,
+    PRIMARY KEY ((tenant_id, group), c_name)
+);

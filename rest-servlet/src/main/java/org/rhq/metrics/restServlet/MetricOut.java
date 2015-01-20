@@ -35,7 +35,7 @@ public class MetricOut {
     private String name;
 
     @JsonInclude(Include.NON_EMPTY)
-    private Map<String, String> metadata = new HashMap<>();
+    private Map<String, String> tags = new HashMap<>();
 
     @JsonInclude(Include.NON_EMPTY)
     private List<DataPointOut> data = new ArrayList<>();
@@ -46,16 +46,16 @@ public class MetricOut {
     public MetricOut() {
     }
 
-    public MetricOut(String tenantId, String name, Map<String, String> metadata) {
+    public MetricOut(String tenantId, String name, Map<String, String> tags) {
         this.tenantId = tenantId;
         this.name = name;
-        this.metadata = metadata;
+        this.tags = tags;
     }
 
-    public MetricOut(String tenantId, String name, Map<String, String> metadata, Integer dataRetention) {
+    public MetricOut(String tenantId, String name, Map<String, String> tags, Integer dataRetention) {
         this.tenantId = tenantId;
         this.name = name;
-        this.metadata = metadata;
+        this.tags = tags;
         this.dataRetention = dataRetention;
     }
 
@@ -75,12 +75,12 @@ public class MetricOut {
         this.name = name;
     }
 
-    public Map<String, String> getMetadata() {
-        return metadata;
+    public Map<String, String> getTags() {
+        return tags;
     }
 
-    public void setMetadata(Map<String, String> metadata) {
-        this.metadata = metadata;
+    public void setTags(Map<String, String> tags) {
+        this.tags = tags;
     }
 
     public List<DataPointOut> getData() {

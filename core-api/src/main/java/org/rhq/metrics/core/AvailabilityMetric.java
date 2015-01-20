@@ -17,6 +17,7 @@
 package org.rhq.metrics.core;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -28,12 +29,12 @@ public class AvailabilityMetric extends Metric<Availability> {
         super(tenantId, id);
     }
 
-    public AvailabilityMetric(String tenantId, MetricId id, Map<String, String> metadata) {
-        super(tenantId, id, metadata);
+    public AvailabilityMetric(String tenantId, MetricId id, Map<String, Optional<String>> tags) {
+        super(tenantId, id, tags);
     }
 
-    public AvailabilityMetric(String tenantId, MetricId id, Map<String, String> metadata, Integer dataRetention) {
-        super(tenantId, id, metadata, dataRetention);
+    public AvailabilityMetric(String tenantId, MetricId id, Map<String, Optional<String>> tags, Integer dataRetention) {
+        super(tenantId, id, tags, dataRetention);
     }
 
     @Override

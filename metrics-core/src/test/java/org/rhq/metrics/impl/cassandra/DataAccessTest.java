@@ -22,6 +22,7 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
@@ -150,9 +151,9 @@ public class DataAccessTest extends MetricsTest {
         DateTime end = start.plusMinutes(6);
 
         NumericMetric metric = new NumericMetric("tenant-1", new MetricId("metric-1"),
-            ImmutableMap.of("units", "KB", "env", "test"));
+            ImmutableMap.of("units", Optional.of("KB"), "env", Optional.of("test")));
 
-        ResultSetFuture insertFuture = dataAccess.addMetadata(metric);
+        ResultSetFuture insertFuture = dataAccess.addTagsAndDataRetention(metric);
         getUninterruptibly(insertFuture);
 
         metric.addData(new NumericData(metric, start.getMillis(), 1.23));
