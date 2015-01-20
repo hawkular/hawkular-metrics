@@ -39,6 +39,8 @@ import javax.enterprise.inject.spi.InjectionPoint;
  */
 @ApplicationScoped
 public class ConfigurableProducer {
+    static final String METRICS_CONF = "metrics.conf";
+
     // Empty if external configuration file should be ignored
     private Optional<File> configurationFile;
     // Value needs to be Optional as ConcurrentHashMap does not allow null values
@@ -62,6 +64,11 @@ public class ConfigurableProducer {
     @Configurable
     String getConfigurationPropertyAsString(InjectionPoint injectionPoint) {
         ConfigurationProperty configProp = injectionPoint.getAnnotated().getAnnotation(ConfigurationProperty.class);
+        if (configProp == null) {
+            String message = "Any field or parameter annotated with @Configurable "
+                + "must also be annotated with @ConfigurationProperty";
+            throw new IllegalArgumentException(message);
+        }
         String propertyName = configProp.value().getExternalForm();
         return lookupConfigurationProperty(propertyName);
     }
@@ -78,7 +85,7 @@ public class ConfigurableProducer {
     }
 
     private void evalConfigurationFile() {
-        String configurationFilePath = System.getProperty("metrics.conf");
+        String configurationFilePath = System.getProperty(METRICS_CONF);
         if (configurationFilePath != null) {
             File file = new File(configurationFilePath);
             checkExplicitConfigurationFile(file);

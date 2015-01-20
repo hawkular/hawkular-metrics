@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright 2014 Red Hat, Inc.
+  ~ Copyright 2014-2015 Red Hat, Inc.
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -153,6 +153,13 @@
         <artifactId>antlr4-runtime</artifactId>
         <version>${antlr.version}</version>
       </dependency>
+      <!-- Tests dependencies -->
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.11</version>
+        <scope>test</scope>
+      </dependency>
       <dependency>
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
@@ -160,9 +167,9 @@
         <scope>test</scope>
       </dependency>
       <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.11</version>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>1.10.19</version>
         <scope>test</scope>
       </dependency>
       <!-- TestNG is not RHQ-Metrics main testing framework -->
@@ -174,6 +181,7 @@
         <version>${testng.version}</version>
         <scope>test</scope>
       </dependency>
+      <!-- Other -->
       <dependency>
         <groupId>org.rhq.checkstyle</groupId>
         <artifactId>rhq-checkstyle-config</artifactId>
