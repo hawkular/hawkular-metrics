@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 @Provider
 @Produces(APPLICATION_JAVASCRIPT)
 @ConstrainedTo(SERVER)
-public class JsonPProvider implements MessageBodyWriter {
+public class JsonPProvider implements MessageBodyWriter<Object> {
     private static final Logger LOG = LoggerFactory.getLogger(JsonPProvider.class);
 
     private static final String CALLBACK_PARAM_CONFIG = "org.rhq.metrics.restServlet.jsonp.JsonPProvider";
@@ -70,20 +70,21 @@ public class JsonPProvider implements MessageBodyWriter {
     }
 
     @Override
-    public boolean isWriteable(Class type, Type genericType, Annotation[] annotations, MediaType mediaType) {
-        MessageBodyWriter jsonWriter = providers.getMessageBodyWriter(type, genericType, annotations,
+    public boolean isWriteable(Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
+        MessageBodyWriter<?> jsonWriter = providers.getMessageBodyWriter(type, genericType, annotations,
             APPLICATION_JSON_TYPE);
         return jsonWriter.isWriteable(type, genericType, annotations, APPLICATION_JSON_TYPE);
     }
 
     @Override
-    public long getSize(Object o, Class type, Type genericType, Annotation[] annotations, MediaType mediaType) {
+    public long getSize(Object o, Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {
         return -1;
     }
 
     @Override
-    public void writeTo(Object o, Class type, Type genericType, Annotation[] annotations, MediaType mediaType,
-        MultivaluedMap httpHeaders, OutputStream entityStream) throws IOException, WebApplicationException {
+    public void writeTo(Object o, Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType,
+        MultivaluedMap<String, Object> httpHeaders, OutputStream entityStream) throws IOException,
+        WebApplicationException {
 
         MessageBodyWriter jsonWriter = providers.getMessageBodyWriter(type, genericType, annotations,
             APPLICATION_JSON_TYPE);
