@@ -61,11 +61,12 @@ public class ConfigurableProducer {
     @Produces
     @Configurable
     String getConfigurationPropertyAsString(InjectionPoint injectionPoint) {
-        return lookupConfigurationProperty(injectionPoint);
+        ConfigurationProperty configProp = injectionPoint.getAnnotated().getAnnotation(ConfigurationProperty.class);
+        String propertyName = configProp.value().getExternalForm();
+        return lookupConfigurationProperty(propertyName);
     }
 
-    private String lookupConfigurationProperty(InjectionPoint injectionPoint) {
-        String propertyName = getConfigurationPropertyName(injectionPoint);
+    private String lookupConfigurationProperty(String propertyName) {
         if (!readSystemProperties.contains(propertyName)) {
             String sysprop = System.getProperty(propertyName);
             if (sysprop != null) {
@@ -74,11 +75,6 @@ public class ConfigurableProducer {
             readSystemProperties.add(propertyName);
         }
         return effectiveConfiguration.get(propertyName).orElse(null);
-    }
-
-    private String getConfigurationPropertyName(InjectionPoint injectionPoint) {
-        ConfigurationProperty annotation = injectionPoint.getAnnotated().getAnnotation(ConfigurationProperty.class);
-        return annotation.value().getExternalForm();
     }
 
     private void evalConfigurationFile() {
