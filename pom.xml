@@ -142,7 +142,7 @@
     <!-- the default value pointing at suppressions.xml in rhq-checkstyle-config dependency -->
     <checkstyle.suppressions.file>hawkular-checkstyle/suppressions.xml</checkstyle.suppressions.file>
     <version.org.hawkular.hawkular-build-tools>4</version.org.hawkular.hawkular-build-tools>
-    <license.failIfMissing>false</license.failIfMissing>
+    <license.failIfMissing>true</license.failIfMissing>
   </properties>
 
   <dependencyManagement>
