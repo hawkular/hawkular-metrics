@@ -1,5 +1,6 @@
 /*
- * Copyright 2014 Red Hat, Inc.
+ * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.rhq.metrics.restServlet.influx.write.validation;
 
 import static org.junit.runners.Parameterized.Parameters;
@@ -46,14 +46,14 @@ public class SupportedInfluxObjectTest {
     @Parameters(name = "supportedInfluxObject: {1}")
     public static Iterable<Object[]> testSupportedObjects() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
-        URL resource = Resources.getResource("influx/write/supported-write-objects");
+        URL resource = Resources.getResource("influx/write/supported-write-objects.list.json");
         return FluentIterable //
             .from(Resources.readLines(resource, Charset.forName("UTF-8"))) //
             // Filter out comment lines
             .filter(new Predicate<String>() {
                 @Override
                 public boolean apply(String input) {
-                    return !input.startsWith("#");
+                    return !input.startsWith("//") && !input.trim().isEmpty();
                 }
             }) //
             .transform(new Function<String, Object[]>() {
@@ -75,7 +75,7 @@ public class SupportedInfluxObjectTest {
 
     private final InfluxObject[] influxObjects;
 
-    public SupportedInfluxObjectTest(InfluxObject[] influxObjects, @SuppressWarnings("unused") String objectsAsText) {
+    public SupportedInfluxObjectTest(InfluxObject[] influxObjects, String objectsAsText) {
         this.influxObjects = influxObjects;
         influxObjectValidator = new InfluxObjectValidator();
         influxObjectValidator.validationRules = rulesProducer.influxObjectValidationRules();

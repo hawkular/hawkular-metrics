@@ -1,20 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright 2014-2015 Red Hat, Inc.
-  ~
-  ~ Licensed under the Apache License, Version 2.0 (the "License");
-  ~ you may not use this file except in compliance with the License.
-  ~ You may obtain a copy of the License at
-  ~
-  ~    http://www.apache.org/licenses/LICENSE-2.0
-  ~
-  ~ Unless required by applicable law or agreed to in writing, software
-  ~ distributed under the License is distributed on an "AS IS" BASIS,
-  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  ~ See the License for the specific language governing permissions and
-  ~ limitations under the License.
-  -->
 
+    Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+    and other contributors as indicated by the @author tags.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
@@ -26,6 +28,7 @@
   <name>RHQ Metrics</name>
   <description>RHQ Metrics is a metrics collection, aggregation, visualization framework.</description>
   <url>https://community.jboss.org/en/rhq/rhq-metrics</url>
+  <inceptionYear>2014</inceptionYear>
   <organization>
     <name>Red Hat, Inc.</name>
     <url>http://redhat.com/</url>
@@ -137,8 +140,9 @@
     <checkstyleConsoleOutput>true</checkstyleConsoleOutput>
     <checkstyleFailOnError>true</checkstyleFailOnError>
     <!-- the default value pointing at suppressions.xml in rhq-checkstyle-config dependency -->
-    <checkstyle.suppressions.file>rhq-checkstyle/suppressions.xml</checkstyle.suppressions.file>
-    <rhq.checkstyle.config.version>3</rhq.checkstyle.config.version>
+    <checkstyle.suppressions.file>hawkular-checkstyle/suppressions.xml</checkstyle.suppressions.file>
+    <version.org.hawkular.hawkular-build-tools>4</version.org.hawkular.hawkular-build-tools>
+    <license.failIfMissing>true</license.failIfMissing>
   </properties>
 
   <dependencyManagement>
@@ -183,9 +187,9 @@
       </dependency>
       <!-- Other -->
       <dependency>
-        <groupId>org.rhq.checkstyle</groupId>
-        <artifactId>rhq-checkstyle-config</artifactId>
-        <version>${rhq.checkstyle.config.version}</version>
+        <groupId>org.hawkular</groupId>
+        <artifactId>hawkular-build-tools</artifactId>
+        <version>${version.org.hawkular.hawkular-build-tools}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -291,6 +295,11 @@
           <artifactId>maven-checkstyle-plugin</artifactId>
           <version>${checkstyle.plugin.version}</version>
         </plugin>
+        <plugin>
+          <groupId>com.mycila</groupId>
+          <artifactId>license-maven-plugin</artifactId>
+          <version>2.7</version>
+        </plugin>
       </plugins>
     </pluginManagement>
 
@@ -382,7 +391,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
         <configuration>
-          <configLocation>rhq-checkstyle/checkstyle.xml</configLocation>
+          <configLocation>hawkular-checkstyle/checkstyle.xml</configLocation>
           <consoleOutput>${checkstyleConsoleOutput}</consoleOutput>
           <failsOnError>${checkstyleFailOnError}</failsOnError>
           <!-- Make includes relative to ${basedir} -->
@@ -433,9 +442,9 @@
             <version>${checkstyle.version}</version>
           </dependency>
           <dependency>
-            <groupId>org.rhq.checkstyle</groupId>
-            <artifactId>rhq-checkstyle-config</artifactId>
-            <version>${rhq.checkstyle.config.version}</version>
+            <groupId>org.hawkular</groupId>
+            <artifactId>hawkular-build-tools</artifactId>
+            <version>${version.org.hawkular.hawkular-build-tools}</version>
           </dependency>
         </dependencies>
         <executions>
@@ -444,6 +453,50 @@
             <phase>compile</phase>
             <goals>
               <goal>checkstyle</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <configuration>
+          <header>hawkular-license/jboss-apache-2-template.txt</header>
+          <excludes>
+            <exclude>**/.bowerrc</exclude>
+            <exclude>**/.jshintrc</exclude>
+            <exclude>**/LICENSE</exclude>
+            <exclude>**/README.*</exclude>
+            <exclude>**/*.eot</exclude>
+            <exclude>**/*.otf</exclude>
+            <exclude>**/*.ttf</exclude>
+            <exclude>**/*.svg</exclude>
+            <exclude>**/*.woff</exclude>
+            <exclude>**/*.html</exclude>
+            <exclude>**/*.htm</exclude>
+          </excludes>
+          <mapping>
+            <conf>SCRIPT_STYLE</conf>
+            <cql>DOUBLEDASHES_STYLE</cql>
+            <Dockerfile>SCRIPT_STYLE</Dockerfile>
+            <g4>SLASHSTAR_STYLE</g4>
+            <iql>DOUBLEDASHES_STYLE</iql>
+            <jshintrc>SLASHSTAR_STYLE</jshintrc>
+            <java>SLASHSTAR_STYLE</java>
+            <ts>SLASHSTAR_STYLE</ts>
+          </mapping>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.hawkular</groupId>
+            <artifactId>hawkular-build-tools</artifactId>
+            <version>${version.org.hawkular.hawkular-build-tools}</version>
+          </dependency>
+        </dependencies>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
             </goals>
           </execution>
         </executions>

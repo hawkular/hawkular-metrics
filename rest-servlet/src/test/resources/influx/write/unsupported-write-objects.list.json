@@ -1,18 +1,18 @@
-# Each line in this file will be used as an unsupported sample
-# for org.rhq.metrics.restServlet.influx.query.validation.UnsupportedSelectQueryTest
-# Lines starting with the hash-sign are ignored
-#
-# column named test
+// Each line in this file will be used as an unsupported sample
+// for org.rhq.metrics.restServlet.influx.query.validation.UnsupportedSelectQueryTest
+// Empty lines and lines starting with double slash are ignored
+//
+// column named test
 [ { "name": "pingou", "columns": ["test", "time"], "points": [ [23, 235] ] } ]
-# column named test
+// column named test
 [ { "name": "pingou", "columns": ["test"], "points": [ [25.36] ] } ]
-# column named test
+// column named test
 [ { "name": "pingou", "columns": ["test", "time"], "points": [ [23.44, 235] ] } ]
-# No name
+// No name
 [ { "columns": ["value", "time"], "points": [ [23.44, 235] ] } ]
-# Empty name
+// Empty name
 [ { "name": "", "columns": ["value", "time"], "points": [ [23.44, 235] ] } ]
-# No columns
+// No columns
 [ { "name": "pingou", "points": [ [23.44, 235] ] } ]
-# More than two columns
+// More than two columns
 [ { "name": "pingou", "columns": ["value", "time", "What Am I Doing Here?"], "points": [ [23.44, 235] ] } ]
