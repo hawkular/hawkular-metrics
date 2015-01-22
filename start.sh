@@ -25,7 +25,7 @@ USAGE:   start.sh OPTIONS
       Backend type to be used by the deployment.
       'mem'          = use built-in memory enginer
       'cass'         = connects to a cassandra cluster
-      'embedded_cass = use and connect to the built-in embedded cassandra server
+      'embedded_cass' = use and connect to the built-in embedded cassandra server
       Script default is 'embedded_cass'.
    --version=version                      [OPTIONAL]
       Released version to be downloaded and used, only applicable if this script is run in 'release' mode.
