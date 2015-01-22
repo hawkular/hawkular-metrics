@@ -263,7 +263,7 @@ fi
 MVN_REPO=`mvn help:evaluate -Dexpression=settings.localRepository ${MVN_SETTINGS_OPT} | grep -vF "[INFO]" | tail -1`
 
 
-if [ $DEV == false ];
+if [ $DEV == false ]
 then
    echo "Using: "
 
