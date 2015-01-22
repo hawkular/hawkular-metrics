@@ -52,7 +52,9 @@ public interface DataAccess {
 
     ResultSetFuture addTagsAndDataRetention(Metric metric);
 
-    ResultSetFuture updateTags(Metric metric, Map<String, String> additions, Set<String> removals);
+    ResultSetFuture addTags(Metric metric, Map<String, String> tags);
+
+    ResultSetFuture deleteTags(Metric metric, Set<String> tags);
 
     ResultSetFuture updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
         Set<String> deletions);
@@ -102,4 +104,10 @@ public interface DataAccess {
     ResultSetFuture updateRetentionsIndex(String tenantId, MetricType type, Set<Retention> retentions);
 
     ResultSetFuture updateRetentionsIndex(Metric metric);
+
+    ResultSetFuture insertIntoMetricsTagsIndex(Metric metric, Map<String, String> tags);
+
+    ResultSetFuture deleteFromMetricsTagsIndex(Metric metric, Map<String, String> tags);
+
+    ResultSetFuture findMetricsByTag(String tenantId, String tag);
 }

@@ -78,8 +78,13 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture updateTags(Metric metric, Map<String, String> additions, Set<String> removals) {
-        return delegate.updateTags(metric, additions, removals);
+    public ResultSetFuture addTags(Metric metric, Map<String, String> tags) {
+        return delegate.addTags(metric, tags);
+    }
+
+    @Override
+    public ResultSetFuture deleteTags(Metric metric, Set<String> tags) {
+        return delegate.deleteTags(metric, tags);
     }
 
     @Override
@@ -201,5 +206,20 @@ public class DelegatingDataAccess implements DataAccess {
     @Override
     public ResultSetFuture updateRetentionsIndex(Metric metric) {
         return delegate.updateRetentionsIndex(metric);
+    }
+
+    @Override
+    public ResultSetFuture insertIntoMetricsTagsIndex(Metric metric, Map<String, String> tags) {
+        return delegate.insertIntoMetricsTagsIndex(metric, tags);
+    }
+
+    @Override
+    public ResultSetFuture deleteFromMetricsTagsIndex(Metric metric, Map<String, String> tags) {
+        return delegate.deleteFromMetricsTagsIndex(metric, tags);
+    }
+
+    @Override
+    public ResultSetFuture findMetricsByTag(String tenantId, String tag) {
+        return delegate.findMetricsByTag(tenantId, tag);
     }
 }

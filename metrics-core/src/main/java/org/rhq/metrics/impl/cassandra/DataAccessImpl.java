@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
@@ -72,11 +73,11 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findMetric;
 
-    private PreparedStatement addTags;
+    private PreparedStatement addMetricTagsToDataTable;
 
     private PreparedStatement addMetadataAndDataRetention;
 
-    private PreparedStatement deleteTags;
+    private PreparedStatement deleteMetricTagsFromDataTable;
 
     private PreparedStatement insertNumericData;
 
@@ -128,6 +129,12 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findDataRetentions;
 
+    private PreparedStatement insertMetricsTagsIndex;
+
+    private PreparedStatement deleteMetricsTagsIndex;
+
+    private PreparedStatement findMetricsByTagName;
+
     public DataAccessImpl(Session session) {
         this.session = session;
         initPreparedStatements();
@@ -148,7 +155,7 @@ public class DataAccessImpl implements DataAccess {
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
 
-        addTags = session.prepare(
+        addMetricTagsToDataTable = session.prepare(
             "UPDATE data " +
             "SET m_tags = m_tags + ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
@@ -158,7 +165,7 @@ public class DataAccessImpl implements DataAccess {
             "SET m_tags = m_tags + ?, data_retention = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
 
-        deleteTags = session.prepare(
+        deleteMetricTagsFromDataTable = session.prepare(
             "UPDATE data " +
             "SET m_tags = m_tags - ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
@@ -294,6 +301,19 @@ public class DataAccessImpl implements DataAccess {
             "SELECT tenant_id, type, interval, metric, retention " +
             "FROM retentions_idx " +
             "WHERE tenant_id = ? AND type = ?");
+
+        insertMetricsTagsIndex = session.prepare(
+            "INSERT INTO metrics_tags_idx (tenant_id, tname, tvalue, type, metric, interval) VALUES " +
+            "(?, ?, ?, ?, ?, ?)");
+
+        deleteMetricsTagsIndex = session.prepare(
+            "DELETE FROM metrics_tags_idx " +
+            "WHERE tenant_id = ? AND tname = ? AND tvalue = ? AND type = ? AND metric = ? AND interval = ?");
+
+        findMetricsByTagName = session.prepare(
+            "SELECT tvalue, type, metric, interval " +
+            "FROM metrics_tags_idx " +
+            "WHERE tenant_id = ? AND tname = ?");
     }
 
     @Override
@@ -364,14 +384,35 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture updateTags(Metric metric, Map<String, String> additions, Set<String> removals) {
-        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED)
-            .add(addTags.bind(additions, metric.getTenantId(), metric.getType().getCode(), metric.getId().getName(),
-                metric.getId().getInterval().toString(), metric.getDpart()))
-            .add(deleteTags.bind(removals, metric.getTenantId(), metric.getType().getCode(),
-                metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart()));
-        return session.executeAsync(batchStatement);
+    public ResultSetFuture addTags(Metric metric, Map<String, String> tags) {
+        BatchStatement batch = new BatchStatement(BatchStatement.Type.UNLOGGED);
+        batch.add(addMetricTagsToDataTable.bind(tags, metric.getTenantId(), metric.getType().getCode(),
+            metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart()));
+        batch.add(addTagsToMetricsIndex.bind(tags, metric.getTenantId(), metric.getType().getCode(),
+            metric.getId().getInterval().toString(), metric.getId().getName()));
+        return session.executeAsync(batch);
     }
+
+    @Override
+    public ResultSetFuture deleteTags(Metric metric, Set<String> tags) {
+        BatchStatement batch = new BatchStatement(BatchStatement.Type.UNLOGGED);
+        batch.add(deleteMetricTagsFromDataTable.bind(tags, metric.getTenantId(), metric.getType().getCode(),
+            metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart()));
+        batch.add(deleteTagsFromMetricsIndex.bind(tags, metric.getTenantId(), metric.getType().getCode(),
+            metric.getId().getInterval().toString(), metric.getId().getName()));
+        return session.executeAsync(batch);
+    }
+
+//    @Override
+//    public ResultSetFuture updateTags(Metric metric, Map<String, String> additions, Set<String> removals) {
+//        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED)
+//            .add(addMetricTagsToDataTable
+//                .bind(additions, metric.getTenantId(), metric.getType().getCode(), metric.getId().getName(),
+//                    metric.getId().getInterval().toString(), metric.getDpart()))
+//            .add(deleteMetricTagsFromDataTable.bind(removals, metric.getTenantId(), metric.getType().getCode(),
+//                metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart()));
+//        return session.executeAsync(batchStatement);
+//    }
 
     @Override
     public ResultSetFuture updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
@@ -568,6 +609,32 @@ public class DataAccessImpl implements DataAccess {
                 r.getId().getName(), r.getValue()));
         }
         return session.executeAsync(batchStatement);
+    }
+
+    @Override
+    public ResultSetFuture insertIntoMetricsTagsIndex(Metric metric, Map<String, String> tags) {
+        return executeTagsBatch(tags, (name, value) -> insertMetricsTagsIndex.bind(metric.getTenantId(), name, value,
+            metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString()));
+    }
+
+    @Override
+    public ResultSetFuture deleteFromMetricsTagsIndex(Metric metric, Map<String, String> tags) {
+        return executeTagsBatch(tags, (name, value) -> deleteMetricsTagsIndex.bind(metric.getTenantId(), name, value,
+            metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString()));
+    }
+
+    private ResultSetFuture executeTagsBatch(Map<String, String> tags,
+        BiFunction<String, String, BoundStatement> bindVars) {
+        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
+        for (String tag : tags.keySet()) {
+            batchStatement.add(bindVars.apply(tag, tags.get(tag)));
+        }
+        return session.executeAsync(batchStatement);
+    }
+
+    @Override
+    public ResultSetFuture findMetricsByTag(String tenantId, String tag) {
+        return session.executeAsync(findMetricsByTagName.bind(tenantId, tag));
     }
 
     @Override

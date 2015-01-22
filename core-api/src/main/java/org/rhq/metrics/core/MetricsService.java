@@ -19,6 +19,7 @@ package org.rhq.metrics.core;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import com.datastax.driver.core.Session;
@@ -72,7 +73,9 @@ public interface MetricsService {
 
     ListenableFuture<List<Metric>> findMetrics(String tenantId, MetricType type);
 
-    ListenableFuture<Void> updateTags(Metric metric, Map<String, String> metadata, Set<String> deletions);
+    ListenableFuture<Void> addTags(Metric metric, Map<String, Optional<String>> tags);
+
+    ListenableFuture<Void> deleteTags(Metric metric, Map<String, Optional<String>> tags);
 
     ListenableFuture<Void> addNumericData(List<NumericMetric> metrics);
 

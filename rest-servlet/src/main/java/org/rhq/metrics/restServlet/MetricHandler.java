@@ -43,6 +43,7 @@ import java.util.stream.LongStream;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -147,7 +148,7 @@ public class MetricHandler {
 
     @GET
     @Path("/{tenantId}/metrics/numeric/{id}/meta")
-    public void getNumericMetricMetadata(@Suspended AsyncResponse response, @PathParam("tenantId") String tenantId,
+    public void getNumericMetricTags(@Suspended AsyncResponse response, @PathParam("tenantId") String tenantId,
         @PathParam("id") String id) {
         ListenableFuture<Metric> future = metricsService.findMetric(tenantId, MetricType.NUMERIC,
             new MetricId(id));
@@ -156,26 +157,25 @@ public class MetricHandler {
 
     @PUT
     @Path("/{tenantId}/metrics/numeric/{id}/meta")
-    public void updateNumericMetricMetadata(@Suspended final AsyncResponse response,
-        @PathParam("tenantId") String tenantId, @PathParam("id") String id, Map<String, ? extends Object> updates) {
-        Map<String, String> additions = new HashMap<>();
-        Set<String> deletions = new HashSet<>();
-
-        for (String key : updates.keySet()) {
-            if (key.equals("[delete]")) {
-                deletions.addAll((List<String>) updates.get(key));
-            } else {
-                additions.put(key, (String) updates.get(key));
-            }
-        }
+    public void updateNumericMetricTags(@Suspended final AsyncResponse response,
+        @PathParam("tenantId") String tenantId, @PathParam("id") String id, Map<String, String> tags) {
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
-        ListenableFuture<Void> future = metricsService.updateTags(metric, additions, deletions);
-        Futures.addCallback(future, new DataInsertedCallback(response, "Failed to update meta data"));
+        ListenableFuture<Void> future = metricsService.addTags(metric, MetricUtils.getTags(tags));
+        Futures.addCallback(future, new DataInsertedCallback(response, "Failed to update tags"));
+    }
+
+    @DELETE
+    @Path("/{tenantId}/metrics/numeric/{id}/meta/{tags}")
+    public void deleteNumericMetricTags(@Suspended final AsyncResponse response,
+        @PathParam("tenantId") String tenantId, @PathParam("id") String id, @PathParam("tags") String encodedTags) {
+        NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
+        ListenableFuture<Void> future = metricsService.deleteTags(metric, MetricUtils.decodeTags(encodedTags));
+        Futures.addCallback(future, new DataInsertedCallback(response, "Failed to delete tags"));
     }
 
     @GET
     @Path("/{tenantId}/metrics/availability/{id}/meta")
-    public void getAvailabilityMetricMetadata(@Suspended AsyncResponse response,
+    public void getAvailabilityMetricTags(@Suspended AsyncResponse response,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id) {
         ListenableFuture<Metric> future = metricsService.findMetric(tenantId, MetricType.AVAILABILITY,
             new MetricId(id));
@@ -184,21 +184,20 @@ public class MetricHandler {
 
     @PUT
     @Path("/{tenantId}/metrics/availability/{id}/meta")
-    public void updateAvailabilityMetricMetadata(@Suspended final AsyncResponse response,
-        @PathParam("tenantId") String tenantId, @PathParam("id") String id, Map<String, ? extends Object> updates) {
-        Map<String, String> additions = new HashMap<>();
-        Set<String> deletions = new HashSet<>();
-
-        for (String key : updates.keySet()) {
-            if (key.equals("[delete]")) {
-                deletions.addAll((List<String>) updates.get(key));
-            } else {
-                additions.put(key, (String) updates.get(key));
-            }
-        }
+    public void updateAvailabilityMetricTags(@Suspended final AsyncResponse response,
+        @PathParam("tenantId") String tenantId, @PathParam("id") String id, Map<String, String> tags) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
-        ListenableFuture<Void> future = metricsService.updateTags(metric, additions, deletions);
-        Futures.addCallback(future, new DataInsertedCallback(response, "Failed to update meta data"));
+        ListenableFuture<Void> future = metricsService.addTags(metric, MetricUtils.getTags(tags));
+        Futures.addCallback(future, new DataInsertedCallback(response, "Failed to update tags"));
+    }
+
+    @DELETE
+    @Path("/{tenantId}/metrics/availability/{id}/meta/{tags}")
+    public void deleteAvailabilityMetricTags(@Suspended final AsyncResponse response,
+        @PathParam("tenantId") String tenantId, @PathParam("id") String id, @PathParam("tags") String encodedTags) {
+        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
+        ListenableFuture<Void> future = metricsService.deleteTags(metric, MetricUtils.decodeTags(encodedTags));
+        Futures.addCallback(future, new DataInsertedCallback(response, "Failed to delete tags"));
     }
 
     private class GetMetadataCallback implements FutureCallback<Metric> {

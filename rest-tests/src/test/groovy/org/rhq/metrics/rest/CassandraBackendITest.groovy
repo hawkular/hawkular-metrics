@@ -343,7 +343,8 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(204, response.status)
 
     // Update the numeric metric meta data
-    response = rhqm.put(path: "tenant-3/metrics/numeric/N1/meta", body: [a1: 'one', a2: '2', '[delete]': ['b1']])
+//    response = rhqm.put(path: "tenant-3/metrics/numeric/N1/meta", body: [a1: 'one', a2: '2', '[delete]': ['b1']])
+    response = rhqm.put(path: "tenant-3/metrics/numeric/N1/meta", body: [a1: 'one', a2: '2', b1: 'B'])
     assertEquals(200, response.status)
 
     // Fetch the updated meta data
@@ -353,13 +354,26 @@ class CassandraBackendITest extends RESTTest {
         [
           tenantId: 'tenant-3',
           name: 'N1',
-          tags: [a1: 'one', a2: '2']
+          tags: [a1: 'one', a2: '2', b1: 'B']
+        ],
+        response.data
+    )
+
+    // Delete a numeric metric tag
+    response = rhqm.delete(path: 'tenant-3/metrics/numeric/N1/meta/a2:2$b1:B')
+    assertEquals(200, response.status)
+    response = rhqm.get(path: 'tenant-3/metrics/numeric/N1/meta')
+    assertEquals(
+        [
+          tenantId: 'tenant-3',
+          name: 'N1',
+          tags: [a1: 'one']
         ],
         response.data
     )
 
     // Update the availability metric data
-    response = rhqm.put(path: "tenant-3/metrics/availability/A1/meta", body: [a2: 'two', a3: 'THREE', '[delete]': ['b2']])
+    response = rhqm.put(path: "tenant-3/metrics/availability/A1/meta", body: [a2: 'two', a3: 'THREE'])
     assertEquals(200, response.status)
 
     // Fetch the updated meta data
@@ -369,7 +383,21 @@ class CassandraBackendITest extends RESTTest {
         [
           tenantId: 'tenant-3',
           name: 'A1',
-          tags: [a2: 'two', a3: 'THREE']
+          tags: [a2: 'two', a3: 'THREE', b2: '2']
+        ],
+        response.data
+    )
+
+    // delete an availability metric tag
+    response = rhqm.delete(path: 'tenant-3/metrics/availability/A1/meta/a2:two$b2:2')
+    assertEquals(200, response.status)
+
+    response = rhqm.get(path: "tenant-3/metrics/availability/A1/meta")
+    assertEquals(
+        [
+          tenantId: 'tenant-3',
+          name: 'A1',
+          tags: [a3: 'THREE']
         ],
         response.data
     )

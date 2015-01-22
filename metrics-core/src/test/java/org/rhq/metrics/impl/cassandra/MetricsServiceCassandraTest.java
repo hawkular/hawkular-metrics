@@ -41,7 +41,9 @@ import java.util.Set;
 
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
@@ -55,6 +57,7 @@ import org.testng.annotations.Test;
 
 import org.rhq.metrics.core.Availability;
 import org.rhq.metrics.core.AvailabilityMetric;
+import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricAlreadyExistsException;
 import org.rhq.metrics.core.MetricId;
@@ -182,25 +185,39 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         insertFuture = metricsService.createMetric(m3);
         getUninterruptibly(insertFuture);
 
-        assertMetricIndexMatches("t1", NUMERIC, asList(m1, m3));
+        NumericMetric m4 = new NumericMetric("t1", new MetricId("m4"), ImmutableMap.of(
+            "a1", Optional.of("A"),
+            "a2", Optional.empty()));
+        insertFuture = metricsService.createMetric(m4);
+        getUninterruptibly(insertFuture);
+
+        assertMetricIndexMatches("t1", NUMERIC, asList(m1, m3, m4));
         assertMetricIndexMatches("t1", AVAILABILITY, asList(m2));
 
         assertDataRetentionsIndexMatches("t1", NUMERIC, ImmutableSet.of(new Retention(m3.getId(), 24),
             new Retention(m1.getId(), 24)));
+
+        assertMetricsTagsIndexMatches("t1", "a1", asList(
+            new MetricsTagsIndexEntry("1", NUMERIC, m1.getId()),
+            new MetricsTagsIndexEntry("A", NUMERIC, m4.getId())
+        ));
     }
 
     @Test
-    public void updateMetadata() throws Exception {
+    public void updateMetricTags() throws Exception {
         NumericMetric metric = new NumericMetric("t1", new MetricId("m1"), ImmutableMap.of(
             "a1", Optional.of("1"),
             "a2", Optional.of("2")));
         ListenableFuture<Void> insertFuture = metricsService.createMetric(metric);
         getUninterruptibly(insertFuture);
 
-        Map<String, String> additions = ImmutableMap.of("a2", "two", "a3", "3");
-        Set<String> deletions = ImmutableSet.of("a1");
-        insertFuture = metricsService.updateTags(metric, additions, deletions);
+        Map<String, Optional<String>> additions = ImmutableMap.of("a2", Optional.of("two"), "a3", Optional.of("3"));
+        insertFuture = metricsService.addTags(metric, additions);
         getUninterruptibly(insertFuture);
+
+        Map<String, Optional<String>> deletions = ImmutableMap.of("a1", Optional.of("1"));
+        ListenableFuture<Void> deleteFuture = metricsService.deleteTags(metric, deletions);
+        getUninterruptibly(deleteFuture);
 
         ListenableFuture<Metric> queryFuture = metricsService.findMetric(metric.getTenantId(), NUMERIC,
             metric.getId());
@@ -842,6 +859,63 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         List<Metric> actualIndex = getUninterruptibly(metricsFuture);
 
         assertEquals(actualIndex, expected, "The metrics index results do not match");
+    }
+
+    private class MetricsTagsIndexEntry {
+        String tagValue;
+        MetricType type;
+        MetricId id;
+
+        public MetricsTagsIndexEntry(String tagValue, MetricType type, MetricId id) {
+            this.tagValue = tagValue;
+            this.type = type;
+            this.id = id;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            MetricsTagsIndexEntry that = (MetricsTagsIndexEntry) o;
+
+            if (!id.equals(that.id)) return false;
+            if (!tagValue.equals(that.tagValue)) return false;
+            if (type != that.type) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = tagValue.hashCode();
+            result = 31 * result + type.hashCode();
+            result = 31 * result + id.hashCode();
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return com.google.common.base.Objects.toStringHelper(this)
+                .add("tagValue", tagValue)
+                .add("type", type)
+                .add("id", id)
+                .toString();
+        }
+    }
+
+    private void assertMetricsTagsIndexMatches(String tenantId, String tag, List<MetricsTagsIndexEntry> expected)
+        throws Exception {
+        ResultSetFuture queryFuture = dataAccess.findMetricsByTag(tenantId, tag);
+        ResultSet resultSet = getUninterruptibly(queryFuture);
+        List<MetricsTagsIndexEntry> actual = new ArrayList<>();
+
+        for (Row row : resultSet) {
+            actual.add(new MetricsTagsIndexEntry(row.getString(0), MetricType.fromCode(row.getInt(1)),
+                new MetricId(row.getString(2), Interval.parse(row.getString(3)))));
+        }
+
+        assertEquals(actual, expected, "The metrics tags index entries do not match");
     }
 
     private void assertDataRetentionsIndexMatches(String tenantId, MetricType type, Set<Retention> expected)

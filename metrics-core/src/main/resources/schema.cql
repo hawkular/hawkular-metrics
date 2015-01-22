@@ -98,7 +98,7 @@ CREATE TABLE ${keyspace}.metrics_tags_idx (
     type int,
     metric text,
     interval text,
-    PRIMARY KEY ((tenant_id, tname), tvalue, type)
+    PRIMARY KEY ((tenant_id, tname), tvalue, type, metric, interval)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' };
 
 -- #

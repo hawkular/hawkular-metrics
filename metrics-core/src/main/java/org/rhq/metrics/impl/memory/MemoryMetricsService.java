@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
 
@@ -102,7 +103,12 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> updateTags(Metric metric, Map<String, String> metadata, Set<String> deletions) {
+    public ListenableFuture<Void> addTags(Metric metric, Map<String, Optional<String>> tags) {
+        return null;
+    }
+
+    @Override
+    public ListenableFuture<Void> deleteTags(Metric metric, Map<String, Optional<String>> tags) {
         return null;
     }
 

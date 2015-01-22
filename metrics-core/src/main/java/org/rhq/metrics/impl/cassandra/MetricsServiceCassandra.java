@@ -16,6 +16,7 @@
  */
 package org.rhq.metrics.impl.cassandra;
 
+import static java.util.Arrays.asList;
 import static org.joda.time.Hours.hours;
 
 import java.io.IOException;
@@ -440,13 +441,21 @@ public class MetricsServiceCassandra implements MetricsService {
                 // client. Updating the retentions_idx table could also fail. We need to
                 // report that failure as well.
                 ResultSetFuture metadataFuture = dataAccess.addTagsAndDataRetention(metric);
-                if (metric.getDataRetention() == null) {
-                    return Futures.transform(metadataFuture, RESULT_SET_TO_VOID);
+                ResultSetFuture tagsFuture = dataAccess.insertIntoMetricsTagsIndex(metric, MetricUtils.flattenTags(
+                    metric.getTags()));
+
+                List<ResultSetFuture> futures = new ArrayList<>();
+                futures.add(metadataFuture);
+                futures.add(tagsFuture);
+
+                if (metric.getDataRetention() != null) {
+                    ResultSetFuture dataRetentionFuture = dataAccess.updateRetentionsIndex(metric);
+                    dataRetentions.put(new DataRetentionKey(metric), metric.getDataRetention());
+                    futures.add(dataRetentionFuture);
                 }
-                ResultSetFuture dataRetentionFuture = dataAccess.updateRetentionsIndex(metric);
-                ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(metadataFuture,
-                    dataRetentionFuture);
-                dataRetentions.put(new DataRetentionKey(metric), metric.getDataRetention());
+
+                ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(futures);
+
                 return Futures.transform(insertsFuture, RESULT_SETS_TO_VOID);
             }
         }, metricsTasks);
@@ -482,14 +491,37 @@ public class MetricsServiceCassandra implements MetricsService {
         return Futures.transform(future, new MetricsIndexMapper(tenantId, type), metricsTasks);
     }
 
-    @Override
-    public ListenableFuture<Void> updateTags(Metric metric, Map<String, String> tags, Set<String> deletions) {
-        ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(
-            dataAccess.updateTags(metric, tags, deletions),
-            dataAccess.updateTagsInMetricsIndex(metric, tags, deletions)
+    // Adding/deleting metric tags currently involves writing to three tables - data,
+    // metrics_idx, and metrics_tags_idx. It might make sense to refactor tag related
+    // functionality into a separate class.
+
+    public ListenableFuture<Void> addTags(Metric metric, Map<String, Optional<String>> tags) {
+        List<ResultSetFuture> insertFutures = asList(
+            dataAccess.addTags(metric, MetricUtils.flattenTags(tags)),
+            dataAccess.insertIntoMetricsTagsIndex(metric, MetricUtils.flattenTags(tags))
         );
+        ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
         return Futures.transform(insertsFuture, RESULT_SETS_TO_VOID, metricsTasks);
     }
+
+    @Override
+    public ListenableFuture<Void> deleteTags(Metric metric, Map<String, Optional<String>> tags) {
+        List<ResultSetFuture> deleteFutures = asList(
+            dataAccess.deleteTags(metric, MetricUtils.flattenTags(tags).keySet()),
+            dataAccess.deleteFromMetricsTagsIndex(metric, MetricUtils.flattenTags(tags))
+        );
+        ListenableFuture<List<ResultSet>> deletesFuture = Futures.allAsList(deleteFutures);
+        return Futures.transform(deletesFuture, RESULT_SETS_TO_VOID, metricsTasks);
+    }
+
+//    @Override
+//    public ListenableFuture<Void> updateTags(Metric metric, Map<String, String> tags, Set<String> deletions) {
+//        ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(
+//            dataAccess.updateTags(metric, tags, deletions),
+//            dataAccess.updateTagsInMetricsIndex(metric, tags, deletions)
+//        );
+//        return Futures.transform(insertsFuture, RESULT_SETS_TO_VOID, metricsTasks);
+//    }
 
     @Override
     public ListenableFuture<Void> addNumericData(List<NumericMetric> metrics) {
