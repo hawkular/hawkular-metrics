@@ -239,7 +239,7 @@ get_dependency()
       return
    fi
 
-   local POM_VERSION=`cat output.txt | grep "$4" | cut -d':' -f4`
+   local POM_VERSION=`cat output.txt | grep "$4" | cut -d":" -f4`
    clean_temp_files
 
    echo $POM_VERSION
