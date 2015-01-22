@@ -1,0 +1,24 @@
+${project.build.finalName}
+
+${project.description}
+
+=== RUNNING
+
+The following command starts ptrans:
+
+java -jar -c <path to ptrans.conf>
+
+By default, ptrans logs everything to the console, but you can make use your own log4j configuration file:
+
+java -jar -Dlog4j.configuration=file:<path log4j.xml> -c <path to ptrans.conf>
+
+=== STOPPING
+
+Send the KILL signal to the process.
+
+=== USAGE
+
+Run the following command to print usage:
+
+java -jar ptrans-all.jar -h
+
