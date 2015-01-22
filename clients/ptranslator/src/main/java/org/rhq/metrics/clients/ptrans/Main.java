@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Red Hat, Inc.
+ * Copyright 2014-2015 Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,12 +42,11 @@ import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-
 import io.netty.util.concurrent.Future;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
@@ -90,27 +89,31 @@ public class Main {
     private int collectdPort = COLLETCD_DEFAULT_PORT;
     private final int minimumBatchSize;
 
-
     private final Properties configuration;
     private final EventLoopGroup group;
     private final EventLoopGroup workerGroup;
 
     public static void main(String[] args) throws Exception {
-        Options options = getCommandOptions();
-        CommandLineParser parser = new PosixParser();
-        boolean commandLineError = false;
+        Options options = getCommandOptions(true);
+        Exception parseException = null;
         CommandLine cmd = null;
         try {
+            CommandLineParser parser = new PosixParser();
             cmd = parser.parse(options, args, true);
-        } catch (MissingOptionException e) {
-            commandLineError = true;
-            System.err.println(e.getMessage());
+        } catch (Exception e) {
+            parseException = e;
         }
-        if (commandLineError || cmd.hasOption(HELP_OPT)) {
-            HelpFormatter formatter = new HelpFormatter();
-            formatter.setWidth(Integer.MAX_VALUE); // Do not wrap
-            formatter.printHelp("java -jar ptrans-all.jar", options, true);
-            System.exit(commandLineError ? 1 : 0);
+        boolean hasHelpOption = hasHelpOption(args);
+        if (parseException != null) {
+            if (!hasHelpOption) {
+                System.err.println(parseException.getMessage());
+            }
+            printHelp();
+            System.exit(hasHelpOption ? 0 : 1);
+        }
+        if (hasHelpOption) {
+            printHelp();
+            System.exit(0);
         }
         File configFile = new File(cmd.getOptionValue(CONFIG_FILE_OPT));
         if (!configFile.isFile()) {
@@ -122,13 +125,31 @@ public class Main {
         main.run();
     }
 
-    private static Options getCommandOptions() {
+    private static boolean hasHelpOption(String[] args) {
+        Options commandOptions = getCommandOptions(false);
+        CommandLine cmd;
+        try {
+            CommandLineParser parser = new PosixParser();
+            cmd = parser.parse(commandOptions, args, true);
+            return cmd.hasOption(HELP_OPT);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static void printHelp() {
+        HelpFormatter formatter = new HelpFormatter();
+        formatter.setWidth(Integer.MAX_VALUE); // Do not wrap
+        formatter.printHelp("ptrans", getCommandOptions(true), true);
+    }
+
+    private static Options getCommandOptions(boolean withRequiredFlags) {
         Options options = new Options();
         Option helpOption = new Option(HELP_OPT, HELP_LONGOPT, false, "Print usage and exit.");
         options.addOption(helpOption);
         Option configOption = new Option(CONFIG_FILE_OPT, CONFIG_FILE_LONGOPT, true,
             "Set the path to the configuration file.");
-        configOption.setRequired(true);
+        configOption.setRequired(withRequiredFlags);
         options.addOption(configOption);
         return options;
     }
