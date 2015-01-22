@@ -281,16 +281,16 @@ then
 else
    echo "Using: "
 
-   METRICS_CONSOLE_VERSION=`grep "<version>" pom.xml | head -n 1| awk -F '(<|>)' '{print $3}'`
+   METRICS_CONSOLE_VERSION=`grep "<version>" pom.xml | head -n 1| cut -d">" -f2 | cut -d"<" -f1`
    echo "RHQ Metrics Console: ${METRICS_CONSOLE_VERSION}"
 
-   REST_SERVLET_VERSION=`grep "<version>" pom.xml | head -n 1| awk -F '(<|>)' '{print $3}'`
+   REST_SERVLET_VERSION=`grep "<version>" pom.xml | head -n 1| cut -d">" -f2 | cut -d"<" -f1`
    echo "RHQ REST: ${REST_SERVLET_VERSION}"
 
-   EXPLORER_VERSION=`grep "<version>" pom.xml | head -n 1| awk -F '(<|>)' '{print $3}'`
+   EXPLORER_VERSION=`grep "<version>" pom.xml | head -n 1| cut -d">" -f2 | cut -d"<" -f1`
    echo "RHQ Explorer: ${EXPLORER_VERSION}"
 
-   EMBEDDED_CASSANDRA_VERSION=`grep "<version>" pom.xml | head -n 1| awk -F '(<|>)' '{print $3}'`
+   EMBEDDED_CASSANDRA_VERSION=`grep "<version>" pom.xml | head -n 1| cut -d">" -f2 | cut -d"<" -f1`
    echo "Embedded Cassandra: ${EMBEDDED_CASSANDRA_VERSION}"
 
    mvn install -DskipTests ${MVN_SETTINGS_OPT}
