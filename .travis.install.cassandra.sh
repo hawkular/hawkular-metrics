@@ -18,12 +18,15 @@
 
 
 set -xe
+cVersion="2.1.1"
 
-wget http://downloads.datastax.com/community/dsc-cassandra-2.1.1-bin.tar.gz
+cd "${HOME}"
 
-tar -xzf dsc-cassandra-2.1.1-bin.tar.gz
+wget http://downloads.datastax.com/community/dsc-cassandra-${cVersion}-bin.tar.gz
+tar -xzf dsc-cassandra-${cVersion}-bin.tar.gz
+cHome="${HOME}/dsc-cassandra-${cVersion}"
 
-mkdir dsc-cassandra-2.1.1/logs
+mkdir "${cHome}/logs"
 
 cat /proc/sys/kernel/core_pattern
 
@@ -33,5 +36,5 @@ ulimit -c
 export HEAP_NEWSIZE="100M"
 export MAX_HEAP_SIZE="1G"
 
-nohup sh dsc-cassandra-2.1.1/bin/cassandra -f -p ${HOME}/cassandra.pid > dsc-cassandra-2.1.1/logs/stdout.log 2>&1 &
+nohup sh ${cHome}/bin/cassandra -f -p ${HOME}/cassandra.pid > ${cHome}/logs/stdout.log 2>&1 &
 
