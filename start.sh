@@ -321,7 +321,7 @@ then
     unzip ${WFLY_ZIP}
     cd ..
 else
-    rm target/wildfly-${WFLY_VERSION}/standalone/deployments/*
+    rm -f target/wildfly-${WFLY_VERSION}/standalone/deployments/*
 fi
 
 if [ "$REST_SERVLET_VERSION" != "NOT_FOUND" ]
