@@ -68,7 +68,7 @@ import org.rhq.metrics.netty.collectd.packet.CollectdPacketDecoder;
  * @author Heiko W. Rupp
  */
 public class Main {
-    private static final Logger logger = LoggerFactory.getLogger(Main.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
     private static final String HELP_OPT = "h";
     private static final String HELP_LONGOPT = "help";
@@ -165,7 +165,7 @@ public class Main {
                 stop();
             }
         }));
-        minimumBatchSize = Integer.parseInt(configuration.getProperty("batch.size","5"));
+        minimumBatchSize = Integer.parseInt(configuration.getProperty("batch.size", "5"));
     }
 
     private void run() throws Exception {
@@ -182,7 +182,7 @@ public class Main {
                 }
             });
         ChannelFuture graphiteFuture = serverBootstrap.bind().sync();
-        logger.info("Server listening on TCP " + graphiteFuture.channel().localAddress());
+        LOG.info("Server listening on TCP " + graphiteFuture.channel().localAddress());
         graphiteFuture.channel().closeFuture();
 
         // The syslog UPD socket server
@@ -198,7 +198,7 @@ public class Main {
                 }
             });
         ChannelFuture udpFuture = udpBootstrap.bind().sync();
-        logger.info("Syslogd listening on udp " + udpFuture.channel().localAddress());
+        LOG.info("Syslogd listening on udp " + udpFuture.channel().localAddress());
 
         // Try to set up an upd listener for Ganglia Messages
         setupGangliaUdp(group, forwardingHandler);
@@ -213,7 +213,7 @@ public class Main {
     }
 
     private void stop() {
-        logger.info("Stopping ptrans...");
+        LOG.info("Stopping ptrans...");
         Future<?> groupShutdownFuture = group.shutdownGracefully();
         Future<?> workerGroupShutdownFuture = workerGroup.shutdownGracefully();
         try {
@@ -225,7 +225,7 @@ public class Main {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        logger.info("Stopped");
+        LOG.info("Stopped");
     }
 
     private void setupCollectdUdp(EventLoopGroup group, final ChannelInboundHandlerAdapter forwardingHandler) {
@@ -244,7 +244,7 @@ public class Main {
             });
         try {
             ChannelFuture collectdFuture = collectdBootstrap.bind().sync();
-            logger.info("Collectd listening on udp " + collectdFuture.channel().localAddress());
+            LOG.info("Collectd listening on udp " + collectdFuture.channel().localAddress());
         } catch (InterruptedException e) {
             e.printStackTrace(); // TODO: Customise this generated block
         }
@@ -264,7 +264,7 @@ public class Main {
             });
         try {
             ChannelFuture statsdFuture = statsdBootstrap.bind().sync();
-            logger.info("Statsd listening on udp " + statsdFuture.channel().localAddress());
+            LOG.info("Statsd listening on udp " + statsdFuture.channel().localAddress());
         } catch (InterruptedException e) {
             e.printStackTrace(); // TODO: Customise this generated block
         }
@@ -277,23 +277,18 @@ public class Main {
         try {
 
             NetworkInterface mcIf;
-            if (multicastIfOverride ==null) {
+            if (multicastIfOverride == null) {
                 Inet4Address hostAddr = (Inet4Address) InetAddress.getLocalHost();
                 mcIf = NetworkInterface.getByInetAddress(hostAddr);
-            }
-            else {
+            } else {
                 mcIf = NetworkInterface.getByName(multicastIfOverride);
             }
 
             InetSocketAddress gangliaSocket = new InetSocketAddress(gangliaGroup, gangliaPort);
 
             Bootstrap gangliaBootstrap = new Bootstrap();
-            gangliaBootstrap
-                .group(group)
-                .channel(NioDatagramChannel.class)
-                .option(ChannelOption.SO_REUSEADDR, true)
-                .option(ChannelOption.IP_MULTICAST_IF,mcIf)
-                .localAddress(gangliaSocket)
+            gangliaBootstrap.group(group).channel(NioDatagramChannel.class).option(ChannelOption.SO_REUSEADDR, true)
+                .option(ChannelOption.IP_MULTICAST_IF, mcIf).localAddress(gangliaSocket)
                 .handler(new ChannelInitializer<Channel>() {
                     @Override
                     public void initChannel(Channel socketChannel) throws Exception {
@@ -302,18 +297,17 @@ public class Main {
                         pipeline.addLast(new MetricBatcher("ganglia", minimumBatchSize));
                         pipeline.addLast(fowardingHandler);
                     }
-                })
-            ;
+                });
 
-            logger.info("Bootstrap is " + gangliaBootstrap);
+            LOG.info("Bootstrap is " + gangliaBootstrap);
             ChannelFuture gangliaFuture = gangliaBootstrap.bind().sync();
-            logger.info("Ganglia listening on udp " + gangliaFuture.channel().localAddress());
+            LOG.info("Ganglia listening on udp " + gangliaFuture.channel().localAddress());
             DatagramChannel channel = (DatagramChannel) gangliaFuture.channel();
-            channel.joinGroup(gangliaSocket,mcIf).sync();
-            logger.info("Joined the group");
+            channel.joinGroup(gangliaSocket, mcIf).sync();
+            LOG.info("Joined the group");
             channel.closeFuture();
-        } catch (InterruptedException|SocketException | UnknownHostException e) {
-            logger.warn("Setup of udp multicast for Ganglia failed");
+        } catch (InterruptedException | SocketException | UnknownHostException e) {
+            LOG.warn("Setup of udp multicast for Ganglia failed");
             e.printStackTrace();
         }
     }
@@ -323,7 +317,7 @@ public class Main {
         try (InputStream inputStream = new FileInputStream(configFile)) {
             properties.load(inputStream);
         } catch (IOException e) {
-            logger.warn("Can not load properties from '" + configFile.getAbsolutePath() + "'");
+            LOG.warn("Can not load properties from '" + configFile.getAbsolutePath() + "'");
         }
         return properties;
     }
