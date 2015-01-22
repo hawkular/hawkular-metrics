@@ -310,7 +310,7 @@ then
    WFLY_VERSION="8.2.0.Final"
    prepare_wildfly $WFLY_VERSION
 else
-   WFLY_VERSION=`grep "<version.wildfly>" pom.xml | sed -E 's/^.*y>(8.*l)<.*$/\1/'`
+   WFLY_VERSION=`grep "<version.wildfly>" pom.xml | cut -d">" -f2 | cut -d"<" -f1`
 fi
 
 WFLY_ZIP=${MVN_REPO}/org/wildfly/wildfly-dist/${WFLY_VERSION}/wildfly-dist-${WFLY_VERSION}.zip
