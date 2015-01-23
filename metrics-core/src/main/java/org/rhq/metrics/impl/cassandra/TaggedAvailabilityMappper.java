@@ -63,12 +63,12 @@ public class TaggedAvailabilityMappper implements Function<ResultSet, Map<Metric
     }
 
     private AvailabilityMetric createMetric(Row row) {
-        return new AvailabilityMetric(row.getString(0), new MetricId(row.getString(3),
-            Interval.parse(row.getString(4))));
+        return new AvailabilityMetric(row.getString(0), new MetricId(row.getString(4),
+            Interval.parse(row.getString(5))));
     }
 
     private Availability createAvailability(Row row, AvailabilityMetric metric) {
-        return new Availability(metric, row.getUUID(5), row.getBytes(6));
+        return new Availability(metric, row.getUUID(6), row.getBytes(7));
     }
 
 }

@@ -105,7 +105,8 @@ CREATE TABLE ${keyspace}.metrics_tags_idx (
 
 CREATE TABLE ${keyspace}.tags (
     tenant_id text,
-    tag text,
+    tname text,      // the tag name
+    tvalue text,     // the tag value
     type int,
     metric text,
     interval text,
@@ -113,8 +114,7 @@ CREATE TABLE ${keyspace}.tags (
     n_value double,
     aggregates set<frozen <aggregate_data>>,
     availability blob,
-    tag_desc text,
-    PRIMARY KEY ((tenant_id, tag, type), metric, interval, time)
+    PRIMARY KEY ((tenant_id, tname), tvalue, type, metric, interval, time)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' };
 
 -- #

@@ -251,13 +251,13 @@ public class DataAccessImpl implements DataAccess {
             "SELECT tenant_id, group, c_name, c_value FROM counters WHERE tenant_id = ? AND group = ? AND c_name IN ?");
 
         insertNumericTags = session.prepare(
-            "INSERT INTO tags (tenant_id, tag, type, metric, interval, time, n_value) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?) " +
+            "INSERT INTO tags (tenant_id, tname, tvalue, type, metric, interval, time, n_value) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
             "USING TTL ?");
 
         insertAvailabilityTags = session.prepare(
-            "INSERT INTO tags (tenant_id, tag, type, metric, interval, time, availability) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?) " +
+            "INSERT INTO tags (tenant_id, tname, tvalue, type, metric, interval, time, availability) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
             "USING TTL ?");
 
         updateDataWithTags = session.prepare(
@@ -266,14 +266,14 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
         findNumericDataByTag = session.prepare(
-            "SELECT tenant_id, tag, type, metric, interval, time, n_value " +
+            "SELECT tenant_id, tname, tvalue, type, metric, interval, time, n_value " +
             "FROM tags " +
-            "WHERE tenant_id = ? AND tag = ? AND type = ?");
+            "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
 
         findAvailabilityByTag = session.prepare(
-            "SELECT tenant_id, tag, type, metric, interval, time, availability " +
+            "SELECT tenant_id, tname, tvalue, type, metric, interval, time, availability " +
             "FROM tags " +
-            "WHERE tenant_id = ? AND tag = ? AND type = ?");
+            "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
 
         insertAvailability = session.prepare(
             "UPDATE data " +
@@ -519,21 +519,21 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertNumericTag(String tag, List<NumericData> data) {
+    public ResultSetFuture insertNumericTag(String tag, String tagValue, List<NumericData> data) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (NumericData d : data) {
-            batchStatement.add(insertNumericTags.bind(d.getMetric().getTenantId(), tag, MetricType.NUMERIC.getCode(),
-                d.getMetric().getId().getName(), d.getMetric().getId().getInterval().toString(), d.getTimeUUID(),
-                d.getValue(), d.getTTL()));
+            batchStatement.add(insertNumericTags.bind(d.getMetric().getTenantId(), tag, tagValue,
+                MetricType.NUMERIC.getCode(), d.getMetric().getId().getName(),
+                d.getMetric().getId().getInterval().toString(), d.getTimeUUID(), d.getValue(), d.getTTL()));
         }
         return session.executeAsync(batchStatement);
     }
 
     @Override
-    public ResultSetFuture insertAvailabilityTag(String tag, List<Availability> data) {
+    public ResultSetFuture insertAvailabilityTag(String tag, String tagValue, List<Availability> data) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (Availability a : data) {
-            batchStatement.add(insertAvailabilityTags.bind(a.getMetric().getTenantId(), tag,
+            batchStatement.add(insertAvailabilityTags.bind(a.getMetric().getTenantId(), tag, tagValue,
                 MetricType.AVAILABILITY.getCode(), a.getMetric().getId().getName(),
                 a.getMetric().getId().getInterval().toString(), a.getTimeUUID(), a.getBytes(), a.getTTL()));
         }
@@ -541,24 +541,20 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture updateDataWithTag(MetricData data, Set<String> tags) {
-        Map<String, String> tagMap = new HashMap<>();
-        for (String tag : tags) {
-            tagMap.put(tag, "");
-        }
-        return session.executeAsync(updateDataWithTags.bind(tagMap, data.getMetric().getTenantId(),
+    public ResultSetFuture updateDataWithTag(MetricData data, Map<String, String> tags) {
+        return session.executeAsync(updateDataWithTags.bind(tags, data.getMetric().getTenantId(),
             data.getMetric().getType().getCode(), data.getMetric().getId().getName(),
             data.getMetric().getId().getInterval().toString(), data.getMetric().getDpart(), data.getTimeUUID()));
     }
 
     @Override
-    public ResultSetFuture findNumericDataByTag(String tenantId, String tag) {
-        return session.executeAsync(findNumericDataByTag.bind(tenantId, tag, MetricType.NUMERIC.getCode()));
+    public ResultSetFuture findNumericDataByTag(String tenantId, String tag, String tagValue) {
+        return session.executeAsync(findNumericDataByTag.bind(tenantId, tag, tagValue));
     }
 
     @Override
-    public ResultSetFuture findAvailabilityByTag(String tenantId, String tag) {
-        return session.executeAsync(findAvailabilityByTag.bind(tenantId, tag, MetricType.AVAILABILITY.getCode()));
+    public ResultSetFuture findAvailabilityByTag(String tenantId, String tag, String tagValue) {
+        return session.executeAsync(findAvailabilityByTag.bind(tenantId, tag, tagValue));
     }
 
     @Override

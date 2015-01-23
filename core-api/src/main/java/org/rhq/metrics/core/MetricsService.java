@@ -99,17 +99,21 @@ public interface MetricsService {
     /** Check if a metric with the passed {id} has been stored in the system */
     ListenableFuture<Boolean> idExists(String id);
 
-    ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Set<String> tags, long start, long end);
+    ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Map<String, Optional<String>> tags,
+        long start, long end);
 
-    ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, Set<String> tags, long start,
-        long end);
+    ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric,
+        Map<String, Optional<String>> tags, long start, long end);
 
-    ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Set<String> tags, long timestamp);
-
-    ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, Set<String> tags,
+    ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Map<String, Optional<String>> tags,
         long timestamp);
 
-    ListenableFuture<Map<MetricId, Set<NumericData>>> findNumericDataByTags(String tenantId, Set<String> tags);
+    ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric,
+        Map<String, Optional<String>> tags, long timestamp);
 
-    ListenableFuture<Map<MetricId, Set<Availability>>> findAvailabilityByTags(String tenantId, Set<String> tags);
+    ListenableFuture<Map<MetricId, Set<NumericData>>> findNumericDataByTags(String tenantId,
+        Map<String, Optional<String>> tags);
+
+    ListenableFuture<Map<MetricId, Set<Availability>>> findAvailabilityByTags(String tenantId,
+        Map<String, Optional<String>> tags);
 }

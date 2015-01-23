@@ -16,8 +16,8 @@
  */
 package org.rhq.metrics.restServlet;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -31,7 +31,7 @@ public class DataPointOut {
     private Object value;
 
     @JsonInclude(Include.NON_EMPTY)
-    private Set<String> tags = new HashSet<>();
+    private Map<String, String> tags = new HashMap<>();
 
     public DataPointOut() {
     }
@@ -41,7 +41,7 @@ public class DataPointOut {
         this.value = value;
     }
 
-    public DataPointOut(long timestamp, Object value, Set<String> tags) {
+    public DataPointOut(long timestamp, Object value, Map<String, String> tags) {
         this.timestamp = timestamp;
         this.value = value;
         this.tags = tags;
@@ -63,11 +63,11 @@ public class DataPointOut {
         this.value = value;
     }
 
-    public Set<String> getTags() {
+    public Map<String, String> getTags() {
         return tags;
     }
 
-    public void setTags(Set<String> tags) {
+    public void setTags(Map<String, String> tags) {
         this.tags = tags;
     }
 

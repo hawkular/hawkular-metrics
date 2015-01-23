@@ -18,7 +18,6 @@ package org.rhq.metrics.core;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -51,7 +50,7 @@ public class NumericMetric extends Metric<NumericData> {
         addData(new NumericData(this, timeUUID, value));
     }
 
-    public void addData(UUID timeUUID, double value, Set<Tag> tags) {
+    public void addData(UUID timeUUID, double value, Map<String, Optional<String>> tags) {
         addData(new NumericData(this, timeUUID, value, tags));
     }
 

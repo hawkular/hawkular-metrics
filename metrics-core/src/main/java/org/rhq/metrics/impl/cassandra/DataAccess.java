@@ -81,15 +81,15 @@ public interface DataAccess {
 
     ResultSetFuture findAllNumericMetrics();
 
-    ResultSetFuture insertNumericTag(String tag, List<NumericData> data);
+    ResultSetFuture insertNumericTag(String tag, String tagValue, List<NumericData> data);
 
-    ResultSetFuture insertAvailabilityTag(String tag, List<Availability> data);
+    ResultSetFuture insertAvailabilityTag(String tag, String tagValue, List<Availability> data);
 
-    ResultSetFuture updateDataWithTag(MetricData data, Set<String> tags);
+    ResultSetFuture updateDataWithTag(MetricData data, Map<String, String> tags);
 
-    ResultSetFuture findNumericDataByTag(String tenantId, String tag);
+    ResultSetFuture findNumericDataByTag(String tenantId, String tag, String tagValue);
 
-    ResultSetFuture findAvailabilityByTag(String tenantId, String tag);
+    ResultSetFuture findAvailabilityByTag(String tenantId, String tag, String tagValue);
 
     ResultSetFuture insertData(AvailabilityMetric metric, int ttl);
 

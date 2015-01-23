@@ -16,8 +16,8 @@
  */
 package org.rhq.metrics.restServlet;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.google.common.base.Objects;
 
@@ -28,7 +28,7 @@ public class TagParams {
 
     private String tenantId;
 
-    private Set<String> tags = new HashSet<>();
+    private Map<String, String> tags = new HashMap<>();
 
     private String metric;
 
@@ -50,11 +50,11 @@ public class TagParams {
         this.tenantId = tenantId;
     }
 
-    public Set<String> getTags() {
+    public Map<String, String> getTags() {
         return tags;
     }
 
-    public void setTags(Set<String> tags) {
+    public void setTags(Map<String, String> tags) {
         this.tags = tags;
     }
 

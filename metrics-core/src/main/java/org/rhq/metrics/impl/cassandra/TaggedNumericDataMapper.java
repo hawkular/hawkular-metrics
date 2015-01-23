@@ -63,11 +63,11 @@ public class TaggedNumericDataMapper implements Function<ResultSet, Map<MetricId
     }
 
     private NumericMetric createMetric(Row row) {
-        return new NumericMetric(row.getString(0), new MetricId(row.getString(3), Interval.parse(row.getString(4))));
+        return new NumericMetric(row.getString(0), new MetricId(row.getString(4), Interval.parse(row.getString(5))));
     }
 
     private NumericData createNumericData(Row row, NumericMetric metric) {
-        return new NumericData(metric, row.getUUID(5), row.getDouble(6));
+        return new NumericData(metric, row.getUUID(6), row.getDouble(7));
     }
 
 }

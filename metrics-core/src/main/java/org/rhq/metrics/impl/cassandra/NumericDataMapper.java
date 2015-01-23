@@ -17,11 +17,9 @@
 package org.rhq.metrics.impl.cassandra;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
@@ -31,7 +29,6 @@ import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric;
-import org.rhq.metrics.core.Tag;
 
 /**
  * @author John Sanda
@@ -101,15 +98,8 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
         return new MetricId(row.getString(1), Interval.parse(row.getString(2)));
     }
 
-    private Set<Tag> getTags(Row row) {
+    private Map<String, Optional<String>> getTags(Row row) {
         Map<String, String> map = row.getMap(8, String.class, String.class);
-        Set<Tag> tags;
-        if (map.isEmpty()) {
-            tags = Collections.emptySet();
-        } else {
-            tags = new HashSet<>();
-            tags.addAll(map.keySet().stream().map(tag -> new Tag(tag, map.get(tag))).collect(Collectors.toList()));
-        }
-        return tags;
+        return MetricUtils.getTags(map);
     }
 }
