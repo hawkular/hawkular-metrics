@@ -41,7 +41,7 @@ import org.rhq.metrics.core.Tenant;
  */
 public class DelegatingDataAccess implements DataAccess {
 
-    private DataAccess delegate;
+    private final DataAccess delegate;
 
     public DelegatingDataAccess(DataAccess delegate) {
         this.delegate = delegate;
