@@ -22,7 +22,7 @@
 
   <appender name="CONSOLE" class="org.apache.log4j.ConsoleAppender">
     <param name="Target" value="System.out"/>
-    <param name="Threshold" value="DEBUG"/>
+    <param name="Threshold" value="TRACE"/>
     <layout class="org.apache.log4j.PatternLayout">
       <param name="ConversionPattern" value="%-5p %d{dd-MM HH:mm:ss,SSS} (%F:%M:%L) - %m%n"/>
     </layout>
@@ -31,14 +31,14 @@
   <appender name="FILE" class="org.apache.log4j.RollingFileAppender">
     <param name="File" value="target/dev.log"/>
     <param name="Append" value="false"/>
-    <param name="Threshold" value="DEBUG"/>
+    <param name="Threshold" value="TRACE"/>
     <layout class="org.apache.log4j.PatternLayout">
       <param name="ConversionPattern" value="%-5p %d{dd-MM HH:mm:ss,SSS} (%F:%M:%L) - %m%n"/>
     </layout>
   </appender>
 
   <root>
-    <level value="DEBUG"/>
+    <level value="TRACE"/>
     <appender-ref ref="CONSOLE"/>
     <appender-ref ref="FILE"/>
   </root>
