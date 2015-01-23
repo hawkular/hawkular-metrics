@@ -514,15 +514,6 @@ public class MetricsServiceCassandra implements MetricsService {
         return Futures.transform(deletesFuture, RESULT_SETS_TO_VOID, metricsTasks);
     }
 
-//    @Override
-//    public ListenableFuture<Void> updateTags(Metric metric, Map<String, String> tags, Set<String> deletions) {
-//        ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(
-//            dataAccess.updateTags(metric, tags, deletions),
-//            dataAccess.updateTagsInMetricsIndex(metric, tags, deletions)
-//        );
-//        return Futures.transform(insertsFuture, RESULT_SETS_TO_VOID, metricsTasks);
-//    }
-
     @Override
     public ListenableFuture<Void> addNumericData(List<NumericMetric> metrics) {
         List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());

@@ -134,7 +134,7 @@ class CassandraBackendITest extends RESTTest {
     def response = rhqm.post(path: 'tenants', body: [id: tenantId])
     assertEquals(200, response.status)
 
-    // Let's explicitly create one of the metrics with some meta data and a data retention
+    // Let's explicitly create one of the metrics with some tags and a data retention
     // so that we can verify we get back that info along with the data.
     response = rhqm.post(path: "$tenantId/metrics/numeric", body: [
         name: 'm2',
@@ -193,7 +193,7 @@ class CassandraBackendITest extends RESTTest {
     def response = rhqm.post(path: 'tenants', body: [id: tenantId])
     assertEquals(200, response.status)
 
-    // Let's explicitly create one of the metrics with some meta data and a data retention
+    // Let's explicitly create one of the metrics with some tags and a data retention
     // so that we can verify we get back that info along with the data.
     response = rhqm.post(path: "$tenantId/metrics/availability", body: [
             name: 'm2',
@@ -245,7 +245,7 @@ class CassandraBackendITest extends RESTTest {
   }
 
   @Test
-  void createMetricsAndUpdateMetadata() {
+  void createMetricsAndUpdateTags() {
     // Create a numeric metric
     def response = rhqm.post(path: "tenant-3/metrics/numeric", body: [
         name: 'N1',
@@ -286,8 +286,8 @@ class CassandraBackendITest extends RESTTest {
       assertEquals(400, exception.response.status)
     }
 
-    // Fetch numeric meta data
-    response = rhqm.get(path: "tenant-3/metrics/numeric/N1/meta")
+    // Fetch numeric tags
+    response = rhqm.get(path: "tenant-3/metrics/numeric/N1/tags")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -298,7 +298,7 @@ class CassandraBackendITest extends RESTTest {
         response.data
     )
 
-    response = rhqm.get(path: 'tenant-3/metrics/numeric/N2/meta')
+    response = rhqm.get(path: 'tenant-3/metrics/numeric/N2/tags')
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -311,11 +311,11 @@ class CassandraBackendITest extends RESTTest {
     )
 
     // Verify the response for a non-existent metric
-    response = rhqm.get(path: "tenant-3/metrics/numeric/N-doesNotExist/meta")
+    response = rhqm.get(path: "tenant-3/metrics/numeric/N-doesNotExist/tags")
     assertEquals(204, response.status)
 
-    // Fetch availability metric meta data
-    response = rhqm.get(path: "tenant-3/metrics/availability/A1/meta")
+    // Fetch availability metric tags
+    response = rhqm.get(path: "tenant-3/metrics/availability/A1/tags")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -326,7 +326,7 @@ class CassandraBackendITest extends RESTTest {
         response.data
     )
 
-    response = rhqm.get(path: "tenant-3/metrics/availability/A2/meta")
+    response = rhqm.get(path: "tenant-3/metrics/availability/A2/tags")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -339,16 +339,15 @@ class CassandraBackendITest extends RESTTest {
     )
 
     // Verify the response for a non-existent metric
-    response = rhqm.get(path: "tenant-3/metrics/numeric/A-doesNotExist/meta")
+    response = rhqm.get(path: "tenant-3/metrics/numeric/A-doesNotExist/tags")
     assertEquals(204, response.status)
 
-    // Update the numeric metric meta data
-//    response = rhqm.put(path: "tenant-3/metrics/numeric/N1/meta", body: [a1: 'one', a2: '2', '[delete]': ['b1']])
-    response = rhqm.put(path: "tenant-3/metrics/numeric/N1/meta", body: [a1: 'one', a2: '2', b1: 'B'])
+    // Update the numeric metric tags
+    response = rhqm.put(path: "tenant-3/metrics/numeric/N1/tags", body: [a1: 'one', a2: '2', b1: 'B'])
     assertEquals(200, response.status)
 
-    // Fetch the updated meta data
-    response = rhqm.get(path: "tenant-3/metrics/numeric/N1/meta")
+    // Fetch the updated tags
+    response = rhqm.get(path: "tenant-3/metrics/numeric/N1/tags")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -360,9 +359,9 @@ class CassandraBackendITest extends RESTTest {
     )
 
     // Delete a numeric metric tag
-    response = rhqm.delete(path: 'tenant-3/metrics/numeric/N1/meta/a2:2$b1:B')
+    response = rhqm.delete(path: 'tenant-3/metrics/numeric/N1/tags/a2:2$b1:B')
     assertEquals(200, response.status)
-    response = rhqm.get(path: 'tenant-3/metrics/numeric/N1/meta')
+    response = rhqm.get(path: 'tenant-3/metrics/numeric/N1/tags')
     assertEquals(
         [
           tenantId: 'tenant-3',
@@ -373,11 +372,11 @@ class CassandraBackendITest extends RESTTest {
     )
 
     // Update the availability metric data
-    response = rhqm.put(path: "tenant-3/metrics/availability/A1/meta", body: [a2: 'two', a3: 'THREE'])
+    response = rhqm.put(path: "tenant-3/metrics/availability/A1/tags", body: [a2: 'two', a3: 'THREE'])
     assertEquals(200, response.status)
 
-    // Fetch the updated meta data
-    response = rhqm.get(path: "tenant-3/metrics/availability/A1/meta")
+    // Fetch the updated tags
+    response = rhqm.get(path: "tenant-3/metrics/availability/A1/tags")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -389,10 +388,10 @@ class CassandraBackendITest extends RESTTest {
     )
 
     // delete an availability metric tag
-    response = rhqm.delete(path: 'tenant-3/metrics/availability/A1/meta/a2:two$b2:2')
+    response = rhqm.delete(path: 'tenant-3/metrics/availability/A1/tags/a2:two$b2:2')
     assertEquals(200, response.status)
 
-    response = rhqm.get(path: "tenant-3/metrics/availability/A1/meta")
+    response = rhqm.get(path: "tenant-3/metrics/availability/A1/tags")
     assertEquals(
         [
           tenantId: 'tenant-3',

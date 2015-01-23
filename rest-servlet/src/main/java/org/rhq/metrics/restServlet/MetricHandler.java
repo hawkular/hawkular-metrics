@@ -147,16 +147,16 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/{tenantId}/metrics/numeric/{id}/meta")
+    @Path("/{tenantId}/metrics/numeric/{id}/tags")
     public void getNumericMetricTags(@Suspended AsyncResponse response, @PathParam("tenantId") String tenantId,
         @PathParam("id") String id) {
         ListenableFuture<Metric> future = metricsService.findMetric(tenantId, MetricType.NUMERIC,
             new MetricId(id));
-        Futures.addCallback(future, new GetMetadataCallback(response));
+        Futures.addCallback(future, new GetMetricTagsCallback(response));
     }
 
     @PUT
-    @Path("/{tenantId}/metrics/numeric/{id}/meta")
+    @Path("/{tenantId}/metrics/numeric/{id}/tags")
     public void updateNumericMetricTags(@Suspended final AsyncResponse response,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id, Map<String, String> tags) {
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
@@ -165,7 +165,7 @@ public class MetricHandler {
     }
 
     @DELETE
-    @Path("/{tenantId}/metrics/numeric/{id}/meta/{tags}")
+    @Path("/{tenantId}/metrics/numeric/{id}/tags/{tags}")
     public void deleteNumericMetricTags(@Suspended final AsyncResponse response,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id, @PathParam("tags") String encodedTags) {
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
@@ -174,16 +174,16 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/{tenantId}/metrics/availability/{id}/meta")
+    @Path("/{tenantId}/metrics/availability/{id}/tags")
     public void getAvailabilityMetricTags(@Suspended AsyncResponse response,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id) {
         ListenableFuture<Metric> future = metricsService.findMetric(tenantId, MetricType.AVAILABILITY,
             new MetricId(id));
-        Futures.addCallback(future, new GetMetadataCallback(response));
+        Futures.addCallback(future, new GetMetricTagsCallback(response));
     }
 
     @PUT
-    @Path("/{tenantId}/metrics/availability/{id}/meta")
+    @Path("/{tenantId}/metrics/availability/{id}/tags")
     public void updateAvailabilityMetricTags(@Suspended final AsyncResponse response,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id, Map<String, String> tags) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
@@ -192,7 +192,7 @@ public class MetricHandler {
     }
 
     @DELETE
-    @Path("/{tenantId}/metrics/availability/{id}/meta/{tags}")
+    @Path("/{tenantId}/metrics/availability/{id}/tags/{tags}")
     public void deleteAvailabilityMetricTags(@Suspended final AsyncResponse response,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id, @PathParam("tags") String encodedTags) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
@@ -200,11 +200,11 @@ public class MetricHandler {
         Futures.addCallback(future, new DataInsertedCallback(response, "Failed to delete tags"));
     }
 
-    private class GetMetadataCallback implements FutureCallback<Metric> {
+    private class GetMetricTagsCallback implements FutureCallback<Metric> {
 
         AsyncResponse response;
 
-        public GetMetadataCallback(AsyncResponse response) {
+        public GetMetricTagsCallback(AsyncResponse response) {
             this.response = response;
         }
 
@@ -221,7 +221,7 @@ public class MetricHandler {
 
         @Override
         public void onFailure(Throwable t) {
-            Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to retrieve meta data due to " +
+            Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to retrieve tags due to " +
                 "an unexpected error: " + Throwables.getRootCause(t).getMessage());
             response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors).type(APPLICATION_JSON_TYPE)
                 .build());
