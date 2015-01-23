@@ -16,12 +16,15 @@
  */
 package org.rhq.metrics.clients.ptrans.backend;
 
+import static io.netty.channel.ChannelHandler.Sharable;
+import static io.netty.handler.codec.http.HttpMethod.POST;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 import java.net.ConnectException;
 import java.net.InetAddress;
+import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.List;
-import java.util.Properties;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -40,12 +43,10 @@ import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestEncoder;
 import io.netty.handler.codec.http.HttpResponseDecoder;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
 
@@ -55,27 +56,22 @@ import org.slf4j.LoggerFactory;
 import org.rhq.metrics.client.common.Batcher;
 import org.rhq.metrics.client.common.BoundMetricFifo;
 import org.rhq.metrics.client.common.SingleMetric;
-
-import static io.netty.channel.ChannelHandler.Sharable;
+import org.rhq.metrics.clients.ptrans.Configuration;
 
 /**
  * Handler that takes incoming syslog metric messages (which are already parsed)
  * and forwards them to rhq-metrics rest servlet.
+ *
  * @author Heiko W. Rupp
  */
 @Sharable
-@SuppressWarnings("ThrowableResultOfMethodCallIgnored")
 public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
+    private static final Logger LOG = LoggerFactory.getLogger(RestForwardingHandler.class);
 
-    private static final String RHQ_METRICS_PREFIX = "/rhq-metrics";
-    private static final String METRICS_PREFIX = "/metrics";
-    private static final String DEFAULT_REST_PORT = "8080";
-    private String restHost = "localhost";
-    private int restPort = 8080;
-    private String restPrefix = RHQ_METRICS_PREFIX + METRICS_PREFIX;
-
-    private static final int CLOSE_AFTER_REQUESTS = 200;
-    private long numberOfMetrics = 0;
+    private final String restHost;
+    private final int restPort;
+    private final String restPrefix;
+    private final int restCloseAfterRequests;
 
     BoundMetricFifo fifo;
     AttributeKey<List<SingleMetric>> listKey = AttributeKey.valueOf("listToSend");
@@ -85,37 +81,37 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
 
     private String localHostName;
 
-    private static final Logger logger = LoggerFactory.getLogger(RestForwardingHandler.class);
-    private int closeAfterRequests = CLOSE_AFTER_REQUESTS;
-    private int spoolSize;
     boolean isConnecting = false;
 
     final Object connectingMutex;
+    private long numberOfMetrics = 0;
 
-    public RestForwardingHandler(Properties configuration) {
+    public RestForwardingHandler(Configuration configuration) {
+        LOG.debug("RestForwardingHandler init");
+
+        URI restUrl = configuration.getRestUrl();
+        restHost = restUrl.getHost();
+        restPort = restUrl.getPort();
+        restPrefix = restUrl.getPath();
+
+        restCloseAfterRequests = configuration.getRestCloseAfterRequests();
+
         connectingMutex = this;
-        logger.debug("RestForwardingHandler init");
-        loadRestEndpointInfoFromProperties(configuration);
-
-        fifo = new BoundMetricFifo(10, spoolSize);
+        fifo = new BoundMetricFifo(10, configuration.getSpoolSize());
         try {
-            localHostName  = InetAddress.getLocalHost().getCanonicalHostName();
+            localHostName = InetAddress.getLocalHost().getCanonicalHostName();
         } catch (UnknownHostException e) {
-            logger.error(e.getLocalizedMessage());
-            localHostName="- unknown host -";
+            LOG.error(e.getLocalizedMessage());
+            localHostName = "- unknown host -";
         }
     }
-
-
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) throws Exception {
 
         @SuppressWarnings("unchecked")
         final List<SingleMetric> in = (List<SingleMetric>) msg;
-        if (logger.isTraceEnabled()) {
-            logger.trace("Received some metrics :[" + in + "]");
-        }
+        LOG.trace("Received some metrics: {}", in);
 
         fifo.addAll(in);
 
@@ -125,11 +121,10 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
                 return;
         }
 
-        if (senderChannel!=null ) {
+        if (senderChannel != null) {
             sendToChannel(senderChannel);
             return;
         }
-
 
         ChannelFuture cf = connectRestServer(ctx.channel().eventLoop().parent());
 
@@ -137,15 +132,14 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
                 synchronized (connectingMutex) {
-                    isConnecting=false;
+                    isConnecting = false;
                 }
                 if (!future.isSuccess()) {
                     Throwable cause = future.cause();
-                    if (cause instanceof ConnectException ) {
-                        logger.warn("Sending failed: " + cause.getLocalizedMessage());
-                    }
-                    else {
-                        logger.warn("Something went wrong: " + cause);
+                    if (cause instanceof ConnectException) {
+                        LOG.warn("Sending failed: " + cause.getLocalizedMessage());
+                    } else {
+                        LOG.warn("Something went wrong: " + cause);
                     }
                 } else {
                     //   the remote is up.
@@ -157,15 +151,13 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
     }
 
     private void sendToChannel(final Channel ch) {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Sending to channel " +ch );
-        }
+        LOG.trace("Sending to channel {}", ch);
+
         final List<SingleMetric> metricsToSend = fifo.getList();
 
         String payload = Batcher.metricListToJson(metricsToSend);
         ByteBuf content = Unpooled.copiedBuffer(payload, CharsetUtil.UTF_8);
-        FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST,
-            restPrefix, content);
+        FullHttpRequest request = new DefaultFullHttpRequest(HTTP_1_1, POST, restPrefix, content);
         HttpHeaders.setContentLength(request, content.readableBytes());
         HttpHeaders.setKeepAlive(request, true);
         HttpHeaders.setHeader(request, HttpHeaders.Names.CONTENT_TYPE, "application/json;charset=utf-8");
@@ -179,16 +171,16 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
                     // and remove from connection pool if you have one etc...
                     ch.close();
                     senderChannel = null;
-                    logger.error("Sending to the rhq-metrics server failed: " + future.cause());
+                    LOG.error("Sending to the rhq-metrics server failed: " + future.cause());
 
                 } else {
                     sendCounter++;
-                    if (sendCounter >= closeAfterRequests) {
-                        SingleMetric perfMetric = new SingleMetric(localHostName + ".ptrans.counter",
-                                System.currentTimeMillis(), (double) (numberOfMetrics + metricsToSend.size()));
+                    if (sendCounter >= restCloseAfterRequests) {
+                        SingleMetric perfMetric = new SingleMetric(localHostName + ".ptrans.counter", System
+                            .currentTimeMillis(), (double) (numberOfMetrics + metricsToSend.size()));
                         fifo.offer(perfMetric);
-                        logger.info("Doing a periodic close after " + closeAfterRequests + " requests (" +
-                            numberOfMetrics + ") items");
+                        LOG.trace("Doing a periodic close after {} requests and {} items", restCloseAfterRequests,
+                            numberOfMetrics);
                         numberOfMetrics = 0;
                         ch.close();
                         senderChannel = null;
@@ -204,17 +196,14 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
         ctx.flush();
     }
 
-    ChannelFuture connectRestServer(EventLoopGroup group) throws Exception{
+    ChannelFuture connectRestServer(EventLoopGroup group) throws Exception {
 
         synchronized (connectingMutex) {
             isConnecting = true;
         }
 
         Bootstrap clientBootstrap = new Bootstrap();
-        clientBootstrap
-            .group(group)
-            .channel(NioSocketChannel.class)
-            .remoteAddress(restHost, restPort)
+        clientBootstrap.group(group).channel(NioSocketChannel.class).remoteAddress(restHost, restPort)
             .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 protected void initChannel(SocketChannel ch) throws Exception {
@@ -226,22 +215,9 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
                     pipeline.addLast(new HttpObjectAggregator(1024));
                     pipeline.addLast(new HttpStatusWatcher());
                 }
-            })
-        ;
+            });
 
         return clientBootstrap.connect();
-    }
-
-    private void loadRestEndpointInfoFromProperties(Properties configuration) {
-
-        restHost = configuration.getProperty("rest.host", "localhost");
-        restPort = Integer.parseInt(configuration.getProperty("rest.port", DEFAULT_REST_PORT));
-        restPrefix = configuration.getProperty("rest.prefix", RHQ_METRICS_PREFIX);
-        restPrefix += METRICS_PREFIX;
-        closeAfterRequests = Integer.parseInt(
-            configuration.getProperty("rest.close-after", String.valueOf(CLOSE_AFTER_REQUESTS)));
-
-        spoolSize = Integer.parseInt(configuration.getProperty("spool.size", "1000"));
     }
 
     /**
@@ -251,7 +227,6 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
      * @author Heiko W. Rupp
     */
     class HttpStatusWatcher extends ChannelInboundHandlerAdapter {
-
         private final Logger logger = LoggerFactory.getLogger(HttpStatusWatcher.class);
 
         @Override
@@ -260,26 +235,21 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
                 FullHttpResponse response = (FullHttpResponse) msg;
                 HttpResponseStatus status = response.getStatus();
 
-                if (status.equals(HttpResponseStatus.NO_CONTENT) ||
-                    status.equals(HttpResponseStatus.OK)) {
+                if (status.equals(HttpResponseStatus.NO_CONTENT) || status.equals(HttpResponseStatus.OK)) {
 
                     List<SingleMetric> metricsSent = ctx.channel().attr(listKey).getAndRemove();
 
-                    if (metricsSent!=null) {
+                    if (metricsSent != null) {
                         // only clear the ones we sent - new ones may have arrived between batching and now
                         fifo.cleanout(metricsSent);
                         numberOfMetrics += metricsSent.size();
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("sent " + metricsSent.size() + " items");
-                        }
+                        logger.debug("sent {} items", metricsSent.size());
                     }
-                }
-                else {
+                } else {
                     logger.warn("Send to rest-server failed:" + status);
                 }
-            }
-            else {
-                System.err.println("msg" + msg);
+            } else {
+                logger.error("msg " + msg);
             }
         }
     }
