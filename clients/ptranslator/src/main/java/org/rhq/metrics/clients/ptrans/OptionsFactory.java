@@ -16,6 +16,7 @@
  */
 package org.rhq.metrics.clients.ptrans;
 
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 /**
@@ -28,6 +29,8 @@ class OptionsFactory {
     static final String HELP_LONGOPT = "help";
     static final String CONFIG_FILE_OPT = "c";
     static final String CONFIG_FILE_LONGOPT = "config-file";
+    static final String PID_FILE_OPT = "p";
+    static final String PID_FILE_LONGOPT = "pid-file";
 
     /**
      * @param withRequiredFlags true if required options should be marked as such
@@ -36,8 +39,11 @@ class OptionsFactory {
     Options getCommandOptions(boolean withRequiredFlags) {
         Options options = new Options();
         options.addOption(HELP_OPT, HELP_LONGOPT, false, "Print usage and exit.");
-        options.addOption(CONFIG_FILE_OPT, CONFIG_FILE_LONGOPT, true, "Set the path to the configuration file.");
-        options.getOption(CONFIG_FILE_OPT).setRequired(withRequiredFlags);
+        Option configFileOption = new Option(CONFIG_FILE_OPT, CONFIG_FILE_LONGOPT, true,
+            "Set the path to the configuration file.");
+        configFileOption.setRequired(withRequiredFlags);
+        options.addOption(configFileOption);
+        options.addOption(PID_FILE_OPT, PID_FILE_LONGOPT, true, "Set the path to the PID file.");
         return options;
     }
 }
