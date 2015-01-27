@@ -30,11 +30,13 @@ public class SingleMetricTest {
 
     @Parameters(name = "toJson({0}, {1}, {2}) = {3}")
     public static Iterable<Object[]> testToJsonData() {
-        return Arrays.asList(new Object[][]{
-                {"a", 5, 3d, "{\"id\":\"a\",\"timestamp\":5,\"value\":3.0}"},
-                {"b", 4, 2.15456d, "{\"id\":\"b\",\"timestamp\":4,\"value\":2.15456}"},
-                {"c", 9, 7.2541d, "{\"id\":\"c\",\"timestamp\":9,\"value\":7.2541}"}
-        });
+        return Arrays.asList(
+                new Object[][]{
+                        {"a", 5, 3d, "{\"name\":\"a\",\"data\":[{\"timestamp\":5,\"value\":3.0}]}"},
+                        {"b", 4, 2.15456d, "{\"name\":\"b\",\"data\":[{\"timestamp\":4,\"value\":2.15456}]}"},
+                        {"c", 9, 7.2541d, "{\"name\":\"c\",\"data\":[{\"timestamp\":9,\"value\":7.2541}]}"}
+                }
+        );
     }
 
     private final String source;
@@ -58,8 +60,8 @@ public class SingleMetricTest {
     @Test
     public void testEquals() throws Exception {
 
-        SingleMetric metric1 = new SingleMetric("bla",1,45d);
-        SingleMetric metric2 = new SingleMetric("bla",1,99d);
+        SingleMetric metric1 = new SingleMetric("bla", 1, 45d);
+        SingleMetric metric2 = new SingleMetric("bla", 1, 99d);
 
         assert metric1.equals(metric2);
 
@@ -68,8 +70,8 @@ public class SingleMetricTest {
     @Test
     public void testNotEquals() throws Exception {
 
-        SingleMetric metric1 = new SingleMetric("foo",1,42d);
-        SingleMetric metric2 = new SingleMetric("bla",1,42d);
+        SingleMetric metric1 = new SingleMetric("foo", 1, 42d);
+        SingleMetric metric2 = new SingleMetric("bla", 1, 42d);
 
         assert !metric1.equals(metric2);
 

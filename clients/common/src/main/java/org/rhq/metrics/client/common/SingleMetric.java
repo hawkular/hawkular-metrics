@@ -29,7 +29,7 @@ public class SingleMetric {
     private final MetricType metricType;
 
     public SingleMetric(String source, long timestamp, Double value) {
-        if (source==null) {
+        if (source == null) {
             throw new IllegalArgumentException("Source must not be null");
         }
         this.timestamp = timestamp;
@@ -39,7 +39,7 @@ public class SingleMetric {
     }
 
     public SingleMetric(String source, long timestamp, Double value, MetricType metricType) {
-        if (source==null) {
+        if (source == null) {
             throw new IllegalArgumentException("Source must not be null");
         }
         this.source = source;
@@ -67,16 +67,16 @@ public class SingleMetric {
     @Override
     public String toString() {
         return "SingleMetric{" +
-            "type=" + metricType +
-            ", time=" + timestamp +
-            ", src='" + source + '\'' +
-            ", val=" + value +
-            '}';
+               "type=" + metricType +
+               ", time=" + timestamp +
+               ", src='" + source + '\'' +
+               ", val=" + value +
+               '}';
     }
 
     public String toJson() {
-        return "{\"id\":\"" + source + "\"," + "\"timestamp\":" + String.valueOf(timestamp) + "," + "\"value\":"
-            + String.valueOf(value) + "}";
+        return "{\"name\":\"" + source + "\",\"data\":[{" + "\"timestamp\":" + String.valueOf(timestamp) + "," +
+               "\"value\":" + String.valueOf(value) + "}]}";
     }
 
     @Override
