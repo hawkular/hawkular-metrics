@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.rhq.metrics.websocket;
+package org.rhq.metrics.api.undertow;
 
 import java.util.Map;
 

@@ -24,15 +24,13 @@
     <groupId>org.rhq.metrics</groupId>
     <version>0.2.7-SNAPSHOT</version>
   </parent>
-  <artifactId>websocket</artifactId>
+  <artifactId>rest-undertow</artifactId>
   <packaging>war</packaging>
 
-  <name>RHQ Metrics Websocket API</name>
-  <description>The Websocket API of RHQ-Metrics</description>
+  <name>RHQ Metrics REST API via Undertow</name>
+  <description>RHQ Metrics REST API via Undertow</description>
 
   <properties>
-    <swagger-annotations.version>1.2.3</swagger-annotations.version>
-    <rest-docs-generator.version>4.11.0</rest-docs-generator.version>
   </properties>
 
   <dependencyManagement>
@@ -72,31 +70,9 @@
     </dependency>
 
     <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-all</artifactId>
-      <version>4.0.25.Final</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-jaxrs</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>jaxrs-api</artifactId>
-    </dependency>
-
-    <dependency>
       <groupId>io.undertow</groupId>
       <artifactId>undertow-core</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>com.wordnik</groupId>
-      <artifactId>swagger-annotations_2.9.1</artifactId>
-      <version>${swagger-annotations.version}</version>
-      <scope>provided</scope>
+      <version>1.2.0.Beta8</version>
     </dependency>
 
   </dependencies>
@@ -145,7 +121,7 @@
             <!-- argument>-Dssl</argument-->
             <argument>-classpath</argument>
             <classpath/>
-            <argument>org.rhq.metrics.websocket.WebSocketServer</argument>
+            <argument>org.rhq.metrics.api.undertow.MainServer</argument>
           </arguments>
         </configuration>
       </plugin>
