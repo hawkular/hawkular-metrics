@@ -61,9 +61,9 @@ public class MainITest {
     private File ptransConfFile;
     private File ptransOut;
     private File ptransErr;
-    private File pTransPidFile;
-    private ProcessBuilder pTransProcessBuilder;
-    private Process pTransProcess;
+    private File ptransPidFile;
+    private ProcessBuilder ptransProcessBuilder;
+    private Process ptransProcess;
 
     @BeforeClass
     public static void beforeClass() {
@@ -84,20 +84,20 @@ public class MainITest {
         ptransOut = temporaryFolder.newFile();
         ptransErr = temporaryFolder.newFile();
 
-        pTransPidFile = temporaryFolder.newFile();
+        ptransPidFile = temporaryFolder.newFile();
 
-        pTransProcessBuilder = new ProcessBuilder();
-        pTransProcessBuilder.directory(temporaryFolder.getRoot());
-        pTransProcessBuilder.redirectOutput(ptransOut);
-        pTransProcessBuilder.redirectError(ptransErr);
+        ptransProcessBuilder = new ProcessBuilder();
+        ptransProcessBuilder.directory(temporaryFolder.getRoot());
+        ptransProcessBuilder.redirectOutput(ptransOut);
+        ptransProcessBuilder.redirectError(ptransErr);
 
-        pTransProcessBuilder.command(JAVA, "-jar", PTRANS_ALL);
+        ptransProcessBuilder.command(JAVA, "-jar", PTRANS_ALL);
     }
 
     @Test
     public void shouldExitWithErrorIfConfigPathIsMissing() throws Exception {
-        pTransProcess = pTransProcessBuilder.start();
-        int returnCode = pTransProcess.waitFor();
+        ptransProcess = ptransProcessBuilder.start();
+        int returnCode = ptransProcess.waitFor();
         assertThat(returnCode).isNotEqualTo(0);
 
         assertThat(ptransErr).isFile().canRead().hasContent("Missing required option: c");
@@ -105,10 +105,10 @@ public class MainITest {
 
     @Test
     public void shouldExitWithHelpIfOptionIsPresent() throws Exception {
-        pTransProcessBuilder.command().add("-h");
+        ptransProcessBuilder.command().add("-h");
 
-        pTransProcess = pTransProcessBuilder.start();
-        int returnCode = pTransProcess.waitFor();
+        ptransProcess = ptransProcessBuilder.start();
+        int returnCode = ptransProcess.waitFor();
         assertThat(returnCode).isEqualTo(0);
 
         assertThat(ptransErr).isFile().canRead().hasContent("");
@@ -116,32 +116,32 @@ public class MainITest {
 
     @Test
     public void shouldWritePidToPidFile() throws Exception {
-        pTransProcessBuilder.command().addAll(
+        ptransProcessBuilder.command().addAll(
                 Lists.newArrayList(
                         "-c", ptransConfFile.getAbsolutePath(),
-                        "-p", pTransPidFile.getAbsolutePath()
+                        "-p", ptransPidFile.getAbsolutePath()
                 )
         );
 
-        pTransProcess = pTransProcessBuilder.start();
-        boolean isRunning = pTransProcess.isAlive();
+        ptransProcess = ptransProcessBuilder.start();
+        boolean isRunning = ptransProcess.isAlive();
         for (int i = 0; !isRunning && i < 5; i++) {
-            isRunning = !pTransProcess.waitFor(1, SECONDS);
+            isRunning = !ptransProcess.waitFor(1, SECONDS);
         }
         assertThat(isRunning).isTrue();
 
-        boolean pidFileWritten = pTransPidFile.canRead() && pTransPidFile.length() > 0;
+        boolean pidFileWritten = ptransPidFile.canRead() && ptransPidFile.length() > 0;
         for (int i = 0; !pidFileWritten && i < 5; i++) {
             Thread.sleep(MILLISECONDS.convert(1, SECONDS));
-            pidFileWritten = pTransPidFile.canRead() && pTransPidFile.length() > 0;
+            pidFileWritten = ptransPidFile.canRead() && ptransPidFile.length() > 0;
         }
-        assertThat(pTransPidFile).isFile().canRead().is(writeLocked());
+        assertThat(ptransPidFile).isFile().canRead().is(writeLocked());
 
-        if (pTransProcess.getClass().getName().equals("java.lang.UNIXProcess")) {
-            Field pidField = pTransProcess.getClass().getDeclaredField("pid");
+        if (ptransProcess.getClass().getName().equals("java.lang.UNIXProcess")) {
+            Field pidField = ptransProcess.getClass().getDeclaredField("pid");
             pidField.setAccessible(true);
-            int pid = pidField.getInt(pTransProcess);
-            assertThat(pTransPidFile).hasContent(String.valueOf(pid));
+            int pid = pidField.getInt(ptransProcess);
+            assertThat(ptransPidFile).hasContent(String.valueOf(pid));
         }
     }
 
@@ -149,24 +149,24 @@ public class MainITest {
     public void shouldExitWithErrorIfPidFileIsLocked() throws Exception {
         shouldWritePidToPidFile();
 
-        pTransProcessBuilder.redirectOutput(temporaryFolder.newFile());
+        ptransProcessBuilder.redirectOutput(temporaryFolder.newFile());
         File ptransErrBis = temporaryFolder.newFile();
-        pTransProcessBuilder.redirectError(ptransErrBis);
-        Process pTransProcessBis = pTransProcessBuilder.start();
-        int returnCode = pTransProcessBis.waitFor();
+        ptransProcessBuilder.redirectError(ptransErrBis);
+        Process ptransProcessBis = ptransProcessBuilder.start();
+        int returnCode = ptransProcessBis.waitFor();
         assertThat(returnCode).isNotEqualTo(0);
 
         String expectedMessage = String.format(
                 "Unable to lock PID file %s, another instance is probably running.",
-                pTransPidFile.getAbsolutePath()
+                ptransPidFile.getAbsolutePath()
         );
         assertThat(ptransErrBis).isFile().canRead().hasContent(expectedMessage);
     }
 
     @After
     public void after() {
-        if (pTransProcess != null && pTransProcess.isAlive()) {
-            pTransProcess.destroy();
+        if (ptransProcess != null && ptransProcess.isAlive()) {
+            ptransProcess.destroy();
         }
     }
 
@@ -194,14 +194,14 @@ public class MainITest {
         protected void failed(Throwable e, Description description) {
             StringWriter stringWriter = new StringWriter();
             PrintWriter printWriter = new PrintWriter(stringWriter);
-            printWriter.printf("%s, pTrans output%n", description.getMethodName());
+            printWriter.printf("%s, ptrans output%n", description.getMethodName());
             printWriter.println(SEPARATOR);
             try {
                 Files.readAllLines(ptransOut.toPath()).forEach(printWriter::println);
             } catch (IOException ignored) {
             }
             printWriter.println(SEPARATOR);
-            printWriter.printf("%s, pTrans err%n", description.getMethodName());
+            printWriter.printf("%s, ptrans err%n", description.getMethodName());
             printWriter.println(SEPARATOR);
             try {
                 Files.readAllLines(ptransErr.toPath()).forEach(printWriter::println);
