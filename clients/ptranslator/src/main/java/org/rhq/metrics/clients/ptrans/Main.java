@@ -118,11 +118,14 @@ public class Main {
     }
 
     private void stop() {
-        if (ptrans != null) {
-            ptrans.stop();
-        }
-        if (pidFile != null) {
-            pidFile.release();
+        try {
+            if (ptrans != null) {
+                ptrans.stop();
+            }
+        } finally {
+            if (pidFile != null) {
+                pidFile.release();
+            }
         }
     }
 
