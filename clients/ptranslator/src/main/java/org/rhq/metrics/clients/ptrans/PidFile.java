@@ -44,8 +44,12 @@ class PidFile {
     }
 
     /**
-     * Try to acquire a write lock on the PID file and, on success, write the {@code pid} to it. On failure to open the
-     * file, acquire the lock or write to the file, an error message will be printed to {@link java.lang.System#err}.
+     * Try to acquire a write lock on the PID file and, on success, write the {@code pid} to it and mark it for deletion
+     * on exit.
+     * <p>
+     * On failure to open the file, acquire the lock or write to the file, an error message will be printed to {@link
+     * java.lang.System#err}.
+     * <p>
      * The caller must call {@link #release()} before the JVM stops, regardless of the the result of this method.
      *
      * @param pid the process id to write
@@ -83,6 +87,7 @@ class PidFile {
             System.err.printf("Unable to write to PID file %s.%n", file.getAbsolutePath());
             return false;
         }
+        file.deleteOnExit();
         return true;
     }
 
