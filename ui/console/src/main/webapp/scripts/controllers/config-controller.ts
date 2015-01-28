@@ -42,9 +42,9 @@ module Controllers {
      * @param $log
      */
     export class ConfigController {
-        public static  $inject = ['$scope', '$modal', '$log' ];
+        public static  $inject = ['$scope', '$modal', '$log', 'Auth' ];
 
-        constructor(private $scope:ng.IScope, private $modal, private $log:ng.ILogService) {
+        constructor(private $scope:ng.IScope, private $modal, private $log:ng.ILogService, private Auth) {
             $scope.vm = this;
         }
 
@@ -60,6 +60,10 @@ module Controllers {
             }, () => {
                 //$log.info('Config Modal dismissed at: ' + new Date());
             });
+        }
+
+        logout():void {
+            this.Auth.logout();
         }
     }
 

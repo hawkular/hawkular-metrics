@@ -21,14 +21,15 @@ To get a first impression you can also run the quickstart via
 
   ./start.sh
 
-in the root directory. This will build and start RHQ-metrics with the in-memory backend. After starting you can
- navigate to http://localhost:8080/[http://localhost:8080/] to a UI Dashboard that displays a list of metrics and the ability to graph multiple charts.
- [NOTE: it will initially be empty if you don't have anything in your database.]
+in the root directory. This will build and start RHQ-metrics with the in-memory backend. After it starts, you can
+navigate to http://localhost:8080/[http://localhost:8080/] and create an user account, so that you can access the
+UI Dashboard that displays a list of metrics and the ability to graph multiple charts.
+[NOTE: it will initially be empty if you don't have anything in your database.]
 
 image::img/rhq-metrics-2.png[RHQ-Metrics Console]
 
-Or, if you want to just play around with creating your own metric data and visually see the results in graphs then the Explorer web application is what you want.
-  Available at: http://localhost:8080/explorer/[http://localhost:8080/explorer]
+Or, if you want to just play around with creating your own metric data and visually see the results in graphs then the
+Explorer web application is what you want. Available at: http://localhost:8080/explorer/[http://localhost:8080/explorer]
 
 https://vimeo.com/101576357[RHQ Metrics Explorer UI Video]   _Length - 8:33_
 
@@ -37,12 +38,15 @@ By modifying the start parameter in the script you can also use the (already run
 
 == Build Instructions
 
-This project has a dependency on Cassandra 2.1.1 or later. A running Cassandra cluster, which can be a single node, is required
-for unit and integration tests.
+This project has a dependency on Cassandra 2.1.1 or later. A running Cassandra cluster, which can be a single node, is
+required for unit and integration tests.
 
 TIP: If you only want to build the sources without a running C* cluster, you can run `mvn install -DskipTests`.
 Building without C* also means that no schema updates are applied.
 
+This project also requires a Keycloak server for authentication and authorization. It can be configured by executing
+the `.travis.install.keycloak.sh` script. For more information about the Keycloak setup on this project, refer to the
+README.Keycloak.adoc file.
 
 == Setting up Cassandra
 

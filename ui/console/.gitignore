@@ -10,3 +10,4 @@ logs
 *.ipr
 *.iws
 *.iml
+src/main/webapp/keycloak*.json

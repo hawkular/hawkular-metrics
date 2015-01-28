@@ -1,0 +1,81 @@
+= rhq-metrics - Keycloak setup
+
+== Quick start
+
+The quick start script `setup.sh` prepares an environment with the appropriate Keycloak setup for a multi-tenant
+scenario. It generates the required certificates and keys, so that a secure local environment is configured.
+
+== Manual setup
+
+If you already have a Keycloak server or want to deploy it separately from this project, there are a few things you
+need to do:
+
+* On the Keycloak server, create one realm per tenant that will be able to access the server
+* Generate (or download from the Keycloak server) the `keycloak.json` files used on the modules
+* Deploy this project on an application server with the Keycloak adapter installed
+
+=== Creating the realm
+
+In order to create a realm in Keycloak, the easiest route is to take the provided template file, located at the
+`realms` directory, for instance, the `acme-other-affairs-realm.template.json`.
+
+Copy it somewhere else, and change the following:
+
+* `users/credentials/value` - Required. A password, to be used on the agents.
+* `privateKey` - Optional. Can be generated via `openssl` or removed.
+* `publicKey` - The public counter part for the `privateKey`.
+* `applications[metrics-console]/secret` - Optional. A secret key, to be used by the Web UI.
+* `applications[metrics-api]/secret` - Optional. A secret key, to be used by the REST API.
+
+The values marked as optional can be removed from the JSON file. On this case, Keycloak will generated appropriate
+values upon importing of the realm. Note, however, that you will need to login to the Keycloak server and obtain those
+values, as some are needed on other configuration files.
+
+=== keycloak.json files
+
+When the REST API or the Metrics Console communicates with the Keycloak server, they need to read a `keycloak.json`
+configuration file, in order to know where the server is located and what's the public key for the realm, among other
+options.
+
+For this project, there's one `keycloak.json` file per module per tenant:
+
+* ui/console/src/main/webapp/keycloak-${REALM}.json
+* rest-servlet/src/main/resources/keycloak-${REALM}.json (see "Advanced options" below for alternative places)
+
+Those files are also generated automatically by the `setup.sh` script but those can be manually generated as well. To
+do so, use the following template files:
+
+* realms/rest-${REALM}.template.json
+* realms/metrics-console-${REALM}.template.json
+
+The following properties needs to be changed:
+
+* `realm` - Required. It the name of the realm/tenant.
+* `realm-public-key` - Required. The public key for this realm. You can obtain it from the Keycloak's UI.
+* `auth-server-url` - Required. For the Metrics Console, it needs to be a public address of the Keycloak server.
+* `credentials/secret` - Required for the REST API. The secret key for the application.
+
+This file can also be downloaded via the Keycloak web interface, but it's advisable to use the templates, as there are
+some extra options being used.
+
+=== Deploying the project
+
+Once the `keycloak.json` files are customized and placed on the appropriate directories, the WAR file needs to be
+generated. It can be accomplished by building the project (see the main README.adoc for instructions). The WAR file
+can be deployed on a WildFly instance which is configured with a Keycloak Adapter. Check the Keycloak documentation
+for instructions on how to set it up.
+
+The Keycloak Adapter is the component responsible for the authentication and authorization of the requests before they
+reach the REST API itself.
+
+=== Advanced options
+
+In some environments, it might make sense to have a dynamic number of realms/tenants. On this situation, it's not
+feasible to build a new WAR file and deploy it for each new tenant (or for each removed tenant). As such, the REST API
+can load the `keycloak.json` file related to the realm from an alternative place, specified by the system property
+`rhq.keycloak.config.location`. The value of this property should be either the full path to the directory containing
+the configuration files. The default value is to load the configuration files from the root of the classpath.
+
+For the Metrics Console, the `keycloak.json` files need to be available to the client (browser). Because of that, to
+achieve the same target, a production environment would need to have rewrite rules to serve the files from a place
+outside of the WAR file.

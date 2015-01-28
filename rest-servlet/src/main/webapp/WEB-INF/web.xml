@@ -31,4 +31,27 @@
     </param-value>
   </context-param>
 
+  <context-param>
+    <description>The strategy in resolving the realm for a request</description>
+    <param-name>keycloak.config.resolver</param-name>
+    <param-value>org.rhq.metrics.keycloak.PathBasedKeycloakConfigResolver</param-value>
+  </context-param>
+
+  <security-constraint>
+    <web-resource-collection>
+      <web-resource-name>REST endpoints</web-resource-name>
+      <url-pattern>/*</url-pattern>
+    </web-resource-collection>
+    <auth-constraint>
+      <role-name>*</role-name>
+    </auth-constraint>
+  </security-constraint>
+
+  <login-config>
+    <auth-method>KEYCLOAK</auth-method>
+    <realm-name>not-important</realm-name>
+  </login-config>
+  <security-role>
+    <role-name>user</role-name>
+  </security-role>
 </web-app>

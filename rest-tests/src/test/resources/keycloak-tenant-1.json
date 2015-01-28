@@ -1,0 +1,12 @@
+{
+  "realm": "tenant-1",
+  "realm-public-key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIymPz4orxi/Y3PPEPEUNeG+9Pwmf36pRogMuwJNYAa1CHU3jksbvrxN9Z0MEBUcnQnChoUhF9JYaj3pUR7ubpoG/XcqNmkzh+TEr2h+DGAX6cnJYwWsNEE6+x6fmZjF3qoD7t5vymwk6Us8pbGikn87+LQB4R+Vk4EEL4tM7mxwIDAQAB",
+  "auth-server-url": "http://localhost:55977/auth",
+  "ssl-required": "external",
+  "resource": "metrics-api",
+  "use-resource-role-mappings": true,
+  "enable-basic-auth": true,
+  "credentials": {
+    "secret": "2024d387-064e-4f56-8586-bb9a96b28cab"
+  }
+}

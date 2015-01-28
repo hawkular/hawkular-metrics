@@ -15,3 +15,7 @@ target/
 *.DS_Store
 nb-configuration.xml
 *~
+.keycloak
+rest-servlet/src/main/resources/keycloak*json
+keycloak.xml
+ui/console/src/main/webapp/realms.json

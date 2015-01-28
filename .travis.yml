@@ -21,7 +21,7 @@ addons:
     build_command: mvn -DskipTests=true compile
     branch_pattern: coverity_scan
 before_install:
-  - bash .travis.install.cassandra.sh
+  - bash .travis.install.dependencies.sh
 install:
   - mvn -version -B
 script:

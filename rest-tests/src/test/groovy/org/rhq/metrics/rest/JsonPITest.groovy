@@ -39,6 +39,7 @@ class JsonPITest {
 
   @Test
   void jsonPShouldNotApplyToXml() {
+    http.defaultRequestHeaders.Authorization = "Basic YWdlbnQ6NTczYjEwOTgtMTE1MC00OWYwLTliMTItMGZlMmFiNjYxZDEy"
     http.get(path: "ping", contentType: ContentType.XML, query: [jsonp: callback]) { resp, content ->
       assertEquals 200, resp.status
       assertEquals "application/xml", resp.contentType
@@ -56,6 +57,7 @@ class JsonPITest {
 
   @Test
   void jsonPShouldNotApplyToJson() {
+    http.defaultRequestHeaders.Authorization = "Basic YWdlbnQ6NTczYjEwOTgtMTE1MC00OWYwLTliMTItMGZlMmFiNjYxZDEy"
     http.get(path: "ping", contentType: ContentType.JSON, query: [jsonp: callback]) { resp, content ->
       assertEquals 200, resp.status
       assertEquals "application/json", resp.contentType
@@ -70,6 +72,7 @@ class JsonPITest {
 
   @Test
   void jsonPShouldApplyToJavascript() {
+    http.defaultRequestHeaders.Authorization = "Basic YWdlbnQ6NTczYjEwOTgtMTE1MC00OWYwLTliMTItMGZlMmFiNjYxZDEy"
     // Do not try to parse Javascript as JSON
     http.parser."application/javascript" = http.parser."text/plain"
 

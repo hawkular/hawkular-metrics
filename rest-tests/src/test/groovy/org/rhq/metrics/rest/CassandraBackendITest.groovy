@@ -32,8 +32,10 @@ class CassandraBackendITest extends RESTTest {
 
   @Test
   void queryForBucketedNumericData() {
+    def tenantId = 'tenant-1'
+    rhqm.defaultRequestHeaders.Authorization = "Basic YWdlbnQ6ZWY2YzZkMDktNTczNC00MTAyLTg2ODMtZGYzZjMwZjA5YmEy"
+
     DateTimeService dateTimeService = new DateTimeService()
-    String tenantId = 'tenant-0'
     String metric = 'n1'
     DateTime start = dateTimeService.currentHour().minusHours(1)
     DateTime end = start.plusHours(1)
@@ -43,7 +45,7 @@ class CassandraBackendITest extends RESTTest {
     def buckets = []
     numBuckets.times { buckets.add(start.millis + (it * bucketSize))}
 
-    def response = rhqm.post(path: "$tenantId/metrics/numeric/$metric/data", body: [
+    def response = rhqm.post(path: "tenants/${tenantId}/metrics/numeric/${metric}/data", body: [
         [timestamp: buckets[0], value: 12.22],
         [timestamp: buckets[0] + seconds(10).toStandardDuration().millis, value: 12.37],
         [timestamp: buckets[4], value: 25],
@@ -53,7 +55,7 @@ class CassandraBackendITest extends RESTTest {
     ])
     assertEquals(200, response.status)
 
-    response = rhqm.get(path: "${tenantId}/metrics/numeric/$metric/data", query: [start: start.millis, end: end.millis,
+    response = rhqm.get(path: "tenants/${tenantId}/metrics/numeric/${metric}/data", query: [start: start.millis, end: end.millis,
         buckets: 10, bucketWidthSeconds: 0])
     assertEquals(200, response.status)
 
@@ -85,7 +87,7 @@ class CassandraBackendITest extends RESTTest {
 
     assertBucketedDataEquals(expectedData, response.data, assertBucketEquals)
 
-    response = rhqm.get(path: "$tenantId/metrics/numeric/$metric/data", query: [start: start.millis, end: end.millis,
+    response = rhqm.get(path: "tenants/${tenantId}/metrics/numeric/${metric}/data", query: [start: start.millis, end: end.millis,
         buckets: 10, bucketWidthSeconds: 0, skipEmpty: true])
     assertEquals(200, response.status)
 
@@ -132,19 +134,22 @@ class CassandraBackendITest extends RESTTest {
     DateTime start = now().minusMinutes(10)
     def tenantId = 'tenant-1'
 
-    def response = rhqm.post(path: 'tenants', body: [id: tenantId])
+    rhqm.defaultRequestHeaders.Authorization = "Basic YWdlbnQ6NTczYjEwOTgtMTE1MC00OWYwLTliMTItMGZlMmFiNjYxZDEy"
+    def response = rhqm.post(path: 'tenant', body: [id: tenantId])
     assertEquals(200, response.status)
+
+    rhqm.defaultRequestHeaders.Authorization = "Basic YWdlbnQ6ZWY2YzZkMDktNTczNC00MTAyLTg2ODMtZGYzZjMwZjA5YmEy"
 
     // Let's explicitly create one of the metrics with some meta data and a data retention
     // so that we can verify we get back that info along with the data.
-    response = rhqm.post(path: "$tenantId/metrics/numeric", body: [
+    response = rhqm.post(path: "tenants/${tenantId}/metrics/numeric", body: [
         name: 'm2',
         metadata: [a: '1', b: '2'],
         dataRetention: 24
     ])
     assertEquals(200, response.status)
 
-    response = rhqm.post(path: "${tenantId}/metrics/numeric/data", body: [
+    response = rhqm.post(path: "tenants/${tenantId}/metrics/numeric/data", body: [
         [
           name: 'm1',
           data: [
@@ -169,7 +174,7 @@ class CassandraBackendITest extends RESTTest {
     ])
     assertEquals(200, response.status)
 
-    response = rhqm.get(path: "${tenantId}/metrics/numeric/m2/data")
+    response = rhqm.get(path: "tenants/${tenantId}/metrics/numeric/m2/data")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -191,19 +196,21 @@ class CassandraBackendITest extends RESTTest {
     DateTime start = now().minusMinutes(10)
     def tenantId = 'tenant-2'
 
-    def response = rhqm.post(path: 'tenants', body: [id: tenantId])
+    rhqm.defaultRequestHeaders.Authorization = "Basic YWdlbnQ6NTczYjEwOTgtMTE1MC00OWYwLTliMTItMGZlMmFiNjYxZDEy"
+    def response = rhqm.post(path: 'tenant', body: [id: tenantId])
     assertEquals(200, response.status)
+    rhqm.defaultRequestHeaders.Authorization = "Basic YWdlbnQ6ZThmYzY3NzUtNWIzMS00Yjk4LWFlNWQtYTg5YjdkNTM0MDVl"
 
     // Let's explicitly create one of the metrics with some meta data and a data retention
     // so that we can verify we get back that info along with the data.
-    response = rhqm.post(path: "$tenantId/metrics/availability", body: [
+    response = rhqm.post(path: "tenants/${tenantId}/metrics/availability", body: [
             name: 'm2',
             metadata: [a: '1', b: '2'],
             dataRetention: 12
     ])
     assertEquals(200, response.status)
 
-    response = rhqm.post(path: "${tenantId}/metrics/availability/data", body: [
+    response = rhqm.post(path: "tenants/${tenantId}/metrics/availability/data", body: [
         [
           name: 'm1',
           data: [
@@ -228,7 +235,7 @@ class CassandraBackendITest extends RESTTest {
     ])
     assertEquals(200, response.status)
 
-    response = rhqm.get(path: "${tenantId}/metrics/availability/m2/data")
+    response = rhqm.get(path: "tenants/${tenantId}/metrics/availability/m2/data")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -247,20 +254,21 @@ class CassandraBackendITest extends RESTTest {
 
   @Test
   void createMetricsAndUpdateMetadata() {
+    rhqm.defaultRequestHeaders.Authorization = "Basic YWdlbnQ6MDZhN2I3MDUtNmFkOC00ZjEwLTgxZjItZWVkZDJlZmM4YTk3"
     // Create a numeric metric
-    def response = rhqm.post(path: "tenant-3/metrics/numeric", body: [
+    def response = rhqm.post(path: "tenants/tenant-3/metrics/numeric", body: [
         name: 'N1',
         metadata: [a1: 'A', b1: 'B']
     ])
     assertEquals(200, response.status)
 
     // Make sure we do not allow duplicates
-    badPost(path: "tenant-3/metrics/numeric", body: [name: 'N1']) { exception ->
+    badPost(path: "tenants/tenant-3/metrics/numeric", body: [name: 'N1']) { exception ->
       assertEquals(400, exception.response.status)
     }
 
     // Create a numeric metric that sets its data retention
-    response = rhqm.post(path: 'tenant-3/metrics/numeric', body: [
+    response = rhqm.post(path: 'tenants/tenant-3/metrics/numeric', body: [
         name: 'N2',
         metadata: [a2: '2', b2: 'B2'],
         dataRetention: 96
@@ -268,14 +276,14 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
 
     // Create an availability metric
-    response = rhqm.post(path: "tenant-3/metrics/availability", body: [
+    response = rhqm.post(path: "tenants/tenant-3/metrics/availability", body: [
         name: 'A1',
         metadata: [a2: '2', b2: '2']
     ])
     assertEquals(200, response.status)
 
     // Create an availability metric that sets its data retention
-    response = rhqm.post(path: "tenant-3/metrics/availability", body: [
+    response = rhqm.post(path: "tenants/tenant-3/metrics/availability", body: [
         name: 'A2',
         metadata: [a22: '22', b22: '22'],
         dataRetention: 48
@@ -283,12 +291,12 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
 
     // Make sure we do not allow duplicates
-    badPost(path: "tenant-3/metrics/availability", body: [name: 'A1']) { exception ->
+    badPost(path: "tenants/tenant-3/metrics/availability", body: [name: 'A1']) { exception ->
       assertEquals(400, exception.response.status)
     }
 
     // Fetch numeric meta data
-    response = rhqm.get(path: "tenant-3/metrics/numeric/N1/meta")
+    response = rhqm.get(path: "tenants/tenant-3/metrics/numeric/N1/meta")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -299,7 +307,7 @@ class CassandraBackendITest extends RESTTest {
         response.data
     )
 
-    response = rhqm.get(path: 'tenant-3/metrics/numeric/N2/meta')
+    response = rhqm.get(path: 'tenants/tenant-3/metrics/numeric/N2/meta')
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -312,11 +320,11 @@ class CassandraBackendITest extends RESTTest {
     )
 
     // Verify the response for a non-existent metric
-    response = rhqm.get(path: "tenant-3/metrics/numeric/N-doesNotExist/meta")
+    response = rhqm.get(path: "tenants/tenant-3/metrics/numeric/N-doesNotExist/meta")
     assertEquals(204, response.status)
 
     // Fetch availability metric meta data
-    response = rhqm.get(path: "tenant-3/metrics/availability/A1/meta")
+    response = rhqm.get(path: "tenants/tenant-3/metrics/availability/A1/meta")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -327,7 +335,7 @@ class CassandraBackendITest extends RESTTest {
         response.data
     )
 
-    response = rhqm.get(path: "tenant-3/metrics/availability/A2/meta")
+    response = rhqm.get(path: "tenants/tenant-3/metrics/availability/A2/meta")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -340,15 +348,15 @@ class CassandraBackendITest extends RESTTest {
     )
 
     // Verify the response for a non-existent metric
-    response = rhqm.get(path: "tenant-3/metrics/numeric/A-doesNotExist/meta")
+    response = rhqm.get(path: "tenants/tenant-3/metrics/numeric/A-doesNotExist/meta")
     assertEquals(204, response.status)
 
     // Update the numeric metric meta data
-    response = rhqm.put(path: "tenant-3/metrics/numeric/N1/meta", body: [a1: 'one', a2: '2', '[delete]': ['b1']])
+    response = rhqm.put(path: "tenants/tenant-3/metrics/numeric/N1/meta", body: [a1: 'one', a2: '2', '[delete]': ['b1']])
     assertEquals(200, response.status)
 
     // Fetch the updated meta data
-    response = rhqm.get(path: "tenant-3/metrics/numeric/N1/meta")
+    response = rhqm.get(path: "tenants/tenant-3/metrics/numeric/N1/meta")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -360,11 +368,11 @@ class CassandraBackendITest extends RESTTest {
     )
 
     // Update the availability metric data
-    response = rhqm.put(path: "tenant-3/metrics/availability/A1/meta", body: [a2: 'two', a3: 'THREE', '[delete]': ['b2']])
+    response = rhqm.put(path: "tenants/tenant-3/metrics/availability/A1/meta", body: [a2: 'two', a3: 'THREE', '[delete]': ['b2']])
     assertEquals(200, response.status)
 
     // Fetch the updated meta data
-    response = rhqm.get(path: "tenant-3/metrics/availability/A1/meta")
+    response = rhqm.get(path: "tenants/tenant-3/metrics/availability/A1/meta")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -380,9 +388,10 @@ class CassandraBackendITest extends RESTTest {
   void findMetrics() {
     DateTime start = now().minusMinutes(20)
     def tenantId = 'tenant-4'
+    rhqm.defaultRequestHeaders.Authorization = "Basic YWdlbnQ6OWM3NzQyNjYtZTExOS00ZjQyLWIwZjctN2UyYzFhN2NkNjY5"
 
     // First create a couple numeric metrics by only inserting data
-    def response = rhqm.post(path: "$tenantId/metrics/numeric/data", body: [
+    def response = rhqm.post(path: "tenants/${tenantId}/metrics/numeric/data", body: [
         [
           name: 'm11',
           data: [
@@ -401,7 +410,7 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
 
     // Explicitly create a numeric metric
-    response = rhqm.post(path: "$tenantId/metrics/numeric", body: [
+    response = rhqm.post(path: "tenants/${tenantId}/metrics/numeric", body: [
         name: 'm13',
         metadata: [a1: 'A', B1: 'B'],
         dataRetention: 32
@@ -409,7 +418,7 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
 
     // Now query for the numeric metrics
-    response = rhqm.get(path: "$tenantId/metrics", query: [type: 'num'])
+    response = rhqm.get(path: "tenants/${tenantId}/metrics", query: [type: 'num'])
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -421,7 +430,7 @@ class CassandraBackendITest extends RESTTest {
     )
 
     // Create a couple availability metrics by only inserting data
-    response = rhqm.post(path: "$tenantId/metrics/availability/data", body: [
+    response = rhqm.post(path: "tenants/${tenantId}/metrics/availability/data", body: [
         [
           name: 'm14',
           data: [
@@ -440,7 +449,7 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
 
     // Explicitly create an availability metric
-    response = rhqm.post(path: "$tenantId/metrics/availability", body: [
+    response = rhqm.post(path: "tenants/${tenantId}/metrics/availability", body: [
         name: 'm16',
         metadata: [a10: '10', a11: '11'],
         dataRetention: 7
@@ -448,7 +457,7 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
 
     // Query for the availability metrics
-    response = rhqm.get(path: "$tenantId/metrics", query: [type: 'avail'])
+    response = rhqm.get(path: "tenants/${tenantId}/metrics", query: [type: 'avail'])
     assertEquals(200, response.status)
     assertEquals(
         [

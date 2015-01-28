@@ -16,22 +16,20 @@
  */
 package org.rhq.metrics.restServlet;
 
+import com.google.common.base.Function;
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.wordnik.swagger.annotations.Api;
+import gnu.trove.map.TLongObjectMap;
+import gnu.trove.map.hash.TLongObjectHashMap;
 import static java.lang.Double.NaN;
+import java.util.ArrayList;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.summarizingDouble;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
-import static javax.ws.rs.core.Response.Status;
-import static org.rhq.metrics.core.MetricsService.DEFAULT_TENANT_ID;
-import static org.rhq.metrics.restServlet.CustomMediaTypes.APPLICATION_VND_RHQ_WRAPPED_JSON;
-
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.DoubleSummaryStatistics;
 import java.util.HashMap;
@@ -39,8 +37,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.summarizingDouble;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 import java.util.stream.LongStream;
-
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -53,17 +56,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 import javax.ws.rs.core.Response;
-
-import com.google.common.base.Function;
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.wordnik.swagger.annotations.Api;
-
+import javax.ws.rs.core.Response.Status;
 import org.rhq.metrics.core.Availability;
 import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
@@ -73,12 +69,11 @@ import org.rhq.metrics.core.MetricData;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.MetricsService;
+import static org.rhq.metrics.core.MetricsService.DEFAULT_TENANT_ID;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric;
 import org.rhq.metrics.core.Tag;
-
-import gnu.trove.map.TLongObjectMap;
-import gnu.trove.map.hash.TLongObjectHashMap;
+import static org.rhq.metrics.restServlet.CustomMediaTypes.APPLICATION_VND_RHQ_WRAPPED_JSON;
 
 /**
  * Interface to deal with metrics
@@ -93,7 +88,7 @@ public class MetricHandler {
     private MetricsService metricsService;
 
     @POST
-    @Path("/{tenantId}/metrics/numeric")
+    @Path("/tenants/{tenantId}/metrics/numeric")
     @Consumes(APPLICATION_JSON)
     public void createNumericMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         MetricParams params) {
@@ -104,7 +99,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/{tenantId}/metrics/availability")
+    @Path("/tenants/{tenantId}/metrics/availability")
     @Consumes(APPLICATION_JSON)
     public void createAvailabilityMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         MetricParams params) {
@@ -145,7 +140,7 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/{tenantId}/metrics/numeric/{id}/meta")
+    @Path("/tenants/{tenantId}/metrics/numeric/{id}/meta")
     public void getNumericMetricMetadata(@Suspended AsyncResponse response, @PathParam("tenantId") String tenantId,
         @PathParam("id") String id) {
         ListenableFuture<Metric> future = metricsService.findMetric(tenantId, MetricType.NUMERIC,
@@ -154,7 +149,7 @@ public class MetricHandler {
     }
 
     @PUT
-    @Path("/{tenantId}/metrics/numeric/{id}/meta")
+    @Path("/tenants/{tenantId}/metrics/numeric/{id}/meta")
     public void updateNumericMetricMetadata(@Suspended final AsyncResponse response,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id, Map<String, ? extends Object> updates) {
         Map<String, String> additions = new HashMap<>();
@@ -173,7 +168,7 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/{tenantId}/metrics/availability/{id}/meta")
+    @Path("/tenants/{tenantId}/metrics/availability/{id}/meta")
     public void getAvailabilityMetricMetadata(@Suspended AsyncResponse response,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id) {
         ListenableFuture<Metric> future = metricsService.findMetric(tenantId, MetricType.AVAILABILITY,
@@ -182,7 +177,7 @@ public class MetricHandler {
     }
 
     @PUT
-    @Path("/{tenantId}/metrics/availability/{id}/meta")
+    @Path("/tenants/{tenantId}/metrics/availability/{id}/meta")
     public void updateAvailabilityMetricMetadata(@Suspended final AsyncResponse response,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id, Map<String, ? extends Object> updates) {
         Map<String, String> additions = new HashMap<>();
@@ -228,7 +223,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/{tenantId}/metrics/numeric/{id}/data")
+    @Path("/tenants/{tenantId}/metrics/numeric/{id}/data")
     @Consumes(APPLICATION_JSON)
     public void addDataForMetric(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") final String tenantId, @PathParam("id") String id, List<NumericDataPoint> dataPoints) {
@@ -242,7 +237,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/{tenantId}/metrics/availability/{id}/data")
+    @Path("/tenants/{tenantId}/metrics/availability/{id}/data")
     @Consumes(APPLICATION_JSON)
     public void addAvailabilityForMetric(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") final String tenantId, @PathParam("id") String id, List<AvailabilityDataPoint> data) {
@@ -257,7 +252,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/{tenantId}/metrics/numeric/data")
+    @Path("/tenants/{tenantId}/metrics/numeric/data")
     @Consumes(APPLICATION_JSON)
     public void addNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         List<NumericDataParams> paramsList) {
@@ -280,7 +275,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/{tenantId}/metrics/availability/data")
+    @Path("/tenants/{tenantId}/metrics/availability/data")
     @Consumes(APPLICATION_JSON)
     public void addAvailabilityData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, List<AvailabilityDataParams> paramsList) {
@@ -303,7 +298,7 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/{tenantId}/numeric")
+    @Path("/tenants/{tenantId}/numeric")
     public void findNumericDataByTags(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @QueryParam("tags") String tags) {
         Set<String> tagSet = ImmutableSet.copyOf(tags.split(","));
@@ -337,7 +332,7 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/{tenantId}/availability")
+    @Path("/tenants/{tenantId}/availability")
     public void findAvailabilityDataByTags(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @QueryParam("tags") String tags) {
         Set<String> tagSet = ImmutableSet.copyOf(tags.split(","));
@@ -387,7 +382,7 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/{tenantId}/metrics/numeric/{id}/data")
+    @Path("/tenants/{tenantId}/metrics/numeric/{id}/data")
     public void findNumericData(
         @Suspended final AsyncResponse response,
         @PathParam("tenantId") String tenantId,
@@ -623,7 +618,7 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/{tenantId}/metrics/availability/{id}/data")
+    @Path("/tenants/{tenantId}/metrics/availability/{id}/data")
     public void findAvailabilityData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @PathParam("id") final String id, @QueryParam("start") Long start,
         @QueryParam("end") Long end) {
@@ -664,7 +659,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/{tenantId}/tags/numeric")
+    @Path("/tenants/{tenantId}/tags/numeric")
     public void tagNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         TagParams params) {
         ListenableFuture<List<NumericData>> future;
@@ -688,7 +683,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/{tenantId}/tags/availability")
+    @Path("/tenants/{tenantId}/tags/availability")
     public void tagAvailabilityData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, TagParams params) {
         ListenableFuture<List<Availability>> future;
@@ -712,7 +707,7 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/{tenantId}/tags/numeric/{tag}")
+    @Path("/tenants/{tenantId}/tags/numeric/{tag}")
     public void findTaggedNumericData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @PathParam("tag") String tag) {
         ListenableFuture<Map<MetricId, Set<NumericData>>> future = metricsService.findNumericDataByTags(
@@ -756,7 +751,7 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/{tenantId}/tags/availability/{tag}")
+    @Path("/tenants/{tenantId}/tags/availability/{tag}")
     public void findTaggedAvailabilityData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @PathParam("tag") String tag) {
         ListenableFuture<Map<MetricId, Set<Availability>>> future = metricsService.findAvailabilityByTags(tenantId,
@@ -903,7 +898,7 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/{tenantId}/metrics")
+    @Path("/tenants/{tenantId}/metrics")
     @Produces(APPLICATION_JSON)
     public void findMetrics(@Suspended final AsyncResponse response, @PathParam("tenantId") final String tenantId,
         @QueryParam("type") String type) {

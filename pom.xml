@@ -132,6 +132,7 @@
     <antlr.version>4.3</antlr.version>
 
     <version.wildfly>8.2.0.Final</version.wildfly>
+    <version.keycloak>1.1.0.Beta2</version.keycloak>
     <findbugs.version>3.0.0</findbugs.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -292,7 +293,7 @@
           <artifactId>wildfly-maven-plugin</artifactId>
           <version>1.0.2.Final</version>
           <configuration>
-            <version>${version.wildfly}</version>
+            <jbossHome>.keycloak/keycloak-appliance-dist-all-${version.keycloak}/keycloak</jbossHome>
           </configuration>
         </plugin>
         <plugin>
@@ -469,6 +470,7 @@
         <configuration>
           <header>hawkular-license/jboss-apache-2-template.txt</header>
           <excludes>
+            <exclude>**/.keycloak/**</exclude>
             <exclude>**/.bowerrc</exclude>
             <exclude>**/.jshintrc</exclude>
             <exclude>**/LICENSE</exclude>
@@ -567,13 +569,19 @@
     </profile>
 
     <profile>
-      <id>download_wildfly</id>
+      <id>download_keycloak</id>
       <dependencies>
         <dependency>
-          <groupId>org.wildfly</groupId>
-          <artifactId>wildfly-dist</artifactId>
-          <version>${version.wildfly}</version>
+          <groupId>org.keycloak</groupId>
+          <artifactId>keycloak-appliance-dist-all</artifactId>
+          <version>${version.keycloak}</version>
           <type>zip</type>
+          <exclusions>
+            <exclusion>
+              <groupId>org.keycloak</groupId>
+              <artifactId>keycloak-undertow-adapter</artifactId>
+            </exclusion>
+          </exclusions>
         </dependency>
       </dependencies>
     </profile>
@@ -613,4 +621,5 @@
     </profile>
   </profiles>
 </project>
+
 

@@ -1,0 +1,12 @@
+{
+  "realm": "rhq-master",
+  "realm-public-key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDdxblQ5JldGbyxFwmflnxjK/LXogZqH/xZeOrO5De3UkEyXCNY0fB6PHMp3VXPSmMS+DllYphzIvYCbBIGFjY9nDtAJ2w5mzngb+AHXLVg56Slu0N/lEQFrLYtW1lbntRkM7wU5nPWx/gRXNwmuMxXunXcjNklUc0D/+nTW9gbtQIDAQAB",
+  "auth-server-url": "http://localhost:55977/auth",
+  "ssl-required": "external",
+  "resource": "metrics-api",
+  "use-resource-role-mappings": true,
+  "enable-basic-auth": true,
+  "credentials": {
+    "secret": "5365694c-441d-4d20-9a20-ec1e876661ac"
+  }
+}

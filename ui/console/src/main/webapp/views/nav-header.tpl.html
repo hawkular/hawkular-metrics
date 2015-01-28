@@ -20,12 +20,15 @@
             <li class="dropdown">
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                     <span class="pficon pficon-user"></span>
-                    User Name<b class="caret"></b>
+                    {{username}}<b class="caret"></b>
                 </a>
                 <ul class="dropdown-menu" ng-controller="ConfigController as vm">
                     <li>
                         <a href="#" ng-click="vm.openConfig()">Connection...</a>
                         <ng-include src="'views/config-dialog.html'"></ng-include>
+                    </li>
+                    <li>
+                        <a href="#" ng-click="vm.logout()">Logout</a>
                     </li>
 
                 </ul>

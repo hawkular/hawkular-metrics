@@ -1,0 +1,95 @@
+{
+  "id" : "tenant-6",
+  "realm" : "tenant-6",
+  "enabled" : true,
+  "sslRequired" : "external",
+  "passwordCredentialGrantAllowed" : true,
+  "registrationAllowed" : true,
+  "privateKey" : "MIICXQIBAAKBgQDJ1zt3Milu3GmFneiB2SCULFR4izBgGPBti0H0HxT9zVM41TZ67UzTPl16vsRWMH3zI8IO1n/0MxAcYAXdXI0owJC7haeT6w0NdaOj86gQ5VioX0KQX0uKm1DbXBGF81KUmYLsS1LN/gLug/hegJav0Ei/HbnqlH+INkqZ6U10KwIDAQABAoGBALHHPb1TFWNsCBWEbFJSaHuaQBycnFNIJByYV9MpvVd/Dho00fOcJ9q4R6XheRVhSM5rZHWlQLZac4pKmV/MMRduMpaTjbKObLs9EfsKtiDCaW5ln3O2TrOyEbL8pdCyrhI9UVaO9ZBBBwTvXzSXTR45xxhLpGLpFFJxitjD5ejhAkEA9hmA8uauiCk/uewhbaDsYWQocV67KPJf3s/H31cuj5UYyavOxv6KwMA/4bwO1yVStkq2eMtlsdNbPrZCo62UdwJBANH16+gLUm5Vxet78Jg5OU3JUWcLDJZlwM9R2UFnNSrxhwsy5oXardMy3hOXR6r/D4yH7qA6SpGkOv2ojcYHju0CQQDjJM0A5OvIXxIjf4+nCPXEOladtQrYE0VreKoJOQWPntS/JyV2Q/A7UfZkWlf0Oc2q1TCwM0OMqwC31C+TtR2nAkBQugtAJspE3fnBNuAkxyu/Or5vrhHi6bCehcvQl8wbfM39gk6b/J6E67PzOGE33+WslL8tH/x3zvtXeC06jMFpAkBfzSiq4YNHI4tWpcft5HxIl2n3MPDdnha3Spi0gPsjMd6WVqJ693hlFJQ/pZ/aEJGHOobVFKTCkbf+rNpbQhTh",
+  "publicKey" : "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDJ1zt3Milu3GmFneiB2SCULFR4izBgGPBti0H0HxT9zVM41TZ67UzTPl16vsRWMH3zI8IO1n/0MxAcYAXdXI0owJC7haeT6w0NdaOj86gQ5VioX0KQX0uKm1DbXBGF81KUmYLsS1LN/gLug/hegJav0Ei/HbnqlH+INkqZ6U10KwIDAQAB",
+  "users": [ {
+    "username": "agent",
+    "enabled": true,
+    "email": "agent@acme.com",
+    "firstName": "Built-in",
+    "lastName": "Agent",
+    "credentials": [ {
+      "type": "password",
+      "value": "49f7a00f-0407-44b0-969e-c2041651267a"
+    }],
+    "realmRoles": ["agent"]
+  }],
+  "roles" : {
+    "realm" : [ {
+      "name" : "admin",
+      "description" : "Admin privileges",
+      "composite" : true,
+      "composites" : {
+        "realm" : [ "user" ],
+        "application" : {
+          "metrics-console" : [ "admin" ],
+          "metrics-api" : [ "admin" ]
+        }
+      }
+    }, {
+      "name" : "user",
+      "description" : "User privileges",
+      "composite" : true,
+      "composites" : {
+        "application" : {
+          "metrics-console" : [ "user" ],
+          "metrics-api" : [ "user" ]
+        }
+      }
+    }, {
+      "name" : "agent",
+      "description" : "Agent privileges",
+      "composite" : true,
+      "composites" : {
+        "application" : {
+          "metrics-console" : [ "user" ],
+          "metrics-api" : [ "user" ]
+        }
+      }
+    } ],
+    "application" : {
+      "metrics-console" : [
+          { "name" : "user" },
+          { "name" : "admin" }
+      ],
+      "metrics-api" : [
+          { "name" : "user" },
+          { "name" : "agent" },
+          { "name" : "admin" }
+      ]
+    }
+  },
+  "defaultRoles" : [ "user" ],
+  "requiredCredentials" : [ "password" ],
+  "scopeMappings" : [ {
+    "client" : "metrics-console",
+    "roles" : [ "admin" ]
+  } ],
+  "applications" : [ {
+    "name" : "metrics-console",
+    "enabled" : true,
+    "secret" : "0ce5fcae-c85f-4d52-b1f0-199c0cd5432b",
+    "redirectUris" : [ "http://localhost:9000/*", "http://localhost:8080/*" ],
+    "webOrigins" : [ "http://localhost:9000", "http://localhost:8080" ],
+    "claims" : {
+      "name" : true,
+      "username" : true,
+      "email" : true
+    },
+    "bearerOnly" : false,
+    "publicClient" : true
+  }, {
+    "name" : "metrics-api",
+    "enabled" : true,
+    "secret" : "ea7a624f-85eb-4e87-9388-da54cf83bd20",
+    "redirectUris" : [ "/rhq-metrics" ],
+    "webOrigins" : [ ],
+    "bearerOnly" : false,
+    "publicClient" : false
+  }]
+}

@@ -147,7 +147,7 @@
               <goal>start</goal>
             </goals>
             <configuration>
-              <serverConfig>standalone-test.xml</serverConfig>
+              <serverConfig>standalone-test-keycloak.xml</serverConfig>
               <jvmArgs>
                 -Xms64m -Xmx512m -Xss256k -Djava.net.preferIPv4Stack=true
                 -Dsun.rmi.dgc.client.gcInterval=3600000 -Dsun.rmi.dgc.server.gcInterval=3600000
@@ -155,6 +155,8 @@
                 -Djboss.server.config.dir=${project.build.directory}/wildfly-configuration
                 -Drhq-metrics.backend=${rhq-metrics.backend} -Dcassandra.keyspace=${cassandra.keyspace} -Dcassandra.resetdb=true
                 -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787
+                -Dkeycloak.import=${project.build.directory}/wildfly-configuration/tenant-1-realm.json,${project.build.directory}/wildfly-configuration/tenant-2-realm.json,${project.build.directory}/wildfly-configuration/tenant-3-realm.json,${project.build.directory}/wildfly-configuration/tenant-4-realm.json,${project.build.directory}/wildfly-configuration/tenant-5-realm.json,${project.build.directory}/wildfly-configuration/tenant-6-realm.json,${project.build.directory}/wildfly-configuration/influxtest-realm.json,${project.build.directory}/wildfly-configuration/rhq-master-realm.json
+                -Drhq.keycloak.config.location=${project.build.directory}/wildfly-configuration
               </jvmArgs>
             </configuration>
           </execution>

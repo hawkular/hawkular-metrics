@@ -1,0 +1,12 @@
+{
+  "realm": "acme-other-affairs",
+  "realm-public-key": "PUBLIC_KEY_REALM_ACME_OTAFFAIRS",
+  "auth-server-url": "http://localhost:8080/auth",
+  "ssl-required": "external",
+  "resource": "metrics-api",
+  "use-resource-role-mappings": true,
+  "enable-basic-auth": true,
+  "credentials": {
+    "secret": "SECRET_METRICS_API_OT"
+  }
+}

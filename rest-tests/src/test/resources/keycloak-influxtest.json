@@ -1,0 +1,12 @@
+{
+  "realm": "influxtest",
+  "realm-public-key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDxPj97tVhUa/T5fQkv1221pJecs71xhkNoJ3R61kiKLoV9fOCbp41ix6AtrgIajTu67PuMMzXLHdOC8iQpFlZoM1gXc71iE0JBS/mSrj9M+inhd6LhsAab0bNpb84pfg1Hq/ENUuki7Go4g6ZoKALW8r3ap0GHRZ38ZSzLLt/wFwIDAQAB",
+  "auth-server-url": "http://localhost:55977/auth",
+  "ssl-required": "external",
+  "resource": "metrics-api",
+  "use-resource-role-mappings": true,
+  "enable-basic-auth": true,
+  "credentials": {
+    "secret": "b61c8d72-ced7-4c36-a58d-fe4e26c2982d"
+  }
+}
