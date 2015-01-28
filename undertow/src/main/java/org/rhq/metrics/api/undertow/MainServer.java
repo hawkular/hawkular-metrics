@@ -43,7 +43,7 @@ public class MainServer {
                 .add(Methods.POST, "/ping", new PingHandler());
 
         Undertow server = Undertow.builder().addHttpListener(8080, "0.0.0.0")
-                .setHandler(new CorsHandler(path().addPrefixPath("/metrics", commonHandler))).build();
+                .setHandler(new CorsHandler(path().addPrefixPath("/rhq-metrics", commonHandler))).build();
 
         server.start();
     }
@@ -82,7 +82,11 @@ public class MainServer {
             headers.put(new HttpString("Access-Control-Max-Age"), 72 * 60 * 60);
             headers.put(new HttpString("Access-Control-Allow-Headers"), DEFAULT_ALLOWED_HEADERS);
 
-            next.handleRequest(exchange);
+            if (Methods.OPTIONS.equals(exchange.getRequestMethod())) {
+                exchange.setResponseCode(200);
+            } else {
+                next.handleRequest(exchange);
+            }
         }
     }
 }
