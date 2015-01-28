@@ -26,6 +26,8 @@ import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
 
 /**
+ * Helper class to manage a PID file.
+ *
  * @author Thomas Segismont
  */
 class PidFile {
@@ -34,10 +36,22 @@ class PidFile {
     private FileChannel channel;
     private FileLock fileLock;
 
+    /**
+     * @param file PID file reference
+     */
     PidFile(File file) {
         this.file = file;
     }
 
+    /**
+     * Try to acquire a write lock on the PID file and, on success, write the {@code pid} to it. On failure to open the
+     * file, acquire the lock or write to the file, an error message will be printed to {@link java.lang.System#err}.
+     * The caller must call {@link #release()} before the JVM stops, regardless of the the result of this method.
+     *
+     * @param pid the process id to write
+     *
+     * @return true if the lock was acquired and the {@code pid} written to the PID file, false otherwise
+     */
     boolean tryLock(int pid) {
         try {
             channel = new RandomAccessFile(file, "rw").getChannel();
@@ -72,6 +86,9 @@ class PidFile {
         return true;
     }
 
+    /**
+     * Release resources used to managed the PID file.
+     */
     void release() {
         if (fileLock != null) {
             try {
