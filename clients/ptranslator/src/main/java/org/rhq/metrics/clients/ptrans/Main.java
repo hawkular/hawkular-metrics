@@ -18,12 +18,15 @@ package org.rhq.metrics.clients.ptrans;
 
 import static org.rhq.metrics.clients.ptrans.OptionsFactory.CONFIG_FILE_OPT;
 import static org.rhq.metrics.clients.ptrans.OptionsFactory.HELP_OPT;
+import static org.rhq.metrics.clients.ptrans.OptionsFactory.PID_FILE_OPT;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+
+import jnr.posix.POSIXFactory;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -47,6 +50,7 @@ public class Main {
     private final String[] args;
     private final OptionsFactory optionsFactory;
     private PTrans ptrans;
+    private PidFile pidFile;
 
     private Main(String[] args) {
         this.args = args;
@@ -78,9 +82,17 @@ public class Main {
         }
         File configFile = new File(cmd.getOptionValue(CONFIG_FILE_OPT));
         if (!configFile.isFile()) {
-            System.err.println("Configuration file " + configFile.getAbsolutePath()
-                + " does not exist or is not readable.");
+            System.err.printf("Configuration file %s does not exist or is not readable.%n",
+                configFile.getAbsolutePath());
             System.exit(1);
+        }
+        if (cmd.hasOption(PID_FILE_OPT)) {
+            File file = new File(cmd.getOptionValue(PID_FILE_OPT));
+            pidFile = new PidFile(file);
+            boolean locked = pidFile.tryLock(POSIXFactory.getPOSIX().getpid());
+            if (!locked) {
+                System.exit(1);
+            }
         }
         Properties properties = loadConfigurationProperties(configFile);
         ptrans = new PTrans(Configuration.from(properties));
@@ -108,6 +120,9 @@ public class Main {
     private void stop() {
         if (ptrans != null) {
             ptrans.stop();
+        }
+        if (pidFile != null) {
+            pidFile.release();
         }
     }
 

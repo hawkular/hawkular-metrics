@@ -71,6 +71,11 @@
       <artifactId>netty-collectd</artifactId>
       <version>0.1</version>
     </dependency>
+    <dependency>
+      <groupId>com.github.jnr</groupId>
+      <artifactId>jnr-posix</artifactId>
+      <version>3.0.9</version>
+    </dependency>
   </dependencies>
 
   <build>
