@@ -145,6 +145,24 @@ public class MainITest {
         }
     }
 
+    @Test
+    public void shouldExitWithErrorIfPidFileIsLocked() throws Exception {
+        shouldWritePidToPidFile();
+
+        pTransProcessBuilder.redirectOutput(temporaryFolder.newFile());
+        File ptransErrBis = temporaryFolder.newFile();
+        pTransProcessBuilder.redirectError(ptransErrBis);
+        Process pTransProcessBis = pTransProcessBuilder.start();
+        int returnCode = pTransProcessBis.waitFor();
+        assertThat(returnCode).isNotEqualTo(0);
+
+        String expectedMessage = String.format(
+                "Unable to lock PID file %s, another instance is probably running.",
+                pTransPidFile.getAbsolutePath()
+        );
+        assertThat(ptransErrBis).isFile().canRead().hasContent(expectedMessage);
+    }
+
     @After
     public void after() {
         if (pTransProcess != null && pTransProcess.isAlive()) {
