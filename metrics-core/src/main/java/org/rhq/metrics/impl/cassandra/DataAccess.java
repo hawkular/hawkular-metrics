@@ -50,11 +50,13 @@ public interface DataAccess {
 
     ResultSetFuture findMetric(String tenantId, MetricType type, MetricId id, long dpart);
 
-    ResultSetFuture addMetadata(Metric metric);
+    ResultSetFuture addTagsAndDataRetention(Metric metric);
 
-    ResultSetFuture updateMetadata(Metric metric, Map<String, String> additions, Set<String> removals);
+    ResultSetFuture addTags(Metric metric, Map<String, String> tags);
 
-    ResultSetFuture updateMetadataInMetricsIndex(Metric metric, Map<String, String> additions,
+    ResultSetFuture deleteTags(Metric metric, Set<String> tags);
+
+    ResultSetFuture updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
         Set<String> deletions);
 
     <T extends Metric> ResultSetFuture updateMetricsIndex(List<T> metrics);
@@ -79,15 +81,15 @@ public interface DataAccess {
 
     ResultSetFuture findAllNumericMetrics();
 
-    ResultSetFuture insertNumericTag(String tag, List<NumericData> data);
+    ResultSetFuture insertNumericTag(String tag, String tagValue, List<NumericData> data);
 
-    ResultSetFuture insertAvailabilityTag(String tag, List<Availability> data);
+    ResultSetFuture insertAvailabilityTag(String tag, String tagValue, List<Availability> data);
 
-    ResultSetFuture updateDataWithTag(MetricData data, Set<String> tags);
+    ResultSetFuture updateDataWithTag(MetricData data, Map<String, String> tags);
 
-    ResultSetFuture findNumericDataByTag(String tenantId, String tag);
+    ResultSetFuture findNumericDataByTag(String tenantId, String tag, String tagValue);
 
-    ResultSetFuture findAvailabilityByTag(String tenantId, String tag);
+    ResultSetFuture findAvailabilityByTag(String tenantId, String tag, String tagValue);
 
     ResultSetFuture insertData(AvailabilityMetric metric, int ttl);
 
@@ -102,4 +104,10 @@ public interface DataAccess {
     ResultSetFuture updateRetentionsIndex(String tenantId, MetricType type, Set<Retention> retentions);
 
     ResultSetFuture updateRetentionsIndex(Metric metric);
+
+    ResultSetFuture insertIntoMetricsTagsIndex(Metric metric, Map<String, String> tags);
+
+    ResultSetFuture deleteFromMetricsTagsIndex(Metric metric, Map<String, String> tags);
+
+    ResultSetFuture findMetricsByTag(String tenantId, String tag);
 }

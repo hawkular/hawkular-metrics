@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
 
@@ -102,7 +103,12 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> updateMetadata(Metric metric, Map<String, String> metadata, Set<String> deletions) {
+    public ListenableFuture<Void> addTags(Metric metric, Map<String, Optional<String>> tags) {
+        return null;
+    }
+
+    @Override
+    public ListenableFuture<Void> deleteTags(Metric metric, Map<String, Optional<String>> tags) {
         return null;
     }
 
@@ -209,36 +215,38 @@ public class MemoryMetricsService implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Set<String> tags, long start,
-        long end) {
-        return null;
-    }
-
-    @Override
-    public ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, Set<String> tags,
+    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Map<String, Optional<String>> tags,
         long start, long end) {
         return null;
     }
 
     @Override
-    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Set<String> tags, long timestamp) {
+    public ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric,
+        Map<String, Optional<String>> tags, long start, long end) {
         return null;
     }
 
     @Override
-    public ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, Set<String> tags,
+    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Map<String, Optional<String>> tags,
         long timestamp) {
         return null;
     }
 
     @Override
-    public ListenableFuture<Map<MetricId, Set<NumericData>>> findNumericDataByTags(String tenantId, Set<String> tags) {
+    public ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric,
+        Map<String, Optional<String>> tags, long timestamp) {
+        return null;
+    }
+
+    @Override
+    public ListenableFuture<Map<MetricId, Set<NumericData>>> findNumericDataByTags(String tenantId,
+        Map<String, Optional<String>> tags) {
         return null;
     }
 
     @Override
     public ListenableFuture<Map<MetricId, Set<Availability>>> findAvailabilityByTags(String tenantId,
-        Set<String> tags) {
+        Map<String, Optional<String>> tags) {
         return null;
     }
 

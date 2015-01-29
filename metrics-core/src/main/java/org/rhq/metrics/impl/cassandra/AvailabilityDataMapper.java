@@ -17,11 +17,9 @@
 package org.rhq.metrics.impl.cassandra;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
@@ -31,7 +29,6 @@ import org.rhq.metrics.core.Availability;
 import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.MetricId;
-import org.rhq.metrics.core.Tag;
 
 /**
  * @author John Sanda
@@ -44,7 +41,7 @@ public class AvailabilityDataMapper implements Function<ResultSet, List<Availabi
         INTERVAL,
         DPART,
         TIME,
-        META_DATA,
+        METRIC_TAGS,
         DATA_RETENTION,
         AVAILABILITY,
         TAGS,
@@ -90,7 +87,7 @@ public class AvailabilityDataMapper implements Function<ResultSet, List<Availabi
 
     private AvailabilityMetric getMetric(Row row) {
         AvailabilityMetric metric = new AvailabilityMetric(row.getString(ColumnIndex.TENANT_ID.ordinal()), getId(row),
-            row.getMap(ColumnIndex.META_DATA.ordinal(), String.class, String.class),
+            MetricUtils.getTags(row.getMap(ColumnIndex.METRIC_TAGS.ordinal(), String.class, String.class)),
             ColumnIndex.DATA_RETENTION.ordinal());
         metric.setDpart(row.getLong(ColumnIndex.DPART.ordinal()));
 
@@ -102,15 +99,8 @@ public class AvailabilityDataMapper implements Function<ResultSet, List<Availabi
             ColumnIndex.INTERVAL.ordinal())));
     }
 
-    private Set<Tag> getTags(Row row) {
+    private Map<String, Optional<String>> getTags(Row row) {
         Map<String, String> map = row.getMap(ColumnIndex.TAGS.ordinal(), String.class, String.class);
-        Set<Tag> tags;
-        if (map.isEmpty()) {
-            tags = Collections.emptySet();
-        } else {
-            tags = new HashSet<>();
-            tags.addAll(map.keySet().stream().map(tag -> new Tag(tag, map.get(tag))).collect(Collectors.toList()));
-        }
-        return tags;
+        return MetricUtils.getTags(map);
     }
 }

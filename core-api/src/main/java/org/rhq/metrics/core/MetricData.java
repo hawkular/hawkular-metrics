@@ -17,8 +17,9 @@
 package org.rhq.metrics.core;
 
 import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.datastax.driver.core.utils.UUIDs;
@@ -42,7 +43,7 @@ public abstract class MetricData {
 
     protected Metric metric;
 
-    protected Set<Tag> tags = new HashSet<>();
+    protected Map<String, Optional<String>> tags = new HashMap<>();
 
     protected Long writeTime;
 
@@ -57,11 +58,11 @@ public abstract class MetricData {
         this.timeUUID = timeUUID;
     }
 
-    public MetricData(Metric metric, UUID timeUUID, Set<Tag> tags) {
+    public MetricData(Metric metric, UUID timeUUID, Map<String, Optional<String>> tags) {
         this(metric, timeUUID, tags, null);
     }
 
-    public MetricData(Metric metric, UUID timeUUID, Set<Tag> tags, Long writeTime) {
+    public MetricData(Metric metric, UUID timeUUID, Map<String, Optional<String>> tags, Long writeTime) {
         this.metric = metric;
         this.timeUUID = timeUUID;
         this.tags = tags;
@@ -77,12 +78,12 @@ public abstract class MetricData {
         this.timeUUID = timeUUID;
     }
 
-    public MetricData(UUID timeUUID, Set<Tag> tags) {
+    public MetricData(UUID timeUUID, Map<String, Optional<String>> tags) {
         this.timeUUID = timeUUID;
         this.tags = tags;
     }
 
-    public MetricData(UUID timeUUID, Set<Tag> tags, Long writeTime) {
+    public MetricData(UUID timeUUID, Map<String, Optional<String>> tags, Long writeTime) {
         this.timeUUID = timeUUID;
         this.tags = tags;
         this.writeTime = writeTime;
@@ -114,11 +115,11 @@ public abstract class MetricData {
         return UUIDs.unixTimestamp(timeUUID);
     }
 
-    public Set<Tag> getTags() {
+    public Map<String, Optional<String>> getTags() {
         return tags;
     }
 
-    public void setTags(Set<Tag> tags) {
+    public void setTags(Map<String, Optional<String>> tags) {
         this.tags = tags;
     }
 

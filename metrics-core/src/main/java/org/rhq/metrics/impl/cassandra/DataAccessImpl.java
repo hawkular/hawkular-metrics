@@ -16,12 +16,15 @@
  */
 package org.rhq.metrics.impl.cassandra;
 
+import static java.util.stream.Collectors.toMap;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
@@ -70,11 +73,11 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findMetric;
 
-    private PreparedStatement addMetadata;
+    private PreparedStatement addMetricTagsToDataTable;
 
     private PreparedStatement addMetadataAndDataRetention;
 
-    private PreparedStatement deleteMetadata;
+    private PreparedStatement deleteMetricTagsFromDataTable;
 
     private PreparedStatement insertNumericData;
 
@@ -114,9 +117,9 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement updateMetricsIndex;
 
-    private PreparedStatement addMetadataToMetricsIndex;
+    private PreparedStatement addTagsToMetricsIndex;
 
-    private PreparedStatement deleteMetadataFromMetricsIndex;
+    private PreparedStatement deleteTagsFromMetricsIndex;
 
     private PreparedStatement readMetricsIndex;
 
@@ -125,6 +128,12 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement updateRetentionsIndex;
 
     private PreparedStatement findDataRetentions;
+
+    private PreparedStatement insertMetricsTagsIndex;
+
+    private PreparedStatement deleteMetricsTagsIndex;
+
+    private PreparedStatement findMetricsByTagName;
 
     public DataAccessImpl(Session session) {
         this.session = session;
@@ -142,82 +151,82 @@ public class DataAccessImpl implements DataAccess {
         findTenant = session.prepare("SELECT id, retentions, aggregation_templates FROM tenants WHERE id = ?");
 
         findMetric = session.prepare(
-            "SELECT tenant_id, type, metric, interval, dpart, meta_data, data_retention " +
+            "SELECT tenant_id, type, metric, interval, dpart, m_tags, data_retention " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
 
-        addMetadata = session.prepare(
+        addMetricTagsToDataTable = session.prepare(
             "UPDATE data " +
-            "SET meta_data = meta_data + ? " +
+            "SET m_tags = m_tags + ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
 
         addMetadataAndDataRetention = session.prepare(
             "UPDATE data " +
-            "SET meta_data = meta_data + ?, data_retention = ? " +
+            "SET m_tags = m_tags + ?, data_retention = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
 
-        deleteMetadata = session.prepare(
+        deleteMetricTagsFromDataTable = session.prepare(
             "UPDATE data " +
-            "SET meta_data = meta_data - ? " +
+            "SET m_tags = m_tags - ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
 
         insertIntoMetricsIndex = session.prepare(
-            "INSERT INTO metrics_idx (tenant_id, type, interval, metric, data_retention, meta_data) " +
+            "INSERT INTO metrics_idx (tenant_id, type, interval, metric, data_retention, tags) " +
             "VALUES (?, ?, ?, ?, ?, ?) " +
             "IF NOT EXISTS");
 
         updateMetricsIndex = session.prepare(
             "INSERT INTO metrics_idx (tenant_id, type, interval, metric) VALUES (?, ?, ?, ?)");
 
-        addMetadataToMetricsIndex = session.prepare(
+        addTagsToMetricsIndex = session.prepare(
             "UPDATE metrics_idx " +
-            "SET meta_data = meta_data + ? " +
+            "SET tags = tags + ? " +
             "WHERE tenant_id = ? AND type = ? AND interval = ? AND metric = ?");
 
-        deleteMetadataFromMetricsIndex = session.prepare(
+        deleteTagsFromMetricsIndex = session.prepare(
             "UPDATE metrics_idx " +
-            "SET meta_data = meta_data - ?" +
+            "SET tags = tags - ?" +
             "WHERE tenant_id = ? AND type = ? AND interval = ? AND metric = ?");
 
         readMetricsIndex = session.prepare(
-            "SELECT metric, interval, meta_data, data_retention " +
+            "SELECT metric, interval, tags, data_retention " +
             "FROM metrics_idx " +
             "WHERE tenant_id = ? AND type = ?");
 
         insertNumericData = session.prepare(
             "UPDATE data " +
             "USING TTL ?" +
-            "SET meta_data = meta_data + ?, n_value = ? " +
+            "SET m_tags = m_tags + ?, n_value = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ? ");
 
         findNumericDataByDateRangeExclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, n_value, tags " +
+            "SELECT tenant_id, metric, interval, dpart, time, m_tags, data_retention, n_value, tags " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time < ?");
 
         findNumericDataWithWriteTimeByDateRangeExclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, n_value, tags,"
+            "SELECT tenant_id, metric, interval, dpart, time, m_tags, data_retention, n_value, tags,"
                 + " WRITETIME(n_value) " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time < ?");
 
         findNumericDataByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, n_value, tags " +
+            "SELECT tenant_id, metric, interval, dpart, time, m_tags, data_retention, n_value, tags " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time <= ?");
 
         findNumericDataWithWriteTimeByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, n_value, tags,"
+            "SELECT tenant_id, metric, interval, dpart, time, m_tags, data_retention, n_value, tags,"
                 + " WRITETIME(n_value) " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time <= ?");
 
         findAvailabilityByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, availability, tags,"
+            "SELECT tenant_id, metric, interval, dpart, time, m_tags, data_retention, availability, tags,"
                 + " WRITETIME(availability) " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
@@ -242,13 +251,13 @@ public class DataAccessImpl implements DataAccess {
             "SELECT tenant_id, group, c_name, c_value FROM counters WHERE tenant_id = ? AND group = ? AND c_name IN ?");
 
         insertNumericTags = session.prepare(
-            "INSERT INTO tags (tenant_id, tag, type, metric, interval, time, n_value) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?) " +
+            "INSERT INTO tags (tenant_id, tname, tvalue, type, metric, interval, time, n_value) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
             "USING TTL ?");
 
         insertAvailabilityTags = session.prepare(
-            "INSERT INTO tags (tenant_id, tag, type, metric, interval, time, availability) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?) " +
+            "INSERT INTO tags (tenant_id, tname, tvalue, type, metric, interval, time, availability) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
             "USING TTL ?");
 
         updateDataWithTags = session.prepare(
@@ -257,29 +266,29 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
         findNumericDataByTag = session.prepare(
-            "SELECT tenant_id, tag, type, metric, interval, time, n_value " +
+            "SELECT tenant_id, tname, tvalue, type, metric, interval, time, n_value " +
             "FROM tags " +
-            "WHERE tenant_id = ? AND tag = ? AND type = ?");
+            "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
 
         findAvailabilityByTag = session.prepare(
-            "SELECT tenant_id, tag, type, metric, interval, time, availability " +
+            "SELECT tenant_id, tname, tvalue, type, metric, interval, time, availability " +
             "FROM tags " +
-            "WHERE tenant_id = ? AND tag = ? AND type = ?");
+            "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
 
         insertAvailability = session.prepare(
             "UPDATE data " +
             "USING TTL ? " +
-            "SET meta_data = meta_data + ?, availability = ? " +
+            "SET m_tags = m_tags + ?, availability = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
         findAvailabilities = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, availability, tags " +
+            "SELECT tenant_id, metric, interval, dpart, time, m_tags, data_retention, availability, tags " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time < ?");
 
         findAvailabilitiesWithWriteTime = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, meta_data, data_retention, availability, tags,"
+            "SELECT tenant_id, metric, interval, dpart, time, m_tags, data_retention, availability, tags,"
                 + " WRITETIME(availability) " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
@@ -292,6 +301,19 @@ public class DataAccessImpl implements DataAccess {
             "SELECT tenant_id, type, interval, metric, retention " +
             "FROM retentions_idx " +
             "WHERE tenant_id = ? AND type = ?");
+
+        insertMetricsTagsIndex = session.prepare(
+            "INSERT INTO metrics_tags_idx (tenant_id, tname, tvalue, type, metric, interval) VALUES " +
+            "(?, ?, ?, ?, ?, ?)");
+
+        deleteMetricsTagsIndex = session.prepare(
+            "DELETE FROM metrics_tags_idx " +
+            "WHERE tenant_id = ? AND tname = ? AND tvalue = ? AND type = ? AND metric = ? AND interval = ?");
+
+        findMetricsByTagName = session.prepare(
+            "SELECT tvalue, type, metric, interval " +
+            "FROM metrics_tags_idx " +
+            "WHERE tenant_id = ? AND tname = ?");
     }
 
     @Override
@@ -336,7 +358,11 @@ public class DataAccessImpl implements DataAccess {
     public ResultSetFuture insertMetricInMetricsIndex(Metric metric) {
         return session.executeAsync(insertIntoMetricsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
             metric.getId().getInterval().toString(), metric.getId().getName(), metric.getDataRetention(),
-            metric.getMetadata()));
+            getTags(metric)));
+    }
+
+    private Map<String, String> getTags(Metric<? extends MetricData> metric) {
+        return metric.getTags().entrySet().stream().collect(toMap(Map.Entry::getKey, e -> e.getValue().orElse("")));
     }
 
     @Override
@@ -345,30 +371,45 @@ public class DataAccessImpl implements DataAccess {
             id.getInterval().toString(), dpart));
     }
 
+    // This method updates the metric tags and data retention in the data table. In the
+    // long term after we add support for bucketing/date partitioning I am not sure that we
+    // will store metric tags and data retention in the data table. We would have to
+    // determine when we start writing data to a new partition, e.g., the start of the next
+    // day, and then add the tags and retention to the new partition.
     @Override
-    public ResultSetFuture addMetadata(Metric metric) {
-        return session.executeAsync(addMetadataAndDataRetention.bind(metric.getMetadata(), metric.getDataRetention(),
+    public ResultSetFuture addTagsAndDataRetention(Metric metric) {
+        return session.executeAsync(addMetadataAndDataRetention.bind(getTags(metric), metric.getDataRetention(),
             metric.getTenantId(), metric.getType().getCode(), metric.getId().getName(),
             metric.getId().getInterval().toString(), metric.getDpart()));
     }
 
     @Override
-    public ResultSetFuture updateMetadata(Metric metric, Map<String, String> additions, Set<String> removals) {
-        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED)
-            .add(addMetadata.bind(additions, metric.getTenantId(), metric.getType().getCode(), metric.getId().getName(),
-                metric.getId().getInterval().toString(), metric.getDpart()))
-            .add(deleteMetadata.bind(removals, metric.getTenantId(), metric.getType().getCode(),
-                metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart()));
-        return session.executeAsync(batchStatement);
+    public ResultSetFuture addTags(Metric metric, Map<String, String> tags) {
+        BatchStatement batch = new BatchStatement(BatchStatement.Type.UNLOGGED);
+        batch.add(addMetricTagsToDataTable.bind(tags, metric.getTenantId(), metric.getType().getCode(),
+            metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart()));
+        batch.add(addTagsToMetricsIndex.bind(tags, metric.getTenantId(), metric.getType().getCode(),
+            metric.getId().getInterval().toString(), metric.getId().getName()));
+        return session.executeAsync(batch);
     }
 
     @Override
-    public ResultSetFuture updateMetadataInMetricsIndex(Metric metric, Map<String, String> additions,
+    public ResultSetFuture deleteTags(Metric metric, Set<String> tags) {
+        BatchStatement batch = new BatchStatement(BatchStatement.Type.UNLOGGED);
+        batch.add(deleteMetricTagsFromDataTable.bind(tags, metric.getTenantId(), metric.getType().getCode(),
+            metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart()));
+        batch.add(deleteTagsFromMetricsIndex.bind(tags, metric.getTenantId(), metric.getType().getCode(),
+            metric.getId().getInterval().toString(), metric.getId().getName()));
+        return session.executeAsync(batch);
+    }
+
+    @Override
+    public ResultSetFuture updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
         Set<String> deletions) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED)
-            .add(addMetadataToMetricsIndex.bind(additions, metric.getTenantId(),
+            .add(addTagsToMetricsIndex.bind(additions, metric.getTenantId(),
                 metric.getType().getCode(), metric.getId().getInterval().toString(), metric.getId().getName()))
-            .add(deleteMetadataFromMetricsIndex.bind(deletions, metric.getTenantId(), metric.getType().getCode(),
+            .add(deleteTagsFromMetricsIndex.bind(deletions, metric.getTenantId(), metric.getType().getCode(),
                 metric.getId().getInterval().toString(), metric.getId().getName()));
         return session.executeAsync(batchStatement);
     }
@@ -388,29 +429,11 @@ public class DataAccessImpl implements DataAccess {
         return session.executeAsync(readMetricsIndex.bind(tenantId, type.getCode()));
     }
 
-//    public ResultSetFuture insertNumericData(NumericData data) {
-//        UserType aggregateDataType = getKeyspace().getUserType("aggregate_data");
-//        Set<UDTValue> aggregateDataValues = new HashSet<>();
-//
-//        for (AggregatedValue v : data.getAggregatedValues()) {
-//            aggregateDataValues.add(aggregateDataType.newValue()
-//                .setString("type", v.getType())
-//                .setDouble("value", v.getValue())
-//                .setUUID("time", v.getTimeUUID())
-//                .setString("src_metric", v.getSrcMetric())
-//                .setString("src_metric_interval", getInterval(v.getSrcMetricInterval())));
-//        }
-//
-//        return session.executeAsync(insertNumericData.bind(data.getAttributes(), data.getValue(), aggregateDataValues,
-//            data.getTenantId(), data.getId().getName(), data.getId().getInterval().toString(), 0L,
-//              data.getTimeUUID()));
-//    }
-
     @Override
     public ResultSetFuture insertData(NumericMetric metric, int ttl) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (NumericData d : metric.getData()) {
-            batchStatement.add(insertNumericData.bind(ttl, metric.getMetadata(), d.getValue(), metric.getTenantId(),
+            batchStatement.add(insertNumericData.bind(ttl, getTags(metric), d.getValue(), metric.getTenantId(),
                 metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 metric.getDpart(), d.getTimeUUID()));
         }
@@ -485,21 +508,21 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertNumericTag(String tag, List<NumericData> data) {
+    public ResultSetFuture insertNumericTag(String tag, String tagValue, List<NumericData> data) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (NumericData d : data) {
-            batchStatement.add(insertNumericTags.bind(d.getMetric().getTenantId(), tag, MetricType.NUMERIC.getCode(),
-                d.getMetric().getId().getName(), d.getMetric().getId().getInterval().toString(), d.getTimeUUID(),
-                d.getValue(), d.getTTL()));
+            batchStatement.add(insertNumericTags.bind(d.getMetric().getTenantId(), tag, tagValue,
+                MetricType.NUMERIC.getCode(), d.getMetric().getId().getName(),
+                d.getMetric().getId().getInterval().toString(), d.getTimeUUID(), d.getValue(), d.getTTL()));
         }
         return session.executeAsync(batchStatement);
     }
 
     @Override
-    public ResultSetFuture insertAvailabilityTag(String tag, List<Availability> data) {
+    public ResultSetFuture insertAvailabilityTag(String tag, String tagValue, List<Availability> data) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (Availability a : data) {
-            batchStatement.add(insertAvailabilityTags.bind(a.getMetric().getTenantId(), tag,
+            batchStatement.add(insertAvailabilityTags.bind(a.getMetric().getTenantId(), tag, tagValue,
                 MetricType.AVAILABILITY.getCode(), a.getMetric().getId().getName(),
                 a.getMetric().getId().getInterval().toString(), a.getTimeUUID(), a.getBytes(), a.getTTL()));
         }
@@ -507,31 +530,27 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture updateDataWithTag(MetricData data, Set<String> tags) {
-        Map<String, String> tagMap = new HashMap<>();
-        for (String tag : tags) {
-            tagMap.put(tag, "");
-        }
-        return session.executeAsync(updateDataWithTags.bind(tagMap, data.getMetric().getTenantId(),
+    public ResultSetFuture updateDataWithTag(MetricData data, Map<String, String> tags) {
+        return session.executeAsync(updateDataWithTags.bind(tags, data.getMetric().getTenantId(),
             data.getMetric().getType().getCode(), data.getMetric().getId().getName(),
             data.getMetric().getId().getInterval().toString(), data.getMetric().getDpart(), data.getTimeUUID()));
     }
 
     @Override
-    public ResultSetFuture findNumericDataByTag(String tenantId, String tag) {
-        return session.executeAsync(findNumericDataByTag.bind(tenantId, tag, MetricType.NUMERIC.getCode()));
+    public ResultSetFuture findNumericDataByTag(String tenantId, String tag, String tagValue) {
+        return session.executeAsync(findNumericDataByTag.bind(tenantId, tag, tagValue));
     }
 
     @Override
-    public ResultSetFuture findAvailabilityByTag(String tenantId, String tag) {
-        return session.executeAsync(findAvailabilityByTag.bind(tenantId, tag, MetricType.AVAILABILITY.getCode()));
+    public ResultSetFuture findAvailabilityByTag(String tenantId, String tag, String tagValue) {
+        return session.executeAsync(findAvailabilityByTag.bind(tenantId, tag, tagValue));
     }
 
     @Override
     public ResultSetFuture insertData(AvailabilityMetric metric, int ttl) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (Availability a : metric.getData()) {
-            batchStatement.add(insertAvailability.bind(ttl, metric.getMetadata(), a.getBytes(), metric.getTenantId(),
+            batchStatement.add(insertAvailability.bind(ttl, metric.getTags(), a.getBytes(), metric.getTenantId(),
                 metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 metric.getDpart(), a.getTimeUUID()));
         }
@@ -575,6 +594,32 @@ public class DataAccessImpl implements DataAccess {
                 r.getId().getName(), r.getValue()));
         }
         return session.executeAsync(batchStatement);
+    }
+
+    @Override
+    public ResultSetFuture insertIntoMetricsTagsIndex(Metric metric, Map<String, String> tags) {
+        return executeTagsBatch(tags, (name, value) -> insertMetricsTagsIndex.bind(metric.getTenantId(), name, value,
+            metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString()));
+    }
+
+    @Override
+    public ResultSetFuture deleteFromMetricsTagsIndex(Metric metric, Map<String, String> tags) {
+        return executeTagsBatch(tags, (name, value) -> deleteMetricsTagsIndex.bind(metric.getTenantId(), name, value,
+            metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString()));
+    }
+
+    private ResultSetFuture executeTagsBatch(Map<String, String> tags,
+        BiFunction<String, String, BoundStatement> bindVars) {
+        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
+        for (String tag : tags.keySet()) {
+            batchStatement.add(bindVars.apply(tag, tags.get(tag)));
+        }
+        return session.executeAsync(batchStatement);
+    }
+
+    @Override
+    public ResultSetFuture findMetricsByTag(String tenantId, String tag) {
+        return session.executeAsync(findMetricsByTagName.bind(tenantId, tag));
     }
 
     @Override

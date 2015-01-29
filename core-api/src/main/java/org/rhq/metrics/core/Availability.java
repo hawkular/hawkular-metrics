@@ -17,7 +17,8 @@
 package org.rhq.metrics.core;
 
 import java.nio.ByteBuffer;
-import java.util.Set;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.google.common.base.Objects;
@@ -58,17 +59,18 @@ public class Availability extends MetricData {
         type = AvailabilityType.fromBytes(bytes);
     }
 
-    public Availability(AvailabilityMetric metric, UUID timeUUID, ByteBuffer bytes, Set<Tag> tags) {
+    public Availability(AvailabilityMetric metric, UUID timeUUID, ByteBuffer bytes,
+        Map<String, Optional<String>> tags) {
         super(metric, timeUUID, tags);
         type = AvailabilityType.fromBytes(bytes);
     }
 
-    public Availability(UUID timeUUID, ByteBuffer bytes, Set<Tag> tags) {
+    public Availability(UUID timeUUID, ByteBuffer bytes, Map<String, Optional<String>> tags) {
         super(timeUUID, tags);
         type = AvailabilityType.fromBytes(bytes);
     }
 
-    public Availability(UUID timeUUID, ByteBuffer bytes, Set<Tag> tags, Long writeTime) {
+    public Availability(UUID timeUUID, ByteBuffer bytes, Map<String, Optional<String>> tags, Long writeTime) {
         super(timeUUID, tags, writeTime);
         type = AvailabilityType.fromBytes(bytes);
     }

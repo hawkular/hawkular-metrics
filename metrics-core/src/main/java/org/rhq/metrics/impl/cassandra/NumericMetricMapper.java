@@ -16,10 +16,8 @@
  */
 package org.rhq.metrics.impl.cassandra;
 
-import static java.util.stream.Collectors.toSet;
-
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
@@ -28,7 +26,6 @@ import com.google.common.base.Function;
 import org.rhq.metrics.core.Interval;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.NumericMetric;
-import org.rhq.metrics.core.Tag;
 
 /**
  * @author John Sanda
@@ -41,7 +38,7 @@ public class NumericMetricMapper implements Function<ResultSet, NumericMetric> {
         INTERVAL,
         DPART,
         TIME,
-        META_DATA,
+        METRIC_TAGS,
         DATA_RETENTION,
         VALUE,
         TAGS
@@ -68,7 +65,7 @@ public class NumericMetricMapper implements Function<ResultSet, NumericMetric> {
 
     private NumericMetric getMetric(Row row) {
         NumericMetric metric = new NumericMetric(row.getString(ColumnIndex.TENANT_ID.ordinal()), getId(row),
-            row.getMap(ColumnIndex.META_DATA.ordinal(), String.class, String.class),
+            MetricUtils.getTags(row.getMap(ColumnIndex.METRIC_TAGS.ordinal(), String.class, String.class)),
             row.getInt(ColumnIndex.DATA_RETENTION.ordinal()));
         metric.setDpart(row.getLong(ColumnIndex.DPART.ordinal()));
 
@@ -80,8 +77,8 @@ public class NumericMetricMapper implements Function<ResultSet, NumericMetric> {
             ColumnIndex.INTERVAL.ordinal())));
     }
 
-    private Set<Tag> getTags(Row row) {
+    private Map<String, Optional<String>> getTags(Row row) {
         Map<String, String> map = row.getMap(ColumnIndex.TAGS.ordinal(), String.class, String.class);
-        return map.entrySet().stream().map(entry -> new Tag(entry.getKey(), entry.getValue())).collect(toSet());
+        return MetricUtils.getTags(map);
     }
 }

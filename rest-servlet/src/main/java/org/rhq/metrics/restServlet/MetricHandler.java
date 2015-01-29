@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.DoubleSummaryStatistics;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,6 +42,7 @@ import java.util.stream.LongStream;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -58,7 +58,6 @@ import javax.ws.rs.core.Response;
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -69,13 +68,12 @@ import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
 import org.rhq.metrics.core.Metric;
 import org.rhq.metrics.core.MetricAlreadyExistsException;
-import org.rhq.metrics.core.MetricData;
 import org.rhq.metrics.core.MetricId;
 import org.rhq.metrics.core.MetricType;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.core.NumericData;
 import org.rhq.metrics.core.NumericMetric;
-import org.rhq.metrics.core.Tag;
+import org.rhq.metrics.impl.cassandra.MetricUtils;
 
 import gnu.trove.map.TLongObjectMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
@@ -97,8 +95,8 @@ public class MetricHandler {
     @Consumes(APPLICATION_JSON)
     public void createNumericMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         MetricParams params) {
-        NumericMetric metric = new NumericMetric(tenantId, new MetricId(params.getName()), params.getMetadata(),
-            params.getDataRetention());
+        NumericMetric metric = new NumericMetric(tenantId, new MetricId(params.getName()), MetricUtils.getTags(
+            params.getTags()), params.getDataRetention());
         ListenableFuture<Void> future = metricsService.createMetric(metric);
         Futures.addCallback(future, new MetricCreatedCallback(asyncResponse, params));
     }
@@ -109,7 +107,7 @@ public class MetricHandler {
     public void createAvailabilityMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         MetricParams params) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(params.getName()),
-            params.getMetadata(), params.getDataRetention());
+            MetricUtils.getTags(params.getTags()), params.getDataRetention());
         ListenableFuture<Void> future = metricsService.createMetric(metric);
         Futures.addCallback(future, new MetricCreatedCallback(asyncResponse, params));
     }
@@ -145,66 +143,64 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/{tenantId}/metrics/numeric/{id}/meta")
-    public void getNumericMetricMetadata(@Suspended AsyncResponse response, @PathParam("tenantId") String tenantId,
+    @Path("/{tenantId}/metrics/numeric/{id}/tags")
+    public void getNumericMetricTags(@Suspended AsyncResponse response, @PathParam("tenantId") String tenantId,
         @PathParam("id") String id) {
         ListenableFuture<Metric> future = metricsService.findMetric(tenantId, MetricType.NUMERIC,
             new MetricId(id));
-        Futures.addCallback(future, new GetMetadataCallback(response));
+        Futures.addCallback(future, new GetMetricTagsCallback(response));
     }
 
     @PUT
-    @Path("/{tenantId}/metrics/numeric/{id}/meta")
-    public void updateNumericMetricMetadata(@Suspended final AsyncResponse response,
-        @PathParam("tenantId") String tenantId, @PathParam("id") String id, Map<String, ? extends Object> updates) {
-        Map<String, String> additions = new HashMap<>();
-        Set<String> deletions = new HashSet<>();
-
-        for (String key : updates.keySet()) {
-            if (key.equals("[delete]")) {
-                deletions.addAll((List<String>) updates.get(key));
-            } else {
-                additions.put(key, (String) updates.get(key));
-            }
-        }
+    @Path("/{tenantId}/metrics/numeric/{id}/tags")
+    public void updateNumericMetricTags(@Suspended final AsyncResponse response,
+        @PathParam("tenantId") String tenantId, @PathParam("id") String id, Map<String, String> tags) {
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
-        ListenableFuture<Void> future = metricsService.updateMetadata(metric, additions, deletions);
-        Futures.addCallback(future, new DataInsertedCallback(response, "Failed to update meta data"));
+        ListenableFuture<Void> future = metricsService.addTags(metric, MetricUtils.getTags(tags));
+        Futures.addCallback(future, new DataInsertedCallback(response, "Failed to update tags"));
+    }
+
+    @DELETE
+    @Path("/{tenantId}/metrics/numeric/{id}/tags/{tags}")
+    public void deleteNumericMetricTags(@Suspended final AsyncResponse response,
+        @PathParam("tenantId") String tenantId, @PathParam("id") String id, @PathParam("tags") String encodedTags) {
+        NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
+        ListenableFuture<Void> future = metricsService.deleteTags(metric, MetricUtils.decodeTags(encodedTags));
+        Futures.addCallback(future, new DataInsertedCallback(response, "Failed to delete tags"));
     }
 
     @GET
-    @Path("/{tenantId}/metrics/availability/{id}/meta")
-    public void getAvailabilityMetricMetadata(@Suspended AsyncResponse response,
+    @Path("/{tenantId}/metrics/availability/{id}/tags")
+    public void getAvailabilityMetricTags(@Suspended AsyncResponse response,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id) {
         ListenableFuture<Metric> future = metricsService.findMetric(tenantId, MetricType.AVAILABILITY,
             new MetricId(id));
-        Futures.addCallback(future, new GetMetadataCallback(response));
+        Futures.addCallback(future, new GetMetricTagsCallback(response));
     }
 
     @PUT
-    @Path("/{tenantId}/metrics/availability/{id}/meta")
-    public void updateAvailabilityMetricMetadata(@Suspended final AsyncResponse response,
-        @PathParam("tenantId") String tenantId, @PathParam("id") String id, Map<String, ? extends Object> updates) {
-        Map<String, String> additions = new HashMap<>();
-        Set<String> deletions = new HashSet<>();
-
-        for (String key : updates.keySet()) {
-            if (key.equals("[delete]")) {
-                deletions.addAll((List<String>) updates.get(key));
-            } else {
-                additions.put(key, (String) updates.get(key));
-            }
-        }
+    @Path("/{tenantId}/metrics/availability/{id}/tags")
+    public void updateAvailabilityMetricTags(@Suspended final AsyncResponse response,
+        @PathParam("tenantId") String tenantId, @PathParam("id") String id, Map<String, String> tags) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
-        ListenableFuture<Void> future = metricsService.updateMetadata(metric, additions, deletions);
-        Futures.addCallback(future, new DataInsertedCallback(response, "Failed to update meta data"));
+        ListenableFuture<Void> future = metricsService.addTags(metric, MetricUtils.getTags(tags));
+        Futures.addCallback(future, new DataInsertedCallback(response, "Failed to update tags"));
     }
 
-    private class GetMetadataCallback implements FutureCallback<Metric> {
+    @DELETE
+    @Path("/{tenantId}/metrics/availability/{id}/tags/{tags}")
+    public void deleteAvailabilityMetricTags(@Suspended final AsyncResponse response,
+        @PathParam("tenantId") String tenantId, @PathParam("id") String id, @PathParam("tags") String encodedTags) {
+        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
+        ListenableFuture<Void> future = metricsService.deleteTags(metric, MetricUtils.decodeTags(encodedTags));
+        Futures.addCallback(future, new DataInsertedCallback(response, "Failed to delete tags"));
+    }
+
+    private class GetMetricTagsCallback implements FutureCallback<Metric> {
 
         AsyncResponse response;
 
-        public GetMetadataCallback(AsyncResponse response) {
+        public GetMetricTagsCallback(AsyncResponse response) {
             this.response = response;
         }
 
@@ -214,13 +210,14 @@ public class MetricHandler {
                 response.resume(Response.status(Status.NO_CONTENT).type(APPLICATION_JSON_TYPE).build());
             } else {
                 response.resume(Response.ok(new MetricOut(metric.getTenantId(), metric.getId().getName(),
-                    metric.getMetadata(), metric.getDataRetention())).type(APPLICATION_JSON_TYPE).build());
+                    MetricUtils.flattenTags(metric.getTags()), metric.getDataRetention())).type(APPLICATION_JSON_TYPE)
+                    .build());
             }
         }
 
         @Override
         public void onFailure(Throwable t) {
-            Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to retrieve meta data due to " +
+            Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to retrieve tags due to " +
                 "an unexpected error: " + Throwables.getRootCause(t).getMessage());
             response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors).type(APPLICATION_JSON_TYPE)
                 .build());
@@ -269,7 +266,7 @@ public class MetricHandler {
 
         for (NumericDataParams params : paramsList) {
             NumericMetric metric = new NumericMetric(tenantId, new MetricId(params.getName()),
-                params.getMetadata());
+                MetricUtils.getTags(params.getTags()));
             for (NumericDataPoint p : params.getData()) {
                 metric.addData(p.getTimestamp(), p.getValue());
             }
@@ -292,7 +289,7 @@ public class MetricHandler {
 
         for (AvailabilityDataParams params : paramsList) {
             AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(params.getName()),
-                params.getMetadata());
+                MetricUtils.getTags(params.getTags()));
             for (AvailabilityDataPoint p : params.getData()) {
                 metric.addData(new Availability(metric, p.getTimestamp(), p.getValue()));
             }
@@ -305,10 +302,9 @@ public class MetricHandler {
     @GET
     @Path("/{tenantId}/numeric")
     public void findNumericDataByTags(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId, @QueryParam("tags") String tags) {
-        Set<String> tagSet = ImmutableSet.copyOf(tags.split(","));
+        @PathParam("tenantId") String tenantId, @QueryParam("tags") String encodedTags) {
         ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(
-            tenantId, tagSet);
+            tenantId, MetricUtils.decodeTags(encodedTags));
         Futures.addCallback(queryFuture, new FutureCallback<Map<MetricId, Set<NumericData>>>() {
             @Override
             public void onSuccess(Map<MetricId, Set<NumericData>> taggedDataMap) {
@@ -339,10 +335,9 @@ public class MetricHandler {
     @GET
     @Path("/{tenantId}/availability")
     public void findAvailabilityDataByTags(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId, @QueryParam("tags") String tags) {
-        Set<String> tagSet = ImmutableSet.copyOf(tags.split(","));
+        @PathParam("tenantId") String tenantId, @QueryParam("tags") String encodedTags) {
         ListenableFuture<Map<MetricId, Set<Availability>>> queryFuture = metricsService.findAvailabilityByTags(
-            tenantId, tagSet);
+            tenantId, MetricUtils.decodeTags(encodedTags));
         Futures.addCallback(queryFuture, new FutureCallback<Map<MetricId, Set<Availability>>>() {
             @Override
             public void onSuccess(Map<MetricId, Set<Availability>> taggedDataMap) {
@@ -373,17 +368,6 @@ public class MetricHandler {
                 asyncResponse.resume(t);
             }
         });
-    }
-
-    private Set<String> getTagNames(MetricData d) {
-        if (d.getTags().isEmpty()) {
-            return null;
-        }
-        Set<String> set = new HashSet<>();
-        for (Tag tag : d.getTags()) {
-            set.add(tag.getValue());
-        }
-        return set;
     }
 
     @GET
@@ -452,10 +436,10 @@ public class MetricHandler {
         @Override
         public MetricOut doApply(NumericMetric metric) {
             MetricOut output = new MetricOut(metric.getTenantId(), metric.getId().getName(),
-                metric.getMetadata(), metric.getDataRetention());
+                MetricUtils.flattenTags(metric.getTags()), metric.getDataRetention());
             List<DataPointOut> dataPoints = new ArrayList<>();
             for (NumericData d : metric.getData()) {
-                dataPoints.add(new DataPointOut(d.getTimestamp(), d.getValue(), getTagNames(d)));
+                dataPoints.add(new DataPointOut(d.getTimestamp(), d.getValue(), MetricUtils.flattenTags(d.getTags())));
             }
             output.setData(dataPoints);
 
@@ -481,7 +465,7 @@ public class MetricHandler {
         public BucketedOutput doApply(NumericMetric metric) {
             // we will have numberOfBuckets buckets over the whole time span
             BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(),
-                metric.getMetadata());
+                MetricUtils.flattenTags(metric.getTags()));
             long bucketSize = (endTime - startTime) / numberOfBuckets;
 
             long[] buckets = LongStream.iterate(0, i -> i + 1).limit(numberOfBuckets)
@@ -572,7 +556,7 @@ public class MetricHandler {
             NumericMetric metric = (NumericMetric) args.get(0);
             TLongObjectMap<List<NumericData>> buckets = (TLongObjectMap<List<NumericData>>) args.get(1);
             BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(),
-                metric.getMetadata());
+                MetricUtils.flattenTags(metric.getTags()));
             for (int i = 0; i < numberOfBuckets; ++i) {
                 List<NumericData> tmpList = buckets.get(i);
                 if (tmpList == null) {
@@ -606,7 +590,7 @@ public class MetricHandler {
             NumericMetric metric = (NumericMetric) args.get(0);
             TLongObjectMap<List<NumericData>> buckets = (TLongObjectMap<List<NumericData>>) args.get(1);
             BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(),
-                metric.getMetadata());
+                MetricUtils.flattenTags(metric.getTags()));
             for (int i = 0; i < numberOfBuckets; ++i) {
                 List<NumericData> tmpList = buckets.get(i);
                 if (tmpList != null) {
@@ -645,10 +629,11 @@ public class MetricHandler {
                     asyncResponse.resume(Response.ok().status(Status.NO_CONTENT).build());
                 } else {
                     MetricOut output = new MetricOut(metric.getTenantId(), metric.getId().getName(),
-                        metric.getMetadata(), metric.getDataRetention());
+                        MetricUtils.flattenTags(metric.getTags()), metric.getDataRetention());
                     List<DataPointOut> dataPoints = new ArrayList<>(metric.getData().size());
                     for (Availability a : metric.getData()) {
-                        dataPoints.add(new DataPointOut(a.getTimestamp(), a.getType().getText(), getTagNames(a)));
+                        dataPoints.add(new DataPointOut(a.getTimestamp(), a.getType().getText(),
+                            MetricUtils.flattenTags(a.getTags())));
                     }
                     output.setData(dataPoints);
 
@@ -670,9 +655,11 @@ public class MetricHandler {
         ListenableFuture<List<NumericData>> future;
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(params.getMetric()));
         if (params.getTimestamp() != null) {
-            future = metricsService.tagNumericData(metric, params.getTags(), params.getTimestamp());
+            future = metricsService.tagNumericData(metric, MetricUtils.getTags(params.getTags()),
+                params.getTimestamp());
         } else {
-            future = metricsService.tagNumericData(metric, params.getTags(), params.getStart(), params.getEnd());
+            future = metricsService.tagNumericData(metric, MetricUtils.getTags(params.getTags()), params.getStart(),
+                params.getEnd());
         }
         Futures.addCallback(future, new FutureCallback<List<NumericData>>() {
             @Override
@@ -694,9 +681,11 @@ public class MetricHandler {
         ListenableFuture<List<Availability>> future;
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(params.getMetric()));
         if (params.getTimestamp() != null) {
-            future = metricsService.tagAvailabilityData(metric, params.getTags(), params.getTimestamp());
+            future = metricsService.tagAvailabilityData(metric, MetricUtils.getTags(params.getTags()),
+                params.getTimestamp());
         } else {
-            future = metricsService.tagAvailabilityData(metric, params.getTags(), params.getStart(), params.getEnd());
+            future = metricsService.tagAvailabilityData(metric, MetricUtils.getTags(params.getTags()),
+                params.getStart(), params.getEnd());
         }
         Futures.addCallback(future, new FutureCallback<List<Availability>>() {
             @Override
@@ -714,9 +703,9 @@ public class MetricHandler {
     @GET
     @Path("/{tenantId}/tags/numeric/{tag}")
     public void findTaggedNumericData(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId, @PathParam("tag") String tag) {
+        @PathParam("tenantId") String tenantId, @PathParam("tag") String encodedTag) {
         ListenableFuture<Map<MetricId, Set<NumericData>>> future = metricsService.findNumericDataByTags(
-                tenantId, ImmutableSet.of(tag));
+                tenantId, MetricUtils.decodeTags(encodedTag));
         Futures.addCallback(future, new FutureCallback<Map<MetricId, Set<NumericData>>>() {
             @Override
             public void onSuccess(Map<MetricId, Set<NumericData>> taggedDataMap) {
@@ -758,9 +747,9 @@ public class MetricHandler {
     @GET
     @Path("/{tenantId}/tags/availability/{tag}")
     public void findTaggedAvailabilityData(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId, @PathParam("tag") String tag) {
+        @PathParam("tenantId") String tenantId, @PathParam("tag") String encodedTag) {
         ListenableFuture<Map<MetricId, Set<Availability>>> future = metricsService.findAvailabilityByTags(tenantId,
-            ImmutableSet.of(tag));
+            MetricUtils.decodeTags(encodedTag));
         Futures.addCallback(future, new FutureCallback<Map<MetricId, Set<Availability>>>() {
             @Override
             public void onSuccess(Map<MetricId, Set<Availability>> taggedDataMap) {
@@ -924,8 +913,8 @@ public class MetricHandler {
                 } else {
                     List<MetricOut> output = new ArrayList<>();
                     for (Metric metric : metrics) {
-                        output.add(new MetricOut(tenantId, metric.getId().getName(), metric.getMetadata(),
-                            metric.getDataRetention()));
+                        output.add(new MetricOut(tenantId, metric.getId().getName(), MetricUtils.flattenTags(
+                            metric.getTags()), metric.getDataRetention()));
                     }
                     response.resume(Response.status(Status.OK).entity(output).type(APPLICATION_JSON_TYPE).build());
                 }

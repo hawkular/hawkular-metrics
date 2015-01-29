@@ -17,7 +17,7 @@
 package org.rhq.metrics.core;
 
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -29,12 +29,12 @@ public class NumericMetric extends Metric<NumericData> {
         super(tenantId, id);
     }
 
-    public NumericMetric(String tenantId, MetricId id, Map<String, String> metadata) {
-        super(tenantId, id, metadata);
+    public NumericMetric(String tenantId, MetricId id, Map<String, Optional<String>> tags) {
+        super(tenantId, id, tags);
     }
 
-    public NumericMetric(String tenantId, MetricId id, Map<String, String> metadata, Integer dataRetention) {
-        super(tenantId, id, metadata, dataRetention);
+    public NumericMetric(String tenantId, MetricId id, Map<String, Optional<String>> tags, Integer dataRetention) {
+        super(tenantId, id, tags, dataRetention);
     }
 
     @Override
@@ -50,7 +50,7 @@ public class NumericMetric extends Metric<NumericData> {
         addData(new NumericData(this, timeUUID, value));
     }
 
-    public void addData(UUID timeUUID, double value, Set<Tag> tags) {
+    public void addData(UUID timeUUID, double value, Map<String, Optional<String>> tags) {
         addData(new NumericData(this, timeUUID, value, tags));
     }
 
