@@ -129,7 +129,7 @@
     <jackson.version>2.3.2</jackson.version>
     <trove4j.version>3.0.3</trove4j.version>
     <google.guava.version>16.0.1</google.guava.version>
-    <antlr.version>4.3</antlr.version>
+    <antlr.version>4.5</antlr.version>
 
     <version.wildfly>8.2.0.Final</version.wildfly>
     <findbugs.version>3.0.0</findbugs.version>
