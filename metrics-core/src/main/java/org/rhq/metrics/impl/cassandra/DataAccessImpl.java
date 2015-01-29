@@ -403,17 +403,6 @@ public class DataAccessImpl implements DataAccess {
         return session.executeAsync(batch);
     }
 
-//    @Override
-//    public ResultSetFuture updateTags(Metric metric, Map<String, String> additions, Set<String> removals) {
-//        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED)
-//            .add(addMetricTagsToDataTable
-//                .bind(additions, metric.getTenantId(), metric.getType().getCode(), metric.getId().getName(),
-//                    metric.getId().getInterval().toString(), metric.getDpart()))
-//            .add(deleteMetricTagsFromDataTable.bind(removals, metric.getTenantId(), metric.getType().getCode(),
-//                metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart()));
-//        return session.executeAsync(batchStatement);
-//    }
-
     @Override
     public ResultSetFuture updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
         Set<String> deletions) {

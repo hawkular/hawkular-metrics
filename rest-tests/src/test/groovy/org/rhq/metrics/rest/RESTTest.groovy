@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.rhq.metrics.rest
-
 import groovyx.net.http.ContentType
 import groovyx.net.http.RESTClient
 import org.junit.BeforeClass
@@ -23,6 +22,7 @@ import org.junit.BeforeClass
 class RESTTest {
 
   static baseURI = System.getProperty('rhq-metrics.base-uri') ?: '127.0.0.1:8080/rhq-metrics'
+  static final double DELTA = 0.001
   static RESTClient rhqm
 
   @BeforeClass

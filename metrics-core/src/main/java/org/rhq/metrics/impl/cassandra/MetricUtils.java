@@ -26,7 +26,7 @@ public class MetricUtils {
     }
 
     public static Map<String, Optional<String>> decodeTags(String tags) {
-        return Arrays.stream(tags.split("\\$"))
+        return Arrays.stream(tags.split(","))
             .map(s -> s.split(":"))
             .collect(toMap(a -> a[0], a -> getOptional(a[1])));
     }
