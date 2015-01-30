@@ -21,6 +21,7 @@
     "angular-scenario": "1.2.6"
   },
   "resolutions": {
-    "angular": "1.2.6"
+    "angular": "1.2.6",
+    "moment": "2.9.0"
   }
 }
