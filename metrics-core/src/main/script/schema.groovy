@@ -26,4 +26,5 @@ Session session = cluster.connect()
 
 String keyspace = properties["keyspace"] ?: "rhqtest"
 SchemaManager schemaManager = new SchemaManager(session)
+if (properties["resetdb"]) schemaManager.dropKeyspace(keyspace)
 schemaManager.createSchema(keyspace)

@@ -47,6 +47,11 @@ public class SchemaManager {
         this.session = session;
     }
 
+    public void dropKeyspace(String keyspace) {
+        logger.info("Dropping keyspace " + keyspace);
+        session.execute("DROP KEYSPACE " + keyspace);
+    }
+
     public void createSchema(String keyspace) throws IOException {
         logger.info("Creating schema for keyspace " + keyspace);
 
