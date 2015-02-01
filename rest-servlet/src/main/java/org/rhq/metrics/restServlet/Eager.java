@@ -16,21 +16,23 @@
  */
 package org.rhq.metrics.restServlet;
 
-import org.rhq.metrics.core.MetricsService;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+import javax.inject.Qualifier;
 
 /**
- * Singleton to record the chosen service.
- * @author Heiko W. Rupp
+ * This class was taken from http://www.javacodegeeks.com/2013/02/jsf-eager-cdi-beans.html
+ * <br/><br/>
+ * Note: Since this is a general purpose utility, it make make sense to move it to a common
+ * module where all of the various hawkular components can use it.
+ *
+ * @author John Sanda
  */
-public class ServiceKeeper {
-    private static ServiceKeeper ourInstance = new ServiceKeeper();
-
-    public static ServiceKeeper getInstance() {
-        return ourInstance;
-    }
-
-    private ServiceKeeper() {
-    }
-
-    public MetricsService service;
+@Qualifier
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+public @interface Eager {
 }
