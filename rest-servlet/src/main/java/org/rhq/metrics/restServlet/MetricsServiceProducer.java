@@ -24,6 +24,7 @@ import static org.rhq.metrics.restServlet.config.ConfigurationKey.CASSANDRA_NODE
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
@@ -40,6 +41,7 @@ import org.rhq.metrics.restServlet.config.ConfigurationProperty;
  * @author John Sanda
  */
 @ApplicationScoped
+@Eager
 public class MetricsServiceProducer {
     private static final Logger LOG = LoggerFactory.getLogger(MetricsServiceProducer.class);
 
@@ -65,6 +67,12 @@ public class MetricsServiceProducer {
 
     private MetricsService metricsService;
 
+    @PostConstruct
+    void init() {
+        LOG.info("Initializing metrics service");
+        getMetricsService();
+    }
+
     @Produces
     public MetricsService getMetricsService() {
         if (metricsService == null) {
@@ -81,9 +89,7 @@ public class MetricsServiceProducer {
                     metricsServiceBuilder.withOptions(options).withCassandraDataStore();
                     break;
                 case "mem":
-                    LOG.info("Using memory backend implementation");
-                    metricsServiceBuilder.withInMemoryDataStore();
-                    break;
+                    throw new RuntimeException("The memory backend is no longer supported");
                 case "embedded_cass":
                 default:
                     LOG.info("Using Cassandra backend implementation with an embedded Server");
@@ -94,7 +100,6 @@ public class MetricsServiceProducer {
             }
 
             metricsService = metricsServiceBuilder.build();
-            ServiceKeeper.getInstance().service = metricsService;
         }
 
         return metricsService;
