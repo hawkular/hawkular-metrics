@@ -14,14 +14,10 @@
     "angular-ui-sortable": "0.13.0",
     "angular-busy": "4.0.4",
     "ng-clip": "0.2.3",
-    "rhqm-charts": "~0.1.7",
-    "angularytics": "~0.3.0"
+    "rhqm-charts": "0.1.9",
+    "angularytics": "0.3.0"
   },
   "devDependencies": {
     "angular-scenario": "1.2.6"
-  },
-  "resolutions": {
-    "angular": "1.2.6",
-    "moment": "2.9.0"
   }
 }

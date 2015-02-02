@@ -16,15 +16,14 @@
     "lodash": "2.4.1",
     "ngstorage": "0.3.0",
     "angular-ui-router": "0.2.10",
-    "rhqm-charts": "~0.1.7"
+    "rhqm-charts": "0.1.10"
   },
   "devDependencies": {
     "angular-mocks": "1.2.28",
     "angular-scenario": "1.2.28"
   },
   "resolutions": {
-    "angular": "~1.2.28",
-    "d3": "~3.4.13",
-    "d3-tip": "~0.6.5"
+    "angular": "1.2.28",
+    "d3-tip": "0.6.6"
   }
 }
