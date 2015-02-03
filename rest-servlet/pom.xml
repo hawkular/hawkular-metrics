@@ -128,6 +128,12 @@
         </executions>
       </plugin>
 
+      <!-- placed here to enforce that processor-plugin is executed after antlr4 plugin -->
+      <plugin>
+        <groupId>org.bsc.maven</groupId>
+        <artifactId>maven-processor-plugin</artifactId>
+      </plugin>
+
       <plugin>
         <artifactId>maven-war-plugin</artifactId>
         <configuration>
