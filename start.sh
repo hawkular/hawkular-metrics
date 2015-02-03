@@ -239,7 +239,7 @@ get_dependency()
 
    if [ $VERSION_REQUESTED == false ]
    then
-      mvn versions:use-latest-releases -DgenerateBackupPoms=false -f start.xml -q
+      mvn versions:use-latest-releases -DgenerateBackupPoms=false -f start.xml -q > /dev/null
       if [ $? -ne 0 ]
       then
          clean_temp_files
