@@ -25,7 +25,7 @@ import javax.inject.Qualifier;
 
 /**
  * This class was taken from http://www.javacodegeeks.com/2013/02/jsf-eager-cdi-beans.html
- * <br/><br/>
+ * <br><br>
  * Note: Since this is a general purpose utility, it make make sense to move it to a common
  * module where all of the various hawkular components can use it.
  *

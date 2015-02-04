@@ -24,7 +24,7 @@
   <parent>
     <artifactId>embedded-cassandra</artifactId>
     <groupId>org.rhq.metrics</groupId>
-    <version>0.2.7-SNAPSHOT</version>
+    <version>0.2.7</version>
   </parent>
   <artifactId>embedded-cassandra-ear</artifactId>
   <packaging>ear</packaging>
