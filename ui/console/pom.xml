@@ -24,7 +24,7 @@
   <parent>
     <artifactId>rhq-metrics-parent</artifactId>
     <groupId>org.rhq.metrics</groupId>
-    <version>0.2.7</version>
+    <version>0.2.8-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
   <artifactId>metrics-console</artifactId>
