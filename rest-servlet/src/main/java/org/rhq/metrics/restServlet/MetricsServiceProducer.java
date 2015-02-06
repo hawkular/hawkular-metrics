@@ -29,13 +29,12 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.rhq.metrics.RHQMetrics;
 import org.rhq.metrics.core.MetricsService;
 import org.rhq.metrics.restServlet.config.Configurable;
 import org.rhq.metrics.restServlet.config.ConfigurationProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author John Sanda
@@ -93,7 +92,7 @@ public class MetricsServiceProducer {
                 case "embedded_cass":
                 default:
                     LOG.info("Using Cassandra backend implementation with an embedded Server");
-                    metricsServiceBuilder.withCassandraDataStore();
+                    metricsServiceBuilder.withEmbeddedCassandraDataStore();
                 }
             } else {
                 metricsServiceBuilder.withCassandraDataStore();
