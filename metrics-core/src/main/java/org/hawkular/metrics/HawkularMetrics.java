@@ -26,7 +26,7 @@ import org.hawkular.metrics.impl.memory.MemoryMetricsService;
 /**
  * @author John Sanda
  */
-public class RHQMetrics {
+public class HawkularMetrics {
 
     public static class Builder {
 
@@ -119,7 +119,7 @@ public class RHQMetrics {
 
     private final MetricsService metricsService;
 
-    private RHQMetrics(MetricsService metricsService) {
+    private HawkularMetrics(MetricsService metricsService) {
         this.metricsService = metricsService;
     }
 

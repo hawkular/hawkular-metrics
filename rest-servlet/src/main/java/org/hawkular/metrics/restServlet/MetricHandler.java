@@ -29,7 +29,7 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 import static javax.ws.rs.core.Response.Status;
 import static org.hawkular.metrics.core.MetricsService.DEFAULT_TENANT_ID;
-import static org.hawkular.metrics.restServlet.CustomMediaTypes.APPLICATION_VND_RHQ_WRAPPED_JSON;
+import static org.hawkular.metrics.restServlet.CustomMediaTypes.APPLICATION_VND_HAWKULAR_WRAPPED_JSON;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -849,7 +849,7 @@ public class MetricHandler {
 
     @GET
     @Path("/counters/{group}")
-    @Produces({APPLICATION_JSON,APPLICATION_VND_RHQ_WRAPPED_JSON})
+    @Produces({APPLICATION_JSON,APPLICATION_VND_HAWKULAR_WRAPPED_JSON})
     public void getCountersForGroup(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group) {
         ListenableFuture<List<Counter>> future = metricsService.findCounters(group);
         Futures.addCallback(future, new FutureCallback<List<Counter>>() {
@@ -868,7 +868,7 @@ public class MetricHandler {
 
     @GET
     @Path("/counters/{group}/{counter}")
-    @Produces({APPLICATION_JSON,APPLICATION_VND_RHQ_WRAPPED_JSON})
+    @Produces({APPLICATION_JSON,APPLICATION_VND_HAWKULAR_WRAPPED_JSON})
     public void getCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") final String group,
         @PathParam("counter") final String counter) {
         ListenableFuture<List<Counter>> future = metricsService.findCounters(group, asList(counter));

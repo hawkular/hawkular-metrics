@@ -29,16 +29,16 @@ import org.slf4j.LoggerFactory;
  * @author Heiko W. Rupp
  */
 @ApplicationPath("/")
-public class RHQMetricsRestApp extends Application {
+public class HawkularMetricsRestApp extends Application {
 
-    private static final Logger logger = LoggerFactory.getLogger(RHQMetricsRestApp.class);
+    private static final Logger logger = LoggerFactory.getLogger(HawkularMetricsRestApp.class);
 
     @Inject
     private MetricsService metricsService;
 
-    public RHQMetricsRestApp() {
+    public HawkularMetricsRestApp() {
 
-        logger.info("RHQ Metrics starting ..");
+        logger.info("Hawkular Metrics starting ..");
 
     }
 

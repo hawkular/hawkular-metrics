@@ -16,7 +16,7 @@
 --
 
 -- Each line in this file will be used as a supported sample
--- for org.rhq.metrics.restServlet.influx.query.validation.SupportedSelectQueryTest
+-- for org.hawkular.metrics.restServlet.influx.query.validation.SupportedSelectQueryTest
 -- Empty lines and lines starting with double dash are ignored
 --
 select * from test

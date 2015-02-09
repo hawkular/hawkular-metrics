@@ -23,7 +23,7 @@ package org.hawkular.metrics.restServlet;
  */
 public class CustomMediaTypes {
 
-    public static final String APPLICATION_VND_RHQ_WRAPPED_JSON = "application/vnd.rhq.wrapped+json";
+    public static final String APPLICATION_VND_HAWKULAR_WRAPPED_JSON = "application/vnd.hawkular.wrapped+json";
 
     /**
      * For JSONP.

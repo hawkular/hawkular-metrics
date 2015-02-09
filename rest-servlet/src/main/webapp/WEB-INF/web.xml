@@ -22,12 +22,12 @@
          xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
          version="3.1">
 
-  <display-name>RHQ Metrics Rest interface</display-name>
+  <display-name>Hawkular Metrics Rest interface</display-name>
 
   <context-param>
     <param-name>resteasy.media.type.mappings</param-name>
     <param-value>html : text/html, json : application/json, xml : application/xml, csv : text/csv, txt: text/plain,
-      yaml: application/yaml, jsonw: application/vnd.rhq.wrapped+json
+      yaml: application/yaml, jsonw: application/vnd.hawkular.wrapped+json
     </param-value>
   </context-param>
 

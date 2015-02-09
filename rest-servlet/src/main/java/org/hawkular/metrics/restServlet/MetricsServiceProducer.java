@@ -29,7 +29,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 
-import org.hawkular.metrics.RHQMetrics;
+import org.hawkular.metrics.HawkularMetrics;
 import org.hawkular.metrics.core.MetricsService;
 import org.hawkular.metrics.restServlet.config.Configurable;
 import org.hawkular.metrics.restServlet.config.ConfigurationProperty;
@@ -75,7 +75,7 @@ public class MetricsServiceProducer {
     @Produces
     public MetricsService getMetricsService() {
         if (metricsService == null) {
-            RHQMetrics.Builder metricsServiceBuilder = new RHQMetrics.Builder();
+            HawkularMetrics.Builder metricsServiceBuilder = new HawkularMetrics.Builder();
 
             if (backend != null) {
                 switch (backend) {

@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
  * {@link org.hawkular.metrics.restServlet.CustomMediaTypes#APPLICATION_JAVASCRIPT}.
  * <p>
  * JSONP callback parameter name may be defined with the
- * {@code org.rhq.metrics.restServlet.jsonp.JsonPProvider} servlet context param. It defaults to
+ * {@code org.hawkular.metrics.restServlet.jsonp.JsonPProvider} servlet context param. It defaults to
  * {@code jsonp}.
  * </p>
  * <p>
@@ -65,7 +65,7 @@ import org.slf4j.LoggerFactory;
 public class JsonPProvider implements MessageBodyWriter<Object> {
     private static final Logger LOG = LoggerFactory.getLogger(JsonPProvider.class);
 
-    private static final String CALLBACK_PARAM_CONFIG = "org.rhq.metrics.restServlet.jsonp.JsonPProvider";
+    private static final String CALLBACK_PARAM_CONFIG = "org.hawkular.metrics.restServlet.jsonp.JsonPProvider";
     private static final String CALLBACK_PARAM_DEFAULT = "jsonp";
 
     @Context
