@@ -43,25 +43,8 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.google.common.base.Function;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.RateLimiter;
-
 import org.joda.time.Duration;
 import org.joda.time.Hours;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.rhq.metrics.core.Availability;
 import org.rhq.metrics.core.AvailabilityMetric;
 import org.rhq.metrics.core.Counter;
@@ -80,6 +63,22 @@ import org.rhq.metrics.core.RetentionSettings;
 import org.rhq.metrics.core.SchemaManager;
 import org.rhq.metrics.core.Tenant;
 import org.rhq.metrics.core.TenantAlreadyExistsException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.google.common.base.Function;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.RateLimiter;
 
 /**
  * @author John Sanda
@@ -257,31 +256,39 @@ public class MetricsServiceCassandra implements MetricsService {
 
     boolean verifyNodeIsUp(String address, int jmxPort, int retries, long timeout) {
         Boolean nativeTransportRunning = false;
-        for (int i = 0; i < retries || nativeTransportRunning; ++i) {
+        Boolean initialized = false;
+        for (int i = 0; i < retries; ++i) {
+            if (i > 0) {
+                try {
+                    // cycle between original and more wait time - avoid waiting huge amounts of time
+                    long sleepMillis = timeout * (1 + ((i - 1) % 4));
+                    logger.info("[" + i + "/" + (retries - 1) + "] Retrying storage node status check in ["
+                            + sleepMillis + "]ms...");
+                    Thread.sleep(sleepMillis);
+                } catch (InterruptedException e1) {
+                    logger.error("Failed to get storage node status.", e1);
+                    return false;
+                }
+            }
             try {
                 MBeanServerConnection serverConnection = this.getMbeanServerConnection(address, jmxPort);
                 ObjectName storageService = new ObjectName("org.apache.cassandra.db:type=StorageService");
                 nativeTransportRunning = (Boolean) serverConnection.getAttribute(storageService,
                         "NativeTransportRunning");
-
-                return nativeTransportRunning;
+                initialized = (Boolean) serverConnection.getAttribute(storageService,
+                        "Initialized");
+                if (nativeTransportRunning && initialized) {
+                    logger.info("Successfully verified that the storage node is initialized and running!");
+                    return true; // everything is up, get out of our wait loop and immediately return
+                }
+                logger.info("Storage node is still initializing. NativeTransportRunning=[" + nativeTransportRunning
+                        + "], Initialized=[" + initialized + "]");
             } catch (Exception e) {
-                if (i < retries) {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("The storage node is not up.", e);
-                    } else {
-                        Throwable rootCause = e.getCause();
-                        logger.error("The storage node is not up.", rootCause);
-                    }
-                    logger.error("Checking storage node status again in " + (timeout * (i + 1)) + " ms...");
-                }
-                try {
-                    Thread.sleep(timeout * (i + 1));
-                } catch (InterruptedException e1) {
-                    logger.error("Failed to connect to Cassandra cluster.", e1);
-                }
+                logger.warn("Cannot get storage node status - assuming it is not up yet. Cause: "
+                        + ((e.getCause() == null) ? e : e.getCause()));
             }
         }
+        logger.error("Cannot verify that the storage node is up.");
         return false;
     }
 
