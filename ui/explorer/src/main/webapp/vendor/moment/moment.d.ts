@@ -1,19 +1,3 @@
-/*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
- * and other contributors as indicated by the @author tags.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 // Type definitions for Moment.js 2.5.0
 // Project: https://github.com/timrwood/moment
 // Definitions by: Michael Lakerveld <https://github.com/Lakerfield>, Aaron King <https://github.com/kingdango>, Hiroki Horiuchi <https://github.com/horiuchi>, Dick van den Brink <https://github.com/DickvdBrink>
@@ -81,34 +65,34 @@ interface Moment {
 
     /**
      * Mutates the original moment by adding time.
-     * 
+     *
      * @param unitOfTime the key of what time you want to add (eg "years" / "hours" etc)
      * @param amount the amount you want to add
      */
     add(unitOfTime: string, amount: number): Moment;
     /**
      * Mutates the original moment by adding time.
-     * 
+     *
      * @param amount the amount you want to add
      * @param unitOfTime the key of what time you want to add (eg "years" / "hours" etc)
      */
     add(amount: number, unitOfTime: string): Moment;
     /**
      * Mutates the original moment by adding time.
-     * 
+     *
      * @param unitOfTime the key of what time you want to add (eg "years" / "hours" etc)
      * @param amount the amount you want to add
      */
     add(unitOfTime: string, amount: string): Moment;
     /**
      * Mutates the original moment by adding time.
-     * 
+     *
      * @param objectLiteral an object literal that describes multiple different keys at the same time {days:7,months:1}
      */
     add(objectLiteral: MomentInput): Moment;
     /**
      * Mutates the original moment by adding time.
-     * 
+     *
      * @param duration a length of time
      */
     add(duration: Duration): Moment;
@@ -229,17 +213,17 @@ interface Moment {
     max(date: string): Moment;
     max(date: string, format: string): Moment;
     max(clone: Moment): Moment;
-    
+
     min(date: Date): Moment;
     min(date: number): Moment;
     min(date: any[]): Moment;
     min(date: string): Moment;
     min(date: string, format: string): Moment;
     min(clone: Moment): Moment;
-    
+
     get(unit: string): number;
     set(unit: string, value: number): Moment;
-    
+
 }
 
 interface MomentCalendar {
@@ -342,9 +326,9 @@ interface MomentStatic {
     duration(input: MomentInput): Duration;
     duration(object: any): Duration;
     duration(): Duration;
-    
+
     parseZone(date: string): Moment;
-    
+
     months(): string[];
     months(index: number): string;
     months(format: string): string[];
@@ -366,9 +350,9 @@ interface MomentStatic {
     weekdaysMin(index: number): string;
     weekdaysMin(format: string): string[];
     weekdaysMin(format: string, index: number): string;
-    
+
     normalizeUnits(unit: string): string;
-    
+
     invalid(parsingFlags?: Object): Moment;
 }
 

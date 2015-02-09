@@ -93,8 +93,8 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>org.codehaus.gmaven</groupId>
-            <artifactId>groovy-maven-plugin</artifactId>
+            <groupId>org.codehaus.gmavenplus</groupId>
+            <artifactId>gmavenplus-plugin</artifactId>
             <dependencies>
               <dependency>
                 <groupId>com.google.guava</groupId>
@@ -104,7 +104,7 @@
               <dependency>
                 <groupId>org.codehaus.groovy</groupId>
                 <artifactId>groovy-all</artifactId>
-                <version>2.0.6</version>
+                <version>${version.org.codehaus.groovy}</version>
               </dependency>
               <dependency>
                 <groupId>com.datastax.cassandra</groupId>
@@ -120,11 +120,12 @@
                   <goal>execute</goal>
                 </goals>
                 <configuration>
-                  <classpathScope>compile</classpathScope>
-                  <source>${project.basedir}/src/main/script/schema.groovy</source>
                   <properties>
                     <keyspace>${test.keyspace}</keyspace>
                   </properties>
+                  <scripts>
+                    <script>file:///${project.basedir}/src/main/script/schema.groovy</script>
+                  </scripts>
                 </configuration>
               </execution>
             </executions>
