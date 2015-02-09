@@ -24,7 +24,7 @@
   <parent>
     <artifactId>embedded-cassandra</artifactId>
     <groupId>org.hawkular.metrics</groupId>
-    <version>0.2.8-SNAPSHOT</version>
+    <version>0.3.0-SNAPSHOT</version>
   </parent>
   <artifactId>embedded-cassandra-service</artifactId>
   <packaging>ejb</packaging>
