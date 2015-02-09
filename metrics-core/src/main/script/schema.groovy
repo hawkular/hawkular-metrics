@@ -16,7 +16,7 @@
  */
 import com.datastax.driver.core.Cluster
 import com.datastax.driver.core.Session
-import org.rhq.metrics.core.SchemaManager
+import org.hawkular.metrics.core.SchemaManager
 
 Cluster cluster = new Cluster.Builder()
         .addContactPoint("127.0.0.1")
@@ -24,7 +24,7 @@ Cluster cluster = new Cluster.Builder()
         .build()
 Session session = cluster.connect()
 
-String keyspace = properties["keyspace"] ?: "rhqtest"
+String keyspace = properties["keyspace"] ?: "hawkulartest"
 SchemaManager schemaManager = new SchemaManager(session)
 if (properties["resetdb"]) schemaManager.dropKeyspace(keyspace)
 schemaManager.createSchema(keyspace)

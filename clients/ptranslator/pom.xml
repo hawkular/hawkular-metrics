@@ -118,7 +118,7 @@
               <descriptor>${project.basedir}/src/assembly/all/assembly.xml</descriptor>
               <archive>
                 <manifest>
-                  <mainClass>org.rhq.metrics.clients.ptrans.Main</mainClass>
+                  <mainClass>org.hawkular.metrics.clients.ptrans.Main</mainClass>
                 </manifest>
               </archive>
             </configuration>
@@ -146,7 +146,7 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <configuration>
-          <mainClass>org.rhq.metrics.clients.ptrans.Main</mainClass>
+          <mainClass>org.hawkular.metrics.clients.ptrans.Main</mainClass>
           <systemProperties>
             <systemProperty>
               <key>log4j.configuration</key>

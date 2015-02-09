@@ -31,10 +31,10 @@
   <name>Hawkular Metrics Rest Tests</name>
 
   <properties>
-    <rhq-metrics.backend>cass</rhq-metrics.backend>
-    <cassandra.keyspace>rhq_metrics_rest_tests</cassandra.keyspace>
+    <hawkular-metrics.backend>cass</hawkular-metrics.backend>
+    <cassandra.keyspace>hawkular_metrics_rest_tests</cassandra.keyspace>
     <!-- IMPORTANT: The port must be the port offset + 8080. -->
-    <base-uri>127.0.0.1:55977/rhq-metrics</base-uri>
+    <base-uri>127.0.0.1:55977/hawkular-metrics</base-uri>
     <wildfly.port.offset>47897</wildfly.port.offset>
     <!-- IMPORTANT: The management port must be the port offset + 9990. -->
     <wildfly.management.port>57887</wildfly.management.port>
@@ -100,7 +100,7 @@
           </includes>
           <systemPropertyVariables>
             <keyspace>${cassandra.keyspace}</keyspace>
-            <rhq-metrics.base-uri>${base-uri}</rhq-metrics.base-uri>
+            <hawkular-metrics.base-uri>${base-uri}</hawkular-metrics.base-uri>
           </systemPropertyVariables>
         </configuration>
         <executions>
@@ -138,7 +138,7 @@
                 -Dsun.rmi.dgc.client.gcInterval=3600000 -Dsun.rmi.dgc.server.gcInterval=3600000
                 -Djboss.socket.binding.port-offset=${wildfly.port.offset}
                 -Djboss.server.config.dir=${project.build.directory}/wildfly-configuration
-                -Drhq-metrics.backend=${rhq-metrics.backend} -Dcassandra.keyspace=${cassandra.keyspace} -Dcassandra.resetdb=true
+                -Dhawkular-metrics.backend=${hawkular-metrics.backend} -Dcassandra.keyspace=${cassandra.keyspace} -Dcassandra.resetdb=true
                 -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787
               </jvmArgs>
             </configuration>

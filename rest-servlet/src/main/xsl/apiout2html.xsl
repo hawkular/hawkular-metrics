@@ -27,7 +27,7 @@
   <xsl:template match="/api">
     <html>
       <head>
-        <title>RHQ-metrics REST-Api documentation</title>
+        <title>Hawkular Metrics REST-Api documentation</title>
         <style type="text/css">
           h2 {background-color:#ADD8E6   }
           h3 {background-color:#C0C0C0   }

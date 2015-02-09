@@ -152,7 +152,7 @@
         <groupId>org.wildfly.plugins</groupId>
         <artifactId>wildfly-maven-plugin</artifactId>
         <configuration>
-          <jvmArgs>-Drhq-metrics.backend=em_cass -Xdebug
+          <jvmArgs>-Dhawkular-metrics.backend=em_cass -Xdebug
             -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</jvmArgs>
         </configuration>
       </plugin>
@@ -191,7 +191,7 @@
               <proc>only</proc>
               <compilerArguments>
                 <AtargetDirectory>${project.build.directory}/docs/xml</AtargetDirectory>
-                <AmodelPkg>org.rhq.metrics.restServlet</AmodelPkg>
+                <AmodelPkg>org.hawkular.metrics.restServlet</AmodelPkg>
                 <!--<AskipPkg>org.rhq.enterprise.server.rest.reporting</AskipPkg> -->
                 <!-- enable the next line to have the output of the processor
                   shown on console -->
@@ -238,7 +238,7 @@
                   <parameters>
                     <parameter>
                       <name>basePath</name>
-                      <value>http://localhost:8080/rhq-metrics</value>
+                      <value>http://localhost:8080/hawkular-metrics</value>
                     </parameter>
                   </parameters>
                   <outputDir>${project.build.directory}/docs/html</outputDir>
@@ -261,7 +261,7 @@
                   <parameters>
                     <parameter>
                       <name>basePath</name>
-                      <value>http://localhost:8080/rhq-metrics</value>
+                      <value>http://localhost:8080/hawkular-metrics</value>
                     </parameter>
                   </parameters>
                   <outputDir>${project.build.directory}/docs/html</outputDir>
@@ -288,7 +288,7 @@
                   <parameters>
                     <parameter>
                       <name>basePath</name>
-                      <value>http://localhost:8080/rhq-metrics</value>
+                      <value>http://localhost:8080/hawkular-metrics</value>
                     </parameter>
                   </parameters>
                   <outputDir>${project.build.directory}/docs/xml</outputDir>

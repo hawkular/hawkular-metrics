@@ -85,7 +85,7 @@
         <configuration>
           <version>${version.wildfly}</version>
           <skip>false</skip>
-          <jvmArgs>-Drhq-metrics.backend=embedded_cass -Xdebug
+          <jvmArgs>-Dhawkular-metrics.backend=embedded_cass -Xdebug
             -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</jvmArgs>
         </configuration>
       </plugin>

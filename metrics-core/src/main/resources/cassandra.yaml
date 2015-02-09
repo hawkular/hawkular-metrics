@@ -26,7 +26,7 @@ client_encryption_options:
   enabled: false
   keystore: conf/.keystore
   keystore_password: cassandra
-cluster_name: rhq-metrics
+cluster_name: hawkular-metrics
 column_index_size_in_kb: 64
 commit_failure_policy: stop
 commitlog_segment_size_in_mb: 32

@@ -134,7 +134,7 @@
       <logger category="com.datastax.driver">
         <level name="DEBUG"/>
       </logger>
-      <logger category="org.rhq.metrics">
+      <logger category="org.hawkular.metrics">
         <level name="DEBUG"/>
       </logger>
       <root-logger>
