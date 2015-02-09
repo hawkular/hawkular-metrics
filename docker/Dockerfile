@@ -14,8 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-#Dockerfile for rhq-metrics
+# Dockerfile for hawkular-metrics
 
 FROM vnguyen/wildfly-jdk8
 
