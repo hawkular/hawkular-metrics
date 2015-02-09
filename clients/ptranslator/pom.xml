@@ -23,8 +23,8 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.rhq.metrics</groupId>
-    <artifactId>rhq-metrics-parent</artifactId>
+    <groupId>org.hawkular.metrics</groupId>
+    <artifactId>hawkular-metrics-parent</artifactId>
     <version>0.2.8-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
@@ -33,11 +33,11 @@
   <packaging>jar</packaging>
 
   <name>Protocol Translator</name>
-  <description>A protocol translator that can receive data from various system and feed it to the RHQ Metrics REST api.</description>
+  <description>A protocol translator that can receive data from various system and feed it to the Hawkular Metrics REST api.</description>
 
   <dependencies>
     <dependency>
-      <groupId>org.rhq.metrics</groupId>
+      <groupId>org.hawkular.metrics</groupId>
       <artifactId>clients-common</artifactId>
       <version>${project.version}</version>
     </dependency>

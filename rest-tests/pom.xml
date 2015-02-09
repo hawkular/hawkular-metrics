@@ -22,13 +22,13 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.rhq.metrics</groupId>
-    <artifactId>rhq-metrics-parent</artifactId>
+    <groupId>org.hawkular.metrics</groupId>
+    <artifactId>hawkular-metrics-parent</artifactId>
     <version>0.2.8-SNAPSHOT</version>
   </parent>
 
-  <artifactId>rhq-metrics-rest-tests</artifactId>
-  <name>RHQ Metrics Rest Tests</name>
+  <artifactId>hawkular-metrics-rest-tests</artifactId>
+  <name>Hawkular Metrics Rest Tests</name>
 
   <properties>
     <rhq-metrics.backend>cass</rhq-metrics.backend>
@@ -152,7 +152,7 @@
             <configuration>
               <groupId>${project.groupId}</groupId>
               <artifactId>rest-servlet</artifactId>
-              <name>rhq-metric-rest.war</name>
+              <name>hawkular-metric-rest.war</name>
             </configuration>
           </execution>
           <execution>
@@ -186,7 +186,7 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>rhq-metrics-core</artifactId>
+      <artifactId>hawkular-metrics-core</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>

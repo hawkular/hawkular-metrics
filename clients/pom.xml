@@ -21,15 +21,15 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <artifactId>rhq-metrics-parent</artifactId>
-    <groupId>org.rhq.metrics</groupId>
+    <artifactId>hawkular-metrics-parent</artifactId>
+    <groupId>org.hawkular.metrics</groupId>
     <version>0.2.8-SNAPSHOT</version>
   </parent>
   <artifactId>clients</artifactId>
   <packaging>pom</packaging>
 
-  <name>RHQ Metrics clients</name>
-  <description>Clients for use with RHQ Metrics</description>
+  <name>Hawkular Metrics clients</name>
+  <description>Clients for use with Hawkular Metrics</description>
 
   <modules>
     <module>common</module>

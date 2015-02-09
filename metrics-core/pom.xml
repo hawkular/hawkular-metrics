@@ -22,21 +22,21 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.rhq.metrics</groupId>
-    <artifactId>rhq-metrics-parent</artifactId>
+    <groupId>org.hawkular.metrics</groupId>
+    <artifactId>hawkular-metrics-parent</artifactId>
     <version>0.2.8-SNAPSHOT</version>
   </parent>
 
-  <artifactId>rhq-metrics-core</artifactId>
+  <artifactId>hawkular-metrics-core</artifactId>
   <packaging>bundle</packaging>
 
-  <name>RHQ Metrics Core</name>
+  <name>Hawkular Metrics Core</name>
 
   <dependencies>
 
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>rhq-metrics-api</artifactId>
+      <artifactId>hawkular-metrics-api</artifactId>
       <version>${project.version}</version>
     </dependency>
 
@@ -84,7 +84,7 @@
       <dependencies>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>rhq-metrics-test-utils</artifactId>
+          <artifactId>hawkular-metrics-test-utils</artifactId>
           <version>${project.version}</version>
           <scope>test</scope>
         </dependency>

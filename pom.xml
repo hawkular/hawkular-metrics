@@ -26,13 +26,13 @@
     <version>5</version>
   </parent>
 
-  <groupId>org.rhq.metrics</groupId>
-  <artifactId>rhq-metrics-parent</artifactId>
+  <groupId>org.hawkular.metrics</groupId>
+  <artifactId>hawkular-metrics-parent</artifactId>
   <version>0.2.8-SNAPSHOT</version>
   <packaging>pom</packaging>
 
-  <name>RHQ Metrics</name>
-  <description>RHQ Metrics is a metrics collection, aggregation, visualization framework.</description>
+  <name>Hawkular Metrics</name>
+  <description>Hawkular Metrics is a metrics collection, aggregation, visualization framework.</description>
   <url>https://community.jboss.org/en/rhq/rhq-metrics</url>
   <inceptionYear>2014</inceptionYear>
   <organization>
@@ -113,7 +113,7 @@
 
     <site>
       <id>local-site-tmp</id>
-      <name>RHQ-metrics</name>
+      <name>Hawkular-metrics</name>
       <url>file:///tmp/rhq-metrics-site</url>
     </site>
 

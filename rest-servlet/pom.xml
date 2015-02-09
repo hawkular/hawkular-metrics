@@ -22,15 +22,15 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <artifactId>rhq-metrics-parent</artifactId>
-    <groupId>org.rhq.metrics</groupId>
+    <artifactId>hawkular-metrics-parent</artifactId>
+    <groupId>org.hawkular.metrics</groupId>
     <version>0.2.8-SNAPSHOT</version>
   </parent>
   <artifactId>rest-servlet</artifactId>
   <packaging>war</packaging>
 
-  <name>RHQ Metrics REST-api</name>
-  <description>The REST-api of RHQ-Metrics implemented as a Web archive</description>
+  <name>Hawkular Metrics REST-api</name>
+  <description>The REST-api of Hawkular-Metrics implemented as a Web archive</description>
 
   <properties>
     <swagger-annotations.version>1.2.3</swagger-annotations.version>
@@ -56,8 +56,8 @@
       <artifactId>antlr4-runtime</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.rhq.metrics</groupId>
-      <artifactId>rhq-metrics-core</artifactId>
+      <groupId>org.hawkular.metrics</groupId>
+      <artifactId>hawkular-metrics-core</artifactId>
       <version>${project.version}</version>
     </dependency>
 
@@ -107,7 +107,7 @@
   </dependencies>
 
   <build>
-    <finalName>rhq-metric-rest</finalName>
+    <finalName>hawkular-metric-rest</finalName>
     <plugins>
 
       <plugin>

@@ -23,14 +23,14 @@
 
   <parent>
     <artifactId>embedded-cassandra</artifactId>
-    <groupId>org.rhq.metrics</groupId>
+    <groupId>org.hawkular.metrics</groupId>
     <version>0.2.8-SNAPSHOT</version>
   </parent>
   <artifactId>embedded-cassandra-ear</artifactId>
   <packaging>ear</packaging>
 
-  <name>Embedded Cassandra EAR for RHQ Metrics</name>
-  <description>Embedded Cassandra Server EAR for RHQ-Metrics</description>
+  <name>Embedded Cassandra EAR for Hawkular Metrics</name>
+  <description>Embedded Cassandra Server EAR for Hawkular Metrics</description>
 
   <properties>
     <version.ear.plugin>2.9.1</version.ear.plugin>
@@ -51,7 +51,7 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.rhq.metrics</groupId>
+      <groupId>org.hawkular.metrics</groupId>
       <artifactId>embedded-cassandra-service</artifactId>
       <type>ejb</type>
       <version>${project.version}</version>
@@ -59,7 +59,7 @@
   </dependencies>
 
   <build>
-    <finalName>rhq-metrics-embedded-cassandra</finalName>
+    <finalName>hawkular-metrics-embedded-cassandra</finalName>
     <plugins>
 
       <plugin>
@@ -71,7 +71,7 @@
           <defaultLibBundleDir>lib</defaultLibBundleDir>
           <modules>
             <ejbModule>
-              <groupId>org.rhq.metrics</groupId>
+              <groupId>org.hawkular.metrics</groupId>
               <artifactId>embedded-cassandra-service</artifactId>
             </ejbModule>
           </modules>

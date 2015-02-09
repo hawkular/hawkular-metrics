@@ -22,15 +22,15 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <artifactId>rhq-metrics-parent</artifactId>
-    <groupId>org.rhq.metrics</groupId>
+    <artifactId>hawkular-metrics-parent</artifactId>
+    <groupId>org.hawkular.metrics</groupId>
     <version>0.2.8-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
   <artifactId>metrics-console</artifactId>
   <packaging>war</packaging>
 
-  <name>RHQ Metrics Console</name>
+  <name>Hawkular Metrics Console</name>
 
   <properties>
     <endorsed.dir>${project.build.directory}/endorsed</endorsed.dir>

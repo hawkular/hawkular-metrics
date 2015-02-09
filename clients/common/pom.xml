@@ -24,7 +24,7 @@
 
   <parent>
     <artifactId>clients</artifactId>
-    <groupId>org.rhq.metrics</groupId>
+    <groupId>org.hawkular.metrics</groupId>
     <version>0.2.8-SNAPSHOT</version>
   </parent>
   <artifactId>clients-common</artifactId>
