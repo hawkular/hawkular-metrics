@@ -2,8 +2,8 @@
 :source-language: java
 
 ifdef::env-github[]
-[link=https://travis-ci.org/rhq-project/rhq-metrics]
-image::https://travis-ci.org/rhq-project/rhq-metrics.svg?branch=master[Build Status,70,18]
+[link=https://travis-ci.org/hawkular/hawkular-metrics]
+image::https://travis-ci.org/hawkular/hawkular-metrics.svg?branch=master[Build Status,70,18]
 [link=https://scan.coverity.com/projects/3240"]
 image::https://scan.coverity.com/projects/3240/badge.svg[Coverity Scan Build Status (coverity_scan branch)]
 endif::[]
