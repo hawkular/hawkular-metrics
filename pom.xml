@@ -122,7 +122,7 @@
   <properties>
     <maven.test.skip>${skipTests}</maven.test.skip>
 
-    <test.keyspace>rhqtest</test.keyspace>
+    <test.keyspace>hawkulartest</test.keyspace>
     <nodes>127.0.0.1</nodes>
 
     <datastax.driver.version>2.1.2</datastax.driver.version>
