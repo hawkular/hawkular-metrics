@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import org.hawkular.metrics.restServlet.influx.query.parse.InfluxQueryParser;
 import org.hawkular.metrics.restServlet.influx.query.parse.InfluxQueryParserFactory;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Instant;

@@ -20,6 +20,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import org.hawkular.metrics.restServlet.influx.query.parse.InfluxQueryParser.SelectQueryContext;
 import org.hawkular.metrics.restServlet.influx.query.parse.InfluxQueryParserFactory;
 import org.hawkular.metrics.restServlet.influx.query.parse.definition.SelectQueryDefinitions;
 import org.hawkular.metrics.restServlet.influx.query.parse.definition.SelectQueryDefinitionsParser;

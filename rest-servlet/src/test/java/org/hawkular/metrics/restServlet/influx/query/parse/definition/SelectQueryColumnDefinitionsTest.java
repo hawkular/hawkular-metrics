@@ -26,6 +26,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import org.hawkular.metrics.restServlet.influx.query.parse.InfluxQueryParser;
 import org.hawkular.metrics.restServlet.influx.query.parse.InfluxQueryParserFactory;
 import org.junit.Test;
 
