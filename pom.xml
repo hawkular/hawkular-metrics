@@ -85,7 +85,6 @@
     <module>rest-tests</module>
     <module>clients</module>
     <module>ui/explorer</module>
-    <module>ui/console</module>
   </modules>
 
   <scm>
