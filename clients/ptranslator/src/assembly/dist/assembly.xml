@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+    and other contributors as indicated by the @author tags.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<assembly xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2 http://maven.apache.org/xsd/assembly-1.1.2.xsd">
+  <id>dist</id>
+  <formats>
+    <!-- will not be attached to the build, but it's useful for testing -->
+    <format>dir</format>
+    <format>zip</format>
+  </formats>
+  <baseDirectory>${project.build.finalName}-${project.version}</baseDirectory>
+  <fileSets>
+    <fileSet>
+      <directory>${project.basedir}/src/assembly/dist/assets</directory>
+      <outputDirectory>/</outputDirectory>
+      <includes>
+        <include>LICENSE</include>
+        <include>log4j.xml</include>
+        <include>ptrans.conf</include>
+      </includes>
+      <fileMode>644</fileMode>
+    </fileSet>
+  </fileSets>
+  <files>
+    <file>
+      <source>${project.basedir}/src/assembly/dist/assets/README</source>
+      <outputDirectory>/${project.build.finalName}-${project.version}</outputDirectory>
+      <filtered>true</filtered>
+      <fileMode>644</fileMode>
+    </file>
+    <file>
+      <source>${project.build.directory}/${project.build.finalName}-all.jar</source>
+      <outputDirectory>/${project.build.finalName}-${project.version}</outputDirectory>
+      <fileMode>644</fileMode>
+    </file>
+  </files>
+</assembly>

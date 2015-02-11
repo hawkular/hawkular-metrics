@@ -65,34 +65,34 @@ interface Moment {
 
     /**
      * Mutates the original moment by adding time.
-     * 
+     *
      * @param unitOfTime the key of what time you want to add (eg "years" / "hours" etc)
      * @param amount the amount you want to add
      */
     add(unitOfTime: string, amount: number): Moment;
     /**
      * Mutates the original moment by adding time.
-     * 
+     *
      * @param amount the amount you want to add
      * @param unitOfTime the key of what time you want to add (eg "years" / "hours" etc)
      */
     add(amount: number, unitOfTime: string): Moment;
     /**
      * Mutates the original moment by adding time.
-     * 
+     *
      * @param unitOfTime the key of what time you want to add (eg "years" / "hours" etc)
      * @param amount the amount you want to add
      */
     add(unitOfTime: string, amount: string): Moment;
     /**
      * Mutates the original moment by adding time.
-     * 
+     *
      * @param objectLiteral an object literal that describes multiple different keys at the same time {days:7,months:1}
      */
     add(objectLiteral: MomentInput): Moment;
     /**
      * Mutates the original moment by adding time.
-     * 
+     *
      * @param duration a length of time
      */
     add(duration: Duration): Moment;
@@ -213,17 +213,17 @@ interface Moment {
     max(date: string): Moment;
     max(date: string, format: string): Moment;
     max(clone: Moment): Moment;
-    
+
     min(date: Date): Moment;
     min(date: number): Moment;
     min(date: any[]): Moment;
     min(date: string): Moment;
     min(date: string, format: string): Moment;
     min(clone: Moment): Moment;
-    
+
     get(unit: string): number;
     set(unit: string, value: number): Moment;
-    
+
 }
 
 interface MomentCalendar {
@@ -326,9 +326,9 @@ interface MomentStatic {
     duration(input: MomentInput): Duration;
     duration(object: any): Duration;
     duration(): Duration;
-    
+
     parseZone(date: string): Moment;
-    
+
     months(): string[];
     months(index: number): string;
     months(format: string): string[];
@@ -350,9 +350,9 @@ interface MomentStatic {
     weekdaysMin(index: number): string;
     weekdaysMin(format: string): string[];
     weekdaysMin(format: string, index: number): string;
-    
+
     normalizeUnits(unit: string): string;
-    
+
     invalid(parsingFlags?: Object): Moment;
 }
 

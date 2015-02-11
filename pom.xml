@@ -1,31 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright 2014 Red Hat, Inc.
-  ~
-  ~ Licensed under the Apache License, Version 2.0 (the "License");
-  ~ you may not use this file except in compliance with the License.
-  ~ You may obtain a copy of the License at
-  ~
-  ~    http://www.apache.org/licenses/LICENSE-2.0
-  ~
-  ~ Unless required by applicable law or agreed to in writing, software
-  ~ distributed under the License is distributed on an "AS IS" BASIS,
-  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  ~ See the License for the specific language governing permissions and
-  ~ limitations under the License.
-  -->
 
+    Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+    and other contributors as indicated by the @author tags.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>org.rhq.metrics</groupId>
-  <artifactId>rhq-metrics-parent</artifactId>
-  <version>0.2.6-SNAPSHOT</version>
+  <parent>
+    <groupId>org.hawkular</groupId>
+    <artifactId>hawkular-parent</artifactId>
+    <version>5</version>
+  </parent>
+
+  <groupId>org.hawkular.metrics</groupId>
+  <artifactId>hawkular-metrics-parent</artifactId>
+  <version>0.3.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
-  <name>RHQ Metrics</name>
-  <description>RHQ Metrics is a metrics collection, aggregation, visualization framework.</description>
+  <name>Hawkular Metrics</name>
+  <description>Hawkular Metrics is a metrics collection, aggregation, visualization framework.</description>
   <url>https://community.jboss.org/en/rhq/rhq-metrics</url>
+  <inceptionYear>2014</inceptionYear>
   <organization>
     <name>Red Hat, Inc.</name>
     <url>http://redhat.com/</url>
@@ -104,7 +113,7 @@
 
     <site>
       <id>local-site-tmp</id>
-      <name>RHQ-metrics</name>
+      <name>Hawkular-metrics</name>
       <url>file:///tmp/rhq-metrics-site</url>
     </site>
 
@@ -113,7 +122,7 @@
   <properties>
     <maven.test.skip>${skipTests}</maven.test.skip>
 
-    <test.keyspace>rhqtest</test.keyspace>
+    <test.keyspace>hawkulartest</test.keyspace>
     <nodes>127.0.0.1</nodes>
 
     <datastax.driver.version>2.1.2</datastax.driver.version>
@@ -126,19 +135,11 @@
     <jackson.version>2.3.2</jackson.version>
     <trove4j.version>3.0.3</trove4j.version>
     <google.guava.version>16.0.1</google.guava.version>
-    <antlr.version>4.3</antlr.version>
+    <antlr.version>4.5</antlr.version>
 
     <version.wildfly>8.2.0.Final</version.wildfly>
     <findbugs.version>3.0.0</findbugs.version>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <checkstyle.plugin.version>2.13</checkstyle.plugin.version>
-    <checkstyle.version>6.1.1</checkstyle.version>
-    <checkstyleConsoleOutput>true</checkstyleConsoleOutput>
-    <checkstyleFailOnError>true</checkstyleFailOnError>
-    <!-- the default value pointing at suppressions.xml in rhq-checkstyle-config dependency -->
-    <checkstyle.suppressions.file>rhq-checkstyle/suppressions.xml</checkstyle.suppressions.file>
-    <rhq.checkstyle.config.version>3</rhq.checkstyle.config.version>
+
   </properties>
 
   <dependencyManagement>
@@ -153,6 +154,7 @@
         <artifactId>antlr4-runtime</artifactId>
         <version>${antlr.version}</version>
       </dependency>
+      <!-- Tests dependencies -->
       <dependency>
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
@@ -160,9 +162,9 @@
         <scope>test</scope>
       </dependency>
       <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.11</version>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>1.10.19</version>
         <scope>test</scope>
       </dependency>
       <!-- TestNG is not RHQ-Metrics main testing framework -->
@@ -174,102 +176,32 @@
         <version>${testng.version}</version>
         <scope>test</scope>
       </dependency>
-      <dependency>
-        <groupId>org.rhq.checkstyle</groupId>
-        <artifactId>rhq-checkstyle-config</artifactId>
-        <version>${rhq.checkstyle.config.version}</version>
-      </dependency>
     </dependencies>
   </dependencyManagement>
 
   <build>
     <pluginManagement>
       <plugins>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-clean-plugin</artifactId>
-          <version>2.6</version>
-        </plugin>
+
+        <!-- Conventions:
+          * all org.apache.* plugins are managed in hawkular-parent
+          * before adding new plugins here
+            * look first to hawkular-parent
+            * or consider adding the plugin to hawkular-parent
+        -->
+
         <plugin>
           <groupId>org.antlr</groupId>
           <artifactId>antlr4-maven-plugin</artifactId>
           <version>${antlr.version}</version>
         </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-dependency-plugin</artifactId>
-          <version>2.9</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.2</version>
-        </plugin>
+
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>animal-sniffer-maven-plugin</artifactId>
           <version>1.11</version>
         </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.17</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-jar-plugin</artifactId>
-          <version>2.5</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-war-plugin</artifactId>
-          <version>2.5</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-resources-plugin</artifactId>
-          <version>2.7</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-source-plugin</artifactId>
-          <version>2.4</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-javadoc-plugin</artifactId>
-          <version>2.10.1</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-assembly-plugin</artifactId>
-          <version>2.5.1</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-install-plugin</artifactId>
-          <version>2.5.2</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-site-plugin</artifactId>
-          <version>3.4</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-deploy-plugin</artifactId>
-          <version>2.8.2</version>
-        </plugin>
-        <plugin>
-          <groupId>org.codehaus.gmaven</groupId>
-          <artifactId>groovy-maven-plugin</artifactId>
-          <version>2.0</version>
-        </plugin>
-        <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>exec-maven-plugin</artifactId>
-          <version>1.3.2</version>
-        </plugin>
+
         <plugin>
           <groupId>org.wildfly.plugins</groupId>
           <artifactId>wildfly-maven-plugin</artifactId>
@@ -278,51 +210,11 @@
             <version>${version.wildfly}</version>
           </configuration>
         </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>${checkstyle.plugin.version}</version>
-        </plugin>
+
       </plugins>
     </pluginManagement>
 
     <plugins>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <version>1.3.1</version>
-        <executions>
-          <execution>
-            <id>enforce-rules</id>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <rules>
-            <requireMavenVersion>
-              <version>[3.0.4,)</version>
-            </requireMavenVersion>
-            <requireJavaVersion>
-              <version>[1.8,)</version>
-            </requireJavaVersion>
-            <requireNoRepositories/>
-            <requirePluginVersions/>
-          </rules>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
-          <showWarnings>true</showWarnings>
-        </configuration>
-      </plugin>
 
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -370,77 +262,6 @@
         <extensions>true</extensions>
       </plugin>
 
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <configuration>
-          <configLocation>rhq-checkstyle/checkstyle.xml</configLocation>
-          <consoleOutput>${checkstyleConsoleOutput}</consoleOutput>
-          <failsOnError>${checkstyleFailOnError}</failsOnError>
-          <!-- Make includes relative to ${basedir} -->
-          <sourceDirectory>${basedir}</sourceDirectory>
-          <!-- in <includes>, it is necessary to avoid using an item-initial **/ wildcard
-               which pulls in also files from all submodules and target folders. We do not want
-               that. We rather have to name specific root folder patterns like *.extension
-               or directory/**/*.extension -->
-          <includes>
-            src/**/*.java,
-            *.xml,
-            src/**/*.xml,
-            src/**/*.js,
-            *.adoc,
-            src/**/*.adoc,
-            *.conf,
-            src/**/*.conf,
-            src/**/*.cql,
-            src/**/*.css,
-            Dockerfile,
-            src/**/Dockerfile,
-            src/**/*.groovy,
-            *.html,
-            src/**/*.html,
-            src/**/*.json,
-            src/**/*.js.map,
-            *.md,
-            src/**/*.md,
-            *.properties,
-            src/**/*.properties,
-            *.sh,
-            src/**/*.sh,
-            *.txt,
-            src/**/*.txt,
-            src/**/*.xsl,
-            *.yml,
-            src/**/*.yml,
-          </includes>
-          <!-- to override in a submodule, just redefine the checkstyle.suppressions.file property
-               in the given submodule's pom -->
-          <suppressionsLocation>${checkstyle.suppressions.file}</suppressionsLocation>
-          <useFile />
-        </configuration>
-        <dependencies>
-          <dependency>
-            <groupId>com.puppycrawl.tools</groupId>
-            <artifactId>checkstyle</artifactId>
-            <version>${checkstyle.version}</version>
-          </dependency>
-          <dependency>
-            <groupId>org.rhq.checkstyle</groupId>
-            <artifactId>rhq-checkstyle-config</artifactId>
-            <version>${rhq.checkstyle.config.version}</version>
-          </dependency>
-        </dependencies>
-        <executions>
-          <execution>
-            <id>check-style</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>checkstyle</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-
     </plugins>
   </build>
 
@@ -482,19 +303,7 @@
 
   <profiles>
 
-    <profile>
-      <id>test.debug</id>
-      <activation>
-        <property>
-          <name>test.debug</name>
-        </property>
-      </activation>
-
-      <properties>
-        <!-- See: http://maven.apache.org/plugins/maven-surefire-plugin/test-mojo.html#debugForkedProcess -->
-        <maven.surefire.debug>-Xdebug -Xnoagent -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,address=8797,server=y,suspend=y</maven.surefire.debug>
-      </properties>
-    </profile>
+    <!-- Note that the test.debug profile has moved to hawkular-parent -->
 
     <profile>
       <id>download_wildfly</id>

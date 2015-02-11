@@ -1,0 +1,18 @@
+// Each line in this file will be used as an unsupported sample
+// for org.hawkular.metrics.restServlet.influx.query.validation.UnsupportedSelectQueryTest
+// Empty lines and lines starting with double slash are ignored
+//
+// column named test
+[ { "name": "pingou", "columns": ["test", "time"], "points": [ [23, 235] ] } ]
+// column named test
+[ { "name": "pingou", "columns": ["test"], "points": [ [25.36] ] } ]
+// column named test
+[ { "name": "pingou", "columns": ["test", "time"], "points": [ [23.44, 235] ] } ]
+// No name
+[ { "columns": ["value", "time"], "points": [ [23.44, 235] ] } ]
+// Empty name
+[ { "name": "", "columns": ["value", "time"], "points": [ [23.44, 235] ] } ]
+// No columns
+[ { "name": "pingou", "points": [ [23.44, 235] ] } ]
+// More than two columns
+[ { "name": "pingou", "columns": ["value", "time", "What Am I Doing Here?"], "points": [ [23.44, 235] ] } ]

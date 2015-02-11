@@ -1,40 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright 2014 Red Hat, Inc.
-  ~
-  ~ Licensed under the Apache License, Version 2.0 (the "License");
-  ~ you may not use this file except in compliance with the License.
-  ~ You may obtain a copy of the License at
-  ~
-  ~    http://www.apache.org/licenses/LICENSE-2.0
-  ~
-  ~ Unless required by applicable law or agreed to in writing, software
-  ~ distributed under the License is distributed on an "AS IS" BASIS,
-  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  ~ See the License for the specific language governing permissions and
-  ~ limitations under the License.
-  -->
 
+    Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+    and other contributors as indicated by the @author tags.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.rhq.metrics</groupId>
-    <artifactId>rhq-metrics-parent</artifactId>
-    <version>0.2.6-SNAPSHOT</version>
+    <groupId>org.hawkular.metrics</groupId>
+    <artifactId>hawkular-metrics-parent</artifactId>
+    <version>0.3.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>rhq-metrics-core</artifactId>
+  <artifactId>hawkular-metrics-core</artifactId>
   <packaging>bundle</packaging>
 
-  <name>RHQ Metrics Core</name>
+  <name>Hawkular Metrics Core</name>
 
   <dependencies>
 
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>rhq-metrics-api</artifactId>
+      <artifactId>hawkular-metrics-api</artifactId>
       <version>${project.version}</version>
     </dependency>
 
@@ -82,7 +84,7 @@
       <dependencies>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>rhq-metrics-test-utils</artifactId>
+          <artifactId>hawkular-metrics-test-utils</artifactId>
           <version>${project.version}</version>
           <scope>test</scope>
         </dependency>
@@ -91,8 +93,8 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>org.codehaus.gmaven</groupId>
-            <artifactId>groovy-maven-plugin</artifactId>
+            <groupId>org.codehaus.gmavenplus</groupId>
+            <artifactId>gmavenplus-plugin</artifactId>
             <dependencies>
               <dependency>
                 <groupId>com.google.guava</groupId>
@@ -102,7 +104,7 @@
               <dependency>
                 <groupId>org.codehaus.groovy</groupId>
                 <artifactId>groovy-all</artifactId>
-                <version>2.0.6</version>
+                <version>${version.org.codehaus.groovy}</version>
               </dependency>
               <dependency>
                 <groupId>com.datastax.cassandra</groupId>
@@ -118,11 +120,12 @@
                   <goal>execute</goal>
                 </goals>
                 <configuration>
-                  <classpathScope>compile</classpathScope>
-                  <source>${project.basedir}/src/main/script/schema.groovy</source>
                   <properties>
                     <keyspace>${test.keyspace}</keyspace>
                   </properties>
+                  <scripts>
+                    <script>file:///${project.basedir}/src/main/script/schema.groovy</script>
+                  </scripts>
                 </configuration>
               </execution>
             </executions>

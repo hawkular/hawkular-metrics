@@ -155,7 +155,7 @@ interface Toastr {
 		(): void;
 		/**
 		* Clear specific toast
-		* 
+		*
 		* @param toast Toast to clear
 		*/
 		(toast: JQuery): void;
@@ -181,7 +181,7 @@ interface Toastr {
 	*/
 	warning: ToastrDisplayMethod;
 	/**
-	* Get toastr version 
+	* Get toastr version
 	*/
 	version: string;
 }

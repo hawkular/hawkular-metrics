@@ -1,38 +1,40 @@
 <!--
-  ~ Copyright 2014 Red Hat, Inc.
-  ~
-  ~ Licensed under the Apache License, Version 2.0 (the "License");
-  ~ you may not use this file except in compliance with the License.
-  ~ You may obtain a copy of the License at
-  ~
-  ~    http://www.apache.org/licenses/LICENSE-2.0
-  ~
-  ~ Unless required by applicable law or agreed to in writing, software
-  ~ distributed under the License is distributed on an "AS IS" BASIS,
-  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  ~ See the License for the specific language governing permissions and
-  ~ limitations under the License.
-  -->
 
+    Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+    and other contributors as indicated by the @author tags.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.rhq.metrics</groupId>
-    <artifactId>rhq-metrics-parent</artifactId>
-    <version>0.2.6-SNAPSHOT</version>
+    <groupId>org.hawkular.metrics</groupId>
+    <artifactId>hawkular-metrics-parent</artifactId>
+    <version>0.3.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>rhq-metrics-rest-tests</artifactId>
-  <name>RHQ Metrics Rest Tests</name>
+  <artifactId>hawkular-metrics-rest-tests</artifactId>
+  <name>Hawkular Metrics Rest Tests</name>
 
   <properties>
-    <rhq-metrics.backend>cass</rhq-metrics.backend>
-    <cassandra.keyspace>rhq_metrics_rest_tests</cassandra.keyspace>
+    <hawkular-metrics.backend>cass</hawkular-metrics.backend>
+    <cassandra.keyspace>hawkular_metrics_rest_tests</cassandra.keyspace>
     <!-- IMPORTANT: The port must be the port offset + 8080. -->
-    <base-uri>127.0.0.1:55977/rhq-metrics</base-uri>
+    <base-uri>127.0.0.1:55977/hawkular-metrics</base-uri>
     <wildfly.port.offset>47897</wildfly.port.offset>
     <!-- IMPORTANT: The management port must be the port offset + 9990. -->
     <wildfly.management.port>57887</wildfly.management.port>
@@ -79,21 +81,6 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.codehaus.gmavenplus</groupId>
-        <artifactId>gmavenplus-plugin</artifactId>
-        <version>1.2</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>addSources</goal>
-              <goal>addTestSources</goal>
-              <goal>compile</goal>
-              <goal>testCompile</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
@@ -113,7 +100,7 @@
           </includes>
           <systemPropertyVariables>
             <keyspace>${cassandra.keyspace}</keyspace>
-            <rhq-metrics.base-uri>${base-uri}</rhq-metrics.base-uri>
+            <hawkular-metrics.base-uri>${base-uri}</hawkular-metrics.base-uri>
           </systemPropertyVariables>
         </configuration>
         <executions>
@@ -151,7 +138,7 @@
                 -Dsun.rmi.dgc.client.gcInterval=3600000 -Dsun.rmi.dgc.server.gcInterval=3600000
                 -Djboss.socket.binding.port-offset=${wildfly.port.offset}
                 -Djboss.server.config.dir=${project.build.directory}/wildfly-configuration
-                -Drhq-metrics.backend=${rhq-metrics.backend} -Dcassandra.keyspace=${cassandra.keyspace} -Dcassandra.resetdb=true
+                -Dhawkular-metrics.backend=${hawkular-metrics.backend} -Dcassandra.keyspace=${cassandra.keyspace} -Dcassandra.resetdb=true
                 -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787
               </jvmArgs>
             </configuration>
@@ -165,7 +152,7 @@
             <configuration>
               <groupId>${project.groupId}</groupId>
               <artifactId>rest-servlet</artifactId>
-              <name>rhq-metric-rest.war</name>
+              <name>hawkular-metric-rest.war</name>
             </configuration>
           </execution>
           <execution>
@@ -199,7 +186,7 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>rhq-metrics-core</artifactId>
+      <artifactId>hawkular-metrics-core</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>

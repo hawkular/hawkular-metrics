@@ -1,6 +1,6 @@
-/// <reference path="../../vendor/vendor.d.ts" />
-
-/// Copyright 2014 Red Hat, Inc.
+///
+/// Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+/// and other contributors as indicated by the @author tags.
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -13,54 +13,54 @@
 /// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 /// See the License for the specific language governing permissions and
 /// limitations under the License.
+///
 
+/// <reference path="../../vendor/vendor.d.ts" />
 module Controllers {
     'use strict';
 
 
-    export interface ISelectedMetric {
-        title: string;
-        href: string;
-        rel:string;
+    export interface ITenantMetric {
+       name: string;
+       tenantId: string;
         selected: boolean;
     }
 
 
     export class SidebarController {
-        public static  $inject = ['$scope', '$rootScope', 'metricDataService','Angularytics' ];
+        public static  $inject = ['$scope', '$rootScope', 'metricDataService','dashboardStateService','Angularytics' ];
 
-        allMetrics:ISelectedMetric[];
+        allMetrics: ITenantMetric[];
         retrieveMetricsPromise;
 
-        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService,  private metricDataService, private Angularytics) {
+        constructor(private $scope:ng.IScope, private $rootScope:ng.IRootScopeService,  private metricDataService, private dashboardStateService, private Angularytics) {
             $scope.vm = this;
 
-
             $scope.$on('RemoveSelectedMetricEvent', (event, metricId) => {
-                angular.forEach(this.allMetrics, function (value:ISelectedMetric) {
-                    if (value.title === metricId) {
+                angular.forEach(this.allMetrics, (value:ITenantMetric) => {
+                    if (value.name === metricId) {
                          value.selected = false;
+                        return;
                     }
                 });
             });
+
             $scope.$on('LoadAllSidebarMetricsEvent', () => {
                 this.Angularytics.trackEvent('LoadAllSidebarMetricsEvent', 'true');
                 this.populateMetricsSidebar();
                 this.$rootScope.$emit('LoadInitialChartGroup');
             });
 
-
-            $scope.$on('SelectedMetricsChangedEvent', (event, selectedMetrics:string[]) => {
-                this.selectedMetricsChanged(selectedMetrics);
-
+            $scope.$on('SelectedMetricsChangedEvent', () => {
+                this.selectedMetricsChanged();
             });
 
         }
 
-        private selectedMetricsChanged(selectedMetrics:string[]) {
-            _.each(this.allMetrics, function(metric:ISelectedMetric){
-                _.each(selectedMetrics, function(selectedMetric:string){
-                    if(selectedMetric === metric.title){
+        private selectedMetricsChanged() {
+            _.each(this.allMetrics, (metric) =>{
+                _.each(this.dashboardStateService.getSelectedMetrics(), (selectedMetric:string) => {
+                    if(selectedMetric === metric.name){
                         metric.selected = true;
                     }
                 });
@@ -68,10 +68,10 @@ module Controllers {
         }
 
         populateMetricsSidebar() {
-
             this.retrieveMetricsPromise = this.metricDataService.getAllMetrics()
                 .then((response) => {
                     this.allMetrics = response;
+                    this.selectedMetricsChanged();
                     this.$rootScope.$emit('SidebarRefreshedEvent');
 
                 }, (error) => {
@@ -82,7 +82,6 @@ module Controllers {
         }
 
         addRemoveChart(metricId:string, checked:boolean) {
-
             if (checked) {
                 this.Angularytics.trackEvent('SideBar', 'RemoveChart',metricId);
                 this.$rootScope.$emit('RemoveChartEvent', metricId);

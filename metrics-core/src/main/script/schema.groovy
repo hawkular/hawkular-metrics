@@ -1,5 +1,6 @@
-/*
- * Copyright 2014 Red Hat, Inc.
+/**
+ * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,10 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import com.datastax.driver.core.Cluster
 import com.datastax.driver.core.Session
-import org.rhq.metrics.core.SchemaManager
+import org.hawkular.metrics.core.SchemaManager
 
 Cluster cluster = new Cluster.Builder()
         .addContactPoint("127.0.0.1")
@@ -24,6 +24,7 @@ Cluster cluster = new Cluster.Builder()
         .build()
 Session session = cluster.connect()
 
-String keyspace = properties["keyspace"] ?: "rhqtest"
+String keyspace = properties["keyspace"] ?: "hawkulartest"
 SchemaManager schemaManager = new SchemaManager(session)
+if (properties["resetdb"]) schemaManager.dropKeyspace(keyspace)
 schemaManager.createSchema(keyspace)

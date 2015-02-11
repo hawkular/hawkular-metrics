@@ -1,0 +1,50 @@
+--
+-- Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+-- and other contributors as indicated by the @author tags.
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--    http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
+--
+
+-- Each line in this file will be used as a syntactically incorrect sample
+-- for org.hawkular.metrics.restServlet.influx.query.InvalidQuerySyntaxTest
+-- Empty lines and lines starting with double dash are ignored
+--
+
+-- Missing from clause
+select 1
+-- Name staring with digit
+select * frOm 1_sqlkd_j0504
+-- Malformed column definition list
+select a, from a
+-- Aggregated function name cannot be a string
+select a, "dsqd"(alxwcklmw) from a as b
+-- Limit clause must give provide an int
+select * from b limit .5
+-- Missing parenthesis
+select * from b where (a=7 limit 3
+-- Missing right side of AND
+select * from b where (a=7 AND )
+-- Timespan starts with an int
+select a from "b" group by time (.15u) where (c=2 and ((d=7) OR 7 <> _qsk4jlj(a."56465"))) limit 15
+-- Timespan needs a unit
+select a from "b" group by time (7) where (c=2 and ((d=7) OR 7 <> _qsk4jlj(a."56465"))) limit 15
+-- Timeunit is single letter
+select a from "b" group by time (7dd) where (c=2 and ((d=7) OR 7 <> _qsk4jlj(a."56465"))) limit 15
+-- Timeunit must be u, s, m, h, d or w
+select a from "b" group by time (7z) where (c=2 and ((d=7) OR 7 <> _qsk4jlj(a."56465"))) limit 15
+-- Broken dates
+select a from "b" where '2012-05-14' = '2007-0' OR '2007-05' > '2007-05-14 18:12:'
+-- Function call
+select a from "b" where '2012-05-14' = '2007-0' OR '2007-05' > _dsqkjdqs()
+-- Malformed order clause
+SeleCt dup.time fROm "z" as bi order bing

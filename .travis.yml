@@ -6,7 +6,7 @@ jdk:
 notifications:
   irc:
     channels:
-      - "chat.freenode.net#rhq.next"
+      - "chat.freenode.net#hawkular"
     on_success: change
 env:
   global:
@@ -14,7 +14,7 @@ env:
 addons:
   coverity_scan:
     project:
-      name: rhq-project/rhq-metrics
+      name: hawkular/hawkular-metrics
       description: Build submitted via Travis CI
     notification_email: hwr@pilhuhn.de
     build_command_prepend: mvn clean

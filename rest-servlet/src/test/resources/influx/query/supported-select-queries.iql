@@ -1,0 +1,31 @@
+--
+-- Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+-- and other contributors as indicated by the @author tags.
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--    http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
+--
+
+-- Each line in this file will be used as a supported sample
+-- for org.hawkular.metrics.restServlet.influx.query.validation.SupportedSelectQueryTest
+-- Empty lines and lines starting with double dash are ignored
+--
+select * from test
+select value from test group by time(30s)
+select a.value from c as a
+select mean(a.value) from c as a
+select mean(a.value) from c as a where time > '2011-07-30'
+select mean(a.value) from c as a where time > '2011-07-30' and time < now() + 50w
+select mean(a.value) from c as a where time < now() - 50w
+select a.value as b from c as a where time < '2011-07-28' and time > now() + 50w
+select a.value as b from c as a where '2011-07-28' < a.time and now() + 50w > a.time
+select a.value as b from c as a where '2011-07-28' > a.time and now() + 50w < a.time

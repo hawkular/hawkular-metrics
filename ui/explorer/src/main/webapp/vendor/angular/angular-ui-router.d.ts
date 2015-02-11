@@ -107,10 +107,10 @@ declare module ng.ui {
     	 */
         sync(): void;
     }
-    
+
     interface IUiViewScrollProvider {
         /*
-         * Reverts back to using the core $anchorScroll service for scrolling 
+         * Reverts back to using the core $anchorScroll service for scrolling
          * based on the url anchor.
          */
         useAnchorScroll(): void;
