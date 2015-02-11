@@ -13,8 +13,6 @@ endif::[]
 * MaaS: Metrics as a Service
 * ChaaS: Charts as a Service
 
-image::img/rhq-metrics-architecture.png[RHQ-Metrics Architecture Diagram]
-
 == Quickstart
 
 To get a first impression you can also run the quickstart via
@@ -24,8 +22,6 @@ To get a first impression you can also run the quickstart via
 in the root directory. This will build and start RHQ-metrics with the in-memory backend. After starting you can
  navigate to http://localhost:8080/[http://localhost:8080/] to a UI Dashboard that displays a list of metrics and the ability to graph multiple charts.
  [NOTE: it will initially be empty if you don't have anything in your database.]
-
-image::img/rhq-metrics-2.png[RHQ-Metrics Console]
 
 Or, if you want to just play around with creating your own metric data and visually see the results in graphs then the Explorer web application is what you want.
   Available at: http://localhost:8080/explorer/[http://localhost:8080/explorer]
