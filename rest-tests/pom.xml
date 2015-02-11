@@ -69,7 +69,7 @@
               </delimiters>
               <resources>
                 <resource>
-                  <directory>${project.basedir}/src/test/resources</directory>
+                  <directory>${project.basedir}/src/test/wildfly-configuration</directory>
                   <includes>
                     <include>*</include>
                   </includes>
@@ -93,7 +93,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <version>2.18</version>
         <configuration>
           <includes>
             <inclde>%regex[.*ITest.*]</inclde>
@@ -105,14 +104,8 @@
         </configuration>
         <executions>
           <execution>
-            <id>integration-test</id>
             <goals>
               <goal>integration-test</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>verify</id>
-            <goals>
               <goal>verify</goal>
             </goals>
           </execution>
@@ -150,6 +143,7 @@
               <goal>deploy-artifact</goal>
             </goals>
             <configuration>
+              <skip>${skipTests}</skip>
               <groupId>${project.groupId}</groupId>
               <artifactId>rest-servlet</artifactId>
               <name>hawkular-metric-rest.war</name>

@@ -82,8 +82,8 @@
     <module>embedded-cassandra</module>
     <module>metrics-core</module>
     <module>rest-servlet</module>
-    <module>clients</module>
     <module>rest-tests</module>
+    <module>clients</module>
     <module>ui/explorer</module>
     <module>ui/console</module>
   </modules>
