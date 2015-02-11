@@ -374,7 +374,7 @@ public class InfluxSeriesHandler {
             List<NumericData> list = tmpMap.get(pos);
             double retVal = 0.0;
             boolean isMultipleValues = false;
-            List<NumericData> retList = new ArrayList<>(); 
+            List<NumericData> retList = new ArrayList<>();
             if (list!=null) {
                 int size = list.size();
                 NumericData lastElementInList = list.get(size - 1);
@@ -443,9 +443,12 @@ public class InfluxSeriesHandler {
                     NumberFunctionArgument argument = (NumberFunctionArgument) aggregationFunctionArguments.get(1);
                     retVal = quantil(list, argument.getDoubleValue());
                     break;
-                case TOP:isMultipleValues = true;
+                case TOP:
+                    isMultipleValues = true;
                     if (!list.isEmpty() && aggregationFunctionArguments.size() > 0) {
-                        int numberOfTopElement = list.size() > Integer.valueOf(aggregationFunctionArguments.get(0).toString()) ? Integer.valueOf(aggregationFunctionArguments.get(0).toString()) : list.size();
+                        int numberOfTopElement = list.size() >
+                            Integer.valueOf(aggregationFunctionArguments.get(0).toString()) ?
+                            Integer.valueOf(aggregationFunctionArguments.get(0).toString()) : list.size();
                         for(int elementPos =0; elementPos<numberOfTopElement; elementPos++){
                             retList.add(list.get(elementPos));
                         }
@@ -454,7 +457,9 @@ public class InfluxSeriesHandler {
                 case BOTTOM:
                     isMultipleValues = true;
                     if (!list.isEmpty() && aggregationFunctionArguments.size() > 0) {
-                        int numberOfBottomElement = list.size() > Integer.valueOf(aggregationFunctionArguments.get(0).toString()) ? Integer.valueOf(aggregationFunctionArguments.get(0).toString()) : list.size();
+                        int numberOfBottomElement = list.size() >
+                            Integer.valueOf(aggregationFunctionArguments.get(0).toString()) ?
+                            Integer.valueOf(aggregationFunctionArguments.get(0).toString()) : list.size();
                         for(int elementPos = (numberOfBottomElement-1); elementPos>=0; elementPos--){
                             retList.add(list.get(elementPos));
                         }
