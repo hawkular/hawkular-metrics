@@ -143,6 +143,7 @@
               <goal>deploy-artifact</goal>
             </goals>
             <configuration>
+              <skip>${skipTests}</skip>
               <groupId>${project.groupId}</groupId>
               <artifactId>rest-servlet</artifactId>
               <name>hawkular-metric-rest.war</name>
