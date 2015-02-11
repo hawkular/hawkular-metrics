@@ -12,7 +12,7 @@
   ]);
 
   m.factory('Ping', function($resource) {
-    return $resource('http://:server\::port/rhq-metrics/ping', {server: '@server', port: '@port'});
+    return $resource('http://:server\::port/hawkular/metrics/ping', {server: '@server', port: '@port'});
   });
 
   m.controller('Controller', function($scope, Ping){
