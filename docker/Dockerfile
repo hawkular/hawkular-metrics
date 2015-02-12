@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 # Dockerfile for hawkular-metrics
 
 FROM vnguyen/wildfly-jdk8
@@ -21,5 +22,6 @@ FROM vnguyen/wildfly-jdk8
 MAINTAINER Armine Hovsepyan <ahovsepy@redhat.com>, Garik Khachikyan <gkhachik@redhat.com>, Viet Nguyen <vnguyen@redhat.com>
 RUN /opt/jboss/wildfly/bin/add-user.sh rhqmetrics rhqmetrics --silent
 COPY *.war /opt/jboss/wildfly/standalone/deployments/
+COPY *.ear /opt/jboss/wildfly/standalone/deployments/
 
-CMD ["/opt/jboss/wildfly/bin/standalone.sh","-b","0.0.0.0","-bmanagement","0.0.0.0","-Drhq-metrics.backend=cass"]
+CMD ["/opt/jboss/wildfly/bin/standalone.sh","-b","0.0.0.0","-bmanagement","0.0.0.0","-Drhq-metrics.backend=embedded_cass"]

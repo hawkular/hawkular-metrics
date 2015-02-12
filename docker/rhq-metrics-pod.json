@@ -14,7 +14,7 @@
         }]},
         {
         "name": "db",
-        "image": "vnguyen/docker-cassandra:latest",
+        "image": "abh1nav/cassandra",
         "ports": [{ "containerPort":9042}, { "containerPort":9160} ]
       }]
     }
