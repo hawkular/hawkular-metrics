@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import com.datastax.driver.core.Cluster
-import com.datastax.driver.core.Session
-import org.hawkular.metrics.core.impl.schema.SchemaManager
+package org.hawkular.metrics.core.impl.cassandra;
 
-Cluster cluster = new Cluster.Builder()
-        .addContactPoint("127.0.0.1")
-        .withoutJMXReporting()
-        .build()
-Session session = cluster.connect()
+/**
+ * @author John Sanda
+ */
+public enum Table {
 
-String keyspace = properties["keyspace"] ?: "hawkulartest"
-SchemaManager schemaManager = new SchemaManager(session)
-if (properties["resetdb"]) schemaManager.dropKeyspace(keyspace)
-schemaManager.createSchema(keyspace)
+    TENANTS,
+    DATA,
+    COUNTERS,
+    TAGS,
+    METRICS_IDX;
+
+}

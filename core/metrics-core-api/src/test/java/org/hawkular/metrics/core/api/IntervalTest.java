@@ -23,7 +23,6 @@ import static org.hawkular.metrics.core.api.Interval.Units.MINUTES;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 
-import org.hawkular.metrics.core.api.Interval;
 import org.testng.annotations.Test;
 
 /**

@@ -17,7 +17,7 @@
 package org.hawkular.metrics.rest
 import org.joda.time.DateTime
 import org.junit.Test
-import org.hawkular.metrics.impl.DateTimeService
+import org.hawkular.metrics.core.impl.DateTimeService
 
 import java.util.concurrent.atomic.AtomicInteger
 

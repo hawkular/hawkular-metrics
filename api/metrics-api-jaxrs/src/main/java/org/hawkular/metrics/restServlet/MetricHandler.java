@@ -73,7 +73,7 @@ import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
-import org.hawkular.metrics.impl.cassandra.MetricUtils;
+import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
 
 import gnu.trove.map.TLongObjectMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
