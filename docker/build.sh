@@ -28,4 +28,4 @@ popd
 mv ../embedded-cassandra/embedded-cassandra-ear/target/hawkular-metrics-embedded-cassandra.ear .
 mv ../rest-servlet/target/hawkular-metric-rest*.war .
 mv ../ui/console/target/metrics-console-*.war .
-docker build --rm --tag rhq-metrics:latest . 
+docker build --rm --tag hawkular-metrics:latest . 

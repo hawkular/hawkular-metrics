@@ -1,5 +1,5 @@
 {
-  "id": "rhq-metrics-one",
+  "id": "hawkular-metrics-one",
   "kind": "Pod",
   "apiVersion": "v1beta1",
   "desiredState": {
@@ -8,9 +8,9 @@
       "id": "rhqmetrics-1",
       "containers": [{
         "name": "server",
-        "image": "vnguyen/rhq-metrics:latest",
+        "image": "vnguyen/hawkular-metrics:latest",
         "ports": [{
-          "name": "rhqmetrics-endpoint-port", "containerPort": 8080, 
+          "name": "metrics-endpoint-port", "containerPort": 8080, 
         }]},
         {
         "name": "db",
@@ -20,6 +20,6 @@
     }
   },
   "labels": {
-    "name": "rhq-metrics-one"
+    "name": "hawkular-metrics-one"
   }
 }
