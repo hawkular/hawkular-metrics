@@ -23,6 +23,16 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 
+import org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler;
+import org.hawkular.metrics.clients.ptrans.collectd.CollectdEventHandler;
+import org.hawkular.metrics.clients.ptrans.collectd.event.CollectdEventsDecoder;
+import org.hawkular.metrics.clients.ptrans.collectd.packet.CollectdPacketDecoder;
+import org.hawkular.metrics.clients.ptrans.ganglia.UdpGangliaDecoder;
+import org.hawkular.metrics.clients.ptrans.statsd.StatsdDecoder;
+import org.hawkular.metrics.clients.ptrans.syslog.UdpSyslogEventDecoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -38,16 +48,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.util.concurrent.Future;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler;
-import org.hawkular.metrics.clients.ptrans.collectd.CollectdEventHandler;
-import org.hawkular.metrics.clients.ptrans.ganglia.UdpGangliaDecoder;
-import org.hawkular.metrics.clients.ptrans.statsd.StatsdDecoder;
-import org.hawkular.metrics.clients.ptrans.syslog.UdpSyslogEventDecoder;
-import org.rhq.metrics.netty.collectd.event.CollectdEventsDecoder;
-import org.rhq.metrics.netty.collectd.packet.CollectdPacketDecoder;
 
 /**
  * PTrans core. After an instance is created for a specific {@link org.hawkular.metrics.clients.ptrans.Configuration},

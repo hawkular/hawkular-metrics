@@ -79,11 +79,6 @@
       <version>1.2</version>
     </dependency>
     <dependency>
-      <groupId>org.rhq.metrics.netty</groupId>
-      <artifactId>netty-collectd</artifactId>
-      <version>0.1</version>
-    </dependency>
-    <dependency>
       <groupId>com.github.jnr</groupId>
       <artifactId>jnr-posix</artifactId>
       <version>3.0.9</version>
