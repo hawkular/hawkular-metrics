@@ -24,8 +24,6 @@ import java.util.UUID;
 
 import com.google.common.base.Objects;
 
-import org.hawkular.metrics.util.TimeUUIDUtils;
-
 /**
  * A numeric metric data point. This class currently represents both raw and aggregated data; however, at some point
  * we may subclasses for each of them.

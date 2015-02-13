@@ -53,7 +53,7 @@ import org.hawkular.metrics.core.NumericMetric;
 import org.hawkular.metrics.core.Retention;
 import org.hawkular.metrics.core.RetentionSettings;
 import org.hawkular.metrics.core.Tenant;
-import org.hawkular.metrics.util.TimeUUIDUtils;
+import org.hawkular.metrics.core.TimeUUIDUtils;
 
 /**
  *

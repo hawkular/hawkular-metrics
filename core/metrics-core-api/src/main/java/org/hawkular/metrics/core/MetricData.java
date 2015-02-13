@@ -24,8 +24,6 @@ import java.util.UUID;
 
 import com.datastax.driver.core.utils.UUIDs;
 
-import org.hawkular.metrics.util.TimeUUIDUtils;
-
 /**
  * @author John Sanda
  */
