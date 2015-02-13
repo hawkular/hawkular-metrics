@@ -83,15 +83,6 @@
         </property>
       </activation>
 
-      <dependencies>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>hawkular-metrics-test-utils</artifactId>
-          <version>${project.version}</version>
-          <scope>test</scope>
-        </dependency>
-      </dependencies>
-
       <build>
         <plugins>
           <plugin>

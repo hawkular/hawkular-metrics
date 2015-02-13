@@ -77,7 +77,6 @@
   </developers>
 
   <modules>
-    <module>test-utils</module>
     <module>core/metrics-core-api</module>
     <module>core/metrics-core-impl</module>
     <module>embedded-cassandra/embedded-cassandra-service</module>
