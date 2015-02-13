@@ -27,10 +27,10 @@
     <version>0.3.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>hawkular-metrics-api</artifactId>
+  <artifactId>hawkular-metrics-core-api</artifactId>
   <packaging>bundle</packaging>
 
-  <name>Hawkular Metrics API</name>
+  <name>Hawkular Metrics Core API</name>
 
   <dependencies>
     <dependency>
