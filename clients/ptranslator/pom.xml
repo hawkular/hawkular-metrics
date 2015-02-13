@@ -114,7 +114,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>rest-servlet</artifactId>
+      <artifactId>hawkular-metrics-api-jaxrs</artifactId>
       <version>${project.version}</version>
       <type>war</type>
       <scope>test</scope>
@@ -244,7 +244,7 @@
             <configuration>
               <skip>${skipTests}</skip>
               <groupId>${project.groupId}</groupId>
-              <artifactId>rest-servlet</artifactId>
+              <artifactId>hawkular-metrics-api-jaxrs</artifactId>
               <name>hawkular-metric-rest.war</name>
             </configuration>
           </execution>

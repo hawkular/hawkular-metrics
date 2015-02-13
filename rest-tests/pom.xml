@@ -145,7 +145,7 @@
             <configuration>
               <skip>${skipTests}</skip>
               <groupId>${project.groupId}</groupId>
-              <artifactId>rest-servlet</artifactId>
+              <artifactId>hawkular-metrics-api-jaxrs</artifactId>
               <name>hawkular-metric-rest.war</name>
             </configuration>
           </execution>
@@ -180,7 +180,7 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>hawkular-metrics-core</artifactId>
+      <artifactId>hawkular-metrics-core-impl</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
@@ -192,7 +192,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>rest-servlet</artifactId>
+      <artifactId>hawkular-metrics-api-jaxrs</artifactId>
       <version>${project.version}</version>
       <type>war</type>
       <scope>test</scope>

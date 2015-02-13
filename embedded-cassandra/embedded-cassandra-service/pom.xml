@@ -22,10 +22,12 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <artifactId>embedded-cassandra</artifactId>
     <groupId>org.hawkular.metrics</groupId>
+    <artifactId>hawkular-metrics-parent</artifactId>
     <version>0.3.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
   </parent>
+
   <artifactId>hawkular-metrics-embedded-cassandra-service</artifactId>
   <packaging>ejb</packaging>
 
