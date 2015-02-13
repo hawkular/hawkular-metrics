@@ -96,26 +96,13 @@
     <system>Travis-ci</system>
     <url>https://travis-ci.org/rhq-project/rhq-metrics</url>
   </ciManagement>
+
   <distributionManagement>
-
-    <snapshotRepository>
-      <id>jboss-snapshots-repository</id>
-      <name>JBoss Snapshots Repository</name>
-      <url>https://repository.jboss.org/nexus/content/repositories/snapshots/</url>
-    </snapshotRepository>
-
-    <repository>
-      <id>jboss-releases-repository</id>
-      <name>JBoss Releases Repository</name>
-      <url>https://repository.jboss.org/nexus/service/local/staging/deploy/maven2/</url>
-    </repository>
-
     <site>
       <id>local-site-tmp</id>
       <name>Hawkular-metrics</name>
       <url>file:///tmp/rhq-metrics-site</url>
     </site>
-
   </distributionManagement>
 
   <properties>
