@@ -33,7 +33,7 @@ import javax.ws.rs.core.Response;
 
 import com.wordnik.swagger.annotations.ApiOperation;
 
-import org.hawkular.metrics.core.MetricsService;
+import org.hawkular.metrics.core.api.MetricsService;
 
 /**
  * @author Thomas Segismont

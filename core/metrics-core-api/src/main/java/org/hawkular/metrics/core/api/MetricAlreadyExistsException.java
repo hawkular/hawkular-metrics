@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core;
+package org.hawkular.metrics.core.api;
 
 /**
  * @author John Sanda
  */
-public class TenantDoesNotExistException extends RuntimeException {
+public class MetricAlreadyExistsException extends RuntimeException {
 
-    private String tenantId;
+    private Metric metric;
 
-    public TenantDoesNotExistException(String tenantId) {
-        this.tenantId = tenantId;
+    public MetricAlreadyExistsException(Metric metric) {
+        this.metric = metric;
     }
 
-    public String getTenantId() {
-        return tenantId;
+    public Metric getMetric() {
+        return metric;
     }
 }

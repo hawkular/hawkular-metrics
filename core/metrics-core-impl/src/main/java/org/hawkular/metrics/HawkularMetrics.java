@@ -19,7 +19,7 @@ package org.hawkular.metrics;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.hawkular.metrics.core.MetricsService;
+import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.impl.cassandra.MetricsServiceCassandra;
 import org.hawkular.metrics.impl.memory.MemoryMetricsService;
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core;
+package org.hawkular.metrics.core.api;
 
 import java.util.Collection;
 import java.util.List;
@@ -54,14 +54,14 @@ public interface MetricsService {
      * with the same id already exists.
      * </p>
      * <p>
-     * All data is associated with a {@link org.hawkular.metrics.core.Tenant tenant} via the tenant id; however,
+     * All data is associated with a {@link org.hawkular.metrics.core.api.Tenant tenant} via the tenant id; however,
      * the foreign key like relationship is not enforced. Data can be inserted with a non-existent tenant id. More
      * importantly, data could be inserted with a tenant id that already exists.
      * </p>
      *
-     * @param tenant The {@link org.hawkular.metrics.core.Tenant tenant} to create
+     * @param tenant The {@link org.hawkular.metrics.core.api.Tenant tenant} to create
      * @return
-     * @throws org.hawkular.metrics.core.TenantAlreadyExistsException
+     * @throws org.hawkular.metrics.core.api.TenantAlreadyExistsException
      */
     ListenableFuture<Void> createTenant(Tenant tenant);
 

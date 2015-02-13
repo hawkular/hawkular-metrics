@@ -20,7 +20,7 @@ import java.util.List;
 
 import com.google.common.base.Function;
 
-import org.hawkular.metrics.core.MetricData;
+import org.hawkular.metrics.core.api.MetricData;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 

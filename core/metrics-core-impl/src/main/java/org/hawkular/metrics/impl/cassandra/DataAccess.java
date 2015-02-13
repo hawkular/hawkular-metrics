@@ -23,18 +23,18 @@ import java.util.Set;
 
 import com.datastax.driver.core.ResultSetFuture;
 
-import org.hawkular.metrics.core.Availability;
-import org.hawkular.metrics.core.AvailabilityMetric;
-import org.hawkular.metrics.core.Counter;
-import org.hawkular.metrics.core.Interval;
-import org.hawkular.metrics.core.Metric;
-import org.hawkular.metrics.core.MetricData;
-import org.hawkular.metrics.core.MetricId;
-import org.hawkular.metrics.core.MetricType;
-import org.hawkular.metrics.core.NumericData;
-import org.hawkular.metrics.core.NumericMetric;
-import org.hawkular.metrics.core.Retention;
-import org.hawkular.metrics.core.Tenant;
+import org.hawkular.metrics.core.api.Availability;
+import org.hawkular.metrics.core.api.AvailabilityMetric;
+import org.hawkular.metrics.core.api.Counter;
+import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricData;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.NumericData;
+import org.hawkular.metrics.core.api.NumericMetric;
+import org.hawkular.metrics.core.api.Retention;
+import org.hawkular.metrics.core.api.Tenant;
 
 /**
  * @author John Sanda

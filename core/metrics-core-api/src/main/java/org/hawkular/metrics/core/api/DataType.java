@@ -14,20 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core;
+package org.hawkular.metrics.core.api;
 
 /**
  * @author John Sanda
  */
-public class MetricAlreadyExistsException extends RuntimeException {
+public enum DataType {
 
-    private Metric metric;
+    RAW, MAX, MIN, AVG;
 
-    public MetricAlreadyExistsException(Metric metric) {
-        this.metric = metric;
+    public static DataType valueOf(int type) {
+        switch (type) {
+        case 0:  return RAW;
+        case 1 : return MAX;
+        case 2 : return MIN;
+        case 3 : return AVG;
+        default: throw new IllegalArgumentException(type + " is not a supported " +
+            DataType.class.getSimpleName());
+        }
     }
 
-    public Metric getMetric() {
-        return metric;
-    }
 }

@@ -14,35 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core;
+package org.hawkular.metrics.core.api;
 
 import com.google.common.base.Objects;
 
 /**
  * @author John Sanda
  */
-public class Tag {
+public class Retention {
 
-    public static final String NO_VALUE = "";
+    private MetricId id;
 
-    private final String name;
+    private int value;
 
-    private final String value;
-
-    public Tag(String tag) {
-        this(tag, NO_VALUE);
+    public Retention(MetricId id, int value) {
+        this.id = id;
+        this.value = value;
     }
 
-    public Tag(String tag, String value) {
-        name = tag;
-        this.value = value == null ? NO_VALUE : value;
+    public MetricId getId() {
+        return id;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public String getValue() {
+    public int getValue() {
         return value;
     }
 
@@ -51,23 +45,23 @@ public class Tag {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        Tag tag = (Tag) o;
+        Retention retention = (Retention) o;
 
-        if (!name.equals(tag.name)) return false;
-        if (!value.equals(tag.value)) return false;
+        if (value != retention.value) return false;
+        if (!id.equals(retention.id)) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + value.hashCode();
+        int result = id.hashCode();
+        result = 31 * result + value;
         return result;
     }
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this).add("value", name).add("value", value).toString();
+        return Objects.toStringHelper(this).add("id", id).add("value", value).toString();
     }
 }

@@ -25,10 +25,10 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.google.common.base.Function;
 
-import org.hawkular.metrics.core.Interval;
-import org.hawkular.metrics.core.MetricId;
-import org.hawkular.metrics.core.NumericData;
-import org.hawkular.metrics.core.NumericMetric;
+import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.NumericData;
+import org.hawkular.metrics.core.api.NumericMetric;
 
 /**
  * @author John Sanda

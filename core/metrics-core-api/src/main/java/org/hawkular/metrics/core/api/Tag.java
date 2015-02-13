@@ -14,34 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core;
+package org.hawkular.metrics.core.api;
 
 import com.google.common.base.Objects;
 
 /**
  * @author John Sanda
  */
-public class MetricId {
+public class Tag {
 
-    private String name;
+    public static final String NO_VALUE = "";
 
-    private Interval interval;
+    private final String name;
 
-    public MetricId(String name) {
-        this(name, Interval.NONE);
+    private final String value;
+
+    public Tag(String tag) {
+        this(tag, NO_VALUE);
     }
 
-    public MetricId(String name, Interval interval) {
-        this.name = name;
-        this.interval = interval;
+    public Tag(String tag, String value) {
+        name = tag;
+        this.value = value == null ? NO_VALUE : value;
     }
 
     public String getName() {
         return name;
     }
 
-    public Interval getInterval() {
-        return interval;
+    public String getValue() {
+        return value;
     }
 
     @Override
@@ -49,10 +51,10 @@ public class MetricId {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        MetricId metricId = (MetricId) o;
+        Tag tag = (Tag) o;
 
-        if (!interval.equals(metricId.interval)) return false;
-        if (!name.equals(metricId.name)) return false;
+        if (!name.equals(tag.name)) return false;
+        if (!value.equals(tag.value)) return false;
 
         return true;
     }
@@ -60,12 +62,12 @@ public class MetricId {
     @Override
     public int hashCode() {
         int result = name.hashCode();
-        result = 31 * result + interval.hashCode();
+        result = 31 * result + value.hashCode();
         return result;
     }
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this).add("name", name).add("interval", interval).toString();
+        return Objects.toStringHelper(this).add("value", name).add("value", value).toString();
     }
 }

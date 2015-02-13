@@ -20,7 +20,7 @@ import javax.inject.Inject;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 
-import org.hawkular.metrics.core.MetricsService;
+import org.hawkular.metrics.core.api.MetricsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

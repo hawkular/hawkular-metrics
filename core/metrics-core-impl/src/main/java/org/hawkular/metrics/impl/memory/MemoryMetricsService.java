@@ -34,17 +34,17 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
-import org.hawkular.metrics.core.Availability;
-import org.hawkular.metrics.core.AvailabilityMetric;
-import org.hawkular.metrics.core.Counter;
-import org.hawkular.metrics.core.Metric;
-import org.hawkular.metrics.core.MetricId;
-import org.hawkular.metrics.core.MetricType;
-import org.hawkular.metrics.core.MetricsService;
-import org.hawkular.metrics.core.MetricsThreadFactory;
-import org.hawkular.metrics.core.NumericData;
-import org.hawkular.metrics.core.NumericMetric;
-import org.hawkular.metrics.core.Tenant;
+import org.hawkular.metrics.core.api.Availability;
+import org.hawkular.metrics.core.api.AvailabilityMetric;
+import org.hawkular.metrics.core.api.Counter;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.MetricsThreadFactory;
+import org.hawkular.metrics.core.api.NumericData;
+import org.hawkular.metrics.core.api.NumericMetric;
+import org.hawkular.metrics.core.api.Tenant;
 
 import gnu.trove.map.TLongDoubleMap;
 import gnu.trove.map.hash.TLongDoubleHashMap;

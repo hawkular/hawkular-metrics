@@ -41,10 +41,10 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import org.hawkular.metrics.core.MetricType;
-import org.hawkular.metrics.core.MetricsService;
-import org.hawkular.metrics.core.Tenant;
-import org.hawkular.metrics.core.TenantAlreadyExistsException;
+import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.Tenant;
+import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
 
 /**
  * @author Thomas Segismont

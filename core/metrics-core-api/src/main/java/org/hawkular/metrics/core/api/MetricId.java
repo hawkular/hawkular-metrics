@@ -14,30 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core;
+package org.hawkular.metrics.core.api;
 
 import com.google.common.base.Objects;
 
 /**
  * @author John Sanda
  */
-public class Retention {
+public class MetricId {
 
-    private MetricId id;
+    private String name;
 
-    private int value;
+    private Interval interval;
 
-    public Retention(MetricId id, int value) {
-        this.id = id;
-        this.value = value;
+    public MetricId(String name) {
+        this(name, Interval.NONE);
     }
 
-    public MetricId getId() {
-        return id;
+    public MetricId(String name, Interval interval) {
+        this.name = name;
+        this.interval = interval;
     }
 
-    public int getValue() {
-        return value;
+    public String getName() {
+        return name;
+    }
+
+    public Interval getInterval() {
+        return interval;
     }
 
     @Override
@@ -45,23 +49,23 @@ public class Retention {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        Retention retention = (Retention) o;
+        MetricId metricId = (MetricId) o;
 
-        if (value != retention.value) return false;
-        if (!id.equals(retention.id)) return false;
+        if (!interval.equals(metricId.interval)) return false;
+        if (!name.equals(metricId.name)) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        int result = id.hashCode();
-        result = 31 * result + value;
+        int result = name.hashCode();
+        result = 31 * result + interval.hashCode();
         return result;
     }
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this).add("id", id).add("value", value).toString();
+        return Objects.toStringHelper(this).add("name", name).add("interval", interval).toString();
     }
 }

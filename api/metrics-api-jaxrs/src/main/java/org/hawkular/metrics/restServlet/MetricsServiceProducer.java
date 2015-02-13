@@ -30,7 +30,7 @@ import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 
 import org.hawkular.metrics.HawkularMetrics;
-import org.hawkular.metrics.core.MetricsService;
+import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.restServlet.config.Configurable;
 import org.hawkular.metrics.restServlet.config.ConfigurationProperty;
 import org.slf4j.Logger;

@@ -23,10 +23,10 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.google.common.base.Function;
 
-import org.hawkular.metrics.core.Availability;
-import org.hawkular.metrics.core.AvailabilityMetric;
-import org.hawkular.metrics.core.Interval;
-import org.hawkular.metrics.core.MetricId;
+import org.hawkular.metrics.core.api.Availability;
+import org.hawkular.metrics.core.api.AvailabilityMetric;
+import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.MetricId;
 
 /**
  * @author John Sanda

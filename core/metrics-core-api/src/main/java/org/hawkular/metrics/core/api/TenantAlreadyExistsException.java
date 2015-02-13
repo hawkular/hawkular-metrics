@@ -14,24 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core;
+package org.hawkular.metrics.core.api;
 
 /**
  * @author John Sanda
  */
-public enum DataType {
+public class TenantAlreadyExistsException extends RuntimeException {
 
-    RAW, MAX, MIN, AVG;
+    private String tenantId;
 
-    public static DataType valueOf(int type) {
-        switch (type) {
-        case 0:  return RAW;
-        case 1 : return MAX;
-        case 2 : return MIN;
-        case 3 : return AVG;
-        default: throw new IllegalArgumentException(type + " is not a supported " +
-            DataType.class.getSimpleName());
-        }
+    public TenantAlreadyExistsException(String tenantId) {
+        this.tenantId = tenantId;
+    }
+
+    public String getTenantId() {
+        return tenantId;
     }
 
 }

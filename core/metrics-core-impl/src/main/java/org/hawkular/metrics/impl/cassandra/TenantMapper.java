@@ -25,10 +25,10 @@ import com.datastax.driver.core.TupleValue;
 import com.datastax.driver.core.UDTValue;
 import com.google.common.base.Function;
 
-import org.hawkular.metrics.core.AggregationTemplate;
-import org.hawkular.metrics.core.Interval;
-import org.hawkular.metrics.core.MetricType;
-import org.hawkular.metrics.core.Tenant;
+import org.hawkular.metrics.core.api.AggregationTemplate;
+import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.Tenant;
 
 /**
  * @author John Sanda

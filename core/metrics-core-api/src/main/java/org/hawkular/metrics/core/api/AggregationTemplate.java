@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core;
+package org.hawkular.metrics.core.api;
 
 import java.util.Set;
 
@@ -44,7 +44,7 @@ public class AggregationTemplate {
     private Set<String> functions;
 
     /**
-     * The {@link org.hawkular.metrics.core.MetricType type} of metric to which the
+     * The {@link org.hawkular.metrics.core.api.MetricType type} of metric to which the
      * template applies.
      *
      * @return type

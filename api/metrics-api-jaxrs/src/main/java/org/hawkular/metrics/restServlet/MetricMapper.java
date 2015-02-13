@@ -18,7 +18,7 @@ package org.hawkular.metrics.restServlet;
 
 import com.google.common.base.Function;
 
-import org.hawkular.metrics.core.NumericMetric;
+import org.hawkular.metrics.core.api.NumericMetric;
 
 /**
  * @author John Sanda

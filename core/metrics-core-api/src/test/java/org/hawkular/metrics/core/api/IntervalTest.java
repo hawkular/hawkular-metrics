@@ -14,15 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core;
+package org.hawkular.metrics.core.api;
 
-import static org.hawkular.metrics.core.Interval.parse;
-import static org.hawkular.metrics.core.Interval.Units.DAYS;
-import static org.hawkular.metrics.core.Interval.Units.HOURS;
-import static org.hawkular.metrics.core.Interval.Units.MINUTES;
+import static org.hawkular.metrics.core.api.Interval.parse;
+import static org.hawkular.metrics.core.api.Interval.Units.DAYS;
+import static org.hawkular.metrics.core.api.Interval.Units.HOURS;
+import static org.hawkular.metrics.core.api.Interval.Units.MINUTES;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 
+import org.hawkular.metrics.core.api.Interval;
 import org.testng.annotations.Test;
 
 /**

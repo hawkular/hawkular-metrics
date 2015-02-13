@@ -20,7 +20,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.Response.ResponseBuilder;
 import static javax.ws.rs.core.Response.Status;
-import static org.hawkular.metrics.core.MetricsService.DEFAULT_TENANT_ID;
+import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
 import static org.hawkular.metrics.restServlet.influx.query.parse.InfluxQueryParser.QueryContext;
 import static org.hawkular.metrics.restServlet.influx.query.parse.InfluxQueryParser.SelectQueryContext;
 
@@ -53,12 +53,12 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
-import org.hawkular.metrics.core.Metric;
-import org.hawkular.metrics.core.MetricId;
-import org.hawkular.metrics.core.MetricType;
-import org.hawkular.metrics.core.MetricsService;
-import org.hawkular.metrics.core.NumericData;
-import org.hawkular.metrics.core.NumericMetric;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.NumericData;
+import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.restServlet.DataInsertedCallback;
 import org.hawkular.metrics.restServlet.StringValue;
 import org.hawkular.metrics.restServlet.influx.query.InfluxQueryParseTreeWalker;

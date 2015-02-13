@@ -23,7 +23,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.google.common.base.Function;
 
-import org.hawkular.metrics.core.Counter;
+import org.hawkular.metrics.core.api.Counter;
 
 /**
  * @author John Sanda

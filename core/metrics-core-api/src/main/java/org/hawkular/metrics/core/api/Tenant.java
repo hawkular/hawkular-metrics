@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core;
+package org.hawkular.metrics.core.api;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +46,7 @@ public class Tenant {
     }
 
     /**
-     * The configured {@link org.hawkular.metrics.core.AggregationTemplate aggregation templates} for the tenant
+     * The configured {@link org.hawkular.metrics.core.api.AggregationTemplate aggregation templates} for the tenant
      */
     public List<AggregationTemplate> getAggregationTemplates() {
         return aggregationTemplates;
@@ -58,7 +58,7 @@ public class Tenant {
     }
 
     /**
-     * The {@link org.hawkular.metrics.core.RetentionSettings data retention settings} for both
+     * The {@link org.hawkular.metrics.core.api.RetentionSettings data retention settings} for both
      * raw and aggregated data of all metric types
      */
     public RetentionSettings getRetentionSettings() {
