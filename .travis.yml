@@ -30,4 +30,4 @@ script:
   -eq 0
 after_failure: bash .travis.diagnose.sh
 after_success:
-- mvn  -s .travis.maven.settings.xml deploy
+- test ${TRAVIS_BRANCH} = master && mvn  -s .travis.maven.settings.xml deploy
