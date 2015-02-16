@@ -21,7 +21,6 @@ import static org.joda.time.Hours.hours;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,11 +36,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.management.MBeanInfo;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
-import javax.management.remote.JMXConnector;
-import javax.management.remote.JMXConnectorFactory;
-import javax.management.remote.JMXServiceURL;
 
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
@@ -84,6 +81,8 @@ import com.google.common.util.concurrent.RateLimiter;
  * @author John Sanda
  */
 public class MetricsServiceCassandra implements MetricsService {
+
+    private static final String CASSANDRA_STORAGE_SERVICE = "org.apache.cassandra.db:type=StorageService";
 
     private static final Logger logger = LoggerFactory.getLogger(MetricsServiceCassandra.class);
 
@@ -155,14 +154,7 @@ public class MetricsServiceCassandra implements MetricsService {
      */
     private final Map<DataRetentionKey, Integer> dataRetentions = new ConcurrentHashMap<>();
 
-    private final Boolean embeddedCassandraServer;
-
     public MetricsServiceCassandra() {
-        this(false);
-    }
-
-    public MetricsServiceCassandra(boolean embeddedCassandraServer) {
-        this.embeddedCassandraServer = embeddedCassandraServer;
     }
 
     @Override
@@ -191,8 +183,7 @@ public class MetricsServiceCassandra implements MetricsService {
             nodes = new String[] {"127.0.0.1"};
         }
 
-        // TODO: extend this to remote C* by using C* defaults
-        if (embeddedCassandraServer) {
+        if (isEmbeddedCassandraServer()) {
             verifyNodeIsUp(nodes[0], 9990, 10, 1000);
         }
 
@@ -271,8 +262,8 @@ public class MetricsServiceCassandra implements MetricsService {
                 }
             }
             try {
-                MBeanServerConnection serverConnection = this.getMbeanServerConnection(address, jmxPort);
-                ObjectName storageService = new ObjectName("org.apache.cassandra.db:type=StorageService");
+                MBeanServerConnection serverConnection = ManagementFactory.getPlatformMBeanServer();
+                ObjectName storageService = new ObjectName(CASSANDRA_STORAGE_SERVICE);
                 nativeTransportRunning = (Boolean) serverConnection.getAttribute(storageService,
                         "NativeTransportRunning");
                 initialized = (Boolean) serverConnection.getAttribute(storageService,
@@ -292,31 +283,22 @@ public class MetricsServiceCassandra implements MetricsService {
         return false;
     }
 
-    private MBeanServerConnection getMbeanServerConnection(String address, int jmxPort) throws IOException {
-        if (embeddedCassandraServer) {
-            return ManagementFactory.getPlatformMBeanServer();
-        }
-
-        String url = "service:jmx:rmi:///jndi/rmi://" + address + ":" + jmxPort + "/jmxrmi";
-        JMXServiceURL serviceURL;
+    private boolean isEmbeddedCassandraServer() {
         try {
-            serviceURL = new JMXServiceURL(url);
-        } catch (MalformedURLException ex) {
-            logger.error("Failed to verify that Cassandra cluster is running", ex);
-            throw ex;
-        }
+            MBeanServerConnection serverConnection = ManagementFactory.getPlatformMBeanServer();
+            ObjectName storageService = new ObjectName(CASSANDRA_STORAGE_SERVICE);
+            MBeanInfo storageServiceInfo = serverConnection.getMBeanInfo(storageService);
 
-        // Sleep a few seconds to work around
-        // https://issues.apache.org/jira/browse/CASSANDRA-5467
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException ignored) {
-        }
+            if (storageServiceInfo != null) {
+                return true;
+            }
 
-        Map<String, String> env = new HashMap<String, String>();
-        JMXConnector connector = JMXConnectorFactory.connect(serviceURL, env);
-        return connector.getMBeanServerConnection();
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
     }
+
 
     private class DataRetentionsLoadedCallback implements FutureCallback<Set<Retention>> {
 

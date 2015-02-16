@@ -38,9 +38,8 @@ usage()
       USAGE=$(
 cat << EOF
 USAGE:   start.sh OPTIONS
-   --backend=mem|cass                     [OPTIONAL]
+   --backend=cass|embedded_cass                     [OPTIONAL]
       Backend type to be used by the deployment.
-      'mem'          = use built-in memory enginer
       'cass'         = connects to a cassandra cluster
       'embedded_cass' = use and connect to the built-in embedded cassandra server
       Script default is 'embedded_cass'.
@@ -67,7 +66,7 @@ EOF
 #========================================================================================
 parse_and_validate_options()
 {
-   BACKEND="mem"
+   BACKEND="embedded_cass"
    VERSION="0.2.4"
    VERSION_REQUESTED=false
    DEV=false
@@ -94,10 +93,6 @@ parse_and_validate_options()
          --backend)
             shift
             case "$1" in
-               "mem")
-                  BACKEND="mem"
-                  shift
-                  ;;
                "cass")
                   BACKEND="cass"
                   shift
