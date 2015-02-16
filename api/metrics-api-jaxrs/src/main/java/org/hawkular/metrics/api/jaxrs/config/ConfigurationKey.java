@@ -23,15 +23,7 @@ package org.hawkular.metrics.api.jaxrs.config;
  * @see Configurable
  */
 public enum ConfigurationKey {
-    /**
-     * Storage type. The value may be one of:
-     * <ul>
-     *     <li><em>mem</em> for memory</li>
-     *     <li><em>cass</em> for Cassandra</li>
-     * </ul>
-     * Memory backend will be used whenever the value is not <em>cass</em>.
-     */
-    BACKEND("hawkular-metrics.backend"),
+
     CASSANDRA_CQL_PORT("hawkular-metrics.cassandra-cql-port"),
     CASSANDRA_NODES("hawkular-metrics.cassandra-nodes"),
     CASSANDRA_KEYSPACE("cassandra.keyspace");

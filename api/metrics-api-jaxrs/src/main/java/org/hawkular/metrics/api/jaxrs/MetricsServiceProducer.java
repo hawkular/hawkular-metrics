@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.api.jaxrs;
 
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.BACKEND;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_CQL_PORT;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_KEYSPACE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_NODES;
@@ -46,11 +45,6 @@ public class MetricsServiceProducer {
 
     @Inject
     @Configurable
-    @ConfigurationProperty(BACKEND)
-    private String backend;
-
-    @Inject
-    @Configurable
     @ConfigurationProperty(CASSANDRA_CQL_PORT)
     private String cqlPort;
 
@@ -76,28 +70,12 @@ public class MetricsServiceProducer {
     public MetricsService getMetricsService() {
         if (metricsService == null) {
             HawkularMetrics.Builder metricsServiceBuilder = new HawkularMetrics.Builder();
+            Map<String, String> options = new HashMap<>();
+            options.put("cqlport", cqlPort);
+            options.put("nodes", nodes);
+            options.put("keyspace", keyspace);
 
-            if (backend != null) {
-                switch (backend) {
-                case "cass":
-                    LOG.info("Using Cassandra backend implementation");
-                    Map<String, String> options = new HashMap<>();
-                    options.put("cqlport", cqlPort);
-                    options.put("nodes", nodes);
-                    options.put("keyspace", keyspace);
-                    metricsServiceBuilder.withOptions(options).withCassandraDataStore();
-                    break;
-                case "mem":
-                    throw new RuntimeException("The memory backend is no longer supported");
-                case "embedded_cass":
-                default:
-                    LOG.info("Using Cassandra backend implementation with an embedded Server");
-                    metricsServiceBuilder.withEmbeddedCassandraDataStore();
-                }
-            } else {
-                metricsServiceBuilder.withCassandraDataStore();
-            }
-
+            metricsServiceBuilder.withOptions(options);
             metricsService = metricsServiceBuilder.build();
         }
 

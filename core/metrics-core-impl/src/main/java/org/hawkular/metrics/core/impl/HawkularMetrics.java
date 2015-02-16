@@ -21,7 +21,6 @@ import java.util.Map;
 
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.impl.cassandra.MetricsServiceCassandra;
-import org.hawkular.metrics.core.impl.memory.MemoryMetricsService;
 
 /**
  * @author John Sanda
@@ -29,12 +28,6 @@ import org.hawkular.metrics.core.impl.memory.MemoryMetricsService;
 public class HawkularMetrics {
 
     public static class Builder {
-
-        private enum DataStoreType {
-            Cassandra, EmbeddedCassandra, InMemory
-        };
-
-        private DataStoreType dataStoreType = DataStoreType.EmbeddedCassandra;
 
         private final Map<String, String> options;
 
@@ -57,21 +50,6 @@ public class HawkularMetrics {
 
         public Builder withOptions(Map<String,String> options) {
             this.options.putAll(options);
-            return this;
-        }
-
-        public Builder withInMemoryDataStore() {
-            dataStoreType = DataStoreType.InMemory;
-            return this;
-        }
-
-        public Builder withEmbeddedCassandraDataStore() {
-            dataStoreType = DataStoreType.EmbeddedCassandra;
-            return this;
-        }
-
-        public Builder withCassandraDataStore() {
-            dataStoreType = DataStoreType.Cassandra;
             return this;
         }
 
@@ -98,45 +76,11 @@ public class HawkularMetrics {
         }
 
         public MetricsService build() {
-            MetricsService metricsService;
-
-            if (DataStoreType.Cassandra.equals(dataStoreType)) {
-                metricsService = new MetricsServiceCassandra();
-            } else if (DataStoreType.InMemory.equals(dataStoreType)) {
-                metricsService = new MemoryMetricsService();
-            } else if (DataStoreType.EmbeddedCassandra.equals(dataStoreType)) {
-                metricsService = new MetricsServiceCassandra(true);
-            } else {
-                metricsService = new MetricsServiceCassandra();
-            }
-
+            MetricsService metricsService = new MetricsServiceCassandra();
             metricsService.startUp(options);
 
             return metricsService;
         }
 
     }
-
-    private final MetricsService metricsService;
-
-    private HawkularMetrics(MetricsService metricsService) {
-        this.metricsService = metricsService;
-    }
-
-//    public ListenableFuture<Void> addData(NumericData data) {
-//        return metricsService.addNumericData(ImmutableSet.of(data));
-//    }
-
-//    public ListenableFuture<Void> addData(Set<NumericData> data) {
-//        return metricsService.addNumericData(data);
-//    }
-
-//    public ListenableFuture<List<NumericData>> findData(String id, long start, long end) {
-//        return metricsService.findData(id, start, end);
-//    }
-
-    public void shutdown() {
-        metricsService.shutdown();
-    }
-
 }
