@@ -22,6 +22,10 @@ package org.hawkular.metrics.clients.ptrans;
  * @author Thomas Segismont
  */
 public enum ConfigurationKey {
+    /**
+     * Services to start
+     */
+    SERVICES("services"),
     /** Multiplexed  UDP port**/
     UDP_PORT("port.udp"),
     /** Multiplexed  TCP port**/

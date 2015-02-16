@@ -23,13 +23,19 @@ import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GANGLIA_MULTI
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GANGLIA_PORT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.REST_CLOSE_AFTER_REQUESTS;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.REST_URL;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SPOOL_SIZE;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.STATSD_PORT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.TCP_PORT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.UDP_PORT;
 
 import java.net.URI;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Locale;
 import java.util.Properties;
+import java.util.Set;
+import java.util.StringTokenizer;
 
 /**
  * PTrans configuration holder.
@@ -37,6 +43,7 @@ import java.util.Properties;
  * @author Thomas Segismont
  */
 public class Configuration {
+    private final Set<Service> services;
     private final int udpPort;
     private final int tcpPort;
     private final int gangliaPort;
@@ -48,10 +55,14 @@ public class Configuration {
     private final URI restUrl;
     private final int restCloseAfterRequests;
     private final int spoolSize;
+    private final Set<String> validationMessages;
 
-    private Configuration(int udpPort, int tcpPort, int gangliaPort, String gangliaGroup, int statsDport,
-        int collectdPort, String multicastIfOverride, int minimumBatchSize, URI restUrl, int restCloseAfterRequests,
-        int spoolSize) {
+    private Configuration(
+            Set<Service> services, int udpPort, int tcpPort, int gangliaPort, String gangliaGroup, int statsDport,
+            int collectdPort, String multicastIfOverride, int minimumBatchSize, URI restUrl, int restCloseAfterRequests,
+            int spoolSize, Set<String> validationMessages
+    ) {
+        this.services = services;
         this.udpPort = udpPort;
         this.tcpPort = tcpPort;
         this.gangliaPort = gangliaPort;
@@ -63,9 +74,12 @@ public class Configuration {
         this.restUrl = restUrl;
         this.restCloseAfterRequests = restCloseAfterRequests;
         this.spoolSize = spoolSize;
+        this.validationMessages = Collections.unmodifiableSet(validationMessages);
     }
 
     public static Configuration from(Properties properties) {
+        Set<String> validationMessages = new HashSet<>();
+        Set<Service> services = getServices(properties, validationMessages);
         int udpPort = getIntProperty(properties, UDP_PORT, 5140);
         int tcpPort = getIntProperty(properties, TCP_PORT, 5140);
         int gangliaPort = getIntProperty(properties, GANGLIA_PORT, 8649);
@@ -78,8 +92,37 @@ public class Configuration {
             "http://localhost:8080/hawkular-metrics/metrics"));
         int restCloseAfterRequests = getIntProperty(properties, REST_CLOSE_AFTER_REQUESTS, 200);
         int spoolSize = getIntProperty(properties, SPOOL_SIZE, 10000);
-        return new Configuration(udpPort, tcpPort, gangliaPort, gangliaGroup, statsDport, collectdPort,
-            multicastIfOverride, minimumBatchSize, restUrl, restCloseAfterRequests, spoolSize);
+        return new Configuration(
+                services, udpPort, tcpPort, gangliaPort, gangliaGroup, statsDport,
+                collectdPort, multicastIfOverride, minimumBatchSize, restUrl, restCloseAfterRequests,
+                spoolSize, validationMessages
+        );
+    }
+
+    private static Set<Service> getServices(Properties properties, Set<String> validationMessages) {
+        String servicesProperty = properties.getProperty(SERVICES.getExternalForm());
+        if (servicesProperty == null) {
+            validationMessages.add(String.format(Locale.ROOT, "Property %s not found", SERVICES.getExternalForm()));
+            return Collections.emptySet();
+        }
+        Set<Service> services = new HashSet<>();
+        StringTokenizer tokenizer = new StringTokenizer(servicesProperty, ",");
+        while (tokenizer.hasMoreTokens()) {
+            String token = tokenizer.nextToken().trim();
+            if (token.isEmpty()) {
+                continue;
+            }
+            Service service = Service.findByExternalForm(token);
+            if (service == null) {
+                validationMessages.add(String.format(Locale.ROOT, "Uknown service %s", token));
+                continue;
+            }
+            services.add(service);
+        }
+        if (services.isEmpty()) {
+            validationMessages.add("Empty services list");
+        }
+        return services;
     }
 
     private static int getIntProperty(Properties properties, ConfigurationKey key, int defaultValue) {
@@ -88,6 +131,21 @@ public class Configuration {
             return defaultValue;
         }
         return Integer.parseInt(property);
+    }
+
+    /**
+     * @return true if this configuration is valid, false otherwise.
+     */
+    public boolean isValid() {
+        return validationMessages.isEmpty();
+    }
+
+    public Set<String> getValidationMessages() {
+        return validationMessages;
+    }
+
+    public Set<Service> getServices() {
+        return services;
     }
 
     public int getUdpPort() {

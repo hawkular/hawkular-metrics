@@ -26,8 +26,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-import jnr.posix.POSIXFactory;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -35,6 +33,8 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import jnr.posix.POSIXFactory;
 
 /**
  * Simple client (proxy) that receives messages from various protocols
@@ -95,7 +95,13 @@ public class Main {
             }
         }
         Properties properties = loadConfigurationProperties(configFile);
-        ptrans = new PTrans(Configuration.from(properties));
+        Configuration configuration = Configuration.from(properties);
+        if (!configuration.isValid()) {
+            System.err.println("Invalid configuration:");
+            configuration.getValidationMessages().forEach(System.err::println);
+            System.exit(1);
+        }
+        ptrans = new PTrans(configuration);
         ptrans.start();
     }
 
