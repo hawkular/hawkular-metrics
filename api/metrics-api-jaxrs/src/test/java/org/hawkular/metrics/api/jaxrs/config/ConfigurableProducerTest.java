@@ -60,7 +60,7 @@ public class ConfigurableProducerTest {
     public void before() throws IOException {
         Annotated annotated = mock(Annotated.class);
         ConfigurationProperty configurationProperty = mock(ConfigurationProperty.class);
-        when(configurationProperty.value()).thenReturn(ConfigurationKey.BACKEND);
+        when(configurationProperty.value()).thenReturn(ConfigurationKey.CASSANDRA_KEYSPACE);
         when(annotated.getAnnotation(eq(ConfigurationProperty.class))).thenReturn(configurationProperty);
         injectionPoint = mock(InjectionPoint.class);
         when(injectionPoint.getAnnotated()).thenReturn(annotated);
@@ -69,7 +69,7 @@ public class ConfigurableProducerTest {
     @After
     public void after() {
         System.clearProperty(ConfigurableProducer.METRICS_CONF);
-        System.clearProperty(ConfigurationKey.BACKEND.getExternalForm());
+        System.clearProperty(ConfigurationKey.CASSANDRA_KEYSPACE.getExternalForm());
     }
 
     @Test
@@ -87,13 +87,14 @@ public class ConfigurableProducerTest {
         URL resource = Resources.getResource("META-INF/metrics.conf");
         properties.load(Resources.asByteSource(resource).openStream());
 
-        assertThat(value).isNotNull().isEqualTo(properties.getProperty(ConfigurationKey.BACKEND.getExternalForm()));
+        assertThat(value).isNotNull().isEqualTo(
+                properties.getProperty(ConfigurationKey.CASSANDRA_KEYSPACE.getExternalForm()));
     }
 
     @Test
     public void shouldFetchValueFromConfigFile() throws Exception {
         Properties properties = new Properties();
-        properties.setProperty(ConfigurationKey.BACKEND.getExternalForm(), "marseille");
+        properties.setProperty(ConfigurationKey.CASSANDRA_KEYSPACE.getExternalForm(), "marseille");
         File configFile = tempFolder.newFile();
         properties.store(new FileOutputStream(configFile), null);
         System.setProperty(ConfigurableProducer.METRICS_CONF, configFile.getAbsolutePath());
@@ -107,12 +108,12 @@ public class ConfigurableProducerTest {
     @Test
     public void shouldFetchValueFromSystemProperty() throws Exception {
         Properties properties = new Properties();
-        properties.setProperty(ConfigurationKey.BACKEND.getExternalForm(), "marseille");
+        properties.setProperty(ConfigurationKey.CASSANDRA_KEYSPACE.getExternalForm(), "marseille");
         File configFile = tempFolder.newFile();
         properties.store(new FileOutputStream(configFile), null);
         System.setProperty(ConfigurableProducer.METRICS_CONF, configFile.getAbsolutePath());
 
-        System.setProperty(ConfigurationKey.BACKEND.getExternalForm(), "mare nostrum");
+        System.setProperty(ConfigurationKey.CASSANDRA_KEYSPACE.getExternalForm(), "mare nostrum");
 
         configurableProducer.init();
         String value = configurableProducer.getConfigurationPropertyAsString(injectionPoint);
