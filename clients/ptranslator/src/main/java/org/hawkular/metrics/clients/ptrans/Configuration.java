@@ -38,7 +38,10 @@ import java.util.Set;
 import java.util.StringTokenizer;
 
 /**
- * PTrans configuration holder.
+ * PTrans configuration holder. An instance can be created with
+ * {@link org.hawkular.metrics.clients.ptrans.Configuration#from(java.util.Properties)}. The caller should make sure
+ * the configuration object is valid ({@link #isValid()}) and, in case it's not, can get indications of errors by
+ * calling {@link #getValidationMessages()}.
  *
  * @author Thomas Segismont
  */
@@ -134,12 +137,15 @@ public class Configuration {
     }
 
     /**
-     * @return true if this configuration is valid, false otherwise.
+     * @return true if this configuration is valid, false otherwise
      */
     public boolean isValid() {
         return validationMessages.isEmpty();
     }
 
+    /**
+     * @return a set of messages describing errors in configuration, empty if configuration is valid
+     */
     public Set<String> getValidationMessages() {
         return validationMessages;
     }
