@@ -16,12 +16,25 @@
  */
 package org.hawkular.metrics.clients.ptrans;
 
+import static java.util.stream.Collectors.joining;
+
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Objects;
+
+import org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler;
+import org.hawkular.metrics.clients.ptrans.collectd.CollectdEventHandler;
+import org.hawkular.metrics.clients.ptrans.ganglia.UdpGangliaDecoder;
+import org.hawkular.metrics.clients.ptrans.statsd.StatsdDecoder;
+import org.hawkular.metrics.clients.ptrans.syslog.UdpSyslogEventDecoder;
+import org.rhq.metrics.netty.collectd.event.CollectdEventsDecoder;
+import org.rhq.metrics.netty.collectd.packet.CollectdPacketDecoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler;
 import org.hawkular.metrics.clients.ptrans.collectd.CollectdEventHandler;
@@ -64,6 +77,10 @@ public class PTrans {
     private final EventLoopGroup workerGroup;
 
     public PTrans(Configuration configuration) {
+        Objects.requireNonNull(configuration, "Configuration is null");
+        if (!configuration.isValid()) {
+            throw new IllegalArgumentException(configuration.getValidationMessages().stream().collect(joining(", ")));
+        }
         this.configuration = configuration;
         group = new NioEventLoopGroup();
         workerGroup = new NioEventLoopGroup();
