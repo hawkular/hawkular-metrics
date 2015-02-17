@@ -31,6 +31,7 @@ import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.UDP_PORT;
 
 import java.net.URI;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Properties;
@@ -108,7 +109,7 @@ public class Configuration {
             validationMessages.add(String.format(Locale.ROOT, "Property %s not found", SERVICES.getExternalForm()));
             return Collections.emptySet();
         }
-        Set<Service> services = new HashSet<>();
+        Set<Service> services = EnumSet.noneOf(Service.class);
         StringTokenizer tokenizer = new StringTokenizer(servicesProperty, ",");
         while (tokenizer.hasMoreTokens()) {
             String token = tokenizer.nextToken().trim();
