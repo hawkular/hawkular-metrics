@@ -114,7 +114,7 @@ public class Configuration {
             }
             Service service = Service.findByExternalForm(token);
             if (service == null) {
-                validationMessages.add(String.format(Locale.ROOT, "Uknown service %s", token));
+                validationMessages.add(String.format(Locale.ROOT, "Unknown service %s", token));
                 continue;
             }
             services.add(service);
