@@ -1,0 +1,25 @@
+{
+  "id": "hawkular-metrics-one",
+  "kind": "Pod",
+  "apiVersion": "v1beta1",
+  "desiredState": {
+    "manifest": {
+      "version": "v1beta1",
+      "id": "rhqmetrics-1",
+      "containers": [{
+        "name": "server",
+        "image": "vnguyen/hawkular-metrics:latest",
+        "ports": [{
+          "name": "metrics-endpoint-port", "containerPort": 8080, 
+        }]},
+        {
+        "name": "db",
+        "image": "abh1nav/cassandra",
+        "ports": [{ "containerPort":9042}, { "containerPort":9160} ]
+      }]
+    }
+  },
+  "labels": {
+    "name": "hawkular-metrics-one"
+  }
+}

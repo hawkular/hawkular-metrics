@@ -1,3 +1,4 @@
+#!/bin/bash -e
 #
 # Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
 # and other contributors as indicated by the @author tags.
@@ -15,13 +16,16 @@
 # limitations under the License.
 #
 
-# Dockerfile for hawkular-metrics
-
-FROM vnguyen/wildfly-jdk8
-
-MAINTAINER Armine Hovsepyan <ahovsepy@redhat.com>, Garik Khachikyan <gkhachik@redhat.com>, Viet Nguyen <vnguyen@redhat.com>
-RUN /opt/jboss/wildfly/bin/add-user.sh rhqmetrics rhqmetrics --silent
-COPY *.war /opt/jboss/wildfly/standalone/deployments/
-COPY *.ear /opt/jboss/wildfly/standalone/deployments/
-
-CMD ["/opt/jboss/wildfly/bin/standalone.sh","-b","0.0.0.0","-bmanagement","0.0.0.0","-Drhq-metrics.backend=embedded_cass"]
+pushd ../ui/console
+mvn install -DskipTests
+popd
+pushd ../rest-servlet
+mvn install -DskipTests
+popd
+pushd ../embedded-cassandra
+mvn install -DskipTests
+popd
+mv ../embedded-cassandra/embedded-cassandra-ear/target/hawkular-metrics-embedded-cassandra.ear .
+mv ../rest-servlet/target/hawkular-metric-rest*.war .
+mv ../ui/console/target/metrics-console-*.war .
+docker build --rm --tag hawkular-metrics:latest . 
