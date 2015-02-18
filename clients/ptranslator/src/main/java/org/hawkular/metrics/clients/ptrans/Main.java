@@ -26,8 +26,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-import jnr.posix.POSIXFactory;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -35,6 +33,8 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import jnr.posix.POSIXFactory;
 
 /**
  * Simple client (proxy) that receives messages from various protocols
@@ -58,7 +58,7 @@ public class Main {
         Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
     }
 
-    private void start() throws Exception {
+    private void start() {
         Options options = optionsFactory.getCommandOptions(true);
         Exception parseException = null;
         CommandLine cmd = null;
@@ -94,8 +94,21 @@ public class Main {
                 System.exit(1);
             }
         }
-        Properties properties = loadConfigurationProperties(configFile);
-        ptrans = new PTrans(Configuration.from(properties));
+        Properties properties = new Properties();
+        try (InputStream inputStream = new FileInputStream(configFile)) {
+            properties.load(inputStream);
+        } catch (IOException e) {
+            System.err.printf("Unexpected error while reading configuration file %s%n", configFile.getAbsolutePath());
+            e.printStackTrace();
+            System.exit(1);
+        }
+        Configuration configuration = Configuration.from(properties);
+        if (!configuration.isValid()) {
+            System.err.println("Invalid configuration:");
+            configuration.getValidationMessages().forEach(System.err::println);
+            System.exit(1);
+        }
+        ptrans = new PTrans(configuration);
         ptrans.start();
     }
 
@@ -127,14 +140,6 @@ public class Main {
                 pidFile.release();
             }
         }
-    }
-
-    private Properties loadConfigurationProperties(File configFile) throws IOException {
-        Properties properties = new Properties();
-        try (InputStream inputStream = new FileInputStream(configFile)) {
-            properties.load(inputStream);
-        }
-        return properties;
     }
 
     public static void main(String[] args) {
