@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.rhq.metrics.api.undertow;
+package org.hawkular.metrics.api.undertow;
 
 
 import static io.undertow.Handlers.path;
