@@ -55,9 +55,9 @@ public abstract class ExecutableITestBase {
     Process ptransProcess;
 
     @Rule
-    public final RuleChain ruleChain = RuleChain.outerRule(new PrintOutputOnFailureWatcher())
-                                                .around(new Timeout(20, SECONDS))
-                                                .around(temporaryFolder);
+    public final RuleChain ruleChain = RuleChain.outerRule(temporaryFolder)
+                                                .around(new PrintOutputOnFailureWatcher())
+                                                .around(new Timeout(20, SECONDS));
 
     @BeforeClass
     public static void beforeClass() {
