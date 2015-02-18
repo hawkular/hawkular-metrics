@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.clients.ptrans;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.File;
@@ -57,7 +58,7 @@ public abstract class ExecutableITestBase {
     @Rule
     public final RuleChain ruleChain = RuleChain.outerRule(temporaryFolder)
                                                 .around(new PrintOutputOnFailureWatcher())
-                                                .around(new Timeout(20, SECONDS));
+                                                .around(new Timeout(1, MINUTES));
 
     @BeforeClass
     public static void beforeClass() {
@@ -85,6 +86,17 @@ public abstract class ExecutableITestBase {
         ptransProcessBuilder.redirectError(ptransErr);
 
         ptransProcessBuilder.command(JAVA, "-jar", PTRANS_ALL);
+    }
+
+    void assertPtransHasStarted(Process process, File output) throws Exception {
+        boolean isRunning = process.isAlive() && ptransOutputHasStartMessage(output);
+        while (!isRunning) {
+            isRunning = !ptransProcess.waitFor(1, SECONDS) && ptransOutputHasStartMessage(output);
+        }
+    }
+
+    private boolean ptransOutputHasStartMessage(File output) throws IOException {
+        return Files.lines(output.toPath()).anyMatch(line -> line.contains("ptrans started"));
     }
 
     @After

@@ -46,11 +46,7 @@ public class PidFileITest extends ExecutableITestBase {
         );
 
         ptransProcess = ptransProcessBuilder.start();
-        boolean isRunning = ptransProcess.isAlive();
-        for (int i = 0; !isRunning && i < 5; i++) {
-            isRunning = !ptransProcess.waitFor(1, SECONDS);
-        }
-        assertThat(isRunning).isTrue();
+        assertPtransHasStarted(ptransProcess, ptransOut);
 
         boolean pidFileWritten = ptransPidFile.canRead() && ptransPidFile.length() > 0;
         for (int i = 0; !pidFileWritten && i < 5; i++) {
