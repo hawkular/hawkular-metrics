@@ -86,6 +86,8 @@ public class PTrans {
      * Starts this PTrans instance. the calling thread will be blocked until another thread calls {@link #stop()}.
      */
     public void start() {
+        LOG.info("Starting ptrans...");
+
         Set<Service> services = configuration.getServices();
         List<ChannelFuture> closeFutures = new ArrayList<>(services.size());
 
@@ -165,6 +167,8 @@ public class PTrans {
             closeFutures.add(collectdBindFuture.channel().closeFuture());
         }
 
+        LOG.info("ptrans started");
+
         closeFutures.forEach(ChannelFuture::syncUninterruptibly);
     }
 
@@ -175,6 +179,6 @@ public class PTrans {
         LOG.info("Stopping ptrans...");
         group.shutdownGracefully().syncUninterruptibly();
         workerGroup.shutdownGracefully().syncUninterruptibly();
-        LOG.info("Stopped");
+        LOG.info("ptrans stopped");
     }
 }
