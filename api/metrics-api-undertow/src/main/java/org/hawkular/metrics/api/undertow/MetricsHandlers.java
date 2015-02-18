@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.rhq.metrics.api.undertow;
+package org.hawkular.metrics.api.undertow;
 
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
@@ -27,12 +27,12 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 
-import org.rhq.metrics.RHQMetrics;
-import org.rhq.metrics.core.MetricId;
-import org.rhq.metrics.core.MetricsService;
-import org.rhq.metrics.core.NumericMetric;
-import org.rhq.metrics.restServlet.NumericDataParams;
-import org.rhq.metrics.restServlet.NumericDataPoint;
+import org.hawkular.metrics.api.jaxrs.NumericDataParams;
+import org.hawkular.metrics.api.jaxrs.NumericDataPoint;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.NumericMetric;
+import org.hawkular.metrics.core.impl.HawkularMetrics;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -99,8 +99,7 @@ public class MetricsHandlers {
 
                 List<NumericMetric> metrics = new ArrayList<>(body.size());
                 for(NumericDataParams params : body) {
-                    NumericMetric metric = new NumericMetric(tenantId, new MetricId(params.getName()), params
-                            .getMetadata());
+                    NumericMetric metric = new NumericMetric(tenantId, new MetricId(params.getName()));
 
                     for (NumericDataPoint p : params.getData()) {
                         metric.addData(p.getTimestamp(), p.getValue());
@@ -126,23 +125,7 @@ public class MetricsHandlers {
     }
 
     public MetricsService getMetricsService(String backend) {
-        RHQMetrics.Builder metricsServiceBuilder = new RHQMetrics.Builder();
-        if (backend != null) {
-            switch (backend) {
-            case "cass":
-                metricsServiceBuilder.withCassandraDataStore();
-                break;
-            case "mem":
-                metricsServiceBuilder.withInMemoryDataStore();
-                break;
-            case "embedded_cass":
-            default:
-                metricsServiceBuilder.withCassandraDataStore();
-            }
-        } else {
-            metricsServiceBuilder.withCassandraDataStore();
-        }
-
+        HawkularMetrics.Builder metricsServiceBuilder = new HawkularMetrics.Builder();
         return metricsServiceBuilder.build();
     }
 
