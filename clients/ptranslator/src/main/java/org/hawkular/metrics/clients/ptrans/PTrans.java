@@ -36,16 +36,6 @@ import org.hawkular.metrics.clients.ptrans.syslog.UdpChannelInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler;
-import org.hawkular.metrics.clients.ptrans.collectd.CollectdEventHandler;
-import org.hawkular.metrics.clients.ptrans.collectd.event.CollectdEventsDecoder;
-import org.hawkular.metrics.clients.ptrans.collectd.packet.CollectdPacketDecoder;
-import org.hawkular.metrics.clients.ptrans.ganglia.UdpGangliaDecoder;
-import org.hawkular.metrics.clients.ptrans.statsd.StatsdDecoder;
-import org.hawkular.metrics.clients.ptrans.syslog.UdpSyslogEventDecoder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;

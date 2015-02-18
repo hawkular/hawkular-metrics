@@ -19,8 +19,8 @@ package org.hawkular.metrics.clients.ptrans.collectd;
 import org.hawkular.metrics.clients.ptrans.Configuration;
 import org.hawkular.metrics.clients.ptrans.MetricBatcher;
 import org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler;
-import org.rhq.metrics.netty.collectd.event.CollectdEventsDecoder;
-import org.rhq.metrics.netty.collectd.packet.CollectdPacketDecoder;
+import org.hawkular.metrics.clients.ptrans.collectd.event.CollectdEventsDecoder;
+import org.hawkular.metrics.clients.ptrans.collectd.packet.CollectdPacketDecoder;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
