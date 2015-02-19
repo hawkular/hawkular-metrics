@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.clients.ptrans;
 
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BATCH_DELAY;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BATCH_SIZE;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.COLLECTD_PORT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GANGLIA_GROUP;
@@ -56,15 +57,27 @@ public class Configuration {
     private final int collectdPort;
     private final String multicastIfOverride;
     private final int minimumBatchSize;
+    private final int maximumBatchDelay;
     private final URI restUrl;
     private final int restCloseAfterRequests;
     private final int spoolSize;
     private final Set<String> validationMessages;
 
     private Configuration(
-            Set<Service> services, int udpPort, int tcpPort, int gangliaPort, String gangliaGroup, int statsDport,
-            int collectdPort, String multicastIfOverride, int minimumBatchSize, URI restUrl, int restCloseAfterRequests,
-            int spoolSize, Set<String> validationMessages
+            Set<Service> services,
+            int udpPort,
+            int tcpPort,
+            int gangliaPort,
+            String gangliaGroup,
+            int statsDport,
+            int collectdPort,
+            String multicastIfOverride,
+            int minimumBatchSize,
+            int maximumBatchDelay,
+            URI restUrl,
+            int restCloseAfterRequests,
+            int spoolSize,
+            Set<String> validationMessages
     ) {
         this.services = services;
         this.udpPort = udpPort;
@@ -75,6 +88,7 @@ public class Configuration {
         this.gangliaGroup = gangliaGroup;
         this.multicastIfOverride = multicastIfOverride;
         this.minimumBatchSize = minimumBatchSize;
+        this.maximumBatchDelay = maximumBatchDelay;
         this.restUrl = restUrl;
         this.restCloseAfterRequests = restCloseAfterRequests;
         this.spoolSize = spoolSize;
@@ -91,15 +105,27 @@ public class Configuration {
         String multicastIfOverride = properties.getProperty(GANGLIA_MULTICAST_INTERFACE.getExternalForm());
         int statsDport = getIntProperty(properties, STATSD_PORT, 8125);
         int collectdPort = getIntProperty(properties, COLLECTD_PORT, 25826);
-        int minimumBatchSize = getIntProperty(properties, BATCH_SIZE, 5);
+        int minimumBatchSize = getIntProperty(properties, BATCH_SIZE, 50);
+        int maximumBatchDelay = getIntProperty(properties, BATCH_DELAY, 1);
         URI restUrl = URI.create(properties.getProperty(REST_URL.getExternalForm(),
             "http://localhost:8080/hawkular-metrics/metrics"));
         int restCloseAfterRequests = getIntProperty(properties, REST_CLOSE_AFTER_REQUESTS, 200);
         int spoolSize = getIntProperty(properties, SPOOL_SIZE, 10000);
         return new Configuration(
-                services, udpPort, tcpPort, gangliaPort, gangliaGroup, statsDport,
-                collectdPort, multicastIfOverride, minimumBatchSize, restUrl, restCloseAfterRequests,
-                spoolSize, validationMessages
+                services,
+                udpPort,
+                tcpPort,
+                gangliaPort,
+                gangliaGroup,
+                statsDport,
+                collectdPort,
+                multicastIfOverride,
+                minimumBatchSize,
+                maximumBatchDelay,
+                restUrl,
+                restCloseAfterRequests,
+                spoolSize,
+                validationMessages
         );
     }
 
@@ -185,6 +211,10 @@ public class Configuration {
 
     public int getMinimumBatchSize() {
         return minimumBatchSize;
+    }
+
+    public int getMaximumBatchDelay() {
+        return maximumBatchDelay;
     }
 
     public URI getRestUrl() {

@@ -42,6 +42,8 @@ public enum ConfigurationKey {
     COLLECTD_PORT("collectd.port"),
     /** Minimum batch size of metrics to be forwarded (from one source) **/
     BATCH_SIZE("batch.size"),
+    /** Maximum time (in seconds) a batch of metrics can stay unchanged before it is forwarded (from one source) **/
+    BATCH_DELAY("batch.delay"),
     /** REST endpoint **/
     REST_URL("rest.url"),
     /** Close connection to rest-server after this many requests **/
