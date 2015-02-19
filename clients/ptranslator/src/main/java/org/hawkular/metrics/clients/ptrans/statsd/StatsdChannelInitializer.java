@@ -23,6 +23,7 @@ import org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
+import io.netty.handler.timeout.IdleStateHandler;
 
 /**
  * Channel initializer to be used when bootstrapping a statsd server.
@@ -42,6 +43,7 @@ public class StatsdChannelInitializer extends ChannelInitializer<Channel> {
     public void initChannel(Channel socketChannel) throws Exception {
         ChannelPipeline pipeline = socketChannel.pipeline();
         pipeline.addLast(new StatsdDecoder());
+        pipeline.addLast(new IdleStateHandler(configuration.getMaximumBatchDelay(), 0, 0));
         pipeline.addLast(new MetricBatcher("statsd", configuration.getMinimumBatchSize()));
         pipeline.addLast(forwardingHandler);
     }

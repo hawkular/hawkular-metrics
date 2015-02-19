@@ -23,6 +23,7 @@ import org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
+import io.netty.handler.timeout.IdleStateHandler;
 
 /**
  * Channel initializer to be used when bootstrapping a Ganglia server.
@@ -42,6 +43,7 @@ public class GangliaChannelInitializer extends ChannelInitializer<Channel> {
     public void initChannel(Channel socketChannel) throws Exception {
         ChannelPipeline pipeline = socketChannel.pipeline();
         pipeline.addLast(new UdpGangliaDecoder());
+        pipeline.addLast(new IdleStateHandler(configuration.getMaximumBatchDelay(), 0, 0));
         pipeline.addLast(new MetricBatcher("ganglia", configuration.getMinimumBatchSize()));
         pipeline.addLast(forwardingHandler);
     }

@@ -25,6 +25,7 @@ import org.hawkular.metrics.clients.ptrans.collectd.packet.CollectdPacketDecoder
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
+import io.netty.handler.timeout.IdleStateHandler;
 
 /**
  * Channel initializer to be used when bootstrapping a collectd server.
@@ -46,6 +47,7 @@ public class CollectdChannelInitializer extends ChannelInitializer<Channel> {
         pipeline.addLast(new CollectdPacketDecoder());
         pipeline.addLast(new CollectdEventsDecoder());
         pipeline.addLast(new CollectdEventHandler());
+        pipeline.addLast(new IdleStateHandler(configuration.getMaximumBatchDelay(), 0, 0));
         pipeline.addLast(new MetricBatcher("collectd", configuration.getMinimumBatchSize()));
         pipeline.addLast(forwardingHandler);
     }
