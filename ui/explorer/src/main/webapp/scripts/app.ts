@@ -18,7 +18,7 @@
 /// <reference path="../vendor/vendor.d.ts" />
 'use strict';
 
-angular.module('chartingApp', [ 'ui.bootstrap',  'ui.bootstrap.datetimepicker', 'ui.router','ngStorage', 'rhqm.directives','rhqmCharts', 'rhqm.services'])
+angular.module('chartingApp', [ 'ui.bootstrap',  'ui.bootstrap.datetimepicker', 'ui.router','ngStorage', 'rhqm.directives','hawkularCharts', 'rhqm.services'])
     .constant('BASE_URL', '/rhq-metrics')
     .constant('TENANT_ID', 'test')
     .constant('DATE_TIME_FORMAT', 'MM/DD/YYYY h:mm a')

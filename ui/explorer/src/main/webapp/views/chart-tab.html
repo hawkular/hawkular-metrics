@@ -102,7 +102,7 @@
         <div ng-show="vm.chartData.dataPoints.length > 4">
         <div id="stackedBarChart" style="height:270px">
                 <!-- HINT: colors for the chart can be changed in the d3-chart.css -->
-                <rhqm-chart
+                <hawkular-chart
                         data="{{vm.chartData.dataPoints}}"
                         annotation-data="{{vm.chartData.annotationDataPoints}}"
                         previous-range-data="{{vm.chartData.prevDataPoints}}"
@@ -112,7 +112,7 @@
                         show-avg-line="{{vm.showAvgLine}}"
                         hide-high-low-values="{{vm.hideHighLowValues}}"
                         chart-title="{{'Metrics Id: '+vm.searchId}}"
-                        chart-height="250"></rhqm-chart>
+                        chart-height="250"></hawkular-chart>
             </div>
 
             <div style="margin-top: 30px;">

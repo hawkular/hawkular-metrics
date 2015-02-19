@@ -1,0 +1,45 @@
+--
+-- Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+-- and other contributors as indicated by the @author tags.
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--    http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
+--
+
+-- Each line in this file will be used as a syntactically correct sample
+-- for org.hawkular.metrics.restServlet.influx.query.ValidQuerySyntaxTest
+-- Empty lines and lines starting with double dash are ignored
+--
+lIst    seRIes
+select * frOm _sqlkd_j0504
+select * frOm " dmqsqsj kà\"qsdqsdq"
+SeleCt a from "z"
+SeleCt a from "z" as bi
+SeleCt dup.a fROm "z" as bi
+SeleCt dup.a, a.clui from "z" as bi
+SeleCt dup.a, _agjsqdha(clui) from "z" as bi
+SeleCt dup.a as kljd, _agjsqdha("clui") from "z" as bi
+SeleCt dup.a as dsq, _agjsqdha(clui) as p from z as bi
+SeleCt a from "z" as bi limit 510
+select a from "b" where c=2 and d=7
+select a from "b" where (c=2 and d=7) limit 15
+select a from "b" where (c=2 and (d=7)) limit 15
+select a from "b" where (c=2 and ((d=7) OR 7 <> a."56465")) limit 15
+select a from "b" group by time (15u) where (c=2 and ((d=7) OR 7 <> a."56465")) limit 15
+select a from "b" where (c=2 and ((d=7) OR 7 <> a."56465")) group by time (15u) limit 15
+select a from "b" where '2012-05-14' = '2007-05-14 18:12:13' OR '2007-05-14' > '2007-05-14 18:12:13.488'
+select percentile("d", .95) from a
+SeleCt dup.time as now, _agjsqdha(clui) as p from z as bi group by time(15s)
+SeleCt dup.time as now, _agjsqdha(clui) as p from z as bi group by time(15s) where time > now() -15s
+SeleCt dup.time as now, _agjsqdha(clui, -5, -33.1) as p from z as bi group by time(15s) where time > now() -15s and a=-.33
+SeleCt dup.a fROm "z" as bi order desc
+SeleCt dup.b fROm "z" as bi order asc

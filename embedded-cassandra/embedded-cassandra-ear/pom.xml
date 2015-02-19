@@ -22,11 +22,13 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <artifactId>embedded-cassandra</artifactId>
     <groupId>org.hawkular.metrics</groupId>
+    <artifactId>hawkular-metrics-parent</artifactId>
     <version>0.3.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
   </parent>
-  <artifactId>embedded-cassandra-ear</artifactId>
+
+  <artifactId>hawkular-metrics-embedded-cassandra-ear</artifactId>
   <packaging>ear</packaging>
 
   <name>Embedded Cassandra EAR for Hawkular Metrics</name>
@@ -52,7 +54,7 @@
   <dependencies>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
-      <artifactId>embedded-cassandra-service</artifactId>
+      <artifactId>hawkular-metrics-embedded-cassandra-service</artifactId>
       <type>ejb</type>
       <version>${project.version}</version>
     </dependency>
@@ -72,7 +74,7 @@
           <modules>
             <ejbModule>
               <groupId>org.hawkular.metrics</groupId>
-              <artifactId>embedded-cassandra-service</artifactId>
+              <artifactId>hawkular-metrics-embedded-cassandra-service</artifactId>
             </ejbModule>
           </modules>
         </configuration>

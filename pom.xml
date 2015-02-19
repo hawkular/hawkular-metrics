@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.hawkular</groupId>
     <artifactId>hawkular-parent</artifactId>
-    <version>5</version>
+    <version>6</version>
   </parent>
 
   <groupId>org.hawkular.metrics</groupId>
@@ -77,15 +77,14 @@
   </developers>
 
   <modules>
-    <module>test-utils</module>
-    <module>core-api</module>
-    <module>embedded-cassandra</module>
-    <module>metrics-core</module>
-    <module>rest-servlet</module>
-    <module>clients</module>
+    <module>core/metrics-core-api</module>
+    <module>core/metrics-core-impl</module>
+    <module>embedded-cassandra/embedded-cassandra-service</module>
+    <module>embedded-cassandra/embedded-cassandra-ear</module>
+    <module>api/metrics-api-jaxrs</module>
     <module>rest-tests</module>
+    <module>clients</module>
     <module>ui/explorer</module>
-    <module>ui/console</module>
   </modules>
 
   <scm>
@@ -97,26 +96,13 @@
     <system>Travis-ci</system>
     <url>https://travis-ci.org/rhq-project/rhq-metrics</url>
   </ciManagement>
+
   <distributionManagement>
-
-    <snapshotRepository>
-      <id>jboss-snapshots-repository</id>
-      <name>JBoss Snapshots Repository</name>
-      <url>https://repository.jboss.org/nexus/content/repositories/snapshots/</url>
-    </snapshotRepository>
-
-    <repository>
-      <id>jboss-releases-repository</id>
-      <name>JBoss Releases Repository</name>
-      <url>https://repository.jboss.org/nexus/service/local/staging/deploy/maven2/</url>
-    </repository>
-
     <site>
       <id>local-site-tmp</id>
       <name>Hawkular-metrics</name>
       <url>file:///tmp/rhq-metrics-site</url>
     </site>
-
   </distributionManagement>
 
   <properties>
@@ -352,4 +338,5 @@
     </profile>
   </profiles>
 </project>
+
 

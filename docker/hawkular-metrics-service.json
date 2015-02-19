@@ -1,0 +1,11 @@
+{
+  "id": "hawkular-metrics-endpoint",
+  "kind": "Service",
+  "apiVersion": "v1beta1",
+  "port": 56000,
+  "containerPort": metrics-endpoint-port,
+  "labels":{ "name": "hawkular-metrics-service"},
+  "selector": {
+    "name": "hawkular-metrics-one"
+  }
+}

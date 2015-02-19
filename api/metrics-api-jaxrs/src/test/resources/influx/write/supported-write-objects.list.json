@@ -1,0 +1,7 @@
+// Each line in this file will be used as a supported sample
+// for org.hawkular.metrics.api.jaxrs.influx.write.validation.SupportedInfluxObjectTest
+// Empty lines and lines starting with double slash are ignored
+//
+[ { "name": "pingou", "columns": ["value", "time"], "points": [ [23, 235] ] } ]
+[ { "name": "pingou", "columns": ["value"], "points": [ [25.36] ] } ]
+[ { "name": "pingou", "columns": ["value", "time"], "points": [ [23.44, 235] ] } ]

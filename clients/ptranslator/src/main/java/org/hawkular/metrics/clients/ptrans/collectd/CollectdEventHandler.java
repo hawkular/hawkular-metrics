@@ -16,16 +16,16 @@
  */
 package org.hawkular.metrics.clients.ptrans.collectd;
 
-import io.netty.channel.ChannelHandler.Sharable;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.MessageToMessageDecoder;
-
 import java.util.List;
 
 import org.hawkular.metrics.client.common.SingleMetric;
-import org.rhq.metrics.netty.collectd.event.TimeResolution;
-import org.rhq.metrics.netty.collectd.event.TimeSpan;
-import org.rhq.metrics.netty.collectd.event.ValueListEvent;
+import org.hawkular.metrics.clients.ptrans.collectd.event.TimeResolution;
+import org.hawkular.metrics.clients.ptrans.collectd.event.TimeSpan;
+import org.hawkular.metrics.clients.ptrans.collectd.event.ValueListEvent;
+
+import io.netty.channel.ChannelHandler.Sharable;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.MessageToMessageDecoder;
 
 /**
  * @author Thomas Segismont

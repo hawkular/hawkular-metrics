@@ -1,4 +1,4 @@
-= rhq-metrics
+= hawkular-metrics
 :source-language: java
 
 ifdef::env-github[]
@@ -13,19 +13,15 @@ endif::[]
 * MaaS: Metrics as a Service
 * ChaaS: Charts as a Service
 
-image::img/rhq-metrics-architecture.png[RHQ-Metrics Architecture Diagram]
-
 == Quickstart
 
 To get a first impression you can also run the quickstart via
 
   ./start.sh
 
-in the root directory. This will build and start RHQ-metrics with the in-memory backend. After starting you can
+in the root directory. This will build and start Hawkular-metrics with the in-memory backend. After starting you can
  navigate to http://localhost:8080/[http://localhost:8080/] to a UI Dashboard that displays a list of metrics and the ability to graph multiple charts.
  [NOTE: it will initially be empty if you don't have anything in your database.]
-
-image::img/rhq-metrics-2.png[RHQ-Metrics Console]
 
 Or, if you want to just play around with creating your own metric data and visually see the results in graphs then the Explorer web application is what you want.
   Available at: http://localhost:8080/explorer/[http://localhost:8080/explorer]
@@ -73,12 +69,14 @@ For this to work, the packets from Ganglia need to have a large enough TTL to be
 
 # Forums, hacking, irc
 
-Visit the https://community.jboss.org/en/rhq/rhq-metrics[Forums] to discuss RHQ-metrics.
+If you are a user of Hawkular Metrics please ask your question in the https://developer.jboss.org/discussion/create.jspa?containerType=14&containerID=2351[Hawkular user forum],
+if you are willing to contribute or participate in design discussion, please use the
+https://lists.jboss.org/mailman/listinfo/hawkular-dev[Hawkular developer mailing list]
 
 We love contributions and pull-requests :-)
 
-To meet the guys, join us on irc://irc.freenode.net/#rhq[Freenode IRC] in channel #rhq.
+To meet the guys, join us on irc://irc.freenode.net/#hawkular[Freenode IRC] in channel #hawkular.
 If you can not use the irc protocol, you can also use a web to irc gateway like
-http://webchat.freenode.net/?channels=rhq[Web chat on Freenode].
+http://webchat.freenode.net/?channels=hawkular[Web chat on Freenode].
 
-RHQ-metrics is http://twitter.com/#!/rhq_Project/[@rhq_Project] on Twitter.
+Hawkular-metrics is http://twitter.com/#!/hawkular_org/[@hawkular_org] on Twitter.
