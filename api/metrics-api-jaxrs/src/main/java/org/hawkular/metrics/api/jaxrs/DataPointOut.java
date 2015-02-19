@@ -21,10 +21,12 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.wordnik.swagger.annotations.ApiModel;
 
 /**
  * @author John Sanda
  */
+@ApiModel
 public class DataPointOut {
 
     private long timestamp;

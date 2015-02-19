@@ -20,10 +20,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.base.Objects;
+import com.wordnik.swagger.annotations.ApiModel;
 
 /**
  * @author John Sanda
  */
+@ApiModel
 public class NumericDataParams extends MetricDataParams {
 
     private Long timestamp;

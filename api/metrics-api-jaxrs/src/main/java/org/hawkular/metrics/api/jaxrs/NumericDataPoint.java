@@ -21,10 +21,12 @@ import java.util.Set;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.google.common.base.Objects;
+import com.wordnik.swagger.annotations.ApiModel;
 
 /**
  * @author John Sanda
  */
+@ApiModel
 public class NumericDataPoint {
 
     private long timestamp;

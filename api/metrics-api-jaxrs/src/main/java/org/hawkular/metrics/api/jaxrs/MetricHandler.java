@@ -62,6 +62,10 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
 
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
@@ -82,7 +86,7 @@ import gnu.trove.map.hash.TLongObjectHashMap;
  * Interface to deal with metrics
  * @author Heiko W. Rupp
  */
-@Api(value = "Related to metrics")
+@Api(value = "/", description = "Metrics related REST interface")
 @Path("/")
 public class MetricHandler {
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
@@ -92,6 +96,11 @@ public class MetricHandler {
 
     @POST
     @Path("/{tenantId}/metrics/numeric")
+    @ApiOperation(value = "Create numeric metric definition.",
+            notes = "Clients are not required to explicitly create a metric before storing data. Doing so however allows clients to prevent naming collisions and to specify tags and data retention.")
+    @ApiResponses(value = { @ApiResponse(code = 400, message = "Metric with given id already exists"),
+            @ApiResponse(code = 200, message = "Metric definition created successfully"),
+            @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error")})
     @Consumes(APPLICATION_JSON)
     public void createNumericMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         MetricParams params) {
@@ -103,6 +112,10 @@ public class MetricHandler {
 
     @POST
     @Path("/{tenantId}/metrics/availability")
+    @ApiOperation(value = "Create availability metric definition. Same notes as creating numeric metric apply.")
+    @ApiResponses(value = { @ApiResponse(code = 400, message = "Metric with given id already exists"),
+            @ApiResponse(code = 200, message = "Metric definition created successfully"),
+            @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error")})
     @Consumes(APPLICATION_JSON)
     public void createAvailabilityMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         MetricParams params) {
@@ -144,6 +157,10 @@ public class MetricHandler {
 
     @GET
     @Path("/{tenantId}/metrics/numeric/{id}/tags")
+    @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = MetricOut.class)
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric's tags were successfully retrieved."),
+            @ApiResponse(code = 204, message = "Query was successful, but no metrics were found."),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's tags.")})
     public void getNumericMetricTags(@Suspended AsyncResponse response, @PathParam("tenantId") String tenantId,
         @PathParam("id") String id) {
         ListenableFuture<Metric> future = metricsService.findMetric(tenantId, MetricType.NUMERIC,
@@ -153,6 +170,9 @@ public class MetricHandler {
 
     @PUT
     @Path("/{tenantId}/metrics/numeric/{id}/tags")
+    @ApiOperation(value = "Update tags associated with the metric definition.")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while updating metric's tags.")})
     public void updateNumericMetricTags(@Suspended final AsyncResponse response,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id, Map<String, String> tags) {
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
@@ -162,6 +182,9 @@ public class MetricHandler {
 
     @DELETE
     @Path("/{tenantId}/metrics/numeric/{id}/tags/{tags}")
+    @ApiOperation(value = "Delete tags associated with the metric definition.")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.")})
     public void deleteNumericMetricTags(@Suspended final AsyncResponse response,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id, @PathParam("tags") String encodedTags) {
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
@@ -171,6 +194,10 @@ public class MetricHandler {
 
     @GET
     @Path("/{tenantId}/metrics/availability/{id}/tags")
+    @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = MetricOut.class)
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric's tags were successfully retrieved."),
+            @ApiResponse(code = 204, message = "Query was successful, but no metrics were found."),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's tags.")})
     public void getAvailabilityMetricTags(@Suspended AsyncResponse response,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id) {
         ListenableFuture<Metric> future = metricsService.findMetric(tenantId, MetricType.AVAILABILITY,
@@ -180,6 +207,9 @@ public class MetricHandler {
 
     @PUT
     @Path("/{tenantId}/metrics/availability/{id}/tags")
+    @ApiOperation(value = "Update tags associated with the metric definition.")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while updating metric's tags.")})
     public void updateAvailabilityMetricTags(@Suspended final AsyncResponse response,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id, Map<String, String> tags) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
@@ -189,6 +219,9 @@ public class MetricHandler {
 
     @DELETE
     @Path("/{tenantId}/metrics/availability/{id}/tags/{tags}")
+    @ApiOperation(value = "Delete tags associated with the metric definition.")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.")})
     public void deleteAvailabilityMetricTags(@Suspended final AsyncResponse response,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id, @PathParam("tags") String encodedTags) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
@@ -226,9 +259,12 @@ public class MetricHandler {
 
     @POST
     @Path("/{tenantId}/metrics/numeric/{id}/data")
+    @ApiOperation(value = "Add data for a single numeric metric.")
+    @ApiResponses(value = { @ApiResponse(code = 500, message = "Unexpected error happened while storing the data")})
     @Consumes(APPLICATION_JSON)
-    public void addDataForMetric(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") final String tenantId, @PathParam("id") String id, List<NumericDataPoint> dataPoints) {
+    public void addDataForMetric(@Suspended
+    final AsyncResponse asyncResponse, @PathParam("tenantId") final String tenantId, @PathParam("id") String id,
+        @ApiParam(value = "List of datapoints containing timestamp and value", required = true) List<NumericDataPoint> dataPoints) {
 
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
         for (NumericDataPoint p : dataPoints) {
@@ -241,6 +277,9 @@ public class MetricHandler {
     @POST
     @Path("/{tenantId}/metrics/availability/{id}/data")
     @Consumes(APPLICATION_JSON)
+    @ApiOperation(value = "Add data for a single availability metric.")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Adding data succeeded."),
+            @ApiResponse(code = 500, message = "Unexpected error happened while storing the data")})
     public void addAvailabilityForMetric(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") final String tenantId, @PathParam("id") String id, List<AvailabilityDataPoint> data) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
@@ -255,6 +294,9 @@ public class MetricHandler {
 
     @POST
     @Path("/{tenantId}/metrics/numeric/data")
+    @ApiOperation(value = "Add metric data for multiple numeric metrics in a single call.")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Adding data succeeded."),
+            @ApiResponse(code = 500, message = "Unexpected error happened while storing the data")})
     @Consumes(APPLICATION_JSON)
     public void addNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         List<NumericDataParams> paramsList) {
@@ -278,6 +320,9 @@ public class MetricHandler {
 
     @POST
     @Path("/{tenantId}/metrics/availability/data")
+    @ApiOperation(value = "Add metric data for multiple availability metrics in a single call.")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Adding data succeeded."),
+            @ApiResponse(code = 500, message = "Unexpected error happened while storing the data")})
     @Consumes(APPLICATION_JSON)
     public void addAvailabilityData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, List<AvailabilityDataParams> paramsList) {
@@ -300,9 +345,14 @@ public class MetricHandler {
     }
 
     @GET
+    @ApiOperation(value = "Find numeric metrics data by their tags.", response = MetricOut.class, responseContainer = "List")
+    // See HWKMETRICS-26 for details to improve error coding, there should be at least 400 here, and :value should be optional. E
+    @ApiResponses(value = { @ApiResponse(code = 200, message = ""),
+            @ApiResponse(code = 500, message = "Any error in the query.")})
     @Path("/{tenantId}/numeric")
     public void findNumericDataByTags(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId, @QueryParam("tags") String encodedTags) {
+        @PathParam("tenantId") String tenantId,
+        @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value") @QueryParam("tags") String encodedTags) {
         ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(
             tenantId, MetricUtils.decodeTags(encodedTags));
         Futures.addCallback(queryFuture, new FutureCallback<Map<MetricId, Set<NumericData>>>() {
@@ -333,9 +383,15 @@ public class MetricHandler {
     }
 
     @GET
+    @ApiOperation(value = "Find availabilities metrics data by their tags.", response = MetricOut.class, responseContainer = "List")
+    // See above method and HWKMETRICS-26 for fixes.
+    @ApiResponses(value = { @ApiResponse(code = 200, message = ""),
+            @ApiResponse(code = 204, message = "No matching availability metrics were found."),
+            @ApiResponse(code = 500, message = "Any error in the query.")})
     @Path("/{tenantId}/availability")
     public void findAvailabilityDataByTags(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId, @QueryParam("tags") String encodedTags) {
+        @PathParam("tenantId") String tenantId,
+        @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value") @QueryParam("tags") String encodedTags) {
         ListenableFuture<Map<MetricId, Set<Availability>>> queryFuture = metricsService.findAvailabilityByTags(
             tenantId, MetricUtils.decodeTags(encodedTags));
         Futures.addCallback(queryFuture, new FutureCallback<Map<MetricId, Set<Availability>>>() {
@@ -371,14 +427,18 @@ public class MetricHandler {
     }
 
     @GET
+    @ApiOperation(value = "Retrieve numeric data.", response = MetricOut.class)
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched numeric data."),
+            @ApiResponse(code = 204, message = "No numeric data was found."),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching numeric data.")})
     @Path("/{tenantId}/metrics/numeric/{id}/data")
     public void findNumericData(
         @Suspended final AsyncResponse response,
         @PathParam("tenantId") String tenantId,
         @PathParam("id") final String id,
-        @QueryParam("start") Long start,
-        @QueryParam("end") Long end,
-        @QueryParam("buckets") final int numberOfBuckets,
+        @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") Long start,
+        @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") Long end,
+        @ApiParam(value = "The number of buckets or intervals in which to divide the time range. A value of 60 for example will return 60 equally spaced buckets for the time period between start and end times, having max/min/avg calculated for each bucket.") @QueryParam("buckets") final int numberOfBuckets,
         @QueryParam("bucketWidthSeconds") final int bucketWidthSeconds,
         @QueryParam("skipEmpty") @DefaultValue("false") final boolean skipEmpty,
         @QueryParam("bucketCluster") @DefaultValue("true") final boolean bucketCluster) {
@@ -607,10 +667,15 @@ public class MetricHandler {
     }
 
     @GET
+    @ApiOperation(value = "Retrieve availability data.", response = MetricOut.class)
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched availability data."),
+            @ApiResponse(code = 204, message = "No availability data was found.")})
+//            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching availability data.")
     @Path("/{tenantId}/metrics/availability/{id}/data")
     public void findAvailabilityData(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId, @PathParam("id") final String id, @QueryParam("start") Long start,
-        @QueryParam("end") Long end) {
+        @PathParam("tenantId") String tenantId, @PathParam("id") final String id,
+        @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") Long start,
+        @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") Long end) {
 
         long now = System.currentTimeMillis();
         if (start == null) {
@@ -649,6 +714,8 @@ public class MetricHandler {
     }
 
     @POST
+    @ApiOperation(value = "Add or update numeric metric's tags.")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Tags were modified successfully.")})
     @Path("/{tenantId}/tags/numeric")
     public void tagNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         TagParams params) {
@@ -675,6 +742,8 @@ public class MetricHandler {
     }
 
     @POST
+    @ApiOperation(value = "Add or update availability metric's tags.")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Tags were modified successfully.")})
     @Path("/{tenantId}/tags/availability")
     public void tagAvailabilityData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, TagParams params) {
@@ -701,6 +770,9 @@ public class MetricHandler {
     }
 
     @GET
+    @ApiOperation(value = "Find numeric metric data with given tags.", response = MetricOut.class, responseContainer = "List")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Numeric values fetched successfully"),
+            @ApiResponse(code = 500, message = "Any error while fetching data.")})
     @Path("/{tenantId}/tags/numeric/{tag}")
     public void findTaggedNumericData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @PathParam("tag") String encodedTag) {
@@ -745,6 +817,9 @@ public class MetricHandler {
     }
 
     @GET
+    @ApiOperation(value = "Find availability metric data with given tags.", response = MetricOut.class, responseContainer = "List")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Availability values fetched successfully"),
+            @ApiResponse(code = 500, message = "Any error while fetching data.")})
     @Path("/{tenantId}/tags/availability/{tag}")
     public void findTaggedAvailabilityData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @PathParam("tag") String encodedTag) {
@@ -894,8 +969,13 @@ public class MetricHandler {
     @GET
     @Path("/{tenantId}/metrics")
     @Produces(APPLICATION_JSON)
+    @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ", response = MetricOut.class, responseContainer = "List")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully retrieved at least one metric definition."),
+            @ApiResponse(code = 204, message = "No metrics found."),
+            @ApiResponse(code = 400, message = "Given type is not a valid type."),
+            @ApiResponse(code = 500, message = "Failed to retrieve metrics due to unexpected error.")})
     public void findMetrics(@Suspended final AsyncResponse response, @PathParam("tenantId") final String tenantId,
-        @QueryParam("type") String type) {
+        @ApiParam(value = "Queried metric type", required = true, allowableValues = "[num, avail, log]") @QueryParam("type") String type) {
         MetricType metricType = null;
         try {
             metricType = MetricType.fromTextCode(type);

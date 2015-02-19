@@ -19,9 +19,13 @@ package org.hawkular.metrics.api.jaxrs;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
+
 /**
  * @author John Sanda
  */
+@ApiModel(description = "Metric definition model")
 public class MetricParams {
 
     private String name;
@@ -34,6 +38,7 @@ public class MetricParams {
         return name;
     }
 
+    @ApiModelProperty(value = "Identifier of the metric, mandatory.")
     public void setName(String name) {
         this.name = name;
     }
@@ -42,10 +47,12 @@ public class MetricParams {
         return tags;
     }
 
+    @ApiModelProperty(value = "Arbitary key/value definitions for this metric")
     public void setTags(Map<String, String> tags) {
         this.tags = tags;
     }
 
+    @ApiModelProperty(value = "Overrides the data retention setting at the tenant level")
     public Integer getDataRetention() {
         return dataRetention;
     }
