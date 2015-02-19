@@ -26,7 +26,7 @@ import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.NumberFuncti
 /**
  * @author Thomas Segismont
  */
-public class PercentileAggregatorRule implements AggregationFunctionValidationRule {
+public class NameAndNumberAggregatorRule implements AggregationFunctionValidationRule {
     @Override
     public void checkArguments(List<FunctionArgument> aggregationFunctionArguments) throws IllegalQueryException {
         if (aggregationFunctionArguments == null || aggregationFunctionArguments.size() == 0) {

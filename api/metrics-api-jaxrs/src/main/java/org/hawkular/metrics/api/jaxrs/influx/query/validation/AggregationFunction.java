@@ -44,7 +44,17 @@ public enum AggregationFunction {
     /** */
     MEDIAN("median"),
     /** */
-    PERCENTILE("percentile", new PercentileAggregatorRule());
+    PERCENTILE("percentile", new NameAndNumberAggregatorRule()),
+    /** */
+    TOP("top", new NameAndNumberAggregatorRule()),
+    /** */
+    BOTTOM("bottom", new NameAndNumberAggregatorRule()),
+    /** */
+    HISTOGRAM("histogram"),
+    /** */
+    MODE("mode"),
+    /** */
+    STDDEV("stddev");
 
     private String name;
     private AggregationFunctionValidationRule validationRule;

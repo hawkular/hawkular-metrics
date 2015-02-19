@@ -367,6 +367,7 @@ public class InfluxSeriesHandler {
         for (Integer pos: keySet ) {
             List<NumericData> list = tmpMap.get(pos);
             double retVal = 0.0;
+            boolean isSingleValue = true;
             if (list!=null) {
                 int size = list.size();
                 NumericData lastElementInList = list.get(size - 1);
@@ -435,11 +436,59 @@ public class InfluxSeriesHandler {
                     NumberFunctionArgument argument = (NumberFunctionArgument) aggregationFunctionArguments.get(1);
                     retVal = quantil(list, argument.getDoubleValue());
                     break;
+                case TOP:
+                    isSingleValue = false;
+                    argument = (NumberFunctionArgument) aggregationFunctionArguments.get(1);
+                    int numberOfTopElement = list.size() < (int)argument.getDoubleValue() ?
+                            list.size() : (int)argument.getDoubleValue();
+                    for(int elementPos =0; elementPos<numberOfTopElement; elementPos++){
+                        out.add(list.get(elementPos));
+                    }
+                    break;
+                case BOTTOM:
+                    isSingleValue = false;
+                    argument = (NumberFunctionArgument) aggregationFunctionArguments.get(1);
+                    int numberOfBottomElement = list.size() < (int)argument.getDoubleValue() ?
+                            list.size() : (int)argument.getDoubleValue();
+                    for(int elementPos = 0; elementPos<numberOfBottomElement; elementPos++){
+                        out.add(list.get(list.size() - 1 - elementPos));
+                    }
+                    break;
+                case HISTOGRAM:
+                case MODE:
+                    int maxCount=0;
+                    for (NumericData rnm : list) {
+                        int count = 0;
+                        for (NumericData rnm2 : list) {
+                            if (rnm.getValue() == rnm2.getValue()){
+                                ++count;
+                            }
+                        }
+                        if (count > maxCount) {
+                            maxCount = count;
+                            retVal = rnm.getValue();
+                        }
+                    }
+                    break;
+                case STDDEV:
+                    double meanValue = 0.0;
+                    double sd = 0.0;
+                    for (NumericData rnm : list) {
+                        meanValue += rnm.getValue();
+                    }
+                    meanValue /= size;
+                    for (NumericData rnm : list) {
+                        sd += Math.pow(rnm.getValue() - meanValue, 2) / (size - 1);
+                    }
+                    retVal = Math.sqrt(sd);
+                    break;
                 default:
                     LOG.warn("Mapping of '{}' function not yet supported", function);
                 }
-                NumericMetric metric = new NumericMetric(DEFAULT_TENANT_ID, firstElementInList.getMetric().getId());
-                out.add(new NumericData(metric, firstElementInList.getTimestamp(), retVal));
+                if(isSingleValue){
+                    NumericMetric metric = new NumericMetric(DEFAULT_TENANT_ID, firstElementInList.getMetric().getId());
+                    out.add(new NumericData(metric, firstElementInList.getTimestamp(), retVal));
+                }
             }
         }
 
