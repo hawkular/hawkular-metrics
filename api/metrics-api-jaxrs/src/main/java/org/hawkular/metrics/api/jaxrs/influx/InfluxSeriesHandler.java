@@ -367,8 +367,7 @@ public class InfluxSeriesHandler {
         for (Integer pos: keySet ) {
             List<NumericData> list = tmpMap.get(pos);
             double retVal = 0.0;
-            boolean isMultipleValues = false;
-            List<NumericData> retList = new ArrayList<>();
+            boolean isSingleValue = true;
             if (list!=null) {
                 int size = list.size();
                 NumericData lastElementInList = list.get(size - 1);
@@ -438,25 +437,21 @@ public class InfluxSeriesHandler {
                     retVal = quantil(list, argument.getDoubleValue());
                     break;
                 case TOP:
-                    isMultipleValues = true;
-                    if (!list.isEmpty() && aggregationFunctionArguments.size() > 0) {
-                        int numberOfTopElement = list.size() >
-                            Integer.valueOf(aggregationFunctionArguments.get(0).toString()) ?
-                            Integer.valueOf(aggregationFunctionArguments.get(0).toString()) : list.size();
-                        for(int elementPos =0; elementPos<numberOfTopElement; elementPos++){
-                            retList.add(list.get(elementPos));
-                        }
+                    isSingleValue = false;
+                    argument = (NumberFunctionArgument) aggregationFunctionArguments.get(1);
+                    int numberOfTopElement = list.size() < (int)argument.getDoubleValue() ?
+                            list.size() : (int)argument.getDoubleValue();
+                    for(int elementPos =0; elementPos<numberOfTopElement; elementPos++){
+                        out.add(list.get(elementPos));
                     }
                     break;
                 case BOTTOM:
-                    isMultipleValues = true;
-                    if (!list.isEmpty() && aggregationFunctionArguments.size() > 0) {
-                        int numberOfBottomElement = list.size() >
-                            Integer.valueOf(aggregationFunctionArguments.get(0).toString()) ?
-                            Integer.valueOf(aggregationFunctionArguments.get(0).toString()) : list.size();
-                        for(int elementPos = (numberOfBottomElement-1); elementPos>=0; elementPos--){
-                            retList.add(list.get(elementPos));
-                        }
+                    isSingleValue = false;
+                    argument = (NumberFunctionArgument) aggregationFunctionArguments.get(1);
+                    int numberOfBottomElement = list.size() < (int)argument.getDoubleValue() ?
+                            list.size() : (int)argument.getDoubleValue();
+                    for(int elementPos = 0; elementPos<numberOfBottomElement; elementPos++){
+                        out.add(list.get(list.size() - 1 - elementPos));
                     }
                     break;
                 case HISTOGRAM:
@@ -490,9 +485,7 @@ public class InfluxSeriesHandler {
                 default:
                     LOG.warn("Mapping of '{}' function not yet supported", function);
                 }
-                if(isMultipleValues){
-                    out.addAll(retList);
-                }else{
+                if(isSingleValue){
                     NumericMetric metric = new NumericMetric(DEFAULT_TENANT_ID, firstElementInList.getMetric().getId());
                     out.add(new NumericData(metric, firstElementInList.getTimestamp(), retVal));
                 }

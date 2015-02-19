@@ -44,11 +44,11 @@ public enum AggregationFunction {
     /** */
     MEDIAN("median"),
     /** */
-    PERCENTILE("percentile", new PercentileAggregatorRule()),
+    PERCENTILE("percentile", new NameAndNumberAggregatorRule()),
     /** */
-    TOP("top"),
+    TOP("top", new NameAndNumberAggregatorRule()),
     /** */
-    BOTTOM("bottom"),
+    BOTTOM("bottom", new NameAndNumberAggregatorRule()),
     /** */
     HISTOGRAM("histogram"),
     /** */

@@ -32,7 +32,7 @@ class InfluxITest extends RESTTest {
   @Test
   void testInfluxDataOrderedAsc() {
     def timeseriesName = "influx.dataasc"
-    def start = now().minus(2000)
+    def start = now().minus(4000)
     postData(timeseriesName, start)
 
     def influxQuery = 'select value from "' + timeseriesName + '" order asc'
@@ -48,7 +48,9 @@ class InfluxITest extends RESTTest {
                 points : [
                     [start.millis, 40.1],
                     [start.plus(1000).millis, 41.1],
-                    [start.plus(2000).millis, 42.1]
+                    [start.plus(2000).millis, 42.1],
+                    [start.plus(3000).millis, 43.1],
+                    [start.plus(4000).millis, 44.1]
                 ]
             ]
         ],
@@ -59,7 +61,7 @@ class InfluxITest extends RESTTest {
   @Test
   void testInfluxDataOrderedDescByDefault() {
     def timeseriesName = "influx.datadesc"
-    def start = now().minus(2000)
+    def start = now().minus(4000)
     postData(timeseriesName, start)
 
     def influxQuery = 'select value from "' + timeseriesName + '"'
@@ -73,6 +75,8 @@ class InfluxITest extends RESTTest {
                 columns: ["time", "value"],
                 name   : timeseriesName,
                 points : [
+                    [start.plus(4000).millis, 44.1],
+                    [start.plus(3000).millis, 43.1],
                     [start.plus(2000).millis, 42.1],
                     [start.plus(1000).millis, 41.1],
                     [start.millis, 40.1]
@@ -86,7 +90,7 @@ class InfluxITest extends RESTTest {
   @Test
   void testInfluxAddGetOneMetric() {
     def timeseriesName = "influx.foo"
-    def start = now().minus(2000)
+    def start = now().minus(4000)
     postData(timeseriesName, start)
 
     def influxQuery = 'select mean(value) from "' + timeseriesName + '" where time > now() - 30s group by time(30s) '
@@ -100,7 +104,7 @@ class InfluxITest extends RESTTest {
                 columns: ["time", "mean"],
                 name   : timeseriesName,
                 points : [
-                    [start.plus(2000).millis, 41.1]
+                    [start.plus(4000).millis, 42.1]
                 ]
             ]
         ],
@@ -111,7 +115,7 @@ class InfluxITest extends RESTTest {
   @Test
   void testInfluxLimitClause() {
     def timeseriesName = "influx.limitclause"
-    def start = now().minus(2000)
+    def start = now().minus(4000)
     postData(timeseriesName, start)
 
     def influxQuery = 'select value from "' + timeseriesName + '" limit 2 order asc '
@@ -137,7 +141,7 @@ class InfluxITest extends RESTTest {
   @Test
   void testInfluxAddGetOneSillyMetric() {
     def timeseriesName = "influx.foo3"
-    def start = now().minus(2000)
+    def start = now().minus(4000)
     postData(timeseriesName, start)
 
     def influxQuery = 'select mean(value) from "' + timeseriesName + '''" where time > '2013-08-12 23:32:01.232'
@@ -159,6 +163,84 @@ class InfluxITest extends RESTTest {
     )
   }
 
+  @Test
+  void testInfluxTop() {
+    def timeseriesName = "influx.top"
+    def start = now().minus(4000)
+    postData(timeseriesName, start)
+
+    def influxQuery = 'select top(value, 3) from "' + timeseriesName + '" where time > now() - 30s group by time(30s)'
+
+    def response = hawkularMetrics.get(path: "tenants/${tenantId}/influx/series", query: [q: influxQuery])
+    assertEquals(200, response.status)
+
+    assertEquals(
+        [
+            [
+                columns: ["time", "top"],
+                name   : timeseriesName,
+                points : [
+                    [start.plus(4000).millis, 44.1],
+                    [start.plus(3000).millis, 43.1],
+                    [start.plus(2000).millis, 42.1]
+                ]
+            ]
+        ],
+        response.data
+    )
+  }
+ @Test
+  void testInfluxBottom() {
+    def timeseriesName = "influx.bottom"
+    def start = now().minus(4000)
+    postData(timeseriesName, start)
+
+    def influxQuery = 'select bottom(value, 3) from "' + timeseriesName + '" where time > now() - 30s group by time(30s)'
+
+    def response = hawkularMetrics.get(path: "tenants/${tenantId}/influx/series", query: [q: influxQuery])
+    assertEquals(200, response.status)
+
+    assertEquals(
+        [
+            [
+                columns: ["time", "bottom"],
+                name   : timeseriesName,
+                points : [
+                    [start.millis, 40.1],
+                    [start.plus(1000).millis, 41.1],
+                    [start.plus(2000).millis, 42.1]
+                ]
+            ]
+        ],
+        response.data
+    )
+  }
+
+ @Test
+  void testInfluxStddev() {
+    def timeseriesName = "influx.stddev"
+    def start = now().minus(4000)
+    postData(timeseriesName, start)
+
+    def influxQuery = 'select stddev(value) from "' + timeseriesName + '" where time > now() - 30s group by time(30s)'
+
+    def response = hawkularMetrics.get(path: "tenants/${tenantId}/influx/series", query: [q: influxQuery])
+    assertEquals(200, response.status)
+
+    assertEquals(
+        [
+            [
+                columns: ["time", "stddev"],
+                name   : timeseriesName,
+                points : [
+                    [start.plus(4000).millis, 1.5811388300841898]
+                ]
+            ]
+        ],
+        response.data
+    )
+  }
+
   private static void postData(String timeseriesName, DateTime start) {
     def response = hawkularMetrics.post(path: "tenants/${tenantId}/influx/series", body: [
         [
@@ -167,7 +249,9 @@ class InfluxITest extends RESTTest {
             points: [
                 [start.millis, 40.1],
                 [start.plus(1000).millis, 41.1],
-                [start.plus(2000).millis, 42.1]
+                [start.plus(2000).millis, 42.1],
+                [start.plus(3000).millis, 43.1],
+                [start.plus(4000).millis, 44.1]
             ]
         ]
     ])
