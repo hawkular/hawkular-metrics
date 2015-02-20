@@ -142,25 +142,17 @@
       </dependency>
       <!-- Tests dependencies -->
       <dependency>
-        <groupId>org.assertj</groupId>
-        <artifactId>assertj-core</artifactId>
-        <version>1.7.0</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
         <version>1.10.19</version>
-        <scope>test</scope>
       </dependency>
-      <!-- TestNG is not RHQ-Metrics main testing framework -->
-      <!-- While still needed to run legacy tests, new tests should be based upon jUnit -->
+      <!-- TestNG is not Hawkular default testing tool -->
+      <!-- While needed to run legacy tests, new tests should be based upon jUnit -->
       <!-- It can still be used when there's a good reason (compatibility with a testing framework for example) -->
       <dependency>
         <groupId>org.testng</groupId>
         <artifactId>testng</artifactId>
         <version>${testng.version}</version>
-        <scope>test</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>

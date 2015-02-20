@@ -17,10 +17,11 @@
 package org.hawkular.metrics.clients.ptrans;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
@@ -90,11 +91,11 @@ public class MetricBatcherTest {
     private void checkBatchOutput(EmbeddedChannel embeddedChannel, int batchSize) {
         Object object = embeddedChannel.readInbound();
         assertNotNull("Expected a forwarded batch", object);
-        assertThat(object).isInstanceOf(List.class);
+        assertThat(object, instanceOf(List.class));
         List<?> list = (List<?>) object;
         assertEquals("Unexpected batch size", batchSize, list.size());
         for (Object item : list) {
-            assertThat(item).isInstanceOf(SingleMetric.class);
+            assertThat(item, instanceOf(SingleMetric.class));
         }
     }
 

@@ -16,8 +16,11 @@
  */
 package org.hawkular.metrics.api.jaxrs.influx.query.translate;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.joda.time.DateTimeZone.UTC;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.AndBooleanExpression;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.DateOperand;
@@ -45,9 +48,7 @@ public class ToIntervalTranslatorTest {
 
         GtBooleanExpression gt = new GtBooleanExpression(new DateOperand(sylvesterNoon2008.toInstant()), timeOperand);
 
-        assertThat(translator.toInterval(gt))
-                .isNotNull()
-                .isEqualTo(new Interval(new Instant(0), sylvesterNoon2008.toInstant()));
+        assertEquals(new Interval(new Instant(0), sylvesterNoon2008.toInstant()), translator.toInterval(gt));
 
         LtBooleanExpression lt = new LtBooleanExpression(new DateOperand(mariaNoon2006.toInstant()), timeOperand);
 
@@ -55,21 +56,19 @@ public class ToIntervalTranslatorTest {
         Interval interval = translator.toInterval(lt);
         Instant nowAfter = Instant.now();
 
-        assertThat(interval).isNotNull();
-        assertThat(interval.getStart()).isEqualTo(mariaNoon2006);
-        assertThat(interval.contains(nowBefore)).isTrue();
-        assertThat(new Interval(mariaNoon2006, nowAfter).contains(interval)).isTrue();
+        assertNotNull(interval);
+        assertEquals(mariaNoon2006, interval.getStart());
+        assertTrue(interval.contains(nowBefore));
+        assertTrue(new Interval(mariaNoon2006, nowAfter).contains(interval));
 
         AndBooleanExpression and = new AndBooleanExpression(gt, lt);
 
-        assertThat(translator.toInterval(and))
-                .isNotNull()
-                .isEqualTo(new Interval(mariaNoon2006, sylvesterNoon2008));
+        assertEquals(new Interval(mariaNoon2006, sylvesterNoon2008), translator.toInterval(and));
 
         gt = new GtBooleanExpression(timeOperand, new DateOperand(sylvesterNoon2008.toInstant()));
         lt = new LtBooleanExpression(timeOperand, new DateOperand(mariaNoon2006.toInstant()));
         and = new AndBooleanExpression(gt, lt);
 
-        assertThat(translator.toInterval(and)).isNull();
+        assertNull(translator.toInterval(and));
     }
 }

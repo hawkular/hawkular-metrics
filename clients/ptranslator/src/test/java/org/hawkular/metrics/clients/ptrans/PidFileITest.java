@@ -18,15 +18,20 @@ package org.hawkular.metrics.clients.ptrans;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hawkular.metrics.clients.ptrans.CanReadMatcher.canRead;
+import static org.hawkular.metrics.clients.ptrans.ContainsMatcher.contains;
+import static org.hawkular.metrics.clients.ptrans.IsFileMatcher.isFile;
+import static org.hawkular.metrics.clients.ptrans.WriteLockedMatcher.writeLocked;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThat;
 
 import java.io.File;
-import java.io.RandomAccessFile;
 import java.lang.reflect.Field;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
+import java.nio.file.Files;
+import java.util.Optional;
 
-import org.assertj.core.api.Condition;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -53,14 +58,16 @@ public class PidFileITest extends ExecutableITestBase {
             Thread.sleep(MILLISECONDS.convert(1, SECONDS));
             pidFileWritten = ptransPidFile.canRead() && ptransPidFile.length() > 0;
         }
-        assertThat(ptransPidFile).isFile().canRead().is(writeLocked());
+        assertThat(ptransPidFile, allOf(isFile(), canRead(), writeLocked()));
 
         if (ptransProcess.getClass().getName().equals("java.lang.UNIXProcess")) {
             // On UNIX-like platforms only
             Field pidField = ptransProcess.getClass().getDeclaredField("pid");
             pidField.setAccessible(true);
             int pid = pidField.getInt(ptransProcess);
-            assertThat(ptransPidFile).hasContent(String.valueOf(pid));
+
+            Optional<String> firstLine = Files.lines(ptransPidFile.toPath()).limit(1).findAny();
+            assertEquals(firstLine.orElse("").trim(), String.valueOf(pid));
         }
     }
 
@@ -73,29 +80,12 @@ public class PidFileITest extends ExecutableITestBase {
         ptransProcessBuilder.redirectError(ptransErrBis);
         Process ptransProcessBis = ptransProcessBuilder.start();
         int returnCode = ptransProcessBis.waitFor();
-        assertThat(returnCode).isNotEqualTo(0);
+        assertNotEquals(0, returnCode);
 
         String expectedMessage = String.format(
                 "Unable to lock PID file %s, another instance is probably running.",
                 ptransPidFile.getAbsolutePath()
         );
-        assertThat(ptransErrBis).isFile().canRead().hasContent(expectedMessage);
-    }
-
-    private Condition<? super File> writeLocked() {
-        return new Condition<File>() {
-            @Override
-            public boolean matches(File file) {
-                try (
-                        RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw");
-                        FileChannel channel = randomAccessFile.getChannel();
-                        FileLock fileLock = channel.tryLock()
-                ) {
-                    return fileLock == null;
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        };
+        assertThat(ptransErrBis, allOf(isFile(), canRead(), contains(expectedMessage)));
     }
 }

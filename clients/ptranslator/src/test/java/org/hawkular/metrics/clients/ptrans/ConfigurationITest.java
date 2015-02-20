@@ -16,14 +16,20 @@
  */
 package org.hawkular.metrics.clients.ptrans;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static java.util.stream.Collectors.joining;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hawkular.metrics.clients.ptrans.CanReadMatcher.canRead;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES;
+import static org.hawkular.metrics.clients.ptrans.IsFileMatcher.isFile;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThat;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Locale;
+import java.nio.file.Files;
 import java.util.Properties;
 
 import org.junit.Test;
@@ -50,10 +56,13 @@ public class ConfigurationITest extends ExecutableITestBase {
 
         ptransProcess = ptransProcessBuilder.start();
         int returnCode = ptransProcess.waitFor();
-        assertThat(returnCode).isNotEqualTo(0);
+        assertNotEquals(0, returnCode);
 
-        String expectedError = String.format(Locale.ROOT, "Invalid configuration:%nProperty services not found");
-        assertThat(ptransErr).isFile().canRead().hasContent(expectedError);
+        assertThat(ptransErr, allOf(isFile(), canRead()));
+
+        String expectedContent = String.format("Invalid configuration:%nProperty services not found");
+        String actualContent = Files.lines(ptransErr.toPath()).collect(joining(System.getProperty("line.separator")));
+        assertEquals(expectedContent, actualContent);
     }
 
     @Test
@@ -71,10 +80,13 @@ public class ConfigurationITest extends ExecutableITestBase {
 
         ptransProcess = ptransProcessBuilder.start();
         int returnCode = ptransProcess.waitFor();
-        assertThat(returnCode).isNotEqualTo(0);
+        assertNotEquals(0, returnCode);
 
-        String expectedError = String.format(Locale.ROOT, "Invalid configuration:%nEmpty services list");
-        assertThat(ptransErr).isFile().canRead().hasContent(expectedError);
+        assertThat(ptransErr, allOf(isFile(), canRead()));
+
+        String expectedContent = String.format("Invalid configuration:%nEmpty services list");
+        String actualContent = Files.lines(ptransErr.toPath()).collect(joining(System.getProperty("line.separator")));
+        assertEquals(expectedContent, actualContent);
     }
 
     @Test
@@ -92,9 +104,12 @@ public class ConfigurationITest extends ExecutableITestBase {
 
         ptransProcess = ptransProcessBuilder.start();
         int returnCode = ptransProcess.waitFor();
-        assertThat(returnCode).isNotEqualTo(0);
+        assertNotEquals(0, returnCode);
 
-        String expectedError = String.format(Locale.ROOT, "Invalid configuration:%nUnknown service marseille");
-        assertThat(ptransErr).isFile().canRead().hasContent(expectedError);
+        assertThat(ptransErr, allOf(isFile(), canRead()));
+
+        String expectedContent = String.format("Invalid configuration:%nUnknown service marseille");
+        String actualContent = Files.lines(ptransErr.toPath()).collect(joining(System.getProperty("line.separator")));
+        assertEquals(expectedContent, actualContent);
     }
 }
