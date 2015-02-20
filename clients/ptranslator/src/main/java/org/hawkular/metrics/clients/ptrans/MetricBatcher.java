@@ -19,21 +19,36 @@ package org.hawkular.metrics.clients.ptrans;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hawkular.metrics.client.common.SingleMetric;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
+import io.netty.handler.timeout.IdleStateEvent;
+import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 
-import org.hawkular.metrics.client.common.SingleMetric;
-
 /**
- * Batch several individual {@link org.hawkular.metrics.client.common.SingleMetric} objects in a batch of
- * {@link MetricBatcher#minimumBatchSize} items to reduce backend communication overhead.
+ * Batch several individual {@link org.hawkular.metrics.client.common.SingleMetric} objects to reduce backend
+ * communication overhead.
+ * <p>
+ * When creating the channel pipeline, an instance of
+ * {@link io.netty.handler.timeout.IdleStateHandler} should be added just before an instance of this class. Metric
+ * batcher instances handle read {@link io.netty.handler.timeout.IdleStateEvent}s.<br>
+ * When such an event is captured, the batch is forwarded even if the size limit is not reached. Consequently, no
+ * metric can stay in the cache several minutes before being sent to the server.
+ * </p>
  *
  * @author Heiko W. Rupp
+ * @author Thomas Segismont
+ * @see io.netty.handler.timeout.IdleStateHandler
  */
 public class MetricBatcher extends MessageToMessageDecoder<SingleMetric> {
+    private static final Logger LOG = LoggerFactory.getLogger(MetricBatcher.class);
 
-    private int minimumBatchSize;
+    private final int minimumBatchSize;
+    private final AttributeKey<List<SingleMetric>> cacheKey;
 
     /**
      * Create a batcher with the passed batch size
@@ -41,14 +56,9 @@ public class MetricBatcher extends MessageToMessageDecoder<SingleMetric> {
      * @param minimumBatchSize Size of batches. If the number is less than 1, then 1 is used.
      */
     public MetricBatcher(String subKey, int minimumBatchSize) {
-        this.minimumBatchSize = minimumBatchSize;
-        if (this.minimumBatchSize<1) {
-            this.minimumBatchSize=1;
-        }
+        this.minimumBatchSize = Math.max(1, minimumBatchSize);
         cacheKey = AttributeKey.valueOf("cachedMetrics."+subKey);
     }
-
-    AttributeKey<List<SingleMetric>> cacheKey;
 
     /**
      * Batch up incoming SingleMetric messages. If the #minimumBatchSize is not yet reached, the messages are stored
@@ -63,21 +73,37 @@ public class MetricBatcher extends MessageToMessageDecoder<SingleMetric> {
      */
     @Override
     protected void decode(ChannelHandlerContext ctx, SingleMetric msg, List<Object> out) throws Exception {
-
-        List<SingleMetric> cached = ctx.attr(cacheKey).get();
-        if (cached==null) {
-            cached = new ArrayList<>(minimumBatchSize);
-            ctx.attr(cacheKey).set(cached);
+        LOG.trace("Incoming metric for key '{}'", cacheKey.name());
+        Attribute<List<SingleMetric>> cache = ctx.attr(cacheKey);
+        List<SingleMetric> batchList = cache.get();
+        if (batchList == null) {
+            LOG.trace("Creating new batch list for key '{}'", cacheKey.name());
+            batchList = new ArrayList<>(minimumBatchSize);
+            cache.set(batchList);
         }
+        batchList.add(msg);
+        if (batchList.size() >= minimumBatchSize) {
+            LOG.trace("Batch size limit '{}' reached for key '{}'", minimumBatchSize, cacheKey.name());
+            cache.remove();
+            out.add(batchList);
+        }
+    }
 
-        if (cached.size()  >= minimumBatchSize) {
-            List<SingleMetric> toForward = new ArrayList<>(cached.size()+1);
-            toForward.addAll(cached);
-            toForward.add(msg);
-            cached.clear();
-            out.add(toForward);
-        } else {
-            cached.add(msg);
+    @Override
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+        if (!(evt instanceof IdleStateEvent)) {
+            LOG.trace("Dropping unhandled event '{}' for key '{}'", evt, cacheKey.name());
+            return;
+        }
+        IdleStateEvent idleStateEvent = (IdleStateEvent) evt;
+        if (idleStateEvent != IdleStateEvent.FIRST_READER_IDLE_STATE_EVENT) {
+            LOG.trace("Dropping event, expecting FIRST_READER_IDLE_STATE_EVENT for key '{}'", cacheKey.name());
+            return;
+        }
+        List<SingleMetric> batchList = ctx.attr(cacheKey).getAndRemove();
+        if (batchList != null && !batchList.isEmpty()) {
+            LOG.trace("Batch delay reached for key '{}', forwarding {} metrics", cacheKey.name(), batchList.size());
+            ctx.fireChannelRead(batchList);
         }
     }
 }
