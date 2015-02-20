@@ -16,7 +16,7 @@
  */
 package org.hawkular.metrics.api.jaxrs.influx.query.validation;
 
-import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
+import static org.junit.Assert.fail;
 
 import java.util.List;
 
@@ -38,30 +38,20 @@ public class ValidationRulesProducerTest {
     @Test
     public void validationRulesShouldBeImmutable() throws Exception {
         List<SelectQueryValidationRule> rules = rulesProducer.selectQueryValidationRules();
+
+        failIfNoExceptionThrown(() -> rules.addAll(rules));
+        failIfNoExceptionThrown(() -> rules.remove(0));
+        failIfNoExceptionThrown(() -> rules.clear());
+        failIfNoExceptionThrown(() -> rules.listIterator().remove());
+        failIfNoExceptionThrown(() -> rules.set(0, FAKE_RULE));
+    }
+
+    private void failIfNoExceptionThrown(Runnable test) {
         try {
-            rules.addAll(rules);
-            failBecauseExceptionWasNotThrown(Exception.class);
+            test.run();
+            fail("Expected exception (immutable list modification)");
         } catch (Exception ignored) {
-        }
-        try {
-            rules.remove(0);
-            failBecauseExceptionWasNotThrown(Exception.class);
-        } catch (Exception ignored) {
-        }
-        try {
-            rules.clear();
-            failBecauseExceptionWasNotThrown(Exception.class);
-        } catch (Exception ignored) {
-        }
-        try {
-            rules.listIterator().remove();
-            failBecauseExceptionWasNotThrown(Exception.class);
-        } catch (Exception ignored) {
-        }
-        try {
-            rules.set(0, FAKE_RULE);
-            failBecauseExceptionWasNotThrown(Exception.class);
-        } catch (Exception ignored) {
+
         }
     }
 }

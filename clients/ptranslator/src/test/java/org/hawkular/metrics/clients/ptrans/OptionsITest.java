@@ -16,7 +16,14 @@
  */
 package org.hawkular.metrics.clients.ptrans;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hawkular.metrics.clients.ptrans.CanReadMatcher.canRead;
+import static org.hawkular.metrics.clients.ptrans.ContainsMatcher.contains;
+import static org.hawkular.metrics.clients.ptrans.HasSizeMatcher.hasSize;
+import static org.hawkular.metrics.clients.ptrans.IsFileMatcher.isFile;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 
@@ -29,9 +36,8 @@ public class OptionsITest extends ExecutableITestBase {
     public void shouldExitWithErrorIfConfigPathIsMissing() throws Exception {
         ptransProcess = ptransProcessBuilder.start();
         int returnCode = ptransProcess.waitFor();
-        assertThat(returnCode).isNotEqualTo(0);
-
-        assertThat(ptransErr).isFile().canRead().hasContent("Missing required option: c");
+        assertNotEquals(0, returnCode);
+        assertThat(ptransErr, allOf(isFile(), canRead(), contains("Missing required option: c")));
     }
 
     @Test
@@ -40,8 +46,7 @@ public class OptionsITest extends ExecutableITestBase {
 
         ptransProcess = ptransProcessBuilder.start();
         int returnCode = ptransProcess.waitFor();
-        assertThat(returnCode).isEqualTo(0);
-
-        assertThat(ptransErr).isFile().canRead().hasContent("");
+        assertEquals(0, returnCode);
+        assertThat(ptransErr, allOf(isFile(), canRead(), hasSize(0)));
     }
 }

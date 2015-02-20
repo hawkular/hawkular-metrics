@@ -16,8 +16,7 @@
  */
 package org.hawkular.metrics.api.jaxrs.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -27,7 +26,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Properties;
-
 import javax.enterprise.inject.spi.Annotated;
 import javax.enterprise.inject.spi.InjectionPoint;
 
@@ -35,6 +33,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -48,6 +47,8 @@ import com.google.common.io.Resources;
 @RunWith(MockitoJUnitRunner.class)
 public class ConfigurableProducerTest {
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
@@ -87,8 +88,7 @@ public class ConfigurableProducerTest {
         URL resource = Resources.getResource("META-INF/metrics.conf");
         properties.load(Resources.asByteSource(resource).openStream());
 
-        assertThat(value).isNotNull().isEqualTo(
-                properties.getProperty(ConfigurationKey.CASSANDRA_KEYSPACE.getExternalForm()));
+        assertEquals(properties.getProperty(ConfigurationKey.CASSANDRA_KEYSPACE.getExternalForm()), value);
     }
 
     @Test
@@ -102,7 +102,7 @@ public class ConfigurableProducerTest {
         configurableProducer.init();
         String value = configurableProducer.getConfigurationPropertyAsString(injectionPoint);
 
-        assertThat(value).isNotNull().isEqualTo("marseille");
+        assertEquals("marseille", value);
     }
 
     @Test
@@ -118,7 +118,7 @@ public class ConfigurableProducerTest {
         configurableProducer.init();
         String value = configurableProducer.getConfigurationPropertyAsString(injectionPoint);
 
-        assertThat(value).isNotNull().isEqualTo("mare nostrum");
+        assertEquals("mare nostrum", value);
     }
 
     @Test
@@ -129,13 +129,10 @@ public class ConfigurableProducerTest {
         InjectionPoint injectionPoint = mock(InjectionPoint.class);
         when(injectionPoint.getAnnotated()).thenReturn(annotated);
 
-        try {
-            configurableProducer.getConfigurationPropertyAsString(injectionPoint);
-            fail("Expected " + IllegalArgumentException.class.getSimpleName());
-        } catch (Exception e) {
-            String message = "Any field or parameter annotated with @Configurable "
-                + "must also be annotated with @ConfigurationProperty";
-            assertThat(e).isInstanceOf(IllegalArgumentException.class).hasMessage(message);
-        }
+        expectedException.expect(IllegalArgumentException.class);
+        String message = "Any field or parameter annotated with @Configurable "
+                         + "must also be annotated with @ConfigurationProperty";
+        expectedException.expectMessage(message);
+        configurableProducer.getConfigurationPropertyAsString(injectionPoint);
     }
 }

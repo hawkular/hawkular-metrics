@@ -16,13 +16,10 @@
  */
 package org.hawkular.metrics.clients.ptrans;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ConnectException;
@@ -31,7 +28,9 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Properties;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.Lists;
 
@@ -39,6 +38,9 @@ import com.google.common.collect.Lists;
  * @author Thomas Segismont
  */
 public class OpenedPortsITest extends ExecutableITestBase {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void shouldBindPortsForEnabledServicesOnly() throws Exception {
@@ -57,12 +59,9 @@ public class OpenedPortsITest extends ExecutableITestBase {
         assertPtransHasStarted(ptransProcess, ptransOut);
 
         Configuration configuration = Configuration.from(properties);
+        expectedException.expect(ConnectException.class);
         try (Socket socket = new Socket()) {
             socket.connect(new InetSocketAddress(InetAddress.getLoopbackAddress(), configuration.getTcpPort()));
-            fail("ptrans shouldn't be listening on the TCP port");
-        } catch (IOException e) {
-            assertThat(e).isExactlyInstanceOf(ConnectException.class);
         }
     }
-
 }
