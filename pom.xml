@@ -151,8 +151,8 @@
         <artifactId>mockito-core</artifactId>
         <version>1.10.19</version>
       </dependency>
-      <!-- TestNG is not RHQ-Metrics main testing framework -->
-      <!-- While still needed to run legacy tests, new tests should be based upon jUnit -->
+      <!-- TestNG is not Hawkular default testing tool -->
+      <!-- While needed to run legacy tests, new tests should be based upon jUnit -->
       <!-- It can still be used when there's a good reason (compatibility with a testing framework for example) -->
       <dependency>
         <groupId>org.testng</groupId>
