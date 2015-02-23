@@ -22,7 +22,6 @@ import static org.hawkular.metrics.api.jaxrs.CustomMediaTypes.APPLICATION_JAVASC
 import static org.hawkular.metrics.api.jaxrs.CustomMediaTypes.APPLICATION_VND_HAWKULAR_WRAPPED_JSON;
 
 import java.util.Date;
-import java.util.Map;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;

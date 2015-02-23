@@ -61,7 +61,9 @@ public class TenantsHandler {
     private MetricsService metricsService;
 
     @POST
-    @ApiOperation(value = "Create a new tenant. ", notes = "Clients are not required to create explicitly create a tenant before starting to store metric data. It is recommended to do so however to ensure that there are no tenant id naming collisions and to provide default data retention settings. ")
+    @ApiOperation(value = "Create a new tenant. ", notes = "Clients are not required to create explicitly create a "
+            + "tenant before starting to store metric data. It is recommended to do so however to ensure that there "
+            + "are no tenant id naming collisions and to provide default data retention settings. ")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Tenant has been succesfully created."),
             @ApiResponse(code = 400, message = "Retention properties are invalid. "),
             @ApiResponse(code = 409, message = "Given tenant id has already been created."),

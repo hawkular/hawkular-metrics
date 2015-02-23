@@ -50,7 +50,8 @@ public class TenantParams {
         this.id = id;
     }
 
-    @ApiModelProperty(required = false, allowableValues = "[numeric, availability]", value = "Retention periods for different metric types.")
+    @ApiModelProperty(required = false, allowableValues = "[numeric, availability]", value = "Retention periods for "
+            + "different metric types.")
     public Map<String, Integer> getRetentions() {
         return retentions;
     }
