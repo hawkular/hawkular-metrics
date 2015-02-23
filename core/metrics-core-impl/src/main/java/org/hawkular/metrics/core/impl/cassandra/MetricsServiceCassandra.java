@@ -200,7 +200,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
         if (keyspace==null||keyspace.isEmpty()) {
             logger.debug("No explicit keyspace given, will default to 'hawkular'");
-            keyspace = "hawkular";
+            keyspace = "hawkular-metrics";
         }
 
         logger.info("Using a key space of '" + keyspace + "'");
