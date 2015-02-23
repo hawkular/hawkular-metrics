@@ -41,8 +41,8 @@ public class MainServer {
         MetricsHandlers metricsHandlers = new MetricsHandlers();
         metricsHandlers.setup(commonHandler);
 
-        Undertow server = Undertow.builder().addHttpListener(8081, "0.0.0.0")
-                .setHandler(new CorsHandler(path().addPrefixPath("/rhq-metrics", commonHandler))).build();
+        Undertow server = Undertow.builder().addHttpListener(8080, "0.0.0.0")
+                .setHandler(new CorsHandler(path().addPrefixPath("/hawkular-metrics", commonHandler))).build();
         server.start();
     }
 
