@@ -858,6 +858,7 @@ public class MetricHandler {
     }
 
     @POST
+    @ApiOperation(value = "List of counter definitions", hidden = true)
     @Path("/counters")
     @Produces({APPLICATION_JSON})
     public void updateCountersForGroups(@Suspended final AsyncResponse asyncResponse, Collection<Counter> counters) {
@@ -865,6 +866,7 @@ public class MetricHandler {
     }
 
     @POST
+    @ApiOperation(value = "Update multiple counters in a single counter group", hidden = true)
     @Path("/counters/{group}")
     @Produces(APPLICATION_JSON)
     public void updateCounterForGroup(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group,
@@ -892,6 +894,7 @@ public class MetricHandler {
     }
 
     @POST
+    @ApiOperation(value = "Increase value of a counter", hidden = true)
     @Path("/counters/{group}/{counter}")
     public void updateCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group,
         @PathParam("counter") String counter) {
@@ -899,6 +902,7 @@ public class MetricHandler {
     }
 
     @POST
+    @ApiOperation(value = "Update value of a counter", hidden = true)
     @Path("/counters/{group}/{counter}/{value}")
     public void updateCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group,
         @PathParam("counter") String counter, @PathParam("value") Long value) {
@@ -923,6 +927,7 @@ public class MetricHandler {
     }
 
     @GET
+    @ApiOperation(value = "Retrieve a list of counter values in this group", hidden = true, response = Counter.class, responseContainer = "List")
     @Path("/counters/{group}")
     @Produces({APPLICATION_JSON,APPLICATION_VND_HAWKULAR_WRAPPED_JSON})
     public void getCountersForGroup(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group) {
@@ -942,6 +947,7 @@ public class MetricHandler {
     }
 
     @GET
+    @ApiOperation(value = "Retrieve value of a counter", hidden = true, response = Counter.class, responseContainer = "List")
     @Path("/counters/{group}/{counter}")
     @Produces({APPLICATION_JSON,APPLICATION_VND_HAWKULAR_WRAPPED_JSON})
     public void getCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") final String group,
