@@ -46,7 +46,7 @@ public class MetricsHandlers {
     private final ObjectMapper mapper;
 
     public MetricsHandlers() {
-        metricsService = getMetricsService("mem");
+        metricsService = getMetricsService();
         mapper = new ObjectMapper();
         mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
         mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
@@ -95,6 +95,7 @@ public class MetricsHandlers {
 
                 if (body.size() == 0) {
                     exchange.setResponseCode(200);
+                    exchange.endExchange();
                 }
 
                 List<NumericMetric> metrics = new ArrayList<>(body.size());
@@ -108,23 +109,30 @@ public class MetricsHandlers {
                     metrics.add(metric);
                 }
 
-                ListenableFuture<Void> future = metricsService.addNumericData(metrics);
-                Futures.addCallback(future, new FutureCallback<Void>() {
+                exchange.dispatch(new Runnable() {
                     @Override
-                    public void onSuccess(Void result) {
-                        exchange.setResponseCode(200);
-                    }
+                    public void run() {
+                        ListenableFuture<Void> future = metricsService.addNumericData(metrics);
+                        Futures.addCallback(future, new FutureCallback<Void>() {
+                            @Override
+                            public void onSuccess(Void result) {
+                                exchange.setResponseCode(200);
+                                exchange.endExchange();
+                            }
 
-                    @Override
-                    public void onFailure(Throwable t) {
-                        exchange.setResponseCode(501);
+                            @Override
+                            public void onFailure(Throwable t) {
+                                exchange.setResponseCode(501);
+                                exchange.endExchange();
+                            }
+                        });
                     }
                 });
             }
         });
     }
 
-    public MetricsService getMetricsService(String backend) {
+    public MetricsService getMetricsService() {
         HawkularMetrics.Builder metricsServiceBuilder = new HawkularMetrics.Builder();
         return metricsServiceBuilder.build();
     }

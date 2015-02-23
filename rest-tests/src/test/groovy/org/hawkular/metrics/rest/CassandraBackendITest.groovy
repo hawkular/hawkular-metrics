@@ -40,6 +40,30 @@ class CassandraBackendITest extends RESTTest {
   }
 
   @Test
+  void simpleInsertAndQueryNumericData() {
+    DateTimeService dateTimeService = new DateTimeService()
+    String tenantId = nextTenantId()
+    String metric = 'n1'
+    DateTime start = dateTimeService.currentHour().minusHours(1)
+    DateTime end = start.plusHours(1)
+
+    int numBuckets = 10
+    long bucketSize = (end.millis - start.millis) / numBuckets
+    def buckets = []
+    numBuckets.times { buckets.add(start.millis + (it * bucketSize)) }
+
+    def response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/data", body: [
+        [name: 'test', timestamp: buckets[0], value: 12.22],
+        [name: 'test', timestamp: buckets[0] + seconds(10).toStandardDuration().millis, value: 12.37],
+        [name: 'test', timestamp: buckets[4], value: 25],
+        [name: 'test', timestamp: buckets[4] + seconds(15).toStandardDuration().millis, value: 25],
+        [name: 'test', timestamp: buckets[9], value: 18.367],
+        [name: 'test', timestamp: buckets[9] + seconds(10).toStandardDuration().millis, value: 19.01]
+    ])
+    assertEquals(200, response.status)
+  }
+
+  @Test
   void queryForBucketedNumericData() {
     DateTimeService dateTimeService = new DateTimeService()
     String tenantId = nextTenantId()

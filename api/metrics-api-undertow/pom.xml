@@ -115,7 +115,7 @@
             <!-- argument>-Dssl</argument-->
             <argument>-classpath</argument>
             <classpath/>
-            <argument>org.rhq.metrics.api.undertow.MainServer</argument>
+            <argument>org.hawkular.metrics.api.undertow.MainServer</argument>
           </arguments>
         </configuration>
       </plugin>
