@@ -53,13 +53,15 @@ class CassandraBackendITest extends RESTTest {
     numBuckets.times { buckets.add(start.millis + (it * bucketSize)) }
 
     def response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/data", body: [
-        [name: 'test', timestamp: buckets[0], value: 12.22],
-        [name: 'test', timestamp: buckets[0] + seconds(10).toStandardDuration().millis, value: 12.37],
-        [name: 'test', timestamp: buckets[4], value: 25],
-        [name: 'test', timestamp: buckets[4] + seconds(15).toStandardDuration().millis, value: 25],
-        [name: 'test', timestamp: buckets[9], value: 18.367],
-        [name: 'test', timestamp: buckets[9] + seconds(10).toStandardDuration().millis, value: 19.01]
-    ])
+        [id: 'test',
+         data: [
+            [timestamp: buckets[0], value: 12.22],
+            [timestamp: buckets[0] + seconds(10).toStandardDuration().millis, value: 12.37],
+            [timestamp: buckets[4], value: 25],
+            [timestamp: buckets[4] + seconds(15).toStandardDuration().millis, value: 25],
+            [timestamp: buckets[9], value: 18.367],
+            [timestamp: buckets[9] + seconds(10).toStandardDuration().millis, value: 19.01]
+        ]]])
     assertEquals(200, response.status)
   }
 
