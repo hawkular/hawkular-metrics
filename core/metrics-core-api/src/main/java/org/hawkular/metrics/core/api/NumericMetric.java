@@ -20,10 +20,18 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * @author John Sanda
  */
 public class NumericMetric extends Metric<NumericData> {
+
+    @JsonCreator
+    public NumericMetric(@JsonProperty("id") MetricId id) {
+        super("", id);
+    }
 
     public NumericMetric(String tenantId, MetricId id) {
         super(tenantId, id);

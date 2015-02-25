@@ -22,7 +22,6 @@ import io.undertow.server.RoutingHandler;
 import io.undertow.util.Methods;
 
 import java.nio.channels.Channels;
-import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
@@ -31,8 +30,6 @@ import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.HawkularMetrics;
-import org.hawkular.metrics.core.impl.mapper.NumericDataParams;
-import org.hawkular.metrics.core.impl.mapper.NumericDataPoint;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonParser;
@@ -86,26 +83,19 @@ public class MetricsHandlers {
 
         commonHandler.add(Methods.POST, "/{tenantId}/metrics/numeric/data", new AsyncHttpHandler() {
             public void handleRequestAsync(HttpServerExchange exchange) throws Exception {
-                List<NumericDataParams> body = mapper.readValue(Channels.newInputStream(exchange.getRequestChannel()),
-                        new TypeReference<List<NumericDataParams>>() {
+                List<NumericMetric> metrics = mapper.readValue(Channels.newInputStream(exchange.getRequestChannel()),
+                        new TypeReference<List<NumericMetric>>() {
                         });
                 Map<String, Deque<String>> queryParams = exchange.getQueryParameters();
                 String tenantId = queryParams.get("tenantId").getFirst();
 
-                if (body == null || body.size() == 0) {
+                if (metrics == null || metrics.size() == 0) {
                     exchange.setResponseCode(200);
                     return;
                 }
 
-                List<NumericMetric> metrics = new ArrayList<>(body.size());
-                for (NumericDataParams params : body) {
-                    NumericMetric metric = new NumericMetric(tenantId, new MetricId(params.getName()));
-
-                    for (NumericDataPoint p : params.getData()) {
-                        metric.addData(p.getTimestamp(), p.getValue());
-                    }
-
-                    metrics.add(metric);
+                for (NumericMetric metric : metrics) {
+                    metric.setTenantId(tenantId);
                 }
 
                 ListenableFuture<Void> future = metricsService.addNumericData(metrics);
@@ -141,6 +131,8 @@ public class MetricsHandlers {
                     try {
                         handleRequestAsync(exchange);
                     } catch (Exception e) {
+                        System.out.println(e);
+                        e.printStackTrace();
                         exchange.setResponseCode(501);
 
                     }
