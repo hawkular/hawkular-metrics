@@ -33,5 +33,5 @@ public abstract class MetricMapper<T> implements Function<NumericMetric, T> {
         return doApply(metric);
     }
 
-    abstract T doApply(NumericMetric metric);
+    public abstract T doApply(NumericMetric metric);
 }
