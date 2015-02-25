@@ -81,6 +81,10 @@ import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
+import org.hawkular.metrics.core.impl.mapper.MetricMapper;
+import org.hawkular.metrics.core.impl.mapper.NoResultsException;
+import org.hawkular.metrics.core.impl.mapper.NumericDataParams;
+import org.hawkular.metrics.core.impl.mapper.NumericDataPoint;
 
 /**
  * Interface to deal with metrics

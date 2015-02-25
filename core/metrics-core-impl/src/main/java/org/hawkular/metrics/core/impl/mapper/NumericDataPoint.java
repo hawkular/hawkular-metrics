@@ -14,12 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs;
+package org.hawkular.metrics.core.impl.mapper;
 
 import java.util.Set;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.google.common.base.Objects;
 import com.wordnik.swagger.annotations.ApiModel;
 import com.wordnik.swagger.annotations.ApiModelProperty;
@@ -34,7 +32,6 @@ public class NumericDataPoint {
 
     private double value;
 
-    @JsonInclude(Include.NON_EMPTY)
     private Set<String> tags;
 
     public NumericDataPoint() {
