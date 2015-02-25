@@ -1,0 +1,66 @@
+== APIs
+{{#apiDocuments}}
+=== {{{description}}}
+
+{{#apis}}
+==== {{apiIndex}} `{{path}}`
+{{#operations}}
+
+{{summary}}
+
+{{{notes}}}
+
+----
+*{{httpMethod}}* `{{path}}`
+----
+
+{{#parameters}}
+===== {{paramType}} parameters
+
+[options="header"]
+|=======================
+|Parameter|Required|Description|Data Type
+{{#paras}}
+|{{name}}|{{required}}|{{description}}|{{type}}
+{{/paras}}
+|=======================
+{{/parameters}}
+
+{{#responseClass}}
+===== Response
+[{{className}}](#{{classLinkName}}){{^genericClasses}}{{/genericClasses}}{{#genericClasses}}< [{{className}}](#{{classLinkName}}) >{{/genericClasses}}
+{{/responseClass}}
+
+===== Status codes
+[options="header"]
+|=======================
+| Status Code | Reason      | Response Model
+{{#errorResponses}}
+| {{code}}    | {{message}} | {{#linkType}}[{{type}}](#{{linkType}}){{/linkType}}{{^linkType}}{{#type}}{{{type}}}{{/type}}{{^type}}-{{/type}}{{/linkType}}
+{{/errorResponses}}
+|=======================
+
+{{/operations}}
+{{/apis}}
+{{/apiDocuments}}
+
+== Data Types
+{{#dataTypes}}
+
+=== {{name}}
+[options="header"]
+|=======================
+| name | type | required | access | description | notes
+{{#items}}
+|{{name}}|{{#linkType}}{{linkType}}{{type}} {{/linkType}}{{^linkType}}{{type}}{{/linkType}}|{{#required}}required{{/required}}{{^required}}optional{{/required}}|{{#access}}{{{access}}}{{/access}}{{^access}}-{{/access}}|{{#description}}{{{description}}}{{/description}}{{^description}}-{{/description}}{{#allowableValue}} Allowable values:{{.}}{{/allowableValue}}|{{#notes}}{{{notes}}}{{/notes}}{{^notes}}-{{/notes}}
+{{/items}}
+|=======================
+
+{{/dataTypes}}
+
+{{#enumTypes}}
+    ## {{name}}
+    {{#allowableValues}}
+        {{.}}
+    {{/allowableValues}}
+{{/enumTypes}}

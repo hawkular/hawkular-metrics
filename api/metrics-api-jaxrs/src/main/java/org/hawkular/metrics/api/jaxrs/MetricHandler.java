@@ -67,6 +67,9 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 
+import gnu.trove.map.TLongObjectMap;
+import gnu.trove.map.hash.TLongObjectHashMap;
+
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Counter;
@@ -78,9 +81,6 @@ import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
-
-import gnu.trove.map.TLongObjectMap;
-import gnu.trove.map.hash.TLongObjectHashMap;
 
 /**
  * Interface to deal with metrics
@@ -283,7 +283,8 @@ public class MetricHandler {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data")})
     public void addAvailabilityForMetric(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") final String tenantId, @PathParam("id") String id, List<AvailabilityDataPoint> data) {
+        @PathParam("tenantId") final String tenantId, @PathParam("id") String id,
+        @ApiParam(value = "List of availability datapoints", required = true) List<AvailabilityDataPoint> data) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
 
         for (AvailabilityDataPoint p : data) {
@@ -300,8 +301,10 @@ public class MetricHandler {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data")})
     @Consumes(APPLICATION_JSON)
-    public void addNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
-        List<NumericDataParams> paramsList) {
+    public void addNumericData(@ApiParam(access = "internal") @Suspended final AsyncResponse asyncResponse,
+                               @PathParam("tenantId") String tenantId,
+                               @ApiParam(value = "List of metrics", required = true)
+                               List<NumericDataParams> paramsList) {
         if (paramsList.isEmpty()) {
             asyncResponse.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
         }
@@ -327,7 +330,8 @@ public class MetricHandler {
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data")})
     @Consumes(APPLICATION_JSON)
     public void addAvailabilityData(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId, List<AvailabilityDataParams> paramsList) {
+        @PathParam("tenantId") String tenantId, @ApiParam(value = "List of availability metrics", required = true)
+        List<AvailabilityDataParams> paramsList) {
         if (paramsList.isEmpty()) {
             asyncResponse.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
         }
