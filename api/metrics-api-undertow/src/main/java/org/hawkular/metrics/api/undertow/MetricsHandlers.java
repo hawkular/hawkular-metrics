@@ -27,13 +27,14 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 
-import org.hawkular.metrics.api.jaxrs.NumericDataParams;
-import org.hawkular.metrics.api.jaxrs.NumericDataPoint;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.HawkularMetrics;
+import org.hawkular.metrics.core.impl.mapper.NumericDataParams;
+import org.hawkular.metrics.core.impl.mapper.NumericDataPoint;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -50,13 +51,14 @@ public class MetricsHandlers {
         mapper = new ObjectMapper();
         mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
         mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
     }
 
     public void setup(RoutingHandler commonHandler) {
 
-        commonHandler.add(Methods.POST, "/{tenantId}/metrics/numeric", new HttpHandler() {
-            @Override
-            public void handleRequest(HttpServerExchange exchange) throws Exception {
+        commonHandler.add(Methods.POST, "/{tenantId}/metrics/numeric", new AsyncHttpHandler() {
+
+            public void handleRequestAsync(HttpServerExchange exchange) throws Exception {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> body = mapper.readValue(Channels.newInputStream(exchange.getRequestChannel()),
                         Map.class);
@@ -82,24 +84,21 @@ public class MetricsHandlers {
             }
         });
 
-        commonHandler.add(Methods.POST, "/{tenantId}/metrics/numeric/data", new HttpHandler() {
-
-            @Override
-            public void handleRequest(HttpServerExchange exchange) throws Exception {
+        commonHandler.add(Methods.POST, "/{tenantId}/metrics/numeric/data", new AsyncHttpHandler() {
+            public void handleRequestAsync(HttpServerExchange exchange) throws Exception {
                 List<NumericDataParams> body = mapper.readValue(Channels.newInputStream(exchange.getRequestChannel()),
                         new TypeReference<List<NumericDataParams>>() {
                         });
                 Map<String, Deque<String>> queryParams = exchange.getQueryParameters();
                 String tenantId = queryParams.get("tenantId").getFirst();
 
-
-                if (body.size() == 0) {
+                if (body == null || body.size() == 0) {
                     exchange.setResponseCode(200);
-                    exchange.endExchange();
+                    return;
                 }
 
                 List<NumericMetric> metrics = new ArrayList<>(body.size());
-                for(NumericDataParams params : body) {
+                for (NumericDataParams params : body) {
                     NumericMetric metric = new NumericMetric(tenantId, new MetricId(params.getName()));
 
                     for (NumericDataPoint p : params.getData()) {
@@ -109,23 +108,16 @@ public class MetricsHandlers {
                     metrics.add(metric);
                 }
 
-                exchange.dispatch(new Runnable() {
+                ListenableFuture<Void> future = metricsService.addNumericData(metrics);
+                Futures.addCallback(future, new FutureCallback<Void>() {
                     @Override
-                    public void run() {
-                        ListenableFuture<Void> future = metricsService.addNumericData(metrics);
-                        Futures.addCallback(future, new FutureCallback<Void>() {
-                            @Override
-                            public void onSuccess(Void result) {
-                                exchange.setResponseCode(200);
-                                exchange.endExchange();
-                            }
+                    public void onSuccess(Void result) {
+                        exchange.setResponseCode(200);
+                    }
 
-                            @Override
-                            public void onFailure(Throwable t) {
-                                exchange.setResponseCode(501);
-                                exchange.endExchange();
-                            }
-                        });
+                    @Override
+                    public void onFailure(Throwable t) {
+                        exchange.setResponseCode(501);
                     }
                 });
             }
@@ -137,4 +129,25 @@ public class MetricsHandlers {
         return metricsServiceBuilder.build();
     }
 
+    public abstract static class AsyncHttpHandler implements HttpHandler {
+
+        abstract void handleRequestAsync(HttpServerExchange exchange) throws Exception;
+
+        @Override
+        public void handleRequest(HttpServerExchange exchange) throws Exception {
+            exchange.dispatch(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        handleRequestAsync(exchange);
+                    } catch (Exception e) {
+                        exchange.setResponseCode(501);
+
+                    }
+
+                    exchange.endExchange();
+                }
+            });
+        }
+    }
 }
