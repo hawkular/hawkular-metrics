@@ -19,6 +19,8 @@ package org.hawkular.metrics.api.jaxrs;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hawkular.metrics.core.impl.mapper.MetricDataParams;
+
 import com.google.common.base.Objects;
 import com.wordnik.swagger.annotations.ApiModel;
 import com.wordnik.swagger.annotations.ApiModelProperty;

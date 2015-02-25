@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs;
-
-import com.google.common.base.Function;
+package org.hawkular.metrics.core.impl.mapper;
 
 import org.hawkular.metrics.core.api.NumericMetric;
+
+import com.google.common.base.Function;
 
 /**
  * @author John Sanda
