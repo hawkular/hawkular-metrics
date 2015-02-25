@@ -22,6 +22,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Objects;
 
 /**
@@ -56,7 +58,8 @@ public class NumericData extends MetricData {
         super(metric, timeUUID, tags, writeTime);
     }
 
-    public NumericData(long timestamp, double value) {
+    @JsonCreator
+    public NumericData(@JsonProperty("timestamp") long timestamp, @JsonProperty("value") double value) {
         super(timestamp);
         this.value = value;
     }
