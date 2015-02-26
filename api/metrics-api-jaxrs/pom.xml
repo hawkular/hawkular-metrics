@@ -167,48 +167,15 @@
             -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</jvmArgs>
         </configuration>
       </plugin>
-
-      <plugin>
-        <groupId>com.github.kongchen</groupId>
-        <artifactId>swagger-maven-plugin</artifactId>
-        <version>2.3.3</version>
-        <configuration>
-          <apiSources>
-            <apiSource>
-              <locations>org.hawkular.metrics.api.jaxrs</locations>
-              <apiVersion>1.0</apiVersion>
-              <basePath>http://localhost:8080/rhq-metrics/</basePath>
-              <outputTemplate>src/main/resources/rest-doc/asciidoc.mustache</outputTemplate>
-              <swaggerDirectory>generated/swagger-ui</swaggerDirectory>
-              <swaggerInternalFilter>org.hawkular.metrics.api.jaxrs.swagger.filter.JaxRsFilter</swaggerInternalFilter>
-              <swaggerApiReader>com.wordnik.swagger.jaxrs.reader.DefaultJaxrsApiReader</swaggerApiReader>
-              <outputPath>${basedir}/generated/rest-api-doc.adoc</outputPath>
-            </apiSource>
-          </apiSources>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>compile</phase>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
   </build>
 
   <profiles>
     <profile>
-      <id>REST doc generation</id>
-      <activation>
-        <property>
-          <name>docgen</name>
-        </property>
-      </activation>
+      <id>docgen</id>
 
       <build>
-        <!-- Document generation from the Annotations on the REST-API. -->
+        <!-- Document generation from the Swagger annotations on the REST-API. -->
         <plugins>
           <plugin>
             <groupId>com.github.kongchen</groupId>
