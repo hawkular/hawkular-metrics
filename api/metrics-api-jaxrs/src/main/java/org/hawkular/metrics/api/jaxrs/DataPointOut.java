@@ -22,6 +22,7 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * @author John Sanda
@@ -49,6 +50,7 @@ public class DataPointOut {
         this.tags = tags;
     }
 
+    @ApiModelProperty(required = true, value = "Event timestamp in POSIX format")
     public long getTimestamp() {
         return timestamp;
     }
@@ -61,6 +63,7 @@ public class DataPointOut {
         return value;
     }
 
+    @ApiModelProperty(required = true)
     public void setValue(Object value) {
         this.value = value;
     }

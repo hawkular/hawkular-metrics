@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.google.common.base.Objects;
 import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * @author John Sanda
@@ -36,6 +37,7 @@ public class AvailabilityDataPoint {
     @JsonInclude(Include.NON_EMPTY)
     private Set<String> tags;
 
+    @ApiModelProperty(required = true, value = "Event timestamp in POSIX format")
     public long getTimestamp() {
         return timestamp;
     }
@@ -52,6 +54,7 @@ public class AvailabilityDataPoint {
         this.value = value;
     }
 
+    @ApiModelProperty(required = false, value = "Set of tags associated with this metric")
     public Set<String> getTags() {
         return tags;
     }

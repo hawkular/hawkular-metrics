@@ -34,25 +34,25 @@ public class MetricParams {
 
     private Integer dataRetention;
 
+    @ApiModelProperty(value = "Identifier of the metric.", required = true)
     public String getName() {
         return name;
     }
 
-    @ApiModelProperty(value = "Identifier of the metric, mandatory.")
     public void setName(String name) {
         this.name = name;
     }
 
+    @ApiModelProperty(value = "Arbitrary key/value definitions for this metric")
     public Map<String, String> getTags() {
         return tags;
     }
 
-    @ApiModelProperty(value = "Arbitary key/value definitions for this metric")
     public void setTags(Map<String, String> tags) {
         this.tags = tags;
     }
 
-    @ApiModelProperty(value = "Overrides the data retention setting at the tenant level")
+    @ApiModelProperty(value = "Overrides the data retention setting from the tenant level")
     public Integer getDataRetention() {
         return dataRetention;
     }

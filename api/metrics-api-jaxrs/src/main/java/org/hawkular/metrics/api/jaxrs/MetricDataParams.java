@@ -19,15 +19,20 @@ package org.hawkular.metrics.api.jaxrs;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
+
 /**
  * @author John Sanda
  */
+@ApiModel
 public class MetricDataParams {
 
     protected String tenantId;
     protected String name;
     protected Map<String, String> tags = new HashMap<>();
 
+    @ApiModelProperty(required = true, value = "Tenant's unique identifier")
     public String getTenantId() {
         return tenantId;
     }
@@ -36,6 +41,7 @@ public class MetricDataParams {
         this.tenantId = tenantId;
     }
 
+    @ApiModelProperty(required = true, value = "Metric's identifier")
     public String getName() {
         return name;
     }
@@ -44,6 +50,7 @@ public class MetricDataParams {
         this.name = name;
     }
 
+    @ApiModelProperty(required = false, value = "Set of tags associated with this metric")
     public Map<String, String> getTags() {
         return tags;
     }
