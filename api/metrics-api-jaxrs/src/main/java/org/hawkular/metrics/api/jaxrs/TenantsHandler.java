@@ -42,6 +42,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 
@@ -69,7 +70,7 @@ public class TenantsHandler {
             @ApiResponse(code = 409, message = "Given tenant id has already been created."),
             @ApiResponse(code = 500, message = "An unexpected error occured while trying to create a tenant.")})
     @Consumes(APPLICATION_JSON)
-    public void createTenant(@Suspended AsyncResponse asyncResponse, TenantParams params) {
+    public void createTenant(@Suspended AsyncResponse asyncResponse, @ApiParam(required = true) TenantParams params) {
         Tenant tenant = new Tenant().setId(params.getId());
         for (String type : params.getRetentions().keySet()) {
             if (type.equals(MetricType.NUMERIC.getText())) {

@@ -99,12 +99,12 @@ public class MetricHandler {
     @ApiOperation(value = "Create numeric metric definition.", notes = "Clients are not required to explicitly create "
             + "a metric before storing data. Doing so however allows clients to prevent naming collisions and to "
             + "specify tags and data retention.")
-    @ApiResponses(value = { @ApiResponse(code = 400, message = "Metric with given id already exists"),
-            @ApiResponse(code = 200, message = "Metric definition created successfully"),
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric definition created successfully"),
+            @ApiResponse(code = 400, message = "Metric with given id already exists or request is otherwise incorrect"),
             @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error")})
     @Consumes(APPLICATION_JSON)
     public void createNumericMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
-        MetricParams params) {
+                                    @ApiParam(required = true) MetricParams params) {
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(params.getName()), MetricUtils.getTags(
             params.getTags()), params.getDataRetention());
         ListenableFuture<Void> future = metricsService.createMetric(metric);
@@ -119,7 +119,7 @@ public class MetricHandler {
             @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error")})
     @Consumes(APPLICATION_JSON)
     public void createAvailabilityMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
-        MetricParams params) {
+                                         @ApiParam(required = true) MetricParams params) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(params.getName()),
             MetricUtils.getTags(params.getTags()), params.getDataRetention());
         ListenableFuture<Void> future = metricsService.createMetric(metric);
@@ -175,7 +175,8 @@ public class MetricHandler {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while updating metric's tags.")})
     public void updateNumericMetricTags(@Suspended final AsyncResponse response,
-        @PathParam("tenantId") String tenantId, @PathParam("id") String id, Map<String, String> tags) {
+                                        @PathParam("tenantId") String tenantId, @PathParam("id") String id,
+                                        @ApiParam(required = true) Map<String, String> tags) {
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
         ListenableFuture<Void> future = metricsService.addTags(metric, MetricUtils.getTags(tags));
         Futures.addCallback(future, new DataInsertedCallback(response, "Failed to update tags"));
@@ -187,7 +188,9 @@ public class MetricHandler {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.")})
     public void deleteNumericMetricTags(@Suspended final AsyncResponse response,
-        @PathParam("tenantId") String tenantId, @PathParam("id") String id, @PathParam("tags") String encodedTags) {
+        @PathParam("tenantId") String tenantId, @PathParam("id") String id,
+        @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
+        @PathParam("tags") String encodedTags) {
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
         ListenableFuture<Void> future = metricsService.deleteTags(metric, MetricUtils.decodeTags(encodedTags));
         Futures.addCallback(future, new DataInsertedCallback(response, "Failed to delete tags"));
@@ -212,7 +215,8 @@ public class MetricHandler {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while updating metric's tags.")})
     public void updateAvailabilityMetricTags(@Suspended final AsyncResponse response,
-        @PathParam("tenantId") String tenantId, @PathParam("id") String id, Map<String, String> tags) {
+        @PathParam("tenantId") String tenantId, @PathParam("id") String id,
+        @ApiParam(required = true) Map<String, String> tags) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
         ListenableFuture<Void> future = metricsService.addTags(metric, MetricUtils.getTags(tags));
         Futures.addCallback(future, new DataInsertedCallback(response, "Failed to update tags"));
@@ -224,7 +228,9 @@ public class MetricHandler {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.")})
     public void deleteAvailabilityMetricTags(@Suspended final AsyncResponse response,
-        @PathParam("tenantId") String tenantId, @PathParam("id") String id, @PathParam("tags") String encodedTags) {
+        @PathParam("tenantId") String tenantId, @PathParam("id") String id,
+        @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
+        @PathParam("tags") String encodedTags) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
         ListenableFuture<Void> future = metricsService.deleteTags(metric, MetricUtils.decodeTags(encodedTags));
         Futures.addCallback(future, new DataInsertedCallback(response, "Failed to delete tags"));
@@ -729,7 +735,7 @@ public class MetricHandler {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Tags were modified successfully.")})
     @Path("/{tenantId}/tags/numeric")
     public void tagNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
-        TagParams params) {
+        @ApiParam(required = true) TagParams params) {
         ListenableFuture<List<NumericData>> future;
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(params.getMetric()));
         if (params.getTimestamp() != null) {
@@ -757,7 +763,7 @@ public class MetricHandler {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Tags were modified successfully.")})
     @Path("/{tenantId}/tags/availability")
     public void tagAvailabilityData(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId, TagParams params) {
+        @PathParam("tenantId") String tenantId, @ApiParam(required = true) TagParams params) {
         ListenableFuture<List<Availability>> future;
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(params.getMetric()));
         if (params.getTimestamp() != null) {
@@ -787,7 +793,9 @@ public class MetricHandler {
             @ApiResponse(code = 500, message = "Any error while fetching data.")})
     @Path("/{tenantId}/tags/numeric/{tag}")
     public void findTaggedNumericData(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId, @PathParam("tag") String encodedTag) {
+        @PathParam("tenantId") String tenantId,
+        @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
+        @PathParam("tag") String encodedTag) {
         ListenableFuture<Map<MetricId, Set<NumericData>>> future = metricsService.findNumericDataByTags(
                 tenantId, MetricUtils.decodeTags(encodedTag));
         Futures.addCallback(future, new FutureCallback<Map<MetricId, Set<NumericData>>>() {
@@ -835,7 +843,9 @@ public class MetricHandler {
             @ApiResponse(code = 500, message = "Any error while fetching data.")})
     @Path("/{tenantId}/tags/availability/{tag}")
     public void findTaggedAvailabilityData(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId, @PathParam("tag") String encodedTag) {
+        @PathParam("tenantId") String tenantId,
+        @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
+        @PathParam("tag") String encodedTag) {
         ListenableFuture<Map<MetricId, Set<Availability>>> future = metricsService.findAvailabilityByTags(tenantId,
             MetricUtils.decodeTags(encodedTag));
         Futures.addCallback(future, new FutureCallback<Map<MetricId, Set<Availability>>>() {
