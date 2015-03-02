@@ -16,8 +16,6 @@
  */
 package org.hawkular.metrics.core.impl.mapper;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
 import com.wordnik.swagger.annotations.ApiModel;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
@@ -26,7 +24,6 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
  * @author Heiko W. Rupp
  */
 @ApiModel(value = "One data point for a metric with id, timestamp and value. Inherits from DataPoint.")
-@XmlRootElement
 public class IdDataPoint extends DataPoint {
 
     private String id;
