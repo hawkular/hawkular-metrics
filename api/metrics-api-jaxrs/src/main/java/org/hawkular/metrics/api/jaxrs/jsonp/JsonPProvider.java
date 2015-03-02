@@ -20,7 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static javax.ws.rs.RuntimeType.SERVER;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
-import static org.hawkular.metrics.api.jaxrs.CustomMediaTypes.APPLICATION_JAVASCRIPT;
+import static org.hawkular.metrics.api.jaxrs.util.CustomMediaTypes.APPLICATION_JAVASCRIPT;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Converts {@link MediaType#APPLICATION_JSON_TYPE} compatible types to JSONP. Restricted to media type
- * {@link org.hawkular.metrics.api.jaxrs.CustomMediaTypes#APPLICATION_JAVASCRIPT}.
+ * {@link org.hawkular.metrics.api.jaxrs.util.CustomMediaTypes#APPLICATION_JAVASCRIPT}.
  * <p>
  * JSONP callback parameter name may be defined with the
  * {@code org.hawkular.metrics.restServlet.jsonp.JsonPProvider} servlet context param. It defaults to

@@ -34,6 +34,11 @@
   <name>Hawkular Metrics Core Implementation</name>
   <description>Hawkular Metrics Core Implementation</description>
 
+  <properties>
+    <swagger-annotations.version>1.2.3</swagger-annotations.version>
+    <rest-docs-generator.version>4.11.0</rest-docs-generator.version>
+  </properties>
+
   <dependencies>
 
     <dependency>
@@ -70,6 +75,26 @@
       <groupId>net.sf.trove4j</groupId>
       <artifactId>trove4j</artifactId>
       <version>${trove4j.version}</version>
+    </dependency>
+
+    <!-- documentation -->
+    <dependency>
+      <groupId>com.wordnik</groupId>
+      <artifactId>swagger-annotations_2.9.1</artifactId>
+      <version>${swagger-annotations.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+      <scope>provided</scope>
     </dependency>
 
   </dependencies>

@@ -50,6 +50,7 @@ import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
+import org.hawkular.metrics.core.impl.mapper.TenantParams;
 
 /**
  * @author Thomas Segismont
