@@ -254,6 +254,7 @@ class CassandraBackendITest extends RESTTest {
     // Make sure we do not allow duplicates
     badPost(path: "$tenantId/metrics/numeric", body: [name: 'N1']) { exception ->
       assertEquals(400, exception.response.status)
+        assertNotNull(exception.response.data['errorMsg'])
     }
 
     // Create a numeric metric that sets its data retention
@@ -282,6 +283,7 @@ class CassandraBackendITest extends RESTTest {
     // Make sure we do not allow duplicates
     badPost(path: "$tenantId/metrics/availability", body: [name: 'A1']) { exception ->
       assertEquals(400, exception.response.status)
+        assertNotNull(exception.response.data['errorMsg'])
     }
 
     // Fetch numeric tags
