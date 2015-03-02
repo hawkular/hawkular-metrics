@@ -61,6 +61,15 @@ public class PTrans {
     private final EventLoopGroup workerGroup;
     private final RestForwardingHandler forwardingHandler;
 
+    /**
+     * Creates a new PTrans instance for the given {@code configuration}.
+     *
+     * @param configuration a PTrans configuration object, must not be null
+     *
+     * @throws java.lang.NullPointerException if the configuration parameter is null
+     * @throws java.lang.IllegalArgumentException if the configuration parameter is invalid
+     * @see Configuration#isValid()
+     */
     public PTrans(Configuration configuration) {
         Objects.requireNonNull(configuration, "Configuration is null");
         if (!configuration.isValid()) {
