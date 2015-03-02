@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs;
+package org.hawkular.metrics.core.impl.mapper;
 
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.google.common.base.Objects;
 import com.wordnik.swagger.annotations.ApiModel;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
@@ -28,14 +28,27 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
  * @author John Sanda
  */
 @ApiModel
-public class AvailabilityDataPoint {
+public class DataPointOut {
 
     private long timestamp;
-
-    private String value;
+    private Object value;
 
     @JsonInclude(Include.NON_EMPTY)
-    private Set<String> tags;
+    private Map<String, String> tags = new HashMap<>();
+
+    public DataPointOut() {
+    }
+
+    public DataPointOut(long timestamp, Object value) {
+        this.timestamp = timestamp;
+        this.value = value;
+    }
+
+    public DataPointOut(long timestamp, Object value, Map<String, String> tags) {
+        this.timestamp = timestamp;
+        this.value = value;
+        this.tags = tags;
+    }
 
     @ApiModelProperty(required = true, value = "Event timestamp in POSIX format")
     public long getTimestamp() {
@@ -46,49 +59,21 @@ public class AvailabilityDataPoint {
         this.timestamp = timestamp;
     }
 
-    public String getValue() {
+    public Object getValue() {
         return value;
     }
 
-    public void setValue(String value) {
+    @ApiModelProperty(required = true)
+    public void setValue(Object value) {
         this.value = value;
     }
 
-    @ApiModelProperty(required = false, value = "Set of tags associated with this metric")
-    public Set<String> getTags() {
+    public Map<String, String> getTags() {
         return tags;
     }
 
-    public void setTags(Set<String> tags) {
+    public void setTags(Map<String, String> tags) {
         this.tags = tags;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        AvailabilityDataPoint that = (AvailabilityDataPoint) o;
-
-        if (timestamp != that.timestamp) return false;
-        if (!value.equals(that.value)) return false;
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = (int) (timestamp ^ (timestamp >>> 32));
-        result = 31 * result + value.hashCode();
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return Objects.toStringHelper(this)
-            .add("timestamp", timestamp)
-            .add("value", value)
-            .add("tags", tags)
-            .toString();
-    }
 }

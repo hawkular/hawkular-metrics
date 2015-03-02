@@ -14,12 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs;
+package org.hawkular.metrics.core.impl.mapper;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import org.hawkular.metrics.core.impl.mapper.MetricDataParams;
 
 import com.google.common.base.Objects;
 import com.wordnik.swagger.annotations.ApiModel;
