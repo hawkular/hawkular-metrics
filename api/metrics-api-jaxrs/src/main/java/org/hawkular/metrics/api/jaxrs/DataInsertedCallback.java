@@ -16,14 +16,11 @@
  */
 package org.hawkular.metrics.api.jaxrs;
 
-import java.util.Map;
-
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.FutureCallback;
 
 /**
@@ -47,8 +44,7 @@ public class DataInsertedCallback implements FutureCallback<Void> {
 
     @Override
     public void onFailure(Throwable t) {
-        Map<String, String> errors = ImmutableMap.of("errorMsg", errorMsg + ": " +
-            Throwables.getRootCause(t).getMessage());
+        Error errors = new Error(errorMsg + ": " + Throwables.getRootCause(t).getMessage());
         response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).type(
             MediaType.APPLICATION_JSON_TYPE).build());
     }
