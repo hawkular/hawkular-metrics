@@ -39,6 +39,35 @@ class CassandraBackendITest extends RESTTest {
         expected.value.compareTo(actual.value) == 0)
   }
 
+  @Test
+  void tenantTests(){
+    String firstTenantId = nextTenantId()
+    String secondTenantId = nextTenantId()
+
+    def response = hawkularMetrics.post(path: "tenants", body: [
+        id: firstTenantId,
+        //retentionSettings: [numeric: 45, availability: 30]
+        ])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(path: "tenants", body: [
+        id: secondTenantId//,
+        //retentionSettings: [numeric: 45, availability: 30]
+        ])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: "tenants")
+    def expectedData = [
+        [id:firstTenantId,
+        //retentionSettings:[availability:30, numeric:45]
+        ],
+        [id:secondTenantId,
+        //retentionSettings:[availability:30, numeric:45]
+        ]]
+
+    assertEquals(expectedData, response.data)
+  }
+
   void simpleInsertAndQueryNumericData() {
     DateTimeService dateTimeService = new DateTimeService()
     String tenantId = nextTenantId()

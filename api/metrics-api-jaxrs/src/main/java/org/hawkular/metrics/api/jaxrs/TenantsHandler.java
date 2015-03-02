@@ -18,13 +18,9 @@ package org.hawkular.metrics.api.jaxrs;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
-import static javax.ws.rs.core.Response.Status;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -34,6 +30,11 @@ import javax.ws.rs.Path;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+
+import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.Tenant;
+import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
 
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
@@ -45,18 +46,16 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
-import org.hawkular.metrics.core.api.Tenant;
-import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
-import org.hawkular.metrics.core.impl.mapper.TenantParams;
-
 /**
  * @author Thomas Segismont
  */
 @Api(value = "/tenants", description = "Tenants related REST interface")
 @Path("/tenants")
 public class TenantsHandler {
+
+    //
+    // TODO: add back retention settings
+    //
 
     @Inject
     private MetricsService metricsService;
@@ -71,22 +70,8 @@ public class TenantsHandler {
             @ApiResponse(code = 500, message = "An unexpected error occured while trying to create a tenant.",
                     response = Error.class)})
     @Consumes(APPLICATION_JSON)
-    public void createTenant(@Suspended AsyncResponse asyncResponse, @ApiParam(required = true) TenantParams params) {
-        Tenant tenant = new Tenant().setId(params.getId());
-        for (String type : params.getRetentions().keySet()) {
-            if (type.equals(MetricType.NUMERIC.getText())) {
-                tenant.setRetention(MetricType.NUMERIC, params.getRetentions().get(type));
-            } else if (type.equals(MetricType.AVAILABILITY.getText())) {
-                tenant.setRetention(MetricType.AVAILABILITY, params.getRetentions().get(type));
-            } else {
-                Error errors = new Error("The retentions property is invalid. ["
-                        + type + "] is not a recognized metric type");
-                asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity(errors).type(APPLICATION_JSON_TYPE)
-                    .build());
-                return;
-            }
-        }
-        ListenableFuture<Void> insertFuture = metricsService.createTenant(tenant);
+    public void createTenant(@Suspended AsyncResponse asyncResponse, @ApiParam(required = true) Tenant params) {
+        ListenableFuture<Void> insertFuture = metricsService.createTenant(params);
         Futures.addCallback(insertFuture, new FutureCallback<Void>() {
             @Override
             public void onSuccess(Void result) {
@@ -126,20 +111,7 @@ public class TenantsHandler {
                     response.resume(Response.ok().status(Status.NO_CONTENT).build());
                     return;
                 }
-                List<TenantParams> output = new ArrayList<>(tenants.size());
-                for (Tenant t : tenants) {
-                    Map<String, Integer> retentions = new HashMap<>();
-                    Integer numericRetention = t.getRetentionSettings().get(MetricType.NUMERIC);
-                    Integer availabilityRetention = t.getRetentionSettings().get(MetricType.AVAILABILITY);
-                    if (numericRetention != null) {
-                        retentions.put(MetricType.NUMERIC.getText(), numericRetention);
-                    }
-                    if (availabilityRetention != null) {
-                        retentions.put(MetricType.AVAILABILITY.getText(), availabilityRetention);
-                    }
-                    output.add(new TenantParams(t.getId(), retentions));
-                }
-                response.resume(Response.status(Status.OK).entity(output).type(APPLICATION_JSON_TYPE).build());
+                response.resume(Response.status(Status.OK).entity(tenants).type(APPLICATION_JSON_TYPE).build());
             }
 
             @Override
