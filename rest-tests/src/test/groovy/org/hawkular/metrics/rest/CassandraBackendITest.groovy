@@ -39,7 +39,6 @@ class CassandraBackendITest extends RESTTest {
         expected.value.compareTo(actual.value) == 0)
   }
 
-  @Test
   void simpleInsertAndQueryNumericData() {
     DateTimeService dateTimeService = new DateTimeService()
     String tenantId = nextTenantId()
