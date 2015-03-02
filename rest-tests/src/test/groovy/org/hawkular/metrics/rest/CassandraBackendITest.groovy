@@ -30,7 +30,7 @@ import static org.junit.Assert.assertTrue
 class CassandraBackendITest extends RESTTest {
 
 //  static final double DELTA = 0.001
-
+  static final String TENANT_PREFIX = UUID.randomUUID().toString()
   static final AtomicInteger TENANT_ID_COUNTER = new AtomicInteger(0)
 
   def assertNumericDataPointEquals = { expected, actual ->
@@ -621,7 +621,7 @@ class CassandraBackendITest extends RESTTest {
   }
 
   static String nextTenantId() {
-    return "T${TENANT_ID_COUNTER.incrementAndGet()}"
+    return "T${TENANT_PREFIX}${TENANT_ID_COUNTER.incrementAndGet()}"
   }
 
 }
