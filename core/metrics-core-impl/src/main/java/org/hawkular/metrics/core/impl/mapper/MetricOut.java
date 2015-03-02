@@ -14,27 +14,61 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs;
+package org.hawkular.metrics.core.impl.mapper;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.wordnik.swagger.annotations.ApiModel;
-import com.wordnik.swagger.annotations.ApiModelProperty;
+
 
 /**
  * @author John Sanda
  */
-@ApiModel(description = "Metric definition model")
-public class MetricParams {
+@ApiModel
+public class MetricOut {
+
+    private String tenantId;
 
     private String name;
 
+    @JsonInclude(Include.NON_EMPTY)
     private Map<String, String> tags = new HashMap<>();
 
+    @JsonInclude(Include.NON_EMPTY)
+    private List<DataPointOut> data = new ArrayList<>();
+
+    @JsonInclude(Include.NON_EMPTY)
     private Integer dataRetention;
 
-    @ApiModelProperty(value = "Identifier of the metric.", required = true)
+    public MetricOut() {
+    }
+
+    public MetricOut(String tenantId, String name, Map<String, String> tags) {
+        this.tenantId = tenantId;
+        this.name = name;
+        this.tags = tags;
+    }
+
+    public MetricOut(String tenantId, String name, Map<String, String> tags, Integer dataRetention) {
+        this.tenantId = tenantId;
+        this.name = name;
+        this.tags = tags;
+        this.dataRetention = dataRetention;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
+
     public String getName() {
         return name;
     }
@@ -43,7 +77,6 @@ public class MetricParams {
         this.name = name;
     }
 
-    @ApiModelProperty(value = "Arbitrary key/value definitions for this metric")
     public Map<String, String> getTags() {
         return tags;
     }
@@ -52,7 +85,14 @@ public class MetricParams {
         this.tags = tags;
     }
 
-    @ApiModelProperty(value = "Overrides the data retention setting from the tenant level")
+    public List<DataPointOut> getData() {
+        return data;
+    }
+
+    public void setData(List<DataPointOut> data) {
+        this.data = data;
+    }
+
     public Integer getDataRetention() {
         return dataRetention;
     }

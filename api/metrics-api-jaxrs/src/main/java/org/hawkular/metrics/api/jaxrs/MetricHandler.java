@@ -28,7 +28,7 @@ import static java.util.stream.Collectors.toMap;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 import static javax.ws.rs.core.Response.Status;
-import static org.hawkular.metrics.api.jaxrs.CustomMediaTypes.APPLICATION_VND_HAWKULAR_WRAPPED_JSON;
+import static org.hawkular.metrics.api.jaxrs.util.CustomMediaTypes.APPLICATION_VND_HAWKULAR_WRAPPED_JSON;
 import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
 
 import java.util.ArrayList;
@@ -81,10 +81,18 @@ import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
+import org.hawkular.metrics.core.impl.mapper.AvailabilityDataParams;
+import org.hawkular.metrics.core.impl.mapper.AvailabilityDataPoint;
+import org.hawkular.metrics.core.impl.mapper.BucketDataPoint;
+import org.hawkular.metrics.core.impl.mapper.BucketedOutput;
+import org.hawkular.metrics.core.impl.mapper.DataPointOut;
 import org.hawkular.metrics.core.impl.mapper.MetricMapper;
+import org.hawkular.metrics.core.impl.mapper.MetricOut;
+import org.hawkular.metrics.core.impl.mapper.MetricParams;
 import org.hawkular.metrics.core.impl.mapper.NoResultsException;
 import org.hawkular.metrics.core.impl.mapper.NumericDataParams;
 import org.hawkular.metrics.core.impl.mapper.NumericDataPoint;
+import org.hawkular.metrics.core.impl.mapper.TagParams;
 
 /**
  * Interface to deal with metrics

@@ -18,8 +18,8 @@ package org.hawkular.metrics.api.jaxrs;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.APPLICATION_XML;
-import static org.hawkular.metrics.api.jaxrs.CustomMediaTypes.APPLICATION_JAVASCRIPT;
-import static org.hawkular.metrics.api.jaxrs.CustomMediaTypes.APPLICATION_VND_HAWKULAR_WRAPPED_JSON;
+import static org.hawkular.metrics.api.jaxrs.util.CustomMediaTypes.APPLICATION_JAVASCRIPT;
+import static org.hawkular.metrics.api.jaxrs.util.CustomMediaTypes.APPLICATION_VND_HAWKULAR_WRAPPED_JSON;
 
 import java.util.Date;
 
@@ -33,6 +33,7 @@ import javax.ws.rs.core.Response;
 
 import com.wordnik.swagger.annotations.ApiOperation;
 
+import org.hawkular.metrics.api.jaxrs.util.StringValue;
 import org.hawkular.metrics.core.api.MetricsService;
 
 /**
