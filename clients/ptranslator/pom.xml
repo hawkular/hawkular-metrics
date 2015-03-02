@@ -207,6 +207,7 @@
         <groupId>org.wildfly.plugins</groupId>
         <artifactId>wildfly-maven-plugin</artifactId>
         <configuration>
+          <skip>${skipTests}</skip>
           <port>${ptrans.wildfly.management.port}</port>
         </configuration>
         <executions>
@@ -235,7 +236,6 @@
               <goal>deploy-artifact</goal>
             </goals>
             <configuration>
-              <skip>${skipTests}</skip>
               <groupId>${project.groupId}</groupId>
               <artifactId>hawkular-metrics-api-jaxrs</artifactId>
               <name>hawkular-metric-rest.war</name>
