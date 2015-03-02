@@ -36,7 +36,6 @@ import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -66,9 +65,10 @@ public class TenantsHandler {
             + "tenant before starting to store metric data. It is recommended to do so however to ensure that there "
             + "are no tenant id naming collisions and to provide default data retention settings. ")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Tenant has been succesfully created."),
-            @ApiResponse(code = 400, message = "Retention properties are invalid. "),
-            @ApiResponse(code = 409, message = "Given tenant id has already been created."),
-            @ApiResponse(code = 500, message = "An unexpected error occured while trying to create a tenant.")})
+            @ApiResponse(code = 400, message = "Retention properties are invalid. ", response = Error.class),
+            @ApiResponse(code = 409, message = "Given tenant id has already been created.", response = Error.class),
+            @ApiResponse(code = 500, message = "An unexpected error occured while trying to create a tenant.",
+                    response = Error.class)})
     @Consumes(APPLICATION_JSON)
     public void createTenant(@Suspended AsyncResponse asyncResponse, @ApiParam(required = true) TenantParams params) {
         Tenant tenant = new Tenant().setId(params.getId());
@@ -78,8 +78,8 @@ public class TenantsHandler {
             } else if (type.equals(MetricType.AVAILABILITY.getText())) {
                 tenant.setRetention(MetricType.AVAILABILITY, params.getRetentions().get(type));
             } else {
-                Map<String, String> errors = ImmutableMap.of("errorMessage", "The retentions property is invalid. ["
-                    + type + "] is not a recognized metric type");
+                Error errors = new Error("The retentions property is invalid. ["
+                        + type + "] is not a recognized metric type");
                 asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity(errors).type(APPLICATION_JSON_TYPE)
                     .build());
                 return;
@@ -96,13 +96,12 @@ public class TenantsHandler {
             public void onFailure(Throwable t) {
                 if (t instanceof TenantAlreadyExistsException) {
                     TenantAlreadyExistsException exception = (TenantAlreadyExistsException) t;
-                    Map<String, String> errors = ImmutableMap.of("errorMsg",
-                        "A tenant with id [" + exception.getTenantId() + "] already exists");
+                    Error errors = new Error("A tenant with id [" + exception.getTenantId() + "] already exists");
                     asyncResponse.resume(Response.status(Status.CONFLICT).entity(errors).type(APPLICATION_JSON_TYPE)
                         .build());
                     return;
                 }
-                Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to create tenant due to an "
+                Error errors = new Error("Failed to create tenant due to an "
                     + "unexpected error: " + Throwables.getRootCause(t).getMessage());
                 asyncResponse.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors)
                     .type(APPLICATION_JSON_TYPE).build());
@@ -114,7 +113,8 @@ public class TenantsHandler {
     @ApiOperation(value = "Returns a list of tenants.")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Returned a list of tenants successfully."),
             @ApiResponse(code = 204, message = "No tenants were found."),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching tenants.")})
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching tenants.",
+                    response = Error.class)})
     @Consumes(APPLICATION_JSON)
     public void findTenants(@Suspended AsyncResponse response) {
         ListenableFuture<List<Tenant>> tenantsFuture = metricsService.getTenants();
@@ -143,7 +143,7 @@ public class TenantsHandler {
 
             @Override
             public void onFailure(Throwable t) {
-                Map<String, String> errors = ImmutableMap.of("errorMsg", "Failed to fetch tenants due to an "
+                Error errors = new Error("Failed to fetch tenants due to an "
                     + "unexpected error: " + Throwables.getRootCause(t).getMessage());
                 response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors)
                     .type(APPLICATION_JSON_TYPE).build());
