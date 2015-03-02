@@ -16,8 +16,6 @@
  */
 package org.hawkular.metrics.core.impl.mapper;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
 import com.wordnik.swagger.annotations.ApiModel;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
@@ -26,7 +24,6 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
  * @author Heiko W. Rupp
  */
 @ApiModel(value = "A data point for collections where each data point has the same id.")
-@XmlRootElement
 public class DataPoint {
 
     private long timestamp;

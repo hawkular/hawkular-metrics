@@ -16,8 +16,6 @@
  */
 package org.hawkular.metrics.core.impl.mapper;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
 import com.wordnik.swagger.annotations.ApiModel;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
@@ -28,7 +26,6 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
  */
 @ApiModel(value = "A bucket is a time range with multiple data items represented by min/avg/max values" +
     "for that time span.")
-@XmlRootElement
 public class BucketDataPoint extends IdDataPoint {
 
     private double min;
