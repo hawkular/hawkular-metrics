@@ -17,13 +17,9 @@
 package org.hawkular.metrics.api.jaxrs;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-import static javax.ws.rs.core.MediaType.APPLICATION_XML;
-import static org.hawkular.metrics.api.jaxrs.util.CustomMediaTypes.APPLICATION_JAVASCRIPT;
-import static org.hawkular.metrics.api.jaxrs.util.CustomMediaTypes.APPLICATION_VND_HAWKULAR_WRAPPED_JSON;
 
 import java.util.Date;
 
-import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -31,10 +27,9 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
 
-import com.wordnik.swagger.annotations.ApiOperation;
-
 import org.hawkular.metrics.api.jaxrs.util.StringValue;
-import org.hawkular.metrics.core.api.MetricsService;
+
+import com.wordnik.swagger.annotations.ApiOperation;
 
 /**
  * @author Thomas Segismont
@@ -42,13 +37,10 @@ import org.hawkular.metrics.core.api.MetricsService;
 @Path("/ping")
 public class PingHandler {
 
-    @Inject
-    private MetricsService metricsService;
-
     @GET
     @POST
-    @Consumes({ APPLICATION_JSON, APPLICATION_XML })
-    @Produces({ APPLICATION_JSON, APPLICATION_XML, APPLICATION_VND_HAWKULAR_WRAPPED_JSON, APPLICATION_JAVASCRIPT })
+    @Consumes({ APPLICATION_JSON })
+    @Produces({ APPLICATION_JSON })
     @ApiOperation(value = "Returns the current time and serves to check for the availability of the api.",
             response = String.class, responseContainer = "Map")
     public Response ping() {
