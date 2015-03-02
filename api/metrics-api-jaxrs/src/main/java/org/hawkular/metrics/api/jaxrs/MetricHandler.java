@@ -27,9 +27,9 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
-import static javax.ws.rs.core.Response.Status;
-import static org.hawkular.metrics.api.jaxrs.util.CustomMediaTypes.APPLICATION_VND_HAWKULAR_WRAPPED_JSON;
 import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
+import gnu.trove.map.TLongObjectMap;
+import gnu.trove.map.hash.TLongObjectHashMap;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -54,20 +54,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
-
-import com.google.common.base.Function;
-import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-
-import gnu.trove.map.TLongObjectMap;
-import gnu.trove.map.hash.TLongObjectHashMap;
+import javax.ws.rs.core.Response.Status;
 
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
@@ -92,6 +79,17 @@ import org.hawkular.metrics.core.impl.mapper.NoResultsException;
 import org.hawkular.metrics.core.impl.mapper.NumericDataParams;
 import org.hawkular.metrics.core.impl.mapper.NumericDataPoint;
 import org.hawkular.metrics.core.impl.mapper.TagParams;
+
+import com.google.common.base.Function;
+import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
 
 /**
  * Interface to deal with metrics
@@ -976,7 +974,7 @@ public class MetricHandler {
     @ApiOperation(value = "Retrieve a list of counter values in this group", hidden = true, response = Counter.class,
             responseContainer = "List")
     @Path("/counters/{group}")
-    @Produces({APPLICATION_JSON,APPLICATION_VND_HAWKULAR_WRAPPED_JSON})
+    @Produces({ APPLICATION_JSON })
     public void getCountersForGroup(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group) {
         ListenableFuture<List<Counter>> future = metricsService.findCounters(group);
         Futures.addCallback(future, new FutureCallback<List<Counter>>() {
@@ -997,7 +995,7 @@ public class MetricHandler {
     @ApiOperation(value = "Retrieve value of a counter", hidden = true, response = Counter.class,
             responseContainer = "List")
     @Path("/counters/{group}/{counter}")
-    @Produces({APPLICATION_JSON,APPLICATION_VND_HAWKULAR_WRAPPED_JSON})
+    @Produces({ APPLICATION_JSON })
     public void getCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") final String group,
         @PathParam("counter") final String counter) {
         ListenableFuture<List<Counter>> future = metricsService.findCounters(group, asList(counter));
