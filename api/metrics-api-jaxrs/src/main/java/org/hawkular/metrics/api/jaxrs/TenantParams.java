@@ -19,10 +19,14 @@ package org.hawkular.metrics.api.jaxrs;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
+
 /**
  * @author John Sanda
  */
 // TODO rename class to better reflect it is used for input and output
+@ApiModel
 public class TenantParams {
 
     private String id;
@@ -37,6 +41,7 @@ public class TenantParams {
         this.retentions = retentions;
     }
 
+    @ApiModelProperty(required = true, value = "Tenant's unique identifier.")
     public String getId() {
         return id;
     }
@@ -45,6 +50,8 @@ public class TenantParams {
         this.id = id;
     }
 
+    @ApiModelProperty(required = false, allowableValues = "[numeric, availability]", value = "Retention periods for "
+            + "different metric types.")
     public Map<String, Integer> getRetentions() {
         return retentions;
     }

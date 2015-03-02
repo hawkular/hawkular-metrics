@@ -18,15 +18,15 @@ package org.hawkular.metrics.api.jaxrs;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.wordnik.swagger.annotations.ApiClass;
-import com.wordnik.swagger.annotations.ApiProperty;
+import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * A point in time with some data for min/avg/max to express
  * that at this point in time multiple values were recorded.
  * @author Heiko W. Rupp
  */
-@ApiClass(description = "A bucket is a time range with multiple data items represented by min/avg/max values" +
+@ApiModel(value = "A bucket is a time range with multiple data items represented by min/avg/max values" +
     "for that time span.")
 @XmlRootElement
 public class BucketDataPoint extends IdDataPoint {
@@ -47,7 +47,7 @@ public class BucketDataPoint extends IdDataPoint {
         this.avg = avg;
     }
 
-    @ApiProperty("Minimum value during the time span of the bucket.")
+    @ApiModelProperty(value = "Minimum value during the time span of the bucket.")
     public double getMin() {
         return min;
     }
@@ -56,7 +56,7 @@ public class BucketDataPoint extends IdDataPoint {
         this.min = min;
     }
 
-    @ApiProperty("Maximum value during the time span of the bucket.")
+    @ApiModelProperty(value = "Maximum value during the time span of the bucket.")
     public double getMax() {
         return max;
     }
@@ -65,7 +65,7 @@ public class BucketDataPoint extends IdDataPoint {
         this.max = max;
     }
 
-    @ApiProperty("Average value during the time span of the bucket.")
+    @ApiModelProperty(value = "Average value during the time span of the bucket.")
     public double getAvg() {
         return avg;
     }

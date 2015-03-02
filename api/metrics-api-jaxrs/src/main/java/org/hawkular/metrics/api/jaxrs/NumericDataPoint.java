@@ -21,10 +21,13 @@ import java.util.Set;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.google.common.base.Objects;
+import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * @author John Sanda
  */
+@ApiModel
 public class NumericDataPoint {
 
     private long timestamp;
@@ -42,6 +45,7 @@ public class NumericDataPoint {
         this.value = value;
     }
 
+    @ApiModelProperty(required = true, value = "Event timestamp in POSIX format")
     public long getTimestamp() {
         return timestamp;
     }

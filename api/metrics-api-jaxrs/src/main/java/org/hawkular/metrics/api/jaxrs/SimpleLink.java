@@ -18,15 +18,15 @@ package org.hawkular.metrics.api.jaxrs;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.wordnik.swagger.annotations.ApiClass;
-import com.wordnik.swagger.annotations.ApiProperty;
+import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * Just a simple representation of a Link
  * @author Heiko W. Rupp
  */
 @SuppressWarnings("unused")
-@ApiClass("A simple representation of a link.")
+@ApiModel(value = "A simple representation of a link.")
 @XmlRootElement
 public class SimpleLink {
     private String rel;
@@ -42,17 +42,17 @@ public class SimpleLink {
         this.title = title;
     }
 
-    @ApiProperty("Name of the relation")
+    @ApiModelProperty(value = "Name of the relation")
     public String getRel() {
         return rel;
     }
 
-    @ApiProperty("Href to target entity")
+    @ApiModelProperty(value = "Href to target entity")
     public String getHref() {
         return href;
     }
 
-    @ApiProperty("Name of the target")
+    @ApiModelProperty(value = "Name of the target")
     public String getTitle() {
         return title;
     }

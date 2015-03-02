@@ -20,10 +20,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.google.common.base.Objects;
+import com.wordnik.swagger.annotations.ApiModel;
 
 /**
  * @author John Sanda
  */
+@ApiModel
 public class TagParams {
 
     private String tenantId;

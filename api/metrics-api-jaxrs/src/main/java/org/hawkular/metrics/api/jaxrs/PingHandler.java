@@ -49,7 +49,7 @@ public class PingHandler {
     @Consumes({ APPLICATION_JSON, APPLICATION_XML })
     @Produces({ APPLICATION_JSON, APPLICATION_XML, APPLICATION_VND_HAWKULAR_WRAPPED_JSON, APPLICATION_JAVASCRIPT })
     @ApiOperation(value = "Returns the current time and serves to check for the availability of the api.",
-            responseClass = "Map<String,String>")
+            response = String.class, responseContainer = "Map")
     public Response ping() {
         return Response.ok(new StringValue(new Date().toString())).build();
     }

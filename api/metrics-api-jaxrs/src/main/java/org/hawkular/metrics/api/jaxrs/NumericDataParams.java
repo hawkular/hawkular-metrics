@@ -20,10 +20,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.base.Objects;
+import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * @author John Sanda
  */
+@ApiModel
 public class NumericDataParams extends MetricDataParams {
 
     private Long timestamp;
@@ -35,6 +38,7 @@ public class NumericDataParams extends MetricDataParams {
     public NumericDataParams() {
     }
 
+    @ApiModelProperty(required = true, value = "Event timestamp in POSIX format")
     public Long getTimestamp() {
         return timestamp;
     }
@@ -43,6 +47,7 @@ public class NumericDataParams extends MetricDataParams {
         this.timestamp = timestamp;
     }
 
+    @ApiModelProperty(required = true, value = "Numeric value of the event")
     public Double getValue() {
         return value;
     }

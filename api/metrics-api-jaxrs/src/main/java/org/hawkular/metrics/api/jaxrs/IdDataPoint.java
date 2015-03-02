@@ -18,14 +18,14 @@ package org.hawkular.metrics.api.jaxrs;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.wordnik.swagger.annotations.ApiClass;
-import com.wordnik.swagger.annotations.ApiProperty;
+import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * A data point with an Id
  * @author Heiko W. Rupp
  */
-@ApiClass("One data point for a metric with id, timestamp and value. Inherits from DataPoint.")
+@ApiModel(value = "One data point for a metric with id, timestamp and value. Inherits from DataPoint.")
 @XmlRootElement
 public class IdDataPoint extends DataPoint {
 
@@ -39,7 +39,7 @@ public class IdDataPoint extends DataPoint {
         this.id = id;
     }
 
-    @ApiProperty("Id of the metric")
+    @ApiModelProperty(value = "Id of the metric")
     public String getId() {
         return id;
     }

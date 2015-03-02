@@ -40,6 +40,11 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
 
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
@@ -49,6 +54,7 @@ import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
 /**
  * @author Thomas Segismont
  */
+@Api(value = "/tenants", description = "Tenants related REST interface")
 @Path("/tenants")
 public class TenantsHandler {
 
@@ -56,8 +62,15 @@ public class TenantsHandler {
     private MetricsService metricsService;
 
     @POST
+    @ApiOperation(value = "Create a new tenant. ", notes = "Clients are not required to create explicitly create a "
+            + "tenant before starting to store metric data. It is recommended to do so however to ensure that there "
+            + "are no tenant id naming collisions and to provide default data retention settings. ")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Tenant has been succesfully created."),
+            @ApiResponse(code = 400, message = "Retention properties are invalid. "),
+            @ApiResponse(code = 409, message = "Given tenant id has already been created."),
+            @ApiResponse(code = 500, message = "An unexpected error occured while trying to create a tenant.")})
     @Consumes(APPLICATION_JSON)
-    public void createTenant(@Suspended AsyncResponse asyncResponse, TenantParams params) {
+    public void createTenant(@Suspended AsyncResponse asyncResponse, @ApiParam(required = true) TenantParams params) {
         Tenant tenant = new Tenant().setId(params.getId());
         for (String type : params.getRetentions().keySet()) {
             if (type.equals(MetricType.NUMERIC.getText())) {
@@ -98,6 +111,10 @@ public class TenantsHandler {
     }
 
     @GET
+    @ApiOperation(value = "Returns a list of tenants.")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Returned a list of tenants successfully."),
+            @ApiResponse(code = 204, message = "No tenants were found."),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching tenants.")})
     @Consumes(APPLICATION_JSON)
     public void findTenants(@Suspended AsyncResponse response) {
         ListenableFuture<List<Tenant>> tenantsFuture = metricsService.getTenants();

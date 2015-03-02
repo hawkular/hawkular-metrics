@@ -20,10 +20,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.base.Objects;
+import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * @author John Sanda
  */
+@ApiModel
 public class AvailabilityDataParams extends MetricDataParams {
 
     private Long timestamp;
@@ -32,6 +35,7 @@ public class AvailabilityDataParams extends MetricDataParams {
 
     private List<AvailabilityDataPoint> data = new ArrayList<>();
 
+    @ApiModelProperty(required = true, value = "Event timestamp in POSIX format")
     public Long getTimestamp() {
         return timestamp;
     }
