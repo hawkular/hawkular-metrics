@@ -16,29 +16,19 @@
  */
 package org.hawkular.metrics.api.jaxrs;
 
-import static java.lang.Double.NaN;
 import static java.util.Arrays.asList;
-import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.summarizingDouble;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
-import gnu.trove.map.TLongObjectMap;
-import gnu.trove.map.hash.TLongObjectHashMap;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.DoubleSummaryStatistics;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.LongStream;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -56,11 +46,13 @@ import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.hawkular.metrics.api.jaxrs.callback.DataInsertedCallback;
+import org.hawkular.metrics.api.jaxrs.callback.GetMetricTagsCallback;
+import org.hawkular.metrics.api.jaxrs.callback.MetricCreatedCallback;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
@@ -69,18 +61,19 @@ import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
 import org.hawkular.metrics.core.impl.mapper.AvailabilityDataParams;
 import org.hawkular.metrics.core.impl.mapper.AvailabilityDataPoint;
-import org.hawkular.metrics.core.impl.mapper.BucketDataPoint;
-import org.hawkular.metrics.core.impl.mapper.BucketedOutput;
+import org.hawkular.metrics.core.impl.mapper.ClusterBucketData;
+import org.hawkular.metrics.core.impl.mapper.CreateFixedNumberOfBuckets;
+import org.hawkular.metrics.core.impl.mapper.CreateSimpleBuckets;
 import org.hawkular.metrics.core.impl.mapper.DataPointOut;
-import org.hawkular.metrics.core.impl.mapper.MetricMapper;
+import org.hawkular.metrics.core.impl.mapper.FlattenBuckets;
 import org.hawkular.metrics.core.impl.mapper.MetricOut;
+import org.hawkular.metrics.core.impl.mapper.MetricOutMapper;
 import org.hawkular.metrics.core.impl.mapper.MetricParams;
 import org.hawkular.metrics.core.impl.mapper.NoResultsException;
 import org.hawkular.metrics.core.impl.mapper.NumericDataParams;
 import org.hawkular.metrics.core.impl.mapper.NumericDataPoint;
 import org.hawkular.metrics.core.impl.mapper.TagParams;
 
-import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -136,35 +129,6 @@ public class MetricHandler {
             MetricUtils.getTags(params.getTags()), params.getDataRetention());
         ListenableFuture<Void> future = metricsService.createMetric(metric);
         Futures.addCallback(future, new MetricCreatedCallback(asyncResponse, params));
-    }
-
-    private class MetricCreatedCallback implements FutureCallback<Void> {
-
-        AsyncResponse response;
-        MetricParams params;
-
-        public MetricCreatedCallback(AsyncResponse response, MetricParams params) {
-            this.response = response;
-            this.params = params;
-        }
-
-        @Override
-        public void onSuccess(Void result) {
-            response.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
-        }
-
-        @Override
-        public void onFailure(Throwable t) {
-            if (t instanceof MetricAlreadyExistsException) {
-                Error errors = new Error("A metric with name [" + params.getName() + "] already exists");
-                response.resume(Response.status(Status.BAD_REQUEST).entity(errors).type(APPLICATION_JSON_TYPE).build());
-            } else {
-                Error errors = new Error("Failed to create metric due to an " +
-                    "unexpected error: " + Throwables.getRootCause(t).getMessage());
-                response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors)
-                    .type(APPLICATION_JSON_TYPE).build());
-            }
-        }
     }
 
     @GET
@@ -251,34 +215,6 @@ public class MetricHandler {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
         ListenableFuture<Void> future = metricsService.deleteTags(metric, MetricUtils.decodeTags(encodedTags));
         Futures.addCallback(future, new DataInsertedCallback(response, "Failed to delete tags"));
-    }
-
-    private class GetMetricTagsCallback implements FutureCallback<Metric> {
-
-        AsyncResponse response;
-
-        public GetMetricTagsCallback(AsyncResponse response) {
-            this.response = response;
-        }
-
-        @Override
-        public void onSuccess(Metric metric) {
-            if (metric == null) {
-                response.resume(Response.status(Status.NO_CONTENT).type(APPLICATION_JSON_TYPE).build());
-            } else {
-                response.resume(Response.ok(new MetricOut(metric.getTenantId(), metric.getId().getName(),
-                    MetricUtils.flattenTags(metric.getTags()), metric.getDataRetention())).type(APPLICATION_JSON_TYPE)
-                    .build());
-            }
-        }
-
-        @Override
-        public void onFailure(Throwable t) {
-            Error errors = new Error("Failed to retrieve tags due to " +
-                "an unexpected error: " + Throwables.getRootCause(t).getMessage());
-            response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors).type(APPLICATION_JSON_TYPE)
-                .build());
-        }
     }
 
     @POST
@@ -501,7 +437,7 @@ public class MetricHandler {
                     skipEmpty));
             } else {
                 ListenableFuture<List<? extends Object>> bucketsFuture = Futures.transform(dataFuture,
-                    new CreateFixedNumberOfBuckets(numberOfBuckets, bucketWidthSeconds));
+                        new CreateFixedNumberOfBuckets(numberOfBuckets, bucketWidthSeconds));
                 if (bucketCluster) {
                     outputFuture = Futures.transform(bucketsFuture, new FlattenBuckets(numberOfBuckets,
                         bucketWidthSeconds, skipEmpty));
@@ -529,180 +465,6 @@ public class MetricHandler {
                 }
             }
         });
-    }
-
-    private class MetricOutMapper extends MetricMapper<MetricOut> {
-        @Override
-        public MetricOut doApply(NumericMetric metric) {
-            MetricOut output = new MetricOut(metric.getTenantId(), metric.getId().getName(),
-                MetricUtils.flattenTags(metric.getTags()), metric.getDataRetention());
-            List<DataPointOut> dataPoints = new ArrayList<>();
-            for (NumericData d : metric.getData()) {
-                dataPoints.add(new DataPointOut(d.getTimestamp(), d.getValue(), MetricUtils.flattenTags(d.getTags())));
-            }
-            output.setData(dataPoints);
-
-            return output;
-        }
-    }
-
-    private class CreateSimpleBuckets extends MetricMapper<BucketedOutput> {
-
-        private long startTime;
-        private long endTime;
-        private int numberOfBuckets;
-        private boolean skipEmpty;
-
-        public CreateSimpleBuckets(long startTime, long endTime, int numberOfBuckets, boolean skipEmpty) {
-            this.startTime = startTime;
-            this.endTime = endTime;
-            this.numberOfBuckets = numberOfBuckets;
-            this.skipEmpty = skipEmpty;
-        }
-
-        @Override
-        public BucketedOutput doApply(NumericMetric metric) {
-            // we will have numberOfBuckets buckets over the whole time span
-            BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(),
-                MetricUtils.flattenTags(metric.getTags()));
-            long bucketSize = (endTime - startTime) / numberOfBuckets;
-
-            long[] buckets = LongStream.iterate(0, i -> i + 1).limit(numberOfBuckets)
-                .map(i -> startTime + (i * bucketSize)).toArray();
-
-            Map<Long, List<NumericData>> map = metric.getData().stream().collect(
-                groupingBy(dataPoint -> findBucket(buckets, bucketSize, dataPoint.getTimestamp())));
-
-            Map<Long, DoubleSummaryStatistics> statsMap = map.entrySet().stream()
-                .collect(toMap(Map.Entry::getKey, entry -> entry.getValue().stream().collect(summarizingDouble(
-                    NumericData::getValue))));
-
-            for (Long bucket : buckets) {
-                statsMap.computeIfAbsent(bucket, key -> new DoubleSummaryStatistics());
-            }
-
-            output.setData(statsMap.entrySet().stream()
-                .sorted((left, right) -> left.getKey().compareTo(right.getKey()))
-                .filter(e -> !skipEmpty || e.getValue().getCount() > 0)
-                .map(e -> getBucketedDataPoint(metric.getId(), e.getKey(), e.getValue()))
-                .collect(toList()));
-
-            return output;
-        }
-    }
-
-    private BucketDataPoint getBucketedDataPoint(MetricId id, long timestamp, DoubleSummaryStatistics stats) {
-        // Currently, if a bucket does not contain any data, we set max/min/avg to Double.NaN.
-        // DoubleSummaryStatistics however uses Double.Infinity for max/min and 0.0 for avg.
-        if (stats.getCount() > 0) {
-            return new BucketDataPoint(id.getName(), timestamp, stats.getMin(), stats.getAverage(), stats.getMax());
-        }
-        return new BucketDataPoint(id.getName(), timestamp, Double.NaN, Double.NaN, Double.NaN);
-    }
-
-    private class CreateFixedNumberOfBuckets extends MetricMapper<List<? extends Object>> {
-
-        private int numberOfBuckets;
-        private int bucketWidthSeconds;
-
-        public CreateFixedNumberOfBuckets(int numberOfBuckets, int bucketWidthSeconds) {
-            this.numberOfBuckets = numberOfBuckets;
-            this.bucketWidthSeconds = bucketWidthSeconds;
-        }
-
-        @Override
-        public List<? extends Object> doApply(NumericMetric metric) {
-            long totalLength = (long) numberOfBuckets * bucketWidthSeconds * 1000L;
-            long minTs = Long.MAX_VALUE;
-            for (NumericData d : metric.getData()) {
-                if (d.getTimestamp() < minTs) {
-                    minTs = d.getTimestamp();
-                }
-            }
-            TLongObjectMap<List<NumericData>> buckets = new TLongObjectHashMap<>(numberOfBuckets);
-            for (NumericData d : metric.getData()) {
-                long bucket = d.getTimestamp() - minTs;
-                bucket = bucket % totalLength;
-                bucket = bucket / (bucketWidthSeconds * 1000L);
-                List<NumericData> tmpList = buckets.get(bucket);
-                if (tmpList == null) {
-                    tmpList = new ArrayList<>();
-                    buckets.put(bucket, tmpList);
-                }
-                tmpList.add(d);
-            }
-            return asList(metric, buckets);
-        }
-    }
-
-    private class FlattenBuckets implements Function<List<? extends Object>, BucketedOutput> {
-
-        private int numberOfBuckets;
-        private boolean skipEmpty;
-        private int bucketWidthSeconds;
-
-        public FlattenBuckets(int numberOfBuckets, int bucketWidthSeconds, boolean skipEmpty) {
-            this.numberOfBuckets = numberOfBuckets;
-            this.bucketWidthSeconds = bucketWidthSeconds;
-            this.skipEmpty = skipEmpty;
-        }
-
-        @Override
-        public BucketedOutput apply(List<? extends Object> args) {
-            // Now that stuff is in buckets - we need to "flatten" them out.
-            // As we collapse stuff from a lot of input timestamps into some
-            // buckets, we only use a relative time for the bucket timestamps.
-            NumericMetric metric = (NumericMetric) args.get(0);
-            TLongObjectMap<List<NumericData>> buckets = (TLongObjectMap<List<NumericData>>) args.get(1);
-            BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(),
-                MetricUtils.flattenTags(metric.getTags()));
-            for (int i = 0; i < numberOfBuckets; ++i) {
-                List<NumericData> tmpList = buckets.get(i);
-                if (tmpList == null) {
-                    if (!skipEmpty) {
-                        output.add(new BucketDataPoint(metric.getId().getName(), 1000 * i * bucketWidthSeconds, NaN,
-                            NaN, NaN));
-                    }
-                } else {
-                    output.add(getBucketDataPoint(tmpList.get(0).getMetric().getId().getName(),
-                        1000L * i * bucketWidthSeconds, tmpList));
-                }
-            }
-            return output;
-        }
-    }
-
-    private class ClusterBucketData implements Function<List<? extends Object>, BucketedOutput> {
-
-        private int numberOfBuckets;
-        private int bucketWidthSeconds;
-
-        public ClusterBucketData(int numberOfBuckets, int bucketWidthSeconds) {
-            this.numberOfBuckets = numberOfBuckets;
-            this.bucketWidthSeconds = bucketWidthSeconds;
-        }
-
-        @Override
-        public BucketedOutput apply(List<? extends Object> args) {
-            // We want to keep the raw values, but put them into clusters anyway
-            // without collapsing them into a single min/avg/max tuple
-            NumericMetric metric = (NumericMetric) args.get(0);
-            TLongObjectMap<List<NumericData>> buckets = (TLongObjectMap<List<NumericData>>) args.get(1);
-            BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(),
-                MetricUtils.flattenTags(metric.getTags()));
-            for (int i = 0; i < numberOfBuckets; ++i) {
-                List<NumericData> tmpList = buckets.get(i);
-                if (tmpList != null) {
-                    for (NumericData d : tmpList) {
-                        BucketDataPoint p = new BucketDataPoint(metric.getId().getName(),
-                            1000L * i * bucketWidthSeconds, NaN, d.getValue(), NaN);
-                        p.setValue(d.getValue());
-                        output.add(p);
-                    }
-                }
-            }
-            return output;
-        }
     }
 
     @GET
@@ -1063,50 +825,6 @@ public class MetricHandler {
                     .type(APPLICATION_JSON_TYPE).build());
             }
         });
-    }
-
-//    static BucketDataPoint createPointInSimpleBucket(String id, long startTime, long bucketsize,
-//        List<NumericData> metrics) {
-//        List<NumericData> bucketMetrics = new ArrayList<>(metrics.size());
-//        // Find matching metrics
-//        for (NumericData raw : metrics) {
-//            if (raw.getTimestamp() >= startTime && raw.getTimestamp() < startTime + bucketsize) {
-//                bucketMetrics.add((NumericData) raw);
-//            }
-//        }
-//
-//        return getBucketDataPoint(id, startTime, bucketMetrics);
-//    }
-
-    static long findBucket(long[] buckets, long bucketSize, long timestamp) {
-        return stream(buckets).filter(bucket -> timestamp >= bucket && timestamp < bucket + bucketSize)
-            .findFirst().getAsLong();
-    }
-
-    static BucketDataPoint getBucketDataPoint(String id, long startTime, List<NumericData> bucketMetrics) {
-
-        Double min = null;
-        Double max = null;
-        double sum = 0;
-        for (NumericData raw : bucketMetrics) {
-            if (max==null || raw.getValue() > max) {
-                max = raw.getValue();
-            }
-            if (min==null || raw.getValue() < min) {
-                min = raw.getValue();
-            }
-            sum += raw.getValue();
-        }
-        double avg = bucketMetrics.size()>0 ? sum / bucketMetrics.size() : NaN;
-        if (min == null) {
-            min = NaN;
-        }
-        if (max == null) {
-            max = NaN;
-        }
-        BucketDataPoint result = new BucketDataPoint(id,startTime,min, avg,max);
-
-        return result;
     }
 
 }
