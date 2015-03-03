@@ -70,7 +70,6 @@ import org.hawkular.metrics.core.impl.mapper.MetricOut;
 import org.hawkular.metrics.core.impl.mapper.MetricOutMapper;
 import org.hawkular.metrics.core.impl.mapper.MetricParams;
 import org.hawkular.metrics.core.impl.mapper.NoResultsException;
-import org.hawkular.metrics.core.impl.mapper.NumericDataPoint;
 import org.hawkular.metrics.core.impl.mapper.TagParams;
 
 import com.google.common.base.Throwables;
@@ -225,11 +224,11 @@ public class MetricHandler {
     public void addDataForMetric(@Suspended final AsyncResponse asyncResponse,
                                  @PathParam("tenantId") final String tenantId, @PathParam("id") String id,
                                  @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
-                                 List<NumericDataPoint> dataPoints) {
+                                 List<NumericData> dataPoints) {
 
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
-        for (NumericDataPoint p : dataPoints) {
-            metric.addData(p.getTimestamp(), p.getValue());
+        for (NumericData p : dataPoints) {
+            metric.addData(p);
         }
         ListenableFuture<Void> future = metricsService.addNumericData(asList(metric));
         Futures.addCallback(future, new DataInsertedCallback(asyncResponse, "Failed to insert data"));
