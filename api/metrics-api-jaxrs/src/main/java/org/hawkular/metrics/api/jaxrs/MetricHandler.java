@@ -70,7 +70,6 @@ import org.hawkular.metrics.core.impl.mapper.MetricOut;
 import org.hawkular.metrics.core.impl.mapper.MetricOutMapper;
 import org.hawkular.metrics.core.impl.mapper.MetricParams;
 import org.hawkular.metrics.core.impl.mapper.NoResultsException;
-import org.hawkular.metrics.core.impl.mapper.NumericDataParams;
 import org.hawkular.metrics.core.impl.mapper.NumericDataPoint;
 import org.hawkular.metrics.core.impl.mapper.TagParams;
 
@@ -266,21 +265,15 @@ public class MetricHandler {
     public void addNumericData(@ApiParam(access = "internal") @Suspended final AsyncResponse asyncResponse,
                                @PathParam("tenantId") String tenantId,
                                @ApiParam(value = "List of metrics", required = true)
-                               List<NumericDataParams> paramsList) {
-        if (paramsList.isEmpty()) {
+                               List<NumericMetric> metrics) {
+        if (metrics.isEmpty()) {
             asyncResponse.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
         }
 
-        List<NumericMetric> metrics = new ArrayList<>(paramsList.size());
-
-        for (NumericDataParams params : paramsList) {
-            NumericMetric metric = new NumericMetric(tenantId, new MetricId(params.getName()),
-                MetricUtils.getTags(params.getTags()));
-            for (NumericDataPoint p : params.getData()) {
-                metric.addData(p.getTimestamp(), p.getValue());
-            }
-            metrics.add(metric);
+        for (NumericMetric metric : metrics) {
+            metric.setTenantId(tenantId);
         }
+
         ListenableFuture<Void> future = metricsService.addNumericData(metrics);
         Futures.addCallback(future, new DataInsertedCallback(asyncResponse, "Failed to insert data"));
     }
@@ -808,12 +801,7 @@ public class MetricHandler {
                 if (metrics.isEmpty()) {
                     response.resume(Response.status(Status.NO_CONTENT).type(APPLICATION_JSON_TYPE).build());
                 } else {
-                    List<MetricOut> output = new ArrayList<>();
-                    for (Metric metric : metrics) {
-                        output.add(new MetricOut(tenantId, metric.getId().getName(), MetricUtils.flattenTags(
-                            metric.getTags()), metric.getDataRetention()));
-                    }
-                    response.resume(Response.status(Status.OK).entity(output).type(APPLICATION_JSON_TYPE).build());
+                    response.resume(Response.status(Status.OK).entity(metrics).type(APPLICATION_JSON_TYPE).build());
                 }
             }
 
