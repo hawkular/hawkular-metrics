@@ -53,7 +53,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
-import org.hawkular.metrics.api.jaxrs.DataInsertedCallback;
+import org.hawkular.metrics.api.jaxrs.callback.DataInsertedCallback;
 import org.hawkular.metrics.api.jaxrs.influx.query.InfluxQueryParseTreeWalker;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParserFactory;
