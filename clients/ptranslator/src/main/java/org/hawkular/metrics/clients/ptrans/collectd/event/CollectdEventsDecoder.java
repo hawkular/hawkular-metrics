@@ -83,10 +83,9 @@ public final class CollectdEventsDecoder extends MessageToMessageDecoder<Collect
                     interval = new TimeSpan(getLong(part), HIGH_RES);
                     break;
                 case VALUES:
-                    Number[] values = getValues(part).getData();
                     ValueListEvent event = new ValueListEvent(
                             host, timestamp, pluginName, pluginInstance, typeName,
-                            typeInstance, values, interval
+                            typeInstance, getValues(part).getData(), interval
                     );
                     logger.trace("Decoded ValueListEvent: {}", event);
                     events.add(event);

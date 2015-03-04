@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.clients.ptrans.collectd.packet;
 
+import static java.util.stream.Collectors.toList;
 import static org.hawkular.metrics.clients.ptrans.collectd.packet.PacketDecodingTest.createNumericPartBuffer;
 import static org.hawkular.metrics.clients.ptrans.collectd.packet.PacketDecodingTest.createStringPartBuffer;
 import static org.hawkular.metrics.clients.ptrans.collectd.packet.PacketDecodingTest.createValuesPartBuffer;
@@ -112,14 +113,16 @@ public class CollectdPacketDecoderTest {
         assertEquals(CollectdPacket.class, output.getClass());
 
         CollectdPacket collectdPacket = (CollectdPacket) output;
-        Part[] partsResult = collectdPacket.getParts();
-        assertEquals("Wrong number of parts in the packet", numberOfParts, partsResult.length);
-
-        for (int i = 0; i < partsResult.length; i++) {
-            Part part = partsResult[i];
-            assertEquals("Wrong packet order", parts.get(i).getPartType(), part.getPartType());
-        }
+        List<Part> partsResult = collectdPacket.getParts();
+        assertEquals("Wrong number of parts in the packet", numberOfParts, partsResult.size());
+        assertEquals("Wrong packet order", toPartTypeList(parts), toPartTypeList(partsResult));
 
         assertNull("Expected just one CollectdPacket", channel.readInbound());
+    }
+
+    private List<PartType> toPartTypeList(List<Part> parts) {
+        return parts.stream()
+                    .map(Part::getPartType)
+                    .collect(toList());
     }
 }

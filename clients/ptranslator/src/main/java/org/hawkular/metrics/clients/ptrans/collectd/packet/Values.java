@@ -19,7 +19,8 @@ package org.hawkular.metrics.clients.ptrans.collectd.packet;
 import static org.hawkular.metrics.clients.ptrans.collectd.util.Assert.assertEquals;
 import static org.hawkular.metrics.clients.ptrans.collectd.util.Assert.assertNotNull;
 
-import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import org.hawkular.metrics.clients.ptrans.collectd.event.DataType;
 
@@ -29,8 +30,8 @@ import org.hawkular.metrics.clients.ptrans.collectd.event.DataType;
  * @author Thomas Segismont
  */
 public final class Values {
-    private final DataType[] dataTypes;
-    private final Number[] data;
+    private final List<DataType> dataTypes;
+    private final List<Number> data;
 
     /**
      * Creates a new Value Part.
@@ -41,40 +42,40 @@ public final class Values {
      * @throws java.lang.IllegalArgumentException if <code>dataTypes</code> is null, <code>data</code> is null, or they
      *                                            don't have the same size
      */
-    public Values(DataType[] dataTypes, Number[] data) {
+    public Values(List<DataType> dataTypes, List<Number> data) {
         assertNotNull(dataTypes, "dataTypes is null");
         assertNotNull(data, "data is null");
         assertEquals(
-                dataTypes.length, data.length,
-                "dataTypes and data arrays have different sizes: %d, %d", dataTypes.length, data.length
+                dataTypes.size(), data.size(),
+                "dataTypes and data arrays have different sizes: %d, %d", dataTypes.size(), data.size()
         );
-        this.dataTypes = dataTypes;
-        this.data = data;
+        this.dataTypes = Collections.unmodifiableList(dataTypes);
+        this.data = Collections.unmodifiableList(data);
     }
 
     /**
      * @return the number of data samples in this part
      */
     public int getCount() {
-        return data.length;
+        return data.size();
     }
 
     /**
      * @return the {@link DataType}s for each data sample in {@link #getData()}
      */
-    public DataType[] getDataTypes() {
+    public List<DataType> getDataTypes() {
         return dataTypes;
     }
 
     /**
      * @return the data samples
      */
-    public Number[] getData() {
+    public List<Number> getData() {
         return data;
     }
 
     @Override
     public String toString() {
-        return "Values[" + "dataTypes=" + Arrays.asList(dataTypes) + ", data=" + Arrays.asList(data) + ']';
+        return "Values[" + "dataTypes=" + dataTypes + ", data=" + data + ']';
     }
 }

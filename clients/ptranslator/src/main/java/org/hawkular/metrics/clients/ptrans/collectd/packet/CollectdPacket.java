@@ -18,7 +18,8 @@ package org.hawkular.metrics.clients.ptrans.collectd.packet;
 
 import static org.hawkular.metrics.clients.ptrans.collectd.util.Assert.assertNotNull;
 
-import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * A collectd <a href="https://collectd.org/wiki/index.php/Binary_protocol#Protocol_structure">packet</a>, composed of
@@ -27,19 +28,19 @@ import java.util.Arrays;
  * @author Thomas Segismont
  */
 public final class CollectdPacket {
-    private final Part[] parts;
+    private final List<Part> parts;
 
-    public CollectdPacket(Part[] parts) {
+    public CollectdPacket(List<Part> parts) {
         assertNotNull(parts, "parts is null");
-        this.parts = parts;
+        this.parts = Collections.unmodifiableList(parts);
     }
 
-    public Part[] getParts() {
+    public List<Part> getParts() {
         return parts;
     }
 
     @Override
     public String toString() {
-        return "Packet[" + "parts=" + Arrays.asList(parts) + ']';
+        return "Packet[" + "parts=" + parts + ']';
     }
 }
