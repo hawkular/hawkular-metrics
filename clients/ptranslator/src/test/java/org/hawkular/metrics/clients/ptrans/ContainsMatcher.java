@@ -16,10 +16,11 @@
  */
 package org.hawkular.metrics.clients.ptrans;
 
+import static org.hawkular.metrics.clients.ptrans.util.Arguments.checkArgument;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Objects;
 
 import org.hamcrest.Description;
 import org.hamcrest.Factory;
@@ -33,7 +34,7 @@ public class ContainsMatcher extends TypeSafeMatcher<File> {
     private final String content;
 
     public ContainsMatcher(String content) {
-        Objects.requireNonNull(content);
+        checkArgument(content != null, "content is null");
         this.content = content;
     }
 

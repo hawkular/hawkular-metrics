@@ -16,7 +16,7 @@
  */
 package org.hawkular.metrics.clients.ptrans.collectd.event;
 
-import static org.hawkular.metrics.clients.ptrans.collectd.util.Assert.assertNotNull;
+import static org.hawkular.metrics.clients.ptrans.util.Arguments.checkArgument;
 
 /**
  * Represents a time duration.
@@ -34,7 +34,7 @@ public final class TimeSpan {
      * @see TimeResolution
      */
     public TimeSpan(long value, TimeResolution resolution) {
-        assertNotNull(resolution, "resolution is null");
+        checkArgument(resolution != null, "resolution is null");
         this.value = value;
         this.resolution = resolution;
     }

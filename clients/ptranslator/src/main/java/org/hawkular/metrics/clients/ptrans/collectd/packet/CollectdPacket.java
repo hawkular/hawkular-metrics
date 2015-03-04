@@ -16,7 +16,7 @@
  */
 package org.hawkular.metrics.clients.ptrans.collectd.packet;
 
-import static org.hawkular.metrics.clients.ptrans.collectd.util.Assert.assertNotNull;
+import static org.hawkular.metrics.clients.ptrans.util.Arguments.checkArgument;
 
 import java.util.Collections;
 import java.util.List;
@@ -31,7 +31,7 @@ public final class CollectdPacket {
     private final List<Part> parts;
 
     public CollectdPacket(List<Part> parts) {
-        assertNotNull(parts, "parts is null");
+        checkArgument(parts != null, "parts is null");
         this.parts = Collections.unmodifiableList(parts);
     }
 

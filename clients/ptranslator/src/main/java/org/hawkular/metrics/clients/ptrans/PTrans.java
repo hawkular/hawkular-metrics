@@ -17,6 +17,7 @@
 package org.hawkular.metrics.clients.ptrans;
 
 import static java.util.stream.Collectors.joining;
+import static org.hawkular.metrics.clients.ptrans.util.Arguments.checkArgument;
 
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -24,7 +25,6 @@ import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 import org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler;
@@ -66,15 +66,13 @@ public class PTrans {
      *
      * @param configuration a PTrans configuration object, must not be null
      *
-     * @throws java.lang.NullPointerException if the configuration parameter is null
-     * @throws java.lang.IllegalArgumentException if the configuration parameter is invalid
+     * @throws java.lang.IllegalArgumentException if the configuration parameter is null or invalid
+     *
      * @see Configuration#isValid()
      */
     public PTrans(Configuration configuration) {
-        Objects.requireNonNull(configuration, "Configuration is null");
-        if (!configuration.isValid()) {
-            throw new IllegalArgumentException(configuration.getValidationMessages().stream().collect(joining(", ")));
-        }
+        checkArgument(configuration != null, "Configuration is null");
+        checkArgument(configuration.isValid(), configuration.getValidationMessages().stream().collect(joining(", ")));
         this.configuration = configuration;
         group = new NioEventLoopGroup();
         workerGroup = new NioEventLoopGroup();

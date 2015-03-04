@@ -16,7 +16,7 @@
  */
 package org.hawkular.metrics.clients.ptrans.collectd.event;
 
-import static org.hawkular.metrics.clients.ptrans.collectd.util.Assert.assertNotNull;
+import static org.hawkular.metrics.clients.ptrans.util.Arguments.checkArgument;
 
 import java.util.Collections;
 import java.util.List;
@@ -48,8 +48,8 @@ public final class ValueListEvent extends Event {
             String typeInstance, List<Number> values, TimeSpan interval
     ) {
         super(host, timestamp, pluginName, pluginInstance, typeName, typeInstance);
-        assertNotNull(values, "values is null");
-        assertNotNull(interval, "interval is null");
+        checkArgument(values != null, "values is null");
+        checkArgument(interval != null, "interval is null");
         this.values = Collections.unmodifiableList(values);
         this.interval = interval;
     }

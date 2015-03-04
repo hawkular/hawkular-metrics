@@ -16,8 +16,7 @@
  */
 package org.hawkular.metrics.clients.ptrans.collectd.packet;
 
-import static org.hawkular.metrics.clients.ptrans.collectd.util.Assert.assertEquals;
-import static org.hawkular.metrics.clients.ptrans.collectd.util.Assert.assertNotNull;
+import static org.hawkular.metrics.clients.ptrans.util.Arguments.checkArgument;
 
 import java.util.Collections;
 import java.util.List;
@@ -43,11 +42,12 @@ public final class Values {
      *                                            don't have the same size
      */
     public Values(List<DataType> dataTypes, List<Number> data) {
-        assertNotNull(dataTypes, "dataTypes is null");
-        assertNotNull(data, "data is null");
-        assertEquals(
-                dataTypes.size(), data.size(),
-                "dataTypes and data arrays have different sizes: %d, %d", dataTypes.size(), data.size()
+        checkArgument(dataTypes != null, "dataTypes is null");
+        checkArgument(data != null, "data is null");
+        checkArgument(
+                dataTypes.size() == data.size(),
+                "dataTypes and data arrays have different sizes: %d, %d",
+                dataTypes.size(), data.size()
         );
         this.dataTypes = Collections.unmodifiableList(dataTypes);
         this.data = Collections.unmodifiableList(data);

@@ -36,7 +36,7 @@ public class PTransTest {
 
     @Test
     public void constructorShouldThrowExceptionWhenProvidedConfigurationIsNull() {
-        expectedException.expect(NullPointerException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(equalTo("Configuration is null"));
         new PTrans(null);
     }

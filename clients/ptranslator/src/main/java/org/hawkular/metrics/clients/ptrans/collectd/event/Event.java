@@ -16,7 +16,7 @@
  */
 package org.hawkular.metrics.clients.ptrans.collectd.event;
 
-import static org.hawkular.metrics.clients.ptrans.collectd.util.Assert.assertNotNull;
+import static org.hawkular.metrics.clients.ptrans.util.Arguments.checkArgument;
 
 /**
  * Base class for events decoded by {@link CollectdEventsDecoder}.
@@ -36,12 +36,12 @@ public abstract class Event {
             String host, TimeSpan timestamp, String pluginName, String pluginInstance, String typeName,
             String typeInstance
     ) {
-        assertNotNull(host, "host is null");
-        assertNotNull(timestamp, "timestamp is null");
-        assertNotNull(pluginName, "pluginName is null");
-        assertNotNull(pluginInstance, "pluginInstance is null");
-        assertNotNull(typeName, "typeName is null");
-        assertNotNull(typeInstance, "typeInstance is null");
+        checkArgument(host != null, "host is null");
+        checkArgument(timestamp != null, "timestamp is null");
+        checkArgument(pluginName != null, "pluginName is null");
+        checkArgument(pluginInstance != null, "pluginInstance is null");
+        checkArgument(typeName != null, "typeName is null");
+        checkArgument(typeInstance != null, "typeInstance is null");
         this.host = host;
         this.timestamp = timestamp;
         this.pluginName = pluginName;
