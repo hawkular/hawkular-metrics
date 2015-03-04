@@ -40,6 +40,20 @@ import javax.management.MBeanInfo;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.google.common.base.Function;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.RateLimiter;
+
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Counter;
@@ -62,20 +76,6 @@ import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.google.common.base.Function;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.RateLimiter;
 
 /**
  * @author John Sanda
@@ -379,13 +379,18 @@ public class MetricsServiceCassandra implements MetricsService {
                     return Futures.immediateFuture(null);
                 } else {
                     List<ResultSetFuture> updateRetentionFutures = new ArrayList<>();
-                    for (MetricType type : retentionsMap.keySet()) {
-                        updateRetentionFutures.add(dataAccess.updateRetentionsIndex(tenant.getId(), type,
-                            retentionsMap.get(type)));
-                        for (Retention r : retentionsMap.get(type)) {
-                            dataRetentions.put(new DataRetentionKey(tenant.getId(), type), r.getValue());
+
+                    for (Map.Entry<MetricType, Set<Retention>> metricTypeSetEntry : retentionsMap.entrySet()) {
+                        updateRetentionFutures.add(dataAccess.updateRetentionsIndex(tenant.getId(),
+                                metricTypeSetEntry.getKey(),
+                                metricTypeSetEntry.getValue()));
+
+                        for (Retention r : metricTypeSetEntry.getValue()) {
+                            dataRetentions.put(new DataRetentionKey(tenant.getId(), metricTypeSetEntry.getKey()),
+                                    r.getValue());
                         }
                     }
+
                     ListenableFuture<List<ResultSet>> updateRetentionsFuture = Futures
                         .allAsList(updateRetentionFutures);
                     return Futures.transform(updateRetentionsFuture, RESULT_SETS_TO_VOID, metricsTasks);

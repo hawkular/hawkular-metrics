@@ -611,9 +611,7 @@ public class DataAccessImpl implements DataAccess {
     private ResultSetFuture executeTagsBatch(Map<String, String> tags,
         BiFunction<String, String, BoundStatement> bindVars) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
-        for (String tag : tags.keySet()) {
-            batchStatement.add(bindVars.apply(tag, tags.get(tag)));
-        }
+        tags.entrySet().stream().forEach(entry -> batchStatement.add(bindVars.apply(entry.getKey(), entry.getValue())));
         return session.executeAsync(batchStatement);
     }
 
