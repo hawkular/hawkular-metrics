@@ -66,8 +66,8 @@ public class PTrans {
      *
      * @param configuration a PTrans configuration object, must not be null
      *
-     * @throws java.lang.NullPointerException if the configuration parameter is null
-     * @throws java.lang.IllegalArgumentException if the configuration parameter is invalid
+     * @throws java.lang.IllegalArgumentException if the configuration parameter is null or invalid
+     *
      * @see Configuration#isValid()
      */
     public PTrans(Configuration configuration) {
