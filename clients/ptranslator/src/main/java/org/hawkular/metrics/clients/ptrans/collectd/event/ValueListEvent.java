@@ -18,7 +18,8 @@ package org.hawkular.metrics.clients.ptrans.collectd.event;
 
 import static org.hawkular.metrics.clients.ptrans.collectd.util.Assert.assertNotNull;
 
-import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Event emitted by the {@link CollectdEventsDecoder} and signaling a decoded collectd <a
@@ -27,7 +28,7 @@ import java.util.Arrays;
  * @author Thomas Segismont
  */
 public final class ValueListEvent extends Event {
-    private final Number[] values;
+    private final List<Number> values;
     private final TimeSpan interval;
 
     /**
@@ -44,19 +45,19 @@ public final class ValueListEvent extends Event {
      */
     public ValueListEvent(
             String host, TimeSpan timestamp, String pluginName, String pluginInstance, String typeName,
-            String typeInstance, Number[] values, TimeSpan interval
+            String typeInstance, List<Number> values, TimeSpan interval
     ) {
         super(host, timestamp, pluginName, pluginInstance, typeName, typeInstance);
         assertNotNull(values, "values is null");
         assertNotNull(interval, "interval is null");
-        this.values = values;
+        this.values = Collections.unmodifiableList(values);
         this.interval = interval;
     }
 
     /**
      * @return the metrics, not null
      */
-    public Number[] getValues() {
+    public List<Number> getValues() {
         return values;
     }
 
@@ -69,7 +70,7 @@ public final class ValueListEvent extends Event {
 
     @Override
     public String toString() {
-        return "ValueListEvent[" + super.toString() + ", values=" + Arrays.asList(values) + ", interval="
+        return "ValueListEvent[" + super.toString() + ", values=" + values + ", interval="
                + TimeResolution.toMillis(interval) + " ms" + ']';
     }
 }

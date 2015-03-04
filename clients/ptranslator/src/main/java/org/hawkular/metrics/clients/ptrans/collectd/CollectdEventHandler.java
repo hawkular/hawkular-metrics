@@ -17,6 +17,7 @@
 package org.hawkular.metrics.clients.ptrans.collectd;
 
 import java.util.List;
+import java.util.ListIterator;
 
 import org.hawkular.metrics.client.common.SingleMetric;
 import org.hawkular.metrics.clients.ptrans.collectd.event.TimeResolution;
@@ -48,13 +49,13 @@ public class CollectdEventHandler extends MessageToMessageDecoder<ValueListEvent
         }
         String prefix = prefixBuilder.toString();
         TimeSpan timeSpan = event.getTimestamp();
-        Number[] values = event.getValues();
-        for (int i = 0; i < values.length; i++) {
-            Number value = values[i];
+        List<Number> values = event.getValues();
+        for (ListIterator<Number> iterator = values.listIterator(); iterator.hasNext(); ) {
+            Number value = iterator.next();
             long timestamp = TimeResolution.toMillis(timeSpan);
             StringBuilder sourceBuilder = new StringBuilder(prefix);
-            if (values.length > 1) {
-                sourceBuilder.append(".").append(i);
+            if (values.size() > 1) {
+                sourceBuilder.append(".").append(iterator.previousIndex());
             }
             SingleMetric singleMetric = new SingleMetric(sourceBuilder.toString(), timestamp, value.doubleValue());
             out.add(singleMetric);

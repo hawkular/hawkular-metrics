@@ -34,7 +34,10 @@ import static org.junit.Assert.fail;
 
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.ListIterator;
 
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
@@ -131,22 +134,21 @@ public class PacketDecodingTest {
     }
 
     static Values newValuesInstance() {
-        DataType[] dataTypes = DataType.values();
-        Number[] data = new Number[dataTypes.length];
-        for (int i = 0; i < data.length; i++) {
-            DataType dataType = dataTypes[i];
+        List<DataType> dataTypes = Arrays.asList(DataType.values());
+        List<Number> data = new ArrayList<>(dataTypes.size());
+        for (DataType dataType : dataTypes) {
             switch (dataType) {
                 case COUNTER:
                 case ABSOLUTE:
                     byte[] valueBytes = new byte[8];
                     Arrays.fill(valueBytes, (byte) 4);
-                    data[i] = new BigInteger(1, valueBytes);
+                    data.add(new BigInteger(1, valueBytes));
                     break;
                 case DERIVE:
-                    data[i] = 981254L;
+                    data.add(981254L);
                     break;
                 case GAUGE:
-                    data[i] = 15784.02564d;
+                    data.add(15784.02564d);
                     break;
                 default:
                     fail("Unknown data type: " + dataType);
@@ -156,25 +158,32 @@ public class PacketDecodingTest {
     }
 
     static ByteBuf createValuesPartBuffer(Values values) {
-        Number[] data = values.getData();
-        DataType[] dataTypes = values.getDataTypes();
+        List<Number> data = values.getData();
+        ListIterator<Number> dataIterator = data.listIterator();
+        List<DataType> dataTypes = values.getDataTypes();
+        ListIterator<DataType> dataTypeIterator = dataTypes.listIterator();
+
         ByteBuf payloadBuffer = Unpooled.buffer();
-        for (int i = 0; i < data.length; i++) {
-            payloadBuffer.writeByte(dataTypes[i].getId());
+
+        while (dataTypeIterator.hasNext()) {
+            payloadBuffer.writeByte(dataTypeIterator.next().getId());
         }
-        for (int i = 0; i < data.length; i++) {
-            DataType dataType = dataTypes[i];
+
+        dataTypeIterator = dataTypes.listIterator();
+        while (dataIterator.hasNext()) {
+            DataType dataType = dataTypeIterator.next();
+            Number number = dataIterator.next();
             switch (dataType) {
                 case COUNTER:
                 case ABSOLUTE:
-                    BigInteger bigInteger = (BigInteger) data[i];
+                    BigInteger bigInteger = (BigInteger) number;
                     payloadBuffer.writeBytes(bigInteger.toByteArray());
                     break;
                 case DERIVE:
-                    payloadBuffer.writeLong((Long) data[i]);
+                    payloadBuffer.writeLong((Long) number);
                     break;
                 case GAUGE:
-                    payloadBuffer.writeLong(ByteBufUtil.swapLong(Double.doubleToLongBits((Double) data[i])));
+                    payloadBuffer.writeLong(ByteBufUtil.swapLong(Double.doubleToLongBits((Double) number)));
                     break;
                 default:
                     fail("Unknown data type: " + dataType);
@@ -184,7 +193,7 @@ public class PacketDecodingTest {
         ByteBuf headerBuffer = Unpooled.buffer();
         headerBuffer.writeShort(VALUES.getId());
         headerBuffer.writeShort(6 + payloadBuffer.writerIndex());
-        headerBuffer.writeShort(data.length);
+        headerBuffer.writeShort(data.size());
 
         ByteBuf buffer = Unpooled.buffer();
         buffer.writeBytes(headerBuffer.duplicate()).writeBytes(payloadBuffer.duplicate());
@@ -209,10 +218,10 @@ public class PacketDecodingTest {
         assertEquals(CollectdPacket.class, output.getClass());
 
         CollectdPacket collectdPacket = (CollectdPacket) output;
-        Part[] parts = collectdPacket.getParts();
-        assertEquals("Expected only one part in the packet", 1, parts.length);
+        List<Part> parts = collectdPacket.getParts();
+        assertEquals("Expected only one part in the packet", 1, parts.size());
 
-        Part part = parts[0];
+        Part part = parts.iterator().next();
         assertEquals(partClass, part.getClass());
         assertEquals(partType, part.getPartType());
         assertThat(part.getValue(), matcher);
@@ -233,8 +242,7 @@ public class PacketDecodingTest {
                 return false;
             }
             Values actual = (Values) item;
-            return Arrays.equals(expected.getData(), actual.getData())
-                   && Arrays.equals(expected.getDataTypes(), actual.getDataTypes());
+            return expected.getData().equals(actual.getData()) && expected.getDataTypes().equals(actual.getDataTypes());
         }
 
         @Override

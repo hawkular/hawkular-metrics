@@ -97,7 +97,7 @@ public final class CollectdPacketDecoder extends MessageToMessageDecoder<Datagra
         }
 
         if (parts.size() > 0) {
-            CollectdPacket collectdPacket = new CollectdPacket(parts.toArray(new Part[parts.size()]));
+            CollectdPacket collectdPacket = new CollectdPacket(parts);
             out.add(collectdPacket);
         } else {
             logger.debug("No parts decoded, no CollectdPacket output");
@@ -124,26 +124,25 @@ public final class CollectdPacketDecoder extends MessageToMessageDecoder<Datagra
     private Values readValuePartContent(ByteBuf content, int length) {
         int beginIndex = content.readerIndex();
         int total = content.readUnsignedShort();
-        DataType[] dataTypes = new DataType[total];
+        List<DataType> dataTypes = new ArrayList<>(total);
         for (int i = 0; i < total; i++) {
             byte sampleTypeId = content.readByte();
-            dataTypes[i] = DataType.findById(sampleTypeId);
+            dataTypes.add(DataType.findById(sampleTypeId));
         }
-        Number[] data = new Number[total];
-        for (int i = 0; i < total; i++) {
-            DataType dataType = dataTypes[i];
+        List<Number> data = new ArrayList<>(total);
+        for (DataType dataType : dataTypes) {
             switch (dataType) {
                 case COUNTER:
                 case ABSOLUTE:
                     byte[] valueBytes = new byte[8];
                     content.readBytes(valueBytes);
-                    data[i] = new BigInteger(1, valueBytes);
+                    data.add(new BigInteger(1, valueBytes));
                     break;
                 case DERIVE:
-                    data[i] = content.readLong();
+                    data.add(content.readLong());
                     break;
                 case GAUGE:
-                    data[i] = Double.longBitsToDouble(ByteBufUtil.swapLong(content.readLong()));
+                    data.add(Double.longBitsToDouble(ByteBufUtil.swapLong(content.readLong())));
                     break;
                 default:
                     logger.debug("Skipping unknown data type: {}", dataType);

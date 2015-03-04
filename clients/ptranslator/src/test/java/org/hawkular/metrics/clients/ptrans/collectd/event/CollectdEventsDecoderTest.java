@@ -36,6 +36,7 @@ import static org.junit.Assert.fail;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.hawkular.metrics.clients.ptrans.collectd.packet.CollectdPacket;
@@ -76,7 +77,7 @@ public class CollectdEventsDecoderTest {
                     fail("Unknown part type: " + partType);
             }
         }
-        CollectdPacket packet = new CollectdPacket(parts.toArray(new Part[parts.size()]));
+        CollectdPacket packet = new CollectdPacket(parts);
 
         EmbeddedChannel channel = new EmbeddedChannel(new CollectdEventsDecoder());
         assertFalse("Expected no event", channel.writeInbound(packet));
@@ -92,13 +93,11 @@ public class CollectdEventsDecoderTest {
         parts.add(new StringPart(INSTANCE, INSTANCE.name()));
         parts.add(new NumericPart(TIME_HIGH_RESOLUTION, (long) TIME_HIGH_RESOLUTION.ordinal()));
         parts.add(new NumericPart(INTERVAL_HIGH_RESOLUTION, (long) INTERVAL_HIGH_RESOLUTION.ordinal()));
-        DataType[] dataTypes = new DataType[]{GAUGE, ABSOLUTE};
-        Number[] data = new Number[]{13.13d, BigInteger.valueOf(13)};
-        Values values = new Values(dataTypes, data);
+        Values values = new Values(Arrays.asList(GAUGE, ABSOLUTE), Arrays.asList(13.13d, BigInteger.valueOf(13)));
         ValuePart valuePart = new ValuePart(VALUES, values);
         parts.add(valuePart);
         parts.add(valuePart); // add it twice
-        CollectdPacket packet = new CollectdPacket(parts.toArray(new Part[parts.size()]));
+        CollectdPacket packet = new CollectdPacket(parts);
 
         EmbeddedChannel channel = new EmbeddedChannel(new CollectdEventsDecoder());
         assertTrue("Expected an event", channel.writeInbound(packet));
@@ -129,12 +128,12 @@ public class CollectdEventsDecoderTest {
         TimeSpan interval = event.getInterval();
         assertEquals(INTERVAL_HIGH_RESOLUTION.ordinal(), interval.getValue());
         assertEquals(HIGH_RES, interval.getResolution());
-        Number[] values = event.getValues();
-        assertEquals("Expected two values", 2, values.length);
-        assertEquals(Double.class, values[0].getClass());
-        assertEquals(13.13d, values[0]);
-        assertEquals(BigInteger.class, values[1].getClass());
-        assertEquals(BigInteger.valueOf(13), values[1]);
+        List<Number> values = event.getValues();
+        assertEquals("Expected two values", 2, values.size());
+        assertEquals(Double.class, values.get(0).getClass());
+        assertEquals(13.13d, values.get(0));
+        assertEquals(BigInteger.class, values.get(1).getClass());
+        assertEquals(BigInteger.valueOf(13), values.get(1));
     }
 
     @Test
@@ -146,12 +145,10 @@ public class CollectdEventsDecoderTest {
         parts.add(new StringPart(TYPE, TYPE.name()));
         parts.add(new NumericPart(TIME_HIGH_RESOLUTION, (long) TIME_HIGH_RESOLUTION.ordinal()));
         parts.add(new NumericPart(INTERVAL_HIGH_RESOLUTION, (long) INTERVAL_HIGH_RESOLUTION.ordinal()));
-        DataType[] dataTypes = new DataType[]{GAUGE, ABSOLUTE};
-        Number[] data = new Number[]{13.13d, BigInteger.valueOf(13)};
-        Values values = new Values(dataTypes, data);
+        Values values = new Values(Arrays.asList(GAUGE, ABSOLUTE), Arrays.asList(13.13d, BigInteger.valueOf(13)));
         ValuePart valuePart = new ValuePart(VALUES, values);
         parts.add(valuePart);
-        CollectdPacket packet = new CollectdPacket(parts.toArray(new Part[parts.size()]));
+        CollectdPacket packet = new CollectdPacket(parts);
 
         EmbeddedChannel channel = new EmbeddedChannel(new CollectdEventsDecoder());
         assertTrue("Expected an event", channel.writeInbound(packet));
