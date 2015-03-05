@@ -15,14 +15,23 @@
  * limitations under the License.
  */
 package org.hawkular.metrics.rest
+
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.fail
+
+import java.util.concurrent.atomic.AtomicInteger
+
+import org.junit.BeforeClass
+
 import groovyx.net.http.ContentType
 import groovyx.net.http.RESTClient
-import org.junit.BeforeClass
 
 class RESTTest {
 
   static baseURI = System.getProperty('hawkular-metrics.base-uri') ?: '127.0.0.1:8080/hawkular-metrics'
   static final double DELTA = 0.001
+  static final String TENANT_PREFIX = UUID.randomUUID().toString()
+  static final AtomicInteger TENANT_ID_COUNTER = new AtomicInteger(0)
   static RESTClient hawkularMetrics
 
   @BeforeClass
@@ -30,4 +39,30 @@ class RESTTest {
     hawkularMetrics = new RESTClient("http://$baseURI/", ContentType.JSON)
   }
 
+  static String nextTenantId() {
+    return "T${TENANT_PREFIX}${TENANT_ID_COUNTER.incrementAndGet()}"
+  }
+
+  static void assertDoubleEquals(expected, actual) {
+    // If a bucket does not contain any data points, then the server returns
+    // Double.NaN for max/min/avg. NaN is returned on the client and parsed as
+    // a string. If the bucket contains data points, then the returned values
+    // will be numeric.
+
+    if (actual instanceof String) {
+      assertEquals((Double) expected, Double.parseDouble(actual), DELTA)
+    } else {
+      assertEquals((Double) expected, (Double) actual, DELTA)
+    }
+  }
+
+  static def badPost(args, errorHandler) {
+    try {
+      def object = hawkularMetrics.post(args)
+      fail("Expected exception to be thrown")
+      return object
+    } catch (e) {
+      errorHandler(e)
+    }
+  }
 }
