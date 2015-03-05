@@ -25,7 +25,6 @@ import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,6 +48,7 @@ import javax.ws.rs.core.Response.Status;
 import org.hawkular.metrics.api.jaxrs.callback.DataInsertedCallback;
 import org.hawkular.metrics.api.jaxrs.callback.GetMetricTagsCallback;
 import org.hawkular.metrics.api.jaxrs.callback.MetricCreatedCallback;
+import org.hawkular.metrics.api.jaxrs.callback.TaggedDataCallback;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Counter;
@@ -304,31 +304,7 @@ public class MetricHandler {
         @QueryParam("tags") String encodedTags) {
         ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(
             tenantId, MetricUtils.decodeTags(encodedTags));
-        Futures.addCallback(queryFuture, new FutureCallback<Map<MetricId, Set<NumericData>>>() {
-            @Override
-            public void onSuccess(Map<MetricId, Set<NumericData>> taggedDataMap) {
-                Map<String, MetricOut> results = new HashMap<>();
-                MetricOut dataOut = null;
-                for (MetricId id : taggedDataMap.keySet()) {
-                    List<DataPointOut> dataPoints = new ArrayList<>();
-                    for (NumericData d : taggedDataMap.get(id)) {
-                        if (dataOut == null) {
-                            dataOut = new MetricOut(d.getMetric().getTenantId(), d.getMetric().getId().getName(), null);
-                        }
-                        dataPoints.add(new DataPointOut(d.getTimestamp(), d.getValue()));
-                    }
-                    dataOut.setData(dataPoints);
-                    results.put(id.getName(), dataOut);
-                    dataOut = null;
-                }
-                asyncResponse.resume(Response.ok(results).type(APPLICATION_JSON_TYPE).build());
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                asyncResponse.resume(t);
-            }
-        });
+        Futures.addCallback(queryFuture, new TaggedDataCallback(asyncResponse));
     }
 
     @GET
@@ -345,36 +321,7 @@ public class MetricHandler {
         @QueryParam("tags") String encodedTags) {
         ListenableFuture<Map<MetricId, Set<Availability>>> queryFuture = metricsService.findAvailabilityByTags(
             tenantId, MetricUtils.decodeTags(encodedTags));
-        Futures.addCallback(queryFuture, new FutureCallback<Map<MetricId, Set<Availability>>>() {
-            @Override
-            public void onSuccess(Map<MetricId, Set<Availability>> taggedDataMap) {
-                if (taggedDataMap.isEmpty()) {
-                    asyncResponse.resume(Response.ok().status(Status.NO_CONTENT).build());
-                } else {
-                    Map<String, MetricOut> results = new HashMap<>();
-                    MetricOut dataOut = null;
-                    for (MetricId id : taggedDataMap.keySet()) {
-                        List<DataPointOut> dataPoints = new ArrayList<>();
-                        for (Availability a : taggedDataMap.get(id)) {
-                            if (dataOut == null) {
-                                dataOut = new MetricOut(a.getMetric().getTenantId(), a.getMetric().getId().getName(),
-                                    null);
-                            }
-                            dataPoints.add(new DataPointOut(a.getTimestamp(), a.getType().getText()));
-                        }
-                        dataOut.setData(dataPoints);
-                        results.put(id.getName(), dataOut);
-                        dataOut = null;
-                    }
-                    asyncResponse.resume(Response.ok(results).type(APPLICATION_JSON_TYPE).build());
-                }
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                asyncResponse.resume(t);
-            }
-        });
+        Futures.addCallback(queryFuture, new TaggedDataCallback(asyncResponse));
     }
 
     @GET
@@ -559,44 +506,9 @@ public class MetricHandler {
         @PathParam("tenantId") String tenantId,
         @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
         @PathParam("tag") String encodedTag) {
-        ListenableFuture<Map<MetricId, Set<NumericData>>> future = metricsService.findNumericDataByTags(
+        ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(
                 tenantId, MetricUtils.decodeTags(encodedTag));
-        Futures.addCallback(future, new FutureCallback<Map<MetricId, Set<NumericData>>>() {
-            @Override
-            public void onSuccess(Map<MetricId, Set<NumericData>> taggedDataMap) {
-                if (taggedDataMap.isEmpty()) {
-                    asyncResponse.resume(Response.ok().status(Status.NO_CONTENT).build());
-                } else {
-                    // TODO Should we return something other than NumericDataOutput?
-                    // Currently we only query the tags table which does not include meta data.
-                    // There is a metadata property in NumericDataOutput so the resulting json
-                    // will always have a null metadata field, which might misleading. We may
-                    // want to use a different return type that does not have a meta data property.
-
-                    Map<String, MetricOut> results = new HashMap<>();
-                    MetricOut dataOut = null;
-                    for (MetricId id : taggedDataMap.keySet()) {
-                        List<DataPointOut> dataPoints = new ArrayList<>();
-                        for (NumericData d : taggedDataMap.get(id)) {
-                            if (dataOut == null) {
-                                dataOut = new MetricOut(d.getMetric().getTenantId(), d.getMetric().getId().getName(),
-                                        null);
-                            }
-                            dataPoints.add(new DataPointOut(d.getTimestamp(), d.getValue()));
-                        }
-                        dataOut.setData(dataPoints);
-                        results.put(id.getName(), dataOut);
-                        dataOut = null;
-                    }
-                    asyncResponse.resume(Response.ok(results).type(APPLICATION_JSON_TYPE).build());
-                }
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                asyncResponse.resume(t);
-            }
-        });
+        Futures.addCallback(queryFuture, new TaggedDataCallback(asyncResponse));
     }
 
     @GET
@@ -609,38 +521,9 @@ public class MetricHandler {
         @PathParam("tenantId") String tenantId,
         @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
         @PathParam("tag") String encodedTag) {
-        ListenableFuture<Map<MetricId, Set<Availability>>> future = metricsService.findAvailabilityByTags(tenantId,
+        ListenableFuture<Map<MetricId, Set<Availability>>> queryFuture = metricsService.findAvailabilityByTags(tenantId,
             MetricUtils.decodeTags(encodedTag));
-        Futures.addCallback(future, new FutureCallback<Map<MetricId, Set<Availability>>>() {
-            @Override
-            public void onSuccess(Map<MetricId, Set<Availability>> taggedDataMap) {
-                if (taggedDataMap.isEmpty()) {
-                    asyncResponse.resume(Response.ok().status(Status.NO_CONTENT).build());
-                } else {
-                    Map<String, MetricOut> results = new HashMap<>();
-                    MetricOut dataOut = null;
-                    for (MetricId id : taggedDataMap.keySet()) {
-                        List<DataPointOut> dataPoints = new ArrayList<>();
-                        for (Availability a : taggedDataMap.get(id)) {
-                            if (dataOut == null) {
-                                dataOut = new MetricOut(a.getMetric().getTenantId(), a.getMetric().getId().getName(),
-                                        null);
-                            }
-                            dataPoints.add(new DataPointOut(a.getTimestamp(), a.getType().getText()));
-                        }
-                        dataOut.setData(dataPoints);
-                        results.put(id.getName(), dataOut);
-                        dataOut = null;
-                    }
-                    asyncResponse.resume(Response.ok(results).type(APPLICATION_JSON_TYPE).build());
-                }
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                asyncResponse.resume(t);
-            }
-        });
+        Futures.addCallback(queryFuture, new TaggedDataCallback(asyncResponse));
     }
 
     @POST
