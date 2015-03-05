@@ -21,6 +21,9 @@ import static org.junit.Assert.assertTrue
 
 import org.junit.Test
 
+/**
+ * @author Thomas Segismont
+ */
 class TenantITest extends RESTTest {
 
   @Test
@@ -64,6 +67,14 @@ class TenantITest extends RESTTest {
 
     badPost(path: 'tenants', body: [id: tenantId]) { exception ->
       assertEquals(409, exception.response.status)
+    }
+  }
+
+  @Test
+  void invalidPayloadTest() {
+    badPost(path: 'tenants', body: [] /* Empty body */) { exception ->
+      assertEquals(400, exception.response.status)
+      assertTrue(exception.response.data.containsKey("errorMsg"))
     }
   }
 
