@@ -23,7 +23,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
 import org.hawkular.metrics.core.impl.mapper.MetricOut;
 
 import com.google.common.base.Throwables;
@@ -42,8 +41,9 @@ public class GetMetricTagsCallback implements FutureCallback<Metric> {
         if (metric == null) {
             response.resume(Response.status(Status.NO_CONTENT).type(APPLICATION_JSON_TYPE).build());
         } else {
-            response.resume(Response.ok(new MetricOut(metric.getTenantId(), metric.getId().getName(),
-                MetricUtils.flattenTags(metric.getTags()), metric.getDataRetention())).type(APPLICATION_JSON_TYPE)
+            response.resume(Response
+                    .ok(new MetricOut(metric.getTenantId(), metric.getId().getName(), metric.getTags(), metric
+                            .getDataRetention())).type(APPLICATION_JSON_TYPE)
                 .build());
         }
     }

@@ -30,7 +30,6 @@ import java.util.stream.LongStream;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
-import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
 
 public class CreateSimpleBuckets extends MetricMapper<BucketedOutput> {
 
@@ -49,8 +48,7 @@ public class CreateSimpleBuckets extends MetricMapper<BucketedOutput> {
     @Override
     public BucketedOutput doApply(NumericMetric metric) {
         // we will have numberOfBuckets buckets over the whole time span
-        BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(),
-            MetricUtils.flattenTags(metric.getTags()));
+        BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(), metric.getTags());
         long bucketSize = (endTime - startTime) / numberOfBuckets;
 
         long[] buckets = LongStream.iterate(0, i -> i + 1).limit(numberOfBuckets)

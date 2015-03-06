@@ -32,12 +32,6 @@ public class MetricUtils {
             .collect(toMap(Map.Entry::getKey, e -> e.getValue()));
     }
 
-    public static Map<String, String> flattenTags(Map<String, String> tags) {
-        return tags.entrySet()
-            .stream()
-            .collect(toMap(Map.Entry::getKey, e -> e.getValue()));
-    }
-
     public static Map<String, String> decodeTags(String tags) {
         return Arrays.stream(tags.split(","))
             .map(s -> s.split(":"))

@@ -23,7 +23,6 @@ import java.util.List;
 
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
-import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
 
 import com.google.common.base.Function;
 
@@ -46,8 +45,7 @@ public class FlattenBuckets implements Function<List<? extends Object>, Bucketed
         // buckets, we only use a relative time for the bucket timestamps.
         NumericMetric metric = (NumericMetric) args.get(0);
         TLongObjectMap<List<NumericData>> buckets = (TLongObjectMap<List<NumericData>>) args.get(1);
-        BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(),
-            MetricUtils.flattenTags(metric.getTags()));
+        BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(), metric.getTags());
         for (int i = 0; i < numberOfBuckets; ++i) {
             List<NumericData> tmpList = buckets.get(i);
             if (tmpList == null) {

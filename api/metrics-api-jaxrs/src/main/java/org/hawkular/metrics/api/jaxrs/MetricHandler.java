@@ -22,6 +22,8 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
+import gnu.trove.map.TLongObjectMap;
+import gnu.trove.map.hash.TLongObjectHashMap;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -60,12 +62,11 @@ import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
 import org.hawkular.metrics.core.impl.mapper.ClusterBucketData;
-import org.hawkular.metrics.core.impl.mapper.CreateFixedNumberOfBuckets;
 import org.hawkular.metrics.core.impl.mapper.CreateSimpleBuckets;
 import org.hawkular.metrics.core.impl.mapper.DataPointOut;
 import org.hawkular.metrics.core.impl.mapper.FlattenBuckets;
+import org.hawkular.metrics.core.impl.mapper.MetricMapper;
 import org.hawkular.metrics.core.impl.mapper.MetricOut;
-import org.hawkular.metrics.core.impl.mapper.MetricOutMapper;
 import org.hawkular.metrics.core.impl.mapper.NoResultsException;
 import org.hawkular.metrics.core.impl.request.TagRequest;
 
@@ -356,14 +357,53 @@ public class MetricHandler {
         ListenableFuture<NumericMetric> dataFuture = metricsService.findNumericData(metric, start, end);
         ListenableFuture<? extends Object> outputFuture = null;
         if (numberOfBuckets == 0) {
-            outputFuture = Futures.transform(dataFuture, new MetricOutMapper());
+            outputFuture = Futures.transform(dataFuture, new MetricMapper<MetricOut>() {
+                @Override
+                public MetricOut doApply(NumericMetric metric) {
+                    MetricOut output = new MetricOut(metric.getTenantId(), metric.getId().getName(), metric.getTags(),
+                            metric.getDataRetention());
+                    List<DataPointOut> dataPoints = new ArrayList<>();
+                    for (NumericData d : metric.getData()) {
+                        dataPoints.add(new DataPointOut(d.getTimestamp(), d.getValue(), d.getTags()));
+                    }
+                    output.setData(dataPoints);
+
+                    return output;
+                }
+            });
         } else {
             if (bucketWidthSeconds == 0) {
                 outputFuture = Futures.transform(dataFuture, new CreateSimpleBuckets(start, end, numberOfBuckets,
                     skipEmpty));
             } else {
                 ListenableFuture<List<? extends Object>> bucketsFuture = Futures.transform(dataFuture,
-                        new CreateFixedNumberOfBuckets(numberOfBuckets, bucketWidthSeconds));
+                        new MetricMapper<List<? extends Object>>() {
+                            @Override
+                            public List<? extends Object> doApply(NumericMetric metric) {
+                                long totalLength = (long) numberOfBuckets * bucketWidthSeconds * 1000L;
+                                long minTs = Long.MAX_VALUE;
+                                for (NumericData d : metric.getData()) {
+                                    if (d.getTimestamp() < minTs) {
+                                        minTs = d.getTimestamp();
+                                }
+                                }
+
+                                TLongObjectMap<List<NumericData>> buckets = new TLongObjectHashMap<>(numberOfBuckets);
+                                for (NumericData d : metric.getData()) {
+                                    long bucket = d.getTimestamp() - minTs;
+                                    bucket = bucket % totalLength;
+                                    bucket = bucket / (bucketWidthSeconds * 1000L);
+                                    List<NumericData> tmpList = buckets.get(bucket);
+                                    if (tmpList == null) {
+                                        tmpList = new ArrayList<>();
+                                        buckets.put(bucket, tmpList);
+                                }
+                                    tmpList.add(d);
+                            }
+                                return asList(metric, buckets);
+                            }
+                });
+
                 if (bucketCluster) {
                     outputFuture = Futures.transform(bucketsFuture, new FlattenBuckets(numberOfBuckets,
                         bucketWidthSeconds, skipEmpty));
@@ -419,12 +459,11 @@ public class MetricHandler {
                 if (metric == null) {
                     asyncResponse.resume(Response.ok().status(Status.NO_CONTENT).build());
                 } else {
-                    MetricOut output = new MetricOut(metric.getTenantId(), metric.getId().getName(),
-                        MetricUtils.flattenTags(metric.getTags()), metric.getDataRetention());
+                    MetricOut output = new MetricOut(metric.getTenantId(), metric.getId().getName(), metric.getTags(),
+                            metric.getDataRetention());
                     List<DataPointOut> dataPoints = new ArrayList<>(metric.getData().size());
                     for (Availability a : metric.getData()) {
-                        dataPoints.add(new DataPointOut(a.getTimestamp(), a.getType().getText(),
-                            MetricUtils.flattenTags(a.getTags())));
+                        dataPoints.add(new DataPointOut(a.getTimestamp(), a.getType().getText(), a.getTags()));
                     }
                     output.setData(dataPoints);
 

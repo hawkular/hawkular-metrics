@@ -28,7 +28,7 @@ import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
 
-public class MetricCreatedCallback<?> implements FutureCallback<Void> {
+public class MetricCreatedCallback implements FutureCallback<Void> {
 
     AsyncResponse response;
     Metric<?> metric;
