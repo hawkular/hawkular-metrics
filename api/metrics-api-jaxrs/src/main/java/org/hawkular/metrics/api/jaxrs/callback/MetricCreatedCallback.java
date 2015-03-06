@@ -22,20 +22,20 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
-import org.hawkular.metrics.core.impl.mapper.MetricParams;
 
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
 
-public class MetricCreatedCallback implements FutureCallback<Void> {
+public class MetricCreatedCallback<?> implements FutureCallback<Void> {
 
     AsyncResponse response;
-    MetricParams params;
+    Metric<?> metric;
 
-    public MetricCreatedCallback(AsyncResponse response, MetricParams params) {
+    public MetricCreatedCallback(AsyncResponse response, Metric<?> metric) {
         this.response = response;
-        this.params = params;
+        this.metric = metric;
     }
 
     @Override
@@ -46,7 +46,7 @@ public class MetricCreatedCallback implements FutureCallback<Void> {
     @Override
     public void onFailure(Throwable t) {
         if (t instanceof MetricAlreadyExistsException) {
-            Error errors = new Error("A metric with name [" + params.getName() + "] already exists");
+            Error errors = new Error("A metric with name [" + metric.getId() + "] already exists");
             response.resume(Response.status(Status.BAD_REQUEST).entity(errors).type(APPLICATION_JSON_TYPE).build());
         } else {
             Error errors = new Error("Failed to create metric due to an " +

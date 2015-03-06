@@ -66,7 +66,6 @@ import org.hawkular.metrics.core.impl.mapper.DataPointOut;
 import org.hawkular.metrics.core.impl.mapper.FlattenBuckets;
 import org.hawkular.metrics.core.impl.mapper.MetricOut;
 import org.hawkular.metrics.core.impl.mapper.MetricOutMapper;
-import org.hawkular.metrics.core.impl.mapper.MetricParams;
 import org.hawkular.metrics.core.impl.mapper.NoResultsException;
 import org.hawkular.metrics.core.impl.request.TagRequest;
 
@@ -104,11 +103,9 @@ public class MetricHandler {
                     response = Error.class)})
     @Consumes(APPLICATION_JSON)
     public void createNumericMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
-                                    @ApiParam(required = true) MetricParams params) {
-        NumericMetric metric = new NumericMetric(tenantId, new MetricId(params.getName()), MetricUtils.getTags(
-            params.getTags()), params.getDataRetention());
+                                    @ApiParam(required = true) NumericMetric metric) {
         ListenableFuture<Void> future = metricsService.createMetric(metric);
-        Futures.addCallback(future, new MetricCreatedCallback(asyncResponse, params));
+        Futures.addCallback(future, new MetricCreatedCallback(asyncResponse, metric));
     }
 
     @POST
@@ -120,11 +117,9 @@ public class MetricHandler {
                     response = Error.class)})
     @Consumes(APPLICATION_JSON)
     public void createAvailabilityMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
-                                         @ApiParam(required = true) MetricParams params) {
-        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(params.getName()),
-            MetricUtils.getTags(params.getTags()), params.getDataRetention());
+                                         @ApiParam(required = true) AvailabilityMetric metric) {
         ListenableFuture<Void> future = metricsService.createMetric(metric);
-        Futures.addCallback(future, new MetricCreatedCallback(asyncResponse, params));
+        Futures.addCallback(future, new MetricCreatedCallback(asyncResponse, metric));
     }
 
     @GET
