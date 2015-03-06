@@ -26,7 +26,7 @@ import com.google.common.util.concurrent.FutureCallback;
 /**
  * @author John Sanda
  */
-public class NoDataCallback implements FutureCallback<Void> {
+public class NoDataCallback implements FutureCallback<Object> {
 
     private AsyncResponse response;
 
@@ -38,7 +38,7 @@ public class NoDataCallback implements FutureCallback<Void> {
     }
 
     @Override
-    public void onSuccess(Void result) {
+    public void onSuccess(Object result) {
         response.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
     }
 

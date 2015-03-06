@@ -47,9 +47,9 @@ import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.hawkular.metrics.api.jaxrs.callback.MetricCreatedCallback;
 import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
 import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
-import org.hawkular.metrics.api.jaxrs.callback.MetricCreatedCallback;
 import org.hawkular.metrics.api.jaxrs.callback.TaggedDataCallback;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
@@ -69,6 +69,7 @@ import org.hawkular.metrics.core.impl.mapper.MetricOut;
 import org.hawkular.metrics.core.impl.mapper.NoResultsException;
 import org.hawkular.metrics.core.impl.request.TagRequest;
 
+import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -444,21 +445,19 @@ public class MetricHandler {
 
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
         ListenableFuture<AvailabilityMetric> future = metricsService.findAvailabilityData(metric, start, end);
-        Futures.addCallback(future, new FutureCallback<AvailabilityMetric>() {
-            @Override
-            public void onSuccess(AvailabilityMetric metric) {
-                if (metric == null) {
-                    asyncResponse.resume(Response.ok().status(Status.NO_CONTENT).build());
-                } else {
-                    asyncResponse.resume(Response.ok(metric.getData()).type(APPLICATION_JSON_TYPE).build());
-                }
-            }
 
-            @Override
-            public void onFailure(Throwable t) {
-                asyncResponse.resume(t);
-            }
+        ListenableFuture<List<Availability>> outputfuture = Futures.transform(future,
+                new Function<AvailabilityMetric, List<Availability>>() {
+                    @Override
+                    public List<Availability> apply(AvailabilityMetric input) {
+                        if (input == null) {
+                            return null;
+                        }
+                        return input.getData();
+                    }
         });
+
+        Futures.addCallback(outputfuture, new SimpleDataCallback(asyncResponse));
     }
 
     @POST
@@ -476,17 +475,7 @@ public class MetricHandler {
             future = metricsService.tagNumericData(metric, MetricUtils.getTags(params.getTags()), params.getStart(),
                 params.getEnd());
         }
-        Futures.addCallback(future, new FutureCallback<List<NumericData>>() {
-            @Override
-            public void onSuccess(List<NumericData> data) {
-                asyncResponse.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                asyncResponse.resume(t);
-            }
-        });
+        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to update tags."));
     }
 
     @POST
@@ -505,17 +494,7 @@ public class MetricHandler {
             future = metricsService.tagAvailabilityData(metric, MetricUtils.getTags(params.getTags()),
                 params.getStart(), params.getEnd());
         }
-        Futures.addCallback(future, new FutureCallback<List<Availability>>() {
-            @Override
-            public void onSuccess(List<Availability> data) {
-                asyncResponse.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                asyncResponse.resume(t);
-            }
-        });
+        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to update tags."));
     }
 
     @GET
@@ -624,18 +603,7 @@ public class MetricHandler {
     @Produces({ APPLICATION_JSON })
     public void getCountersForGroup(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group) {
         ListenableFuture<List<Counter>> future = metricsService.findCounters(group);
-        Futures.addCallback(future, new FutureCallback<List<Counter>>() {
-            @Override
-            public void onSuccess(List<Counter> counters) {
-                Response jaxrs = Response.ok(counters).type(APPLICATION_JSON_TYPE).build();
-                asyncResponse.resume(jaxrs);
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                asyncResponse.resume(t);
-            }
-        });
+        Futures.addCallback(future, new SimpleDataCallback(asyncResponse));
     }
 
     @GET
