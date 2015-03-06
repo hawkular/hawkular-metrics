@@ -59,8 +59,6 @@ import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
-import org.hawkular.metrics.core.impl.mapper.AvailabilityDataParams;
-import org.hawkular.metrics.core.impl.mapper.AvailabilityDataPoint;
 import org.hawkular.metrics.core.impl.mapper.ClusterBucketData;
 import org.hawkular.metrics.core.impl.mapper.CreateFixedNumberOfBuckets;
 import org.hawkular.metrics.core.impl.mapper.CreateSimpleBuckets;
@@ -243,11 +241,11 @@ public class MetricHandler {
                     response = Error.class)})
     public void addAvailabilityForMetric(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") final String tenantId, @PathParam("id") String id,
-        @ApiParam(value = "List of availability datapoints", required = true) List<AvailabilityDataPoint> data) {
+            @ApiParam(value = "List of availability datapoints", required = true) List<Availability> data) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
 
-        for (AvailabilityDataPoint p : data) {
-            metric.addData(new Availability(metric, p.getTimestamp(), p.getValue()));
+        for (Availability p : data) {
+            metric.addData(p);
         }
 
         ListenableFuture<Void> future = metricsService.addAvailabilityData(asList(metric));
@@ -286,21 +284,15 @@ public class MetricHandler {
     @Consumes(APPLICATION_JSON)
     public void addAvailabilityData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @ApiParam(value = "List of availability metrics", required = true)
-        List<AvailabilityDataParams> paramsList) {
-        if (paramsList.isEmpty()) {
+        List<AvailabilityMetric> metrics) {
+        if (metrics.isEmpty()) {
             asyncResponse.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
         }
 
-        List<AvailabilityMetric> metrics = new ArrayList<>(paramsList.size());
-
-        for (AvailabilityDataParams params : paramsList) {
-            AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(params.getName()),
-                MetricUtils.getTags(params.getTags()));
-            for (AvailabilityDataPoint p : params.getData()) {
-                metric.addData(new Availability(metric, p.getTimestamp(), p.getValue()));
-            }
-            metrics.add(metric);
+        for (AvailabilityMetric metric : metrics) {
+            metric.setTenantId(tenantId);
         }
+
         ListenableFuture<Void> future = metricsService.addAvailabilityData(metrics);
         Futures.addCallback(future, new DataInsertedCallback(asyncResponse, "Failed to insert data"));
     }
