@@ -17,7 +17,6 @@
 package org.hawkular.metrics.core.api;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -29,11 +28,11 @@ public class AvailabilityMetric extends Metric<Availability> {
         super(tenantId, id);
     }
 
-    public AvailabilityMetric(String tenantId, MetricId id, Map<String, Optional<String>> tags) {
+    public AvailabilityMetric(String tenantId, MetricId id, Map<String, String> tags) {
         super(tenantId, id, tags);
     }
 
-    public AvailabilityMetric(String tenantId, MetricId id, Map<String, Optional<String>> tags, Integer dataRetention) {
+    public AvailabilityMetric(String tenantId, MetricId id, Map<String, String> tags, Integer dataRetention) {
         super(tenantId, id, tags, dataRetention);
     }
 

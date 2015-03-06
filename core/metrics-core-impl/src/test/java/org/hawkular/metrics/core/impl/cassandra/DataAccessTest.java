@@ -22,7 +22,6 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.hawkular.metrics.core.api.AggregationTemplate;
 import org.hawkular.metrics.core.api.Availability;
@@ -149,7 +148,7 @@ public class DataAccessTest extends MetricsTest {
         DateTime end = start.plusMinutes(6);
 
         NumericMetric metric = new NumericMetric("tenant-1", new MetricId("metric-1"),
-            ImmutableMap.of("units", Optional.of("KB"), "env", Optional.of("test")));
+            ImmutableMap.of("units", "KB", "env", "test"));
 
         ResultSetFuture insertFuture = dataAccess.addTagsAndDataRetention(metric);
         getUninterruptibly(insertFuture);

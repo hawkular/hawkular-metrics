@@ -18,7 +18,6 @@ package org.hawkular.metrics.core.api;
 
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -48,12 +47,12 @@ public class NumericData extends MetricData {
         this.value = value;
     }
 
-    public NumericData(NumericMetric metric, UUID timeUUID, double value, Map<String, Optional<String>> tags) {
+    public NumericData(NumericMetric metric, UUID timeUUID, double value, Map<String, String> tags) {
         super(metric, timeUUID, tags);
         this.value = value;
     }
 
-    public NumericData(NumericMetric metric, UUID timeUUID, double value, Map<String, Optional<String>> tags,
+    public NumericData(NumericMetric metric, UUID timeUUID, double value, Map<String, String> tags,
         Long writeTime) {
         super(metric, timeUUID, tags, writeTime);
     }
@@ -69,12 +68,12 @@ public class NumericData extends MetricData {
         this.value = value;
     }
 
-    public NumericData(UUID timeUUID, double value, Map<String, Optional<String>> tags) {
+    public NumericData(UUID timeUUID, double value, Map<String, String> tags) {
         super(timeUUID, tags);
         this.value = value;
     }
 
-    public NumericData(UUID timeUUID, double value, Map<String, Optional<String>> tags, Long writeTime) {
+    public NumericData(UUID timeUUID, double value, Map<String, String> tags, Long writeTime) {
         super(timeUUID, tags, writeTime);
         this.value = value;
     }
