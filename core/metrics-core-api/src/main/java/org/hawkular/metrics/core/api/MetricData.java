@@ -19,7 +19,6 @@ package org.hawkular.metrics.core.api;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import com.datastax.driver.core.utils.UUIDs;
@@ -41,7 +40,7 @@ public abstract class MetricData {
 
     protected Metric metric;
 
-    protected Map<String, Optional<String>> tags = new HashMap<>();
+    protected Map<String, String> tags = new HashMap<>();
 
     protected Long writeTime;
 
@@ -56,11 +55,11 @@ public abstract class MetricData {
         this.timeUUID = timeUUID;
     }
 
-    public MetricData(Metric metric, UUID timeUUID, Map<String, Optional<String>> tags) {
+    public MetricData(Metric metric, UUID timeUUID, Map<String, String> tags) {
         this(metric, timeUUID, tags, null);
     }
 
-    public MetricData(Metric metric, UUID timeUUID, Map<String, Optional<String>> tags, Long writeTime) {
+    public MetricData(Metric metric, UUID timeUUID, Map<String, String> tags, Long writeTime) {
         this.metric = metric;
         this.timeUUID = timeUUID;
         this.tags = tags;
@@ -76,12 +75,12 @@ public abstract class MetricData {
         this.timeUUID = timeUUID;
     }
 
-    public MetricData(UUID timeUUID, Map<String, Optional<String>> tags) {
+    public MetricData(UUID timeUUID, Map<String, String> tags) {
         this.timeUUID = timeUUID;
         this.tags = tags;
     }
 
-    public MetricData(UUID timeUUID, Map<String, Optional<String>> tags, Long writeTime) {
+    public MetricData(UUID timeUUID, Map<String, String> tags, Long writeTime) {
         this.timeUUID = timeUUID;
         this.tags = tags;
         this.writeTime = writeTime;
@@ -113,11 +112,11 @@ public abstract class MetricData {
         return UUIDs.unixTimestamp(timeUUID);
     }
 
-    public Map<String, Optional<String>> getTags() {
+    public Map<String, String> getTags() {
         return tags;
     }
 
-    public void setTags(Map<String, Optional<String>> tags) {
+    public void setTags(Map<String, String> tags) {
         this.tags = tags;
     }
 

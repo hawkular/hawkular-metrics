@@ -18,7 +18,6 @@ package org.hawkular.metrics.core.api;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import com.google.common.base.Objects;
@@ -60,17 +59,17 @@ public class Availability extends MetricData {
     }
 
     public Availability(AvailabilityMetric metric, UUID timeUUID, ByteBuffer bytes,
-        Map<String, Optional<String>> tags) {
+ Map<String, String> tags) {
         super(metric, timeUUID, tags);
         type = AvailabilityType.fromBytes(bytes);
     }
 
-    public Availability(UUID timeUUID, ByteBuffer bytes, Map<String, Optional<String>> tags) {
+    public Availability(UUID timeUUID, ByteBuffer bytes, Map<String, String> tags) {
         super(timeUUID, tags);
         type = AvailabilityType.fromBytes(bytes);
     }
 
-    public Availability(UUID timeUUID, ByteBuffer bytes, Map<String, Optional<String>> tags, Long writeTime) {
+    public Availability(UUID timeUUID, ByteBuffer bytes, Map<String, String> tags, Long writeTime) {
         super(timeUUID, tags, writeTime);
         type = AvailabilityType.fromBytes(bytes);
     }

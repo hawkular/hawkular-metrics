@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import com.google.common.base.Objects;
 
@@ -35,7 +34,7 @@ public abstract class Metric<T extends MetricData> {
 
     private MetricId id;
 
-    private Map<String, Optional<String>> tags = new HashMap<>();
+    private Map<String, String> tags = new HashMap<>();
 
     // When we implement date partitioning, dpart will have to be determined based on the
     // start and end params of queries. And it is possible the the date range spans
@@ -51,13 +50,13 @@ public abstract class Metric<T extends MetricData> {
         this.id = id;
     }
 
-    protected Metric(String tenantId, MetricId id, Map<String, Optional<String>> tags) {
+    protected Metric(String tenantId, MetricId id, Map<String, String> tags) {
         this.tenantId = tenantId;
         this.id = id;
         this.tags = tags;
     }
 
-    protected Metric(String tenantId, MetricId id, Map<String, Optional<String>> tags, Integer dataRetention) {
+    protected Metric(String tenantId, MetricId id, Map<String, String> tags, Integer dataRetention) {
         this.tenantId = tenantId;
         this.id = id;
         this.tags = tags;
@@ -101,11 +100,11 @@ public abstract class Metric<T extends MetricData> {
     /**
      * A set of key/value pairs that are shared by all data points for the metric. A good example is units like KB/sec.
      */
-    public Map<String, Optional<String>> getTags() {
+    public Map<String, String> getTags() {
         return tags;
     }
 
-    public void setTags(Map<String, Optional<String>> tags) {
+    public void setTags(Map<String, String> tags) {
         this.tags = tags;
     }
 

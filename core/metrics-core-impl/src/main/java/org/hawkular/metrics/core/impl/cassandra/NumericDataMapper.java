@@ -19,16 +19,15 @@ package org.hawkular.metrics.core.impl.cassandra;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.google.common.base.Function;
 
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
+
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.google.common.base.Function;
 
 /**
  * @author John Sanda
@@ -98,7 +97,7 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
         return new MetricId(row.getString(1), Interval.parse(row.getString(2)));
     }
 
-    private Map<String, Optional<String>> getTags(Row row) {
+    private Map<String, String> getTags(Row row) {
         Map<String, String> map = row.getMap(8, String.class, String.class);
         return MetricUtils.getTags(map);
     }
