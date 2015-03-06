@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.impl.mapper;
+package org.hawkular.metrics.core.impl.request;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,17 +26,9 @@ import com.wordnik.swagger.annotations.ApiModel;
  * @author John Sanda
  */
 @ApiModel
-public class TagParams {
-
-    private String tenantId;
+public class TagRequest {
 
     private Map<String, String> tags = new HashMap<>();
-
-    private String metric;
-
-    private String interval;
-
-    private String metricType;
 
     private Long start;
 
@@ -44,44 +36,12 @@ public class TagParams {
 
     private Long timestamp;
 
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
-    }
-
     public Map<String, String> getTags() {
         return tags;
     }
 
     public void setTags(Map<String, String> tags) {
         this.tags = tags;
-    }
-
-    public String getMetric() {
-        return metric;
-    }
-
-    public void setMetric(String metric) {
-        this.metric = metric;
-    }
-
-    public String getInterval() {
-        return interval;
-    }
-
-    public void setInterval(String interval) {
-        this.interval = interval;
-    }
-
-    public String getMetricType() {
-        return metricType;
-    }
-
-    public void setMetricType(String metricType) {
-        this.metricType = metricType;
     }
 
     public Long getStart() {
@@ -111,10 +71,6 @@ public class TagParams {
     @Override
     public String toString() {
         return Objects.toStringHelper(this)
-            .add("tenantId", tenantId)
-            .add("metric", metric)
-            .add("interval", interval)
-            .add("metricType", metricType)
             .add("tags", tags)
             .add("timestamp", timestamp)
             .add("start", start)
