@@ -70,7 +70,7 @@ import org.hawkular.metrics.core.impl.mapper.MetricOut;
 import org.hawkular.metrics.core.impl.mapper.MetricOutMapper;
 import org.hawkular.metrics.core.impl.mapper.MetricParams;
 import org.hawkular.metrics.core.impl.mapper.NoResultsException;
-import org.hawkular.metrics.core.impl.mapper.TagParams;
+import org.hawkular.metrics.core.impl.request.TagRequest;
 
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
@@ -508,11 +508,11 @@ public class MetricHandler {
     @POST
     @ApiOperation(value = "Add or update numeric metric's tags.")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Tags were modified successfully.")})
-    @Path("/{tenantId}/tags/numeric")
+    @Path("/{tenantId}/metrics/numeric/{id}/tag")
     public void tagNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
-        @ApiParam(required = true) TagParams params) {
+            @PathParam("id") final String id, @ApiParam(required = true) TagRequest params) {
         ListenableFuture<List<NumericData>> future;
-        NumericMetric metric = new NumericMetric(tenantId, new MetricId(params.getMetric()));
+        NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
         if (params.getTimestamp() != null) {
             future = metricsService.tagNumericData(metric, MetricUtils.getTags(params.getTags()),
                 params.getTimestamp());
@@ -536,11 +536,12 @@ public class MetricHandler {
     @POST
     @ApiOperation(value = "Add or update availability metric's tags.")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Tags were modified successfully.")})
-    @Path("/{tenantId}/tags/availability")
+    @Path("/{tenantId}/metrics/availability/{id}/tag")
     public void tagAvailabilityData(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId, @ApiParam(required = true) TagParams params) {
+            @PathParam("tenantId") String tenantId, @PathParam("id") final String id,
+            @ApiParam(required = true) TagRequest params) {
         ListenableFuture<List<Availability>> future;
-        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(params.getMetric()));
+        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
         if (params.getTimestamp() != null) {
             future = metricsService.tagAvailabilityData(metric, MetricUtils.getTags(params.getTags()),
                 params.getTimestamp());
