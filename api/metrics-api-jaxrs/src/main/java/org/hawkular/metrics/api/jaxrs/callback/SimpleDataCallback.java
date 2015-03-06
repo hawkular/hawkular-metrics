@@ -22,29 +22,23 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.impl.mapper.MetricOut;
-
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
 
-public class GetMetricTagsCallback implements FutureCallback<Metric> {
+public class SimpleDataCallback implements FutureCallback<Object> {
 
     AsyncResponse response;
 
-    public GetMetricTagsCallback(AsyncResponse response) {
+    public SimpleDataCallback(AsyncResponse response) {
         this.response = response;
     }
 
     @Override
-    public void onSuccess(Metric metric) {
-        if (metric == null) {
+    public void onSuccess(Object responseData) {
+        if (responseData == null) {
             response.resume(Response.status(Status.NO_CONTENT).type(APPLICATION_JSON_TYPE).build());
         } else {
-            response.resume(Response
-                    .ok(new MetricOut(metric.getTenantId(), metric.getId().getName(), metric.getTags(), metric
-                            .getDataRetention())).type(APPLICATION_JSON_TYPE)
-                .build());
+            response.resume(Response.ok(responseData).type(APPLICATION_JSON_TYPE).build());
         }
     }
 
