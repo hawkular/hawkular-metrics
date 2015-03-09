@@ -40,7 +40,7 @@ import com.datastax.driver.core.ResultSetFuture;
  * @author John Sanda
  */
 public interface DataAccess {
-        ResultSetFuture insertTenant(Tenant tenant);
+    ResultSetFuture insertTenant(Tenant tenant);
 
     ResultSetFuture findAllTenantIds();
 

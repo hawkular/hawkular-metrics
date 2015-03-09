@@ -16,9 +16,15 @@
  */
 package org.hawkular.metrics.api.jaxrs.callback;
 
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
+
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+
+import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
+import org.hawkular.metrics.core.impl.mapper.NoResultsException;
 
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
@@ -29,7 +35,6 @@ import com.google.common.util.concurrent.FutureCallback;
 public class NoDataCallback implements FutureCallback<Object> {
 
     private AsyncResponse response;
-
     private String errorMsg;
 
     public NoDataCallback(AsyncResponse response, String errorMsg) {
@@ -44,8 +49,16 @@ public class NoDataCallback implements FutureCallback<Object> {
 
     @Override
     public void onFailure(Throwable t) {
-        Error errors = new Error(errorMsg + ": " + Throwables.getRootCause(t).getMessage());
-        response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).type(
-            MediaType.APPLICATION_JSON_TYPE).build());
+        if (t instanceof MetricAlreadyExistsException) {
+            Error errors = new Error("A metric with name already exists " + ":"
+                    + Throwables.getRootCause(t).getMessage());
+            response.resume(Response.status(Status.BAD_REQUEST).entity(errors).type(APPLICATION_JSON_TYPE).build());
+        } else if (t instanceof NoResultsException) {
+            response.resume(Response.ok().status(Status.NO_CONTENT).build());
+        } else {
+            Error errors = new Error(errorMsg + ": " + Throwables.getRootCause(t).getMessage());
+            response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors)
+                    .type(MediaType.APPLICATION_JSON_TYPE).build());
+        }
     }
 }

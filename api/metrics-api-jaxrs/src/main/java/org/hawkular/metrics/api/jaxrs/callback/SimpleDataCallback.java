@@ -25,9 +25,9 @@ import javax.ws.rs.core.Response.Status;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
 
-public class SimpleDataCallback implements FutureCallback<Object> {
+public class SimpleDataCallback<T> implements FutureCallback<T> {
 
-    AsyncResponse response;
+    private AsyncResponse response;
 
     public SimpleDataCallback(AsyncResponse response) {
         this.response = response;

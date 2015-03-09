@@ -54,14 +54,14 @@ public class FlattenBuckets implements Function<List<? extends Object>, Bucketed
                         NaN, NaN));
                 }
             } else {
-                output.add(FlattenBuckets.getBucketDataPoint(tmpList.get(0).getMetric().getId().getName(),
+                output.add(getBucketDataPoint(tmpList.get(0).getMetric().getId().getName(),
                     1000L * i * bucketWidthSeconds, tmpList));
             }
         }
         return output;
     }
 
-    static BucketDataPoint getBucketDataPoint(String id, long startTime, List<NumericData> bucketMetrics) {
+    private static BucketDataPoint getBucketDataPoint(String id, long startTime, List<NumericData> bucketMetrics) {
         Double min = null;
         Double max = null;
         double sum = 0;

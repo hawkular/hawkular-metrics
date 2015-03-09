@@ -47,7 +47,6 @@ import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.hawkular.metrics.api.jaxrs.callback.MetricCreatedCallback;
 import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
 import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
 import org.hawkular.metrics.api.jaxrs.callback.TaggedDataCallback;
@@ -64,13 +63,11 @@ import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
 import org.hawkular.metrics.core.impl.mapper.ClusterBucketData;
 import org.hawkular.metrics.core.impl.mapper.CreateSimpleBuckets;
 import org.hawkular.metrics.core.impl.mapper.FlattenBuckets;
-import org.hawkular.metrics.core.impl.mapper.MetricMapper;
 import org.hawkular.metrics.core.impl.mapper.MetricOut;
 import org.hawkular.metrics.core.impl.mapper.NoResultsException;
 import org.hawkular.metrics.core.impl.request.TagRequest;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -107,7 +104,7 @@ public class MetricHandler {
     public void createNumericMetric(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId, @ApiParam(required = true) NumericMetric metric) {
         ListenableFuture<Void> future = metricsService.createMetric(metric);
-        Futures.addCallback(future, new MetricCreatedCallback(asyncResponse, metric));
+        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Metric ID: " + metric.getId()));
     }
 
     @POST
@@ -120,7 +117,7 @@ public class MetricHandler {
     public void createAvailabilityMetric(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId, @ApiParam(required = true) AvailabilityMetric metric) {
         ListenableFuture<Void> future = metricsService.createMetric(metric);
-        Futures.addCallback(future, new MetricCreatedCallback(asyncResponse, metric));
+        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Metric ID: " + metric.getId()));
     }
 
     @GET
@@ -134,7 +131,7 @@ public class MetricHandler {
             @PathParam("tenantId") String tenantId, @PathParam("id") String id) {
         ListenableFuture<Metric<?>> future = metricsService.findMetric(tenantId, MetricType.NUMERIC,
             new MetricId(id));
-        Futures.addCallback(future, new SimpleDataCallback(asyncResponse));
+        Futures.addCallback(future, new SimpleDataCallback<Metric<?>>(asyncResponse));
     }
 
     @PUT
@@ -179,7 +176,7 @@ public class MetricHandler {
         @PathParam("tenantId") String tenantId, @PathParam("id") String id) {
         ListenableFuture<Metric<?>> future = metricsService.findMetric(tenantId, MetricType.AVAILABILITY,
             new MetricId(id));
-        Futures.addCallback(future, new SimpleDataCallback(asyncResponse));
+        Futures.addCallback(future, new SimpleDataCallback<Metric<?>>(asyncResponse));
     }
 
     @PUT
@@ -356,9 +353,14 @@ public class MetricHandler {
         ListenableFuture<NumericMetric> dataFuture = metricsService.findNumericData(metric, start, end);
         ListenableFuture<? extends Object> outputFuture = null;
         if (numberOfBuckets == 0) {
-            outputFuture = Futures.transform(dataFuture, new MetricMapper<List<NumericData>>() {
+            outputFuture = Futures.transform(dataFuture, new Function<NumericMetric, List<NumericData>>() {
+
                 @Override
-                public List<NumericData> doApply(NumericMetric metric) {
+                public List<NumericData> apply(NumericMetric metric) {
+                    if (metric == null) {
+                        throw new NoResultsException();
+                    }
+
                     return metric.getData();
                 }
             });
@@ -368,9 +370,13 @@ public class MetricHandler {
                     skipEmpty));
             } else {
                 ListenableFuture<List<? extends Object>> bucketsFuture = Futures.transform(dataFuture,
-                        new MetricMapper<List<? extends Object>>() {
+                        new Function<NumericMetric, List<? extends Object>>() {
                             @Override
-                            public List<? extends Object> doApply(NumericMetric metric) {
+                            public List<? extends Object> apply(NumericMetric metric) {
+                                if (metric == null) {
+                                    throw new NoResultsException();
+                                }
+
                                 long totalLength = (long) numberOfBuckets * bucketWidthSeconds * 1000L;
                                 long minTs = Long.MAX_VALUE;
                                 for (NumericData d : metric.getData()) {
@@ -404,24 +410,8 @@ public class MetricHandler {
                 }
             }
         }
-        Futures.addCallback(outputFuture, new FutureCallback<Object>() {
-            @Override
-            public void onSuccess(Object output) {
-                asyncResponse.resume(Response.ok(output).type(APPLICATION_JSON_TYPE).build());
-            }
 
-            @Override
-            public void onFailure(Throwable t) {
-                if (t instanceof NoResultsException) {
-                    asyncResponse.resume(Response.ok().status(Status.NO_CONTENT).build());
-                } else {
-                    Error errors = new Error("Failed to retrieve data due to " +
-                        "an unexpected error: " + Throwables.getRootCause(t).getMessage());
-                    asyncResponse.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors)
-                        .type(APPLICATION_JSON_TYPE).build());
-                }
-            }
-        });
+        Futures.addCallback(outputFuture, new NoDataCallback(asyncResponse, "Failed to retrieve data"));
     }
 
     @GET
@@ -456,7 +446,7 @@ public class MetricHandler {
                     }
         });
 
-        Futures.addCallback(outputfuture, new SimpleDataCallback(asyncResponse));
+        Futures.addCallback(outputfuture, new SimpleDataCallback<List<Availability>>(asyncResponse));
     }
 
     @POST
@@ -573,7 +563,7 @@ public class MetricHandler {
     @Produces({ APPLICATION_JSON })
     public void getCountersForGroup(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group) {
         ListenableFuture<List<Counter>> future = metricsService.findCounters(group);
-        Futures.addCallback(future, new SimpleDataCallback(asyncResponse));
+        Futures.addCallback(future, new SimpleDataCallback<List<Counter>>(asyncResponse));
     }
 
     @GET
@@ -626,7 +616,7 @@ public class MetricHandler {
                     .resume(Response.status(Status.BAD_REQUEST).entity(errors).type(APPLICATION_JSON_TYPE).build());
         }
         ListenableFuture<List<Metric<?>>> future = metricsService.findMetrics(tenantId, metricType);
-        Futures.addCallback(future, new SimpleDataCallback(asyncResponse));
+        Futures.addCallback(future, new SimpleDataCallback<List<Metric<?>>>(asyncResponse));
     }
 
 }
