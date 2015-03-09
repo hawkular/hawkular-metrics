@@ -103,7 +103,7 @@ public class MetricHandler {
     public void createNumericMetric(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId, @ApiParam(required = true) NumericMetric metric) {
         ListenableFuture<Void> future = metricsService.createMetric(metric);
-        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Metric ID: " + metric.getId()));
+        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
     @POST
@@ -116,7 +116,7 @@ public class MetricHandler {
     public void createAvailabilityMetric(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId, @ApiParam(required = true) AvailabilityMetric metric) {
         ListenableFuture<Void> future = metricsService.createMetric(metric);
-        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Metric ID: " + metric.getId()));
+        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
     @GET
@@ -144,7 +144,7 @@ public class MetricHandler {
                                         @ApiParam(required = true) Map<String, String> tags) {
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
         ListenableFuture<Void> future = metricsService.addTags(metric, MetricUtils.getTags(tags));
-        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to update tags"));
+        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
     @DELETE
@@ -161,7 +161,7 @@ public class MetricHandler {
         @PathParam("tags") String encodedTags) {
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
         ListenableFuture<Void> future = metricsService.deleteTags(metric, MetricUtils.decodeTags(encodedTags));
-        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to delete tags"));
+        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
     @GET
@@ -189,7 +189,7 @@ public class MetricHandler {
         @ApiParam(required = true) Map<String, String> tags) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
         ListenableFuture<Void> future = metricsService.addTags(metric, MetricUtils.getTags(tags));
-        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to update tags"));
+        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
     @DELETE
@@ -205,7 +205,7 @@ public class MetricHandler {
         @PathParam("tags") String encodedTags) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
         ListenableFuture<Void> future = metricsService.deleteTags(metric, MetricUtils.decodeTags(encodedTags));
-        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to delete tags"));
+        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
     @POST
@@ -223,7 +223,7 @@ public class MetricHandler {
             metric.addData(p);
         }
         ListenableFuture<Void> future = metricsService.addNumericData(asList(metric));
-        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to insert data"));
+        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
     @POST
@@ -242,7 +242,7 @@ public class MetricHandler {
         }
 
         ListenableFuture<Void> future = metricsService.addAvailabilityData(asList(metric));
-        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to insert data"));
+        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
     @POST
@@ -264,7 +264,7 @@ public class MetricHandler {
         }
 
         ListenableFuture<Void> future = metricsService.addNumericData(metrics);
-        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to insert data"));
+        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
     @POST
@@ -285,7 +285,7 @@ public class MetricHandler {
         }
 
         ListenableFuture<Void> future = metricsService.addAvailabilityData(metrics);
-        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to insert data"));
+        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
     @GET
@@ -410,7 +410,7 @@ public class MetricHandler {
             }
         }
 
-        Futures.addCallback(outputFuture, new NoDataCallback(asyncResponse, "Failed to retrieve data"));
+        Futures.addCallback(outputFuture, new NoDataCallback<Object>(asyncResponse));
     }
 
     @GET
@@ -463,7 +463,7 @@ public class MetricHandler {
             future = metricsService.tagNumericData(metric, MetricUtils.getTags(params.getTags()), params.getStart(),
                 params.getEnd());
         }
-        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to update tags."));
+        Futures.addCallback(future, new NoDataCallback<List<NumericData>>(asyncResponse));
     }
 
     @POST
@@ -482,7 +482,7 @@ public class MetricHandler {
             future = metricsService.tagAvailabilityData(metric, MetricUtils.getTags(params.getTags()),
                 params.getStart(), params.getEnd());
         }
-        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to update tags."));
+        Futures.addCallback(future, new NoDataCallback<List<Availability>>(asyncResponse));
     }
 
     @GET
@@ -520,7 +520,7 @@ public class MetricHandler {
     @ApiOperation(value = "List of counter definitions", hidden = true)
     public void updateCountersForGroups(@Suspended final AsyncResponse asyncResponse, Collection<Counter> counters) {
         ListenableFuture<Void> future = metricsService.updateCounters(counters);
-        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to update counters"));
+        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
     @POST
@@ -532,7 +532,7 @@ public class MetricHandler {
             counter.setGroup(group);
         }
         ListenableFuture<Void> future = metricsService.updateCounters(counters);
-        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to update counters"));
+        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
     @POST
@@ -542,7 +542,7 @@ public class MetricHandler {
         @PathParam("counter") String counter) {
         ListenableFuture<Void> future = metricsService
                 .updateCounter(new Counter(DEFAULT_TENANT_ID, group, counter, 1L));
-        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to update counter"));
+        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
     @POST
@@ -552,7 +552,7 @@ public class MetricHandler {
         @PathParam("counter") String counter, @PathParam("value") Long value) {
         ListenableFuture<Void> future = metricsService.updateCounter(new Counter(DEFAULT_TENANT_ID, group, counter,
                 value));
-        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to update counter"));
+        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
     @GET

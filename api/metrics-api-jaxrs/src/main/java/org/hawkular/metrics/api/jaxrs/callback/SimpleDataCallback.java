@@ -22,15 +22,10 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.FutureCallback;
-
-public class SimpleDataCallback<T> implements FutureCallback<T> {
-
-    private AsyncResponse response;
+public class SimpleDataCallback<T> extends NoDataCallback<T> {
 
     public SimpleDataCallback(AsyncResponse response) {
-        this.response = response;
+        super(response);
     }
 
     @Override
@@ -40,13 +35,5 @@ public class SimpleDataCallback<T> implements FutureCallback<T> {
         } else {
             response.resume(Response.ok(responseData).type(APPLICATION_JSON_TYPE).build());
         }
-    }
-
-    @Override
-    public void onFailure(Throwable t) {
-        Error errors = new Error("Failed to retrieve tags due to " +
-            "an unexpected error: " + Throwables.getRootCause(t).getMessage());
-        response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors).type(APPLICATION_JSON_TYPE)
-            .build());
     }
 }
