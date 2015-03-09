@@ -132,7 +132,7 @@ public class MetricHandler {
                     response = Error.class)})
     public void getNumericMetricTags(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId, @PathParam("id") String id) {
-        ListenableFuture<Metric> future = metricsService.findMetric(tenantId, MetricType.NUMERIC,
+        ListenableFuture<Metric<?>> future = metricsService.findMetric(tenantId, MetricType.NUMERIC,
             new MetricId(id));
         Futures.addCallback(future, new SimpleDataCallback(asyncResponse));
     }
@@ -177,7 +177,7 @@ public class MetricHandler {
                     response = Error.class)})
     public void getAvailabilityMetricTags(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id) {
-        ListenableFuture<Metric> future = metricsService.findMetric(tenantId, MetricType.AVAILABILITY,
+        ListenableFuture<Metric<?>> future = metricsService.findMetric(tenantId, MetricType.AVAILABILITY,
             new MetricId(id));
         Futures.addCallback(future, new SimpleDataCallback(asyncResponse));
     }
@@ -304,7 +304,7 @@ public class MetricHandler {
         @QueryParam("tags") String encodedTags) {
         ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(
             tenantId, MetricUtils.decodeTags(encodedTags));
-        Futures.addCallback(queryFuture, new TaggedDataCallback(asyncResponse));
+        Futures.addCallback(queryFuture, new TaggedDataCallback<NumericData>(asyncResponse));
     }
 
     @GET
@@ -321,7 +321,7 @@ public class MetricHandler {
         @QueryParam("tags") String encodedTags) {
         ListenableFuture<Map<MetricId, Set<Availability>>> queryFuture = metricsService.findAvailabilityByTags(
                 tenantId, MetricUtils.decodeTags(encodedTags));
-        Futures.addCallback(queryFuture, new TaggedDataCallback(asyncResponse));
+        Futures.addCallback(queryFuture, new TaggedDataCallback<Availability>(asyncResponse));
     }
 
     @GET
@@ -508,7 +508,7 @@ public class MetricHandler {
         @PathParam("tag") String encodedTag) {
         ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(
                 tenantId, MetricUtils.decodeTags(encodedTag));
-        Futures.addCallback(queryFuture, new TaggedDataCallback(asyncResponse));
+        Futures.addCallback(queryFuture, new TaggedDataCallback<NumericData>(asyncResponse));
     }
 
     @GET
@@ -523,7 +523,7 @@ public class MetricHandler {
         @PathParam("tag") String encodedTag) {
         ListenableFuture<Map<MetricId, Set<Availability>>> queryFuture = metricsService.findAvailabilityByTags(tenantId,
             MetricUtils.decodeTags(encodedTag));
-        Futures.addCallback(queryFuture, new TaggedDataCallback(asyncResponse));
+        Futures.addCallback(queryFuture, new TaggedDataCallback<Availability>(asyncResponse));
     }
 
     @POST
@@ -625,7 +625,7 @@ public class MetricHandler {
             asyncResponse
                     .resume(Response.status(Status.BAD_REQUEST).entity(errors).type(APPLICATION_JSON_TYPE).build());
         }
-        ListenableFuture<List<Metric>> future = metricsService.findMetrics(tenantId, metricType);
+        ListenableFuture<List<Metric<?>>> future = metricsService.findMetrics(tenantId, metricType);
         Futures.addCallback(future, new SimpleDataCallback(asyncResponse));
     }
 

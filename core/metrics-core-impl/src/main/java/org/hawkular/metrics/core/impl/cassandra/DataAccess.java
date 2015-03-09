@@ -21,8 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.datastax.driver.core.ResultSetFuture;
-
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Counter;
@@ -36,6 +34,8 @@ import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
 
+import com.datastax.driver.core.ResultSetFuture;
+
 /**
  * @author John Sanda
  */
@@ -46,20 +46,20 @@ public interface DataAccess {
 
     ResultSetFuture findTenant(String id);
 
-    ResultSetFuture insertMetricInMetricsIndex(Metric metric);
+    ResultSetFuture insertMetricInMetricsIndex(Metric<?> metric);
 
     ResultSetFuture findMetric(String tenantId, MetricType type, MetricId id, long dpart);
 
-    ResultSetFuture addTagsAndDataRetention(Metric metric);
+    ResultSetFuture addTagsAndDataRetention(Metric<?> metric);
 
-    ResultSetFuture addTags(Metric metric, Map<String, String> tags);
+    ResultSetFuture addTags(Metric<?> metric, Map<String, String> tags);
 
-    ResultSetFuture deleteTags(Metric metric, Set<String> tags);
+    ResultSetFuture deleteTags(Metric<?> metric, Set<String> tags);
 
-    ResultSetFuture updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
+    ResultSetFuture updateTagsInMetricsIndex(Metric<?> metric, Map<String, String> additions,
         Set<String> deletions);
 
-    <T extends Metric> ResultSetFuture updateMetricsIndex(List<T> metrics);
+    <T extends Metric<?>> ResultSetFuture updateMetricsIndex(List<T> metrics);
 
     ResultSetFuture findMetricsInMetricsIndex(String tenantId, MetricType type);
 
@@ -103,11 +103,11 @@ public interface DataAccess {
 
     ResultSetFuture updateRetentionsIndex(String tenantId, MetricType type, Set<Retention> retentions);
 
-    ResultSetFuture updateRetentionsIndex(Metric metric);
+    ResultSetFuture updateRetentionsIndex(Metric<?> metric);
 
-    ResultSetFuture insertIntoMetricsTagsIndex(Metric metric, Map<String, String> tags);
+    ResultSetFuture insertIntoMetricsTagsIndex(Metric<?> metric, Map<String, String> tags);
 
-    ResultSetFuture deleteFromMetricsTagsIndex(Metric metric, Map<String, String> tags);
+    ResultSetFuture deleteFromMetricsTagsIndex(Metric<?> metric, Map<String, String> tags);
 
     ResultSetFuture findMetricsByTag(String tenantId, String tag);
 }

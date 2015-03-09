@@ -355,7 +355,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertMetricInMetricsIndex(Metric metric) {
+    public ResultSetFuture insertMetricInMetricsIndex(Metric<?> metric) {
         return session.executeAsync(insertIntoMetricsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
             metric.getId().getInterval().toString(), metric.getId().getName(), metric.getDataRetention(),
             getTags(metric)));
@@ -384,7 +384,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture addTags(Metric metric, Map<String, String> tags) {
+    public ResultSetFuture addTags(Metric<?> metric, Map<String, String> tags) {
         BatchStatement batch = new BatchStatement(BatchStatement.Type.UNLOGGED);
         batch.add(addMetricTagsToDataTable.bind(tags, metric.getTenantId(), metric.getType().getCode(),
             metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart()));
@@ -394,7 +394,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture deleteTags(Metric metric, Set<String> tags) {
+    public ResultSetFuture deleteTags(Metric<?> metric, Set<String> tags) {
         BatchStatement batch = new BatchStatement(BatchStatement.Type.UNLOGGED);
         batch.add(deleteMetricTagsFromDataTable.bind(tags, metric.getTenantId(), metric.getType().getCode(),
             metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart()));
@@ -404,7 +404,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
+    public ResultSetFuture updateTagsInMetricsIndex(Metric<?> metric, Map<String, String> additions,
         Set<String> deletions) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED)
             .add(addTagsToMetricsIndex.bind(additions, metric.getTenantId(),
@@ -415,7 +415,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public <T extends Metric> ResultSetFuture updateMetricsIndex(List<T> metrics) {
+    public <T extends Metric<?>> ResultSetFuture updateMetricsIndex(List<T> metrics) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (T metric : metrics) {
             batchStatement.add(updateMetricsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
@@ -597,13 +597,13 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertIntoMetricsTagsIndex(Metric metric, Map<String, String> tags) {
+    public ResultSetFuture insertIntoMetricsTagsIndex(Metric<?> metric, Map<String, String> tags) {
         return executeTagsBatch(tags, (name, value) -> insertMetricsTagsIndex.bind(metric.getTenantId(), name, value,
             metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString()));
     }
 
     @Override
-    public ResultSetFuture deleteFromMetricsTagsIndex(Metric metric, Map<String, String> tags) {
+    public ResultSetFuture deleteFromMetricsTagsIndex(Metric<?> metric, Map<String, String> tags) {
         return executeTagsBatch(tags, (name, value) -> deleteMetricsTagsIndex.bind(metric.getTenantId(), name, value,
             metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString()));
     }
@@ -621,7 +621,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture updateRetentionsIndex(Metric metric) {
+    public ResultSetFuture updateRetentionsIndex(Metric<?> metric) {
         return session.executeAsync(updateRetentionsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
             metric.getId().getInterval().toString(), metric.getId().getName(), metric.getDataRetention()));
     }

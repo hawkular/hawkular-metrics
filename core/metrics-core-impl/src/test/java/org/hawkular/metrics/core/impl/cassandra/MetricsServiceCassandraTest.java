@@ -226,10 +226,10 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t1")));
 
         NumericMetric m1 = new NumericMetric("t1", new MetricId("m1"));
-        m1.addData(start.getMillis(), 1.1);
-        m1.addData(start.plusMinutes(2).getMillis(), 2.2);
-        m1.addData(start.plusMinutes(4).getMillis(), 3.3);
-        m1.addData(end.getMillis(), 4.4);
+        m1.addData(new NumericData(start.getMillis(), 1.1));
+        m1.addData(new NumericData(start.plusMinutes(2).getMillis(), 2.2));
+        m1.addData(new NumericData(start.plusMinutes(4).getMillis(), 3.3));
+        m1.addData(new NumericData(end.getMillis(), 4.4));
 
         ListenableFuture<Void> insertFuture = metricsService.addNumericData(asList(m1));
         getUninterruptibly(insertFuture);
@@ -445,19 +445,19 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenantId)));
 
         NumericMetric m1 = new NumericMetric(tenantId, new MetricId("m1"));
-        m1.addData(start.plusSeconds(30).getMillis(), 11.2);
-        m1.addData(start.getMillis(), 11.1);
+        m1.addData(new NumericData(start.plusSeconds(30).getMillis(), 11.2));
+        m1.addData(new NumericData(start.getMillis(), 11.1));
 
         NumericMetric m2 = new NumericMetric(tenantId, new MetricId("m2"));
-        m2.addData(start.plusSeconds(30).getMillis(), 12.2);
-        m2.addData(start.getMillis(), 12.1);
+        m2.addData(new NumericData(start.plusSeconds(30).getMillis(), 12.2));
+        m2.addData(new NumericData(start.getMillis(), 12.1));
 
         NumericMetric m3 = new NumericMetric(tenantId, new MetricId("m3"));
 
         NumericMetric m4 = new NumericMetric(tenantId, new MetricId("m4"), Collections.EMPTY_MAP, 24);
         getUninterruptibly(metricsService.createMetric(m4));
-        m4.addData(start.plusSeconds(30).getMillis(), 55.5);
-        m4.addData(end.getMillis(), 66.6);
+        m4.addData(new NumericData(start.plusSeconds(30).getMillis(), 55.5));
+        m4.addData(new NumericData(end.getMillis(), 66.6));
 
         ListenableFuture<Void> insertFuture = metricsService.addNumericData(asList(m1, m2, m3, m4));
         getUninterruptibly(insertFuture);
@@ -544,13 +544,13 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("tenant1")));
 
         AvailabilityMetric metric = new AvailabilityMetric("tenant1", new MetricId("A1"));
-        metric.addAvailability(start.getMillis(), UP);
-        metric.addAvailability(start.plusMinutes(1).getMillis(), DOWN);
-        metric.addAvailability(start.plusMinutes(2).getMillis(), DOWN);
-        metric.addAvailability(start.plusMinutes(3).getMillis(), UP);
-        metric.addAvailability(start.plusMinutes(4).getMillis(), DOWN);
-        metric.addAvailability(start.plusMinutes(5).getMillis(), UP);
-        metric.addAvailability(start.plusMinutes(6).getMillis(), UP);
+        metric.addData(new Availability(start.getMillis(), UP));
+        metric.addData(new Availability(start.plusMinutes(1).getMillis(), DOWN));
+        metric.addData(new Availability(start.plusMinutes(2).getMillis(), DOWN));
+        metric.addData(new Availability(start.plusMinutes(3).getMillis(), UP));
+        metric.addData(new Availability(start.plusMinutes(4).getMillis(), DOWN));
+        metric.addData(new Availability(start.plusMinutes(5).getMillis(), UP));
+        metric.addData(new Availability(start.plusMinutes(6).getMillis(), UP));
 
         ListenableFuture<Void> insertFuture = metricsService.addAvailabilityData(asList(metric));
         getUninterruptibly(insertFuture);

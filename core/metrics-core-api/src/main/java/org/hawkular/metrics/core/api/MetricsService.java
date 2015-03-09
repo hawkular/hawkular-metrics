@@ -66,11 +66,11 @@ public interface MetricsService {
 
     ListenableFuture<List<Tenant>> getTenants();
 
-    ListenableFuture<Void> createMetric(Metric metric);
+    ListenableFuture<Void> createMetric(Metric<?> metric);
 
-    ListenableFuture<Metric> findMetric(String tenantId, MetricType type, MetricId id);
+    ListenableFuture<Metric<?>> findMetric(String tenantId, MetricType type, MetricId id);
 
-    ListenableFuture<List<Metric>> findMetrics(String tenantId, MetricType type);
+    ListenableFuture<List<Metric<?>>> findMetrics(String tenantId, MetricType type);
 
     ListenableFuture<Void> addTags(Metric metric, Map<String, String> tags);
 

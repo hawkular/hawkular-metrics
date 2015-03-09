@@ -422,7 +422,7 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> createMetric(final Metric metric) {
+    public ListenableFuture<Void> createMetric(final Metric<?> metric) {
         ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric);
         return Futures.transform(future, new AsyncFunction<ResultSet, Void>() {
             @Override
@@ -455,14 +455,14 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Metric> findMetric(final String tenantId, final MetricType type, final MetricId id) {
+    public ListenableFuture<Metric<?>> findMetric(final String tenantId, final MetricType type, final MetricId id) {
         if (type == MetricType.LOG_EVENT) {
             throw new IllegalArgumentException(MetricType.LOG_EVENT + " is not yet supported");
         }
         ResultSetFuture future = dataAccess.findMetric(tenantId, type, id, Metric.DPART);
-        return Futures.transform(future, new Function<ResultSet, Metric>() {
+        return Futures.transform(future, new Function<ResultSet, Metric<?>>() {
             @Override
-            public Metric apply(ResultSet resultSet) {
+            public Metric<?> apply(ResultSet resultSet) {
                 if (resultSet.isExhausted()) {
                     return null;
                 }
@@ -479,7 +479,7 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<Metric>> findMetrics(String tenantId, MetricType type) {
+    public ListenableFuture<List<Metric<?>>> findMetrics(String tenantId, MetricType type) {
         ResultSetFuture future = dataAccess.findMetricsInMetricsIndex(tenantId, type);
         return Futures.transform(future, new MetricsIndexMapper(tenantId, type), metricsTasks);
     }
@@ -785,7 +785,7 @@ public class MetricsServiceCassandra implements MetricsService {
         });
     }
 
-    private int getTTL(Metric metric) {
+    private int getTTL(Metric<?> metric) {
         Integer ttl = dataRetentions.get(new DataRetentionKey(metric.getTenantId(), metric.getId(), metric.getType()));
         if (ttl == null) {
             ttl = dataRetentions.get(new DataRetentionKey(metric.getTenantId(), metric.getType()));
