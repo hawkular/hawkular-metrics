@@ -49,7 +49,6 @@ import javax.ws.rs.core.Response.Status;
 
 import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
 import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
-import org.hawkular.metrics.api.jaxrs.callback.TaggedDataCallback;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Counter;
@@ -301,12 +300,12 @@ public class MetricHandler {
         @QueryParam("tags") String encodedTags) {
         ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(
             tenantId, MetricUtils.decodeTags(encodedTags));
-        Futures.addCallback(queryFuture, new TaggedDataCallback<NumericData>(asyncResponse));
+        Futures.addCallback(queryFuture, new SimpleDataCallback<Map<MetricId, Set<NumericData>>>(asyncResponse));
     }
 
     @GET
     @Path("/{tenantId}/availability")
-    @ApiOperation(value = "Find availabilities metrics data by their tags.", response = MetricOut.class,
+    @ApiOperation(value = "Find availabilities metrics data by their tags.", response = Map.class,
             responseContainer = "List")
     // See above method and HWKMETRICS-26 for fixes.
     @ApiResponses(value = { @ApiResponse(code = 200, message = ""),
@@ -318,7 +317,7 @@ public class MetricHandler {
         @QueryParam("tags") String encodedTags) {
         ListenableFuture<Map<MetricId, Set<Availability>>> queryFuture = metricsService.findAvailabilityByTags(
                 tenantId, MetricUtils.decodeTags(encodedTags));
-        Futures.addCallback(queryFuture, new TaggedDataCallback<Availability>(asyncResponse));
+        Futures.addCallback(queryFuture, new SimpleDataCallback<Map<MetricId, Set<Availability>>>(asyncResponse));
     }
 
     @GET
@@ -488,7 +487,7 @@ public class MetricHandler {
 
     @GET
     @Path("/{tenantId}/tags/numeric/{tag}")
-    @ApiOperation(value = "Find numeric metric data with given tags.", response = MetricOut.class,
+    @ApiOperation(value = "Find numeric metric data with given tags.", response = Map.class,
             responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Numeric values fetched successfully"),
             @ApiResponse(code = 500, message = "Any error while fetching data.", response = Error.class)})
@@ -498,7 +497,7 @@ public class MetricHandler {
         @PathParam("tag") String encodedTag) {
         ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(
                 tenantId, MetricUtils.decodeTags(encodedTag));
-        Futures.addCallback(queryFuture, new TaggedDataCallback<NumericData>(asyncResponse));
+        Futures.addCallback(queryFuture, new SimpleDataCallback<Map<MetricId, Set<NumericData>>>(asyncResponse));
     }
 
     @GET
@@ -513,7 +512,7 @@ public class MetricHandler {
         @PathParam("tag") String encodedTag) {
         ListenableFuture<Map<MetricId, Set<Availability>>> queryFuture = metricsService.findAvailabilityByTags(tenantId,
             MetricUtils.decodeTags(encodedTag));
-        Futures.addCallback(queryFuture, new TaggedDataCallback<Availability>(asyncResponse));
+        Futures.addCallback(queryFuture, new SimpleDataCallback<Map<MetricId, Set<Availability>>>(asyncResponse));
     }
 
     @POST
