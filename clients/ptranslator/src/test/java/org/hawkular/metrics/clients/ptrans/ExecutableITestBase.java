@@ -47,13 +47,13 @@ public abstract class ExecutableITestBase {
     private static String JAVA;
     private static String PTRANS_ALL;
 
-    TemporaryFolder temporaryFolder = new TemporaryFolder();
-    File ptransConfFile;
-    File ptransOut;
-    File ptransErr;
-    File ptransPidFile;
-    ProcessBuilder ptransProcessBuilder;
-    Process ptransProcess;
+    protected TemporaryFolder temporaryFolder = new TemporaryFolder();
+    protected File ptransConfFile;
+    protected File ptransOut;
+    protected File ptransErr;
+    protected File ptransPidFile;
+    protected ProcessBuilder ptransProcessBuilder;
+    protected Process ptransProcess;
 
     @Rule
     public final RuleChain ruleChain = RuleChain.outerRule(temporaryFolder)
