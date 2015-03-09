@@ -26,11 +26,10 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharStreams;
-import com.google.common.io.Closeables;
 
+import org.hawkular.metrics.core.impl.util.TokenReplacingReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.hawkular.metrics.core.impl.util.TokenReplacingReader;
 
 /**
  * @author John Sanda
@@ -63,24 +62,23 @@ public class SchemaManager {
 
         ImmutableMap<String, String> schemaVars = ImmutableMap.of("keyspace", keyspace);
 
-        InputStream inputStream = getClass().getResourceAsStream("/schema.cql");
-        InputStreamReader reader = new InputStreamReader(inputStream);
-        String content = CharStreams.toString(reader);
+        try (InputStream inputStream = getClass().getResourceAsStream("/schema.cql");
+            InputStreamReader reader = new InputStreamReader(inputStream)) {
+            String content = CharStreams.toString(reader);
 
-        for (String cql : content.split("(?m)^-- #.*$")) {
-            if (!cql.startsWith("--")) {
-                TokenReplacingReader tokenReader = new TokenReplacingReader(cql.trim(), schemaVars);
-                String updatedCQL = substituteVars(cql.trim(), schemaVars);
-                logger.info("Executing CQL:\n" + updatedCQL + "\n");
-                session.execute(updatedCQL);
+            for (String cql : content.split("(?m)^-- #.*$")) {
+                if (!cql.startsWith("--")) {
+                    String updatedCQL = substituteVars(cql.trim(), schemaVars);
+                    logger.info("Executing CQL:\n" + updatedCQL + "\n");
+                    session.execute(updatedCQL);
+                }
             }
         }
     }
 
     private String substituteVars(String cql, Map<String, String> vars) {
-        TokenReplacingReader reader = new TokenReplacingReader(cql, vars);
-        StringWriter writer = new StringWriter();
-        try {
+        try (TokenReplacingReader reader = new TokenReplacingReader(cql, vars);
+            StringWriter writer = new StringWriter()) {
             char[] buffer = new char[32768];
             int cnt;
             while ((cnt = reader.read(buffer)) != -1) {
@@ -89,13 +87,6 @@ public class SchemaManager {
             return writer.toString();
         } catch (IOException e) {
             throw new RuntimeException("Failed to perform variable substition on CQL", e);
-        } finally {
-            try {
-                Closeables.close(reader, true);
-                Closeables.close(writer, true);
-            } catch (IOException e) {
-                logger.info("There was a problem closing resources", e);
-            }
         }
     }
 

@@ -379,13 +379,18 @@ public class MetricsServiceCassandra implements MetricsService {
                     return Futures.immediateFuture(null);
                 } else {
                     List<ResultSetFuture> updateRetentionFutures = new ArrayList<>();
-                    for (MetricType type : retentionsMap.keySet()) {
-                        updateRetentionFutures.add(dataAccess.updateRetentionsIndex(tenant.getId(), type,
-                            retentionsMap.get(type)));
-                        for (Retention r : retentionsMap.get(type)) {
-                            dataRetentions.put(new DataRetentionKey(tenant.getId(), type), r.getValue());
+
+                    for (Map.Entry<MetricType, Set<Retention>> metricTypeSetEntry : retentionsMap.entrySet()) {
+                        updateRetentionFutures.add(dataAccess.updateRetentionsIndex(tenant.getId(),
+                                metricTypeSetEntry.getKey(),
+                                metricTypeSetEntry.getValue()));
+
+                        for (Retention r : metricTypeSetEntry.getValue()) {
+                            dataRetentions.put(new DataRetentionKey(tenant.getId(), metricTypeSetEntry.getKey()),
+                                    r.getValue());
                         }
                     }
+
                     ListenableFuture<List<ResultSet>> updateRetentionsFuture = Futures
                         .allAsList(updateRetentionFutures);
                     return Futures.transform(updateRetentionsFuture, RESULT_SETS_TO_VOID, metricsTasks);
