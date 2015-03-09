@@ -84,10 +84,10 @@ import com.wordnik.swagger.annotations.ApiResponses;
  * Interface to deal with metrics
  * @author Heiko W. Rupp
  */
-@Api(value = "/", description = "Metrics related REST interface")
 @Path("/")
-@Produces(APPLICATION_JSON)
 @Consumes(APPLICATION_JSON)
+@Produces(APPLICATION_JSON)
+@Api(value = "/", description = "Metrics related REST interface")
 public class MetricHandler {
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 

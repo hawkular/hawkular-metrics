@@ -27,6 +27,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
@@ -49,13 +50,13 @@ import com.wordnik.swagger.annotations.ApiResponses;
 /**
  * @author Thomas Segismont
  */
-@Api(value = "/tenants", description = "Tenants related REST interface")
 @Path("/tenants")
+@Consumes(APPLICATION_JSON)
+@Produces(APPLICATION_JSON)
+@Api(value = "/tenants", description = "Tenants related REST interface")
 public class TenantsHandler {
 
-    //
     // TODO: add back retention settings
-    //
 
     @Inject
     private MetricsService metricsService;
@@ -69,7 +70,6 @@ public class TenantsHandler {
             @ApiResponse(code = 409, message = "Given tenant id has already been created.", response = Error.class),
             @ApiResponse(code = 500, message = "An unexpected error occured while trying to create a tenant.",
                     response = Error.class)})
-    @Consumes(APPLICATION_JSON)
     public void createTenant(@Suspended AsyncResponse asyncResponse, @ApiParam(required = true) Tenant params) {
         ListenableFuture<Void> insertFuture = metricsService.createTenant(params);
         Futures.addCallback(insertFuture, new FutureCallback<Void>() {
@@ -101,7 +101,6 @@ public class TenantsHandler {
             @ApiResponse(code = 204, message = "No tenants were found."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching tenants.",
                     response = Error.class)})
-    @Consumes(APPLICATION_JSON)
     public void findTenants(@Suspended AsyncResponse response) {
         ListenableFuture<List<Tenant>> tenantsFuture = metricsService.getTenants();
         Futures.addCallback(tenantsFuture, new FutureCallback<Collection<Tenant>>() {

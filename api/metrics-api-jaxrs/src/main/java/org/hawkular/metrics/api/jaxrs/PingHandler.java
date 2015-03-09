@@ -35,12 +35,12 @@ import com.wordnik.swagger.annotations.ApiOperation;
  * @author Thomas Segismont
  */
 @Path("/ping")
+@Consumes(APPLICATION_JSON)
+@Produces(APPLICATION_JSON)
 public class PingHandler {
 
     @GET
     @POST
-    @Consumes({ APPLICATION_JSON })
-    @Produces({ APPLICATION_JSON })
     @ApiOperation(value = "Returns the current time and serves to check for the availability of the api.",
             response = String.class, responseContainer = "Map")
     public Response ping() {
