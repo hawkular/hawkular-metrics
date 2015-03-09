@@ -207,6 +207,7 @@
         <groupId>org.wildfly.plugins</groupId>
         <artifactId>wildfly-maven-plugin</artifactId>
         <configuration>
+          <skip>${skipTests}</skip>
           <port>${ptrans.wildfly.management.port}</port>
         </configuration>
         <executions>
@@ -218,14 +219,21 @@
             </goals>
             <configuration>
               <serverConfig>standalone-test.xml</serverConfig>
-              <jvmArgs>
-                -Xms64m -Xmx512m -Xss256k -Djava.net.preferIPv4Stack=true
-                -Dsun.rmi.dgc.client.gcInterval=3600000 -Dsun.rmi.dgc.server.gcInterval=3600000
-                -Djboss.socket.binding.port-offset=${ptrans.wildfly.port.offset}
-                -Djboss.server.config.dir=${project.build.directory}/wildfly-configuration
-                -Dhawkular-metrics.backend=${hawkular-metrics.backend} -Dcassandra.keyspace=${cassandra.keyspace} -Dcassandra.resetdb=true
-                -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787
-              </jvmArgs>
+              <javaOpts>
+                <javaOpt>-Xms64m</javaOpt>
+                <javaOpt>-Xmx512m</javaOpt>
+                <javaOpt>-Xss256k</javaOpt>
+                <javaOpt>-Djava.net.preferIPv4Stack=true</javaOpt>
+                <javaOpt>-Dsun.rmi.dgc.client.gcInterval=3600000</javaOpt>
+                <javaOpt>-Dsun.rmi.dgc.server.gcInterval=3600000</javaOpt>
+                <javaOpt>-Djboss.socket.binding.port-offset=${ptrans.wildfly.port.offset}</javaOpt>
+                <javaOpt>-Djboss.server.config.dir=${project.build.directory}/wildfly-configuration</javaOpt>
+                <javaOpt>-Dhawkular-metrics.backend=${hawkular-metrics.backend}</javaOpt>
+                <javaOpt>-Dcassandra.keyspace=${cassandra.keyspace}</javaOpt>
+                <javaOpt>-Dcassandra.resetdb=true</javaOpt>
+                <javaOpt>-Xdebug</javaOpt>
+                <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
+              </javaOpts>
             </configuration>
           </execution>
           <execution>
@@ -235,7 +243,6 @@
               <goal>deploy-artifact</goal>
             </goals>
             <configuration>
-              <skip>${skipTests}</skip>
               <groupId>${project.groupId}</groupId>
               <artifactId>hawkular-metrics-api-jaxrs</artifactId>
               <name>hawkular-metric-rest.war</name>

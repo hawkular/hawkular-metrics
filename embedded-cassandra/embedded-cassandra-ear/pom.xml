@@ -83,12 +83,12 @@
       <plugin>
         <groupId>org.wildfly.plugins</groupId>
         <artifactId>wildfly-maven-plugin</artifactId>
-        <version>1.0.2.Final</version>
         <configuration>
-          <version>${version.wildfly}</version>
-          <skip>false</skip>
-          <jvmArgs>-Dhawkular-metrics.backend=embedded_cass -Xdebug
-            -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</jvmArgs>
+          <javaOpts>
+            <javaOpt>-Dhawkular-metrics.backend=em_cass</javaOpt>
+            <javaOpt>-Xdebug</javaOpt>
+            <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
+          </javaOpts>
         </configuration>
       </plugin>
 
