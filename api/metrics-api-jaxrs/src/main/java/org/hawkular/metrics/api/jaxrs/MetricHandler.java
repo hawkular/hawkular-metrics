@@ -86,6 +86,8 @@ import com.wordnik.swagger.annotations.ApiResponses;
  */
 @Api(value = "/", description = "Metrics related REST interface")
 @Path("/")
+@Produces(APPLICATION_JSON)
+@Consumes(APPLICATION_JSON)
 public class MetricHandler {
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
@@ -102,9 +104,8 @@ public class MetricHandler {
                     response = Error.class),
             @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
                     response = Error.class)})
-    @Consumes(APPLICATION_JSON)
-    public void createNumericMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
-                                    @ApiParam(required = true) NumericMetric metric) {
+    public void createNumericMetric(@Suspended final AsyncResponse asyncResponse,
+            @PathParam("tenantId") String tenantId, @ApiParam(required = true) NumericMetric metric) {
         ListenableFuture<Void> future = metricsService.createMetric(metric);
         Futures.addCallback(future, new MetricCreatedCallback(asyncResponse, metric));
     }
@@ -116,9 +117,8 @@ public class MetricHandler {
             @ApiResponse(code = 400, message = "Metric with given id already exists", response = Error.class),
             @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
                     response = Error.class)})
-    @Consumes(APPLICATION_JSON)
-    public void createAvailabilityMetric(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
-                                         @ApiParam(required = true) AvailabilityMetric metric) {
+    public void createAvailabilityMetric(@Suspended final AsyncResponse asyncResponse,
+            @PathParam("tenantId") String tenantId, @ApiParam(required = true) AvailabilityMetric metric) {
         ListenableFuture<Void> future = metricsService.createMetric(metric);
         Futures.addCallback(future, new MetricCreatedCallback(asyncResponse, metric));
     }
@@ -130,11 +130,11 @@ public class MetricHandler {
             @ApiResponse(code = 204, message = "Query was successful, but no metrics were found."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's tags.",
                     response = Error.class)})
-    public void getNumericMetricTags(@Suspended AsyncResponse response, @PathParam("tenantId") String tenantId,
-        @PathParam("id") String id) {
+    public void getNumericMetricTags(@Suspended final AsyncResponse asyncResponse,
+            @PathParam("tenantId") String tenantId, @PathParam("id") String id) {
         ListenableFuture<Metric> future = metricsService.findMetric(tenantId, MetricType.NUMERIC,
             new MetricId(id));
-        Futures.addCallback(future, new SimpleDataCallback(response));
+        Futures.addCallback(future, new SimpleDataCallback(asyncResponse));
     }
 
     @PUT
@@ -143,12 +143,12 @@ public class MetricHandler {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while updating metric's tags.",
                     response = Error.class)})
-    public void updateNumericMetricTags(@Suspended final AsyncResponse response,
+    public void updateNumericMetricTags(@Suspended final AsyncResponse asyncResponse,
                                         @PathParam("tenantId") String tenantId, @PathParam("id") String id,
                                         @ApiParam(required = true) Map<String, String> tags) {
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
         ListenableFuture<Void> future = metricsService.addTags(metric, MetricUtils.getTags(tags));
-        Futures.addCallback(future, new NoDataCallback(response, "Failed to update tags"));
+        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to update tags"));
     }
 
     @DELETE
@@ -157,13 +157,15 @@ public class MetricHandler {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.",
                     response = Error.class)})
-    public void deleteNumericMetricTags(@Suspended final AsyncResponse response,
-        @PathParam("tenantId") String tenantId, @PathParam("id") String id,
+    public void deleteNumericMetricTags(
+            @Suspended final AsyncResponse asyncResponse,
+            @PathParam("tenantId") String tenantId,
+            @PathParam("id") String id,
         @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
         @PathParam("tags") String encodedTags) {
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
         ListenableFuture<Void> future = metricsService.deleteTags(metric, MetricUtils.decodeTags(encodedTags));
-        Futures.addCallback(future, new NoDataCallback(response, "Failed to delete tags"));
+        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to delete tags"));
     }
 
     @GET
@@ -173,11 +175,11 @@ public class MetricHandler {
             @ApiResponse(code = 204, message = "Query was successful, but no metrics were found."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's tags.",
                     response = Error.class)})
-    public void getAvailabilityMetricTags(@Suspended AsyncResponse response,
+    public void getAvailabilityMetricTags(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id) {
         ListenableFuture<Metric> future = metricsService.findMetric(tenantId, MetricType.AVAILABILITY,
             new MetricId(id));
-        Futures.addCallback(future, new SimpleDataCallback(response));
+        Futures.addCallback(future, new SimpleDataCallback(asyncResponse));
     }
 
     @PUT
@@ -186,12 +188,12 @@ public class MetricHandler {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while updating metric's tags.",
                     response = Error.class)})
-    public void updateAvailabilityMetricTags(@Suspended final AsyncResponse response,
+    public void updateAvailabilityMetricTags(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id,
         @ApiParam(required = true) Map<String, String> tags) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
         ListenableFuture<Void> future = metricsService.addTags(metric, MetricUtils.getTags(tags));
-        Futures.addCallback(future, new NoDataCallback(response, "Failed to update tags"));
+        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to update tags"));
     }
 
     @DELETE
@@ -200,13 +202,14 @@ public class MetricHandler {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.",
                     response = Error.class)})
-    public void deleteAvailabilityMetricTags(@Suspended final AsyncResponse response,
+    public void deleteAvailabilityMetricTags(
+            @Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id,
         @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
         @PathParam("tags") String encodedTags) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
         ListenableFuture<Void> future = metricsService.deleteTags(metric, MetricUtils.decodeTags(encodedTags));
-        Futures.addCallback(future, new NoDataCallback(response, "Failed to delete tags"));
+        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to delete tags"));
     }
 
     @POST
@@ -214,7 +217,6 @@ public class MetricHandler {
     @ApiOperation(value = "Add data for a single numeric metric.")
     @ApiResponses(value = { @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
             response = Error.class)})
-    @Consumes(APPLICATION_JSON)
     public void addDataForMetric(@Suspended final AsyncResponse asyncResponse,
                                  @PathParam("tenantId") final String tenantId, @PathParam("id") String id,
                                  @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
@@ -230,7 +232,6 @@ public class MetricHandler {
 
     @POST
     @Path("/{tenantId}/metrics/availability/{id}/data")
-    @Consumes(APPLICATION_JSON)
     @ApiOperation(value = "Add data for a single availability metric.")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
@@ -254,8 +255,7 @@ public class MetricHandler {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
                     response = Error.class)})
-    @Consumes(APPLICATION_JSON)
-    public void addNumericData(@ApiParam(access = "internal") @Suspended final AsyncResponse asyncResponse,
+    public void addNumericData(@Suspended final AsyncResponse asyncResponse,
                                @PathParam("tenantId") String tenantId,
                                @ApiParam(value = "List of metrics", required = true)
                                List<NumericMetric> metrics) {
@@ -277,7 +277,6 @@ public class MetricHandler {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
                     response = Error.class)})
-    @Consumes(APPLICATION_JSON)
     public void addAvailabilityData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @ApiParam(value = "List of availability metrics", required = true)
         List<AvailabilityMetric> metrics) {
@@ -294,11 +293,11 @@ public class MetricHandler {
     }
 
     @GET
+    @Path("/{tenantId}/numeric")
     @ApiOperation(value = "Find numeric metrics data by their tags.", response = MetricOut.class,
             responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = ""),
             @ApiResponse(code = 500, message = "Any error in the query.", response = Error.class)})
-    @Path("/{tenantId}/numeric")
     public void findNumericDataByTags(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId,
         @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
@@ -309,13 +308,13 @@ public class MetricHandler {
     }
 
     @GET
+    @Path("/{tenantId}/availability")
     @ApiOperation(value = "Find availabilities metrics data by their tags.", response = MetricOut.class,
             responseContainer = "List")
     // See above method and HWKMETRICS-26 for fixes.
     @ApiResponses(value = { @ApiResponse(code = 200, message = ""),
             @ApiResponse(code = 204, message = "No matching availability metrics were found."),
             @ApiResponse(code = 500, message = "Any error in the query.", response = Error.class)})
-    @Path("/{tenantId}/availability")
     public void findAvailabilityDataByTags(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId,
         @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
@@ -326,14 +325,14 @@ public class MetricHandler {
     }
 
     @GET
+    @Path("/{tenantId}/metrics/numeric/{id}/data")
     @ApiOperation(value = "Retrieve numeric data.", response = MetricOut.class)
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched numeric data."),
             @ApiResponse(code = 204, message = "No numeric data was found."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching numeric data.",
                     response = Error.class)})
-    @Path("/{tenantId}/metrics/numeric/{id}/data")
     public void findNumericData(
-        @Suspended final AsyncResponse response,
+            @Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId,
         @PathParam("id") final String id,
         @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") Long start,
@@ -408,17 +407,17 @@ public class MetricHandler {
         Futures.addCallback(outputFuture, new FutureCallback<Object>() {
             @Override
             public void onSuccess(Object output) {
-                response.resume(Response.ok(output).type(APPLICATION_JSON_TYPE).build());
+                asyncResponse.resume(Response.ok(output).type(APPLICATION_JSON_TYPE).build());
             }
 
             @Override
             public void onFailure(Throwable t) {
                 if (t instanceof NoResultsException) {
-                    response.resume(Response.ok().status(Status.NO_CONTENT).build());
+                    asyncResponse.resume(Response.ok().status(Status.NO_CONTENT).build());
                 } else {
                     Error errors = new Error("Failed to retrieve data due to " +
                         "an unexpected error: " + Throwables.getRootCause(t).getMessage());
-                    response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors)
+                    asyncResponse.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors)
                         .type(APPLICATION_JSON_TYPE).build());
                 }
             }
@@ -426,10 +425,10 @@ public class MetricHandler {
     }
 
     @GET
+    @Path("/{tenantId}/metrics/availability/{id}/data")
     @ApiOperation(value = "Retrieve availability data.", response = Availability.class)
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched availability data."),
             @ApiResponse(code = 204, message = "No availability data was found.")})
-    @Path("/{tenantId}/metrics/availability/{id}/data")
     public void findAvailabilityData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @PathParam("id") final String id,
         @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") Long start,
@@ -461,9 +460,9 @@ public class MetricHandler {
     }
 
     @POST
+    @Path("/{tenantId}/metrics/numeric/{id}/tag")
     @ApiOperation(value = "Add or update numeric metric's tags.")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Tags were modified successfully.")})
-    @Path("/{tenantId}/metrics/numeric/{id}/tag")
     public void tagNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
             @PathParam("id") final String id, @ApiParam(required = true) TagRequest params) {
         ListenableFuture<List<NumericData>> future;
@@ -479,9 +478,9 @@ public class MetricHandler {
     }
 
     @POST
+    @Path("/{tenantId}/metrics/availability/{id}/tag")
     @ApiOperation(value = "Add or update availability metric's tags.")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Tags were modified successfully.")})
-    @Path("/{tenantId}/metrics/availability/{id}/tag")
     public void tagAvailabilityData(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId, @PathParam("id") final String id,
             @ApiParam(required = true) TagRequest params) {
@@ -498,11 +497,11 @@ public class MetricHandler {
     }
 
     @GET
+    @Path("/{tenantId}/tags/numeric/{tag}")
     @ApiOperation(value = "Find numeric metric data with given tags.", response = MetricOut.class,
             responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Numeric values fetched successfully"),
             @ApiResponse(code = 500, message = "Any error while fetching data.", response = Error.class)})
-    @Path("/{tenantId}/tags/numeric/{tag}")
     public void findTaggedNumericData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId,
         @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
@@ -513,11 +512,11 @@ public class MetricHandler {
     }
 
     @GET
+    @Path("/{tenantId}/tags/availability/{tag}")
     @ApiOperation(value = "Find availability metric data with given tags.", response = MetricOut.class,
             responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Availability values fetched successfully"),
             @ApiResponse(code = 500, message = "Any error while fetching data.", response = Error.class)})
-    @Path("/{tenantId}/tags/availability/{tag}")
     public void findTaggedAvailabilityData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId,
         @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
@@ -528,78 +527,49 @@ public class MetricHandler {
     }
 
     @POST
-    @ApiOperation(value = "List of counter definitions", hidden = true)
     @Path("/counters")
-    @Produces({APPLICATION_JSON})
+    @ApiOperation(value = "List of counter definitions", hidden = true)
     public void updateCountersForGroups(@Suspended final AsyncResponse asyncResponse, Collection<Counter> counters) {
-        updateCounters(asyncResponse, counters);
+        ListenableFuture<Void> future = metricsService.updateCounters(counters);
+        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to update counters"));
     }
 
     @POST
-    @ApiOperation(value = "Update multiple counters in a single counter group", hidden = true)
     @Path("/counters/{group}")
-    @Produces(APPLICATION_JSON)
+    @ApiOperation(value = "Update multiple counters in a single counter group", hidden = true)
     public void updateCounterForGroup(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group,
         Collection<Counter> counters) {
         for (Counter counter : counters) {
             counter.setGroup(group);
         }
-        updateCounters(asyncResponse, counters);
-    }
-
-    private void updateCounters(final AsyncResponse asyncResponse, Collection<Counter> counters) {
         ListenableFuture<Void> future = metricsService.updateCounters(counters);
-        Futures.addCallback(future, new FutureCallback<Void>() {
-            @Override
-            public void onSuccess(Void result) {
-                Response jaxrs = Response.ok().type(APPLICATION_JSON_TYPE).build();
-                asyncResponse.resume(jaxrs);
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                asyncResponse.resume(t);
-            }
-        });
+        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to update counters"));
     }
 
     @POST
-    @ApiOperation(value = "Increase value of a counter", hidden = true)
     @Path("/counters/{group}/{counter}")
+    @ApiOperation(value = "Increase value of a counter", hidden = true)
     public void updateCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group,
         @PathParam("counter") String counter) {
-        updateCounterValue(asyncResponse, group, counter, 1L);
+        ListenableFuture<Void> future = metricsService
+                .updateCounter(new Counter(DEFAULT_TENANT_ID, group, counter, 1L));
+        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to update counter"));
     }
 
     @POST
-    @ApiOperation(value = "Update value of a counter", hidden = true)
     @Path("/counters/{group}/{counter}/{value}")
+    @ApiOperation(value = "Update value of a counter", hidden = true)
     public void updateCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group,
         @PathParam("counter") String counter, @PathParam("value") Long value) {
-        updateCounterValue(asyncResponse, group, counter, value);
-    }
-
-    private void updateCounterValue(final AsyncResponse asyncResponse, String group, String counter, Long value) {
         ListenableFuture<Void> future = metricsService.updateCounter(new Counter(DEFAULT_TENANT_ID, group, counter,
                 value));
-        Futures.addCallback(future, new FutureCallback<Void>() {
-            @Override
-            public void onSuccess(Void result) {
-                Response jaxrs = Response.ok().type(APPLICATION_JSON_TYPE).build();
-                asyncResponse.resume(jaxrs);
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                asyncResponse.resume(t);
-            }
-        });
+        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to update counter"));
     }
 
     @GET
+    @Path("/counters/{group}")
     @ApiOperation(value = "Retrieve a list of counter values in this group", hidden = true, response = Counter.class,
             responseContainer = "List")
-    @Path("/counters/{group}")
     @Produces({ APPLICATION_JSON })
     public void getCountersForGroup(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group) {
         ListenableFuture<List<Counter>> future = metricsService.findCounters(group);
@@ -607,10 +577,9 @@ public class MetricHandler {
     }
 
     @GET
+    @Path("/counters/{group}/{counter}")
     @ApiOperation(value = "Retrieve value of a counter", hidden = true, response = Counter.class,
             responseContainer = "List")
-    @Path("/counters/{group}/{counter}")
-    @Produces({ APPLICATION_JSON })
     public void getCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") final String group,
         @PathParam("counter") final String counter) {
         ListenableFuture<List<Counter>> future = metricsService.findCounters(group, asList(counter));
@@ -635,7 +604,6 @@ public class MetricHandler {
 
     @GET
     @Path("/{tenantId}/metrics")
-    @Produces(APPLICATION_JSON)
     @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ",
             response = MetricOut.class, responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully retrieved at least one metric "
@@ -644,7 +612,9 @@ public class MetricHandler {
             @ApiResponse(code = 400, message = "Given type is not a valid type.", response = Error.class),
             @ApiResponse(code = 500, message = "Failed to retrieve metrics due to unexpected error.",
                     response = Error.class)})
-    public void findMetrics(@Suspended final AsyncResponse response, @PathParam("tenantId") final String tenantId,
+    public void findMetrics(
+            @Suspended final AsyncResponse asyncResponse,
+            @PathParam("tenantId") final String tenantId,
         @ApiParam(value = "Queried metric type", required = true, allowableValues = "[num, avail, log]")
         @QueryParam("type") String type) {
         MetricType metricType = null;
@@ -652,27 +622,11 @@ public class MetricHandler {
             metricType = MetricType.fromTextCode(type);
         } catch (IllegalArgumentException e) {
             Error errors = new Error("[" + type + "] is not a valid type. Accepted values are num|avail|log");
-            response.resume(Response.status(Status.BAD_REQUEST).entity(errors).type(APPLICATION_JSON_TYPE).build());
+            asyncResponse
+                    .resume(Response.status(Status.BAD_REQUEST).entity(errors).type(APPLICATION_JSON_TYPE).build());
         }
         ListenableFuture<List<Metric>> future = metricsService.findMetrics(tenantId, metricType);
-        Futures.addCallback(future, new FutureCallback<List<Metric>>() {
-            @Override
-            public void onSuccess(List<Metric> metrics) {
-                if (metrics.isEmpty()) {
-                    response.resume(Response.status(Status.NO_CONTENT).type(APPLICATION_JSON_TYPE).build());
-                } else {
-                    response.resume(Response.status(Status.OK).entity(metrics).type(APPLICATION_JSON_TYPE).build());
-                }
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                Error errors = new Error("Failed to retrieve metrics due to " +
-                    "an unexpected error: " + Throwables.getRootCause(t).getMessage());
-                response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors)
-                    .type(APPLICATION_JSON_TYPE).build());
-            }
-        });
+        Futures.addCallback(future, new SimpleDataCallback(asyncResponse));
     }
 
 }
