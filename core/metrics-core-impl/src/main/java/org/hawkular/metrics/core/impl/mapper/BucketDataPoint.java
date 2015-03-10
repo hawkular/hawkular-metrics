@@ -26,11 +26,14 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
  */
 @ApiModel(value = "A bucket is a time range with multiple data items represented by min/avg/max values" +
     "for that time span.")
-public class BucketDataPoint extends IdDataPoint {
+public class BucketDataPoint {
 
     private double min;
     private double max;
     private double avg;
+    private String id;
+    private long timestamp;
+    private double value;
 
     public BucketDataPoint() {
     }
@@ -42,6 +45,33 @@ public class BucketDataPoint extends IdDataPoint {
         this.min = min;
         this.max = max;
         this.avg = avg;
+    }
+
+    @ApiModelProperty(value = "Id of the metric")
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    @ApiModelProperty(value = "Time when the value was obtained in milliseconds since epoch")
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    @ApiModelProperty(value = "The value of this data point")
+    public double getValue() {
+        return value;
+    }
+
+    public void setValue(double value) {
+        this.value = value;
     }
 
     @ApiModelProperty(value = "Minimum value during the time span of the bucket.")

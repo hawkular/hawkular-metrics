@@ -64,7 +64,7 @@ public class AvailabilityMetricMapper implements Function<ResultSet, Availabilit
 
     private AvailabilityMetric getMetric(Row row) {
         AvailabilityMetric metric = new AvailabilityMetric(row.getString(ColumnIndex.TENANT_ID.ordinal()), getId(row),
-            MetricUtils.getTags(row.getMap(ColumnIndex.METRIC_TAGS.ordinal(), String.class, String.class)),
+                row.getMap(ColumnIndex.METRIC_TAGS.ordinal(), String.class, String.class),
             row.getInt(ColumnIndex.DATA_RETENTION.ordinal()));
         metric.setDpart(row.getLong(ColumnIndex.DPART.ordinal()));
 
@@ -77,7 +77,6 @@ public class AvailabilityMetricMapper implements Function<ResultSet, Availabilit
     }
 
     private Map<String, String> getTags(Row row) {
-        Map<String, String> map = row.getMap(ColumnIndex.TAGS.ordinal(), String.class, String.class);
-        return MetricUtils.getTags(map);
+        return row.getMap(ColumnIndex.TAGS.ordinal(), String.class, String.class);
     }
 }

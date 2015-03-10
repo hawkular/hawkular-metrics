@@ -26,12 +26,6 @@ import java.util.Map;
  */
 public class MetricUtils {
 
-    public static Map<String, String> getTags(Map<String, String> map) {
-        return map.entrySet()
-            .stream()
-            .collect(toMap(Map.Entry::getKey, e -> e.getValue()));
-    }
-
     public static Map<String, String> decodeTags(String tags) {
         return Arrays.stream(tags.split(","))
             .map(s -> s.split(":"))

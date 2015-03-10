@@ -17,16 +17,23 @@
 package org.hawkular.metrics.api.jaxrs;
 
 import static java.util.Arrays.asList;
+import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.summarizingDouble;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
 
 import java.util.Collection;
+import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.LongStream;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -55,8 +62,8 @@ import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
-import org.hawkular.metrics.core.impl.mapper.CreateSimpleBuckets;
-import org.hawkular.metrics.core.impl.mapper.MetricOut;
+import org.hawkular.metrics.core.impl.mapper.BucketDataPoint;
+import org.hawkular.metrics.core.impl.mapper.BucketedOutput;
 import org.hawkular.metrics.core.impl.mapper.NoResultsException;
 import org.hawkular.metrics.core.impl.request.TagRequest;
 
@@ -137,7 +144,7 @@ public class MetricHandler {
                                         @PathParam("tenantId") String tenantId, @PathParam("id") String id,
                                         @ApiParam(required = true) Map<String, String> tags) {
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
-        ListenableFuture<Void> future = metricsService.addTags(metric, MetricUtils.getTags(tags));
+        ListenableFuture<Void> future = metricsService.addTags(metric, tags);
         Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
@@ -182,7 +189,7 @@ public class MetricHandler {
         @PathParam("tenantId") String tenantId, @PathParam("id") String id,
         @ApiParam(required = true) Map<String, String> tags) {
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
-        ListenableFuture<Void> future = metricsService.addTags(metric, MetricUtils.getTags(tags));
+        ListenableFuture<Void> future = metricsService.addTags(metric, tags);
         Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
@@ -316,7 +323,7 @@ public class MetricHandler {
 
     @GET
     @Path("/{tenantId}/metrics/numeric/{id}/data")
-    @ApiOperation(value = "Retrieve numeric data.", response = MetricOut.class)
+    @ApiOperation(value = "Retrieve numeric data.", response = List.class)
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched numeric data."),
             @ApiResponse(code = 204, message = "No numeric data was found."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching numeric data.",
@@ -354,7 +361,60 @@ public class MetricHandler {
                 }
             });
         } else {
-            outputFuture = Futures.transform(dataFuture, new CreateSimpleBuckets(start, end, numberOfBuckets, false));
+            final Long startTime = start;
+            final Long endTime = end;
+            outputFuture = Futures.transform(dataFuture, new Function<NumericMetric, BucketedOutput>() {
+
+                @Override
+                public BucketedOutput apply(NumericMetric metric) {
+                    if (metric == null) {
+                        throw new NoResultsException();
+                    }
+                    return doApply(metric);
+                }
+
+                public BucketedOutput doApply(NumericMetric metric) {
+                    // we will have numberOfBuckets buckets over the whole time span
+                    BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(), metric
+                            .getTags());
+                    long bucketSize = (endTime - startTime) / numberOfBuckets;
+
+                    long[] buckets = LongStream.iterate(0, i -> i + 1).limit(numberOfBuckets)
+                            .map(i -> startTime + (i * bucketSize)).toArray();
+
+                    Map<Long, List<NumericData>> map = metric.getData().stream()
+                            .collect(groupingBy(dataPoint -> {
+                                        return stream(buckets)
+                                                .filter(bucket -> dataPoint.getTimestamp() >= bucket
+                                                        && dataPoint.getTimestamp() < bucket + bucketSize)
+                                                .findFirst().getAsLong();
+                            }));
+
+                    Map<Long, DoubleSummaryStatistics> statsMap = map.entrySet().stream()
+                        .collect(toMap(Map.Entry::getKey, entry -> entry.getValue().stream().collect(summarizingDouble(
+                            NumericData::getValue))));
+
+                    for (Long bucket : buckets) {
+                        statsMap.computeIfAbsent(bucket, key -> new DoubleSummaryStatistics());
+                    }
+
+                    output.setData(statsMap.entrySet().stream()
+                        .sorted((left, right) -> left.getKey().compareTo(right.getKey()))
+                            .map(e -> {
+                                // Currently, if a bucket does not contain any data, we set max/min/avg to Double.NaN.
+                                // DoubleSummaryStatistics however uses Double.Infinity for max/min and 0.0 for avg.
+                                if (e.getValue().getCount() > 0) {
+                                    return new BucketDataPoint(metric.getId().getName(), e.getKey(), e.getValue()
+                                            .getMin(), e.getValue().getAverage(), e.getValue().getMax());
+                                }
+                                return new BucketDataPoint(metric.getId().getName(), e.getKey(), Double.NaN,
+                                        Double.NaN, Double.NaN);
+                            })
+                        .collect(toList()));
+
+                    return output;
+                }
+            });
         }
 
         Futures.addCallback(outputFuture, new NoDataCallback<Object>(asyncResponse));
@@ -404,11 +464,9 @@ public class MetricHandler {
         ListenableFuture<List<NumericData>> future;
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
         if (params.getTimestamp() != null) {
-            future = metricsService.tagNumericData(metric, MetricUtils.getTags(params.getTags()),
-                params.getTimestamp());
+            future = metricsService.tagNumericData(metric, params.getTags(), params.getTimestamp());
         } else {
-            future = metricsService.tagNumericData(metric, MetricUtils.getTags(params.getTags()), params.getStart(),
-                params.getEnd());
+            future = metricsService.tagNumericData(metric, params.getTags(), params.getStart(), params.getEnd());
         }
         Futures.addCallback(future, new NoDataCallback<List<NumericData>>(asyncResponse));
     }
@@ -423,11 +481,9 @@ public class MetricHandler {
         ListenableFuture<List<Availability>> future;
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
         if (params.getTimestamp() != null) {
-            future = metricsService.tagAvailabilityData(metric, MetricUtils.getTags(params.getTags()),
-                params.getTimestamp());
+            future = metricsService.tagAvailabilityData(metric, params.getTags(), params.getTimestamp());
         } else {
-            future = metricsService.tagAvailabilityData(metric, MetricUtils.getTags(params.getTags()),
-                params.getStart(), params.getEnd());
+            future = metricsService.tagAvailabilityData(metric, params.getTags(), params.getStart(), params.getEnd());
         }
         Futures.addCallback(future, new NoDataCallback<List<Availability>>(asyncResponse));
     }

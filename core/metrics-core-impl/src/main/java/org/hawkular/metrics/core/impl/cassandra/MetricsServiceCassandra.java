@@ -468,11 +468,10 @@ public class MetricsServiceCassandra implements MetricsService {
                 }
                 Row row = resultSet.one();
                 if (type == MetricType.NUMERIC) {
-                    return new NumericMetric(tenantId, id, MetricUtils.getTags(row.getMap(5, String.class,
-                        String.class)), row.getInt(6));
+                    return new NumericMetric(tenantId, id, row.getMap(5, String.class, String.class), row.getInt(6));
                 } else {
-                    return new AvailabilityMetric(tenantId, id, MetricUtils.getTags(row.getMap(5, String.class,
-                        String.class)), row.getInt(6));
+                    return new AvailabilityMetric(tenantId, id, row.getMap(5, String.class, String.class), row
+                            .getInt(6));
                 }
             }
         }, metricsTasks);

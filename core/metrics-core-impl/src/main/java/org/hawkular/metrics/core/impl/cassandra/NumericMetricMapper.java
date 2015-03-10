@@ -64,8 +64,8 @@ public class NumericMetricMapper implements Function<ResultSet, NumericMetric> {
 
     private NumericMetric getMetric(Row row) {
         NumericMetric metric = new NumericMetric(row.getString(ColumnIndex.TENANT_ID.ordinal()), getId(row),
-            MetricUtils.getTags(row.getMap(ColumnIndex.METRIC_TAGS.ordinal(), String.class, String.class)),
-            row.getInt(ColumnIndex.DATA_RETENTION.ordinal()));
+                row.getMap(ColumnIndex.METRIC_TAGS.ordinal(), String.class, String.class),
+                row.getInt(ColumnIndex.DATA_RETENTION.ordinal()));
         metric.setDpart(row.getLong(ColumnIndex.DPART.ordinal()));
 
         return metric;
@@ -77,7 +77,6 @@ public class NumericMetricMapper implements Function<ResultSet, NumericMetric> {
     }
 
     private Map<String, String> getTags(Row row) {
-        Map<String, String> map = row.getMap(ColumnIndex.TAGS.ordinal(), String.class, String.class);
-        return MetricUtils.getTags(map);
+        return row.getMap(ColumnIndex.TAGS.ordinal(), String.class, String.class);
     }
 }

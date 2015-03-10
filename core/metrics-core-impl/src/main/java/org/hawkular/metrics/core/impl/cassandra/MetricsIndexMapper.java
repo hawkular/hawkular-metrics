@@ -67,8 +67,8 @@ public class MetricsIndexMapper implements Function<ResultSet, List<Metric<?>>> 
         List<Metric<?>> metrics = new ArrayList<>();
         for (Row row : resultSet) {
             metrics.add(new NumericMetric(tenantId, new MetricId(row.getString(ColumnIndex.METRIC_NAME.ordinal()),
-                Interval.parse(row.getString(ColumnIndex.INTERVAL.ordinal()))), MetricUtils.getTags(row.getMap(
-                ColumnIndex.TAGS.ordinal(), String.class, String.class)),
+                    Interval.parse(row.getString(ColumnIndex.INTERVAL.ordinal()))), row.getMap(
+                    ColumnIndex.TAGS.ordinal(), String.class, String.class),
                 row.getInt(ColumnIndex.DATA_RETENTION.ordinal())));
         }
         return metrics;
@@ -78,8 +78,8 @@ public class MetricsIndexMapper implements Function<ResultSet, List<Metric<?>>> 
         List<Metric<?>> metrics = new ArrayList<>();
         for (Row row : resultSet) {
             metrics.add(new AvailabilityMetric(tenantId, new MetricId(row.getString(ColumnIndex.METRIC_NAME.ordinal()),
-                Interval.parse(row.getString(ColumnIndex.INTERVAL.ordinal()))), MetricUtils.getTags(row.getMap(
-                ColumnIndex.TAGS.ordinal(), String.class, String.class)),
+                    Interval.parse(row.getString(ColumnIndex.INTERVAL.ordinal()))), row.getMap(
+                    ColumnIndex.TAGS.ordinal(), String.class, String.class),
                 row.getInt(ColumnIndex.DATA_RETENTION.ordinal())));
         }
         return metrics;
