@@ -328,8 +328,8 @@ public class MetricHandler {
         @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") Long start,
         @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") Long end,
         @ApiParam(value = "The number of buckets or intervals in which to divide the time range. A value of 60 for "
-                + "example will return 60 equally spaced buckets for the time period between start and end times, "
-                    + "having max/min/avg calculated for each bucket.") @QueryParam("buckets") final int numberOfBuckets) {
+                + "example will return 60 equally spaced buckets for the time period between start and end times"
+                + " having max/min/avg calculated for each bucket.") @QueryParam("buckets") final int numberOfBuckets) {
         long now = System.currentTimeMillis();
         if (start == null) {
             start = now - EIGHT_HOURS;

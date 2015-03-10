@@ -65,7 +65,18 @@ class CassandraBackendITest extends RESTTest {
         //retentionSettings:[availability:30, numeric:45]
         ]]
 
-    assertEquals(expectedData, response.data)
+    expectedData.each{
+        def found = null
+        def expected = it
+
+        response.data.each{
+            if ( it.id == expected.id) {
+                found = it;
+            }
+        }
+
+        assertEquals(expected, found)
+    }
   }
 
   void simpleInsertAndQueryNumericData() {
@@ -246,7 +257,7 @@ class CassandraBackendITest extends RESTTest {
     // Let's explicitly create one of the metrics with some tags and a data retention
     // so that we can verify we get back that info along with the data.
     response = hawkularMetrics.post(path: "$tenantId/metrics/availability", body: [
-        name         : 'm2',
+        id         : 'm2',
         tags         : [a: '1', b: '2'],
         dataRetention: 12
     ])
@@ -254,21 +265,21 @@ class CassandraBackendITest extends RESTTest {
 
     response = hawkularMetrics.post(path: "${tenantId}/metrics/availability/data", body: [
         [
-            name: 'm1',
+            id: 'm1',
             data: [
                 [timestamp: start.millis, value: "down"],
                 [timestamp: start.plusMinutes(1).millis, value: "up"]
             ]
         ],
         [
-            name: 'm2',
+            id: 'm2',
             data: [
                 [timestamp: start.millis, value: "up"],
                 [timestamp: start.plusMinutes(1).millis, value: "up"]
             ]
         ],
         [
-            name: 'm3',
+            id: 'm3',
             data: [
                 [timestamp: start.millis, value: "down"],
                 [timestamp: start.plusMinutes(1).millis, value: "down"]

@@ -20,6 +20,8 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Objects;
 
 /**
@@ -38,7 +40,8 @@ public class Availability extends MetricData {
         this.type = type;
     }
 
-    public Availability(long timestamp, AvailabilityType type) {
+    @JsonCreator
+    public Availability(@JsonProperty("timestamp") long timestamp, @JsonProperty("value") AvailabilityType type) {
         super(timestamp);
         this.type = type;
     }
@@ -58,8 +61,7 @@ public class Availability extends MetricData {
         type = AvailabilityType.fromBytes(bytes);
     }
 
-    public Availability(AvailabilityMetric metric, UUID timeUUID, ByteBuffer bytes,
- Map<String, String> tags) {
+    public Availability(AvailabilityMetric metric, UUID timeUUID, ByteBuffer bytes, Map<String, String> tags) {
         super(metric, timeUUID, tags);
         type = AvailabilityType.fromBytes(bytes);
     }
