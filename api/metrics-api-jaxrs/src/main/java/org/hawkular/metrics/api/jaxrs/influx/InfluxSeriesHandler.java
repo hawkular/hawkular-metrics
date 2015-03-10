@@ -146,7 +146,7 @@ public class InfluxSeriesHandler {
                 return numericMetric;
             }).toList();
         ListenableFuture<Void> future = metricsService.addNumericData(numericMetrics);
-        Futures.addCallback(future, new NoDataCallback(asyncResponse, "Failed to insert data"));
+        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
     @GET

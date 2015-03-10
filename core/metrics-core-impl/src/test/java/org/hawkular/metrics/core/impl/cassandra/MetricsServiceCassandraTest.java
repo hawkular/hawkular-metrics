@@ -151,7 +151,7 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         ListenableFuture<Void> insertFuture = metricsService.createMetric(m1);
         getUninterruptibly(insertFuture);
 
-        ListenableFuture<Metric> queryFuture = metricsService.findMetric(m1.getTenantId(), m1.getType(), m1.getId());
+        ListenableFuture<Metric<?>> queryFuture = metricsService.findMetric(m1.getTenantId(), m1.getType(), m1.getId());
         Metric actual = getUninterruptibly(queryFuture);
         assertEquals(actual, m1, "The metric does not match the expected value");
 
@@ -208,9 +208,9 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         ListenableFuture<Void> deleteFuture = metricsService.deleteTags(metric, deletions);
         getUninterruptibly(deleteFuture);
 
-        ListenableFuture<Metric> queryFuture = metricsService.findMetric(metric.getTenantId(), NUMERIC,
+        ListenableFuture<Metric<?>> queryFuture = metricsService.findMetric(metric.getTenantId(), NUMERIC,
             metric.getId());
-        Metric updatedMetric = getUninterruptibly(queryFuture);
+        Metric<?> updatedMetric = getUninterruptibly(queryFuture);
 
         assertEquals(updatedMetric.getTags(), ImmutableMap.of("a2", "two", "a3", "3"),
             "The updated meta data does not match the expected values");
@@ -861,8 +861,8 @@ public class MetricsServiceCassandraTest extends MetricsTest {
 
     private void assertMetricIndexMatches(String tenantId, MetricType type, List<? extends Metric> expected)
         throws Exception {
-        ListenableFuture<List<Metric>> metricsFuture = metricsService.findMetrics(tenantId, type);
-        List<Metric> actualIndex = getUninterruptibly(metricsFuture);
+        ListenableFuture<List<Metric<?>>> metricsFuture = metricsService.findMetrics(tenantId, type);
+        List<Metric<?>> actualIndex = getUninterruptibly(metricsFuture);
 
         assertEquals(actualIndex, expected, "The metrics index results do not match");
     }
