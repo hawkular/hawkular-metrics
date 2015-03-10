@@ -64,7 +64,6 @@ import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
 import org.hawkular.metrics.core.impl.mapper.BucketDataPoint;
 import org.hawkular.metrics.core.impl.mapper.BucketedOutput;
-import org.hawkular.metrics.core.impl.mapper.NoResultsException;
 import org.hawkular.metrics.core.impl.request.TagRequest;
 
 import com.google.common.base.Function;

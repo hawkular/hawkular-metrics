@@ -23,8 +23,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.hawkular.metrics.api.jaxrs.NoResultsException;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
-import org.hawkular.metrics.core.impl.mapper.NoResultsException;
 
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;

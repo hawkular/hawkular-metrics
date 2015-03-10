@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.impl.mapper;
+package org.hawkular.metrics.api.jaxrs;
 
 /**
  * @author John Sanda
  */
+@SuppressWarnings("serial")
 public class NoResultsException extends RuntimeException {
 
     public NoResultsException() {
