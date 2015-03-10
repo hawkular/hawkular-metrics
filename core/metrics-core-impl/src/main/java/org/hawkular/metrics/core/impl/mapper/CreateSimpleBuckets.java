@@ -31,7 +31,9 @@ import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 
-public class CreateSimpleBuckets extends MetricMapper<BucketedOutput> {
+import com.google.common.base.Function;
+
+public class CreateSimpleBuckets implements Function<NumericMetric, BucketedOutput> {
 
     private long startTime;
     private long endTime;
@@ -46,6 +48,13 @@ public class CreateSimpleBuckets extends MetricMapper<BucketedOutput> {
     }
 
     @Override
+    public BucketedOutput apply(NumericMetric metric) {
+        if (metric == null) {
+            throw new NoResultsException();
+        }
+        return doApply(metric);
+    }
+
     public BucketedOutput doApply(NumericMetric metric) {
         // we will have numberOfBuckets buckets over the whole time span
         BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(), metric.getTags());
