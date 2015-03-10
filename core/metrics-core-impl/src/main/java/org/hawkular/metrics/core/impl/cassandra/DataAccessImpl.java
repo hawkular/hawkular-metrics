@@ -508,32 +508,34 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertNumericTag(String tag, String tagValue, List<NumericData> data) {
+    public ResultSetFuture insertNumericTag(String tag, String tagValue, NumericMetric metric,
+            List<NumericData> data) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (NumericData d : data) {
-            batchStatement.add(insertNumericTags.bind(d.getMetric().getTenantId(), tag, tagValue,
-                MetricType.NUMERIC.getCode(), d.getMetric().getId().getName(),
-                d.getMetric().getId().getInterval().toString(), d.getTimeUUID(), d.getValue(), d.getTTL()));
+            batchStatement.add(insertNumericTags.bind(metric.getTenantId(), tag, tagValue,
+                    MetricType.NUMERIC.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+                    d.getTimeUUID(), d.getValue(), d.getTTL()));
         }
         return session.executeAsync(batchStatement);
     }
 
     @Override
-    public ResultSetFuture insertAvailabilityTag(String tag, String tagValue, List<Availability> data) {
+    public ResultSetFuture insertAvailabilityTag(String tag, String tagValue, AvailabilityMetric metric,
+            List<Availability> data) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (Availability a : data) {
-            batchStatement.add(insertAvailabilityTags.bind(a.getMetric().getTenantId(), tag, tagValue,
-                MetricType.AVAILABILITY.getCode(), a.getMetric().getId().getName(),
-                a.getMetric().getId().getInterval().toString(), a.getTimeUUID(), a.getBytes(), a.getTTL()));
+            batchStatement.add(insertAvailabilityTags.bind(metric.getTenantId(), tag, tagValue,
+                    MetricType.AVAILABILITY.getCode(), metric.getId().getName(), metric.getId().getInterval()
+                            .toString(), a.getTimeUUID(), a.getBytes(), a.getTTL()));
         }
         return session.executeAsync(batchStatement);
     }
 
     @Override
-    public ResultSetFuture updateDataWithTag(MetricData data, Map<String, String> tags) {
-        return session.executeAsync(updateDataWithTags.bind(tags, data.getMetric().getTenantId(),
-            data.getMetric().getType().getCode(), data.getMetric().getId().getName(),
-            data.getMetric().getId().getInterval().toString(), data.getMetric().getDpart(), data.getTimeUUID()));
+    public ResultSetFuture updateDataWithTag(Metric<?> metric, MetricData data, Map<String, String> tags) {
+        return session.executeAsync(updateDataWithTags.bind(tags, metric.getTenantId(), metric.getType().getCode(),
+                metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart(),
+                data.getTimeUUID()));
     }
 
     @Override

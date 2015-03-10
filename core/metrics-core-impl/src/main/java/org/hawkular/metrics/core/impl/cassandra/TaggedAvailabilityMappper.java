@@ -21,14 +21,14 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.google.common.base.Function;
-
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricId;
+
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.google.common.base.Function;
 
 /**
  * @author John Sanda
@@ -43,16 +43,16 @@ public class TaggedAvailabilityMappper implements Function<ResultSet, Map<Metric
         for (Row row : resultSet) {
             if (metric == null) {
                 metric = createMetric(row);
-                set.add(createAvailability(row, metric));
+                set.add(createAvailability(row));
             } else {
                 AvailabilityMetric nextMetric = createMetric(row);
                 if (metric.equals(nextMetric)) {
-                    set.add(createAvailability(row, metric));
+                    set.add(createAvailability(row));
                 } else {
                     taggedData.put(metric.getId(), set);
                     metric = nextMetric;
                     set = new LinkedHashSet<>();
-                    set.add(createAvailability(row, metric));
+                    set.add(createAvailability(row));
                 }
             }
         }
@@ -67,8 +67,8 @@ public class TaggedAvailabilityMappper implements Function<ResultSet, Map<Metric
             Interval.parse(row.getString(5))));
     }
 
-    private Availability createAvailability(Row row, AvailabilityMetric metric) {
-        return new Availability(metric, row.getUUID(6), row.getBytes(7));
+    private Availability createAvailability(Row row) {
+        return new Availability(row.getUUID(6), row.getBytes(7));
     }
 
 }

@@ -38,8 +38,6 @@ public abstract class MetricData {
 
     protected UUID timeUUID;
 
-    protected Metric metric;
-
     protected Map<String, String> tags = new HashMap<>();
 
     protected Long writeTime;
@@ -50,34 +48,12 @@ public abstract class MetricData {
      */
     protected Integer ttl;
 
-    public MetricData(Metric metric, UUID timeUUID) {
-        this.metric = metric;
-        this.timeUUID = timeUUID;
-    }
-
-    public MetricData(Metric metric, UUID timeUUID, Map<String, String> tags) {
-        this(metric, timeUUID, tags, null);
-    }
-
-    public MetricData(Metric metric, UUID timeUUID, Map<String, String> tags, Long writeTime) {
-        this.metric = metric;
-        this.timeUUID = timeUUID;
-        this.tags = tags;
-        this.writeTime = writeTime;
-    }
-
-    public MetricData(Metric metric, long timestamp) {
-        this.metric = metric;
-        this.timeUUID = TimeUUIDUtils.getTimeUUID(timestamp);
-    }
-
     public MetricData(UUID timeUUID) {
         this.timeUUID = timeUUID;
     }
 
     public MetricData(UUID timeUUID, Map<String, String> tags) {
-        this.timeUUID = timeUUID;
-        this.tags = tags;
+        this(timeUUID, tags, null);
     }
 
     public MetricData(UUID timeUUID, Map<String, String> tags, Long writeTime) {
@@ -87,15 +63,7 @@ public abstract class MetricData {
     }
 
     public MetricData(long timestamp) {
-        timeUUID = TimeUUIDUtils.getTimeUUID(timestamp);
-    }
-
-    public Metric getMetric() {
-        return metric;
-    }
-
-    public void setMetric(Metric metric) {
-        this.metric = metric;
+        this.timeUUID = TimeUUIDUtils.getTimeUUID(timestamp);
     }
 
     /**

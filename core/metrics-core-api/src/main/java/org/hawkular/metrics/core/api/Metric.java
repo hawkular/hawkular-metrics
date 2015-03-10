@@ -76,7 +76,7 @@ public abstract class Metric<T extends MetricData> {
         return tenantId;
     }
 
-    public Metric setTenantId(String tenantId) {
+    public Metric<T> setTenantId(String tenantId) {
         this.tenantId = tenantId;
         return this;
     }
@@ -114,7 +114,6 @@ public abstract class Metric<T extends MetricData> {
 
     public void addData(T d) {
         this.data.add(d);
-        d.setMetric(this);
     }
 
     public Integer getDataRetention() {
@@ -130,6 +129,7 @@ public abstract class Metric<T extends MetricData> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
+        @SuppressWarnings("rawtypes")
         Metric metric = (Metric) o;
 
         if (dpart != metric.dpart) return false;

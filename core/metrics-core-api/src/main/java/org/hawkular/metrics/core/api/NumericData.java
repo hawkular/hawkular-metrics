@@ -37,26 +37,6 @@ public class NumericData extends MetricData {
 
     private Set<AggregatedValue> aggregatedValues = new HashSet<>();
 
-    public NumericData(NumericMetric metric, long timestamp, double value) {
-        this(metric, TimeUUIDUtils.getTimeUUID(timestamp), value);
-    }
-
-    public NumericData(NumericMetric metric, UUID timeUUID, double value) {
-        super(metric, timeUUID);
-        this.metric = metric;
-        this.value = value;
-    }
-
-    public NumericData(NumericMetric metric, UUID timeUUID, double value, Map<String, String> tags) {
-        super(metric, timeUUID, tags);
-        this.value = value;
-    }
-
-    public NumericData(NumericMetric metric, UUID timeUUID, double value, Map<String, String> tags,
-        Long writeTime) {
-        super(metric, timeUUID, tags, writeTime);
-    }
-
     @JsonCreator
     public NumericData(@JsonProperty("timestamp") long timestamp, @JsonProperty("value") double value) {
         super(timestamp);
@@ -76,18 +56,6 @@ public class NumericData extends MetricData {
     public NumericData(UUID timeUUID, double value, Map<String, String> tags, Long writeTime) {
         super(timeUUID, tags, writeTime);
         this.value = value;
-    }
-
-    /**
-     * Currently not used. It wil be used for breaking up a metric time series into multiple partitions by date. For
-     * example, if we choose to partition by month, then all data collected for a given metric during October would go
-     * into one partition, and data collected during November would go into another partition. This will not impact
-     * writes, but it will make reads more complicated and potentially more expensive if we make the date partition too
-     * small.
-     */
-
-    public Metric getMetric() {
-        return metric;
     }
 
     /**
@@ -143,7 +111,6 @@ public class NumericData extends MetricData {
             .add("timeUUID", timeUUID)
             .add("timestamp", getTimestamp())
             .add("value", value)
-            .add("metric", metric)
             .toString();
     }
 }

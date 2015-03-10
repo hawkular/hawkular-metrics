@@ -18,7 +18,6 @@ package org.hawkular.metrics.api.jaxrs.influx;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -486,8 +485,7 @@ public class InfluxSeriesHandler {
                     LOG.warn("Mapping of '{}' function not yet supported", function);
                 }
                 if(isSingleValue){
-                    NumericMetric metric = new NumericMetric(DEFAULT_TENANT_ID, firstElementInList.getMetric().getId());
-                    out.add(new NumericData(metric, firstElementInList.getTimestamp(), retVal));
+                    out.add(new NumericData(firstElementInList.getTimestamp(), retVal));
                 }
             }
         }

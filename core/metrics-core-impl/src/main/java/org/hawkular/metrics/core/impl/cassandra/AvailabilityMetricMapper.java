@@ -51,12 +51,12 @@ public class AvailabilityMetricMapper implements Function<ResultSet, Availabilit
         }
         Row firstRow = resultSet.one();
         AvailabilityMetric metric = getMetric(firstRow);
-        metric.addData(new Availability(metric, firstRow.getUUID(ColumnIndex.TIME.ordinal()), firstRow.getBytes(
-            ColumnIndex.AVAILABILITY.ordinal()), getTags(firstRow)));
+        metric.addData(new Availability(firstRow.getUUID(ColumnIndex.TIME.ordinal()), firstRow
+                .getBytes(ColumnIndex.AVAILABILITY.ordinal()), getTags(firstRow)));
 
         for (Row row : resultSet) {
-            metric.addData(new Availability(metric, row.getUUID(ColumnIndex.TIME.ordinal()), row.getBytes(
-                ColumnIndex.AVAILABILITY.ordinal()), getTags(row)));
+            metric.addData(new Availability(row.getUUID(ColumnIndex.TIME.ordinal()), row
+                    .getBytes(ColumnIndex.AVAILABILITY.ordinal()), getTags(row)));
         }
 
         return metric;

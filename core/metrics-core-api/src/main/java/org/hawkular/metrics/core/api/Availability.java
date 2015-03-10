@@ -31,13 +31,8 @@ public class Availability extends MetricData {
 
     private AvailabilityType type;
 
-    public Availability(AvailabilityMetric metric, long timestamp, String availability) {
-        this(metric, timestamp, AvailabilityType.fromString(availability));
-    }
-
-    public Availability(AvailabilityMetric metric, long timestamp, AvailabilityType type) {
-        super(metric, timestamp);
-        this.type = type;
+    public Availability(long timestamp, String availability) {
+        this(timestamp, AvailabilityType.fromString(availability));
     }
 
     @JsonCreator
@@ -46,23 +41,18 @@ public class Availability extends MetricData {
         this.type = type;
     }
 
-    public Availability(AvailabilityMetric metric, UUID timeUUID, String availability) {
-        super(metric, timeUUID);
+    public Availability(UUID timeUUID, String availability) {
+        super(timeUUID);
         this.type = AvailabilityType.fromString(availability);
     }
 
-    public Availability(AvailabilityMetric metric, UUID timeUUID, AvailabilityType type) {
-        super(metric, timeUUID);
+    public Availability(UUID timeUUID, AvailabilityType type) {
+        super(timeUUID);
         this.type = type;
     }
 
-    public Availability(AvailabilityMetric metric, UUID timeUUID, ByteBuffer bytes) {
-        super(metric, timeUUID);
-        type = AvailabilityType.fromBytes(bytes);
-    }
-
-    public Availability(AvailabilityMetric metric, UUID timeUUID, ByteBuffer bytes, Map<String, String> tags) {
-        super(metric, timeUUID, tags);
+    public Availability(UUID timeUUID, ByteBuffer bytes) {
+        super(timeUUID);
         type = AvailabilityType.fromBytes(bytes);
     }
 

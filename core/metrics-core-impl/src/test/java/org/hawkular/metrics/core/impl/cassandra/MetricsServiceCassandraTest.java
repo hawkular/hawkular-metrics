@@ -238,9 +238,9 @@ public class MetricsServiceCassandraTest extends MetricsTest {
             end.getMillis());
         List<NumericData> actual = getUninterruptibly(queryFuture);
         List<NumericData> expected = asList(
-            new NumericData(m1, start.plusMinutes(4).getMillis(), 3.3),
-            new NumericData(m1, start.plusMinutes(2).getMillis(), 2.2),
-            new NumericData(m1, start.getMillis(), 1.1)
+            new NumericData(start.plusMinutes(4).getMillis(), 3.3),
+            new NumericData(start.plusMinutes(2).getMillis(), 2.2),
+            new NumericData(start.getMillis(), 1.1)
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
@@ -420,13 +420,13 @@ public class MetricsServiceCassandraTest extends MetricsTest {
             end.getMillis());
         List<NumericData> actual = getUninterruptibly(queryFuture);
         List<NumericData> expected = asList(
-            new NumericData(metric, start.plusMinutes(6).getMillis(), 106.6),
-            new NumericData(metric, start.plusMinutes(5).getMillis(), 105.5),
-            new NumericData(metric, start.plusMinutes(4).getMillis(), 104.4),
-            new NumericData(metric, start.plusMinutes(3).getMillis(), 103.3),
-            new NumericData(metric, start.plusMinutes(2).getMillis(), 102.2),
-            new NumericData(metric, start.plusMinutes(1).getMillis(), 101.1),
-            new NumericData(metric, start.getMillis(), 100.0)
+            new NumericData(start.plusMinutes(6).getMillis(), 106.6),
+            new NumericData(start.plusMinutes(5).getMillis(), 105.5),
+            new NumericData(start.plusMinutes(4).getMillis(), 104.4),
+            new NumericData(start.plusMinutes(3).getMillis(), 103.3),
+            new NumericData(start.plusMinutes(2).getMillis(), 102.2),
+            new NumericData(start.plusMinutes(1).getMillis(), 101.1),
+            new NumericData(start.getMillis(), 100.0)
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
@@ -494,12 +494,12 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenantId)));
 
         AvailabilityMetric m1 = new AvailabilityMetric(tenantId, new MetricId("m1"));
-        m1.addData(new Availability(m1, start.plusSeconds(20).getMillis(), "down"));
-        m1.addData(new Availability(m1, start.plusSeconds(10).getMillis(), "up"));
+        m1.addData(new Availability(start.plusSeconds(20).getMillis(), "down"));
+        m1.addData(new Availability(start.plusSeconds(10).getMillis(), "up"));
 
         AvailabilityMetric m2 = new AvailabilityMetric(tenantId, new MetricId("m2"));
-        m2.addData(new Availability(m2, start.plusSeconds(30).getMillis(), "up"));
-        m2.addData(new Availability(m2, start.plusSeconds(15).getMillis(), "down"));
+        m2.addData(new Availability(start.plusSeconds(30).getMillis(), "up"));
+        m2.addData(new Availability(start.plusSeconds(15).getMillis(), "down"));
 
         AvailabilityMetric m3 = new AvailabilityMetric(tenantId, new MetricId("m3"));
 
@@ -570,13 +570,13 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         AvailabilityMetric actualMetric = getUninterruptibly(queryFuture);
         List<Availability> actual = actualMetric.getData();
         List<Availability> expected = asList(
-            new Availability(metric, start.plusMinutes(6).getMillis(), UP),
-            new Availability(metric, start.plusMinutes(5).getMillis(), UP),
-            new Availability(metric, start.plusMinutes(4).getMillis(), DOWN),
-            new Availability(metric, start.plusMinutes(3).getMillis(), UP),
-            new Availability(metric, start.plusMinutes(2).getMillis(), DOWN),
-            new Availability(metric, start.plusMinutes(1).getMillis(), DOWN),
-            new Availability(metric, start.getMillis(), UP)
+            new Availability(start.plusMinutes(6).getMillis(), UP),
+            new Availability(start.plusMinutes(5).getMillis(), UP),
+            new Availability(start.plusMinutes(4).getMillis(), DOWN),
+            new Availability(start.plusMinutes(3).getMillis(), UP),
+            new Availability(start.plusMinutes(2).getMillis(), DOWN),
+            new Availability(start.plusMinutes(1).getMillis(), DOWN),
+            new Availability(start.getMillis(), UP)
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
@@ -663,15 +663,15 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         AvailabilityMetric m2 = new AvailabilityMetric(tenant, new MetricId("m2"));
         AvailabilityMetric m3 = new AvailabilityMetric(tenant, new MetricId("m3"));
 
-        Availability a1 = new Availability(m1, start.getMillis(), UP);
-        Availability a2 = new Availability(m1, start.plusMinutes(2).getMillis(), UP);
-        Availability a3 = new Availability(m2, start.plusMinutes(6).getMillis(), DOWN);
-        Availability a4 = new Availability(m2, start.plusMinutes(8).getMillis(), DOWN);
-        Availability a5 = new Availability(m2, start.plusMinutes(4).getMillis(), UP);
-        Availability a6 = new Availability(m1, start.plusMinutes(4).getMillis(), DOWN);
-        Availability a7 = new Availability(m2, start.plusMinutes(10).getMillis(), UP);
-        Availability a8 = new Availability(m3, start.plusMinutes(6).getMillis(), DOWN);
-        Availability a9 = new Availability(m3, start.plusMinutes(7).getMillis(), UP);
+        Availability a1 = new Availability(start.getMillis(), UP);
+        Availability a2 = new Availability(start.plusMinutes(2).getMillis(), UP);
+        Availability a3 = new Availability(start.plusMinutes(6).getMillis(), DOWN);
+        Availability a4 = new Availability(start.plusMinutes(8).getMillis(), DOWN);
+        Availability a5 = new Availability(start.plusMinutes(4).getMillis(), UP);
+        Availability a6 = new Availability(start.plusMinutes(4).getMillis(), DOWN);
+        Availability a7 = new Availability(start.plusMinutes(10).getMillis(), UP);
+        Availability a8 = new Availability(start.plusMinutes(6).getMillis(), DOWN);
+        Availability a9 = new Availability(start.plusMinutes(7).getMillis(), UP);
 
         m1.addData(a1);
         m1.addData(a2);
@@ -797,15 +797,15 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         AvailabilityMetric m2 = new AvailabilityMetric(tenant, new MetricId("m2"));
         AvailabilityMetric m3 = new AvailabilityMetric(tenant, new MetricId("m3"));
 
-        Availability a1 = new Availability(m1, start.getMillis(), UP);
-        Availability a2 = new Availability(m1, start.plusMinutes(2).getMillis(), UP);
-        Availability a3 = new Availability(m2, start.plusMinutes(6).getMillis(), DOWN);
-        Availability a4 = new Availability(m2, start.plusMinutes(8).getMillis(), DOWN);
-        Availability a5 = new Availability(m2, start.plusMinutes(4).getMillis(), UP);
-        Availability a6 = new Availability(m1, start.plusMinutes(4).getMillis(), DOWN);
-        Availability a7 = new Availability(m2, start.plusMinutes(10).getMillis(), UP);
-        Availability a8 = new Availability(m3, start.plusMinutes(6).getMillis(), DOWN);
-        Availability a9 = new Availability(m3, start.plusMinutes(7).getMillis(), UP);
+        Availability a1 = new Availability(start.getMillis(), UP);
+        Availability a2 = new Availability(start.plusMinutes(2).getMillis(), UP);
+        Availability a3 = new Availability(start.plusMinutes(6).getMillis(), DOWN);
+        Availability a4 = new Availability(start.plusMinutes(8).getMillis(), DOWN);
+        Availability a5 = new Availability(start.plusMinutes(4).getMillis(), UP);
+        Availability a6 = new Availability(start.plusMinutes(4).getMillis(), DOWN);
+        Availability a7 = new Availability(start.plusMinutes(10).getMillis(), UP);
+        Availability a8 = new Availability(start.plusMinutes(6).getMillis(), DOWN);
+        Availability a9 = new Availability(start.plusMinutes(7).getMillis(), UP);
 
         m1.addData(a1);
         m1.addData(a2);
@@ -982,21 +982,23 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         }
 
         @Override
-        public ResultSetFuture insertNumericTag(String tag, String tagValue, List<NumericData> data) {
+        public ResultSetFuture insertNumericTag(String tag, String tagValue, NumericMetric metric,
+                List<NumericData> data) {
             for (NumericData d : data) {
                 assertTrue(d.getTTL() <= numericTagTTL, "Expected the TTL to be <= " + numericTagTTL +
                     " but it was " + d.getTTL());
             }
-            return super.insertNumericTag(tag, tagValue, data);
+            return super.insertNumericTag(tag, tagValue, metric, data);
         }
 
         @Override
-        public ResultSetFuture insertAvailabilityTag(String tag, String tagValue, List<Availability> data) {
+        public ResultSetFuture insertAvailabilityTag(String tag, String tagValue, AvailabilityMetric metric,
+                List<Availability> data) {
             for (Availability a : data) {
                 assertTrue(a.getTTL() <= availabilityTagTTL, "Expected the TTL to be <= " + availabilityTagTTL +
                     " but it was " + a.getTTL());
             }
-            return super.insertAvailabilityTag(tag, tagValue, data);
+            return super.insertAvailabilityTag(tag, tagValue, metric, data);
         }
     }
 

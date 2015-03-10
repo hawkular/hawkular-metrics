@@ -123,10 +123,10 @@ public class DataAccessTest extends MetricsTest {
         DateTime end = start.plusMinutes(6);
 
         NumericMetric metric = new NumericMetric("tenant-1", new MetricId("metric-1"));
-        metric.addData(new NumericData(metric, start.getMillis(), 1.23));
-        metric.addData(new NumericData(metric, start.plusMinutes(1).getMillis(), 1.234));
-        metric.addData(new NumericData(metric, start.plusMinutes(2).getMillis(), 1.234));
-        metric.addData(new NumericData(metric, end.getMillis(), 1.234));
+        metric.addData(new NumericData(start.getMillis(), 1.23));
+        metric.addData(new NumericData(start.plusMinutes(1).getMillis(), 1.234));
+        metric.addData(new NumericData(start.plusMinutes(2).getMillis(), 1.234));
+        metric.addData(new NumericData(end.getMillis(), 1.234));
 
         getUninterruptibly(dataAccess.insertData(metric, MetricsServiceCassandra.DEFAULT_TTL));
 
@@ -134,9 +134,9 @@ public class DataAccessTest extends MetricsTest {
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
         List<NumericData> actual = getUninterruptibly(dataFuture);
         List<NumericData> expected = asList(
-            new NumericData(metric, start.plusMinutes(2).getMillis(), 1.234),
-            new NumericData(metric, start.plusMinutes(1).getMillis(), 1.234),
-            new NumericData(metric, start.getMillis(), 1.23)
+            new NumericData(start.plusMinutes(2).getMillis(), 1.234),
+            new NumericData(start.plusMinutes(1).getMillis(), 1.234),
+            new NumericData(start.getMillis(), 1.23)
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
@@ -153,19 +153,19 @@ public class DataAccessTest extends MetricsTest {
         ResultSetFuture insertFuture = dataAccess.addTagsAndDataRetention(metric);
         getUninterruptibly(insertFuture);
 
-        metric.addData(new NumericData(metric, start.getMillis(), 1.23));
-        metric.addData(new NumericData(metric, start.plusMinutes(2).getMillis(), 1.234));
-        metric.addData(new NumericData(metric, start.plusMinutes(4).getMillis(), 1.234));
-        metric.addData(new NumericData(metric, end.getMillis(), 1.234));
+        metric.addData(new NumericData(start.getMillis(), 1.23));
+        metric.addData(new NumericData(start.plusMinutes(2).getMillis(), 1.234));
+        metric.addData(new NumericData(start.plusMinutes(4).getMillis(), 1.234));
+        metric.addData(new NumericData(end.getMillis(), 1.234));
         getUninterruptibly(dataAccess.insertData(metric, MetricsServiceCassandra.DEFAULT_TTL));
 
         ResultSetFuture queryFuture = dataAccess.findData(metric, start.getMillis(), end.getMillis());
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
         List<NumericData> actual = getUninterruptibly(dataFuture);
         List<NumericData> expected = asList(
-            new NumericData(metric, start.plusMinutes(4).getMillis(), 1.234),
-            new NumericData(metric, start.plusMinutes(2).getMillis(), 1.234),
-            new NumericData(metric, start.getMillis(), 1.23)
+            new NumericData(start.plusMinutes(4).getMillis(), 1.234),
+            new NumericData(start.plusMinutes(2).getMillis(), 1.234),
+            new NumericData(start.getMillis(), 1.23)
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
@@ -298,14 +298,14 @@ public class DataAccessTest extends MetricsTest {
         DateTime end = start.plusMinutes(6);
         String tenantId = "avail-test";
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId("m1"));
-        metric.addData(new Availability(metric, start.getMillis(), "up"));
+        metric.addData(new Availability(start.getMillis(), "up"));
 
         getUninterruptibly(dataAccess.insertData(metric, 360));
 
         ResultSetFuture future = dataAccess.findAvailabilityData(metric, start.getMillis(), end.getMillis());
         ListenableFuture<List<Availability>> dataFuture = Futures.transform(future, new AvailabilityDataMapper());
         List<Availability> actual = getUninterruptibly(dataFuture);
-        List<Availability> expected = asList(new Availability(metric, start.getMillis(), "up"));
+        List<Availability> expected = asList(new Availability(start.getMillis(), "up"));
 
         assertEquals(actual, expected, "The availability data does not match the expected values");
     }

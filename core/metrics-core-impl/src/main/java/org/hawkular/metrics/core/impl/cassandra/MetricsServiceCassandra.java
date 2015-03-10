@@ -624,9 +624,9 @@ public class MetricsServiceCassandra implements MetricsService {
             @Override
             public ListenableFuture<List<NumericData>> apply(final List<NumericData> taggedData) {
                 List<ResultSetFuture> insertFutures = new ArrayList<>(tags.size());
-                tags.forEach((k, v) -> insertFutures.add(dataAccess.insertNumericTag(k, v, taggedData)));
+                tags.forEach((k, v) -> insertFutures.add(dataAccess.insertNumericTag(k, v, metric, taggedData)));
                 for (NumericData d : taggedData) {
-                    insertFutures.add(dataAccess.updateDataWithTag(d, tags));
+                    insertFutures.add(dataAccess.updateDataWithTag(metric, d, tags));
                 }
                 ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
                 return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> taggedData);
@@ -646,10 +646,10 @@ public class MetricsServiceCassandra implements MetricsService {
             @Override
             public ListenableFuture<List<Availability>> apply(final List<Availability> taggedData) throws Exception {
                 List<ResultSetFuture> insertFutures = new ArrayList<>(taggedData.size());
-                tags.forEach((k, v) -> insertFutures.add(dataAccess.insertAvailabilityTag(k, v,
+                tags.forEach((k, v) -> insertFutures.add(dataAccess.insertAvailabilityTag(k, v, metric,
                     taggedData)));
                 for (Availability a : taggedData) {
-                    insertFutures.add(dataAccess.updateDataWithTag(a, tags));
+                    insertFutures.add(dataAccess.updateDataWithTag(metric, a, tags));
                 }
                 ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
                 return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> taggedData);
@@ -673,9 +673,9 @@ public class MetricsServiceCassandra implements MetricsService {
                     return Futures.immediateFuture(results);
                 }
                 List<ResultSetFuture> insertFutures = new ArrayList<>(tags.size());
-                tags.forEach((k, v) -> insertFutures.add(dataAccess.insertNumericTag(k, v, data)));
+                tags.forEach((k, v) -> insertFutures.add(dataAccess.insertNumericTag(k, v, metric, data)));
                 for (NumericData d : data) {
-                    insertFutures.add(dataAccess.updateDataWithTag(d, tags));
+                    insertFutures.add(dataAccess.updateDataWithTag(metric, d, tags));
                 }
                 ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
                 return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> data);
@@ -699,9 +699,9 @@ public class MetricsServiceCassandra implements MetricsService {
                     return Futures.immediateFuture(results);
                 }
                 List<ResultSetFuture> insertFutures = new ArrayList<>();
-                tags.forEach((k, v) -> dataAccess.insertAvailabilityTag(k, v, data));
+                tags.forEach((k, v) -> dataAccess.insertAvailabilityTag(k, v, metric, data));
                 for (Availability a : data) {
-                    insertFutures.add(dataAccess.updateDataWithTag(a, tags));
+                    insertFutures.add(dataAccess.updateDataWithTag(metric, a, tags));
                 }
                 ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
                 return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> data);

@@ -50,15 +50,15 @@ public class NumericMetric extends Metric<NumericData> {
     }
 
     public void addData(long timestamp, double value) {
-        addData(new NumericData(this, timestamp, value));
+        addData(new NumericData(timestamp, value));
     }
 
     public void addData(UUID timeUUID, double value) {
-        addData(new NumericData(this, timeUUID, value));
+        addData(new NumericData(timeUUID, value));
     }
 
     public void addData(UUID timeUUID, double value, Map<String, String> tags) {
-        addData(new NumericData(this, timeUUID, value, tags));
+        addData(new NumericData(timeUUID, value, tags));
     }
 
 }

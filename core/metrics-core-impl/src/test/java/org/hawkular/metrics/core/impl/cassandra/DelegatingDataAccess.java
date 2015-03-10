@@ -149,18 +149,20 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertNumericTag(String tag, String tagValue, List<NumericData> data) {
-        return delegate.insertNumericTag(tag, tagValue, data);
+    public ResultSetFuture insertNumericTag(String tag, String tagValue, NumericMetric metric,
+            List<NumericData> data) {
+        return delegate.insertNumericTag(tag, tagValue, metric, data);
     }
 
     @Override
-    public ResultSetFuture insertAvailabilityTag(String tag, String tagValue, List<Availability> data) {
-        return delegate.insertAvailabilityTag(tag, tagValue, data);
+    public ResultSetFuture insertAvailabilityTag(String tag, String tagValue, AvailabilityMetric metric,
+            List<Availability> data) {
+        return delegate.insertAvailabilityTag(tag, tagValue, metric, data);
     }
 
     @Override
-    public ResultSetFuture updateDataWithTag(MetricData data, Map<String, String> tags) {
-        return delegate.updateDataWithTag(data, tags);
+    public ResultSetFuture updateDataWithTag(Metric<?> metric, MetricData data, Map<String, String> tags) {
+        return delegate.updateDataWithTag(metric, data, tags);
     }
 
     @Override

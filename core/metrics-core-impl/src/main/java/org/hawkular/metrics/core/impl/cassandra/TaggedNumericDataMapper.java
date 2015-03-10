@@ -21,14 +21,14 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.google.common.base.Function;
-
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
+
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.google.common.base.Function;
 
 /**
  * @author John Sanda
@@ -43,16 +43,16 @@ public class TaggedNumericDataMapper implements Function<ResultSet, Map<MetricId
         for (Row row : resultSet) {
             if (metric == null) {
                 metric = createMetric(row);
-                set.add(createNumericData(row, metric));
+                set.add(createNumericData(row));
             } else {
                 NumericMetric nextMetric = createMetric(row);
                 if (metric.equals(nextMetric)) {
-                    set.add(createNumericData(row, metric));
+                    set.add(createNumericData(row));
                 } else {
                     taggedData.put(metric.getId(), set);
                     metric = nextMetric;
                     set = new LinkedHashSet<>();
-                    set.add(createNumericData(row, metric));
+                    set.add(createNumericData(row));
                 }
             }
         }
@@ -66,8 +66,8 @@ public class TaggedNumericDataMapper implements Function<ResultSet, Map<MetricId
         return new NumericMetric(row.getString(0), new MetricId(row.getString(4), Interval.parse(row.getString(5))));
     }
 
-    private NumericData createNumericData(Row row, NumericMetric metric) {
-        return new NumericData(metric, row.getUUID(6), row.getDouble(7));
+    private NumericData createNumericData(Row row) {
+        return new NumericData(row.getUUID(6), row.getDouble(7));
     }
 
 }
