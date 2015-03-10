@@ -90,7 +90,7 @@ public abstract class ExecutableITestBase {
         ptransProcessBuilder.command(JAVA, "-jar", PTRANS_ALL);
     }
 
-    void assertPtransHasStarted(Process process, File output) throws Exception {
+    protected void assertPtransHasStarted(Process process, File output) throws Exception {
         boolean isRunning = process.isAlive() && ptransOutputHasStartMessage(output);
         while (!isRunning) {
             isRunning = !ptransProcess.waitFor(1, SECONDS) && ptransOutputHasStartMessage(output);
