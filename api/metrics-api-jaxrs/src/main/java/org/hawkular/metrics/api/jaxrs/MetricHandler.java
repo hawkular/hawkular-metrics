@@ -22,10 +22,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
-import gnu.trove.map.TLongObjectMap;
-import gnu.trove.map.hash.TLongObjectHashMap;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +31,6 @@ import java.util.Set;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -59,9 +55,7 @@ import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
-import org.hawkular.metrics.core.impl.mapper.ClusterBucketData;
 import org.hawkular.metrics.core.impl.mapper.CreateSimpleBuckets;
-import org.hawkular.metrics.core.impl.mapper.FlattenBuckets;
 import org.hawkular.metrics.core.impl.mapper.MetricOut;
 import org.hawkular.metrics.core.impl.mapper.NoResultsException;
 import org.hawkular.metrics.core.impl.request.TagRequest;
@@ -335,11 +329,7 @@ public class MetricHandler {
         @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") Long end,
         @ApiParam(value = "The number of buckets or intervals in which to divide the time range. A value of 60 for "
                 + "example will return 60 equally spaced buckets for the time period between start and end times, "
-                + "having max/min/avg calculated for each bucket.") @QueryParam("buckets") final int numberOfBuckets,
-        @QueryParam("bucketWidthSeconds") final int bucketWidthSeconds,
-        @QueryParam("skipEmpty") @DefaultValue("false") final boolean skipEmpty,
-        @QueryParam("bucketCluster") @DefaultValue("true") final boolean bucketCluster) {
-
+                    + "having max/min/avg calculated for each bucket.") @QueryParam("buckets") final int numberOfBuckets) {
         long now = System.currentTimeMillis();
         if (start == null) {
             start = now - EIGHT_HOURS;
@@ -364,50 +354,7 @@ public class MetricHandler {
                 }
             });
         } else {
-            if (bucketWidthSeconds == 0) {
-                outputFuture = Futures.transform(dataFuture, new CreateSimpleBuckets(start, end, numberOfBuckets,
-                    skipEmpty));
-            } else {
-                ListenableFuture<List<? extends Object>> bucketsFuture = Futures.transform(dataFuture,
-                        new Function<NumericMetric, List<? extends Object>>() {
-                            @Override
-                            public List<? extends Object> apply(NumericMetric metric) {
-                                if (metric == null) {
-                                    throw new NoResultsException();
-                                }
-
-                                long totalLength = (long) numberOfBuckets * bucketWidthSeconds * 1000L;
-                                long minTs = Long.MAX_VALUE;
-                                for (NumericData d : metric.getData()) {
-                                    if (d.getTimestamp() < minTs) {
-                                        minTs = d.getTimestamp();
-                                }
-                                }
-
-                                TLongObjectMap<List<NumericData>> buckets = new TLongObjectHashMap<>(numberOfBuckets);
-                                for (NumericData d : metric.getData()) {
-                                    long bucket = d.getTimestamp() - minTs;
-                                    bucket = bucket % totalLength;
-                                    bucket = bucket / (bucketWidthSeconds * 1000L);
-                                    List<NumericData> tmpList = buckets.get(bucket);
-                                    if (tmpList == null) {
-                                        tmpList = new ArrayList<>();
-                                        buckets.put(bucket, tmpList);
-                                }
-                                    tmpList.add(d);
-                            }
-                                return asList(metric, buckets);
-                            }
-                });
-
-                if (bucketCluster) {
-                    outputFuture = Futures.transform(bucketsFuture, new FlattenBuckets(numberOfBuckets,
-                        bucketWidthSeconds, skipEmpty));
-                } else {
-                    outputFuture = Futures.transform(bucketsFuture, new ClusterBucketData(numberOfBuckets,
-                        bucketWidthSeconds));
-                }
-            }
+            outputFuture = Futures.transform(dataFuture, new CreateSimpleBuckets(start, end, numberOfBuckets, false));
         }
 
         Futures.addCallback(outputFuture, new NoDataCallback<Object>(asyncResponse));
