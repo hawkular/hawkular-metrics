@@ -121,7 +121,7 @@ public class MetricHandler {
 
     @GET
     @Path("/{tenantId}/metrics/numeric/{id}/tags")
-    @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = MetricOut.class)
+    @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = Metric.class)
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric's tags were successfully retrieved."),
             @ApiResponse(code = 204, message = "Query was successful, but no metrics were found."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's tags.",
@@ -166,7 +166,7 @@ public class MetricHandler {
 
     @GET
     @Path("/{tenantId}/metrics/availability/{id}/tags")
-    @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = MetricOut.class)
+    @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = Map.class)
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric's tags were successfully retrieved."),
             @ApiResponse(code = 204, message = "Query was successful, but no metrics were found."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's tags.",
@@ -290,7 +290,7 @@ public class MetricHandler {
 
     @GET
     @Path("/{tenantId}/numeric")
-    @ApiOperation(value = "Find numeric metrics data by their tags.", response = MetricOut.class,
+    @ApiOperation(value = "Find numeric metrics data by their tags.", response = Map.class,
             responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = ""),
             @ApiResponse(code = 500, message = "Any error in the query.", response = Error.class)})
@@ -502,7 +502,7 @@ public class MetricHandler {
 
     @GET
     @Path("/{tenantId}/tags/availability/{tag}")
-    @ApiOperation(value = "Find availability metric data with given tags.", response = MetricOut.class,
+    @ApiOperation(value = "Find availability metric data with given tags.", response = Map.class,
             responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Availability values fetched successfully"),
             @ApiResponse(code = 500, message = "Any error while fetching data.", response = Error.class)})
@@ -594,7 +594,7 @@ public class MetricHandler {
     @GET
     @Path("/{tenantId}/metrics")
     @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ",
-            response = MetricOut.class, responseContainer = "List")
+            response = List.class, responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully retrieved at least one metric "
             + "definition."),
             @ApiResponse(code = 204, message = "No metrics found."),
