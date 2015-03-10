@@ -22,8 +22,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.nio.file.Files;
 
 import org.junit.After;
@@ -32,9 +30,7 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestWatcher;
 import org.junit.rules.Timeout;
-import org.junit.runner.Description;
 
 import com.google.common.io.Resources;
 
@@ -57,7 +53,13 @@ public abstract class ExecutableITestBase {
 
     @Rule
     public final RuleChain ruleChain = RuleChain.outerRule(temporaryFolder)
-                                                .around(new PrintOutputOnFailureWatcher())
+                                                .around(
+                                                        new PrintOutputOnFailureWatcher(
+                                                                "ptrans",
+                                                                () -> ptransOut,
+                                                                () -> ptransErr
+                                                        )
+                                                )
                                                 .around(new Timeout(1, MINUTES));
 
     @BeforeClass
@@ -106,29 +108,4 @@ public abstract class ExecutableITestBase {
         }
     }
 
-    private class PrintOutputOnFailureWatcher extends TestWatcher {
-        private static final String SEPARATOR = "###########";
-
-        @Override
-        protected void failed(Throwable e, Description description) {
-            StringWriter stringWriter = new StringWriter();
-            PrintWriter printWriter = new PrintWriter(stringWriter);
-            printWriter.printf("%s, ptrans output%n", description.getMethodName());
-            printWriter.println(SEPARATOR);
-            try {
-                Files.readAllLines(ptransOut.toPath()).forEach(printWriter::println);
-            } catch (IOException ignored) {
-            }
-            printWriter.println(SEPARATOR);
-            printWriter.printf("%s, ptrans err%n", description.getMethodName());
-            printWriter.println(SEPARATOR);
-            try {
-                Files.readAllLines(ptransErr.toPath()).forEach(printWriter::println);
-            } catch (IOException ignored) {
-            }
-            printWriter.println(SEPARATOR);
-            printWriter.close();
-            System.out.println(stringWriter.toString());
-        }
-    }
 }
