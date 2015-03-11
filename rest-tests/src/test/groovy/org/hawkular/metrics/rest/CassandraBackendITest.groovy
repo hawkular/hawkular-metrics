@@ -292,14 +292,8 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            tenantId     : tenantId,
-            id           : 'm2',
-            tags         : [a: '1', b: '2'],
-            dataRetention: 12,
-            data         : [
-                [timestamp: start.plusMinutes(1).millis, value: "up"],
-                [timestamp: start.millis, value: "up"]
-            ]
+         [timestamp: start.plusMinutes(1).millis, value: "up"],
+         [timestamp: start.millis, value: "up"]
         ],
         response.data
     )

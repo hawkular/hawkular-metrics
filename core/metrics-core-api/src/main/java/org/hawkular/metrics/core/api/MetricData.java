@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.datastax.driver.core.utils.UUIDs;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * @author John Sanda
@@ -36,6 +37,7 @@ public abstract class MetricData {
         }
     };
 
+    @JsonIgnore
     protected UUID timeUUID;
 
     protected Map<String, String> tags = new HashMap<>();

@@ -30,6 +30,7 @@ import com.google.common.base.Objects;
  */
 public class Availability extends MetricData {
 
+    @JsonProperty("value")
     private AvailabilityType type;
 
     public Availability(long timestamp, String availability) {
