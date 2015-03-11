@@ -155,8 +155,7 @@ class InfluxITest extends RESTTest {
         [
             [
                 columns: ["time", "mean"],
-                name   : timeseriesName,
-                points : []
+                name: timeseriesName
             ]
         ],
         response.data

@@ -79,6 +79,7 @@ class CassandraBackendITest extends RESTTest {
     }
   }
 
+  @Test
   void simpleInsertAndQueryNumericData() {
     DateTimeService dateTimeService = new DateTimeService()
     String tenantId = nextTenantId()
@@ -233,14 +234,8 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            tenantId: tenantId,
-            id: 'm2',
-            tags: [a: '1', b: '2'],
-            dataRetention: 24,
-            data: [
-                [timestamp: start.plusMinutes(1).millis, value: 2.2],
-                [timestamp: start.millis, value: 2.1],
-            ]
+            [timestamp: start.plusMinutes(1).millis, value: 2.2],
+            [timestamp: start.millis, value: 2.1],
         ],
         response.data
     )
@@ -595,8 +590,7 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
 
     def tagData = { metric, tags ->
-      response = hawkularMetrics.post(path: "$tenantId/tags/numeric", body: [
-          metric: metric,
+      response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/$metric/tag", body: [
           start : start.plusMinutes(6).millis,
           end   : start.plusMinutes(10).millis,
           tags  : tags

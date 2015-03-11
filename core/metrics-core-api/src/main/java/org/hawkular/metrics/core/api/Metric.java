@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.base.Objects;
 
 /**
@@ -39,6 +40,7 @@ public abstract class Metric<T extends MetricData> {
     // When we implement date partitioning, dpart will have to be determined based on the
     // start and end params of queries. And it is possible the the date range spans
     // multiple date partitions.
+    @JsonIgnore
     private long dpart = DPART;
 
     private List<T> data = new ArrayList<>();
@@ -70,6 +72,7 @@ public abstract class Metric<T extends MetricData> {
         }
     }
 
+    @JsonIgnore
     public abstract MetricType getType();
 
     public String getTenantId() {

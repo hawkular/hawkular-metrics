@@ -349,7 +349,6 @@ public class MetricHandler {
         ListenableFuture<? extends Object> outputFuture = null;
         if (numberOfBuckets == 0) {
             outputFuture = Futures.transform(dataFuture, new Function<NumericMetric, List<NumericData>>() {
-
                 @Override
                 public List<NumericData> apply(NumericMetric metric) {
                     if (metric == null) {
@@ -416,7 +415,7 @@ public class MetricHandler {
             });
         }
 
-        Futures.addCallback(outputFuture, new NoDataCallback<Object>(asyncResponse));
+        Futures.addCallback(outputFuture, new SimpleDataCallback<Object>(asyncResponse));
     }
 
     @GET
