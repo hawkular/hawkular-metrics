@@ -19,7 +19,6 @@ package org.hawkular.metrics.core.api;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import com.datastax.driver.core.Session;
@@ -67,15 +66,15 @@ public interface MetricsService {
 
     ListenableFuture<List<Tenant>> getTenants();
 
-    ListenableFuture<Void> createMetric(Metric metric);
+    ListenableFuture<Void> createMetric(Metric<?> metric);
 
-    ListenableFuture<Metric> findMetric(String tenantId, MetricType type, MetricId id);
+    ListenableFuture<Metric<?>> findMetric(String tenantId, MetricType type, MetricId id);
 
-    ListenableFuture<List<Metric>> findMetrics(String tenantId, MetricType type);
+    ListenableFuture<List<Metric<?>>> findMetrics(String tenantId, MetricType type);
 
-    ListenableFuture<Void> addTags(Metric metric, Map<String, Optional<String>> tags);
+    ListenableFuture<Void> addTags(Metric metric, Map<String, String> tags);
 
-    ListenableFuture<Void> deleteTags(Metric metric, Map<String, Optional<String>> tags);
+    ListenableFuture<Void> deleteTags(Metric metric, Map<String, String> tags);
 
     ListenableFuture<Void> addNumericData(List<NumericMetric> metrics);
 
@@ -99,21 +98,20 @@ public interface MetricsService {
     /** Check if a metric with the passed {id} has been stored in the system */
     ListenableFuture<Boolean> idExists(String id);
 
-    ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Map<String, Optional<String>> tags,
+    ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Map<String, String> tags,
         long start, long end);
 
-    ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric,
-        Map<String, Optional<String>> tags, long start, long end);
+    ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, Map<String, String> tags,
+            long start, long end);
 
-    ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Map<String, Optional<String>> tags,
+    ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Map<String, String> tags,
         long timestamp);
 
-    ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric,
-        Map<String, Optional<String>> tags, long timestamp);
+    ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, Map<String, String> tags,
+            long timestamp);
 
-    ListenableFuture<Map<MetricId, Set<NumericData>>> findNumericDataByTags(String tenantId,
-        Map<String, Optional<String>> tags);
+    ListenableFuture<Map<MetricId, Set<NumericData>>> findNumericDataByTags(String tenantId, Map<String, String> tags);
 
     ListenableFuture<Map<MetricId, Set<Availability>>> findAvailabilityByTags(String tenantId,
-        Map<String, Optional<String>> tags);
+            Map<String, String> tags);
 }

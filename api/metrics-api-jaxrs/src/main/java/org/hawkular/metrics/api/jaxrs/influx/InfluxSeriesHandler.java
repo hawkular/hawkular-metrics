@@ -18,11 +18,6 @@ package org.hawkular.metrics.api.jaxrs.influx;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-import static javax.ws.rs.core.Response.ResponseBuilder;
-import static javax.ws.rs.core.Response.Status;
-import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.QueryContext;
-import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.SelectQueryContext;
-import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,19 +39,15 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
-
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import javax.ws.rs.core.Response.ResponseBuilder;
+import javax.ws.rs.core.Response.Status;
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
-import org.hawkular.metrics.api.jaxrs.DataInsertedCallback;
-import org.hawkular.metrics.api.jaxrs.StringValue;
+import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
 import org.hawkular.metrics.api.jaxrs.influx.query.InfluxQueryParseTreeWalker;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser;
+import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.QueryContext;
+import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.SelectQueryContext;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParserFactory;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.QueryParseException;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.AggregatedColumnDefinition;
@@ -75,6 +66,7 @@ import org.hawkular.metrics.api.jaxrs.influx.query.validation.IllegalQueryExcept
 import org.hawkular.metrics.api.jaxrs.influx.query.validation.QueryValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InfluxObjectValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InvalidObjectException;
+import org.hawkular.metrics.api.jaxrs.util.StringValue;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
@@ -85,6 +77,13 @@ import org.joda.time.Instant;
 import org.joda.time.Interval;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * Some support for InfluxDB clients like Grafana.
@@ -141,12 +140,12 @@ public class InfluxSeriesHandler {
                         timestamp = ((Number) point.get((valueColumnIndex + 1) % 2)).longValue();
                         value = ((Number) point.get(valueColumnIndex)).doubleValue();
                     }
-                    numericMetric.addData(timestamp, value);
+                        numericMetric.addData(new NumericData(timestamp, value));
                 }
                 return numericMetric;
             }).toList();
         ListenableFuture<Void> future = metricsService.addNumericData(numericMetrics);
-        Futures.addCallback(future, new DataInsertedCallback(asyncResponse, "Failed to insert data"));
+        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
     @GET
@@ -187,10 +186,10 @@ public class InfluxSeriesHandler {
     }
 
     private void listSeries(AsyncResponse asyncResponse, String tenantId) {
-        ListenableFuture<List<Metric>> future = metricsService.findMetrics(tenantId, MetricType.NUMERIC);
-        Futures.addCallback(future, new FutureCallback<List<Metric>>() {
+        ListenableFuture<List<Metric<?>>> future = metricsService.findMetrics(tenantId, MetricType.NUMERIC);
+        Futures.addCallback(future, new FutureCallback<List<Metric<?>>>() {
             @Override
-            public void onSuccess(List<Metric> result) {
+            public void onSuccess(List<Metric<?>> result) {
                 List<InfluxObject> objects = new ArrayList<>(result.size());
 
                 for (Metric metric : result) {
@@ -486,8 +485,7 @@ public class InfluxSeriesHandler {
                     LOG.warn("Mapping of '{}' function not yet supported", function);
                 }
                 if(isSingleValue){
-                    NumericMetric metric = new NumericMetric(DEFAULT_TENANT_ID, firstElementInList.getMetric().getId());
-                    out.add(new NumericData(metric, firstElementInList.getTimestamp(), retVal));
+                    out.add(new NumericData(firstElementInList.getTimestamp(), retVal));
                 }
             }
         }

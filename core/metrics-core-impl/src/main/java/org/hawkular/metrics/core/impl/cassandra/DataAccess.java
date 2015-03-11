@@ -21,8 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.datastax.driver.core.ResultSetFuture;
-
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Counter;
@@ -36,30 +34,32 @@ import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
 
+import com.datastax.driver.core.ResultSetFuture;
+
 /**
  * @author John Sanda
  */
 public interface DataAccess {
-        ResultSetFuture insertTenant(Tenant tenant);
+    ResultSetFuture insertTenant(Tenant tenant);
 
     ResultSetFuture findAllTenantIds();
 
     ResultSetFuture findTenant(String id);
 
-    ResultSetFuture insertMetricInMetricsIndex(Metric metric);
+    ResultSetFuture insertMetricInMetricsIndex(Metric<?> metric);
 
     ResultSetFuture findMetric(String tenantId, MetricType type, MetricId id, long dpart);
 
-    ResultSetFuture addTagsAndDataRetention(Metric metric);
+    ResultSetFuture addTagsAndDataRetention(Metric<?> metric);
 
-    ResultSetFuture addTags(Metric metric, Map<String, String> tags);
+    ResultSetFuture addTags(Metric<?> metric, Map<String, String> tags);
 
-    ResultSetFuture deleteTags(Metric metric, Set<String> tags);
+    ResultSetFuture deleteTags(Metric<?> metric, Set<String> tags);
 
-    ResultSetFuture updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
+    ResultSetFuture updateTagsInMetricsIndex(Metric<?> metric, Map<String, String> additions,
         Set<String> deletions);
 
-    <T extends Metric> ResultSetFuture updateMetricsIndex(List<T> metrics);
+    <T extends Metric<?>> ResultSetFuture updateMetricsIndex(List<T> metrics);
 
     ResultSetFuture findMetricsInMetricsIndex(String tenantId, MetricType type);
 
@@ -81,11 +81,12 @@ public interface DataAccess {
 
     ResultSetFuture findAllNumericMetrics();
 
-    ResultSetFuture insertNumericTag(String tag, String tagValue, List<NumericData> data);
+    ResultSetFuture insertNumericTag(String tag, String tagValue, NumericMetric metric, List<NumericData> data);
 
-    ResultSetFuture insertAvailabilityTag(String tag, String tagValue, List<Availability> data);
+    ResultSetFuture insertAvailabilityTag(String tag, String tagValue, AvailabilityMetric metric,
+            List<Availability> data);
 
-    ResultSetFuture updateDataWithTag(MetricData data, Map<String, String> tags);
+    ResultSetFuture updateDataWithTag(Metric<?> metric, MetricData data, Map<String, String> tags);
 
     ResultSetFuture findNumericDataByTag(String tenantId, String tag, String tagValue);
 
@@ -103,11 +104,11 @@ public interface DataAccess {
 
     ResultSetFuture updateRetentionsIndex(String tenantId, MetricType type, Set<Retention> retentions);
 
-    ResultSetFuture updateRetentionsIndex(Metric metric);
+    ResultSetFuture updateRetentionsIndex(Metric<?> metric);
 
-    ResultSetFuture insertIntoMetricsTagsIndex(Metric metric, Map<String, String> tags);
+    ResultSetFuture insertIntoMetricsTagsIndex(Metric<?> metric, Map<String, String> tags);
 
-    ResultSetFuture deleteFromMetricsTagsIndex(Metric metric, Map<String, String> tags);
+    ResultSetFuture deleteFromMetricsTagsIndex(Metric<?> metric, Map<String, String> tags);
 
     ResultSetFuture findMetricsByTag(String tenantId, String tag);
 }

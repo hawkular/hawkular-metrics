@@ -17,23 +17,30 @@
 package org.hawkular.metrics.core.api;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * @author John Sanda
  */
 public class NumericMetric extends Metric<NumericData> {
 
+    @JsonCreator
+    public NumericMetric(@JsonProperty("id") MetricId id) {
+        super("", id);
+    }
+
     public NumericMetric(String tenantId, MetricId id) {
         super(tenantId, id);
     }
 
-    public NumericMetric(String tenantId, MetricId id, Map<String, Optional<String>> tags) {
+    public NumericMetric(String tenantId, MetricId id, Map<String, String> tags) {
         super(tenantId, id, tags);
     }
 
-    public NumericMetric(String tenantId, MetricId id, Map<String, Optional<String>> tags, Integer dataRetention) {
+    public NumericMetric(String tenantId, MetricId id, Map<String, String> tags, Integer dataRetention) {
         super(tenantId, id, tags, dataRetention);
     }
 
@@ -43,15 +50,15 @@ public class NumericMetric extends Metric<NumericData> {
     }
 
     public void addData(long timestamp, double value) {
-        addData(new NumericData(this, timestamp, value));
+        addData(new NumericData(timestamp, value));
     }
 
     public void addData(UUID timeUUID, double value) {
-        addData(new NumericData(this, timeUUID, value));
+        addData(new NumericData(timeUUID, value));
     }
 
-    public void addData(UUID timeUUID, double value, Map<String, Optional<String>> tags) {
-        addData(new NumericData(this, timeUUID, value, tags));
+    public void addData(UUID timeUUID, double value, Map<String, String> tags) {
+        addData(new NumericData(timeUUID, value, tags));
     }
 
 }

@@ -78,23 +78,23 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture addTags(Metric metric, Map<String, String> tags) {
+    public ResultSetFuture addTags(Metric<?> metric, Map<String, String> tags) {
         return delegate.addTags(metric, tags);
     }
 
     @Override
-    public ResultSetFuture deleteTags(Metric metric, Set<String> tags) {
+    public ResultSetFuture deleteTags(Metric<?> metric, Set<String> tags) {
         return delegate.deleteTags(metric, tags);
     }
 
     @Override
-    public ResultSetFuture updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
+    public ResultSetFuture updateTagsInMetricsIndex(Metric<?> metric, Map<String, String> additions,
         Set<String> deletions) {
         return delegate.updateTagsInMetricsIndex(metric, additions, deletions);
     }
 
     @Override
-    public <T extends Metric> ResultSetFuture updateMetricsIndex(List<T> metrics) {
+    public <T extends Metric<?>> ResultSetFuture updateMetricsIndex(List<T> metrics) {
         return delegate.updateMetricsIndex(metrics);
     }
 
@@ -149,18 +149,20 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertNumericTag(String tag, String tagValue, List<NumericData> data) {
-        return delegate.insertNumericTag(tag, tagValue, data);
+    public ResultSetFuture insertNumericTag(String tag, String tagValue, NumericMetric metric,
+            List<NumericData> data) {
+        return delegate.insertNumericTag(tag, tagValue, metric, data);
     }
 
     @Override
-    public ResultSetFuture insertAvailabilityTag(String tag, String tagValue, List<Availability> data) {
-        return delegate.insertAvailabilityTag(tag, tagValue, data);
+    public ResultSetFuture insertAvailabilityTag(String tag, String tagValue, AvailabilityMetric metric,
+            List<Availability> data) {
+        return delegate.insertAvailabilityTag(tag, tagValue, metric, data);
     }
 
     @Override
-    public ResultSetFuture updateDataWithTag(MetricData data, Map<String, String> tags) {
-        return delegate.updateDataWithTag(data, tags);
+    public ResultSetFuture updateDataWithTag(Metric<?> metric, MetricData data, Map<String, String> tags) {
+        return delegate.updateDataWithTag(metric, data, tags);
     }
 
     @Override
@@ -209,12 +211,12 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertIntoMetricsTagsIndex(Metric metric, Map<String, String> tags) {
+    public ResultSetFuture insertIntoMetricsTagsIndex(Metric<?> metric, Map<String, String> tags) {
         return delegate.insertIntoMetricsTagsIndex(metric, tags);
     }
 
     @Override
-    public ResultSetFuture deleteFromMetricsTagsIndex(Metric metric, Map<String, String> tags) {
+    public ResultSetFuture deleteFromMetricsTagsIndex(Metric<?> metric, Map<String, String> tags) {
         return delegate.deleteFromMetricsTagsIndex(metric, tags);
     }
 

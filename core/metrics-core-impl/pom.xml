@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.hawkular.metrics</groupId>
     <artifactId>hawkular-metrics-parent</artifactId>
-    <version>0.3.0-SNAPSHOT</version>
+    <version>0.3.1-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -33,6 +33,11 @@
 
   <name>Hawkular Metrics Core Implementation</name>
   <description>Hawkular Metrics Core Implementation</description>
+
+  <properties>
+    <swagger.version>1.3.12</swagger.version>
+    <rest-docs-generator.version>4.11.0</rest-docs-generator.version>
+  </properties>
 
   <dependencies>
 
@@ -70,6 +75,31 @@
       <groupId>net.sf.trove4j</groupId>
       <artifactId>trove4j</artifactId>
       <version>${trove4j.version}</version>
+    </dependency>
+
+    <!-- documentation -->
+    <dependency>
+      <groupId>com.wordnik</groupId>
+      <artifactId>swagger-annotations</artifactId>
+      <version>${swagger.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.wordnik</groupId>
+      <artifactId>swagger-core_2.10</artifactId>
+      <version>${swagger.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+      <scope>provided</scope>
     </dependency>
 
   </dependencies>

@@ -19,16 +19,15 @@ package org.hawkular.metrics.core.impl.cassandra;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.google.common.base.Function;
 
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricId;
+
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.google.common.base.Function;
 
 /**
  * @author John Sanda
@@ -87,8 +86,8 @@ public class AvailabilityDataMapper implements Function<ResultSet, List<Availabi
 
     private AvailabilityMetric getMetric(Row row) {
         AvailabilityMetric metric = new AvailabilityMetric(row.getString(ColumnIndex.TENANT_ID.ordinal()), getId(row),
-            MetricUtils.getTags(row.getMap(ColumnIndex.METRIC_TAGS.ordinal(), String.class, String.class)),
-            ColumnIndex.DATA_RETENTION.ordinal());
+                row.getMap(ColumnIndex.METRIC_TAGS.ordinal(), String.class, String.class),
+                ColumnIndex.DATA_RETENTION.ordinal());
         metric.setDpart(row.getLong(ColumnIndex.DPART.ordinal()));
 
         return metric;
@@ -99,8 +98,7 @@ public class AvailabilityDataMapper implements Function<ResultSet, List<Availabi
             ColumnIndex.INTERVAL.ordinal())));
     }
 
-    private Map<String, Optional<String>> getTags(Row row) {
-        Map<String, String> map = row.getMap(ColumnIndex.TAGS.ordinal(), String.class, String.class);
-        return MetricUtils.getTags(map);
+    private Map<String, String> getTags(Row row) {
+        return row.getMap(ColumnIndex.TAGS.ordinal(), String.class, String.class);
     }
 }

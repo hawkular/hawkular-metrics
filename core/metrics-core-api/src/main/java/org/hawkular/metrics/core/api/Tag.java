@@ -23,19 +23,13 @@ import com.google.common.base.Objects;
  */
 public class Tag {
 
-    public static final String NO_VALUE = "";
-
     private final String name;
 
     private final String value;
 
-    public Tag(String tag) {
-        this(tag, NO_VALUE);
-    }
-
     public Tag(String tag, String value) {
         name = tag;
-        this.value = value == null ? NO_VALUE : value;
+        this.value = value;
     }
 
     public String getName() {

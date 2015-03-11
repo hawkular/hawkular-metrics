@@ -19,6 +19,7 @@ package org.hawkular.metrics.api.jaxrs;
 /**
  * @author John Sanda
  */
+@SuppressWarnings("serial")
 public class NoResultsException extends RuntimeException {
 
     public NoResultsException() {

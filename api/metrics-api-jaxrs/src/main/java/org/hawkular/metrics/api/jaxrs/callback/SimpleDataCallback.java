@@ -14,24 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs;
+package org.hawkular.metrics.api.jaxrs.callback;
 
-import com.google.common.base.Function;
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 
-import org.hawkular.metrics.core.api.NumericMetric;
+import javax.ws.rs.container.AsyncResponse;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
-/**
- * @author John Sanda
- */
-public abstract class MetricMapper<T> implements Function<NumericMetric, T> {
+public class SimpleDataCallback<T> extends NoDataCallback<T> {
 
-    @Override
-    public T apply(NumericMetric metric) {
-        if (metric == null) {
-            throw new NoResultsException();
-        }
-        return doApply(metric);
+    public SimpleDataCallback(AsyncResponse response) {
+        super(response);
     }
 
-    abstract T doApply(NumericMetric metric);
+    @Override
+    public void onSuccess(Object responseData) {
+        if (responseData == null) {
+            response.resume(Response.status(Status.NO_CONTENT).type(APPLICATION_JSON_TYPE).build());
+        } else {
+            response.resume(Response.ok(responseData).type(APPLICATION_JSON_TYPE).build());
+        }
+    }
 }

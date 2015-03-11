@@ -30,6 +30,7 @@ import javax.inject.Inject;
 
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
+import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.impl.HawkularMetrics;
 import org.slf4j.Logger;

@@ -200,7 +200,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
         if (keyspace==null||keyspace.isEmpty()) {
             logger.debug("No explicit keyspace given, will default to 'hawkular'");
-            keyspace = "hawkular";
+            keyspace = "hawkular-metrics";
         }
 
         logger.info("Using a key space of '" + keyspace + "'");
@@ -422,7 +422,7 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> createMetric(final Metric metric) {
+    public ListenableFuture<Void> createMetric(final Metric<?> metric) {
         ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric);
         return Futures.transform(future, new AsyncFunction<ResultSet, Void>() {
             @Override
@@ -435,8 +435,7 @@ public class MetricsServiceCassandra implements MetricsService {
                 // client. Updating the retentions_idx table could also fail. We need to
                 // report that failure as well.
                 ResultSetFuture metadataFuture = dataAccess.addTagsAndDataRetention(metric);
-                ResultSetFuture tagsFuture = dataAccess.insertIntoMetricsTagsIndex(metric, MetricUtils.flattenTags(
-                    metric.getTags()));
+                ResultSetFuture tagsFuture = dataAccess.insertIntoMetricsTagsIndex(metric, metric.getTags());
 
                 List<ResultSetFuture> futures = new ArrayList<>();
                 futures.add(metadataFuture);
@@ -456,31 +455,30 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Metric> findMetric(final String tenantId, final MetricType type, final MetricId id) {
+    public ListenableFuture<Metric<?>> findMetric(final String tenantId, final MetricType type, final MetricId id) {
         if (type == MetricType.LOG_EVENT) {
             throw new IllegalArgumentException(MetricType.LOG_EVENT + " is not yet supported");
         }
         ResultSetFuture future = dataAccess.findMetric(tenantId, type, id, Metric.DPART);
-        return Futures.transform(future, new Function<ResultSet, Metric>() {
+        return Futures.transform(future, new Function<ResultSet, Metric<?>>() {
             @Override
-            public Metric apply(ResultSet resultSet) {
+            public Metric<?> apply(ResultSet resultSet) {
                 if (resultSet.isExhausted()) {
                     return null;
                 }
                 Row row = resultSet.one();
                 if (type == MetricType.NUMERIC) {
-                    return new NumericMetric(tenantId, id, MetricUtils.getTags(row.getMap(5, String.class,
-                        String.class)), row.getInt(6));
+                    return new NumericMetric(tenantId, id, row.getMap(5, String.class, String.class), row.getInt(6));
                 } else {
-                    return new AvailabilityMetric(tenantId, id, MetricUtils.getTags(row.getMap(5, String.class,
-                        String.class)), row.getInt(6));
+                    return new AvailabilityMetric(tenantId, id, row.getMap(5, String.class, String.class), row
+                            .getInt(6));
                 }
             }
         }, metricsTasks);
     }
 
     @Override
-    public ListenableFuture<List<Metric>> findMetrics(String tenantId, MetricType type) {
+    public ListenableFuture<List<Metric<?>>> findMetrics(String tenantId, MetricType type) {
         ResultSetFuture future = dataAccess.findMetricsInMetricsIndex(tenantId, type);
         return Futures.transform(future, new MetricsIndexMapper(tenantId, type), metricsTasks);
     }
@@ -490,20 +488,20 @@ public class MetricsServiceCassandra implements MetricsService {
     // functionality into a separate class.
 
     @Override
-    public ListenableFuture<Void> addTags(Metric metric, Map<String, Optional<String>> tags) {
+    public ListenableFuture<Void> addTags(Metric metric, Map<String, String> tags) {
         List<ResultSetFuture> insertFutures = asList(
-            dataAccess.addTags(metric, MetricUtils.flattenTags(tags)),
-            dataAccess.insertIntoMetricsTagsIndex(metric, MetricUtils.flattenTags(tags))
+            dataAccess.addTags(metric, tags),
+            dataAccess.insertIntoMetricsTagsIndex(metric, tags)
         );
         ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
         return Futures.transform(insertsFuture, RESULT_SETS_TO_VOID, metricsTasks);
     }
 
     @Override
-    public ListenableFuture<Void> deleteTags(Metric metric, Map<String, Optional<String>> tags) {
+    public ListenableFuture<Void> deleteTags(Metric metric, Map<String, String> tags) {
         List<ResultSetFuture> deleteFutures = asList(
-            dataAccess.deleteTags(metric, MetricUtils.flattenTags(tags).keySet()),
-            dataAccess.deleteFromMetricsTagsIndex(metric, MetricUtils.flattenTags(tags))
+            dataAccess.deleteTags(metric, tags.keySet()),
+            dataAccess.deleteFromMetricsTagsIndex(metric, tags)
         );
         ListenableFuture<List<ResultSet>> deletesFuture = Futures.allAsList(deleteFutures);
         return Futures.transform(deletesFuture, RESULT_SETS_TO_VOID, metricsTasks);
@@ -615,8 +613,8 @@ public class MetricsServiceCassandra implements MetricsService {
     // Data for different metrics and for the same tag are stored within the same partition
     // in the tags table; therefore, it makes sense for the API to support tagging multiple
     // metrics since they could efficiently be inserted in a single batch statement.
-    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric,
-        final Map<String, Optional<String>> tags, long start, long end) {
+    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, final Map<String, String> tags,
+            long start, long end) {
         ResultSetFuture queryFuture = dataAccess.findData(metric, start, end, true);
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper(true),
             metricsTasks);
@@ -626,9 +624,9 @@ public class MetricsServiceCassandra implements MetricsService {
             @Override
             public ListenableFuture<List<NumericData>> apply(final List<NumericData> taggedData) {
                 List<ResultSetFuture> insertFutures = new ArrayList<>(tags.size());
-                tags.forEach((k, v) -> insertFutures.add(dataAccess.insertNumericTag(k, v.orElse(""), taggedData)));
+                tags.forEach((k, v) -> insertFutures.add(dataAccess.insertNumericTag(k, v, metric, taggedData)));
                 for (NumericData d : taggedData) {
-                    insertFutures.add(dataAccess.updateDataWithTag(d, MetricUtils.flattenTags(tags)));
+                    insertFutures.add(dataAccess.updateDataWithTag(metric, d, tags));
                 }
                 ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
                 return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> taggedData);
@@ -638,7 +636,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric,
-        Map<String, Optional<String>> tags, long start, long end) {
+            Map<String, String> tags, long start, long end) {
         ResultSetFuture queryFuture = dataAccess.findData(metric, start, end, true);
         ListenableFuture<List<Availability>> dataFuture = Futures.transform(queryFuture,
             new AvailabilityDataMapper(true), metricsTasks);
@@ -648,10 +646,10 @@ public class MetricsServiceCassandra implements MetricsService {
             @Override
             public ListenableFuture<List<Availability>> apply(final List<Availability> taggedData) throws Exception {
                 List<ResultSetFuture> insertFutures = new ArrayList<>(taggedData.size());
-                tags.forEach((k, v) -> insertFutures.add(dataAccess.insertAvailabilityTag(k, v.orElse(""),
+                tags.forEach((k, v) -> insertFutures.add(dataAccess.insertAvailabilityTag(k, v, metric,
                     taggedData)));
                 for (Availability a : taggedData) {
-                    insertFutures.add(dataAccess.updateDataWithTag(a, MetricUtils.flattenTags(tags)));
+                    insertFutures.add(dataAccess.updateDataWithTag(metric, a, tags));
                 }
                 ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
                 return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> taggedData);
@@ -660,8 +658,8 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric,
-        final Map<String, Optional<String>> tags, long timestamp) {
+    public ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, final Map<String, String> tags,
+            long timestamp) {
         ListenableFuture<ResultSet> queryFuture = dataAccess.findData(metric, timestamp, true);
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper(true),
             metricsTasks);
@@ -675,9 +673,9 @@ public class MetricsServiceCassandra implements MetricsService {
                     return Futures.immediateFuture(results);
                 }
                 List<ResultSetFuture> insertFutures = new ArrayList<>(tags.size());
-                tags.forEach((k, v) -> insertFutures.add(dataAccess.insertNumericTag(k, v.orElse(""), data)));
+                tags.forEach((k, v) -> insertFutures.add(dataAccess.insertNumericTag(k, v, metric, data)));
                 for (NumericData d : data) {
-                    insertFutures.add(dataAccess.updateDataWithTag(d, MetricUtils.flattenTags(tags)));
+                    insertFutures.add(dataAccess.updateDataWithTag(metric, d, tags));
                 }
                 ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
                 return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> data);
@@ -687,7 +685,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric,
-        final Map<String, Optional<String>> tags, long timestamp) {
+            final Map<String, String> tags, long timestamp) {
         ListenableFuture<ResultSet> queryFuture = dataAccess.findData(metric, timestamp);
         ListenableFuture<List<Availability>> dataFuture = Futures.transform(queryFuture,
             new AvailabilityDataMapper(true), metricsTasks);
@@ -701,9 +699,9 @@ public class MetricsServiceCassandra implements MetricsService {
                     return Futures.immediateFuture(results);
                 }
                 List<ResultSetFuture> insertFutures = new ArrayList<>();
-                tags.forEach((k, v) -> dataAccess.insertAvailabilityTag(k, v.orElse(""), data));
+                tags.forEach((k, v) -> dataAccess.insertAvailabilityTag(k, v, metric, data));
                 for (Availability a : data) {
-                    insertFutures.add(dataAccess.updateDataWithTag(a, MetricUtils.flattenTags(tags)));
+                    insertFutures.add(dataAccess.updateDataWithTag(metric, a, tags));
                 }
                 ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
                 return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> data);
@@ -713,10 +711,10 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public ListenableFuture<Map<MetricId, Set<NumericData>>> findNumericDataByTags(String tenantId,
-        Map<String, Optional<String>> tags) {
+            Map<String, String> tags) {
         List<ListenableFuture<Map<MetricId, Set<NumericData>>>> queryFutures = new ArrayList<>(tags.size());
-        tags.forEach((k, v) -> queryFutures.add(Futures.transform(dataAccess.findNumericDataByTag(
-            tenantId, k, v.orElse("")), new TaggedNumericDataMapper(), metricsTasks)));
+        tags.forEach((k, v) -> queryFutures.add(Futures.transform(dataAccess.findNumericDataByTag(tenantId, k, v),
+                new TaggedNumericDataMapper(), metricsTasks)));
         ListenableFuture<List<Map<MetricId, Set<NumericData>>>> queriesFuture = Futures.allAsList(queryFutures);
         return Futures.transform(queriesFuture,
                 new Function<List<Map<MetricId, Set<NumericData>>>, Map<MetricId, Set<NumericData>>>() {
@@ -751,10 +749,10 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public ListenableFuture<Map<MetricId, Set<Availability>>> findAvailabilityByTags(String tenantId,
-        Map<String, Optional<String>> tags) {
+            Map<String, String> tags) {
         List<ListenableFuture<Map<MetricId, Set<Availability>>>> queryFutures = new ArrayList<>(tags.size());
-        tags.forEach((k, v) -> queryFutures.add(Futures.transform(dataAccess.findAvailabilityByTag(
-            tenantId, k, v.orElse("")), new TaggedAvailabilityMappper(), metricsTasks)));
+        tags.forEach((k, v) -> queryFutures.add(Futures.transform(dataAccess.findAvailabilityByTag(tenantId, k, v),
+                new TaggedAvailabilityMappper(), metricsTasks)));
         ListenableFuture<List<Map<MetricId, Set<Availability>>>> queriesFuture = Futures.allAsList(queryFutures);
         return Futures.transform(queriesFuture,
                 new Function<List<Map<MetricId, Set<Availability>>>, Map<MetricId, Set<Availability>>>() {
@@ -786,7 +784,7 @@ public class MetricsServiceCassandra implements MetricsService {
         });
     }
 
-    private int getTTL(Metric metric) {
+    private int getTTL(Metric<?> metric) {
         Integer ttl = dataRetentions.get(new DataRetentionKey(metric.getTenantId(), metric.getId(), metric.getType()));
         if (ttl == null) {
             ttl = dataRetentions.get(new DataRetentionKey(metric.getTenantId(), metric.getType()));

@@ -19,10 +19,6 @@ package org.hawkular.metrics.core.impl.cassandra;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.google.common.base.Function;
-
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
@@ -30,10 +26,14 @@ import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.NumericMetric;
 
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.google.common.base.Function;
+
 /**
  * @author John Sanda
  */
-public class MetricsIndexMapper implements Function<ResultSet, List<Metric>> {
+public class MetricsIndexMapper implements Function<ResultSet, List<Metric<?>>> {
 
     private enum ColumnIndex {
         METRIC_NAME,
@@ -55,7 +55,7 @@ public class MetricsIndexMapper implements Function<ResultSet, List<Metric>> {
     }
 
     @Override
-    public List<Metric> apply(ResultSet resultSet) {
+    public List<Metric<?>> apply(ResultSet resultSet) {
         if (type == MetricType.NUMERIC) {
             return getNumericMetrics(resultSet);
         } else {
@@ -63,23 +63,23 @@ public class MetricsIndexMapper implements Function<ResultSet, List<Metric>> {
         }
     }
 
-    private List<Metric> getNumericMetrics(ResultSet resultSet) {
-        List<Metric> metrics = new ArrayList<>();
+    private List<Metric<?>> getNumericMetrics(ResultSet resultSet) {
+        List<Metric<?>> metrics = new ArrayList<>();
         for (Row row : resultSet) {
             metrics.add(new NumericMetric(tenantId, new MetricId(row.getString(ColumnIndex.METRIC_NAME.ordinal()),
-                Interval.parse(row.getString(ColumnIndex.INTERVAL.ordinal()))), MetricUtils.getTags(row.getMap(
-                ColumnIndex.TAGS.ordinal(), String.class, String.class)),
+                    Interval.parse(row.getString(ColumnIndex.INTERVAL.ordinal()))), row.getMap(
+                    ColumnIndex.TAGS.ordinal(), String.class, String.class),
                 row.getInt(ColumnIndex.DATA_RETENTION.ordinal())));
         }
         return metrics;
     }
 
-    private List<Metric> getAvailabilityMetrics(ResultSet resultSet) {
-        List<Metric> metrics = new ArrayList<>();
+    private List<Metric<?>> getAvailabilityMetrics(ResultSet resultSet) {
+        List<Metric<?>> metrics = new ArrayList<>();
         for (Row row : resultSet) {
             metrics.add(new AvailabilityMetric(tenantId, new MetricId(row.getString(ColumnIndex.METRIC_NAME.ordinal()),
-                Interval.parse(row.getString(ColumnIndex.INTERVAL.ordinal()))), MetricUtils.getTags(row.getMap(
-                ColumnIndex.TAGS.ordinal(), String.class, String.class)),
+                    Interval.parse(row.getString(ColumnIndex.INTERVAL.ordinal()))), row.getMap(
+                    ColumnIndex.TAGS.ordinal(), String.class, String.class),
                 row.getInt(ColumnIndex.DATA_RETENTION.ordinal())));
         }
         return metrics;

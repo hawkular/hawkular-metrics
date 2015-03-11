@@ -17,40 +17,34 @@
 package org.hawkular.metrics.core.api;
 
 import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * @author John Sanda
  */
 public class AvailabilityMetric extends Metric<Availability> {
 
+    @JsonCreator
+    public AvailabilityMetric(@JsonProperty("id") MetricId id) {
+        super("", id);
+    }
+
     public AvailabilityMetric(String tenantId, MetricId id) {
         super(tenantId, id);
     }
 
-    public AvailabilityMetric(String tenantId, MetricId id, Map<String, Optional<String>> tags) {
+    public AvailabilityMetric(String tenantId, MetricId id, Map<String, String> tags) {
         super(tenantId, id, tags);
     }
 
-    public AvailabilityMetric(String tenantId, MetricId id, Map<String, Optional<String>> tags, Integer dataRetention) {
+    public AvailabilityMetric(String tenantId, MetricId id, Map<String, String> tags, Integer dataRetention) {
         super(tenantId, id, tags, dataRetention);
     }
 
     @Override
     public MetricType getType() {
         return MetricType.AVAILABILITY;
-    }
-
-    public void addAvailability(long timestamp, AvailabilityType availability) {
-        addData(new Availability(this, timestamp, availability));
-    }
-
-    public void addAvailability(long timestamp, String availability) {
-        addData(new Availability(this, timestamp, AvailabilityType.fromString(availability)));
-    }
-
-    public void addAvailability(UUID timeUUID, AvailabilityType availability) {
-        addData(new Availability(this, timeUUID, availability));
     }
 }

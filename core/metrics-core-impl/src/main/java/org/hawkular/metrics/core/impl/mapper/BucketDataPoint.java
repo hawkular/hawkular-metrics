@@ -14,9 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs;
-
-import javax.xml.bind.annotation.XmlRootElement;
+package org.hawkular.metrics.core.impl.mapper;
 
 import com.wordnik.swagger.annotations.ApiModel;
 import com.wordnik.swagger.annotations.ApiModelProperty;
@@ -26,14 +24,17 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
  * that at this point in time multiple values were recorded.
  * @author Heiko W. Rupp
  */
+// TODO: Remove or move this class to a better package
 @ApiModel(value = "A bucket is a time range with multiple data items represented by min/avg/max values" +
     "for that time span.")
-@XmlRootElement
-public class BucketDataPoint extends IdDataPoint {
+public class BucketDataPoint {
 
     private double min;
     private double max;
     private double avg;
+    private String id;
+    private long timestamp;
+    private double value;
 
     public BucketDataPoint() {
     }
@@ -45,6 +46,33 @@ public class BucketDataPoint extends IdDataPoint {
         this.min = min;
         this.max = max;
         this.avg = avg;
+    }
+
+    @ApiModelProperty(value = "Id of the metric")
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    @ApiModelProperty(value = "Time when the value was obtained in milliseconds since epoch")
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    @ApiModelProperty(value = "The value of this data point")
+    public double getValue() {
+        return value;
+    }
+
+    public void setValue(double value) {
+        this.value = value;
     }
 
     @ApiModelProperty(value = "Minimum value during the time span of the bucket.")

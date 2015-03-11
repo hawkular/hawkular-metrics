@@ -22,29 +22,20 @@ import com.wordnik.swagger.annotations.ApiModel;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
- * A data point with an Id
- * @author Heiko W. Rupp
+ * Return information what failed in the REST-call.
+ * @author Michael Burman
  */
-@ApiModel(value = "One data point for a metric with id, timestamp and value. Inherits from DataPoint.")
 @XmlRootElement
-public class IdDataPoint extends DataPoint {
+@ApiModel(description = "If REST-call returns other than success, detailed error is returned.")
+public class Error {
+    private String errorMsg;
 
-    private String id;
-
-    public IdDataPoint() {
+    public Error(String errorMsg) {
+        this.errorMsg = errorMsg;
     }
 
-    public IdDataPoint(long timestamp, double value, String id) {
-        super(timestamp, value);
-        this.id = id;
-    }
-
-    @ApiModelProperty(value = "Id of the metric")
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
+    @ApiModelProperty(value = "Detailed error message of what happened")
+    public String getErrorMsg() {
+        return errorMsg;
     }
 }

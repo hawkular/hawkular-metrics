@@ -14,24 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs;
+package org.hawkular.metrics.api.undertow;
 
-/**
- * Application specific media types.
- *
- * @author Thomas Segismont
- */
-public class CustomMediaTypes {
+import io.undertow.server.HttpHandler;
+import io.undertow.server.HttpServerExchange;
 
-    public static final String APPLICATION_VND_HAWKULAR_WRAPPED_JSON = "application/vnd.hawkular.wrapped+json";
+import java.util.Date;
 
-    /**
-     * For JSONP.
-     * @see org.hawkular.metrics.api.jaxrs.jsonp.JsonPProvider
-     */
-    public static final String APPLICATION_JAVASCRIPT = "application/javascript";
-
-    private CustomMediaTypes() {
-        // Constants class
+class PingHandler implements HttpHandler {
+    @Override
+    public void handleRequest(HttpServerExchange exchange) throws Exception {
+        exchange.getResponseSender().send((new Date()).toString());
     }
 }
