@@ -16,11 +16,20 @@
  */
 package org.hawkular.metrics.clients.ptrans.fullstack;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.counting;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BATCH_DELAY;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BATCH_SIZE;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.REST_URL;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES;
+import static org.hawkular.metrics.clients.ptrans.util.ProcessUtil.kill;
+import static org.hawkular.metrics.clients.ptrans.util.TenantUtil.getRandomTenantId;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
@@ -29,9 +38,16 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.stream.Stream;
 
@@ -43,15 +59,27 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.CollectionType;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Resources;
+
+import jnr.constants.platform.Signal;
 
 /**
  * @author Thomas Segismont
  */
 public class CollectdITest extends ExecutableITestBase {
     private static final String COLLECTD_PATH = System.getProperty("collectd.path", "/usr/sbin/collectd");
+    private static final String BASE_URI = System.getProperty(
+            "hawkular-metrics.base-uri",
+            "127.0.0.1:8080/hawkular-metrics"
+    );
 
+    private String tenant;
+    private String findNumericMetricsUrl;
     private File collectdConfFile;
     private File collectdOut;
     private File collectdErr;
@@ -67,6 +95,8 @@ public class CollectdITest extends ExecutableITestBase {
 
     @Before
     public void setUp() throws Exception {
+        tenant = getRandomTenantId();
+        findNumericMetricsUrl = "http://" + BASE_URI + "/" + tenant + "/metrics?type=num";
         assumeCollectdIsPresent();
         configureCollectd();
         assertCollectdConfIsValid();
@@ -116,6 +146,8 @@ public class CollectdITest extends ExecutableITestBase {
         properties.setProperty(SERVICES.getExternalForm(), Service.COLLECTD.getExternalForm());
         properties.setProperty(BATCH_DELAY.getExternalForm(), String.valueOf(1));
         properties.setProperty(BATCH_SIZE.getExternalForm(), String.valueOf(1));
+        String restUrl = "http://" + BASE_URI + "/" + tenant + "/metrics/numeric/data";
+        properties.setProperty(REST_URL.getExternalForm(), restUrl);
         try (OutputStream out = new FileOutputStream(ptransConfFile)) {
             properties.store(out, "");
         }
@@ -130,13 +162,220 @@ public class CollectdITest extends ExecutableITestBase {
         collectdProcessBuilder.command(COLLECTD_PATH, "-C", collectdConfFile.getAbsolutePath(), "-f");
         collectdProcess = collectdProcessBuilder.start();
 
-        fail("Not implemented yet");
+        waitForCollectdValues();
+
+        kill(collectdProcess, Signal.SIGUSR1); // Flush data
+        kill(collectdProcess, Signal.SIGTERM);
+        collectdProcess.waitFor();
+
+        Thread.sleep(MILLISECONDS.convert(1, SECONDS)); // Wait to make sure pTrans can send everything
+
+        kill(ptransProcess, Signal.SIGTERM);
+        ptransProcess.waitFor();
+
+        List<Point> expectedData = getExpectedData();
+        List<Point> serverData = getServerData();
+
+        String failureMsg = String.format(
+                Locale.ROOT, "Expected:%n%s%nActual:%n%s%n",
+                pointsToString(expectedData), pointsToString(serverData)
+        );
+
+        assertEquals(failureMsg, expectedData.size(), serverData.size());
+
+        for (int i = 0; i < expectedData.size(); i++) {
+            Point expectedPoint = expectedData.get(i);
+            Point serverPoint = serverData.get(i);
+
+            long timeDiff = expectedPoint.getTimestamp() - serverPoint.getTimestamp();
+            assertTrue(failureMsg, Math.abs(timeDiff) < 2);
+
+            assertEquals(failureMsg, expectedPoint.getType(), serverPoint.getType());
+            assertEquals(failureMsg, expectedPoint.getValue(), serverPoint.getValue(), 0.1);
+        }
+    }
+
+    private String pointsToString(List<Point> data) {
+        return data.stream().map(Point::toString).collect(joining(System.getProperty("line.separator")));
+    }
+
+    private void waitForCollectdValues() throws Exception {
+        long c;
+        do {
+            Thread.sleep(MILLISECONDS.convert(1, SECONDS));
+            c = Files.lines(collectdOut.toPath())
+                     .filter(l -> l.startsWith("PUTVAL"))
+                     .collect(counting());
+        } while (c < 1);
+    }
+
+    private List<Point> getExpectedData() throws Exception {
+        return Files.lines(collectdOut.toPath())
+                    .filter(l -> l.startsWith("PUTVAL"))
+                    .map(this::collectdLogToPoint)
+                    .sorted(Comparator.comparing(Point::getType).thenComparing(Point::getTimestamp))
+                    .collect(toList());
+    }
+
+    private Point collectdLogToPoint(String line) {
+        String[] split = line.split(" ");
+        assertEquals("Unexpected format: " + line, 4, split.length);
+        String[] metric = split[1].split("/");
+        assertEquals("Unexpected format: " + line, 3, metric.length);
+        metric = metric[2].split("-");
+        assertEquals("Unexpected format: " + line, 2, metric.length);
+        String[] data = split[3].split(":");
+        assertEquals("Unexpected format: " + line, 2, data.length);
+        return new Point(metric[1], Long.parseLong(data[0].replace(".", "")), Double.parseDouble(data[1]));
+    }
+
+    private List<Point> getServerData() throws Exception {
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        HttpURLConnection urlConnection = (HttpURLConnection) new URL(findNumericMetricsUrl).openConnection();
+        urlConnection.connect();
+        int responseCode = urlConnection.getResponseCode();
+        if (responseCode != HttpURLConnection.HTTP_OK) {
+            String msg = "Could not get metrics list from server: %s, %d";
+            fail(String.format(Locale.ROOT, msg, findNumericMetricsUrl, responseCode));
+        }
+        List<String> metricNames;
+        try (InputStream inputStream = urlConnection.getInputStream()) {
+            TypeFactory typeFactory = objectMapper.getTypeFactory();
+            CollectionType valueType = typeFactory.constructCollectionType(List.class, MetricName.class);
+            List<MetricName> value = objectMapper.readValue(inputStream, valueType);
+            metricNames = value.stream().map(MetricName::getName).collect(toList());
+        }
+
+        List<Point> points = new ArrayList<>();
+
+        for (String metricName : metricNames) {
+            urlConnection = (HttpURLConnection) new URL(findNumericDataUrl(metricName)).openConnection();
+            urlConnection.connect();
+            responseCode = urlConnection.getResponseCode();
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                fail("Could not load metric data from server: " + responseCode);
+            }
+
+            try (InputStream inputStream = urlConnection.getInputStream()) {
+                Metric metric = objectMapper.readValue(inputStream, Metric.class);
+                points.addAll(metric.toPoints());
+            }
+        }
+
+        Collections.sort(points, Comparator.comparing(Point::getType).thenComparing(Point::getTimestamp));
+        return points;
+    }
+
+    private String findNumericDataUrl(String metricName) {
+        return "http://" + BASE_URI + "/" + tenant + "/metrics/numeric/" + metricName + "/data";
     }
 
     @After
     public void tearDown() {
         if (collectdProcess != null && collectdProcess.isAlive()) {
             collectdProcess.destroy();
+        }
+    }
+
+    private static final class Point {
+        final String type;
+        final long timestamp;
+        final double value;
+
+        Point(String type, long timestamp, double value) {
+            this.type = type;
+            this.timestamp = timestamp;
+            this.value = value;
+        }
+
+        String getType() {
+            return type;
+        }
+
+        long getTimestamp() {
+            return timestamp;
+        }
+
+        double getValue() {
+            return value;
+        }
+
+        @Override
+        public String toString() {
+            return "Point[" +
+                   "type='" + type + '\'' +
+                   ", timestamp=" + timestamp +
+                   ", value=" + value +
+                   ']';
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @SuppressWarnings("unused")
+    private static final class Metric {
+        String name;
+        List<MetricData> data;
+
+        List<Point> toPoints() {
+            List<Point> points = new ArrayList<>(data.size());
+            for (MetricData metricData : data) {
+                String[] split = name.split("\\.");
+                points.add(new Point(split[split.length - 1], metricData.timestamp, metricData.value));
+            }
+            return points;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public List<MetricData> getData() {
+            return data;
+        }
+
+        public void setData(List<MetricData> data) {
+            this.data = data;
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private static final class MetricData {
+        long timestamp;
+        double value;
+
+        public long getTimestamp() {
+            return timestamp;
+        }
+
+        public void setTimestamp(long timestamp) {
+            this.timestamp = timestamp;
+        }
+
+        public double getValue() {
+            return value;
+        }
+
+        public void setValue(double value) {
+            this.value = value;
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @SuppressWarnings("unused")
+    private static final class MetricName {
+        String name;
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
         }
     }
 }
