@@ -26,15 +26,15 @@ import java.util.concurrent.TimeUnit;
  */
 public enum TimeResolution {
     /**
-     * second precision. *
+     * second precision.
      */
     SECONDS,
     /**
-     * 2<sup>-30</sup> seconds precision. *
+     * 2<sup>-30</sup> seconds precision.
      */
     HIGH_RES;
 
-    private static final double HIGH_RES_PRECISION = Math.pow(2, 30);
+    private static final long HIGH_RES_PRECISION = 1073741824;
 
     /**
      * Converts to milliseconds the given <code>timeSpan</code>.
@@ -60,7 +60,7 @@ public enum TimeResolution {
         if (resolution == SECONDS) {
             return TimeUnit.MILLISECONDS.convert(val, TimeUnit.SECONDS);
         }
-        return (long) ((1000d * (double) val) / HIGH_RES_PRECISION);
+        return (1000 * val) / HIGH_RES_PRECISION;
     }
 
     /**
