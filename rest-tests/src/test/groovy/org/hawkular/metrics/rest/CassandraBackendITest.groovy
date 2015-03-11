@@ -133,8 +133,8 @@ class CassandraBackendITest extends RESTTest {
 
     def expectedData = [
         tenantId: tenantId,
-        name    : metric,
-        data    : [
+        id: metric,
+        data: [
             [timestamp: buckets[0], empty: false, max: 12.37, min: 12.22, avg: (12.22 + 12.37) /
                 2, value: 0, id: metric],
             [timestamp: buckets
@@ -174,8 +174,8 @@ class CassandraBackendITest extends RESTTest {
 
     expectedData = [
         tenantId: tenantId,
-        name    : metric,
-        data    : [
+        id: metric,
+        data: [
             [timestamp: buckets[0], empty: false, max: 12.37, min: 12.22, avg: (12.22 + 12.37) /
                 2, value: 0, id: metric],
             [timestamp: buckets[4], empty: false, max: 25.0, min: 25.0, avg: 25.0, value: 0, id: metric],
@@ -198,7 +198,7 @@ class CassandraBackendITest extends RESTTest {
     // Let's explicitly create one of the metrics with some tags and a data retention
     // so that we can verify we get back that info along with the data.
     response = hawkularMetrics.post(path: "$tenantId/metrics/numeric", body: [
-        name: 'm2',
+        id: 'm2',
         tags: [a: '1', b: '2'],
         dataRetention: 24
     ])
@@ -206,21 +206,21 @@ class CassandraBackendITest extends RESTTest {
 
     response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/data", body: [
         [
-            name: 'm1',
+            id: 'm1',
             data: [
                 [timestamp: start.millis, value: 1.1],
                 [timestamp: start.plusMinutes(1).millis, value: 1.2]
             ]
         ],
         [
-            name: 'm2',
+            id: 'm2',
             data: [
                 [timestamp: start.millis, value: 2.1],
                 [timestamp: start.plusMinutes(1).millis, value: 2.2]
             ]
         ],
         [
-            name: 'm3',
+            id: 'm3',
             data: [
                 [timestamp: start.millis, value: 3.1],
                 [timestamp: start.plusMinutes(1).millis, value: 3.2]
@@ -233,11 +233,11 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            tenantId     : tenantId,
-            name         : 'm2',
-            tags         : [a: '1', b: '2'],
+            tenantId: tenantId,
+            id: 'm2',
+            tags: [a: '1', b: '2'],
             dataRetention: 24,
-            data         : [
+            data: [
                 [timestamp: start.plusMinutes(1).millis, value: 2.2],
                 [timestamp: start.millis, value: 2.1],
             ]
@@ -293,7 +293,7 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(
         [
             tenantId     : tenantId,
-            name         : 'm2',
+            id           : 'm2',
             tags         : [a: '1', b: '2'],
             dataRetention: 12,
             data         : [
@@ -311,20 +311,20 @@ class CassandraBackendITest extends RESTTest {
 
     // Create a numeric metric
     def response = hawkularMetrics.post(path: "$tenantId/metrics/numeric", body: [
-        name: 'N1',
+        id: 'N1',
         tags: [a1: 'A', b1: 'B']
     ])
     assertEquals(200, response.status)
 
     // Make sure we do not allow duplicates
-    badPost(path: "$tenantId/metrics/numeric", body: [name: 'N1']) { exception ->
+    badPost(path: "$tenantId/metrics/numeric", body: [id: 'N1']) { exception ->
       assertEquals(400, exception.response.status)
         assertNotNull(exception.response.data['errorMsg'])
     }
 
     // Create a numeric metric that sets its data retention
     response = hawkularMetrics.post(path: "$tenantId/metrics/numeric", body: [
-        name: 'N2',
+        id: 'N2',
         tags: [a2: '2', b2: 'B2'],
         dataRetention: 96
     ])
@@ -332,21 +332,21 @@ class CassandraBackendITest extends RESTTest {
 
     // Create an availability metric
     response = hawkularMetrics.post(path: "$tenantId/metrics/availability", body: [
-        name: 'A1',
+        id: 'A1',
         tags: [a2: '2', b2: '2']
     ])
     assertEquals(200, response.status)
 
     // Create an availability metric that sets its data retention
     response = hawkularMetrics.post(path: "$tenantId/metrics/availability", body: [
-        name: 'A2',
+        id: 'A2',
         tags: [a22: '22', b22: '22'],
         dataRetention: 48
     ])
     assertEquals(200, response.status)
 
     // Make sure we do not allow duplicates
-    badPost(path: "$tenantId/metrics/availability", body: [name: 'A1']) { exception ->
+    badPost(path: "$tenantId/metrics/availability", body: [id: 'A1']) { exception ->
       assertEquals(400, exception.response.status)
         assertNotNull(exception.response.data['errorMsg'])
     }
@@ -357,8 +357,8 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(
         [
             tenantId: tenantId,
-            name    : 'N1',
-            tags    : [a1: 'A', b1: 'B']
+            id: 'N1',
+            tags: [a1: 'A', b1: 'B']
         ],
         response.data
     )
@@ -367,9 +367,9 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            tenantId     : tenantId,
-            name         : 'N2',
-            tags         : [a2: '2', b2: 'B2'],
+            tenantId: tenantId,
+            id: 'N2',
+            tags: [a2: '2', b2: 'B2'],
             dataRetention: 96
         ],
         response.data
@@ -385,8 +385,8 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(
         [
             tenantId: tenantId,
-            name    : 'A1',
-            tags    : [a2: '2', b2: '2']
+            id: 'A1',
+            tags: [a2: '2', b2: '2']
         ],
         response.data
     )
@@ -395,9 +395,9 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            tenantId     : tenantId,
-            name         : 'A2',
-            tags         : [a22: '22', b22: '22'],
+            tenantId: tenantId,
+            id: 'A2',
+            tags: [a22: '22', b22: '22'],
             dataRetention: 48
         ],
         response.data
@@ -417,8 +417,8 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(
         [
             tenantId: tenantId,
-            name    : 'N1',
-            tags    : [a1: 'one', a2: '2', b1: 'B']
+            id: 'N1',
+            tags: [a1: 'one', a2: '2', b1: 'B']
         ],
         response.data
     )
@@ -430,8 +430,8 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(
         [
             tenantId: tenantId,
-            name    : 'N1',
-            tags    : [a1: 'one']
+            id: 'N1',
+            tags: [a1: 'one']
         ],
         response.data
     )
@@ -446,8 +446,8 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(
         [
             tenantId: tenantId,
-            name    : 'A1',
-            tags    : [a2: 'two', a3: 'THREE', b2: '2']
+            id: 'A1',
+            tags: [a2: 'two', a3: 'THREE', b2: '2']
         ],
         response.data
     )
@@ -460,7 +460,7 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(
         [
             tenantId: tenantId,
-            name    : 'A1',
+            id    : 'A1',
             tags    : [a3: 'THREE']
         ],
         response.data
@@ -475,14 +475,14 @@ class CassandraBackendITest extends RESTTest {
     // First create a couple numeric metrics by only inserting data
     def response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/data", body: [
         [
-            name: 'm11',
+            id: 'm11',
             data: [
                 [timestamp: start.millis, value: 1.1],
                 [timestamp: start.plusMinutes(1).millis, value: 1.2]
             ]
         ],
         [
-            name: 'm12',
+            id: 'm12',
             data: [
                 [timestamp: start.millis, value: 2.1],
                 [timestamp: start.plusMinutes(1).millis, value: 2.2]
@@ -493,7 +493,7 @@ class CassandraBackendITest extends RESTTest {
 
     // Explicitly create a numeric metric
     response = hawkularMetrics.post(path: "$tenantId/metrics/numeric", body: [
-        name: 'm13',
+        id: 'm13',
         tags: [a1: 'A', B1: 'B'],
         dataRetention: 32
     ])
@@ -504,9 +504,9 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            [tenantId: tenantId, name: 'm11'],
-            [tenantId: tenantId, name: 'm12'],
-            [tenantId: tenantId, name: 'm13', tags: [a1: 'A', B1: 'B'], dataRetention: 32]
+            [tenantId: tenantId, id: 'm11'],
+            [tenantId: tenantId, id: 'm12'],
+            [tenantId: tenantId, id: 'm13', tags: [a1: 'A', B1: 'B'], dataRetention: 32]
         ],
         response.data
     )
@@ -514,14 +514,14 @@ class CassandraBackendITest extends RESTTest {
     // Create a couple availability metrics by only inserting data
     response = hawkularMetrics.post(path: "$tenantId/metrics/availability/data", body: [
         [
-            name: 'm14',
+            id: 'm14',
             data: [
                 [timestamp: start.millis, value: 'up'],
                 [timestamp: start.plusMinutes(1).millis, value: 'up']
             ]
         ],
         [
-            name: 'm15',
+            id: 'm15',
             data: [
                 [timestamp: start.millis, value: 'up'],
                 [timestamp: start.plusMinutes(1).millis, value: 'down']
@@ -532,7 +532,7 @@ class CassandraBackendITest extends RESTTest {
 
     // Explicitly create an availability metric
     response = hawkularMetrics.post(path: "$tenantId/metrics/availability", body: [
-        name: 'm16',
+        id: 'm16',
         tags: [a10: '10', a11: '11'],
         dataRetention: 7
     ])
@@ -543,9 +543,9 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            [tenantId: tenantId, name: 'm14'],
-            [tenantId: tenantId, name: 'm15'],
-            [tenantId: tenantId, name: 'm16', tags: [a10: '10', a11: '11'], dataRetention: 7]
+            [tenantId: tenantId, id: 'm14'],
+            [tenantId: tenantId, id: 'm15'],
+            [tenantId: tenantId, id: 'm16', tags: [a10: '10', a11: '11'], dataRetention: 7]
         ],
         response.data
     )
@@ -558,7 +558,7 @@ class CassandraBackendITest extends RESTTest {
 
     def response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/data", body: [
         [
-            name: 'n1',
+            id: 'n1',
             data: [
                 [timestamp: start.millis, value: 34.21],
                 [timestamp: start.plusMinutes(5).millis, value: 35.19],
@@ -567,7 +567,7 @@ class CassandraBackendITest extends RESTTest {
             ]
         ],
         [
-            name: 'n2',
+            id: 'n2',
             data: [
                 [timestamp: start.millis, value: 10.0],
                 [timestamp: start.plusMinutes(2).millis, value: 24.0],
@@ -579,7 +579,7 @@ class CassandraBackendITest extends RESTTest {
             ]
         ],
         [
-            name: 'n3',
+            id: 'n3',
             data: [
                 [timestamp: start.millis, value: 259.11],
                 [timestamp: start.plusMinutes(4).millis, value: 272.54],
@@ -588,7 +588,7 @@ class CassandraBackendITest extends RESTTest {
             ]
         ],
         [
-            name: 'n4',
+            id: 'n4',
             data: [
                 [timestamp: start.plusMinutes(8).millis, value: 174],
                 [timestamp: start.plusMinutes(9).millis, value: 181],
@@ -621,12 +621,12 @@ class CassandraBackendITest extends RESTTest {
         [
             n3: [
                 tenantId: tenantId,
-                name: 'n3',
+                id: 'n3',
                 data    : [[timestamp: start.plusMinutes(8).millis, value: 266.08]]
             ],
             n4: [
                 tenantId: tenantId,
-                name: 'n4',
+                id: 'n4',
                 data: [
                     [timestamp: start.plusMinutes(8).millis, value: 174],
                     [timestamp: start.plusMinutes(9).millis, value: 181]
@@ -646,7 +646,7 @@ class CassandraBackendITest extends RESTTest {
 
   void assertMetricEquals(Map expected, Map actual) {
     assertEquals("The tenantId does not match", expected.tenantId, actual.tenantId)
-    assertEquals("The metric name does not match", expected.name, actual.name)
+    assertEquals("The metric name does not match", expected.id, actual.id)
     assertEquals("The number of data points does not match", expected.data.size, actual.data.size)
     expected.data.eachWithIndex { expectedDataPoint, i ->
       assertNumericDataPointEquals(expectedDataPoint, actual.data[i]) }
@@ -659,7 +659,7 @@ class CassandraBackendITest extends RESTTest {
     // just put the additional verification code directly in this method.
 
     assertEquals(expected.tenantId, actual.tenantId)
-    assertEquals(expected.name, actual.name)
+    assertEquals(expected.id, actual.id)
     assertEquals('The number of bucketed data points is wrong', expected.size(), actual.size())
     expected.size().times { verifyBucket(expected.data[it], actual.data[it]) }
   }

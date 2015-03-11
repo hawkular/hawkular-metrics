@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Objects;
 
@@ -70,6 +71,7 @@ public class Availability extends MetricData {
         return type;
     }
 
+    @JsonIgnore
     public ByteBuffer getBytes() {
         return ByteBuffer.wrap(new byte[] {type.getCode()});
     }
