@@ -27,6 +27,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 /**
  * @author John Sanda
  */
+// TODO: Remove or move this class to a better package
 public class BucketedOutput {
 
     private String tenantId;

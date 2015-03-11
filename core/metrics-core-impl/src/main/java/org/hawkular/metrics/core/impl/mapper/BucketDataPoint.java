@@ -24,6 +24,7 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
  * that at this point in time multiple values were recorded.
  * @author Heiko W. Rupp
  */
+// TODO: Remove or move this class to a better package
 @ApiModel(value = "A bucket is a time range with multiple data items represented by min/avg/max values" +
     "for that time span.")
 public class BucketDataPoint {
