@@ -32,29 +32,18 @@ public class BucketDataPoint {
     private double min;
     private double max;
     private double avg;
-    private String id;
     private long timestamp;
     private double value;
 
     public BucketDataPoint() {
     }
 
-    public BucketDataPoint(String id, long timestamp, double min, double avg, double max) {
+    public BucketDataPoint(long timestamp, double min, double avg, double max) {
         super();
-        this.setId(id);
         this.setTimestamp(timestamp);
         this.min = min;
         this.max = max;
         this.avg = avg;
-    }
-
-    @ApiModelProperty(value = "Id of the metric")
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
     }
 
     @ApiModelProperty(value = "Time when the value was obtained in milliseconds since epoch")

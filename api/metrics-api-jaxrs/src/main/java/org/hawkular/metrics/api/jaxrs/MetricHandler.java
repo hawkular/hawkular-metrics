@@ -402,11 +402,10 @@ public class MetricHandler {
                                 // Currently, if a bucket does not contain any data, we set max/min/avg to Double.NaN.
                                 // DoubleSummaryStatistics however uses Double.Infinity for max/min and 0.0 for avg.
                                 if (e.getValue().getCount() > 0) {
-                                    return new BucketDataPoint(metric.getId().getName(), e.getKey(), e.getValue()
+                                    return new BucketDataPoint(e.getKey(), e.getValue()
                                             .getMin(), e.getValue().getAverage(), e.getValue().getMax());
                                 }
-                                return new BucketDataPoint(metric.getId().getName(), e.getKey(), Double.NaN,
-                                        Double.NaN, Double.NaN);
+                                return new BucketDataPoint(e.getKey(), Double.NaN, Double.NaN, Double.NaN);
                             })
                         .collect(toList()));
 

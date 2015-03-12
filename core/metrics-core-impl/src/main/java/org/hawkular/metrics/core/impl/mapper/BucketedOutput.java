@@ -21,9 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-
 /**
  * @author John Sanda
  */
@@ -31,21 +28,16 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 public class BucketedOutput {
 
     private String tenantId;
-
-    private String name;
-
-    @JsonInclude(Include.NON_EMPTY)
+    private String id;
     private Map<String, String> metadata = new HashMap<>();
-
-    @JsonInclude(Include.NON_EMPTY)
     private List<BucketDataPoint> data = new ArrayList<>();
 
     public BucketedOutput() {
     }
 
-    public BucketedOutput(String tenantId, String name, Map<String, String> metadata) {
+    public BucketedOutput(String tenantId, String id, Map<String, String> metadata) {
         this.tenantId = tenantId;
-        this.name = name;
+        this.id = id;
         this.metadata = metadata;
     }
 
@@ -57,12 +49,12 @@ public class BucketedOutput {
         this.tenantId = tenantId;
     }
 
-    public String getName() {
-        return name;
+    public String getId() {
+        return id;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setId(String id) {
+        this.id = id;
     }
 
     public Map<String, String> getMetadata() {
