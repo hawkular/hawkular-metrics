@@ -133,8 +133,6 @@ class CassandraBackendITest extends RESTTest {
             query: [start  : start.millis, end: end.millis, buckets: 10])
     assertEquals(200, response.status)
 
-    System.out.println(response.data);
-
     def expectedData = [
         tenantId: tenantId,
         id: metric,
@@ -159,24 +157,6 @@ class CassandraBackendITest extends RESTTest {
       assertDoubleEquals(expected.min, actual.min)
       assertDoubleEquals(expected.avg, actual.avg)
     }
-
-    assertBucketedDataEquals(expectedData, response.data, assertBucketEquals)
-
-    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/$metric/data", query: [start  : start.millis, end: end.millis,
-                                                                                buckets: 10, bucketWidthSeconds: 0, skipEmpty: true])
-    assertEquals(200, response.status)
-
-    expectedData = [
-        tenantId: tenantId,
-        id: metric,
-        data: [
-            [timestamp: buckets[0], empty: false, max: 12.37, min: 12.22, avg: (12.22 + 12.37) /
-                2, value: 0, id: metric],
-            [timestamp: buckets[4], empty: false, max: 25.0, min: 25.0, avg: 25.0, value: 0, id: metric],
-            [timestamp: buckets[9], empty: false, max: 19.01, min: 18.367, avg: (18.367 + 19.01) /
-                2, value: 0, id: metric],
-        ]
-    ]
 
     assertBucketedDataEquals(expectedData, response.data, assertBucketEquals)
   }
