@@ -15,17 +15,18 @@
  * limitations under the License.
  */
 package org.hawkular.metrics.rest
-import org.joda.time.DateTime
-import org.junit.Test
-import org.hawkular.metrics.core.impl.DateTimeService
-
-import java.util.concurrent.atomic.AtomicInteger
 
 import static org.joda.time.DateTime.now
 import static org.joda.time.Seconds.seconds
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertTrue
+
+import java.util.concurrent.atomic.AtomicInteger
+
+import org.hawkular.metrics.core.impl.DateTimeService
+import org.joda.time.DateTime
+import org.junit.Test
 
 class CassandraBackendITest extends RESTTest {
 
@@ -300,7 +301,7 @@ class CassandraBackendITest extends RESTTest {
     // Make sure we do not allow duplicates
     badPost(path: "$tenantId/metrics/numeric", body: [id: 'N1']) { exception ->
       assertEquals(400, exception.response.status)
-        assertNotNull(exception.response.data['errorMsg'])
+      assertNotNull(exception.response.data['errorMsg'])
     }
 
     // Create a numeric metric that sets its data retention

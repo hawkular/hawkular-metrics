@@ -27,10 +27,10 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
  */
 @XmlRootElement
 @ApiModel(description = "If REST-call returns other than success, detailed error is returned.")
-public class Error {
+public class ApiError {
     private String errorMsg;
 
-    public Error(String errorMsg) {
+    public ApiError(String errorMsg) {
         this.errorMsg = errorMsg;
     }
 

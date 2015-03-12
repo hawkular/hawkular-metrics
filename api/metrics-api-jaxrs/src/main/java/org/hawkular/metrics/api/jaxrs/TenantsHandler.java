@@ -66,10 +66,13 @@ public class TenantsHandler {
             + "tenant before starting to store metric data. It is recommended to do so however to ensure that there "
             + "are no tenant id naming collisions and to provide default data retention settings. ")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Tenant has been succesfully created."),
-            @ApiResponse(code = 400, message = "Retention properties are invalid. ", response = Error.class),
-            @ApiResponse(code = 409, message = "Given tenant id has already been created.", response = Error.class),
+                            @ApiResponse(code = 400, message = "Retention properties are invalid. ",
+                                         response = ApiError.class),
+                            @ApiResponse(code = 409, message = "Given tenant id has already been created.",
+                                         response = ApiError.class),
             @ApiResponse(code = 500, message = "An unexpected error occured while trying to create a tenant.",
-                    response = Error.class)})
+                         response = ApiError.class)
+    })
     public void createTenant(@Suspended AsyncResponse asyncResponse, @ApiParam(required = true) Tenant params) {
         ListenableFuture<Void> insertFuture = metricsService.createTenant(params);
         Futures.addCallback(insertFuture, new FutureCallback<Void>() {
@@ -82,12 +85,13 @@ public class TenantsHandler {
             public void onFailure(Throwable t) {
                 if (t instanceof TenantAlreadyExistsException) {
                     TenantAlreadyExistsException exception = (TenantAlreadyExistsException) t;
-                    Error errors = new Error("A tenant with id [" + exception.getTenantId() + "] already exists");
+                    ApiError errors = new ApiError("A tenant with id [" + exception.getTenantId() + "] already exists");
                     asyncResponse.resume(Response.status(Status.CONFLICT).entity(errors).type(APPLICATION_JSON_TYPE)
                         .build());
                     return;
                 }
-                Error errors = new Error("Failed to create tenant due to an "
+                ApiError errors = new ApiError(
+                        "Failed to create tenant due to an "
                     + "unexpected error: " + Throwables.getRootCause(t).getMessage());
                 asyncResponse.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors)
                     .type(APPLICATION_JSON_TYPE).build());
@@ -100,7 +104,8 @@ public class TenantsHandler {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Returned a list of tenants successfully."),
             @ApiResponse(code = 204, message = "No tenants were found."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching tenants.",
-                    response = Error.class)})
+                         response = ApiError.class)
+    })
     public void findTenants(@Suspended AsyncResponse response) {
         ListenableFuture<List<Tenant>> tenantsFuture = metricsService.getTenants();
         Futures.addCallback(tenantsFuture, new FutureCallback<Collection<Tenant>>() {
@@ -115,7 +120,8 @@ public class TenantsHandler {
 
             @Override
             public void onFailure(Throwable t) {
-                Error errors = new Error("Failed to fetch tenants due to an "
+                ApiError errors = new ApiError(
+                        "Failed to fetch tenants due to an "
                     + "unexpected error: " + Throwables.getRootCause(t).getMessage());
                 response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors)
                     .type(APPLICATION_JSON_TYPE).build());
