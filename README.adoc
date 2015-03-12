@@ -44,7 +44,7 @@ Building without C* also means that no schema updates are applied.
 
 1. Install https://github.com/pcmanus/ccm[ccm].
   a. Review its build/install instructions for python package dependencies that need to be installed, namely six and pyYaml.
-2. `ccm create -v 2.1.2 rhq`
+2. `ccm create -v 2.1.2 hawkular`
 3. `ccm populate -n 1`
 4. `ccm start`
 5. `mvn install`
