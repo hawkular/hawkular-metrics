@@ -32,9 +32,9 @@ public class SingleMetricTest {
     public static Iterable<Object[]> testToJsonData() {
         return Arrays.asList(
                 new Object[][]{
-                        {"a", 5, 3d, "{\"name\":\"a\",\"data\":[{\"timestamp\":5,\"value\":3.0}]}"},
-                        {"b", 4, 2.15456d, "{\"name\":\"b\",\"data\":[{\"timestamp\":4,\"value\":2.15456}]}"},
-                        {"c", 9, 7.2541d, "{\"name\":\"c\",\"data\":[{\"timestamp\":9,\"value\":7.2541}]}"}
+                        {"a", 5, 3d, "{\"id\":\"a\",\"data\":[{\"timestamp\":5,\"value\":3.0}]}"},
+                        {"b", 4, 2.15456d, "{\"id\":\"b\",\"data\":[{\"timestamp\":4,\"value\":2.15456}]}"},
+                        {"c", 9, 7.2541d, "{\"id\":\"c\",\"data\":[{\"timestamp\":9,\"value\":7.2541}]}"}
                 }
         );
     }

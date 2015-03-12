@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.clients.ptrans.backend;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -41,6 +40,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.EventLoop;
@@ -114,21 +114,9 @@ public class RestForwardingHandlerITest {
     }
 
     private boolean expectedMetricIsPresent(SingleMetric metric, JsonNode jsonNode) {
-        JsonNode tenantId = jsonNode.get("tenantId");
-        assertNotNull("Response has no tenant id attribute", tenantId);
-        assertTrue("Tenant id is not textual", tenantId.isTextual());
-        assertEquals(TENANT, tenantId.textValue());
+        assertTrue("Data is not an array", jsonNode.isArray());
 
-        JsonNode metricName = jsonNode.get("name");
-        assertNotNull("Response has no metric name attribute", metricName);
-        assertTrue("Metric name is not texual", metricName.isTextual());
-        assertEquals(METRIC_NAME, metricName.textValue());
-
-        JsonNode data = jsonNode.get("data");
-        assertNotNull("Response has not data attribute", data);
-        assertTrue("Data is not an array", data.isArray());
-
-        for (JsonNode numericData : data) {
+        for (JsonNode numericData : jsonNode) {
             JsonNode timestamp = numericData.get("timestamp");
             assertNotNull("Numeric data has no timestamp attribute", timestamp);
             assertTrue("Timestamp is not a number", timestamp.isNumber());

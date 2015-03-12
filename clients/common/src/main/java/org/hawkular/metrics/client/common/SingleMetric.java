@@ -75,7 +75,7 @@ public class SingleMetric {
     }
 
     public String toJson() {
-        return "{\"name\":\"" + source + "\",\"data\":[{" + "\"timestamp\":" + String.valueOf(timestamp) + "," +
+        return "{\"id\":\"" + source + "\",\"data\":[{" + "\"timestamp\":" + String.valueOf(timestamp) + "," +
                "\"value\":" + String.valueOf(value) + "}]}";
     }
 
