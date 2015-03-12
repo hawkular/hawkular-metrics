@@ -193,7 +193,7 @@
                   <swaggerDirectory>generated/swagger-ui</swaggerDirectory>
                   <swaggerInternalFilter>org.hawkular.metrics.api.jaxrs.swagger.filter.JaxRsFilter</swaggerInternalFilter>
                   <swaggerApiReader>com.wordnik.swagger.jaxrs.reader.DefaultJaxrsApiReader</swaggerApiReader>
-                  <outputPath>${basedir}/generated/rest-metrics.adoc</outputPath>
+                  <outputPath>${build.directory}/generated/rest-metrics.adoc</outputPath>
                 </apiSource>
               </apiSources>
             </configuration>

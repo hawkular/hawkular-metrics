@@ -20,7 +20,7 @@
 mvn clean compile -Pdocgen -DskipTests -Dcheckstyle.skip
 
 FILE_NAME="rest-metrics.adoc"
-FILE_PATH="api/metrics-api-jaxrs/generated/$FILE_NAME"
+FILE_PATH="api/metrics-api-jaxrs/target/generated/$FILE_NAME"
 REPO="hawkular/hawkular.github.io"
 BRANCH="swagger"
 SHA=`curl -Ls https://api.github.com/repos/$REPO/contents/$FILE_NAME?ref=$BRANCH | grep '"sha"' | cut -d '"' -f4`
