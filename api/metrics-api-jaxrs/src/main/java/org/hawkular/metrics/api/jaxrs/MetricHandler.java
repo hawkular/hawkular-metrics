@@ -102,6 +102,7 @@ public class MetricHandler {
                     response = Error.class)})
     public void createNumericMetric(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId, @ApiParam(required = true) NumericMetric metric) {
+        metric.setTenantId(tenantId);
         ListenableFuture<Void> future = metricsService.createMetric(metric);
         Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
@@ -115,6 +116,7 @@ public class MetricHandler {
                     response = Error.class)})
     public void createAvailabilityMetric(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId, @ApiParam(required = true) AvailabilityMetric metric) {
+        metric.setTenantId(tenantId);
         ListenableFuture<Void> future = metricsService.createMetric(metric);
         Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
