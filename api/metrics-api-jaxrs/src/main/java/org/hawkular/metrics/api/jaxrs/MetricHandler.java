@@ -30,6 +30,7 @@ import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
 
 import java.util.Collection;
 import java.util.DoubleSummaryStatistics;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -517,7 +518,20 @@ public class MetricHandler {
         @PathParam("tag") String encodedTag) {
         ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(
                 tenantId, MetricUtils.decodeTags(encodedTag));
-        Futures.addCallback(queryFuture, new SimpleDataCallback<Map<MetricId, Set<NumericData>>>(asyncResponse));
+        ListenableFuture<Map<String, Set<NumericData>>> resultFuture = Futures.transform(
+                queryFuture,
+                new Function<Map<MetricId, Set<NumericData>>, Map<String, Set<NumericData>>>() {
+                    @Override
+                    public Map<String, Set<NumericData>> apply(Map<MetricId, Set<NumericData>> input) {
+                        Map<String, Set<NumericData>> result = new HashMap<String, Set<NumericData>>(input.size());
+                        for (Map.Entry<MetricId, Set<NumericData>> entry : input.entrySet()) {
+                            result.put(entry.getKey().getName(), entry.getValue());
+                        }
+                        return result;
+                    }
+                }
+        );
+        Futures.addCallback(resultFuture, new SimpleDataCallback<Map<String, Set<NumericData>>>(asyncResponse));
     }
 
     @GET

@@ -598,24 +598,23 @@ class CassandraBackendITest extends RESTTest {
 
     response = hawkularMetrics.get(path: "$tenantId/tags/numeric/t3:3,t4:4")
     assertEquals(200, response.status)
-    assertMetricsEquals(
-        [
-            n3: [
-                tenantId: tenantId,
-                id: 'n3',
-                data    : [[timestamp: start.plusMinutes(8).millis, value: 266.08]]
-            ],
-            n4: [
-                tenantId: tenantId,
-                id: 'n4',
-                data: [
-                    [timestamp: start.plusMinutes(8).millis, value: 174],
-                    [timestamp: start.plusMinutes(9).millis, value: 181]
-                ]
-            ]
+
+    def expected = [
+        n3: [
+            [timestamp: start.plusMinutes(8).millis, value: 266.08]
         ],
-        response.data
-    )
+        n4: [
+            [timestamp: start.plusMinutes(8).millis, value: 174],
+            [timestamp: start.plusMinutes(9).millis, value: 181]
+        ]
+    ]
+
+    expected.n3.eachWithIndex { expectedDataPoint, i ->
+      assertNumericDataPointEquals(expectedDataPoint, response.data.n3[i])
+    }
+    expected.n4.eachWithIndex { expectedDataPoint, i ->
+      assertNumericDataPointEquals(expectedDataPoint, response.data.n4[i])
+    }
   }
 
     void assertMetricsEquals(Map expected, Map actual) {
