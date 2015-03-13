@@ -43,8 +43,6 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -244,12 +242,15 @@ public class CollectdITest extends ExecutableITestBase {
             TypeFactory typeFactory = objectMapper.getTypeFactory();
             CollectionType valueType = typeFactory.constructCollectionType(List.class, MetricName.class);
             List<MetricName> value = objectMapper.readValue(inputStream, valueType);
-            metricNames = value.stream().map(MetricName::getName).collect(toList());
+            metricNames = value.stream().map(MetricName::getId).collect(toList());
         }
 
-        List<Point> points = new ArrayList<>();
+        Stream<Point> points = Stream.empty();
 
         for (String metricName : metricNames) {
+            String[] split = metricName.split("\\.");
+            String type = split[split.length - 1];
+
             urlConnection = (HttpURLConnection) new URL(findNumericDataUrl(metricName)).openConnection();
             urlConnection.connect();
             responseCode = urlConnection.getResponseCode();
@@ -258,13 +259,22 @@ public class CollectdITest extends ExecutableITestBase {
             }
 
             try (InputStream inputStream = urlConnection.getInputStream()) {
-                Metric metric = objectMapper.readValue(inputStream, Metric.class);
-                points.addAll(metric.toPoints());
+                TypeFactory typeFactory = objectMapper.getTypeFactory();
+                CollectionType valueType = typeFactory.constructCollectionType(List.class, MetricData.class);
+                List<MetricData> data = objectMapper.readValue(inputStream, valueType);
+                Stream<Point> metricPoints = data.stream()
+                                                 .map(
+                                                         metricData -> new Point(
+                                                                 type,
+                                                                 metricData.timestamp,
+                                                                 metricData.value
+                                                         )
+                                                 );
+                points = Stream.concat(points, metricPoints);
             }
         }
 
-        Collections.sort(points, Comparator.comparing(Point::getType).thenComparing(Point::getTimestamp));
-        return points;
+        return points.sorted(Comparator.comparing(Point::getType).thenComparing(Point::getTimestamp)).collect(toList());
     }
 
     private String findNumericDataUrl(String metricName) {
@@ -311,38 +321,6 @@ public class CollectdITest extends ExecutableITestBase {
         }
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @SuppressWarnings("unused")
-    private static final class Metric {
-        String name;
-        List<MetricData> data;
-
-        List<Point> toPoints() {
-            List<Point> points = new ArrayList<>(data.size());
-            for (MetricData metricData : data) {
-                String[] split = name.split("\\.");
-                points.add(new Point(split[split.length - 1], metricData.timestamp, metricData.value));
-            }
-            return points;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public List<MetricData> getData() {
-            return data;
-        }
-
-        public void setData(List<MetricData> data) {
-            this.data = data;
-        }
-    }
-
     @SuppressWarnings("unused")
     private static final class MetricData {
         long timestamp;
@@ -368,14 +346,14 @@ public class CollectdITest extends ExecutableITestBase {
     @JsonIgnoreProperties(ignoreUnknown = true)
     @SuppressWarnings("unused")
     private static final class MetricName {
-        String name;
+        String id;
 
-        public String getName() {
-            return name;
+        public String getId() {
+            return id;
         }
 
-        public void setName(String name) {
-            this.name = name;
+        public void setId(String id) {
+            this.id = id;
         }
     }
 }
