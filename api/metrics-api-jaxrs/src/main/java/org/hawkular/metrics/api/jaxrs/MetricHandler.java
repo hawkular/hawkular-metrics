@@ -73,7 +73,6 @@ import org.hawkular.metrics.core.impl.mapper.BucketedOutput;
 import org.hawkular.metrics.core.impl.request.TagRequest;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -151,10 +150,7 @@ public class MetricHandler {
                                          @Context UriInfo uriInfo
     ) {
         if (metric == null) {
-            Response response = Response.status(Status.BAD_REQUEST)
-                                        .entity(ImmutableMap.of("errorMsg", "Payload is empty"))
-                                        .type(APPLICATION_JSON_TYPE)
-                                        .build();
+            Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Payload is empty")).build();
             asyncResponse.resume(response);
             return;
         }
