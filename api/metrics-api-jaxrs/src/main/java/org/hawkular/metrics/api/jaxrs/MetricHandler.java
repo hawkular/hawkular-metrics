@@ -51,10 +51,10 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
+import org.hawkular.metrics.api.jaxrs.callback.MetricCreatedCallback;
 import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
 import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
 import org.hawkular.metrics.core.api.Availability;
@@ -73,7 +73,6 @@ import org.hawkular.metrics.core.impl.mapper.BucketedOutput;
 import org.hawkular.metrics.core.impl.request.TagRequest;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -128,7 +127,12 @@ public class MetricHandler {
         URI created = uriInfo.getBaseUriBuilder()
                              .path("/{tenantId}/metrics/numeric/{id}")
                              .build(tenantId, metric.getId().getName());
-        Futures.addCallback(future, new MetricCreatedCallback(asyncResponse, created));
+        MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(
+                asyncResponse,
+                created,
+                MetricHandler::getMetricAlreadyExistsResponse
+        );
+        Futures.addCallback(future, metricCreatedCallback);
     }
 
     @POST
@@ -159,39 +163,17 @@ public class MetricHandler {
         URI created = uriInfo.getBaseUriBuilder()
                              .path("/{tenantId}/metrics/availability/{id}")
                              .build(tenantId, metric.getId().getName());
-        Futures.addCallback(future, new MetricCreatedCallback(asyncResponse, created));
+        MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(
+                asyncResponse,
+                created,
+                MetricHandler::getMetricAlreadyExistsResponse
+        );
+        Futures.addCallback(future, metricCreatedCallback);
     }
 
-    private static class MetricCreatedCallback implements FutureCallback<Void> {
-        private final AsyncResponse asyncResponse;
-        private final URI created;
-
-        public MetricCreatedCallback(AsyncResponse asyncResponse, URI created) {
-            this.asyncResponse = asyncResponse;
-            this.created = created;
-        }
-
-        @Override
-        public void onSuccess(Void result) {
-            asyncResponse.resume(Response.created(created).build());
-        }
-
-        @Override
-        public void onFailure(Throwable t) {
-            ResponseBuilder response;
-            String message;
-            if (t instanceof MetricAlreadyExistsException) {
-                MetricAlreadyExistsException exception = (MetricAlreadyExistsException) t;
-                message = "A metric with name [" + exception.getMetric().getId().getName() + "] already exists";
-                response = Response.status(Status.CONFLICT);
-            } else {
-                message = "Failed to create metric due to an unexpected error: "
-                          + Throwables.getRootCause(t).getMessage();
-                response = Response.serverError();
-            }
-            response.entity(new ApiError(message)).type(APPLICATION_JSON_TYPE);
-            asyncResponse.resume(response.build());
-        }
+    private static Response getMetricAlreadyExistsResponse(MetricAlreadyExistsException e) {
+        String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
+        return Response.status(Status.CONFLICT).entity(new ApiError(message)).build();
     }
 
     @GET
