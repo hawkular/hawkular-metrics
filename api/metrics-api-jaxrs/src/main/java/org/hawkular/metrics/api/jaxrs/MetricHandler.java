@@ -114,10 +114,7 @@ public class MetricHandler {
                                     @Context UriInfo uriInfo
     ) {
         if (metric == null) {
-            Response response = Response.status(Status.BAD_REQUEST)
-                                        .entity(new ApiError("Payload is empty"))
-                                        .type(APPLICATION_JSON_TYPE)
-                                        .build();
+            Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Payload is empty")).build();
             asyncResponse.resume(response);
             return;
         }
