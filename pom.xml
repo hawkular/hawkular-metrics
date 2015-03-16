@@ -33,7 +33,7 @@
 
   <name>Hawkular Metrics</name>
   <description>Hawkular Metrics is a metrics collection, aggregation, visualization framework.</description>
-  <url>https://community.jboss.org/en/rhq/rhq-metrics</url>
+  <url>http://www.hawkular.org/</url>
   <inceptionYear>2014</inceptionYear>
   <organization>
     <name>Red Hat, Inc.</name>
@@ -88,13 +88,13 @@
   </modules>
 
   <scm>
-    <connection>scm:git:ssh://github.com/rhq-project/rhq-metrics</connection>
-    <developerConnection>scm:git:ssh://github.com/rhq-project/rhq-metrics</developerConnection>
-    <url>https://github.com/rhq-project/rhq-metrics</url>
+    <connection>scm:git:ssh://github.com/hawkular/hawkular-metrics</connection>
+    <developerConnection>scm:git:ssh://github.com/hawkular/hawkular-metrics</developerConnection>
+    <url>https://github.com/hawkular/hawkular-metrics</url>
   </scm>
   <ciManagement>
     <system>Travis-ci</system>
-    <url>https://travis-ci.org/rhq-project/rhq-metrics</url>
+    <url>https://travis-ci.org/hawkular/hawkular-metrics</url>
   </ciManagement>
 
   <distributionManagement>
