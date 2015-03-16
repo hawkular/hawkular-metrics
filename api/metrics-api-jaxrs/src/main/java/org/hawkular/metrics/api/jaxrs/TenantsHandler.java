@@ -19,6 +19,7 @@ package org.hawkular.metrics.api.jaxrs;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 
+import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 
@@ -30,9 +31,12 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriInfo;
 
+import org.hawkular.metrics.api.jaxrs.callback.TenantCreatedCallback;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
@@ -65,38 +69,35 @@ public class TenantsHandler {
     @ApiOperation(value = "Create a new tenant. ", notes = "Clients are not required to create explicitly create a "
             + "tenant before starting to store metric data. It is recommended to do so however to ensure that there "
             + "are no tenant id naming collisions and to provide default data retention settings. ")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Tenant has been succesfully created."),
-                            @ApiResponse(code = 400, message = "Retention properties are invalid. ",
-                                         response = ApiError.class),
-                            @ApiResponse(code = 409, message = "Given tenant id has already been created.",
-                                         response = ApiError.class),
+    @ApiResponses(value = {
+            @ApiResponse(code = 201, message = "Tenant has been succesfully created."),
+            @ApiResponse(code = 400, message = "Missing or invalid retention properties. "),
+            @ApiResponse(code = 409, message = "Given tenant id has already been created."),
             @ApiResponse(code = 500, message = "An unexpected error occured while trying to create a tenant.",
                          response = ApiError.class)
     })
-    public void createTenant(@Suspended AsyncResponse asyncResponse, @ApiParam(required = true) Tenant params) {
+    public void createTenant(
+            @Suspended AsyncResponse asyncResponse, @ApiParam(required = true) Tenant params,
+            @Context UriInfo uriInfo
+    ) {
+        if (params == null) {
+            Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Payload is empty")).build();
+            asyncResponse.resume(response);
+            return;
+        }
         ListenableFuture<Void> insertFuture = metricsService.createTenant(params);
-        Futures.addCallback(insertFuture, new FutureCallback<Void>() {
-            @Override
-            public void onSuccess(Void result) {
-                asyncResponse.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
-            }
+        URI created = uriInfo.getBaseUriBuilder().path("/tenants").build();
+        TenantCreatedCallback tenantCreatedCallback = new TenantCreatedCallback(
+                asyncResponse,
+                created,
+                TenantsHandler::getTenantAlreadyExistsResponse
+        );
+        Futures.addCallback(insertFuture, tenantCreatedCallback);
+    }
 
-            @Override
-            public void onFailure(Throwable t) {
-                if (t instanceof TenantAlreadyExistsException) {
-                    TenantAlreadyExistsException exception = (TenantAlreadyExistsException) t;
-                    ApiError errors = new ApiError("A tenant with id [" + exception.getTenantId() + "] already exists");
-                    asyncResponse.resume(Response.status(Status.CONFLICT).entity(errors).type(APPLICATION_JSON_TYPE)
-                        .build());
-                    return;
-                }
-                ApiError errors = new ApiError(
-                        "Failed to create tenant due to an "
-                    + "unexpected error: " + Throwables.getRootCause(t).getMessage());
-                asyncResponse.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors)
-                    .type(APPLICATION_JSON_TYPE).build());
-            }
-        });
+    private static Response getTenantAlreadyExistsResponse(TenantAlreadyExistsException e) {
+        String message = "A tenant with id [" + e.getTenantId() + "] already exists";
+        return Response.status(Status.CONFLICT).entity(new ApiError(message)).build();
     }
 
     @GET

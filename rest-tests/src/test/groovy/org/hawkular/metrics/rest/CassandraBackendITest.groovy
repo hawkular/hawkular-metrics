@@ -22,62 +22,16 @@ import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertTrue
 
-import java.util.concurrent.atomic.AtomicInteger
-
 import org.hawkular.metrics.core.impl.DateTimeService
 import org.joda.time.DateTime
 import org.junit.Test
 
 class CassandraBackendITest extends RESTTest {
 
-//  static final double DELTA = 0.001
-  static final String TENANT_PREFIX = UUID.randomUUID().toString()
-  static final AtomicInteger TENANT_ID_COUNTER = new AtomicInteger(0)
-
   def assertNumericDataPointEquals = { expected, actual ->
     assertEquals("The timestamp does not match", expected.timestamp, actual.timestamp)
     assertTrue("Expected a value of $expected.value but found $actual.value",
         expected.value.compareTo(actual.value) == 0)
-  }
-
-  @Test
-  void tenantTests(){
-    String firstTenantId = nextTenantId()
-    String secondTenantId = nextTenantId()
-
-    def response = hawkularMetrics.post(path: "tenants", body: [
-        id: firstTenantId,
-        //retentionSettings: [numeric: 45, availability: 30]
-        ])
-    assertEquals(200, response.status)
-
-    response = hawkularMetrics.post(path: "tenants", body: [
-        id: secondTenantId//,
-        //retentionSettings: [numeric: 45, availability: 30]
-        ])
-    assertEquals(200, response.status)
-
-    response = hawkularMetrics.get(path: "tenants")
-    def expectedData = [
-        [id:firstTenantId,
-        //retentionSettings:[availability:30, numeric:45]
-        ],
-        [id:secondTenantId,
-        //retentionSettings:[availability:30, numeric:45]
-        ]]
-
-    expectedData.each{
-        def found = null
-        def expected = it
-
-        response.data.each{
-            if ( it.id == expected.id) {
-                found = it;
-            }
-        }
-
-        assertEquals(expected, found)
-    }
   }
 
   @Test
@@ -167,7 +121,8 @@ class CassandraBackendITest extends RESTTest {
     def tenantId = nextTenantId()
 
     def response = hawkularMetrics.post(path: 'tenants', body: [id: tenantId])
-    assertEquals(200, response.status)
+    assertEquals(201, response.status)
+    assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
 
     // Let's explicitly create one of the metrics with some tags and a data retention
     // so that we can verify we get back that info along with the data.
@@ -176,7 +131,8 @@ class CassandraBackendITest extends RESTTest {
         tags: [a: '1', b: '2'],
         dataRetention: 24
     ])
-    assertEquals(200, response.status)
+    assertEquals(201, response.status)
+    assertEquals("http://$baseURI/$tenantId/metrics/numeric/m2".toString(), response.getFirstHeader('location').value)
 
     response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/data", body: [
         [
@@ -220,7 +176,8 @@ class CassandraBackendITest extends RESTTest {
     def tenantId = nextTenantId()
 
     def response = hawkularMetrics.post(path: 'tenants', body: [id: tenantId])
-    assertEquals(200, response.status)
+    assertEquals(201, response.status)
+    assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
 
     // Let's explicitly create one of the metrics with some tags and a data retention
     // so that we can verify we get back that info along with the data.
@@ -229,7 +186,11 @@ class CassandraBackendITest extends RESTTest {
         tags         : [a: '1', b: '2'],
         dataRetention: 12
     ])
-    assertEquals(200, response.status)
+    assertEquals(201, response.status)
+    assertEquals(
+        "http://$baseURI/$tenantId/metrics/availability/m2".toString(),
+        response.getFirstHeader('location').value
+    )
 
     response = hawkularMetrics.post(path: "${tenantId}/metrics/availability/data", body: [
         [
@@ -276,11 +237,11 @@ class CassandraBackendITest extends RESTTest {
         id: 'N1',
         tags: [a1: 'A', b1: 'B']
     ])
-    assertEquals(200, response.status)
+    assertEquals(201, response.status)
 
     // Make sure we do not allow duplicates
     badPost(path: "$tenantId/metrics/numeric", body: [id: 'N1']) { exception ->
-      assertEquals(400, exception.response.status)
+      assertEquals(409, exception.response.status)
       assertNotNull(exception.response.data['errorMsg'])
     }
 
@@ -290,14 +251,14 @@ class CassandraBackendITest extends RESTTest {
         tags: [a2: '2', b2: 'B2'],
         dataRetention: 96
     ])
-    assertEquals(200, response.status)
+    assertEquals(201, response.status)
 
     // Create an availability metric
     response = hawkularMetrics.post(path: "$tenantId/metrics/availability", body: [
         id: 'A1',
         tags: [a2: '2', b2: '2']
     ])
-    assertEquals(200, response.status)
+    assertEquals(201, response.status)
 
     // Create an availability metric that sets its data retention
     response = hawkularMetrics.post(path: "$tenantId/metrics/availability", body: [
@@ -305,12 +266,12 @@ class CassandraBackendITest extends RESTTest {
         tags: [a22: '22', b22: '22'],
         dataRetention: 48
     ])
-    assertEquals(200, response.status)
+    assertEquals(201, response.status)
 
     // Make sure we do not allow duplicates
     badPost(path: "$tenantId/metrics/availability", body: [id: 'A1']) { exception ->
-      assertEquals(400, exception.response.status)
-        assertNotNull(exception.response.data['errorMsg'])
+      assertEquals(409, exception.response.status)
+      assertNotNull(exception.response.data['errorMsg'])
     }
 
     // Fetch numeric tags
@@ -459,7 +420,7 @@ class CassandraBackendITest extends RESTTest {
         tags: [a1: 'A', B1: 'B'],
         dataRetention: 32
     ])
-    assertEquals(200, response.status)
+    assertEquals(201, response.status)
 
     // Now query for the numeric metrics
     response = hawkularMetrics.get(path: "$tenantId/metrics", query: [type: 'num'])
@@ -498,7 +459,7 @@ class CassandraBackendITest extends RESTTest {
         tags: [a10: '10', a11: '11'],
         dataRetention: 7
     ])
-    assertEquals(200, response.status)
+    assertEquals(201, response.status)
 
     // Query for the availability metrics
     response = hawkularMetrics.get(path: "$tenantId/metrics", query: [type: 'avail'])
@@ -623,32 +584,4 @@ class CassandraBackendITest extends RESTTest {
     assertEquals('The number of bucketed data points is wrong', expected.size(), actual.size())
     expected.size().times { verifyBucket(expected.data[it], actual.data[it]) }
   }
-
-  void assertDoubleEquals(expected, actual) {
-    // If a bucket does not contain any data points, then the server returns
-    // Double.NaN for max/min/avg. NaN is returned on the client and parsed as
-    // a string. If the bucket contains data points, then the returned values
-    // will be numeric.
-
-    if (actual instanceof String) {
-      assertEquals((Double) expected, Double.parseDouble(actual), DELTA)
-    } else {
-      assertEquals((Double) expected, (Double) actual, DELTA)
-    }
-  }
-
-  static def badPost(args, errorHandler) {
-    try {
-      def object = hawkularMetrics.post(args)
-      fail("Expected exception to be thrown")
-      return object
-    } catch (e) {
-      errorHandler(e)
-    }
-  }
-
-  static String nextTenantId() {
-    return "T${TENANT_PREFIX}${TENANT_ID_COUNTER.incrementAndGet()}"
-  }
-
 }

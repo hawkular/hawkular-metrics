@@ -28,6 +28,7 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
 
+import java.net.URI;
 import java.util.Collection;
 import java.util.DoubleSummaryStatistics;
 import java.util.HashMap;
@@ -48,15 +49,19 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriInfo;
 
+import org.hawkular.metrics.api.jaxrs.callback.MetricCreatedCallback;
 import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
 import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
@@ -96,33 +101,72 @@ public class MetricHandler {
     @ApiOperation(value = "Create numeric metric definition.", notes = "Clients are not required to explicitly create "
             + "a metric before storing data. Doing so however allows clients to prevent naming collisions and to "
             + "specify tags and data retention.")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric definition created successfully"),
-            @ApiResponse(code = 400, message = "Metric with given id already exists or request is otherwise incorrect",
-                         response = ApiError.class),
+    @ApiResponses(value = {
+            @ApiResponse(code = 201, message = "Metric definition created successfully"),
+            @ApiResponse(code = 400, message = "Missing or invalid payload"),
+            @ApiResponse(code = 409, message = "Numeric metric with given id already exists"),
             @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
                          response = ApiError.class)
     })
     public void createNumericMetric(@Suspended final AsyncResponse asyncResponse,
-            @PathParam("tenantId") String tenantId, @ApiParam(required = true) NumericMetric metric) {
+                                    @PathParam("tenantId") String tenantId,
+                                    @ApiParam(required = true) NumericMetric metric,
+                                    @Context UriInfo uriInfo
+    ) {
+        if (metric == null) {
+            Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Payload is empty")).build();
+            asyncResponse.resume(response);
+            return;
+        }
         metric.setTenantId(tenantId);
         ListenableFuture<Void> future = metricsService.createMetric(metric);
-        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
+        URI created = uriInfo.getBaseUriBuilder()
+                             .path("/{tenantId}/metrics/numeric/{id}")
+                             .build(tenantId, metric.getId().getName());
+        MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(
+                asyncResponse,
+                created,
+                MetricHandler::getMetricAlreadyExistsResponse
+        );
+        Futures.addCallback(future, metricCreatedCallback);
     }
 
     @POST
     @Path("/{tenantId}/metrics/availability")
     @ApiOperation(value = "Create availability metric definition. Same notes as creating numeric metric apply.")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric definition created successfully"),
-                            @ApiResponse(code = 400, message = "Metric with given id already exists",
-                                         response = ApiError.class),
+    @ApiResponses(value = {
+            @ApiResponse(code = 201, message = "Metric definition created successfully"),
+            @ApiResponse(code = 400, message = "Missing or invalid payload"),
+            @ApiResponse(code = 409, message = "Numeric metric with given id already exists"),
             @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
                          response = ApiError.class)
     })
     public void createAvailabilityMetric(@Suspended final AsyncResponse asyncResponse,
-            @PathParam("tenantId") String tenantId, @ApiParam(required = true) AvailabilityMetric metric) {
+                                         @PathParam("tenantId") String tenantId,
+                                         @ApiParam(required = true) AvailabilityMetric metric,
+                                         @Context UriInfo uriInfo
+    ) {
+        if (metric == null) {
+            Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Payload is empty")).build();
+            asyncResponse.resume(response);
+            return;
+        }
         metric.setTenantId(tenantId);
         ListenableFuture<Void> future = metricsService.createMetric(metric);
-        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
+        URI created = uriInfo.getBaseUriBuilder()
+                             .path("/{tenantId}/metrics/availability/{id}")
+                             .build(tenantId, metric.getId().getName());
+        MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(
+                asyncResponse,
+                created,
+                MetricHandler::getMetricAlreadyExistsResponse
+        );
+        Futures.addCallback(future, metricCreatedCallback);
+    }
+
+    private static Response getMetricAlreadyExistsResponse(MetricAlreadyExistsException e) {
+        String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
+        return Response.status(Status.CONFLICT).entity(new ApiError(message)).build();
     }
 
     @GET
