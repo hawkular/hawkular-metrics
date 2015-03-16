@@ -25,19 +25,22 @@ import javax.ws.rs.ext.ParamConverterProvider;
 import javax.ws.rs.ext.Provider;
 
 /**
+ * Provides Metrics {@link javax.ws.rs.ext.ParamConverterProvider} instances.
+ *
  * @author Thomas Segismont
  */
 @Provider
-public class DurationConverterProvider implements ParamConverterProvider {
+public class ConvertersProvider implements ParamConverterProvider {
     private final DurationConverter durationConverter = new DurationConverter();
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T> ParamConverter<T> getConverter(
             Class<T> rawType, Type genericType, Annotation[] annotations
     ) {
-        if (!rawType.equals(Duration.class)) {
-            return null;
+        if (rawType.equals(Duration.class)) {
+            return (ParamConverter<T>) durationConverter;
         }
-        return (ParamConverter<T>) durationConverter;
+        return null;
     }
 }
