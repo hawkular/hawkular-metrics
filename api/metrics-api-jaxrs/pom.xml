@@ -188,7 +188,7 @@
                 <apiSource>
                   <locations>org.hawkular.metrics.api.jaxrs</locations>
                   <apiVersion>1.0</apiVersion>
-                  <basePath>http://localhost:8080/rhq-metrics/</basePath>
+                  <basePath>http://localhost:8080/hawkular-metrics/</basePath>
                   <outputTemplate>src/main/resources/rest-doc/asciidoc.mustache</outputTemplate>
                   <swaggerDirectory>generated/swagger-ui</swaggerDirectory>
                   <swaggerInternalFilter>org.hawkular.metrics.api.jaxrs.swagger.filter.JaxRsFilter</swaggerInternalFilter>
