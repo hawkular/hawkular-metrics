@@ -35,6 +35,15 @@ import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableBiMap.Builder;
 
 /**
+ * A JAX-RS {@link ParamConverter} for {@link Duration} parameters. The list of valid time units is the following:
+ * <ul>
+ *     <li><em>ms</em>: milliseconds</li>
+ *     <li><em>s</em>: seconds</li>
+ *     <li><em>mn</em>: minutes</li>
+ *     <li><em>h</em>: hours</li>
+ *     <li><em>d</em>: days</li>
+ * </ul>
+ *
  * @author Thomas Segismont
  */
 public class DurationConverter implements ParamConverter<Duration> {
