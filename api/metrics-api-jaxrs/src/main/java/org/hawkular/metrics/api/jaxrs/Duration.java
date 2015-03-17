@@ -21,9 +21,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.util.concurrent.TimeUnit;
 
 /**
- * A time duration.
+ * A time duration. This class is meant to be used only as a JAX−RS method parameter. If you need to work with a
+ * duration, prefer usage of {@link org.joda.time.Duration}.
  *
  * @author Thomas Segismont
+ * @see org.hawkular.metrics.api.jaxrs.DurationConverter
  */
 public class Duration {
     private final long value;
