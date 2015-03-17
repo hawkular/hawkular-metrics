@@ -30,6 +30,44 @@ class NumericMetricStatisticsITest extends RESTTest {
   private static final int NUMBER_OF_BUCKETS = 10
 
   @Test
+  void shouldNotAcceptInvalidParams() {
+    String tenantId = nextTenantId()
+    String metric = "test"
+
+    def response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/$metric/data", body: [
+        [timestamp: new DateTimeService().currentHour().minusHours(1).millis, value: 1]
+    ])
+    assertEquals(200, response.status)
+
+    badGet(path: "${tenantId}/metrics/numeric/$metric/data", query: [buckets: 0]) { exception ->
+      // Bucket count = zero
+      assertEquals(400, exception.response.status)
+    }
+
+    badGet(path: "${tenantId}/metrics/numeric/$metric/data", query: [buckets: Integer.MAX_VALUE]) { exception ->
+      // Bucket size = zero
+      assertEquals(400, exception.response.status)
+    }
+
+    badGet(path: "${tenantId}/metrics/numeric/$metric/data", query: [bucketDuration: "1w"]) { exception ->
+      // Illegal duration
+      assertEquals(400, exception.response.status)
+    }
+
+    badGet(path: "${tenantId}/metrics/numeric/$metric/data",
+        query: [start: 0, end: Long.MAX_VALUE, bucketDuration: "1ms"]) {
+      exception ->
+        // Number of buckets is too large
+        assertEquals(400, exception.response.status)
+    }
+
+    badGet(path: "${tenantId}/metrics/numeric/$metric/data", query: [buckets: 1, bucketDuration: "1d"]) { exception ->
+      // Both buckets and bucketDuration parameters provided
+      assertEquals(400, exception.response.status)
+    }
+  }
+
+  @Test
   void largeDataSetTest() {
     String tenantId = nextTenantId()
     String metric = "test"

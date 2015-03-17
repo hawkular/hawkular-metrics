@@ -65,6 +65,16 @@ class RESTTest {
     assertDoubleEquals(expected.percentile95th, actual.percentile95th)
   }
 
+  static def badGet(args, errorHandler) {
+    try {
+      def object = hawkularMetrics.get(args)
+      fail("Expected exception to be thrown")
+      return object
+    } catch (e) {
+      errorHandler(e)
+    }
+  }
+
   static def badPost(args, errorHandler) {
     try {
       def object = hawkularMetrics.post(args)
