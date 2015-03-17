@@ -17,7 +17,6 @@
 package org.hawkular.metrics.api.jaxrs;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 
 import java.net.URI;
 import java.util.Collection;
@@ -116,7 +115,7 @@ public class TenantsHandler {
                     response.resume(Response.ok().status(Status.NO_CONTENT).build());
                     return;
                 }
-                response.resume(Response.status(Status.OK).entity(tenants).type(APPLICATION_JSON_TYPE).build());
+                response.resume(Response.status(Status.OK).entity(tenants).build());
             }
 
             @Override
@@ -124,8 +123,7 @@ public class TenantsHandler {
                 ApiError errors = new ApiError(
                         "Failed to fetch tenants due to an "
                     + "unexpected error: " + Throwables.getRootCause(t).getMessage());
-                response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors)
-                    .type(APPLICATION_JSON_TYPE).build());
+                response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors).build());
             }
         });
     }

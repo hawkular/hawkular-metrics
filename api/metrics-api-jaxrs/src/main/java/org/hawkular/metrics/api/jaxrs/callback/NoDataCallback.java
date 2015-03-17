@@ -16,10 +16,7 @@
  */
 package org.hawkular.metrics.api.jaxrs.callback;
 
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
-
 import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
@@ -43,7 +40,7 @@ public class NoDataCallback<T> implements FutureCallback<T> {
 
     @Override
     public void onSuccess(Object result) {
-        response.resume(Response.ok().type(MediaType.APPLICATION_JSON_TYPE).build());
+        response.resume(Response.ok().build());
     }
 
     @Override
@@ -52,15 +49,14 @@ public class NoDataCallback<T> implements FutureCallback<T> {
             ApiError errors = new ApiError(
                     "A metric input id already exists " + ":"
                     + Throwables.getRootCause(t).getMessage());
-            response.resume(Response.status(Status.BAD_REQUEST).entity(errors).type(APPLICATION_JSON_TYPE).build());
+            response.resume(Response.status(Status.BAD_REQUEST).entity(errors).build());
         } else if (t instanceof NoResultsException) {
             response.resume(Response.ok().status(Status.NO_CONTENT).build());
         } else {
             ApiError errors = new ApiError(
                     "Failed to perform operation due to an error: "
                     + Throwables.getRootCause(t).getMessage());
-            response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors)
-                    .type(MediaType.APPLICATION_JSON_TYPE).build());
+            response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).build());
         }
     }
 }

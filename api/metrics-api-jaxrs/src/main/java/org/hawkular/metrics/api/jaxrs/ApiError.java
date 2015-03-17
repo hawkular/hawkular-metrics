@@ -16,8 +16,6 @@
  */
 package org.hawkular.metrics.api.jaxrs;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
 import com.wordnik.swagger.annotations.ApiModel;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
@@ -25,7 +23,6 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
  * Return information what failed in the REST-call.
  * @author Michael Burman
  */
-@XmlRootElement
 @ApiModel(description = "If REST-call returns other than success, detailed error is returned.")
 public class ApiError {
     private String errorMsg;

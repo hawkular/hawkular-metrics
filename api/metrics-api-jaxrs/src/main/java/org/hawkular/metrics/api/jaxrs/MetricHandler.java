@@ -25,7 +25,6 @@ import static java.util.stream.Collectors.summarizingDouble;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
 
 import java.net.URI;
@@ -144,8 +143,7 @@ public class MetricHandler {
     public void createAvailabilityMetric(@Suspended final AsyncResponse asyncResponse,
                                          @PathParam("tenantId") String tenantId,
                                          @ApiParam(required = true) AvailabilityMetric metric,
-                                         @Context UriInfo uriInfo
-    ) {
+                                         @Context UriInfo uriInfo) {
         if (metric == null) {
             Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Payload is empty")).build();
             asyncResponse.resume(response);
@@ -315,7 +313,7 @@ public class MetricHandler {
                                @ApiParam(value = "List of metrics", required = true)
                                List<NumericMetric> metrics) {
         if (metrics.isEmpty()) {
-            asyncResponse.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
+            asyncResponse.resume(Response.ok().build());
         }
 
         for (NumericMetric metric : metrics) {
@@ -337,7 +335,7 @@ public class MetricHandler {
         @PathParam("tenantId") String tenantId, @ApiParam(value = "List of availability metrics", required = true)
         List<AvailabilityMetric> metrics) {
         if (metrics.isEmpty()) {
-            asyncResponse.resume(Response.ok().type(APPLICATION_JSON_TYPE).build());
+            asyncResponse.resume(Response.ok().build());
         }
 
         for (AvailabilityMetric metric : metrics) {
@@ -659,7 +657,7 @@ public class MetricHandler {
                     asyncResponse.resume(Response.status(404).entity("Counter[group: " + group + ", name: " +
                             counter + "] not found").build());
                 } else {
-                    Response jaxrs = Response.ok(counters.get(0)).type(APPLICATION_JSON_TYPE).build();
+                    Response jaxrs = Response.ok(counters.get(0)).build();
                     asyncResponse.resume(jaxrs);
                 }
             }
@@ -692,8 +690,7 @@ public class MetricHandler {
             metricType = MetricType.fromTextCode(type);
         } catch (IllegalArgumentException e) {
             ApiError errors = new ApiError("[" + type + "] is not a valid type. Accepted values are num|avail|log");
-            asyncResponse
-                    .resume(Response.status(Status.BAD_REQUEST).entity(errors).type(APPLICATION_JSON_TYPE).build());
+            asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity(errors).build());
         }
         ListenableFuture<List<Metric<?>>> future = metricsService.findMetrics(tenantId, metricType);
         Futures.addCallback(future, new SimpleDataCallback<List<Metric<?>>>(asyncResponse));

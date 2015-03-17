@@ -16,8 +16,6 @@
  */
 package org.hawkular.metrics.api.jaxrs.callback;
 
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
-
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
@@ -31,9 +29,9 @@ public class SimpleDataCallback<T> extends NoDataCallback<T> {
     @Override
     public void onSuccess(Object responseData) {
         if (responseData == null) {
-            response.resume(Response.status(Status.NO_CONTENT).type(APPLICATION_JSON_TYPE).build());
+            response.resume(Response.status(Status.NO_CONTENT).build());
         } else {
-            response.resume(Response.ok(responseData).type(APPLICATION_JSON_TYPE).build());
+            response.resume(Response.ok(responseData).build());
         }
     }
 }
