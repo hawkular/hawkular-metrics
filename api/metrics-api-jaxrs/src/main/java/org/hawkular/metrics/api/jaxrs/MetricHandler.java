@@ -411,27 +411,19 @@ public class MetricHandler {
             asyncResponse.resume(response);
             return;
         }
-        if (bucketsCount != null) {
-            if (bucketsCount < 1) {
-                ApiError apiError = new ApiError("Total number of buckets must be a strictly positive number");
-                Response response = Response.status(Status.BAD_REQUEST).entity(apiError).build();
-                asyncResponse.resume(response);
-                return;
+
+        Buckets buckets;
+        try {
+            if (bucketsCount != null) {
+                buckets = Buckets.fromCount(start, end, bucketsCount);
+            } else {
+                buckets = Buckets.fromStep(start, end, bucketDuration.toMillis());
             }
-            bucketDuration = new Duration((end - start) / bucketsCount, MILLISECONDS);
-        }
-        if (bucketDuration.getTimeUnit() == MILLISECONDS && bucketDuration.getValue() == 1) {
-            ApiError apiError = new ApiError("Bucket duration must be greater than 2ms");
+        } catch (IllegalArgumentException e) {
+            ApiError apiError = new ApiError("Bucket: " + e.getMessage());
             Response response = Response.status(Status.BAD_REQUEST).entity(apiError).build();
             asyncResponse.resume(response);
             return;
-        }
-
-        Buckets buckets;
-        if (bucketsCount != null) {
-            buckets = Buckets.fromCount(start, end, bucketsCount);
-        } else {
-            buckets = Buckets.fromStep(start, end, bucketDuration.toMillis());
         }
         ListenableFuture<BucketedOutput> dataFuture = metricsService.findNumericStats(metric, start, end, buckets);
         ListenableFuture<List<BucketDataPoint>> outputFuture = Futures.transform(
