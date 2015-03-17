@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.impl.mapper;
+package org.hawkular.metrics.core.api;
 
 import com.wordnik.swagger.annotations.ApiModel;
 import com.wordnik.swagger.annotations.ApiModelProperty;
@@ -22,28 +22,29 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
 /**
  * A point in time with some data for min/avg/max to express
  * that at this point in time multiple values were recorded.
+ *
  * @author Heiko W. Rupp
  */
-// TODO: Remove or move this class to a better package
-@ApiModel(value = "A bucket is a time range with multiple data items represented by min/avg/max values" +
-    "for that time span.")
+@ApiModel(value = "A bucket is a time range with multiple data items represented by min/avg/max/95thPercentile values" +
+                  "for that time span.")
 public class BucketDataPoint {
 
-    private double min;
-    private double max;
-    private double avg;
     private long timestamp;
     private double value;
+    private double min;
+    private double avg;
+    private double max;
+    private double percentile95th;
 
     public BucketDataPoint() {
     }
 
-    public BucketDataPoint(long timestamp, double min, double avg, double max) {
-        super();
-        this.setTimestamp(timestamp);
+    public BucketDataPoint(long timestamp, double min, double avg, double max, double percentile95th) {
+        this.timestamp = timestamp;
         this.min = min;
-        this.max = max;
         this.avg = avg;
+        this.max = max;
+        this.percentile95th = percentile95th;
     }
 
     @ApiModelProperty(value = "Time when the value was obtained in milliseconds since epoch")
@@ -91,16 +92,27 @@ public class BucketDataPoint {
         this.avg = avg;
     }
 
+    @ApiModelProperty(value = "95th percentile value during the time span of the bucket.")
+    public double getPercentile95th() {
+        return percentile95th;
+    }
+
+    public void setPercentile95th(double percentile95th) {
+        this.percentile95th = percentile95th;
+    }
+
     public boolean isEmpty() {
         return Double.isNaN(avg) || Double.isNaN(max) || Double.isNaN(min);
     }
 
     @Override
     public String toString() {
-        return "BucketDataPoint{" +
-            "min=" + min +
-            ", max=" + max +
-            ", avg=" + avg +
-            '}';
+        return "BucketDataPoint[" +
+               "timestamp=" + timestamp +
+               ", min=" + min +
+               ", avg=" + avg +
+               ", max=" + max +
+               ", percentile95th=" + percentile95th +
+               ']';
     }
 }

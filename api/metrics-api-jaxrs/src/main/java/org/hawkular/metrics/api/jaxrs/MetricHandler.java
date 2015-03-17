@@ -17,24 +17,17 @@
 package org.hawkular.metrics.api.jaxrs;
 
 import static java.util.Arrays.asList;
-import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.summarizingDouble;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
 
 import java.net.URI;
 import java.util.Collection;
-import java.util.DoubleSummaryStatistics;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.LongStream;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -56,8 +49,12 @@ import javax.ws.rs.core.UriInfo;
 import org.hawkular.metrics.api.jaxrs.callback.MetricCreatedCallback;
 import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
 import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
+import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
+import org.hawkular.metrics.core.api.BucketDataPoint;
+import org.hawkular.metrics.core.api.BucketedOutput;
+import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
@@ -66,8 +63,6 @@ import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
-import org.hawkular.metrics.core.impl.mapper.BucketDataPoint;
-import org.hawkular.metrics.core.impl.mapper.BucketedOutput;
 import org.hawkular.metrics.core.impl.request.TagRequest;
 
 import com.google.common.base.Function;
@@ -368,99 +363,81 @@ public class MetricHandler {
 
     @GET
     @Path("/{tenantId}/metrics/numeric/{id}/data")
-    @ApiOperation(value = "Retrieve numeric data.", response = List.class)
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched numeric data."),
+    @ApiOperation(value = "Retrieve numeric data. When buckets or bucketDuration query parameter is used, the time "
+                          + "range between start and end will be divided in buckets of equal duration, and metric "
+                          + "statistics will be computed for each bucket.", response = List.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched numeric data."),
             @ApiResponse(code = 204, message = "No numeric data was found."),
+            @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
+                         response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching numeric data.",
                          response = ApiError.class)
     })
     public void findNumericData(
-            @Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId,
-        @PathParam("id") final String id,
-        @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") Long start,
-        @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") Long end,
-        @ApiParam(value = "The number of buckets or intervals in which to divide the time range. A value of 60 for "
-                + "example will return 60 equally spaced buckets for the time period between start and end times"
-                + " having max/min/avg calculated for each bucket.") @QueryParam("buckets") final int numberOfBuckets) {
+            @Suspended AsyncResponse asyncResponse,
+            @PathParam("tenantId") String tenantId,
+            @PathParam("id") String id,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration
+    ) {
         long now = System.currentTimeMillis();
-        if (start == null) {
-            start = now - EIGHT_HOURS;
-        }
-        if (end == null) {
-            end = now;
-        }
+        start = start == null ? now - EIGHT_HOURS : start;
+        end = end == null ? now : end;
 
         NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
-        ListenableFuture<NumericMetric> dataFuture = metricsService.findNumericData(metric, start, end);
-        ListenableFuture<? extends Object> outputFuture = null;
-        if (numberOfBuckets == 0) {
-            outputFuture = Futures.transform(dataFuture, new Function<NumericMetric, List<NumericData>>() {
-                @Override
-                public List<NumericData> apply(NumericMetric metric) {
-                    if (metric == null) {
-                        throw new NoResultsException();
+
+        if (bucketsCount == null && bucketDuration == null) {
+            ListenableFuture<NumericMetric> dataFuture = metricsService.findNumericData(metric, start, end);
+            ListenableFuture<List<NumericData>> outputFuture = Futures.transform(
+                    dataFuture, new Function<NumericMetric, List<NumericData>>() {
+                        @Override
+                        public List<NumericData> apply(NumericMetric input) {
+                            if (input == null) {
+                                return null;
+                            }
+                            return input.getData();
+                        }
                     }
-
-                    return metric.getData();
-                }
-            });
-        } else {
-            final Long startTime = start;
-            final Long endTime = end;
-            outputFuture = Futures.transform(dataFuture, new Function<NumericMetric, BucketedOutput>() {
-
-                @Override
-                public BucketedOutput apply(NumericMetric metric) {
-                    if (metric == null) {
-                        throw new NoResultsException();
-                    }
-                    return doApply(metric);
-                }
-
-                public BucketedOutput doApply(NumericMetric metric) {
-                    // we will have numberOfBuckets buckets over the whole time span
-                    BucketedOutput output = new BucketedOutput(metric.getTenantId(), metric.getId().getName(), metric
-                            .getTags());
-                    long bucketSize = (endTime - startTime) / numberOfBuckets;
-
-                    long[] buckets = LongStream.iterate(0, i -> i + 1).limit(numberOfBuckets)
-                            .map(i -> startTime + (i * bucketSize)).toArray();
-
-                    Map<Long, List<NumericData>> map = metric.getData().stream()
-                            .collect(groupingBy(dataPoint -> {
-                                        return stream(buckets)
-                                                .filter(bucket -> dataPoint.getTimestamp() >= bucket
-                                                        && dataPoint.getTimestamp() < bucket + bucketSize)
-                                                .findFirst().getAsLong();
-                            }));
-
-                    Map<Long, DoubleSummaryStatistics> statsMap = map.entrySet().stream()
-                        .collect(toMap(Map.Entry::getKey, entry -> entry.getValue().stream().collect(summarizingDouble(
-                            NumericData::getValue))));
-
-                    for (Long bucket : buckets) {
-                        statsMap.computeIfAbsent(bucket, key -> new DoubleSummaryStatistics());
-                    }
-
-                    output.setData(statsMap.entrySet().stream()
-                        .sorted((left, right) -> left.getKey().compareTo(right.getKey()))
-                            .map(e -> {
-                                // Currently, if a bucket does not contain any data, we set max/min/avg to Double.NaN.
-                                // DoubleSummaryStatistics however uses Double.Infinity for max/min and 0.0 for avg.
-                                if (e.getValue().getCount() > 0) {
-                                    return new BucketDataPoint(e.getKey(), e.getValue()
-                                            .getMin(), e.getValue().getAverage(), e.getValue().getMax());
-                                }
-                                return new BucketDataPoint(e.getKey(), Double.NaN, Double.NaN, Double.NaN);
-                            })
-                        .collect(toList()));
-
-                    return output;
-                }
-            });
+            );
+            Futures.addCallback(outputFuture, new SimpleDataCallback<Object>(asyncResponse));
+            return;
         }
 
+        if (bucketsCount != null && bucketDuration != null) {
+            ApiError apiError = new ApiError("Both buckets and bucketDuration parameters are used");
+            Response response = Response.status(Status.BAD_REQUEST).entity(apiError).build();
+            asyncResponse.resume(response);
+            return;
+        }
+
+        Buckets buckets;
+        try {
+            if (bucketsCount != null) {
+                buckets = Buckets.fromCount(start, end, bucketsCount);
+            } else {
+                buckets = Buckets.fromStep(start, end, bucketDuration.toMillis());
+            }
+        } catch (IllegalArgumentException e) {
+            ApiError apiError = new ApiError("Bucket: " + e.getMessage());
+            Response response = Response.status(Status.BAD_REQUEST).entity(apiError).build();
+            asyncResponse.resume(response);
+            return;
+        }
+        ListenableFuture<BucketedOutput> dataFuture = metricsService.findNumericStats(metric, start, end, buckets);
+        ListenableFuture<List<BucketDataPoint>> outputFuture = Futures.transform(
+                dataFuture, new Function<BucketedOutput, List<BucketDataPoint>>() {
+                    @Override
+                    public List<BucketDataPoint> apply(BucketedOutput input) {
+                        if (input == null) {
+                            return null;
+                        }
+                        return input.getData();
+                    }
+                }
+        );
         Futures.addCallback(outputFuture, new SimpleDataCallback<Object>(asyncResponse));
     }
 

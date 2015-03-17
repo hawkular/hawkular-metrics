@@ -18,20 +18,19 @@ package org.hawkular.metrics.api.jaxrs.callback;
 
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 
 public class SimpleDataCallback<T> extends NoDataCallback<T> {
 
-    public SimpleDataCallback(AsyncResponse response) {
-        super(response);
+    public SimpleDataCallback(AsyncResponse asyncResponse) {
+        super(asyncResponse);
     }
 
     @Override
     public void onSuccess(Object responseData) {
         if (responseData == null) {
-            response.resume(Response.status(Status.NO_CONTENT).build());
+            asyncResponse.resume(Response.noContent().build());
         } else {
-            response.resume(Response.ok(responseData).build());
+            asyncResponse.resume(Response.ok(responseData).build());
         }
     }
 }

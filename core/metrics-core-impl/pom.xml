@@ -34,11 +34,6 @@
   <name>Hawkular Metrics Core Implementation</name>
   <description>Hawkular Metrics Core Implementation</description>
 
-  <properties>
-    <swagger.version>1.3.12</swagger.version>
-    <rest-docs-generator.version>4.11.0</rest-docs-generator.version>
-  </properties>
-
   <dependencies>
 
     <dependency>
@@ -51,12 +46,6 @@
       <groupId>com.datastax.cassandra</groupId>
       <artifactId>cassandra-driver-core</artifactId>
       <version>${datastax.driver.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.testng</groupId>
-      <artifactId>testng</artifactId>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
@@ -77,29 +66,32 @@
       <version>${trove4j.version}</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-math3</artifactId>
+      <version>3.4.1</version>
+    </dependency>
+
     <!-- documentation -->
+
     <dependency>
       <groupId>com.wordnik</groupId>
       <artifactId>swagger-annotations</artifactId>
       <version>${swagger.version}</version>
       <scope>provided</scope>
     </dependency>
+
     <dependency>
       <groupId>com.wordnik</groupId>
       <artifactId>swagger-core_2.10</artifactId>
       <version>${swagger.version}</version>
     </dependency>
 
+    <!-- test -->
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-annotations</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-core</artifactId>
-      <scope>provided</scope>
+      <groupId>org.testng</groupId>
+      <artifactId>testng</artifactId>
+      <scope>test</scope>
     </dependency>
 
   </dependencies>
