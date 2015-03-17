@@ -80,6 +80,10 @@ public interface MetricsService {
 
     ListenableFuture<NumericMetric> findNumericData(NumericMetric metric, long start, long end);
 
+    ListenableFuture<BucketedOutput> findNumericStats(
+            NumericMetric metric, long start, long end, Buckets buckets
+    );
+
     /** Find and return raw metrics for {id} that have a timestamp between {start} and {end} */
     ListenableFuture<List<NumericData>> findData(NumericMetric metric, long start, long end);
 

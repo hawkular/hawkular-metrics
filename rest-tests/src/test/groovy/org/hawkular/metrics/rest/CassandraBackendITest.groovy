@@ -88,20 +88,16 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
 
     def expectedData = [
-        tenantId: tenantId,
-        id: metric,
-        data: [
-            [timestamp: buckets[0], empty: false, max: 12.37, min: 12.22, avg: (12.22 + 12.37) /2, value: 0],
-            [timestamp: buckets[1], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
-            [timestamp: buckets[2], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
-            [timestamp: buckets[3], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
-            [timestamp: buckets[4], empty: false, max: 25.0, min: 25.0, avg: 25.0, value: 0],
-            [timestamp: buckets[5], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
-            [timestamp: buckets[6], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
-            [timestamp: buckets[7], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
-            [timestamp: buckets[8], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
-            [timestamp: buckets[9], empty: false, max: 19.01, min: 18.367, avg: (18.367 + 19.01) / 2, value: 0],
-        ]
+        [timestamp: buckets[0], empty: false, max: 12.37, min: 12.22, avg: (12.22 + 12.37) / 2, value: 0],
+        [timestamp: buckets[1], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
+        [timestamp: buckets[2], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
+        [timestamp: buckets[3], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
+        [timestamp: buckets[4], empty: false, max: 25.0, min: 25.0, avg: 25.0, value: 0],
+        [timestamp: buckets[5], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
+        [timestamp: buckets[6], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
+        [timestamp: buckets[7], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
+        [timestamp: buckets[8], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
+        [timestamp: buckets[9], empty: false, max: 19.01, min: 18.367, avg: (18.367 + 19.01) / 2, value: 0],
     ]
 
     def assertBucketEquals = { expected, actual ->
@@ -112,7 +108,8 @@ class CassandraBackendITest extends RESTTest {
       assertDoubleEquals(expected.avg, actual.avg)
     }
 
-    assertBucketedDataEquals(expectedData, response.data, assertBucketEquals)
+    assertEquals('The number of bucketed data points is wrong', expectedData.size(), response.data.size())
+    expectedData.size().times { assertBucketEquals(expectedData[it], response.data[it]) }
   }
 
   @Test
@@ -571,17 +568,5 @@ class CassandraBackendITest extends RESTTest {
     assertEquals("The number of data points does not match", expected.data.size, actual.data.size)
     expected.data.eachWithIndex { expectedDataPoint, i ->
       assertNumericDataPointEquals(expectedDataPoint, actual.data[i]) }
-  }
-
-  void assertBucketedDataEquals(def expected, def actual, Closure verifyBucket) {
-    // When I first wrote this method, I was thinking that different verifications on the
-    // buckets might be performed based on the query parameters used, hence the
-    // verifyBucket argument. If different verifications are not needed, then we should
-    // just put the additional verification code directly in this method.
-
-    assertEquals(expected.tenantId, actual.tenantId)
-    assertEquals(expected.id, actual.id)
-    assertEquals('The number of bucketed data points is wrong', expected.size(), actual.size())
-    expected.size().times { verifyBucket(expected.data[it], actual.data[it]) }
   }
 }

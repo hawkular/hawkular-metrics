@@ -42,6 +42,8 @@ import javax.management.ObjectName;
 
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
+import org.hawkular.metrics.core.api.BucketedOutput;
+import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
@@ -81,10 +83,9 @@ import com.google.common.util.concurrent.RateLimiter;
  * @author John Sanda
  */
 public class MetricsServiceCassandra implements MetricsService {
+    private static final Logger logger = LoggerFactory.getLogger(MetricsServiceCassandra.class);
 
     private static final String CASSANDRA_STORAGE_SERVICE = "org.apache.cassandra.db:type=StorageService";
-
-    private static final Logger logger = LoggerFactory.getLogger(MetricsServiceCassandra.class);
 
     public static final String REQUEST_LIMIT = "hawkular.metrics.request.limit";
 
@@ -93,6 +94,8 @@ public class MetricsServiceCassandra implements MetricsService {
     private static final Function<ResultSet, Void> RESULT_SET_TO_VOID = resultSet -> null;
 
     private static final Function<List<ResultSet>, Void> RESULT_SETS_TO_VOID = resultSets -> null;
+
+    private static final NumericMetricMapper NUMERIC_METRIC_MAPPER = new NumericMetricMapper();
 
     private static class DataRetentionKey {
         private final String tenantId;
@@ -573,7 +576,20 @@ public class MetricsServiceCassandra implements MetricsService {
         // date partitions.
         metric.setDpart(Metric.DPART);
         ResultSetFuture queryFuture = dataAccess.findData(metric, start, end);
-        return Futures.transform(queryFuture, new NumericMetricMapper(), metricsTasks);
+        return Futures.transform(queryFuture, NUMERIC_METRIC_MAPPER, metricsTasks);
+    }
+
+    @Override
+    public ListenableFuture<BucketedOutput> findNumericStats(
+            NumericMetric metric, long start, long end, Buckets buckets
+    ) {
+        // When we implement date partitioning, dpart will have to be determined based on
+        // the start and end params. And it is possible the the date range spans multiple
+        // date partitions.
+        metric.setDpart(Metric.DPART);
+        ResultSetFuture queryFuture = dataAccess.findData(metric, start, end);
+        ListenableFuture<NumericMetric> raw = Futures.transform(queryFuture, NUMERIC_METRIC_MAPPER, metricsTasks);
+        return Futures.transform(raw, new BucketedOutputMapper(buckets));
     }
 
     @Override
