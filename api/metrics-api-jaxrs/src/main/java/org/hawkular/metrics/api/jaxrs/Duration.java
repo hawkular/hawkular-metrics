@@ -17,6 +17,7 @@
 package org.hawkular.metrics.api.jaxrs;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.concurrent.TimeUnit;
 
@@ -47,6 +48,10 @@ public class Duration {
 
     public TimeUnit getTimeUnit() {
         return timeUnit;
+    }
+
+    public long toMillis() {
+        return MILLISECONDS.convert(value, timeUnit);
     }
 
     @Override

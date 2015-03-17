@@ -432,12 +432,7 @@ public class MetricHandler {
         if (bucketsCount != null) {
             buckets = Buckets.fromCount(start, end, bucketsCount);
         } else {
-            buckets = Buckets.fromStep(
-                    start, end, MILLISECONDS.convert(
-                            bucketDuration.getValue(), bucketDuration
-                                    .getTimeUnit()
-                    )
-            );
+            buckets = Buckets.fromStep(start, end, bucketDuration.toMillis());
         }
         ListenableFuture<BucketedOutput> dataFuture = metricsService.findNumericStats(metric, start, end, buckets);
         ListenableFuture<List<BucketDataPoint>> outputFuture = Futures.transform(
