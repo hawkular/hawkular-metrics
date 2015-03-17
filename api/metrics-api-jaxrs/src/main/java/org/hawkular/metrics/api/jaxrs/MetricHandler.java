@@ -60,7 +60,6 @@ import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
@@ -122,11 +121,7 @@ public class MetricHandler {
         URI created = uriInfo.getBaseUriBuilder()
                              .path("/{tenantId}/metrics/numeric/{id}")
                              .build(tenantId, metric.getId().getName());
-        MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(
-                asyncResponse,
-                created,
-                MetricHandler::getMetricAlreadyExistsResponse
-        );
+        MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(asyncResponse, created);
         Futures.addCallback(future, metricCreatedCallback);
     }
 
@@ -154,17 +149,8 @@ public class MetricHandler {
         URI created = uriInfo.getBaseUriBuilder()
                              .path("/{tenantId}/metrics/availability/{id}")
                              .build(tenantId, metric.getId().getName());
-        MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(
-                asyncResponse,
-                created,
-                MetricHandler::getMetricAlreadyExistsResponse
-        );
+        MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(asyncResponse, created);
         Futures.addCallback(future, metricCreatedCallback);
-    }
-
-    private static Response getMetricAlreadyExistsResponse(MetricAlreadyExistsException e) {
-        String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
-        return Response.status(Status.CONFLICT).entity(new ApiError(message)).build();
     }
 
     @GET

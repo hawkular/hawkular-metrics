@@ -17,11 +17,12 @@
 package org.hawkular.metrics.api.jaxrs.callback;
 
 import java.net.URI;
-import java.util.function.Function;
 
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
+import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 
 /**
@@ -33,9 +34,14 @@ public class MetricCreatedCallback extends EntityCreatedCallback<MetricAlreadyEx
 
     public MetricCreatedCallback(
             AsyncResponse asyncResponse,
-            URI location,
-            Function<MetricAlreadyExistsException, Response> alreadyExistsResponseBuilder
-    ) {
-        super(asyncResponse, location, MetricAlreadyExistsException.class, alreadyExistsResponseBuilder);
+            URI location) {
+        super(asyncResponse, location, MetricAlreadyExistsException.class,
+                MetricCreatedCallback::getMetricAlreadyExistsResponse);
     }
+
+    private static Response getMetricAlreadyExistsResponse(MetricAlreadyExistsException e) {
+        String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
+        return Response.status(Status.CONFLICT).entity(new ApiError(message)).build();
+    }
+
 }

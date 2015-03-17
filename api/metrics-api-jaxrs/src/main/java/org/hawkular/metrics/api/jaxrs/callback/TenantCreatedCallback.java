@@ -17,11 +17,12 @@
 package org.hawkular.metrics.api.jaxrs.callback;
 
 import java.net.URI;
-import java.util.function.Function;
 
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
+import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
 
 /**
@@ -33,9 +34,13 @@ public class TenantCreatedCallback extends EntityCreatedCallback<TenantAlreadyEx
 
     public TenantCreatedCallback(
             AsyncResponse asyncResponse,
-            URI location,
-            Function<TenantAlreadyExistsException, Response> alreadyExistsResponseBuilder
-    ) {
-        super(asyncResponse, location, TenantAlreadyExistsException.class, alreadyExistsResponseBuilder);
+            URI location) {
+        super(asyncResponse, location, TenantAlreadyExistsException.class,
+                TenantCreatedCallback::getTenantAlreadyExistsResponse);
+    }
+
+    private static Response getTenantAlreadyExistsResponse(TenantAlreadyExistsException e) {
+        String message = "A tenant with id [" + e.getTenantId() + "] already exists";
+        return Response.status(Status.CONFLICT).entity(new ApiError(message)).build();
     }
 }

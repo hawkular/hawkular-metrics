@@ -38,7 +38,6 @@ import javax.ws.rs.core.UriInfo;
 import org.hawkular.metrics.api.jaxrs.callback.TenantCreatedCallback;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.Tenant;
-import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
 
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
@@ -86,18 +85,11 @@ public class TenantsHandler {
         }
         ListenableFuture<Void> insertFuture = metricsService.createTenant(params);
         URI created = uriInfo.getBaseUriBuilder().path("/tenants").build();
-        TenantCreatedCallback tenantCreatedCallback = new TenantCreatedCallback(
-                asyncResponse,
-                created,
-                TenantsHandler::getTenantAlreadyExistsResponse
-        );
+        TenantCreatedCallback tenantCreatedCallback = new TenantCreatedCallback(asyncResponse, created);
         Futures.addCallback(insertFuture, tenantCreatedCallback);
     }
 
-    private static Response getTenantAlreadyExistsResponse(TenantAlreadyExistsException e) {
-        String message = "A tenant with id [" + e.getTenantId() + "] already exists";
-        return Response.status(Status.CONFLICT).entity(new ApiError(message)).build();
-    }
+
 
     @GET
     @ApiOperation(value = "Returns a list of tenants.")
