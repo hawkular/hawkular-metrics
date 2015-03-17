@@ -39,7 +39,9 @@ import com.google.common.base.Function;
 public class BucketedOutputMapper implements Function<NumericMetric, BucketedOutput> {
     private final Buckets buckets;
 
-    public BucketedOutputMapper(Buckets buckets) {this.buckets = buckets;}
+    public BucketedOutputMapper(Buckets buckets) {
+        this.buckets = buckets;
+    }
 
     @Override
     public BucketedOutput apply(NumericMetric input) {
