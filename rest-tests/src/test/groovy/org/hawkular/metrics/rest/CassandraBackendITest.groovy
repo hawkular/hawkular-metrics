@@ -88,16 +88,16 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
 
     def expectedData = [
-        [timestamp: buckets[0], empty: false, max: 12.37, min: 12.22, avg: (12.22 + 12.37) / 2, value: 0],
-        [timestamp: buckets[1], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
-        [timestamp: buckets[2], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
-        [timestamp: buckets[3], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
-        [timestamp: buckets[4], empty: false, max: 25.0, min: 25.0, avg: 25.0, value: 0],
-        [timestamp: buckets[5], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
-        [timestamp: buckets[6], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
-        [timestamp: buckets[7], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
-        [timestamp: buckets[8], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
-        [timestamp: buckets[9], empty: false, max: 19.01, min: 18.367, avg: (18.367 + 19.01) / 2, value: 0],
+        [timestamp: buckets[0], empty: false, max: 12.37, min: 12.22, avg: (12.22 + 12.37) / 2],
+        [timestamp: buckets[1], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN],
+        [timestamp: buckets[2], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN],
+        [timestamp: buckets[3], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN],
+        [timestamp: buckets[4], empty: false, max: 25.0, min: 25.0, avg: 25.0],
+        [timestamp: buckets[5], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN],
+        [timestamp: buckets[6], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN],
+        [timestamp: buckets[7], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN],
+        [timestamp: buckets[8], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN],
+        [timestamp: buckets[9], empty: false, max: 19.01, min: 18.367, avg: (18.367 + 19.01) / 2],
     ]
 
     def assertBucketEquals = { expected, actual ->
