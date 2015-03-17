@@ -56,6 +56,15 @@ class RESTTest {
     }
   }
 
+  static void assertBucketEquals(def expected, def actual) {
+    assertEquals(expected.timestamp, actual.timestamp)
+    assertEquals(expected.empty, actual.empty)
+    assertDoubleEquals(expected.max, actual.max)
+    assertDoubleEquals(expected.min, actual.min)
+    assertDoubleEquals(expected.avg, actual.avg)
+    assertDoubleEquals(expected.percentile95th, actual.percentile95th)
+  }
+
   static def badPost(args, errorHandler) {
     try {
       def object = hawkularMetrics.post(args)

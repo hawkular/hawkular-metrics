@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.rest
 
+import static java.lang.Double.NaN
 import static org.joda.time.DateTime.now
 import static org.joda.time.Seconds.seconds
 import static org.junit.Assert.assertEquals
@@ -88,29 +89,29 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
 
     def expectedData = [
-        [timestamp: buckets[0], empty: false, max: 12.37, min: 12.22, avg: (12.22 + 12.37) / 2],
-        [timestamp: buckets[1], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN],
-        [timestamp: buckets[2], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN],
-        [timestamp: buckets[3], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN],
-        [timestamp: buckets[4], empty: false, max: 25.0, min: 25.0, avg: 25.0],
-        [timestamp: buckets[5], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN],
-        [timestamp: buckets[6], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN],
-        [timestamp: buckets[7], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN],
-        [timestamp: buckets[8], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN],
-        [timestamp: buckets[9], empty: false, max: 19.01, min: 18.367, avg: (18.367 + 19.01) / 2],
+        [timestamp: buckets[0], empty: false, max: 12.37, min: 12.22, avg: (12.22 + 12.37) / 2, percentile95th: 12.37],
+        [timestamp: buckets[1], empty: true, max: NaN, min: NaN, avg: NaN, percentile95th: NaN],
+        [timestamp: buckets[2], empty: true, max: NaN, min: NaN, avg: NaN, percentile95th: NaN],
+        [timestamp: buckets[3], empty: true, max: NaN, min: NaN, avg: NaN, percentile95th: NaN],
+        [timestamp: buckets[4], empty: false, max: 25.0, min: 25.0, avg: 25.0, percentile95th: 25.0],
+        [timestamp: buckets[5], empty: true, max: NaN, min: NaN, avg: NaN, percentile95th: NaN],
+        [timestamp: buckets[6], empty: true, max: NaN, min: NaN, avg: NaN, percentile95th: NaN],
+        [timestamp: buckets[7], empty: true, max: NaN, min: NaN, avg: NaN, percentile95th: NaN],
+        [timestamp: buckets[8], empty: true, max: NaN, min: NaN, avg: NaN, percentile95th: NaN],
+        [
+            timestamp     : buckets[9],
+            empty         : false,
+            max           : 19.01,
+            min           : 18.367,
+            avg           : (18.367 + 19.01) / 2,
+            percentile95th: 19.01
+        ],
     ]
-
-    def assertBucketEquals = { expected, actual ->
-      assertEquals(expected.timestamp, actual.timestamp)
-      assertEquals(expected.empty, actual.empty)
-      assertDoubleEquals(expected.max, actual.max)
-      assertDoubleEquals(expected.min, actual.min)
-      assertDoubleEquals(expected.avg, actual.avg)
-    }
 
     assertEquals('The number of bucketed data points is wrong', expectedData.size(), response.data.size())
     expectedData.size().times { assertBucketEquals(expectedData[it], response.data[it]) }
   }
+
 
   @Test
   void insertNumericDataForMultipleMetrics() {

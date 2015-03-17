@@ -17,14 +17,15 @@
 package org.hawkular.metrics.core.impl.cassandra;
 
 import static java.lang.Double.NaN;
+import static org.apache.commons.math3.stat.StatUtils.max;
+import static org.apache.commons.math3.stat.StatUtils.mean;
+import static org.apache.commons.math3.stat.StatUtils.min;
+import static org.apache.commons.math3.stat.StatUtils.percentile;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.commons.math3.stat.descriptive.moment.Mean;
-import org.apache.commons.math3.stat.descriptive.rank.Max;
-import org.apache.commons.math3.stat.descriptive.rank.Min;
 import org.hawkular.metrics.core.api.BucketDataPoint;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
@@ -32,6 +33,9 @@ import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 
 import com.google.common.base.Function;
+
+import gnu.trove.list.TDoubleList;
+import gnu.trove.list.array.TDoubleArrayList;
 
 /**
  * @author Thomas Segismont
@@ -63,26 +67,21 @@ public class BucketedOutputMapper implements Function<NumericMetric, BucketedOut
 
             if (dataIndex >= numericDatas.length) {
                 // Reached end of data points
-                output.getData().add(new BucketDataPoint(from, NaN, NaN, NaN));
+                output.getData().add(new BucketDataPoint(from, NaN, NaN, NaN, NaN));
                 continue;
             }
 
             NumericData current = numericDatas[dataIndex];
             if (current.getTimestamp() >= to) {
                 // Current data point does not belong to this bucket
-                output.getData().add(new BucketDataPoint(from, NaN, NaN, NaN));
+                output.getData().add(new BucketDataPoint(from, NaN, NaN, NaN, NaN));
                 continue;
             }
 
-            Min min = new Min();
-            Mean mean = new Mean();
-            Max max = new Max();
-
+            TDoubleList valueList = new TDoubleArrayList();
             do {
                 // Add current value to this bucket's summary
-                min.increment(current.getValue());
-                mean.increment(current.getValue());
-                max.increment(current.getValue());
+                valueList.add(current.getValue());
 
                 // Move to next data point
                 dataIndex++;
@@ -91,7 +90,16 @@ public class BucketedOutputMapper implements Function<NumericMetric, BucketedOut
                 // Continue until end of data points is reached or data point does not belong to this bucket
             } while (current != null && current.getTimestamp() < to);
 
-            output.getData().add(new BucketDataPoint(from, min.getResult(), mean.getResult(), max.getResult()));
+            double[] values = valueList.toArray();
+
+            BucketDataPoint bucketDataPoint = new BucketDataPoint(
+                    from,
+                    min(values),
+                    mean(values),
+                    max(values),
+                    percentile(values, 95.0)
+            );
+            output.getData().add(bucketDataPoint);
         }
 
         return output;
