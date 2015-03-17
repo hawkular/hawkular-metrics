@@ -34,11 +34,6 @@
   <name>Hawkular Metrics JAXRS API</name>
   <description>The REST-api of Hawkular-Metrics implemented via JAXRS archive</description>
 
-  <properties>
-    <swagger.version>1.3.12</swagger.version>
-    <rest-docs-generator.version>4.11.0</rest-docs-generator.version>
-  </properties>
-
   <dependencyManagement>
     <dependencies>
       <dependency>

@@ -58,6 +58,8 @@ import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
 import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
+import org.hawkular.metrics.core.api.BucketDataPoint;
+import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
@@ -66,8 +68,6 @@ import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
-import org.hawkular.metrics.core.impl.mapper.BucketDataPoint;
-import org.hawkular.metrics.core.impl.mapper.BucketedOutput;
 import org.hawkular.metrics.core.impl.request.TagRequest;
 
 import com.google.common.base.Function;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.impl.mapper;
+package org.hawkular.metrics.core.api;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

@@ -16,14 +16,14 @@
  */
 package org.hawkular.metrics.core.api;
 
-import static org.hawkular.metrics.core.api.Interval.parse;
 import static org.hawkular.metrics.core.api.Interval.Units.DAYS;
 import static org.hawkular.metrics.core.api.Interval.Units.HOURS;
 import static org.hawkular.metrics.core.api.Interval.Units.MINUTES;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
+import static org.hawkular.metrics.core.api.Interval.parse;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
-import org.testng.annotations.Test;
+import org.junit.Test;
 
 /**
  * @author John Sanda
@@ -53,5 +53,4 @@ public class IntervalTest {
         }
         assertNotNull(exception);
     }
-
 }

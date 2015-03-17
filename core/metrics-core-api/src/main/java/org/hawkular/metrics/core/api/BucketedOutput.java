@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.impl.mapper;
+package org.hawkular.metrics.core.api;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,7 +24,6 @@ import java.util.Map;
 /**
  * @author John Sanda
  */
-// TODO: Remove or move this class to a better package
 public class BucketedOutput {
 
     private String tenantId;

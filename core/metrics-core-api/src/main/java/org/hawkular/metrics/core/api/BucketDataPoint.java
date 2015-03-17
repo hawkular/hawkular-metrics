@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.impl.mapper;
+package org.hawkular.metrics.core.api;
 
 import com.wordnik.swagger.annotations.ApiModel;
 import com.wordnik.swagger.annotations.ApiModelProperty;
@@ -24,7 +24,6 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
  * that at this point in time multiple values were recorded.
  * @author Heiko W. Rupp
  */
-// TODO: Remove or move this class to a better package
 @ApiModel(value = "A bucket is a time range with multiple data items represented by min/avg/max values" +
     "for that time span.")
 public class BucketDataPoint {
