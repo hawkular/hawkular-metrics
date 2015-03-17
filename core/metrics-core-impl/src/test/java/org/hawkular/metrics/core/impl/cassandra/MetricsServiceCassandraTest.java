@@ -38,6 +38,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.datastax.driver.core.BatchStatement;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Interval;
@@ -54,16 +64,6 @@ import org.joda.time.Duration;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * @author John Sanda
@@ -854,6 +854,41 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         assertEquals(actual, expected, "The tagged data does not match");
     }
 
+    @Test
+    public void getPeriodsAboveThreshold() throws Exception {
+        String tenantId = "test-tenant";
+        DateTime start = now().minusMinutes(20);
+        double threshold = 20.0;
+
+        NumericMetric m1 = new NumericMetric(tenantId, new MetricId("m1"));
+        m1.addData(start.getMillis(), 14.0);
+        m1.addData(start.plusMinutes(1).getMillis(), 18.0);
+        m1.addData(start.plusMinutes(2).getMillis(), 21.0);
+        m1.addData(start.plusMinutes(3).getMillis(), 23.0);
+        m1.addData(start.plusMinutes(4).getMillis(), 20.0);
+        m1.addData(start.plusMinutes(5).getMillis(), 19.0);
+        m1.addData(start.plusMinutes(6).getMillis(), 22.0);
+        m1.addData(start.plusMinutes(7).getMillis(), 15.0);
+        m1.addData(start.plusMinutes(8).getMillis(), 31.0);
+        m1.addData(start.plusMinutes(9).getMillis(), 30.0);
+        m1.addData(start.plusMinutes(10).getMillis(), 31.0);
+
+        getUninterruptibly(metricsService.addNumericData(asList(m1)));
+
+        List<long[]> actual = getUninterruptibly(metricsService.getPeriods(tenantId, m1.getId(),
+            value -> value > threshold, start.getMillis(), now().getMillis()));
+        List<long[]> expected = asList(
+            new long[] {start.plusMinutes(2).getMillis(), start.plusMinutes(3).getMillis()},
+            new long[] {start.plusMinutes(6).getMillis(), start.plusMinutes(6).getMillis()},
+            new long[] {start.plusMinutes(8).getMillis(), start.plusMinutes(10).getMillis()}
+        );
+
+        assertEquals(actual.size(), expected.size(), "The number of periods is wrong");
+        for (int i = 0; i < expected.size(); ++i) {
+            assertArrayEquals(actual.get(i), expected.get(i), "The period does not match the expected value");
+        }
+    }
+
     private void assertMetricEquals(Metric actual, Metric expected) {
         assertEquals(actual, expected, "The metric doe not match the expected value");
         assertEquals(actual.getData(), expected.getData(), "The data does not match the expected values");
@@ -865,6 +900,13 @@ public class MetricsServiceCassandraTest extends MetricsTest {
         List<Metric<?>> actualIndex = getUninterruptibly(metricsFuture);
 
         assertEquals(actualIndex, expected, "The metrics index results do not match");
+    }
+
+    private void assertArrayEquals(long[] actual, long[] expected, String msg) {
+        assertEquals(actual.length, expected.length, msg + ": The array lengths are not the same.");
+        for (int i = 0; i < expected.length; ++i) {
+            assertEquals(actual[i], expected[i], msg + ": The elements at index " + i + " do not match.");
+        }
     }
 
     private class MetricsTagsIndexEntry {
