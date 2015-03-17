@@ -14,10 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs;
-
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
+package org.hawkular.metrics.api.jaxrs.param;
 
 import java.util.Arrays;
 
@@ -32,14 +29,17 @@ import org.junit.runners.Parameterized.Parameters;
  * @author Thomas Segismont
  */
 @RunWith(Parameterized.class)
-public class InvalidDurationDurationConverterTest {
+public class InvalidValueDurationConverterTest {
 
     @Parameters(name = "{0}")
     public static Iterable<Object[]> params() {
         return Arrays.asList(
                 new Object[][]{
-                        {new Duration(1, NANOSECONDS)},
-                        {new Duration(2, MICROSECONDS)},
+                        {"jdklsqj 0484d8sq"},
+                        {"1u"},
+                        {"7du"},
+                        {"45640894809"},
+                        {"ms"},
                 }
         );
     }
@@ -47,16 +47,17 @@ public class InvalidDurationDurationConverterTest {
     @Rule
     public final ExpectedException expectedException = ExpectedException.none();
 
-    private Duration duration;
+    private String value;
 
-    public InvalidDurationDurationConverterTest(Duration duration) {
-        this.duration = duration;
+    public InvalidValueDurationConverterTest(String value) {
+        this.value = value;
     }
 
+
     @Test
-    public void testToString() throws Exception {
+    public void testFromString() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         //noinspection ResultOfMethodCallIgnored
-        new DurationConverter().toString(duration);
+        new DurationConverter().fromString(value);
     }
 }

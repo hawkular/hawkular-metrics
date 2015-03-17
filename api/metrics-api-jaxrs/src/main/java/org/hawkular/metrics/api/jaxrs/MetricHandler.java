@@ -49,6 +49,7 @@ import javax.ws.rs.core.UriInfo;
 import org.hawkular.metrics.api.jaxrs.callback.MetricCreatedCallback;
 import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
 import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
+import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.BucketDataPoint;

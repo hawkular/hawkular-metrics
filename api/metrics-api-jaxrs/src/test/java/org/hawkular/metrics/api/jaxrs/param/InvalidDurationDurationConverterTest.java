@@ -14,18 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs;
+package org.hawkular.metrics.api.jaxrs.param;
 
-import static java.util.concurrent.TimeUnit.DAYS;
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertEquals;
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.util.Arrays;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -34,36 +32,31 @@ import org.junit.runners.Parameterized.Parameters;
  * @author Thomas Segismont
  */
 @RunWith(Parameterized.class)
-public class DurationConverterTest {
+public class InvalidDurationDurationConverterTest {
 
     @Parameters(name = "{0}")
     public static Iterable<Object[]> params() {
         return Arrays.asList(
                 new Object[][]{
-                        {"1ms", new Duration(1, MILLISECONDS)},
-                        {"22s", new Duration(22, SECONDS)},
-                        {"333mn", new Duration(333, MINUTES)},
-                        {"4444h", new Duration(4444, HOURS)},
-                        {"55555d", new Duration(55555, DAYS)},
+                        {new Duration(1, NANOSECONDS)},
+                        {new Duration(2, MICROSECONDS)},
                 }
         );
     }
 
-    private String value;
+    @Rule
+    public final ExpectedException expectedException = ExpectedException.none();
+
     private Duration duration;
 
-    public DurationConverterTest(String value, Duration duration) {
-        this.value = value;
+    public InvalidDurationDurationConverterTest(Duration duration) {
         this.duration = duration;
     }
 
     @Test
-    public void testFromString() throws Exception {
-        assertEquals(duration, new DurationConverter().fromString(value));
-    }
-
-    @Test
     public void testToString() throws Exception {
-        assertEquals(value, new DurationConverter().toString(duration));
+        expectedException.expect(IllegalArgumentException.class);
+        //noinspection ResultOfMethodCallIgnored
+        new DurationConverter().toString(duration);
     }
 }

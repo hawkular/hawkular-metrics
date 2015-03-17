@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs;
+package org.hawkular.metrics.api.jaxrs.param;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.concurrent.TimeUnit.DAYS;
