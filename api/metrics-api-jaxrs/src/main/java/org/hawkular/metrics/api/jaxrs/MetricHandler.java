@@ -395,9 +395,8 @@ public class MetricHandler {
                         @Override
                         public List<NumericData> apply(NumericMetric input) {
                             if (input == null) {
-                                throw new NoResultsException();
+                                return null;
                             }
-
                             return input.getData();
                         }
                     }
@@ -440,9 +439,8 @@ public class MetricHandler {
                     @Override
                     public List<BucketDataPoint> apply(BucketedOutput input) {
                         if (input == null) {
-                            throw new NoResultsException();
+                            return null;
                         }
-
                         return input.getData();
                     }
                 }
