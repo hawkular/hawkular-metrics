@@ -21,15 +21,18 @@ import static com.google.common.base.Preconditions.checkArgument;
 /**
  * Bucket configuration attributes. The configuration determines:
  * <ul>
- * <li>the first point in time ({@link #getStart()})</li>
- * <li>the bucket size ({@link #getStep()})</li>
- * <li>the number of buckets ({@link #getCount()})</li>
+ *     <li>the first point in time ({@link #getStart()})</li>
+ *     <li>the bucket size ({@link #getStep()})</li>
+ *     <li>the number of buckets ({@link #getCount()})</li>
  * </ul>
  * <p>
- * Instances can be created with the constructor {@link #Buckets(long, long, int)} or with on the factory methods:
- * {@link #fromStep(long, long, long)}, {@link #fromCount(long, long, int)}. The former forces the size of buckets,
- * the latter the number of buckets. The former is preferred has it guarantees that the last bucket will always include
- * the {@code end} value.
+ * Instances can be created with the constructor {@link #Buckets(long, long, int)} or with one of the factory methods:
+ * <ul>
+ *     <li>{@link #fromStep(long, long, long)}</li>
+ *     <li>{@link #fromCount(long, long, int)}</li>
+ * </ul>
+ * The former forces the size of buckets, the latter the number of buckets. The former is preferred has it guarantees
+ * that the last bucket will always include the {@code end} value.
  *
  * @author Thomas Segismont
  */
