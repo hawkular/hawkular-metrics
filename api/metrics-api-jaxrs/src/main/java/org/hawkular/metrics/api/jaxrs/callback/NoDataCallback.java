@@ -18,11 +18,8 @@ package org.hawkular.metrics.api.jaxrs.callback;
 
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
-import org.hawkular.metrics.api.jaxrs.NoResultsException;
-import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
@@ -32,31 +29,20 @@ import com.google.common.util.concurrent.FutureCallback;
  */
 public class NoDataCallback<T> implements FutureCallback<T> {
 
-    protected AsyncResponse response;
+    protected AsyncResponse asyncResponse;
 
-    public NoDataCallback(AsyncResponse response) {
-        this.response = response;
+    public NoDataCallback(AsyncResponse asyncResponse) {
+        this.asyncResponse = asyncResponse;
     }
 
     @Override
     public void onSuccess(Object result) {
-        response.resume(Response.ok().build());
+        asyncResponse.resume(Response.ok().build());
     }
 
     @Override
     public void onFailure(Throwable t) {
-        if (t instanceof MetricAlreadyExistsException) {
-            ApiError errors = new ApiError(
-                    "A metric input id already exists " + ":"
-                    + Throwables.getRootCause(t).getMessage());
-            response.resume(Response.status(Status.BAD_REQUEST).entity(errors).build());
-        } else if (t instanceof NoResultsException) {
-            response.resume(Response.ok().status(Status.NO_CONTENT).build());
-        } else {
-            ApiError errors = new ApiError(
-                    "Failed to perform operation due to an error: "
-                    + Throwables.getRootCause(t).getMessage());
-            response.resume(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errors).build());
-        }
+        String msg = "Failed to perform operation due to an error: " + Throwables.getRootCause(t).getMessage();
+        asyncResponse.resume(Response.serverError().entity(new ApiError(msg)).build());
     }
 }
