@@ -139,6 +139,10 @@ class CassandraBackendITest extends RESTTest {
     badGet(path: "$tenantId/metrics/numeric/$metric/periods", query: [threshold: 20, op: "foo"], { exception ->
       assertEquals(400, exception.response.status)
     })
+
+    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/$metric/periods", query: [threshold: 20, op: "gt",
+        start: start.minusMinutes(10).millis, end: start.minusMinutes(5).millis])
+    assertEquals(204, response.status)
   }
 
   @Test
