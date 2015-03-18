@@ -185,7 +185,7 @@
                   <apiVersion>1.0</apiVersion>
                   <basePath>http://localhost:8080/hawkular-metrics/</basePath>
                   <outputTemplate>${basedir}/src/main/resources/rest-doc/asciidoc.mustache</outputTemplate>
-                  <swaggerDirectory>generated/swagger-ui</swaggerDirectory>
+                  <swaggerDirectory>${build.directory}/generated/swagger-ui</swaggerDirectory>
                   <swaggerInternalFilter>org.hawkular.metrics.api.jaxrs.swagger.filter.JaxRsFilter</swaggerInternalFilter>
                   <swaggerApiReader>com.wordnik.swagger.jaxrs.reader.DefaultJaxrsApiReader</swaggerApiReader>
                   <outputPath>${build.directory}/generated/rest-metrics.adoc</outputPath>
