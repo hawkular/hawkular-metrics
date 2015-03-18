@@ -16,6 +16,9 @@
  */
 package org.hawkular.metrics.core.api;
 
+import static java.lang.Double.NaN;
+import static java.lang.Double.isNaN;
+
 import com.wordnik.swagger.annotations.ApiModel;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
@@ -25,26 +28,27 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
  *
  * @author Heiko W. Rupp
  */
-@ApiModel(value = "A bucket is a time range with multiple data items represented by min/avg/max/95thPercentile values" +
-                  "for that time span.")
+@ApiModel(value = "A bucket is a time range with multiple data items represented by min/avg/median/max/95thPercentile "
+                  + "values for that time span.")
 public class BucketDataPoint {
 
     private long timestamp;
     private double value;
     private double min;
     private double avg;
+    private double median;
     private double max;
     private double percentile95th;
 
-    public BucketDataPoint() {
-    }
-
-    public BucketDataPoint(long timestamp, double min, double avg, double max, double percentile95th) {
-        this.timestamp = timestamp;
-        this.min = min;
-        this.avg = avg;
-        this.max = max;
-        this.percentile95th = percentile95th;
+    public static BucketDataPoint newEmptyInstance(long timestamp) {
+        BucketDataPoint bucketDataPoint = new BucketDataPoint();
+        bucketDataPoint.setTimestamp(timestamp);
+        bucketDataPoint.setMin(NaN);
+        bucketDataPoint.setAvg(NaN);
+        bucketDataPoint.setMedian(NaN);
+        bucketDataPoint.setMax(NaN);
+        bucketDataPoint.setPercentile95th(NaN);
+        return bucketDataPoint;
     }
 
     @ApiModelProperty(value = "Time when the value was obtained in milliseconds since epoch")
@@ -92,6 +96,15 @@ public class BucketDataPoint {
         this.avg = avg;
     }
 
+    @ApiModelProperty(value = "Median value during the time span of the bucket.")
+    public double getMedian() {
+        return median;
+    }
+
+    public void setMedian(double median) {
+        this.median = median;
+    }
+
     @ApiModelProperty(value = "95th percentile value during the time span of the bucket.")
     public double getPercentile95th() {
         return percentile95th;
@@ -102,7 +115,7 @@ public class BucketDataPoint {
     }
 
     public boolean isEmpty() {
-        return Double.isNaN(avg) || Double.isNaN(max) || Double.isNaN(min);
+        return isNaN(min) || isNaN(avg) || isNaN(median) || isNaN(max) || isNaN(percentile95th);
     }
 
     @Override
@@ -111,6 +124,7 @@ public class BucketDataPoint {
                "timestamp=" + timestamp +
                ", min=" + min +
                ", avg=" + avg +
+               ", median=" + median +
                ", max=" + max +
                ", percentile95th=" + percentile95th +
                ']';
