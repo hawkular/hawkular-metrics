@@ -69,8 +69,10 @@ public class TenantsHandler {
             + "are no tenant id naming collisions and to provide default data retention settings. ")
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "Tenant has been succesfully created."),
-            @ApiResponse(code = 400, message = "Missing or invalid retention properties. "),
-            @ApiResponse(code = 409, message = "Given tenant id has already been created."),
+            @ApiResponse(code = 400, message = "Missing or invalid retention properties. ",
+                         response = ApiError.class),
+            @ApiResponse(code = 409, message = "Given tenant id has already been created.",
+                         response = ApiError.class),
             @ApiResponse(code = 500, message = "An unexpected error occured while trying to create a tenant.",
                          response = ApiError.class)
     })
