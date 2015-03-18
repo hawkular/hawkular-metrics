@@ -16,96 +16,58 @@
  */
 package org.hawkular.metrics.core.impl.cassandra;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.ListIterator;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.rank.Max;
 import org.apache.commons.math3.stat.descriptive.rank.Min;
 import org.apache.commons.math3.stat.descriptive.rank.Percentile;
-import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.NumericBucketDataPoint;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 
-import com.google.common.base.Function;
-
-import gnu.trove.list.TDoubleList;
-import gnu.trove.list.array.TDoubleArrayList;
-
 /**
+ * A {@link org.hawkular.metrics.core.impl.cassandra.BucketedOutputMapper} for {@link org.hawkular.metrics.core.api
+ * .NumericMetric}.
+ *
  * @author Thomas Segismont
  */
-public class NumericBucketedOutputMapper implements Function<NumericMetric, BucketedOutput<NumericBucketDataPoint>> {
-    private final Buckets buckets;
+public class NumericBucketedOutputMapper
+        extends BucketedOutputMapper<NumericData, NumericMetric, NumericBucketDataPoint> {
 
+    /**
+     * @param buckets the bucket configuration
+     */
     public NumericBucketedOutputMapper(Buckets buckets) {
-        this.buckets = buckets;
+        super(buckets);
     }
 
     @Override
-    public BucketedOutput<NumericBucketDataPoint> apply(NumericMetric input) {
-        if (input == null) {
-            return null;
+    protected NumericBucketDataPoint newEmptyPointInstance(long from) {
+        return NumericBucketDataPoint.newEmptyInstance(from);
+    }
+
+    @Override
+    protected NumericBucketDataPoint newPointInstance(long from, List<NumericData> numericDatas) {
+        double[] values = new double[numericDatas.size()];
+        for (ListIterator<NumericData> iterator = numericDatas.listIterator(); iterator.hasNext(); ) {
+            NumericData numericData = iterator.next();
+            values[iterator.previousIndex()] = numericData.getValue();
         }
 
-        BucketedOutput<NumericBucketDataPoint> output = new BucketedOutput<>(
-                input.getTenantId(), input.getId().getName(), input.getTags()
-        );
-        output.setData(new ArrayList<>(buckets.getCount()));
+        Percentile percentile = new Percentile();
+        percentile.setData(values);
 
-        List<NumericData> numericDataList = input.getData();
-        NumericData[] numericDatas = numericDataList.toArray(new NumericData[numericDataList.size()]);
-        Arrays.sort(numericDatas, NumericData.TIME_UUID_COMPARATOR);
+        NumericBucketDataPoint dataPoint = new NumericBucketDataPoint();
+        dataPoint.setTimestamp(from);
+        dataPoint.setMin(new Min().evaluate(values));
+        dataPoint.setAvg(new Mean().evaluate(values));
+        dataPoint.setMedian(percentile.evaluate(50.0));
+        dataPoint.setMax(new Max().evaluate(values));
+        dataPoint.setPercentile95th(percentile.evaluate(95.0));
 
-        int dataIndex = 0;
-        for (int bucketIndex = 0; bucketIndex < buckets.getCount(); bucketIndex++) {
-            long from = buckets.getStart() + bucketIndex * buckets.getStep();
-            long to = buckets.getStart() + (bucketIndex + 1) * buckets.getStep();
-
-            if (dataIndex >= numericDatas.length) {
-                // Reached end of data points
-                output.getData().add(NumericBucketDataPoint.newEmptyInstance(from));
-                continue;
-            }
-
-            NumericData current = numericDatas[dataIndex];
-            if (current.getTimestamp() >= to) {
-                // Current data point does not belong to this bucket
-                output.getData().add(NumericBucketDataPoint.newEmptyInstance(from));
-                continue;
-            }
-
-            TDoubleList valueList = new TDoubleArrayList();
-            do {
-                // Add current value to this bucket's summary
-                valueList.add(current.getValue());
-
-                // Move to next data point
-                dataIndex++;
-                current = dataIndex < numericDatas.length ? numericDatas[dataIndex] : null;
-
-                // Continue until end of data points is reached or data point does not belong to this bucket
-            } while (current != null && current.getTimestamp() < to);
-
-            double[] values = valueList.toArray();
-
-            Percentile percentile = new Percentile();
-            percentile.setData(values);
-
-            NumericBucketDataPoint numericBucketDataPoint = new NumericBucketDataPoint();
-            numericBucketDataPoint.setTimestamp(from);
-            numericBucketDataPoint.setMin(new Min().evaluate(values));
-            numericBucketDataPoint.setAvg(new Mean().evaluate(values));
-            numericBucketDataPoint.setMedian(percentile.evaluate(50.0));
-            numericBucketDataPoint.setMax(new Max().evaluate(values));
-            numericBucketDataPoint.setPercentile95th(percentile.evaluate(95.0));
-
-            output.getData().add(numericBucketDataPoint);
-        }
-
-        return output;
+        return dataPoint;
     }
 }
