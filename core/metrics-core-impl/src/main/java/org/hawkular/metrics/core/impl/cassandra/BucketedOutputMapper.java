@@ -16,16 +16,14 @@
  */
 package org.hawkular.metrics.core.impl.cassandra;
 
-import static java.lang.Double.NaN;
-import static org.apache.commons.math3.stat.StatUtils.max;
-import static org.apache.commons.math3.stat.StatUtils.mean;
-import static org.apache.commons.math3.stat.StatUtils.min;
-import static org.apache.commons.math3.stat.StatUtils.percentile;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.math3.stat.descriptive.moment.Mean;
+import org.apache.commons.math3.stat.descriptive.rank.Max;
+import org.apache.commons.math3.stat.descriptive.rank.Min;
+import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import org.hawkular.metrics.core.api.BucketDataPoint;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
@@ -67,14 +65,14 @@ public class BucketedOutputMapper implements Function<NumericMetric, BucketedOut
 
             if (dataIndex >= numericDatas.length) {
                 // Reached end of data points
-                output.getData().add(new BucketDataPoint(from, NaN, NaN, NaN, NaN));
+                output.getData().add(BucketDataPoint.newEmptyInstance(from));
                 continue;
             }
 
             NumericData current = numericDatas[dataIndex];
             if (current.getTimestamp() >= to) {
                 // Current data point does not belong to this bucket
-                output.getData().add(new BucketDataPoint(from, NaN, NaN, NaN, NaN));
+                output.getData().add(BucketDataPoint.newEmptyInstance(from));
                 continue;
             }
 
@@ -92,13 +90,17 @@ public class BucketedOutputMapper implements Function<NumericMetric, BucketedOut
 
             double[] values = valueList.toArray();
 
-            BucketDataPoint bucketDataPoint = new BucketDataPoint(
-                    from,
-                    min(values),
-                    mean(values),
-                    max(values),
-                    percentile(values, 95.0)
-            );
+            Percentile percentile = new Percentile();
+            percentile.setData(values);
+
+            BucketDataPoint bucketDataPoint = new BucketDataPoint();
+            bucketDataPoint.setTimestamp(from);
+            bucketDataPoint.setMin(new Min().evaluate(values));
+            bucketDataPoint.setAvg(new Mean().evaluate(values));
+            bucketDataPoint.setMedian(percentile.evaluate(50.0));
+            bucketDataPoint.setMax(new Max().evaluate(values));
+            bucketDataPoint.setPercentile95th(percentile.evaluate(95.0));
+
             output.getData().add(bucketDataPoint);
         }
 

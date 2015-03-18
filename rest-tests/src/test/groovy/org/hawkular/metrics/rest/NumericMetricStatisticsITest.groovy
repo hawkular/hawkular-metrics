@@ -16,10 +16,13 @@
  */
 package org.hawkular.metrics.rest
 
+import static java.lang.Double.NaN
 import static org.apache.commons.math3.stat.StatUtils.percentile
+import static org.joda.time.Seconds.seconds
 import static org.junit.Assert.assertEquals
 
 import org.hawkular.metrics.core.impl.DateTimeService
+import org.joda.time.DateTime
 import org.junit.Test
 
 /**
@@ -68,6 +71,53 @@ class NumericMetricStatisticsITest extends RESTTest {
   }
 
   @Test
+  void emptyNotEmptyTest() {
+    DateTimeService dateTimeService = new DateTimeService()
+    String tenantId = nextTenantId()
+    String metric = 'n1'
+    DateTime start = dateTimeService.currentHour().minusHours(1)
+    DateTime end = start.plusHours(1)
+
+    int numBuckets = 10
+    long bucketSize = (end.millis - start.millis) / numBuckets
+    def buckets = []
+    numBuckets.times { buckets.add(start.millis + (it * bucketSize)) }
+
+    def response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/$metric/data", body: [
+        [timestamp: buckets[0], value: 12.22],
+        [timestamp: buckets[0] + seconds(10).toStandardDuration().millis, value: 12.37],
+        [timestamp: buckets[4], value: 25],
+        [timestamp: buckets[4] + seconds(15).toStandardDuration().millis, value: 25],
+        [timestamp: buckets[9], value: 18.367],
+        [timestamp: buckets[9] + seconds(10).toStandardDuration().millis, value: 19.01]
+    ])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: "${tenantId}/metrics/numeric/$metric/data",
+        query: [start: start.millis, end: end.millis, buckets: 10])
+    assertEquals(200, response.status)
+
+    def avg0 = (12.22 + 12.37) / 2
+    def avg9 = (18.367 + 19.01) / 2
+
+    def expectedData = [
+        [timestamp: buckets[0], empty: false, min: 12.22, avg: avg0, median: avg0, max: 12.37, percentile95th: 12.37],
+        [timestamp: buckets[1], empty: true, min: NaN, avg: NaN, median: NaN, max: NaN, percentile95th: NaN],
+        [timestamp: buckets[2], empty: true, min: NaN, avg: NaN, median: NaN, max: NaN, percentile95th: NaN],
+        [timestamp: buckets[3], empty: true, min: NaN, avg: NaN, median: NaN, max: NaN, percentile95th: NaN],
+        [timestamp: buckets[4], empty: false, min: 25.0, avg: 25.0, median: 25.0, max: 25.0, percentile95th: 25.0],
+        [timestamp: buckets[5], empty: true, min: NaN, avg: NaN, median: NaN, max: NaN, percentile95th: NaN],
+        [timestamp: buckets[6], empty: true, min: NaN, avg: NaN, median: NaN, max: NaN, percentile95th: NaN],
+        [timestamp: buckets[7], empty: true, min: NaN, avg: NaN, median: NaN, max: NaN, percentile95th: NaN],
+        [timestamp: buckets[8], empty: true, min: NaN, avg: NaN, median: NaN, max: NaN, percentile95th: NaN],
+        [timestamp: buckets[9], empty: false, min: 18.367, avg: avg9, median: avg9, max: 19.01, percentile95th: 19.01],
+    ]
+
+    assertEquals('The number of bucketed data points is wrong', expectedData.size(), response.data.size())
+    expectedData.size().times { assertBucketEquals(expectedData[it], response.data[it]) }
+  }
+
+  @Test
   void largeDataSetTest() {
     String tenantId = nextTenantId()
     String metric = "test"
@@ -101,6 +151,7 @@ class NumericMetricStatisticsITest extends RESTTest {
           timestamp     : start.plusHours(step - 1).millis,
           min           : step,
           avg           : step - 1 + (SAMPLE_SIZE + 1) / 2,
+          median        : step - 1 + (SAMPLE_SIZE + 1) / 2,
           max           : step - 1 + SAMPLE_SIZE,
           percentile95th: step - 1 + percentileBase,
           empty         : false]
@@ -117,4 +168,13 @@ class NumericMetricStatisticsITest extends RESTTest {
     return values;
   }
 
+  private static void assertBucketEquals(def expected, def actual) {
+    assertEquals(expected.timestamp, actual.timestamp)
+    assertEquals(expected.empty, actual.empty)
+    assertDoubleEquals(expected.min, actual.min)
+    assertDoubleEquals(expected.avg, actual.avg)
+    assertDoubleEquals(expected.median, actual.median)
+    assertDoubleEquals(expected.max, actual.max)
+    assertDoubleEquals(expected.percentile95th, actual.percentile95th)
+  }
 }
