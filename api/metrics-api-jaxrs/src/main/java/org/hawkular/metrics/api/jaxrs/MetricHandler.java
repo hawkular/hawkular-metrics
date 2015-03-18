@@ -514,6 +514,9 @@ public class MetricHandler {
         } else {
             ListenableFuture<List<long[]>> future = metricsService.getPeriods(tenantId, new MetricId(id), predicate,
                 start, end);
+            // We need to transform empty results to null because SimpleDataCallback returns a 204 status for null
+            // data.
+            future = Futures.transform(future, (List<long[]> periods) -> periods.isEmpty() ? null : periods);
             Futures.addCallback(future, new SimpleDataCallback<>(response));
         }
     }
