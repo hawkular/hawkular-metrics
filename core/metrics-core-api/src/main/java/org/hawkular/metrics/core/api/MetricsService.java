@@ -81,7 +81,7 @@ public interface MetricsService {
 
     ListenableFuture<NumericMetric> findNumericData(NumericMetric metric, long start, long end);
 
-    ListenableFuture<BucketedOutput> findNumericStats(
+    ListenableFuture<BucketedOutput<NumericBucketDataPoint>> findNumericStats(
             NumericMetric metric, long start, long end, Buckets buckets
     );
 

@@ -68,6 +68,7 @@ import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.MetricsThreadFactory;
+import org.hawkular.metrics.core.api.NumericBucketDataPoint;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.api.Retention;
@@ -581,7 +582,7 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<BucketedOutput> findNumericStats(
+    public ListenableFuture<BucketedOutput<NumericBucketDataPoint>> findNumericStats(
             NumericMetric metric, long start, long end, Buckets buckets
     ) {
         // When we implement date partitioning, dpart will have to be determined based on
@@ -590,7 +591,7 @@ public class MetricsServiceCassandra implements MetricsService {
         metric.setDpart(Metric.DPART);
         ResultSetFuture queryFuture = dataAccess.findData(metric, start, end);
         ListenableFuture<NumericMetric> raw = Futures.transform(queryFuture, NUMERIC_METRIC_MAPPER, metricsTasks);
-        return Futures.transform(raw, new BucketedOutputMapper(buckets));
+        return Futures.transform(raw, new NumericBucketedOutputMapper(buckets));
     }
 
     @Override

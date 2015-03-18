@@ -30,7 +30,7 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
  */
 @ApiModel(value = "A bucket is a time range with multiple data items represented by min/avg/median/max/95thPercentile "
                   + "values for that time span.")
-public class BucketDataPoint {
+public class NumericBucketDataPoint {
 
     private long timestamp;
     private double value;
@@ -40,15 +40,15 @@ public class BucketDataPoint {
     private double max;
     private double percentile95th;
 
-    public static BucketDataPoint newEmptyInstance(long timestamp) {
-        BucketDataPoint bucketDataPoint = new BucketDataPoint();
-        bucketDataPoint.setTimestamp(timestamp);
-        bucketDataPoint.setMin(NaN);
-        bucketDataPoint.setAvg(NaN);
-        bucketDataPoint.setMedian(NaN);
-        bucketDataPoint.setMax(NaN);
-        bucketDataPoint.setPercentile95th(NaN);
-        return bucketDataPoint;
+    public static NumericBucketDataPoint newEmptyInstance(long timestamp) {
+        NumericBucketDataPoint numericBucketDataPoint = new NumericBucketDataPoint();
+        numericBucketDataPoint.setTimestamp(timestamp);
+        numericBucketDataPoint.setMin(NaN);
+        numericBucketDataPoint.setAvg(NaN);
+        numericBucketDataPoint.setMedian(NaN);
+        numericBucketDataPoint.setMax(NaN);
+        numericBucketDataPoint.setPercentile95th(NaN);
+        return numericBucketDataPoint;
     }
 
     @ApiModelProperty(value = "Time when the value was obtained in milliseconds since epoch")
@@ -120,7 +120,7 @@ public class BucketDataPoint {
 
     @Override
     public String toString() {
-        return "BucketDataPoint[" +
+        return "NumericBucketDataPoint[" +
                "timestamp=" + timestamp +
                ", min=" + min +
                ", avg=" + avg +

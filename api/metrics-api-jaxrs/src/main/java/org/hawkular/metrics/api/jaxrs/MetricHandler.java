@@ -63,7 +63,6 @@ import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
-import org.hawkular.metrics.core.api.BucketDataPoint;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.Counter;
@@ -71,6 +70,7 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.NumericBucketDataPoint;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
@@ -443,11 +443,13 @@ public class MetricHandler {
             asyncResponse.resume(response);
             return;
         }
-        ListenableFuture<BucketedOutput> dataFuture = metricsService.findNumericStats(metric, start, end, buckets);
-        ListenableFuture<List<BucketDataPoint>> outputFuture = Futures.transform(
-                dataFuture, new Function<BucketedOutput, List<BucketDataPoint>>() {
+        ListenableFuture<BucketedOutput<NumericBucketDataPoint>> dataFuture = metricsService.findNumericStats(
+                metric, start, end, buckets
+        );
+        ListenableFuture<List<NumericBucketDataPoint>> outputFuture = Futures.transform(
+                dataFuture, new Function<BucketedOutput<NumericBucketDataPoint>, List<NumericBucketDataPoint>>() {
                     @Override
-                    public List<BucketDataPoint> apply(BucketedOutput input) {
+                    public List<NumericBucketDataPoint> apply(BucketedOutput<NumericBucketDataPoint> input) {
                         if (input == null) {
                             return null;
                         }

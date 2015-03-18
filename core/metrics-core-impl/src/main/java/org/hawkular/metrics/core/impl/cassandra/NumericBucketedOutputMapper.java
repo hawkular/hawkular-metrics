@@ -24,9 +24,9 @@ import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.rank.Max;
 import org.apache.commons.math3.stat.descriptive.rank.Min;
 import org.apache.commons.math3.stat.descriptive.rank.Percentile;
-import org.hawkular.metrics.core.api.BucketDataPoint;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.NumericBucketDataPoint;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 
@@ -38,20 +38,22 @@ import gnu.trove.list.array.TDoubleArrayList;
 /**
  * @author Thomas Segismont
  */
-public class BucketedOutputMapper implements Function<NumericMetric, BucketedOutput> {
+public class NumericBucketedOutputMapper implements Function<NumericMetric, BucketedOutput<NumericBucketDataPoint>> {
     private final Buckets buckets;
 
-    public BucketedOutputMapper(Buckets buckets) {
+    public NumericBucketedOutputMapper(Buckets buckets) {
         this.buckets = buckets;
     }
 
     @Override
-    public BucketedOutput apply(NumericMetric input) {
+    public BucketedOutput<NumericBucketDataPoint> apply(NumericMetric input) {
         if (input == null) {
             return null;
         }
 
-        BucketedOutput output = new BucketedOutput(input.getTenantId(), input.getId().getName(), input.getTags());
+        BucketedOutput<NumericBucketDataPoint> output = new BucketedOutput<>(
+                input.getTenantId(), input.getId().getName(), input.getTags()
+        );
         output.setData(new ArrayList<>(buckets.getCount()));
 
         List<NumericData> numericDataList = input.getData();
@@ -65,14 +67,14 @@ public class BucketedOutputMapper implements Function<NumericMetric, BucketedOut
 
             if (dataIndex >= numericDatas.length) {
                 // Reached end of data points
-                output.getData().add(BucketDataPoint.newEmptyInstance(from));
+                output.getData().add(NumericBucketDataPoint.newEmptyInstance(from));
                 continue;
             }
 
             NumericData current = numericDatas[dataIndex];
             if (current.getTimestamp() >= to) {
                 // Current data point does not belong to this bucket
-                output.getData().add(BucketDataPoint.newEmptyInstance(from));
+                output.getData().add(NumericBucketDataPoint.newEmptyInstance(from));
                 continue;
             }
 
@@ -93,15 +95,15 @@ public class BucketedOutputMapper implements Function<NumericMetric, BucketedOut
             Percentile percentile = new Percentile();
             percentile.setData(values);
 
-            BucketDataPoint bucketDataPoint = new BucketDataPoint();
-            bucketDataPoint.setTimestamp(from);
-            bucketDataPoint.setMin(new Min().evaluate(values));
-            bucketDataPoint.setAvg(new Mean().evaluate(values));
-            bucketDataPoint.setMedian(percentile.evaluate(50.0));
-            bucketDataPoint.setMax(new Max().evaluate(values));
-            bucketDataPoint.setPercentile95th(percentile.evaluate(95.0));
+            NumericBucketDataPoint numericBucketDataPoint = new NumericBucketDataPoint();
+            numericBucketDataPoint.setTimestamp(from);
+            numericBucketDataPoint.setMin(new Min().evaluate(values));
+            numericBucketDataPoint.setAvg(new Mean().evaluate(values));
+            numericBucketDataPoint.setMedian(percentile.evaluate(50.0));
+            numericBucketDataPoint.setMax(new Max().evaluate(values));
+            numericBucketDataPoint.setPercentile95th(percentile.evaluate(95.0));
 
-            output.getData().add(bucketDataPoint);
+            output.getData().add(numericBucketDataPoint);
         }
 
         return output;
