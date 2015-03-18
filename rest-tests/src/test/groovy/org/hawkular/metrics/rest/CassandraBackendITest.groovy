@@ -21,7 +21,9 @@ import org.junit.Test
 
 import static org.joda.time.DateTime.now
 import static org.joda.time.Seconds.seconds
-import static org.junit.Assert.*
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertTrue
 
 class CassandraBackendITest extends RESTTest {
 
