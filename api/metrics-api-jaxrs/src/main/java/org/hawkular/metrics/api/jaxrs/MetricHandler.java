@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.api.jaxrs;
 
-import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -57,6 +56,7 @@ import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
+
 import org.hawkular.metrics.api.jaxrs.callback.MetricCreatedCallback;
 import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
 import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
@@ -75,12 +75,6 @@ import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
 import org.hawkular.metrics.core.impl.request.TagRequest;
-
-import static java.util.Arrays.asList;
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
 
 /**
  * Interface to deal with metrics
