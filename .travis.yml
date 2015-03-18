@@ -11,6 +11,8 @@ env:
   - secure: mDUhAf474mlads7ZEAf2mWecQxZWgdfcjiBn6+yif0hJoWKQs38HU+jm4EE8UMgGvdn7avIYvdrxKJ9MnjWpncaXJ0366ZYbxP+7pybMk/SA80yr3dCg5gSHosJ9UqMvGga1bzgDeqF9UppKt0kqxgSLLwKAFoY+x70Pp0rIwQg=
   - secure: Xl2RWUee61vD7Ka/L9M4c9q03w0pn0H5LECsEH6FOTNwLZZdWnHepvF0n8O4YQiG7RdvnK3UHCOGh7G4J5t4XDOwt45IJ3QtjB7FtVdOhMreXHwbMmE0xn2nGGUmhBuYUNN3oIaVzQxWuozcC3g8gQXln4iJVv/f9ecg5R3eRHI=
   - secure: VIYnvHLr/H+2UpeHPe0UKoTK+l+pv6RcKV9tXfLpGEan6th/nmWjo9jR4ZtQNa90FcjOYexRPSLdaU4/SBlpVUHoR59koQQFfdsK+u8hVGpulOpBR6IUDYNQEris93g9NLJA+5PajhGxGnlUqJRP8QAE3RnGK+rq6nGVmlQd4S4=
+  # for pushing the swagger adoc documentation to the website repository
+  - secure: 6JUY0hUjTXaRcVHFqt1q06enCXdqZ9qYkgLA/uUoKq4tYBVDaaqF4yB88CRzr3rXpytz2aywH2dR1idZH4zoWzv1jQ/tCiYE7GjLRO2qn9wgCMzBRq8G7Ov5iFnsT+aBsf6Syx2rNXwH206cHXP4JY/CRs0ez9tcO4LlYls7XN8=
 addons:
   coverity_scan:
     project:
@@ -30,4 +32,4 @@ script:
   -eq 0
 after_failure: bash .travis.diagnose.sh
 after_success:
-- test "${TRAVIS_BRANCH}" = "master" && test "${TRAVIS_PULL_REQUEST}" = "false" && mvn  -s .travis.maven.settings.xml deploy -DskipTests
+- test "${TRAVIS_BRANCH}" = "master" && test "${TRAVIS_PULL_REQUEST}" = "false" && mvn -s .travis.maven.settings.xml deploy -DskipTests && ./.travis.swagger.sh
