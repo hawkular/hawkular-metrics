@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.api.jaxrs;
 
-import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -24,6 +23,7 @@ import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -249,39 +249,53 @@ public class MetricHandler {
     @POST
     @Path("/{tenantId}/metrics/numeric/{id}/data")
     @ApiOperation(value = "Add data for a single numeric metric.")
-    @ApiResponses(value = { @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
-                                         response = ApiError.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Adding data succeeded."),
+            @ApiResponse(code = 400, message = "Missing or invalid payload",
+                         response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
+                         response = ApiError.class),
     })
-    public void addDataForMetric(@Suspended final AsyncResponse asyncResponse,
-                                 @PathParam("tenantId") final String tenantId, @PathParam("id") String id,
-                                 @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
-                                 List<NumericData> dataPoints) {
-
-        NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
-        for (NumericData p : dataPoints) {
-            metric.addData(p);
+    public void addDataForMetric(
+            @Suspended final AsyncResponse asyncResponse,
+            @PathParam("tenantId") final String tenantId, @PathParam("id") String id,
+            @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
+            List<NumericData> data
+    ) {
+        if (data == null) {
+            Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Payload is empty")).build();
+            asyncResponse.resume(response);
+            return;
         }
-        ListenableFuture<Void> future = metricsService.addNumericData(asList(metric));
+        NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
+        data.forEach(metric::addData);
+        ListenableFuture<Void> future = metricsService.addNumericData(Collections.singletonList(metric));
         Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
     @POST
     @Path("/{tenantId}/metrics/availability/{id}/data")
     @ApiOperation(value = "Add data for a single availability metric.")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Adding data succeeded."),
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Adding data succeeded."),
+            @ApiResponse(code = 400, message = "Missing or invalid payload",
+                         response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
                          response = ApiError.class)
     })
-    public void addAvailabilityForMetric(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") final String tenantId, @PathParam("id") String id,
-            @ApiParam(value = "List of availability datapoints", required = true) List<Availability> data) {
-        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
-
-        for (Availability p : data) {
-            metric.addData(p);
+    public void addAvailabilityForMetric(
+            @Suspended final AsyncResponse asyncResponse,
+            @PathParam("tenantId") final String tenantId, @PathParam("id") String id,
+            @ApiParam(value = "List of availability datapoints", required = true) List<Availability> data
+    ) {
+        if (data == null) {
+            Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Payload is empty")).build();
+            asyncResponse.resume(response);
+            return;
         }
-
-        ListenableFuture<Void> future = metricsService.addAvailabilityData(asList(metric));
+        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
+        data.forEach(metric::addData);
+        ListenableFuture<Void> future = metricsService.addAvailabilityData(Collections.singletonList(metric));
         Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
     }
 
@@ -675,7 +689,7 @@ public class MetricHandler {
             responseContainer = "List")
     public void getCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") final String group,
         @PathParam("counter") final String counter) {
-        ListenableFuture<List<Counter>> future = metricsService.findCounters(group, asList(counter));
+        ListenableFuture<List<Counter>> future = metricsService.findCounters(group, Collections.singletonList(counter));
         Futures.addCallback(future, new FutureCallback<List<Counter>>() {
             @Override
             public void onSuccess(List<Counter> counters) {
