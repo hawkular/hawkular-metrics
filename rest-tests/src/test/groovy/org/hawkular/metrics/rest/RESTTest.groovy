@@ -75,4 +75,14 @@ class RESTTest {
       errorHandler(e)
     }
   }
+
+  static def badGet(args, errorHandler) {
+    try {
+      def object = hawkularMetrics.get(args)
+      fail("Expected exception to be thrown")
+      return object
+    } catch (e) {
+      errorHandler(e)
+    }
+  }
 }

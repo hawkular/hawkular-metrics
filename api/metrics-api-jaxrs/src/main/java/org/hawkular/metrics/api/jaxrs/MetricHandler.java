@@ -28,6 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.LongStream;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -45,6 +47,16 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
+
+import com.google.common.base.Function;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
 
 import org.hawkular.metrics.api.jaxrs.callback.MetricCreatedCallback;
 import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
@@ -64,16 +76,6 @@ import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
 import org.hawkular.metrics.core.impl.request.TagRequest;
-
-import com.google.common.base.Function;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
 
 /**
  * Interface to deal with metrics
@@ -359,7 +361,7 @@ public class MetricHandler {
         @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
         @QueryParam("tags") String encodedTags) {
         ListenableFuture<Map<MetricId, Set<Availability>>> queryFuture = metricsService.findAvailabilityByTags(
-                tenantId, MetricUtils.decodeTags(encodedTags));
+            tenantId, MetricUtils.decodeTags(encodedTags));
         Futures.addCallback(queryFuture, new SimpleDataCallback<Map<MetricId, Set<Availability>>>(asyncResponse));
     }
 
@@ -441,6 +443,66 @@ public class MetricHandler {
                 }
         );
         Futures.addCallback(outputFuture, new SimpleDataCallback<Object>(asyncResponse));
+    }
+
+    @GET
+    @Path("/{tenantId}/metrics/numeric/{id}/periods")
+    @ApiOperation(value = "Retrieve periods for which the condition holds true for each consecutive data point.",
+        response = List.class)
+    @ApiResponses(value = {
+        @ApiResponse(code = 200, message = "Successfully fetched periods."),
+        @ApiResponse(code = 204, message = "No numeric data was found."),
+        @ApiResponse(code = 400, message = "Missing or invalid payload")})
+    public void findPeriods(
+        @Suspended final AsyncResponse response, @PathParam("tenantId") String tenantId,
+        @PathParam("id") String id,
+        @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") Long start,
+        @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") Long end,
+        @ApiParam(value = "A threshold against which values are compared", required = true) @QueryParam("threshold")
+            double threshold,
+        @ApiParam(value = "A comparison operation to perform between values and the threshold. Supported operations " +
+            "include ge, gte, lt, lte, and eq", required = true) @QueryParam("op") String operator) {
+
+        long now = System.currentTimeMillis();
+        if (start == null) {
+            start = now - EIGHT_HOURS;
+        }
+        if (end == null) {
+            end = now;
+        }
+
+        Predicate<Double> predicate;
+        switch (operator) {
+            case "lt":
+                predicate = d -> d < threshold;
+                break;
+            case "lte":
+                predicate = d -> d <= threshold;
+                break;
+            case "eq":
+                predicate = d -> d == threshold;
+                break;
+            case "neq":
+                predicate = d -> d != threshold;
+                break;
+            case "gt":
+                predicate = d -> d > threshold;
+                break;
+            case "gte":
+                predicate = d -> d >= threshold;
+                break;
+            default:
+                predicate = null;
+        }
+
+        if (predicate == null) {
+            response.resume(Response.status(Status.BAD_REQUEST).entity(new ApiError("Invalid value for op parameter. "
+                + "Supported values are lt, lte, eq, gt, gte")).build());
+        } else {
+            ListenableFuture<List<long[]>> future = metricsService.getPeriods(tenantId, new MetricId(id), predicate,
+                start, end);
+            Futures.addCallback(future, new SimpleDataCallback<>(response));
+        }
     }
 
     @GET

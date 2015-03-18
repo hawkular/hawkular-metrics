@@ -15,16 +15,13 @@
  * limitations under the License.
  */
 package org.hawkular.metrics.rest
-
-import static org.joda.time.DateTime.now
-import static org.joda.time.Seconds.seconds
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertTrue
-
 import org.hawkular.metrics.core.impl.DateTimeService
 import org.joda.time.DateTime
 import org.junit.Test
+
+import static org.joda.time.DateTime.now
+import static org.joda.time.Seconds.seconds
+import static org.junit.Assert.*
 
 class CassandraBackendITest extends RESTTest {
 
@@ -58,6 +55,143 @@ class CassandraBackendITest extends RESTTest {
             [timestamp: buckets[9] + seconds(10).toStandardDuration().millis, value: 19.01]
         ]]])
     assertEquals(200, response.status)
+  }
+
+  @Test
+  void queryForBucketedNumericData() {
+    DateTimeService dateTimeService = new DateTimeService()
+    String tenantId = nextTenantId()
+    String metric = 'n1'
+    DateTime start = dateTimeService.currentHour().minusHours(1)
+    DateTime end = start.plusHours(1)
+
+    int numBuckets = 10
+    long bucketSize = (end.millis - start.millis) / numBuckets
+    def buckets = []
+    numBuckets.times { buckets.add(start.millis + (it * bucketSize)) }
+
+    def response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/$metric/data", body: [
+        [timestamp: buckets[0], value: 12.22],
+        [timestamp: buckets[0] + seconds(10).toStandardDuration().millis, value: 12.37],
+        [timestamp: buckets[4], value: 25],
+        [timestamp: buckets[4] + seconds(15).toStandardDuration().millis, value: 25],
+        [timestamp: buckets[9], value: 18.367],
+        [timestamp: buckets[9] + seconds(10).toStandardDuration().millis, value: 19.01]
+    ])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: "${tenantId}/metrics/numeric/$metric/data",
+            query: [start  : start.millis, end: end.millis, buckets: 10])
+    assertEquals(200, response.status)
+
+    def expectedData = [
+        tenantId: tenantId,
+        id: metric,
+        data: [
+            [timestamp: buckets[0], empty: false, max: 12.37, min: 12.22, avg: (12.22 + 12.37) /2, value: 0],
+            [timestamp: buckets[1], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
+            [timestamp: buckets[2], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
+            [timestamp: buckets[3], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
+            [timestamp: buckets[4], empty: false, max: 25.0, min: 25.0, avg: 25.0, value: 0],
+            [timestamp: buckets[5], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
+            [timestamp: buckets[6], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
+            [timestamp: buckets[7], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
+            [timestamp: buckets[8], empty: true, max: Double.NaN, min: Double.NaN, avg: Double.NaN, value: 0],
+            [timestamp: buckets[9], empty: false, max: 19.01, min: 18.367, avg: (18.367 + 19.01) / 2, value: 0],
+        ]
+    ]
+
+    def assertBucketEquals = { expected, actual ->
+      assertEquals(expected.timestamp, actual.timestamp)
+      assertEquals(expected.empty, actual.empty)
+      assertDoubleEquals(expected.max, actual.max)
+      assertDoubleEquals(expected.min, actual.min)
+      assertDoubleEquals(expected.avg, actual.avg)
+    }
+
+    assertBucketedDataEquals(expectedData, response.data, assertBucketEquals)
+  }
+
+  @Test
+  void getPeriods() {
+    DateTime end = now()
+    DateTime start = end.minusMinutes(30)
+    String tenantId = nextTenantId()
+    String metric = "n1"
+
+    def response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/$metric/data", body: [
+        [timestamp: start.millis, value: 22.3],
+        [timestamp: start.plusMinutes(1).millis, value: 17.4],
+        [timestamp: start.plusMinutes(2).millis, value: 16.6],
+        [timestamp: start.plusMinutes(3).millis, value: 22.7],
+        [timestamp: start.plusMinutes(4).millis, value: 23.3],
+        [timestamp: start.plusMinutes(5).millis, value: 19.9],
+        [timestamp: start.plusMinutes(6).millis, value: 21.2],
+        [timestamp: start.plusMinutes(7).millis, value: 24.2],
+        [timestamp: start.plusMinutes(8).millis, value: 26.6],
+        [timestamp: start.plusMinutes(9).millis, value: 18.8],
+        [timestamp: start.plusMinutes(10).millis, value: 20.0]
+    ])
+    assertEquals(200, response.status)
+
+    def getPeriods = { operation, threshold ->
+      def periodsResponse = hawkularMetrics.get(path: "$tenantId/metrics/numeric/$metric/periods",
+          query: [threshold: threshold, op: operation])
+      assertEquals(200, response.status)
+
+      return periodsResponse
+    }
+
+    response = getPeriods("gt", 20)
+
+    def expectedData = [
+      [start.millis, start.millis],
+      [start.plusMinutes(3).millis, start.plusMinutes(4).millis],
+      [start.plusMinutes(6).millis, start.plusMinutes(8).millis]
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = getPeriods("lt", 20)
+
+    expectedData = [
+        [start.plusMinutes(1).millis, start.plusMinutes(2).millis],
+        [start.plusMinutes(5).millis, start.plusMinutes(5).millis],
+        [start.plusMinutes(9).millis, start.plusMinutes(9).millis]
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = getPeriods("gte", 20)
+
+    expectedData = [
+        [start.millis, start.millis],
+        [start.plusMinutes(3).millis, start.plusMinutes(4).millis],
+        [start.plusMinutes(6).millis, start.plusMinutes(8).millis],
+        [start.plusMinutes(10).millis, start.plusMinutes(10).millis]
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = getPeriods("lte", 20)
+
+    expectedData = [
+        [start.plusMinutes(1).millis, start.plusMinutes(2).millis],
+        [start.plusMinutes(5).millis, start.plusMinutes(5).millis],
+        [start.plusMinutes(9).millis, start.plusMinutes(10).millis]
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = getPeriods("eq", 20)
+
+    expectedData = [[start.plusMinutes(10).millis, start.plusMinutes(10).millis]]
+    assertEquals(expectedData, response.data)
+
+    response = getPeriods("neq", 20)
+
+    expectedData = [[start.millis, start.plusMinutes(9).millis]]
+    assertEquals(expectedData, response.data)
+
+    badGet(path: "$tenantId/metrics/numeric/$metric/periods", query: [threshold: 20, op: "foo"], { exception ->
+      assertEquals(400, exception.response.status)
+    })
   }
 
   @Test
