@@ -523,21 +523,30 @@ public class MetricHandler {
 
     @GET
     @Path("/{tenantId}/metrics/availability/{id}/data")
-    @ApiOperation(value = "Retrieve availability data.", response = Availability.class)
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched availability data."),
-            @ApiResponse(code = 204, message = "No availability data was found.")})
-    public void findAvailabilityData(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId, @PathParam("id") final String id,
-        @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") Long start,
-        @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") Long end) {
-
+    @ApiOperation(
+            value = "Retrieve availability data. When buckets or bucketDuration query parameter is used, the time "
+                    + "range between start and end will be divided in buckets of equal duration, and availability "
+                    + "statistics will be computed for each bucket.", response = List.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched availability data."),
+            @ApiResponse(code = 204, message = "No availability data was found."),
+            @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
+                         response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching availability data.",
+                         response = ApiError.class),
+    })
+    public void findAvailabilityData(
+            @Suspended AsyncResponse asyncResponse,
+            @PathParam("tenantId") String tenantId,
+            @PathParam("id") String id,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration
+    ) {
         long now = System.currentTimeMillis();
-        if (start == null) {
-            start = now - EIGHT_HOURS;
-        }
-        if (end == null) {
-            end = now;
-        }
+        start = start == null ? now - EIGHT_HOURS : start;
+        end = end == null ? now : end;
 
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
         ListenableFuture<AvailabilityMetric> future = metricsService.findAvailabilityData(metric, start, end);
