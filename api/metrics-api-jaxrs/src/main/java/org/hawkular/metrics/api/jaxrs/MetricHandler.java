@@ -451,7 +451,7 @@ public class MetricHandler {
     @ApiResponses(value = {
         @ApiResponse(code = 200, message = "Successfully fetched periods."),
         @ApiResponse(code = 204, message = "No numeric data was found."),
-        @ApiResponse(code = 400, message = "Missing or invalid payload")})
+        @ApiResponse(code = 400, message = "Missing or invalid query parameters")})
     public void findPeriods(
         @Suspended final AsyncResponse response, @PathParam("tenantId") String tenantId,
         @PathParam("id") String id,
