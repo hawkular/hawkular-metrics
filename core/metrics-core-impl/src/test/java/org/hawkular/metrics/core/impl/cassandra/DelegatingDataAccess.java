@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.datastax.driver.core.ResultSetFuture;
+
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Counter;
@@ -33,8 +35,6 @@ import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
-
-import com.datastax.driver.core.ResultSetFuture;
 
 /**
  * @author John Sanda
@@ -111,6 +111,11 @@ public class DelegatingDataAccess implements DataAccess {
     @Override
     public ResultSetFuture findData(NumericMetric metric, long startTime, long endTime) {
         return delegate.findData(metric, startTime, endTime);
+    }
+
+    @Override
+    public ResultSetFuture findData(NumericMetric metric, long startTime, long endTime, Order order) {
+        return delegate.findData(metric, startTime, endTime, order);
     }
 
     @Override

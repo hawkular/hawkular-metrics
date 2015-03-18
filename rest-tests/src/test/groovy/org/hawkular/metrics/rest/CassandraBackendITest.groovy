@@ -15,16 +15,13 @@
  * limitations under the License.
  */
 package org.hawkular.metrics.rest
-
-import static org.joda.time.DateTime.now
-import static org.joda.time.Seconds.seconds
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertTrue
-
 import org.hawkular.metrics.core.impl.DateTimeService
 import org.joda.time.DateTime
 import org.junit.Test
+
+import static org.joda.time.DateTime.now
+import static org.joda.time.Seconds.seconds
+import static org.junit.Assert.*
 
 class CassandraBackendITest extends RESTTest {
 
@@ -58,6 +55,88 @@ class CassandraBackendITest extends RESTTest {
             [timestamp: buckets[9] + seconds(10).toStandardDuration().millis, value: 19.01]
         ]]])
     assertEquals(200, response.status)
+  }
+
+  @Test
+  void getPeriods() {
+    DateTime end = now()
+    DateTime start = end.minusMinutes(30)
+    String tenantId = nextTenantId()
+    String metric = "n1"
+
+    def response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/$metric/data", body: [
+        [timestamp: start.millis, value: 22.3],
+        [timestamp: start.plusMinutes(1).millis, value: 17.4],
+        [timestamp: start.plusMinutes(2).millis, value: 16.6],
+        [timestamp: start.plusMinutes(3).millis, value: 22.7],
+        [timestamp: start.plusMinutes(4).millis, value: 23.3],
+        [timestamp: start.plusMinutes(5).millis, value: 19.9],
+        [timestamp: start.plusMinutes(6).millis, value: 21.2],
+        [timestamp: start.plusMinutes(7).millis, value: 24.2],
+        [timestamp: start.plusMinutes(8).millis, value: 26.6],
+        [timestamp: start.plusMinutes(9).millis, value: 18.8],
+        [timestamp: start.plusMinutes(10).millis, value: 20.0]
+    ])
+    assertEquals(200, response.status)
+
+    def getPeriods = { operation, threshold ->
+      def periodsResponse = hawkularMetrics.get(path: "$tenantId/metrics/numeric/$metric/periods",
+          query: [threshold: threshold, op: operation])
+      assertEquals(200, response.status)
+
+      return periodsResponse
+    }
+
+    response = getPeriods("gt", 20)
+
+    def expectedData = [
+      [start.millis, start.millis],
+      [start.plusMinutes(3).millis, start.plusMinutes(4).millis],
+      [start.plusMinutes(6).millis, start.plusMinutes(8).millis]
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = getPeriods("lt", 20)
+
+    expectedData = [
+        [start.plusMinutes(1).millis, start.plusMinutes(2).millis],
+        [start.plusMinutes(5).millis, start.plusMinutes(5).millis],
+        [start.plusMinutes(9).millis, start.plusMinutes(9).millis]
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = getPeriods("gte", 20)
+
+    expectedData = [
+        [start.millis, start.millis],
+        [start.plusMinutes(3).millis, start.plusMinutes(4).millis],
+        [start.plusMinutes(6).millis, start.plusMinutes(8).millis],
+        [start.plusMinutes(10).millis, start.plusMinutes(10).millis]
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = getPeriods("lte", 20)
+
+    expectedData = [
+        [start.plusMinutes(1).millis, start.plusMinutes(2).millis],
+        [start.plusMinutes(5).millis, start.plusMinutes(5).millis],
+        [start.plusMinutes(9).millis, start.plusMinutes(10).millis]
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = getPeriods("eq", 20)
+
+    expectedData = [[start.plusMinutes(10).millis, start.plusMinutes(10).millis]]
+    assertEquals(expectedData, response.data)
+
+    response = getPeriods("neq", 20)
+
+    expectedData = [[start.millis, start.plusMinutes(9).millis]]
+    assertEquals(expectedData, response.data)
+
+    badGet(path: "$tenantId/metrics/numeric/$metric/periods", query: [threshold: 20, op: "foo"], { exception ->
+      assertEquals(400, exception.response.status)
+    })
   }
 
   @Test

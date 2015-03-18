@@ -35,10 +35,25 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import javax.management.MBeanInfo;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
+
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.google.common.base.Function;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.RateLimiter;
 
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
@@ -64,20 +79,6 @@ import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.google.common.base.Function;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.RateLimiter;
 
 /**
  * @author John Sanda
@@ -798,6 +799,40 @@ public class MetricsServiceCassandra implements MetricsService {
                 return mergedDataMap;
             }
         });
+    }
+
+    @Override
+    public ListenableFuture<List<long[]>> getPeriods(String tenantId, MetricId id, Predicate<Double> predicate,
+        long start, long end) {
+        ResultSetFuture resultSetFuture = dataAccess.findData(new NumericMetric(tenantId, id), start, end, Order.ASC);
+        ListenableFuture<List<NumericData>> dataFuture = Futures.transform(resultSetFuture,
+            new NumericDataMapper(false));
+
+        return Futures.transform(dataFuture, (List<NumericData> data) -> {
+            List<long[]> periods = new ArrayList<>(data.size());
+            long[] period = null;
+            NumericData previous = null;
+            for (NumericData d : data) {
+                if (predicate.test(d.getValue())) {
+                    if (period == null) {
+                        period = new long[2];
+                        period[0] = d.getTimestamp();
+                    }
+                    previous = d;
+                } else if (period != null) {
+                    period[1] = previous.getTimestamp();
+                    periods.add(period);
+                    period = null;
+                    previous = null;
+                }
+            }
+            if (period != null) {
+                period[1] = previous.getTimestamp();
+                periods.add(period);
+            }
+
+            return periods;
+        }, metricsTasks);
     }
 
     private int getTTL(Metric<?> metric) {

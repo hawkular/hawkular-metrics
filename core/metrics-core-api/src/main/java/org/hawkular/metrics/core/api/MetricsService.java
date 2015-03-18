@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -118,4 +119,31 @@ public interface MetricsService {
 
     ListenableFuture<Map<MetricId, Set<Availability>>> findAvailabilityByTags(String tenantId,
             Map<String, String> tags);
+
+    /**
+     * <p>
+     * For a specified date range, return a list of periods in which the predicate evaluates to true for each
+     * consecutive data point. The periods are returned in ascending order. Consider the following data points,
+     * </p>
+     * <p>
+     * {time: 1, value: 5}, {time: 2, value: 11}, {time: 3, value: 12}, {time: 4, value: 8}, {time: 5, value: 14},
+     * {time: 6, value: 7}, {time: 7, value: 16}
+     * </p>
+     *<p>
+     * And a predicate that tests for values greater than 10. The results would be,
+     *</p>
+     * <p>
+     * {start: 2, end: 3}, {start: 5, end: 5}, {start: 7, end: 7}
+     * </p>
+     *
+     * @param tenantId
+     * @param id
+     * @param predicate A function applied to the value of each data point
+     * @param start The start time inclusive
+     * @param end The end time exclusive
+     * @return Each element in the list is a two element array. The first element is the start time inclusive for which
+     * the predicate matches, and the second element is the end time inclusive for which the predicate matches.
+     */
+    ListenableFuture<List<long[]>> getPeriods(String tenantId, MetricId id, Predicate<Double> predicate, long start,
+        long end);
 }

@@ -56,9 +56,9 @@ class RESTTest {
     }
   }
 
-  static def badGet(args, errorHandler) {
+  static def badPost(args, errorHandler) {
     try {
-      def object = hawkularMetrics.get(args)
+      def object = hawkularMetrics.post(args)
       fail("Expected exception to be thrown")
       return object
     } catch (e) {
@@ -66,9 +66,9 @@ class RESTTest {
     }
   }
 
-  static def badPost(args, errorHandler) {
+  static def badGet(args, errorHandler) {
     try {
-      def object = hawkularMetrics.post(args)
+      def object = hawkularMetrics.get(args)
       fail("Expected exception to be thrown")
       return object
     } catch (e) {
