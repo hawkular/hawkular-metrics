@@ -29,7 +29,8 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
  */
 @ApiModel(value = "Statistics for numeric data in a time range.")
 public class NumericBucketDataPoint {
-    private long timestamp;
+    private long start;
+    private long end;
     private double value;
     private double min;
     private double avg;
@@ -37,24 +38,42 @@ public class NumericBucketDataPoint {
     private double max;
     private double percentile95th;
 
-    public static NumericBucketDataPoint newEmptyInstance(long timestamp) {
-        NumericBucketDataPoint dataPoint = new NumericBucketDataPoint();
-        dataPoint.setTimestamp(timestamp);
-        dataPoint.setMin(NaN);
-        dataPoint.setAvg(NaN);
-        dataPoint.setMedian(NaN);
-        dataPoint.setMax(NaN);
-        dataPoint.setPercentile95th(NaN);
-        return dataPoint;
+    public NumericBucketDataPoint(
+            long start,
+            long end,
+            double value,
+            double min,
+            double avg,
+            double median,
+            double max,
+            double percentile95th
+    ) {
+        this.start = start;
+        this.end = end;
+        this.value = value;
+        this.min = min;
+        this.avg = avg;
+        this.median = median;
+        this.max = max;
+        this.percentile95th = percentile95th;
     }
 
-    @ApiModelProperty(value = "Time when the value was obtained in milliseconds since epoch")
-    public long getTimestamp() {
-        return timestamp;
+    @ApiModelProperty(value = "Start timestamp of this bucket in milliseconds since epoch")
+    public long getStart() {
+        return start;
     }
 
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
+    public void setStart(long start) {
+        this.start = start;
+    }
+
+    @ApiModelProperty(value = "End timestamp of this bucket in milliseconds since epoch")
+    public long getEnd() {
+        return end;
+    }
+
+    public void setEnd(long end) {
+        this.end = end;
     }
 
     @ApiModelProperty(value = "The value of this data point")
@@ -118,12 +137,72 @@ public class NumericBucketDataPoint {
     @Override
     public String toString() {
         return "NumericBucketDataPoint[" +
-               "timestamp=" + timestamp +
+               "start=" + start +
+               ", end=" + end +
                ", min=" + min +
                ", avg=" + avg +
                ", median=" + median +
                ", max=" + max +
                ", percentile95th=" + percentile95th +
                ']';
+    }
+
+    /**
+     * Create {@link NumericBucketDataPoint} instances following the builder pattern.
+     */
+    public static class Builder {
+        private final long start;
+        private final long end;
+        private double value = NaN;
+        private double min = NaN;
+        private double avg = NaN;
+        private double median = NaN;
+        private double max = NaN;
+        private double percentile95th = NaN;
+
+        /**
+         * Creates a builder for an initially empty instance, configurable with the builder setters.
+         *
+         * @param start the start timestamp of this bucket data point
+         * @param end   the end timestamp of this bucket data point
+         */
+        public Builder(long start, long end) {
+            this.start = start;
+            this.end = end;
+        }
+
+        public Builder setValue(double value) {
+            this.value = value;
+            return this;
+        }
+
+        public Builder setMin(double min) {
+            this.min = min;
+            return this;
+        }
+
+        public Builder setAvg(double avg) {
+            this.avg = avg;
+            return this;
+        }
+
+        public Builder setMedian(double median) {
+            this.median = median;
+            return this;
+        }
+
+        public Builder setMax(double max) {
+            this.max = max;
+            return this;
+        }
+
+        public Builder setPercentile95th(double percentile95th) {
+            this.percentile95th = percentile95th;
+            return this;
+        }
+
+        public NumericBucketDataPoint build() {
+            return new NumericBucketDataPoint(start, end, value, min, avg, median, max, percentile95th);
+        }
     }
 }

@@ -41,8 +41,8 @@ public class AvailabilityBucketedOutputMapper
     }
 
     @Override
-    protected AvailabilityBucketDataPoint newEmptyPointInstance(long from) {
-        return new AvailabilityBucketDataPoint.Builder(from).build();
+    protected AvailabilityBucketDataPoint newEmptyPointInstance(long from, long to) {
+        return new AvailabilityBucketDataPoint.Builder(from, to).build();
     }
 
     @Override
@@ -61,8 +61,7 @@ public class AvailabilityBucketedOutputMapper
             }
         }
 
-        return new AvailabilityBucketDataPoint.Builder(from)
-                .setTimestamp(from)
+        return new AvailabilityBucketDataPoint.Builder(from, to)
                 .setDowntimeDuration(downtimeDuration)
                 .setLastDowntime(lastDowntime)
                 .setUptimeRatio(1.0 - (double) downtimeDuration / buckets.getStep())

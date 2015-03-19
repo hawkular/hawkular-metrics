@@ -36,7 +36,8 @@ public class AvailabilityBucketDataPointMatcher extends TypeSafeMatcher<Availabi
 
     @Override
     protected boolean matchesSafely(AvailabilityBucketDataPoint item) {
-        return item.getTimestamp() == expected.getTimestamp()
+        return item.getStart() == expected.getStart()
+               && item.getEnd() == expected.getEnd()
                && item.getDowntimeCount() == expected.getDowntimeCount()
                && item.getDowntimeDuration() == expected.getDowntimeDuration()
                && item.getLastDowntime() == expected.getLastDowntime()

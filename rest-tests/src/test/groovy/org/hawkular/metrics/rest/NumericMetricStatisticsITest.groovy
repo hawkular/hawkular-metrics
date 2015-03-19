@@ -101,16 +101,37 @@ class NumericMetricStatisticsITest extends RESTTest {
     def avg9 = (18.367 + 19.01) / 2
 
     def expectedData = [
-        [timestamp: buckets[0], empty: false, min: 12.22, avg: avg0, median: avg0, max: 12.37, percentile95th: 12.37],
-        [timestamp: buckets[1], empty: true, min: NaN, avg: NaN, median: NaN, max: NaN, percentile95th: NaN],
-        [timestamp: buckets[2], empty: true, min: NaN, avg: NaN, median: NaN, max: NaN, percentile95th: NaN],
-        [timestamp: buckets[3], empty: true, min: NaN, avg: NaN, median: NaN, max: NaN, percentile95th: NaN],
-        [timestamp: buckets[4], empty: false, min: 25.0, avg: 25.0, median: 25.0, max: 25.0, percentile95th: 25.0],
-        [timestamp: buckets[5], empty: true, min: NaN, avg: NaN, median: NaN, max: NaN, percentile95th: NaN],
-        [timestamp: buckets[6], empty: true, min: NaN, avg: NaN, median: NaN, max: NaN, percentile95th: NaN],
-        [timestamp: buckets[7], empty: true, min: NaN, avg: NaN, median: NaN, max: NaN, percentile95th: NaN],
-        [timestamp: buckets[8], empty: true, min: NaN, avg: NaN, median: NaN, max: NaN, percentile95th: NaN],
-        [timestamp: buckets[9], empty: false, min: 18.367, avg: avg9, median: avg9, max: 19.01, percentile95th: 19.01],
+        [
+            start: buckets[0], end: buckets[0] + bucketSize, empty: false, min: 12.22,
+            avg  : avg0, median: avg0, max: 12.37, percentile95th: 12.37
+        ], [
+            start: buckets[1], end: buckets[1] + bucketSize, empty: true, min: NaN,
+            avg  : NaN, median: NaN, max: NaN, percentile95th: NaN
+        ], [
+            start: buckets[2], end: buckets[2] + bucketSize, empty: true, min: NaN,
+            avg  : NaN, median: NaN, max: NaN, percentile95th: NaN
+        ], [
+            start: buckets[3], end: buckets[3] + bucketSize, empty: true, min: NaN,
+            avg  : NaN, median: NaN, max: NaN, percentile95th: NaN
+        ], [
+            start: buckets[4], end: buckets[4] + bucketSize, empty: false, min: 25.0,
+            avg  : 25.0, median: 25.0, max: 25.0, percentile95th: 25.0],
+        [
+            start: buckets[5], end: buckets[5] + bucketSize, empty: true, min: NaN,
+            avg  : NaN, median: NaN, max: NaN, percentile95th: NaN
+        ], [
+            start: buckets[6], end: buckets[6] + bucketSize, empty: true, min: NaN,
+            avg  : NaN, median: NaN, max: NaN, percentile95th: NaN
+        ], [
+            start: buckets[7], end: buckets[7] + bucketSize, empty: true, min: NaN,
+            avg  : NaN, median: NaN, max: NaN, percentile95th: NaN
+        ], [
+            start: buckets[8], end: buckets[8] + bucketSize, empty: true, min: NaN,
+            avg  : NaN, median: NaN, max: NaN, percentile95th: NaN
+        ], [
+            start: buckets[9], end: buckets[9] + bucketSize, empty: false, min: 18.367,
+            avg  : avg9, median: avg9, max: 19.01, percentile95th: 19.01
+        ]
     ]
 
     assertEquals('The number of bucketed data points is wrong', expectedData.size(), response.data.size())
@@ -148,7 +169,8 @@ class NumericMetricStatisticsITest extends RESTTest {
     def expectedData = []
     for (step in 1..NUMBER_OF_BUCKETS) {
       expectedData.add([
-          timestamp     : start.plusHours(step - 1).millis,
+          start         : start.plusHours(step - 1).millis,
+          end           : start.plusHours(step).millis,
           min           : step,
           avg           : step - 1 + (SAMPLE_SIZE + 1) / 2,
           median        : step - 1 + (SAMPLE_SIZE + 1) / 2,
@@ -169,7 +191,8 @@ class NumericMetricStatisticsITest extends RESTTest {
   }
 
   private static void assertBucketEquals(def expected, def actual) {
-    assertEquals(expected.timestamp, actual.timestamp)
+    assertEquals(expected.start, actual.start)
+    assertEquals(expected.end, actual.end)
     assertEquals(expected.empty, actual.empty)
     assertDoubleEquals(expected.min, actual.min)
     assertDoubleEquals(expected.avg, actual.avg)

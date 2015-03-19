@@ -46,14 +46,14 @@ public class AvailabilityBucketedOutputMapperTest {
 
     @Test
     public void newEmptyPointInstance() throws Exception {
-        assertTrue("Expected an empty instance", mapper.newEmptyPointInstance(1).isEmpty());
+        assertTrue("Expected an empty instance", mapper.newEmptyPointInstance(1, 100).isEmpty());
     }
 
     @Test
     public void testWithOneUp() throws Exception {
         Availability a1 = new Availability(15, UP);
         AvailabilityBucketDataPoint actual = mapper.newPointInstance(10, 20, ImmutableList.of(a1));
-        AvailabilityBucketDataPoint expected = new AvailabilityBucketDataPoint.Builder(10)
+        AvailabilityBucketDataPoint expected = new AvailabilityBucketDataPoint.Builder(10, 20)
                 .setUptimeRatio(1.0)
                 .build();
         assertFalse("Expected non empty instance", actual.isEmpty());
@@ -64,7 +64,7 @@ public class AvailabilityBucketedOutputMapperTest {
     public void testWithOneDown() throws Exception {
         Availability a1 = new Availability(15, DOWN);
         AvailabilityBucketDataPoint actual = mapper.newPointInstance(10, 20, ImmutableList.of(a1));
-        AvailabilityBucketDataPoint expected = new AvailabilityBucketDataPoint.Builder(10)
+        AvailabilityBucketDataPoint expected = new AvailabilityBucketDataPoint.Builder(10, 20)
                 .setDowntimeCount(1)
                 .setDowntimeDuration(10)
                 .setLastDowntime(20)
@@ -79,7 +79,7 @@ public class AvailabilityBucketedOutputMapperTest {
         Availability a1 = new Availability(12, DOWN);
         Availability a2 = new Availability(18, UP);
         AvailabilityBucketDataPoint actual = mapper.newPointInstance(10, 20, ImmutableList.of(a1, a2));
-        AvailabilityBucketDataPoint expected = new AvailabilityBucketDataPoint.Builder(10)
+        AvailabilityBucketDataPoint expected = new AvailabilityBucketDataPoint.Builder(10, 20)
                 .setDowntimeCount(1)
                 .setDowntimeDuration(8)
                 .setLastDowntime(18)
@@ -94,7 +94,7 @@ public class AvailabilityBucketedOutputMapperTest {
         Availability a1 = new Availability(13, UP);
         Availability a2 = new Availability(17, DOWN);
         AvailabilityBucketDataPoint actual = mapper.newPointInstance(10, 20, ImmutableList.of(a1, a2));
-        AvailabilityBucketDataPoint expected = new AvailabilityBucketDataPoint.Builder(10)
+        AvailabilityBucketDataPoint expected = new AvailabilityBucketDataPoint.Builder(10, 20)
                 .setDowntimeCount(1)
                 .setDowntimeDuration(3)
                 .setLastDowntime(20)

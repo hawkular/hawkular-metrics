@@ -73,14 +73,14 @@ public abstract class BucketedOutputMapper<DATA extends MetricData, METRIC exten
 
             if (dataIndex >= dataList.size()) {
                 // Reached end of data points
-                output.getData().add(newEmptyPointInstance(from));
+                output.getData().add(newEmptyPointInstance(from, to));
                 continue;
             }
 
             DATA current = dataList.get(dataIndex);
             if (current.getTimestamp() >= to) {
                 // Current data point does not belong to this bucket
-                output.getData().add(newEmptyPointInstance(from));
+                output.getData().add(newEmptyPointInstance(from, to));
                 continue;
             }
 
@@ -105,11 +105,12 @@ public abstract class BucketedOutputMapper<DATA extends MetricData, METRIC exten
     /**
      * Create an empty bucket data point instance.
      *
-     * @param from timestamp of the bucket
+     * @param from        start timestamp of the bucket
+     * @param to          end timestamp of the bucket
      *
      * @return an empty bucket data point
      */
-    protected abstract POINT newEmptyPointInstance(long from);
+    protected abstract POINT newEmptyPointInstance(long from, long to);
 
     /**
      * Create a bucket data point from the metric data in this bucket.

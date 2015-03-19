@@ -45,8 +45,8 @@ public class NumericBucketedOutputMapper
     }
 
     @Override
-    protected NumericBucketDataPoint newEmptyPointInstance(long from) {
-        return NumericBucketDataPoint.newEmptyInstance(from);
+    protected NumericBucketDataPoint newEmptyPointInstance(long from, long to) {
+        return new NumericBucketDataPoint.Builder(from, to).build();
     }
 
     @Override
@@ -60,14 +60,12 @@ public class NumericBucketedOutputMapper
         Percentile percentile = new Percentile();
         percentile.setData(values);
 
-        NumericBucketDataPoint dataPoint = new NumericBucketDataPoint();
-        dataPoint.setTimestamp(from);
-        dataPoint.setMin(new Min().evaluate(values));
-        dataPoint.setAvg(new Mean().evaluate(values));
-        dataPoint.setMedian(percentile.evaluate(50.0));
-        dataPoint.setMax(new Max().evaluate(values));
-        dataPoint.setPercentile95th(percentile.evaluate(95.0));
-
-        return dataPoint;
+        return new NumericBucketDataPoint.Builder(from, to)
+                .setMin(new Min().evaluate(values))
+                .setAvg(new Mean().evaluate(values))
+                .setMedian(percentile.evaluate(50.0))
+                .setMax(new Max().evaluate(values))
+                .setPercentile95th(percentile.evaluate(95.0))
+                .build();
     }
 }

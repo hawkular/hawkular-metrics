@@ -29,33 +29,45 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
  */
 @ApiModel(value = "Statistics for availability data in a time range.")
 public class AvailabilityBucketDataPoint {
-    private long timestamp;
+    private long start;
+    private long end;
     private long downtimeDuration;
     private long lastDowntime;
     private double uptimeRatio;
     private long downtimeCount;
 
     public AvailabilityBucketDataPoint(
-            long timestamp,
+            long start,
+            long end,
             long downtimeDuration,
             long lastDowntime,
             double uptimeRatio,
             long downtimeCount
     ) {
-        this.timestamp = timestamp;
+        this.start = start;
+        this.end = end;
         this.downtimeDuration = downtimeDuration;
         this.lastDowntime = lastDowntime;
         this.uptimeRatio = uptimeRatio;
         this.downtimeCount = downtimeCount;
     }
 
-    @ApiModelProperty(value = "Time when the value was obtained in milliseconds since epoch")
-    public long getTimestamp() {
-        return timestamp;
+    @ApiModelProperty(value = "Start timestamp of this bucket in milliseconds since epoch")
+    public long getStart() {
+        return start;
     }
 
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
+    public void setStart(long start) {
+        this.start = start;
+    }
+
+    @ApiModelProperty(value = "End timestamp of this bucket in milliseconds since epoch")
+    public long getEnd() {
+        return end;
+    }
+
+    public void setEnd(long end) {
+        this.end = end;
     }
 
     @ApiModelProperty(value = "Total downtime duration in milliseconds")
@@ -101,10 +113,11 @@ public class AvailabilityBucketDataPoint {
     @Override
     public String toString() {
         return "AvailabilityBucketDataPoint[" +
-               "timestamp=" + timestamp +
+               "start=" + start +
+               ", end=" + end +
                ", downtimeDuration=" + downtimeDuration +
                ", lastDowntime=" + lastDowntime +
-               ", upRatio=" + uptimeRatio +
+               ", uptimeRatio=" + uptimeRatio +
                ", downtimeCount=" + downtimeCount +
                ']';
     }
@@ -113,24 +126,22 @@ public class AvailabilityBucketDataPoint {
      * Create {@link AvailabilityBucketDataPoint} instances following the builder pattern.
      */
     public static class Builder {
-        private long timestamp = 0;
+        private final long start;
+        private final long end;
         private long downtimeDuration = 0;
         private long lastDowntime = 0;
         private double uptimeRatio = NaN;
         private long downtimeCount = 0;
 
         /**
-         * Creates a new empty instance, configurable with the builder setters.
+         * Creates a builder for an initially empty instance, configurable with the builder setters.
          *
-         * @param timestamp the timestamp of this bucket data point
+         * @param start the start timestamp of this bucket data point
+         * @param end   the end timestamp of this bucket data point
          */
-        public Builder(long timestamp) {
-            this.timestamp = timestamp;
-        }
-
-        public Builder setTimestamp(long timestamp) {
-            this.timestamp = timestamp;
-            return this;
+        public Builder(long start, long end) {
+            this.start = start;
+            this.end = end;
         }
 
         public Builder setDowntimeDuration(long downtimeDuration) {
@@ -155,7 +166,8 @@ public class AvailabilityBucketDataPoint {
 
         public AvailabilityBucketDataPoint build() {
             return new AvailabilityBucketDataPoint(
-                    timestamp,
+                    start,
+                    end,
                     downtimeDuration,
                     lastDowntime,
                     uptimeRatio,
