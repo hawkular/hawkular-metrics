@@ -46,22 +46,13 @@ public class AvailabilityBucketedOutputMapper
     }
 
     @Override
-    protected AvailabilityBucketDataPoint newPointInstance(long from, List<Availability> availabilities) {
+    protected AvailabilityBucketDataPoint newPointInstance(long from, long to, List<Availability> availabilities) {
         long downtimeDuration = 0, lastDowntime = 0, downtimeCount = 0;
         for (int i = 0; i < availabilities.size(); i++) {
             Availability availability = availabilities.get(i);
-            long leftTimestamp;
-            if (i == 0) {
-                leftTimestamp = buckets.getStart();
-            } else {
-                leftTimestamp = availability.getTimestamp();
-            }
-            long rightTimestamp;
-            if (i == availabilities.size() - 1) {
-                rightTimestamp = buckets.getEnd();
-            } else {
-                rightTimestamp = availabilities.get(i + 1).getTimestamp();
-            }
+            long leftTimestamp = i == 0 ? from : availability.getTimestamp();
+            long rightTimestamp = i == availabilities.size() - 1 ? to : availabilities.get(i + 1).getTimestamp();
+
             if (availability.getType() == DOWN) {
                 downtimeDuration += rightTimestamp - leftTimestamp;
                 lastDowntime = rightTimestamp;

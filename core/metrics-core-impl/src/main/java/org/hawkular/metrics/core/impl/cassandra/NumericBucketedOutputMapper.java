@@ -50,7 +50,7 @@ public class NumericBucketedOutputMapper
     }
 
     @Override
-    protected NumericBucketDataPoint newPointInstance(long from, List<NumericData> numericDatas) {
+    protected NumericBucketDataPoint newPointInstance(long from, long to, List<NumericData> numericDatas) {
         double[] values = new double[numericDatas.size()];
         for (ListIterator<NumericData> iterator = numericDatas.listIterator(); iterator.hasNext(); ) {
             NumericData numericData = iterator.next();

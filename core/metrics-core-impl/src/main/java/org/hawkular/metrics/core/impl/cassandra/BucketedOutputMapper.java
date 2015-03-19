@@ -96,7 +96,7 @@ public abstract class BucketedOutputMapper<DATA extends MetricData, METRIC exten
                 // Continue until end of data points is reached or data point does not belong to this bucket
             } while (current != null && current.getTimestamp() < to);
 
-            output.getData().add(newPointInstance(from, metricDatas));
+            output.getData().add(newPointInstance(from, to, metricDatas));
         }
 
         return output;
@@ -114,10 +114,11 @@ public abstract class BucketedOutputMapper<DATA extends MetricData, METRIC exten
     /**
      * Create a bucket data point from the metric data in this bucket.
      *
-     * @param from        timestamp of the bucket
+     * @param from        start timestamp of the bucket
+     * @param to          end timestamp of the bucket
      * @param metricDatas metric data in this bucket, ordered by {@link MetricData#TIME_UUID_COMPARATOR}
      *
      * @return a bucket data point summurazing the metric data
      */
-    protected abstract POINT newPointInstance(long from, List<DATA> metricDatas);
+    protected abstract POINT newPointInstance(long from, long to, List<DATA> metricDatas);
 }
