@@ -92,6 +92,10 @@ public interface MetricsService {
 
     ListenableFuture<AvailabilityMetric> findAvailabilityData(AvailabilityMetric metric, long start, long end);
 
+    ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(
+            AvailabilityMetric metric, long start, long end, Buckets buckets
+    );
+
     ListenableFuture<Void> updateCounter(Counter counter);
 
     ListenableFuture<Void> updateCounters(Collection<Counter> counters);

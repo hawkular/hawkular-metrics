@@ -17,6 +17,7 @@
 package org.hawkular.metrics.core.impl.cassandra;
 
 import static java.util.Arrays.asList;
+
 import static org.joda.time.Hours.hours;
 
 import java.io.IOException;
@@ -41,21 +42,8 @@ import javax.management.MBeanInfo;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.google.common.base.Function;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.RateLimiter;
-
 import org.hawkular.metrics.core.api.Availability;
+import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
@@ -81,6 +69,20 @@ import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.google.common.base.Function;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.RateLimiter;
+
 /**
  * @author John Sanda
  */
@@ -93,11 +95,11 @@ public class MetricsServiceCassandra implements MetricsService {
 
     public static final int DEFAULT_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
-    private static final Function<ResultSet, Void> RESULT_SET_TO_VOID = resultSet -> null;
-
     private static final Function<List<ResultSet>, Void> RESULT_SETS_TO_VOID = resultSets -> null;
 
     private static final NumericMetricMapper NUMERIC_METRIC_MAPPER = new NumericMetricMapper();
+
+    private static final AvailabilityMetricMapper AVAILABILITY_METRIC_MAPPER = new AvailabilityMetricMapper();
 
     private static class DataRetentionKey {
         private final String tenantId;
@@ -597,7 +599,18 @@ public class MetricsServiceCassandra implements MetricsService {
     @Override
     public ListenableFuture<AvailabilityMetric> findAvailabilityData(AvailabilityMetric metric, long start, long end) {
         ResultSetFuture queryFuture = dataAccess.findAvailabilityData(metric, start, end);
-        return Futures.transform(queryFuture, new AvailabilityMetricMapper(), metricsTasks);
+        return Futures.transform(queryFuture, AVAILABILITY_METRIC_MAPPER, metricsTasks);
+    }
+
+    @Override
+    public ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(
+            AvailabilityMetric metric, long start, long end, Buckets buckets
+    ) {
+        ResultSetFuture queryFuture = dataAccess.findAvailabilityData(metric, start, end);
+        ListenableFuture<AvailabilityMetric> raw = Futures.transform(
+                queryFuture, AVAILABILITY_METRIC_MAPPER, metricsTasks
+        );
+        return Futures.transform(raw, new AvailabilityBucketedOutputMapper(buckets));
     }
 
     @Override
