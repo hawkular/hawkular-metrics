@@ -37,12 +37,11 @@ import com.google.common.collect.ImmutableList;
  * @author Thomas Segismont
  */
 public class AvailabilityBucketedOutputMapperTest {
-    private Buckets buckets;
     private AvailabilityBucketedOutputMapper mapper;
 
     @Before
     public void setup() {
-        buckets = new Buckets(1, 10, 10);
+        Buckets buckets = new Buckets(1, 10, 10);
         mapper = new AvailabilityBucketedOutputMapper(buckets);
     }
 
