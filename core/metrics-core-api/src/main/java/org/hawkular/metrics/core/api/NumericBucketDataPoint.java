@@ -23,15 +23,12 @@ import com.wordnik.swagger.annotations.ApiModel;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
- * A point in time with some data for min/avg/max to express
- * that at this point in time multiple values were recorded.
+ * Statistics for numeric data in a time range.
  *
  * @author Heiko W. Rupp
  */
-@ApiModel(value = "A bucket is a time range with multiple data items represented by min/avg/median/max/95thPercentile "
-                  + "values for that time span.")
+@ApiModel(value = "Statistics for numeric data in a time range.")
 public class NumericBucketDataPoint {
-
     private long timestamp;
     private double value;
     private double min;
@@ -41,14 +38,14 @@ public class NumericBucketDataPoint {
     private double percentile95th;
 
     public static NumericBucketDataPoint newEmptyInstance(long timestamp) {
-        NumericBucketDataPoint numericBucketDataPoint = new NumericBucketDataPoint();
-        numericBucketDataPoint.setTimestamp(timestamp);
-        numericBucketDataPoint.setMin(NaN);
-        numericBucketDataPoint.setAvg(NaN);
-        numericBucketDataPoint.setMedian(NaN);
-        numericBucketDataPoint.setMax(NaN);
-        numericBucketDataPoint.setPercentile95th(NaN);
-        return numericBucketDataPoint;
+        NumericBucketDataPoint dataPoint = new NumericBucketDataPoint();
+        dataPoint.setTimestamp(timestamp);
+        dataPoint.setMin(NaN);
+        dataPoint.setAvg(NaN);
+        dataPoint.setMedian(NaN);
+        dataPoint.setMax(NaN);
+        dataPoint.setPercentile95th(NaN);
+        return dataPoint;
     }
 
     @ApiModelProperty(value = "Time when the value was obtained in milliseconds since epoch")
