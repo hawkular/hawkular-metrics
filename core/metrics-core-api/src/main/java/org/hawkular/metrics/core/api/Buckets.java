@@ -40,7 +40,6 @@ public final class Buckets {
     private final long start;
     private final long step;
     private final int count;
-    private final long end;
 
     public Buckets(long start, long step, int count) {
         checkArgument(start > 0, "start is not positive");
@@ -49,7 +48,6 @@ public final class Buckets {
         this.step = step;
         checkArgument(count > 0, "count is not positive");
         this.count = count;
-        end = start + count * step;
     }
 
     public long getStart() {
@@ -62,17 +60,6 @@ public final class Buckets {
 
     public int getCount() {
         return count;
-    }
-
-    /**
-     * Computed end. If this instance was created with {@link #fromCount(long, long, int)} or
-     * {@link #fromStep(long, long, long)}, then it could be different from the value specified as the {@code end}
-     * parameter of these factory methods.
-     *
-     * @return the computed end (start + count * step)
-     */
-    public long getEnd() {
-        return end;
     }
 
     @Override
