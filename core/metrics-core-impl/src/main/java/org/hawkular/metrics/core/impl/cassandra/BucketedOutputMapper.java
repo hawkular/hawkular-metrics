@@ -40,7 +40,7 @@ import com.google.common.base.Function;
 public abstract class BucketedOutputMapper<DATA extends MetricData, METRIC extends Metric<DATA>, POINT>
         implements Function<METRIC, BucketedOutput<POINT>> {
 
-    private final Buckets buckets;
+    protected final Buckets buckets;
 
     /**
      * @param buckets the bucket configuration
@@ -115,7 +115,7 @@ public abstract class BucketedOutputMapper<DATA extends MetricData, METRIC exten
      * Create a bucket data point from the metric data in this bucket.
      *
      * @param from        timestamp of the bucket
-     * @param metricDatas metric data in this bucket
+     * @param metricDatas metric data in this bucket, ordered by {@link MetricData#TIME_UUID_COMPARATOR}
      *
      * @return a bucket data point summurazing the metric data
      */
