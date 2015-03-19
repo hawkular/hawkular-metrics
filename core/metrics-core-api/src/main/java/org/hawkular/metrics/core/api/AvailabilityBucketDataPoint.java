@@ -35,11 +35,18 @@ public class AvailabilityBucketDataPoint {
     private double uptimeRatio;
     private long downtimeCount;
 
-    public static AvailabilityBucketDataPoint newEmptyInstance(long timestamp) {
-        AvailabilityBucketDataPoint dataPoint = new AvailabilityBucketDataPoint();
-        dataPoint.setTimestamp(timestamp);
-        dataPoint.setUptimeRatio(NaN);
-        return dataPoint;
+    public AvailabilityBucketDataPoint(
+            long timestamp,
+            long downtimeDuration,
+            long lastDowntime,
+            double uptimeRatio,
+            long downtimeCount
+    ) {
+        this.timestamp = timestamp;
+        this.downtimeDuration = downtimeDuration;
+        this.lastDowntime = lastDowntime;
+        this.uptimeRatio = uptimeRatio;
+        this.downtimeCount = downtimeCount;
     }
 
     @ApiModelProperty(value = "Time when the value was obtained in milliseconds since epoch")
@@ -100,5 +107,60 @@ public class AvailabilityBucketDataPoint {
                ", upRatio=" + uptimeRatio +
                ", downtimeCount=" + downtimeCount +
                ']';
+    }
+
+    /**
+     * Create {@link AvailabilityBucketDataPoint} instances following the builder pattern.
+     */
+    public static class Builder {
+        private long timestamp = 0;
+        private long downtimeDuration = 0;
+        private long lastDowntime = 0;
+        private double uptimeRatio = NaN;
+        private long downtimeCount = 0;
+
+        /**
+         * Creates a new empty instance, configurable with the builder setters.
+         *
+         * @param timestamp the timestamp of this bucket data point
+         */
+        public Builder(long timestamp) {
+            this.timestamp = timestamp;
+        }
+
+        public Builder setTimestamp(long timestamp) {
+            this.timestamp = timestamp;
+            return this;
+        }
+
+        public Builder setDowntimeDuration(long downtimeDuration) {
+            this.downtimeDuration = downtimeDuration;
+            return this;
+        }
+
+        public Builder setLastDowntime(long lastDowntime) {
+            this.lastDowntime = lastDowntime;
+            return this;
+        }
+
+        public Builder setUptimeRatio(double uptimeRatio) {
+            this.uptimeRatio = uptimeRatio;
+            return this;
+        }
+
+        public Builder setDowntimeCount(long downtimeCount) {
+            this.downtimeCount = downtimeCount;
+            return this;
+        }
+
+        public AvailabilityBucketDataPoint build() {
+            return new AvailabilityBucketDataPoint(
+                    timestamp,
+                    downtimeDuration,
+                    lastDowntime,
+                    uptimeRatio,
+                    downtimeCount
+            );
+        }
     }
 }

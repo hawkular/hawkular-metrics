@@ -42,12 +42,13 @@ public class AvailabilityBucketedOutputMapper
 
     @Override
     protected AvailabilityBucketDataPoint newEmptyPointInstance(long from) {
-        return AvailabilityBucketDataPoint.newEmptyInstance(from);
+        return new AvailabilityBucketDataPoint.Builder(from).build();
     }
 
     @Override
     protected AvailabilityBucketDataPoint newPointInstance(long from, long to, List<Availability> availabilities) {
         long downtimeDuration = 0, lastDowntime = 0, downtimeCount = 0;
+
         for (int i = 0; i < availabilities.size(); i++) {
             Availability availability = availabilities.get(i);
             long leftTimestamp = i == 0 ? from : availability.getTimestamp();
@@ -56,17 +57,16 @@ public class AvailabilityBucketedOutputMapper
             if (availability.getType() == DOWN) {
                 downtimeDuration += rightTimestamp - leftTimestamp;
                 lastDowntime = rightTimestamp;
-                downtimeCount += i == 0 ? 2 : 1;
+                downtimeCount++;
             }
         }
 
-        AvailabilityBucketDataPoint dataPoint = new AvailabilityBucketDataPoint();
-        dataPoint.setTimestamp(from);
-        dataPoint.setDowntimeDuration(downtimeDuration);
-        dataPoint.setLastDowntime(lastDowntime);
-        dataPoint.setUptimeRatio(1.0 - ((double) downtimeDuration) / buckets.getStep());
-        dataPoint.setDowntimeCount(downtimeCount);
-
-        return dataPoint;
+        return new AvailabilityBucketDataPoint.Builder(from)
+                .setTimestamp(from)
+                .setDowntimeDuration(downtimeDuration)
+                .setLastDowntime(lastDowntime)
+                .setUptimeRatio(1.0 - (double) downtimeDuration / buckets.getStep())
+                .setDowntimeCount(downtimeCount)
+                .build();
     }
 }
