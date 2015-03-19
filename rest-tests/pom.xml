@@ -87,7 +87,7 @@
         <artifactId>maven-failsafe-plugin</artifactId>
         <configuration>
           <includes>
-            <inclde>%regex[.*ITest.*]</inclde>
+            <include>**/*ITest*</include>
           </includes>
           <systemPropertyVariables>
             <keyspace>${cassandra.keyspace}</keyspace>
