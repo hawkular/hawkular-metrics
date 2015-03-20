@@ -4,8 +4,8 @@
 ifdef::env-github[]
 [link=https://travis-ci.org/hawkular/hawkular-metrics]
 image::https://travis-ci.org/hawkular/hawkular-metrics.svg?branch=master[Build Status,70,18]
-[link=https://scan.coverity.com/projects/3240"]
-image::https://scan.coverity.com/projects/3240/badge.svg[Coverity Scan Build Status (coverity_scan branch)]
+[link=https://scan.coverity.com/projects/4581"]
+image::https://scan.coverity.com/projects/4581/badge.svg[Coverity Scan Build Status (coverity_scan branch)]
 endif::[]
 
 = Project to implement a MaaS and ChaaS
