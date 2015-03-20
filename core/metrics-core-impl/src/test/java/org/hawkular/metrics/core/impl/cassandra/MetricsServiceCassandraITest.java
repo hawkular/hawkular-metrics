@@ -17,6 +17,7 @@
 package org.hawkular.metrics.core.impl.cassandra;
 
 import static java.util.Arrays.asList;
+
 import static org.hawkular.metrics.core.api.AvailabilityType.DOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UP;
 import static org.hawkular.metrics.core.api.Metric.DPART;
@@ -68,7 +69,7 @@ import org.testng.annotations.Test;
 /**
  * @author John Sanda
  */
-public class MetricsServiceCassandraTest extends MetricsTest {
+public class MetricsServiceCassandraITest extends MetricsITest {
 
     private MetricsServiceCassandra metricsService;
 

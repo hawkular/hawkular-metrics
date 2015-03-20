@@ -88,6 +88,13 @@
     </dependency>
 
     <!-- test -->
+
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+
     <dependency>
       <groupId>org.testng</groupId>
       <artifactId>testng</artifactId>
@@ -95,6 +102,43 @@
     </dependency>
 
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>**/*ITest*</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <includes>
+            <include>**/*ITest*</include>
+          </includes>
+          <systemPropertyVariables>
+            <keyspace>${test.keyspace}</keyspace>
+            <nodes>${nodes}</nodes>
+          </systemPropertyVariables>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+    </plugins>
+  </build>
 
   <profiles>
     <profile>
@@ -105,7 +149,6 @@
           <value>!true</value>
         </property>
       </activation>
-
       <build>
         <plugins>
           <plugin>
@@ -146,30 +189,9 @@
               </execution>
             </executions>
           </plugin>
-
-          <plugin>
-            <artifactId>maven-surefire-plugin</artifactId>
-            <configuration>
-              <systemProperties>
-                <property>
-                  <name>keyspace</name>
-                  <value>${test.keyspace}</value>
-                </property>
-                <property>
-                  <name>nodes</name>
-                  <value>${nodes}</value>
-                </property>
-              </systemProperties>
-            </configuration>
-          </plugin>
-
-          <plugin>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <version>2.17</version>
-          </plugin>
         </plugins>
       </build>
-
     </profile>
   </profiles>
+
 </project>

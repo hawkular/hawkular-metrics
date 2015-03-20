@@ -81,7 +81,7 @@ public interface MetricsService {
 
     ListenableFuture<NumericMetric> findNumericData(NumericMetric metric, long start, long end);
 
-    ListenableFuture<BucketedOutput> findNumericStats(
+    ListenableFuture<BucketedOutput<NumericBucketDataPoint>> findNumericStats(
             NumericMetric metric, long start, long end, Buckets buckets
     );
 
@@ -91,6 +91,10 @@ public interface MetricsService {
     ListenableFuture<Void> addAvailabilityData(List<AvailabilityMetric> metrics);
 
     ListenableFuture<AvailabilityMetric> findAvailabilityData(AvailabilityMetric metric, long start, long end);
+
+    ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(
+            AvailabilityMetric metric, long start, long end, Buckets buckets
+    );
 
     ListenableFuture<Void> updateCounter(Counter counter);
 

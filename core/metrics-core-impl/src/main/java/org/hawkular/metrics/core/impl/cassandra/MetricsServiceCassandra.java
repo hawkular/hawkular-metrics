@@ -17,6 +17,7 @@
 package org.hawkular.metrics.core.impl.cassandra;
 
 import static java.util.Arrays.asList;
+
 import static org.joda.time.Hours.hours;
 
 import java.io.IOException;
@@ -41,6 +42,33 @@ import javax.management.MBeanInfo;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
+import org.hawkular.metrics.core.api.Availability;
+import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
+import org.hawkular.metrics.core.api.AvailabilityMetric;
+import org.hawkular.metrics.core.api.BucketedOutput;
+import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.Counter;
+import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
+import org.hawkular.metrics.core.api.MetricData;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.MetricsThreadFactory;
+import org.hawkular.metrics.core.api.NumericBucketDataPoint;
+import org.hawkular.metrics.core.api.NumericData;
+import org.hawkular.metrics.core.api.NumericMetric;
+import org.hawkular.metrics.core.api.Retention;
+import org.hawkular.metrics.core.api.RetentionSettings;
+import org.hawkular.metrics.core.api.Tenant;
+import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
+import org.hawkular.metrics.core.impl.schema.SchemaManager;
+import org.joda.time.Duration;
+import org.joda.time.Hours;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
@@ -55,31 +83,6 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.RateLimiter;
 
-import org.hawkular.metrics.core.api.Availability;
-import org.hawkular.metrics.core.api.AvailabilityMetric;
-import org.hawkular.metrics.core.api.BucketedOutput;
-import org.hawkular.metrics.core.api.Buckets;
-import org.hawkular.metrics.core.api.Counter;
-import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
-import org.hawkular.metrics.core.api.MetricData;
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
-import org.hawkular.metrics.core.api.MetricsThreadFactory;
-import org.hawkular.metrics.core.api.NumericData;
-import org.hawkular.metrics.core.api.NumericMetric;
-import org.hawkular.metrics.core.api.Retention;
-import org.hawkular.metrics.core.api.RetentionSettings;
-import org.hawkular.metrics.core.api.Tenant;
-import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
-import org.hawkular.metrics.core.impl.schema.SchemaManager;
-import org.joda.time.Duration;
-import org.joda.time.Hours;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * @author John Sanda
  */
@@ -92,11 +95,11 @@ public class MetricsServiceCassandra implements MetricsService {
 
     public static final int DEFAULT_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
-    private static final Function<ResultSet, Void> RESULT_SET_TO_VOID = resultSet -> null;
-
     private static final Function<List<ResultSet>, Void> RESULT_SETS_TO_VOID = resultSets -> null;
 
     private static final NumericMetricMapper NUMERIC_METRIC_MAPPER = new NumericMetricMapper();
+
+    private static final AvailabilityMetricMapper AVAILABILITY_METRIC_MAPPER = new AvailabilityMetricMapper();
 
     private static class DataRetentionKey {
         private final String tenantId;
@@ -581,7 +584,7 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<BucketedOutput> findNumericStats(
+    public ListenableFuture<BucketedOutput<NumericBucketDataPoint>> findNumericStats(
             NumericMetric metric, long start, long end, Buckets buckets
     ) {
         // When we implement date partitioning, dpart will have to be determined based on
@@ -590,13 +593,24 @@ public class MetricsServiceCassandra implements MetricsService {
         metric.setDpart(Metric.DPART);
         ResultSetFuture queryFuture = dataAccess.findData(metric, start, end);
         ListenableFuture<NumericMetric> raw = Futures.transform(queryFuture, NUMERIC_METRIC_MAPPER, metricsTasks);
-        return Futures.transform(raw, new BucketedOutputMapper(buckets));
+        return Futures.transform(raw, new NumericBucketedOutputMapper(buckets));
     }
 
     @Override
     public ListenableFuture<AvailabilityMetric> findAvailabilityData(AvailabilityMetric metric, long start, long end) {
         ResultSetFuture queryFuture = dataAccess.findAvailabilityData(metric, start, end);
-        return Futures.transform(queryFuture, new AvailabilityMetricMapper(), metricsTasks);
+        return Futures.transform(queryFuture, AVAILABILITY_METRIC_MAPPER, metricsTasks);
+    }
+
+    @Override
+    public ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(
+            AvailabilityMetric metric, long start, long end, Buckets buckets
+    ) {
+        ResultSetFuture queryFuture = dataAccess.findAvailabilityData(metric, start, end);
+        ListenableFuture<AvailabilityMetric> raw = Futures.transform(
+                queryFuture, AVAILABILITY_METRIC_MAPPER, metricsTasks
+        );
+        return Futures.transform(raw, new AvailabilityBucketedOutputMapper(buckets));
     }
 
     @Override

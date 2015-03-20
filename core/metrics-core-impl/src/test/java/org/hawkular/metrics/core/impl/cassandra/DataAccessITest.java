@@ -17,6 +17,7 @@
 package org.hawkular.metrics.core.impl.cassandra;
 
 import static java.util.Arrays.asList;
+
 import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
@@ -51,7 +52,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 /**
  * @author John Sanda
  */
-public class DataAccessTest extends MetricsTest {
+public class DataAccessITest extends MetricsITest {
 
     private DataAccessImpl dataAccess;
 

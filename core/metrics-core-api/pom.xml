@@ -107,42 +107,4 @@
 
   </dependencies>
 
-  <profiles>
-    <profile>
-      <id>testOnly</id>
-      <activation>
-        <property>
-          <name>skipTests</name>
-          <value>!true</value>
-        </property>
-      </activation>
-
-      <build>
-        <plugins>
-
-          <plugin>
-            <artifactId>maven-surefire-plugin</artifactId>
-            <configuration>
-              <systemProperties>
-                <property>
-                  <name>keyspace</name>
-                  <value>${test.keyspace}</value>
-                </property>
-                <property>
-                  <name>nodes</name>
-                  <value>${nodes}</value>
-                </property>
-              </systemProperties>
-            </configuration>
-          </plugin>
-
-          <plugin>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <version>2.17</version>
-          </plugin>
-        </plugins>
-      </build>
-
-    </profile>
-  </profiles>
 </project>

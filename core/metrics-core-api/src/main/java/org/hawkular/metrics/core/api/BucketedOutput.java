@@ -24,13 +24,14 @@ import java.util.Map;
 /**
  * @author John Sanda
  */
-public class BucketedOutput {
+public class BucketedOutput<POINT> {
 
     private String tenantId;
     private String id;
     private Map<String, String> metadata = new HashMap<>();
-    private List<BucketDataPoint> data = new ArrayList<>();
+    private List<POINT> data = new ArrayList<>();
 
+    @SuppressWarnings("unused")
     public BucketedOutput() {
     }
 
@@ -64,16 +65,15 @@ public class BucketedOutput {
         this.metadata = metadata;
     }
 
-    public List<BucketDataPoint> getData() {
+    public List<POINT> getData() {
         return data;
     }
 
-    public void setData(List<BucketDataPoint> data) {
+    public void setData(List<POINT> data) {
         this.data = data;
     }
 
-    public void add(BucketDataPoint d) {
+    public void add(POINT d) {
         data.add(d);
     }
-
 }

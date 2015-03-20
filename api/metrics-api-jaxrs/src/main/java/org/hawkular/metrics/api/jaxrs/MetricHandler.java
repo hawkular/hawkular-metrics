@@ -62,8 +62,8 @@ import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
 import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.core.api.Availability;
+import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
-import org.hawkular.metrics.core.api.BucketDataPoint;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.Counter;
@@ -71,6 +71,7 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.NumericBucketDataPoint;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
@@ -443,11 +444,13 @@ public class MetricHandler {
             asyncResponse.resume(response);
             return;
         }
-        ListenableFuture<BucketedOutput> dataFuture = metricsService.findNumericStats(metric, start, end, buckets);
-        ListenableFuture<List<BucketDataPoint>> outputFuture = Futures.transform(
-                dataFuture, new Function<BucketedOutput, List<BucketDataPoint>>() {
+        ListenableFuture<BucketedOutput<NumericBucketDataPoint>> dataFuture = metricsService.findNumericStats(
+                metric, start, end, buckets
+        );
+        ListenableFuture<List<NumericBucketDataPoint>> outputFuture = Futures.transform(
+                dataFuture, new Function<BucketedOutput<NumericBucketDataPoint>, List<NumericBucketDataPoint>>() {
                     @Override
-                    public List<BucketDataPoint> apply(BucketedOutput input) {
+                    public List<NumericBucketDataPoint> apply(BucketedOutput<NumericBucketDataPoint> input) {
                         if (input == null) {
                             return null;
                         }
@@ -523,37 +526,86 @@ public class MetricHandler {
 
     @GET
     @Path("/{tenantId}/metrics/availability/{id}/data")
-    @ApiOperation(value = "Retrieve availability data.", response = Availability.class)
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched availability data."),
-            @ApiResponse(code = 204, message = "No availability data was found.")})
-    public void findAvailabilityData(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId, @PathParam("id") final String id,
-        @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") Long start,
-        @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") Long end) {
-
+    @ApiOperation(
+            value = "Retrieve availability data. When buckets or bucketDuration query parameter is used, the time "
+                    + "range between start and end will be divided in buckets of equal duration, and availability "
+                    + "statistics will be computed for each bucket.", response = List.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched availability data."),
+            @ApiResponse(code = 204, message = "No availability data was found."),
+            @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
+                         response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching availability data.",
+                         response = ApiError.class),
+    })
+    public void findAvailabilityData(
+            @Suspended AsyncResponse asyncResponse,
+            @PathParam("tenantId") String tenantId,
+            @PathParam("id") String id,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration
+    ) {
         long now = System.currentTimeMillis();
-        if (start == null) {
-            start = now - EIGHT_HOURS;
-        }
-        if (end == null) {
-            end = now;
-        }
+        start = start == null ? now - EIGHT_HOURS : start;
+        end = end == null ? now : end;
 
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
-        ListenableFuture<AvailabilityMetric> future = metricsService.findAvailabilityData(metric, start, end);
 
-        ListenableFuture<List<Availability>> outputfuture = Futures.transform(future,
-                new Function<AvailabilityMetric, List<Availability>>() {
+        if (bucketsCount == null && bucketDuration == null) {
+            ListenableFuture<AvailabilityMetric> dataFuture = metricsService.findAvailabilityData(metric, start, end);
+            ListenableFuture<List<Availability>> outputFuture = Futures.transform(
+                    dataFuture, new Function<AvailabilityMetric, List<Availability>>() {
+                        @Override
+                        public List<Availability> apply(AvailabilityMetric input) {
+                            if (input == null) {
+                                return null;
+                            }
+                            return input.getData();
+                        }
+                    }
+            );
+            Futures.addCallback(outputFuture, new SimpleDataCallback<Object>(asyncResponse));
+            return;
+        }
+
+        if (bucketsCount != null && bucketDuration != null) {
+            ApiError apiError = new ApiError("Both buckets and bucketDuration parameters are used");
+            Response response = Response.status(Status.BAD_REQUEST).entity(apiError).build();
+            asyncResponse.resume(response);
+            return;
+        }
+
+        Buckets buckets;
+        try {
+            if (bucketsCount != null) {
+                buckets = Buckets.fromCount(start, end, bucketsCount);
+            } else {
+                buckets = Buckets.fromStep(start, end, bucketDuration.toMillis());
+            }
+        } catch (IllegalArgumentException e) {
+            ApiError apiError = new ApiError("Bucket: " + e.getMessage());
+            Response response = Response.status(Status.BAD_REQUEST).entity(apiError).build();
+            asyncResponse.resume(response);
+            return;
+        }
+        ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> dataFuture = metricsService.findAvailabilityStats(
+                metric, start, end, buckets
+        );
+        ListenableFuture<List<AvailabilityBucketDataPoint>> outputFuture = Futures.transform(
+                dataFuture,
+                new Function<BucketedOutput<AvailabilityBucketDataPoint>, List<AvailabilityBucketDataPoint>>() {
                     @Override
-                    public List<Availability> apply(AvailabilityMetric input) {
+                    public List<AvailabilityBucketDataPoint> apply(BucketedOutput<AvailabilityBucketDataPoint> input) {
                         if (input == null) {
                             return null;
                         }
                         return input.getData();
                     }
-        });
-
-        Futures.addCallback(outputfuture, new SimpleDataCallback<List<Availability>>(asyncResponse));
+                }
+        );
+        Futures.addCallback(outputFuture, new SimpleDataCallback<Object>(asyncResponse));
     }
 
     @POST

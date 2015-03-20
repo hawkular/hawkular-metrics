@@ -34,7 +34,7 @@ import com.google.common.util.concurrent.Uninterruptibles;
 /**
  * @author John Sanda
  */
-public class MetricsTest {
+public class MetricsITest {
 
     private static final long FUTURE_TIMEOUT = 3;
 
