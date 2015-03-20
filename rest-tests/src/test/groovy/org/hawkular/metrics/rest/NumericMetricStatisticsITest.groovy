@@ -158,7 +158,7 @@ class NumericMetricStatisticsITest extends RESTTest {
       }
 
       def response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/$metric/data", body: data)
-      assertEquals(SAMPLE_SIZE, response.status)
+      assertEquals(200, response.status)
     }
 
     def response = hawkularMetrics.get(path: "${tenantId}/metrics/numeric/$metric/data",
