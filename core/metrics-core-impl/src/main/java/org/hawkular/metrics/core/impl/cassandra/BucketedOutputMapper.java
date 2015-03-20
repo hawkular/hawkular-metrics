@@ -26,6 +26,7 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricData;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 /**
  * Transform a {@link org.hawkular.metrics.core.api.Metric} with its {@link org.hawkular.metrics.core.api.MetricData}
@@ -64,9 +65,10 @@ public abstract class BucketedOutputMapper<DATA extends MetricData, METRIC exten
         if (!(dataList instanceof RandomAccess)) {
             dataList = new ArrayList<>(dataList);
         }
-        dataList.sort(MetricData.TIME_UUID_COMPARATOR);
+        dataList = Lists.reverse(dataList); // We expect input data to be sorted in descending order
 
         int dataIndex = 0;
+        DATA previous;
         for (int bucketIndex = 0; bucketIndex < buckets.getCount(); bucketIndex++) {
             long from = buckets.getStart() + bucketIndex * buckets.getStep();
             long to = buckets.getStart() + (bucketIndex + 1) * buckets.getStep();
@@ -90,8 +92,11 @@ public abstract class BucketedOutputMapper<DATA extends MetricData, METRIC exten
                 metricDatas.add(current);
 
                 // Move to next data point
+                previous = current;
                 dataIndex++;
                 current = dataIndex < dataList.size() ? dataList.get(dataIndex) : null;
+
+                checkOrder(previous, current);
 
                 // Continue until end of data points is reached or data point does not belong to this bucket
             } while (current != null && current.getTimestamp() < to);
@@ -100,6 +105,12 @@ public abstract class BucketedOutputMapper<DATA extends MetricData, METRIC exten
         }
 
         return output;
+    }
+
+    private void checkOrder(DATA previous, DATA current) {
+        if (previous != null && current != null && MetricData.TIME_UUID_COMPARATOR.compare(previous, current) > 0) {
+            throw new IllegalArgumentException("Expected to iterate over data sorted by time ascending");
+        }
     }
 
     /**
