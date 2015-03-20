@@ -62,6 +62,7 @@ import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
 import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.core.api.Availability;
+import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
@@ -551,20 +552,60 @@ public class MetricHandler {
         end = end == null ? now : end;
 
         AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
-        ListenableFuture<AvailabilityMetric> future = metricsService.findAvailabilityData(metric, start, end);
 
-        ListenableFuture<List<Availability>> outputfuture = Futures.transform(future,
-                new Function<AvailabilityMetric, List<Availability>>() {
+        if (bucketsCount == null && bucketDuration == null) {
+            ListenableFuture<AvailabilityMetric> dataFuture = metricsService.findAvailabilityData(metric, start, end);
+            ListenableFuture<List<Availability>> outputFuture = Futures.transform(
+                    dataFuture, new Function<AvailabilityMetric, List<Availability>>() {
+                        @Override
+                        public List<Availability> apply(AvailabilityMetric input) {
+                            if (input == null) {
+                                return null;
+                            }
+                            return input.getData();
+                        }
+                    }
+            );
+            Futures.addCallback(outputFuture, new SimpleDataCallback<Object>(asyncResponse));
+            return;
+        }
+
+        if (bucketsCount != null && bucketDuration != null) {
+            ApiError apiError = new ApiError("Both buckets and bucketDuration parameters are used");
+            Response response = Response.status(Status.BAD_REQUEST).entity(apiError).build();
+            asyncResponse.resume(response);
+            return;
+        }
+
+        Buckets buckets;
+        try {
+            if (bucketsCount != null) {
+                buckets = Buckets.fromCount(start, end, bucketsCount);
+            } else {
+                buckets = Buckets.fromStep(start, end, bucketDuration.toMillis());
+            }
+        } catch (IllegalArgumentException e) {
+            ApiError apiError = new ApiError("Bucket: " + e.getMessage());
+            Response response = Response.status(Status.BAD_REQUEST).entity(apiError).build();
+            asyncResponse.resume(response);
+            return;
+        }
+        ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> dataFuture = metricsService.findAvailabilityStats(
+                metric, start, end, buckets
+        );
+        ListenableFuture<List<AvailabilityBucketDataPoint>> outputFuture = Futures.transform(
+                dataFuture,
+                new Function<BucketedOutput<AvailabilityBucketDataPoint>, List<AvailabilityBucketDataPoint>>() {
                     @Override
-                    public List<Availability> apply(AvailabilityMetric input) {
+                    public List<AvailabilityBucketDataPoint> apply(BucketedOutput<AvailabilityBucketDataPoint> input) {
                         if (input == null) {
                             return null;
                         }
                         return input.getData();
                     }
-        });
-
-        Futures.addCallback(outputfuture, new SimpleDataCallback<List<Availability>>(asyncResponse));
+                }
+        );
+        Futures.addCallback(outputFuture, new SimpleDataCallback<Object>(asyncResponse));
     }
 
     @POST
