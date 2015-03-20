@@ -8,7 +8,9 @@ notifications:
     on_success: change
 env:
   global:
-  - secure: mDUhAf474mlads7ZEAf2mWecQxZWgdfcjiBn6+yif0hJoWKQs38HU+jm4EE8UMgGvdn7avIYvdrxKJ9MnjWpncaXJ0366ZYbxP+7pybMk/SA80yr3dCg5gSHosJ9UqMvGga1bzgDeqF9UppKt0kqxgSLLwKAFoY+x70Pp0rIwQg=
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+     #   via the "travis encrypt" command using the project repo's public key
+  - secure: "L6KFpEFFEPW/bhH3CCYupYFldtJRKJIRy9E14sV5rFDvyrrNw5DgR4cac6hS4XbwOcv+SQv3lhLa0tBkLnJVR5X584py+tQh2zqdj6l5wfGzDSNLz6GXOzqFBx+UjFK7dnMVN7MQ0YIK+RxENQYpLvN9ofGFgqEKjFS8HK4wo9E="
   - secure: Xl2RWUee61vD7Ka/L9M4c9q03w0pn0H5LECsEH6FOTNwLZZdWnHepvF0n8O4YQiG7RdvnK3UHCOGh7G4J5t4XDOwt45IJ3QtjB7FtVdOhMreXHwbMmE0xn2nGGUmhBuYUNN3oIaVzQxWuozcC3g8gQXln4iJVv/f9ecg5R3eRHI=
   - secure: VIYnvHLr/H+2UpeHPe0UKoTK+l+pv6RcKV9tXfLpGEan6th/nmWjo9jR4ZtQNa90FcjOYexRPSLdaU4/SBlpVUHoR59koQQFfdsK+u8hVGpulOpBR6IUDYNQEris93g9NLJA+5PajhGxGnlUqJRP8QAE3RnGK+rq6nGVmlQd4S4=
   # for pushing the swagger adoc documentation to the website repository
