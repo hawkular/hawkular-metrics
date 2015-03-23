@@ -87,7 +87,7 @@ public class CollectdITest extends ExecutableITestBase {
 
     @Rule
     public final PrintOutputOnFailureWatcher collectdOutputRule = new PrintOutputOnFailureWatcher(
-            "colletcd",
+            "collectd",
             () -> collectdOut,
             () -> collectdErr
     );
