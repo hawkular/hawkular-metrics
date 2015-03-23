@@ -159,7 +159,7 @@ public class CollectdITest extends ExecutableITestBase {
         assertPtransHasStarted(ptransProcess, ptransOut);
 
         collectdProcessBuilder.command(
-                "stdbuf", "-o0", "-e0", COLLECTD_PATH, "-C", collectdConfFile.getAbsolutePath(), "-f"
+                "stdbuf", "-oO", "-eO", COLLECTD_PATH, "-C", collectdConfFile.getAbsolutePath(), "-f"
         );
         collectdProcess = collectdProcessBuilder.start();
 
