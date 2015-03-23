@@ -158,7 +158,9 @@ public class CollectdITest extends ExecutableITestBase {
         ptransProcess = ptransProcessBuilder.start();
         assertPtransHasStarted(ptransProcess, ptransOut);
 
-        collectdProcessBuilder.command(COLLECTD_PATH, "-C", collectdConfFile.getAbsolutePath(), "-f");
+        collectdProcessBuilder.command(
+                "stdbuf", "-o0", "-e0", COLLECTD_PATH, "-C", collectdConfFile.getAbsolutePath(), "-f"
+        );
         collectdProcess = collectdProcessBuilder.start();
 
         waitForCollectdValues();
@@ -170,7 +172,6 @@ public class CollectdITest extends ExecutableITestBase {
         Thread.sleep(MILLISECONDS.convert(1, SECONDS)); // Wait to make sure pTrans can send everything
 
         kill(ptransProcess, Signal.SIGTERM);
-        ptransProcess.waitFor();
 
         List<Point> expectedData = getExpectedData();
         List<Point> serverData = getServerData();
