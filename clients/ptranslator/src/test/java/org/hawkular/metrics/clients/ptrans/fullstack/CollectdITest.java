@@ -21,6 +21,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BATCH_DELAY;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BATCH_SIZE;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.REST_URL;
@@ -224,7 +225,13 @@ public class CollectdITest extends ExecutableITestBase {
         assertEquals("Unexpected format: " + line, 2, metric.length);
         String[] data = split[3].split(":");
         assertEquals("Unexpected format: " + line, 2, data.length);
-        return new Point(metric[1], Long.parseLong(data[0].replace(".", "")), Double.parseDouble(data[1]));
+        long timestamp = Long.parseLong(data[0].replace(".", ""));
+        if (!data[0].contains(".")) {
+            // collectd v4 does not have high resolution timestamps
+            timestamp *= 1000;
+        }
+        double value = Double.parseDouble(data[1]);
+        return new Point(metric[1], timestamp, value);
     }
 
     private List<Point> getServerData() throws Exception {
