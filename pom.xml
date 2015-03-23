@@ -241,6 +241,17 @@
         <extensions>true</extensions>
       </plugin>
 
+      <plugin>
+        <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <configuration>
+          <excludes combine.children="append">
+            <!-- Ignore Coverity files (useful on Travis) -->
+            <exclude>cov-int/**</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+
     </plugins>
   </build>
 
