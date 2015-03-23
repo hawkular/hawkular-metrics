@@ -158,9 +158,13 @@ public class CollectdITest extends ExecutableITestBase {
         ptransProcess = ptransProcessBuilder.start();
         assertPtransHasStarted(ptransProcess, ptransOut);
 
-        collectdProcessBuilder.command(
-                "stdbuf", "-o0", "-e0", COLLECTD_PATH, "-C", collectdConfFile.getAbsolutePath(), "-f"
-        );
+        File stdbuf = new File("/usr/bin/stdbuf");
+        ImmutableList.Builder<String> collectdCmd = ImmutableList.builder();
+        if (stdbuf.exists() && stdbuf.canExecute()) {
+            collectdCmd.add(stdbuf.getAbsolutePath(), "-o0", "-e0");
+        }
+        collectdCmd.add(COLLECTD_PATH, "-C", collectdConfFile.getAbsolutePath(), "-f");
+        collectdProcessBuilder.command(collectdCmd.build());
         collectdProcess = collectdProcessBuilder.start();
 
         waitForCollectdValues();
