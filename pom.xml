@@ -248,6 +248,7 @@
           <excludes combine.children="append">
             <!-- Ignore Coverity files (useful on Travis) -->
             <exclude>cov-int/**</exclude>
+            <exclude>analysis-results.tgz</exclude>
           </excludes>
         </configuration>
       </plugin>
