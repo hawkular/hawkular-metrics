@@ -17,11 +17,12 @@
 package org.hawkular.metrics.rest
 
 import static org.junit.Assert.assertEquals
-import static org.junit.Assert.fail
 
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.junit.BeforeClass
+
+import com.google.common.base.Charsets
 
 import groovyx.net.http.ContentType
 import groovyx.net.http.RESTClient
@@ -33,10 +34,21 @@ class RESTTest {
   static final String TENANT_PREFIX = UUID.randomUUID().toString()
   static final AtomicInteger TENANT_ID_COUNTER = new AtomicInteger(0)
   static RESTClient hawkularMetrics
+  static defaultFailureHandler
 
   @BeforeClass
   static void initClient() {
     hawkularMetrics = new RESTClient("http://$baseURI/", ContentType.JSON)
+    defaultFailureHandler = hawkularMetrics.handler.failure
+    hawkularMetrics.handler.failure = { resp ->
+      if (resp.entity != null && resp.entity.contentLength != 0) {
+        println "Got error response: ${resp.statusLine}"
+        def baos = new ByteArrayOutputStream()
+        resp.entity.writeTo(baos)
+        println new String(baos.toByteArray(), Charsets.UTF_8)
+      }
+      defaultFailureHandler(resp)
+    }
   }
 
   static String nextTenantId() {
@@ -57,22 +69,25 @@ class RESTTest {
   }
 
   static def badPost(args, errorHandler) {
-    try {
-      def object = hawkularMetrics.post(args)
-      fail("Expected exception to be thrown")
-      return object
-    } catch (e) {
-      errorHandler(e)
-    }
+    badRequest(hawkularMetrics.&post, args, errorHandler)
   }
 
   static def badGet(args, errorHandler) {
+    badRequest(hawkularMetrics.&get, args, errorHandler)
+  }
+
+
+  static def badRequest(method, args, errorHandler) {
+    def originalFailureHandler = hawkularMetrics.handler.failure;
+    hawkularMetrics.handler.failure = defaultFailureHandler;
     try {
-      def object = hawkularMetrics.get(args)
-      fail("Expected exception to be thrown")
-      return object
+      method(args)
+      throw new AssertionError("Expected exception to be thrown")
     } catch (e) {
       errorHandler(e)
+    } finally {
+      hawkularMetrics.handler.failure = originalFailureHandler;
     }
   }
+
 }
