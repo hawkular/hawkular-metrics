@@ -18,7 +18,9 @@ package org.hawkular.metrics.api.jaxrs;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+
 import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
 
 import java.net.URI;
@@ -48,20 +50,11 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
-import com.google.common.base.Function;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-
 import org.hawkular.metrics.api.jaxrs.callback.MetricCreatedCallback;
 import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
 import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
+import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
@@ -77,6 +70,16 @@ import org.hawkular.metrics.core.api.NumericBucketDataPoint;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.request.TagRequest;
+
+import com.google.common.base.Function;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
 
 /**
  * Interface to deal with metrics
@@ -190,7 +193,9 @@ public class MetricHandler {
     @DELETE
     @Path("/{tenantId}/metrics/numeric/{id}/tags/{tags}")
     @ApiOperation(value = "Delete tags associated with the metric definition.")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
+            @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.",
                          response = ApiError.class)
     })
@@ -198,13 +203,15 @@ public class MetricHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId,
             @PathParam("id") String id,
-        @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
-        @PathParam("tags") String encodedTags) {
-        ApiUtils.executeAsync(asyncResponse, () -> {
-            NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
-            ListenableFuture<Void> future = metricsService.deleteTags(metric, ApiUtils.decodeTags(encodedTags));
-            return Futures.transform(future, ApiUtils.MAP_VOID);
-        });
+            @ApiParam("Tag list") @PathParam("tags") Tags tags
+    ) {
+        ApiUtils.executeAsync(
+                asyncResponse, () -> {
+                    NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
+                    ListenableFuture<Void> future = metricsService.deleteTags(metric, tags.getTags());
+                    return Futures.transform(future, ApiUtils.MAP_VOID);
+                }
+        );
     }
 
     @GET
@@ -244,20 +251,24 @@ public class MetricHandler {
     @DELETE
     @Path("/{tenantId}/metrics/availability/{id}/tags/{tags}")
     @ApiOperation(value = "Delete tags associated with the metric definition.")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
+            @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.",
                          response = ApiError.class)
     })
     public void deleteAvailabilityMetricTags(
             @Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId, @PathParam("id") String id,
-        @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
-        @PathParam("tags") String encodedTags) {
-        ApiUtils.executeAsync(asyncResponse, () -> {
-            AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
-            ListenableFuture<Void> future = metricsService.deleteTags(metric, ApiUtils.decodeTags(encodedTags));
-            return Futures.transform(future, ApiUtils.MAP_VOID);
-        });
+            @PathParam("tenantId") String tenantId, @PathParam("id") String id,
+            @ApiParam("Tag list") @PathParam("tags") Tags tags
+    ) {
+        ApiUtils.executeAsync(
+                asyncResponse, () -> {
+                    AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
+                    ListenableFuture<Void> future = metricsService.deleteTags(metric, tags.getTags());
+                    return Futures.transform(future, ApiUtils.MAP_VOID);
+                }
+        );
     }
 
     @POST
@@ -357,40 +368,61 @@ public class MetricHandler {
     @GET
     @Path("/{tenantId}/numeric")
     @ApiOperation(value = "Find numeric metrics data by their tags.", response = Map.class,
-            responseContainer = "List")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = ""),
-                            @ApiResponse(code = 500, message = "Any error in the query.", response = ApiError.class)
+                  responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched data."),
+            @ApiResponse(code = 204, message = "No matching data found."),
+            @ApiResponse(code = 400, message = "Missing or invalid tags query", response = ApiError.class),
+            @ApiResponse(code = 500, message = "Any error in the query.", response = ApiError.class),
     })
-    public void findNumericDataByTags(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId,
-        @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
-        @QueryParam("tags") String encodedTags) {
-
-        ApiUtils.executeAsync(asyncResponse, () -> {
-            ListenableFuture<Map<MetricId, Set<NumericData>>> future = metricsService.findNumericDataByTags(tenantId,
-                    ApiUtils.decodeTags(encodedTags));
-            return Futures.transform(future, ApiUtils.MAP_MAP);
-        });
+    public void findNumericDataByTags(
+            @Suspended final AsyncResponse asyncResponse,
+            @PathParam("tenantId") String tenantId,
+            @ApiParam(value = "Tag list", required = true) @QueryParam("tags") Tags tags
+    ) {
+        if (tags == null) {
+            Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Missing tags query")).build();
+            asyncResponse.resume(response);
+            return;
+        }
+        ApiUtils.executeAsync(
+                asyncResponse, () -> {
+                    ListenableFuture<Map<MetricId, Set<NumericData>>>
+                            future
+                            = metricsService.findNumericDataByTags(tenantId, tags.getTags());
+                    return Futures.transform(future, ApiUtils.MAP_MAP);
+                }
+        );
     }
 
     @GET
     @Path("/{tenantId}/availability")
     @ApiOperation(value = "Find availabilities metrics data by their tags.", response = Map.class,
-            responseContainer = "List")
-    // See above method and HWKMETRICS-26 for fixes.
-    @ApiResponses(value = { @ApiResponse(code = 200, message = ""),
-            @ApiResponse(code = 204, message = "No matching availability metrics were found."),
-            @ApiResponse(code = 500, message = "Any error in the query.", response = ApiError.class)
+                  responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched data."),
+            @ApiResponse(code = 204, message = "No matching data found."),
+            @ApiResponse(code = 400, message = "Missing or invalid tags query", response = ApiError.class),
+            @ApiResponse(code = 500, message = "Any error in the query.", response = ApiError.class),
     })
-    public void findAvailabilityDataByTags(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId,
-        @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
-        @QueryParam("tags") String encodedTags) {
-        ApiUtils.executeAsync(asyncResponse, () -> {
-            ListenableFuture<Map<MetricId, Set<Availability>>> future = metricsService.findAvailabilityByTags(
-                    tenantId, ApiUtils.decodeTags(encodedTags));
-            return Futures.transform(future, ApiUtils.MAP_MAP);
-        });
+    public void findAvailabilityDataByTags(
+            @Suspended final AsyncResponse asyncResponse,
+            @PathParam("tenantId") String tenantId,
+            @ApiParam(value = "Tag list", required = true) @QueryParam("tags") Tags tags
+    ) {
+        if (tags == null) {
+            Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Missing tags query")).build();
+            asyncResponse.resume(response);
+            return;
+        }
+        ApiUtils.executeAsync(
+                asyncResponse, () -> {
+                    ListenableFuture<Map<MetricId, Set<Availability>>> future = metricsService.findAvailabilityByTags(
+                            tenantId, tags.getTags()
+                    );
+                    return Futures.transform(future, ApiUtils.MAP_MAP);
+                }
+        );
     }
 
     @GET
@@ -633,56 +665,64 @@ public class MetricHandler {
     }
 
     @GET
-    @Path("/{tenantId}/tags/numeric/{tag}")
+    @Path("/{tenantId}/tags/numeric/{tags}")
     @ApiOperation(value = "Find numeric metric data with given tags.", response = Map.class,
-            responseContainer = "List")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Numeric values fetched successfully"),
-                            @ApiResponse(code = 500, message = "Any error while fetching data.",
-                                         response = ApiError.class)
+                  responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Numeric values fetched successfully"),
+            @ApiResponse(code = 204, message = "No matching data found."),
+            @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
+            @ApiResponse(code = 500, message = "Any error while fetching data.", response = ApiError.class),
     })
-    public void findTaggedNumericData(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId,
-        @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
-        @PathParam("tag") String encodedTag) {
-
-        ApiUtils.executeAsync(asyncResponse, () -> {
-            ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(
-                    tenantId, ApiUtils.decodeTags(encodedTag));
-            ListenableFuture<Map<String, Set<NumericData>>> resultFuture = Futures.transform(
-                    queryFuture,
-                    new Function<Map<MetricId, Set<NumericData>>, Map<String, Set<NumericData>>>() {
-                        @Override
-                        public Map<String, Set<NumericData>> apply(Map<MetricId, Set<NumericData>> input) {
-                            Map<String, Set<NumericData>> result = new HashMap<>(input.size());
-                            for (Map.Entry<MetricId, Set<NumericData>> entry : input.entrySet()) {
-                                result.put(entry.getKey().getName(), entry.getValue());
+    public void findTaggedNumericData(
+            @Suspended final AsyncResponse asyncResponse,
+            @PathParam("tenantId") String tenantId,
+            @ApiParam("Tag list") @PathParam("tags") Tags tags
+    ) {
+        ApiUtils.executeAsync(
+                asyncResponse, () -> {
+                    ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture;
+                    queryFuture = metricsService.findNumericDataByTags(tenantId, tags.getTags());
+                    ListenableFuture<Map<String, Set<NumericData>>> resultFuture = Futures.transform(
+                            queryFuture,
+                            new Function<Map<MetricId, Set<NumericData>>, Map<String, Set<NumericData>>>() {
+                                @Override
+                                public Map<String, Set<NumericData>> apply(Map<MetricId, Set<NumericData>> input) {
+                                    Map<String, Set<NumericData>> result = new HashMap<>(input.size());
+                                    for (Map.Entry<MetricId, Set<NumericData>> entry : input.entrySet()) {
+                                        result.put(entry.getKey().getName(), entry.getValue());
+                                    }
+                                    return result;
+                                }
                             }
-                            return result;
-                        }
-                    }
-            );
-            return Futures.transform(resultFuture, ApiUtils.MAP_MAP);
-        });
+                    );
+                    return Futures.transform(resultFuture, ApiUtils.MAP_MAP);
+                }
+        );
     }
 
     @GET
-    @Path("/{tenantId}/tags/availability/{tag}")
+    @Path("/{tenantId}/tags/availability/{tags}")
     @ApiOperation(value = "Find availability metric data with given tags.", response = Map.class,
-            responseContainer = "List")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Availability values fetched successfully"),
-                            @ApiResponse(code = 500, message = "Any error while fetching data.",
-                                         response = ApiError.class)
+                  responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Availability values fetched successfully"),
+            @ApiResponse(code = 204, message = "No matching data found."),
+            @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
+            @ApiResponse(code = 500, message = "Any error while fetching data.", response = ApiError.class),
     })
-    public void findTaggedAvailabilityData(@Suspended final AsyncResponse asyncResponse,
-        @PathParam("tenantId") String tenantId,
-        @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
-        @PathParam("tag") String encodedTag) {
-
-        ApiUtils.executeAsync(asyncResponse, () -> {
-            ListenableFuture<Map<MetricId, Set<Availability>>> future = metricsService.findAvailabilityByTags(tenantId,
-                    ApiUtils.decodeTags(encodedTag));
-            return Futures.transform(future, ApiUtils.MAP_MAP);
-        });
+    public void findTaggedAvailabilityData(
+            @Suspended final AsyncResponse asyncResponse,
+            @PathParam("tenantId") String tenantId,
+            @ApiParam("Tag list") @PathParam("tags") Tags tags
+    ) {
+        ApiUtils.executeAsync(
+                asyncResponse, () -> {
+                    ListenableFuture<Map<MetricId, Set<Availability>>> future;
+                    future = metricsService.findAvailabilityByTags(tenantId, tags.getTags());
+                    return Futures.transform(future, ApiUtils.MAP_MAP);
+                }
+        );
     }
 
     @POST

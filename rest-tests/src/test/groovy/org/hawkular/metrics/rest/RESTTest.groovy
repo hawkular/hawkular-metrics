@@ -76,6 +76,9 @@ class RESTTest {
     badRequest(hawkularMetrics.&get, args, errorHandler)
   }
 
+  static def badDelete(args, errorHandler) {
+    badRequest(hawkularMetrics.&delete, args, errorHandler)
+  }
 
   static def badRequest(method, args, errorHandler) {
     def originalFailureHandler = hawkularMetrics.handler.failure;

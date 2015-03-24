@@ -16,10 +16,17 @@
  */
 package org.hawkular.metrics.api.jaxrs.param;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.concurrent.TimeUnit;
+
+import com.google.common.collect.ImmutableBiMap;
 
 /**
  * A time duration. This class is meant to be used only as a JAX−RS method parameter. If you need to work with a
@@ -29,15 +36,33 @@ import java.util.concurrent.TimeUnit;
  * @see DurationConverter
  */
 public class Duration {
+    public static final ImmutableBiMap<TimeUnit, String> UNITS = new ImmutableBiMap.Builder<TimeUnit, String>()
+            .put(MILLISECONDS, "ms")
+            .put(SECONDS, "s")
+            .put(MINUTES, "mn")
+            .put(HOURS, "h")
+            .put(DAYS, "d")
+            .build();
+
     private final long value;
     private final TimeUnit timeUnit;
 
     /**
+     * Create a new instance. The list of valid time units is the following:
+     * <ul>
+     *     <li><em>ms</em>: milliseconds</li>
+     *     <li><em>s</em>: seconds</li>
+     *     <li><em>mn</em>: minutes</li>
+     *     <li><em>h</em>: hours</li>
+     *     <li><em>d</em>: days</li>
+     * </ul>
+     *
      * @param value    amount of time
-     * @param timeUnit time unit, cannot be null
+     * @param timeUnit time unit, cannot be null, must be one of the valid units
      */
     public Duration(long value, TimeUnit timeUnit) {
         checkArgument(timeUnit != null, "timeUnit is null");
+        checkArgument(UNITS.containsKey(timeUnit), "Invalid unit %s", timeUnit);
         this.value = value;
         this.timeUnit = timeUnit;
     }

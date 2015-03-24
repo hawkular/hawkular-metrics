@@ -16,20 +16,46 @@
  */
 package org.hawkular.metrics.api.jaxrs.swagger.filter;
 
+import static com.google.common.base.Charsets.UTF_8;
+import static com.google.common.io.Resources.getResource;
+
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.hawkular.metrics.api.jaxrs.param.Duration;
+import org.hawkular.metrics.api.jaxrs.param.Tags;
+
+import com.google.common.io.Resources;
+import com.wordnik.swagger.converter.ModelConverters;
+import com.wordnik.swagger.converter.OverrideConverter;
 import com.wordnik.swagger.core.filter.SwaggerSpecFilter;
 import com.wordnik.swagger.model.ApiDescription;
 import com.wordnik.swagger.model.Operation;
 import com.wordnik.swagger.model.Parameter;
 
 /**
- * Filter out AsyncResponse from swagger-json
+ * Swagger configuration.
  *
  * @author Michael Burman
  */
 public class JaxRsFilter implements SwaggerSpecFilter {
+
+    public JaxRsFilter() {
+        OverrideConverter overrideConverter = new OverrideConverter();
+        String durationJson;
+        String tagsJson;
+        try {
+            durationJson = Resources.toString(getResource("rest-doc/duration.json"), UTF_8);
+            tagsJson = Resources.toString(getResource("rest-doc/tags.json"), UTF_8);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        overrideConverter.add(Duration.class.getName(), durationJson);
+        overrideConverter.add(Tags.class.getName(), tagsJson);
+        ModelConverters.addConverter(overrideConverter, true);
+    }
+
     @Override
     public boolean isOperationAllowed(Operation operation, ApiDescription apiDescription, Map<String, List<String>>
             map, Map<String, String> map1, Map<String, List<String>> map2) {
@@ -40,9 +66,6 @@ public class JaxRsFilter implements SwaggerSpecFilter {
     public boolean isParamAllowed(Parameter parameter, Operation operation, ApiDescription apiDescription,
                                   Map<String, List<String>> map, Map<String, String> map1, Map<String, List<String>>
             map2) {
-        if(parameter.dataType().equals("AsyncResponse")) {
-            return false;
-        }
-        return true;
+        return !parameter.dataType().equals("AsyncResponse");
     }
 }
