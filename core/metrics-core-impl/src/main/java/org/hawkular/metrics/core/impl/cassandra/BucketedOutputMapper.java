@@ -17,51 +17,49 @@
 package org.hawkular.metrics.core.impl.cassandra;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.RandomAccess;
 
-import org.hawkular.metrics.core.api.BucketedOutput;
-import org.hawkular.metrics.core.api.Buckets;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricData;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import org.hawkular.metrics.core.api.BucketedOutput;
+import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.MetricData;
+import org.hawkular.metrics.core.api.MetricId;
 
 /**
  * Transform a {@link org.hawkular.metrics.core.api.Metric} with its {@link org.hawkular.metrics.core.api.MetricData}
  * into a {@link org.hawkular.metrics.core.api.BucketedOutput}.
  *
  * @param <DATA>   type of metric data, like {@link org.hawkular.metrics.core.api.NumericData}
- * @param <METRIC> type of metric, like {@link org.hawkular.metrics.core.api.NumericMetric}
  * @param <POINT>  type of bucket points, like {@link org.hawkular.metrics.core.api.NumericBucketDataPoint}
  *
  * @author Thomas Segismont
  */
-public abstract class BucketedOutputMapper<DATA extends MetricData, METRIC extends Metric<DATA>, POINT>
-        implements Function<METRIC, BucketedOutput<POINT>> {
+public abstract class BucketedOutputMapper<DATA extends MetricData, POINT>
+        implements Function<List<DATA>, BucketedOutput<POINT>> {
 
     protected final Buckets buckets;
+
+    private String tenantId;
+
+    private MetricId id;
 
     /**
      * @param buckets the bucket configuration
      */
-    public BucketedOutputMapper(Buckets buckets) {
+    public BucketedOutputMapper(String tenantId, MetricId id, Buckets buckets) {
+        this.tenantId = tenantId;
+        this.id = id;
         this.buckets = buckets;
     }
 
     @Override
-    public BucketedOutput<POINT> apply(METRIC input) {
-        if (input == null) {
-            return null;
-        }
-
-        BucketedOutput<POINT> output = new BucketedOutput<>(
-                input.getTenantId(), input.getId().getName(), input.getTags()
-        );
+    public BucketedOutput<POINT> apply(List<DATA> dataList) {
+        BucketedOutput<POINT> output = new BucketedOutput<>(tenantId, id.getName(), Collections.emptyMap());
         output.setData(new ArrayList<>(buckets.getCount()));
 
-        List<DATA> dataList = input.getData();
         if (!(dataList instanceof RandomAccess)) {
             dataList = new ArrayList<>(dataList);
         }

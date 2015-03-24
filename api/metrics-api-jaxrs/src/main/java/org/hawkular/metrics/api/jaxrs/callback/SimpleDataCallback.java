@@ -16,6 +16,10 @@
  */
 package org.hawkular.metrics.api.jaxrs.callback;
 
+import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
+
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 
@@ -29,6 +33,28 @@ public class SimpleDataCallback<T> extends NoDataCallback<T> {
     public void onSuccess(Object responseData) {
         if (responseData == null) {
             asyncResponse.resume(Response.noContent().build());
+        } else if (responseData instanceof Optional) {
+            Optional optional = (Optional) responseData;
+            if (optional.isPresent()) {
+                Object value = optional.get();
+                asyncResponse.resume(Response.ok(value).build());
+            } else {
+                asyncResponse.resume(Response.noContent().build());
+            }
+        } else if (responseData instanceof Collection) {
+            Collection collection = (Collection) responseData;
+            if (collection.isEmpty()) {
+                asyncResponse.resume(Response.noContent().build());
+            } else {
+                asyncResponse.resume(Response.ok(collection).build());
+            }
+        } else if (responseData instanceof Map) {
+            Map map = (Map) responseData;
+            if (map.isEmpty()) {
+                asyncResponse.resume(Response.noContent().build());
+            } else {
+                asyncResponse.resume(Response.ok(map).build());
+            }
         } else {
             asyncResponse.resume(Response.ok(responseData).build());
         }

@@ -38,7 +38,6 @@ import com.datastax.driver.core.TupleValue;
 import com.datastax.driver.core.UDTValue;
 import com.datastax.driver.core.UserType;
 import com.datastax.driver.core.utils.UUIDs;
-
 import org.hawkular.metrics.core.api.AggregationTemplate;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
@@ -202,21 +201,17 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ? ");
 
         findNumericDataByDateRangeExclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, m_tags, data_retention, n_value, tags " +
-            "FROM data " +
+            "SELECT time, m_tags, data_retention, n_value, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time < ?");
 
         findNumericDataByDateRangeExclusiveASC = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, m_tags, data_retention, n_value, tags " +
-            "FROM data " +
+            "SELECT time, m_tags, data_retention, n_value, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?" +
             " AND time < ? ORDER BY time ASC");
 
         findNumericDataWithWriteTimeByDateRangeExclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, m_tags, data_retention, n_value, tags,"
-                + " WRITETIME(n_value) " +
-            "FROM data " +
+            "SELECT time, m_tags, data_retention, n_value, tags, WRITETIME(n_value) FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time < ?");
 
@@ -227,16 +222,12 @@ public class DataAccessImpl implements DataAccess {
                 + " AND time <= ?");
 
         findNumericDataWithWriteTimeByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, m_tags, data_retention, n_value, tags,"
-                + " WRITETIME(n_value) " +
-            "FROM data " +
+            "SELECT time, m_tags, data_retention, n_value, tags, WRITETIME(n_value) FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time <= ?");
 
         findAvailabilityByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, m_tags, data_retention, availability, tags,"
-                + " WRITETIME(availability) " +
-            "FROM data " +
+            "SELECT time, m_tags, data_retention, availability, tags, WRITETIME(availability) FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time <= ?");
 
@@ -290,15 +281,12 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
         findAvailabilities = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, m_tags, data_retention, availability, tags " +
-            "FROM data " +
+            "SELECT time, m_tags, data_retention, availability, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time < ?");
 
         findAvailabilitiesWithWriteTime = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, m_tags, data_retention, availability, tags,"
-                + " WRITETIME(availability) " +
-            "FROM data " +
+            "SELECT time, m_tags, data_retention, availability, tags, WRITETIME(availability) FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time < ?");
 
@@ -448,9 +436,22 @@ public class DataAccessImpl implements DataAccess {
         return session.executeAsync(batchStatement);
     }
 
+//    @Override
+//    public ResultSetFuture findData(NumericMetric metric, long startTime, long endTime) {
+//        return findData(metric, startTime, endTime, false);
+//    }
+
+//    @Override
+//    public ResultSetFuture findData(QueryParams params) {
+//        return session.executeAsync(findNumericDataByDateRangeExclusive.bind(params.getTenantId(),
+//            MetricType.NUMERIC.getCode(), params.getId().getName(), params.getId().getInterval().toString(),
+//            Metric.DPART, TimeUUIDUtils.getTimeUUID(params.getStart()), TimeUUIDUtils.getTimeUUID(params.getEnd())));
+//    }
+
+
     @Override
-    public ResultSetFuture findData(NumericMetric metric, long startTime, long endTime) {
-        return findData(metric, startTime, endTime, false);
+    public ResultSetFuture findData(String tenantId, MetricId id, long startTime, long endTime) {
+        return findData(tenantId, id, startTime, endTime, false);
     }
 
     @Override
@@ -467,15 +468,16 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findData(NumericMetric metric, long startTime, long endTime, boolean includeWriteTime) {
+    public ResultSetFuture findData(String tenantId, MetricId id, long startTime, long endTime,
+            boolean includeWriteTime) {
         if (includeWriteTime) {
-            return session.executeAsync(findNumericDataWithWriteTimeByDateRangeExclusive.bind(metric.getTenantId(),
-                MetricType.NUMERIC.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
-                metric.getDpart(), TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
+            return session.executeAsync(findNumericDataWithWriteTimeByDateRangeExclusive.bind(tenantId,
+                    MetricType.NUMERIC.getCode(), id.getName(), id.getInterval().toString(), Metric.DPART,
+                    TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
         } else {
-            return session.executeAsync(findNumericDataByDateRangeExclusive.bind(metric.getTenantId(),
-                MetricType.NUMERIC.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
-                metric.getDpart(), TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
+            return session.executeAsync(findNumericDataByDateRangeExclusive.bind(tenantId,
+                    MetricType.NUMERIC.getCode(), id.getName(), id.getInterval().toString(), Metric.DPART,
+                    TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
         }
     }
 
@@ -581,10 +583,10 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findAvailabilityData(AvailabilityMetric metric, long startTime, long endTime) {
-        return session.executeAsync(findAvailabilities.bind(metric.getTenantId(), MetricType.AVAILABILITY.getCode(),
-            metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart(),
-            TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
+    public ResultSetFuture findAvailabilityData(String tenantId, MetricId id, long startTime, long endTime) {
+        return session.executeAsync(findAvailabilities.bind(tenantId, MetricType.AVAILABILITY.getCode(),
+            id.getName(), id.getInterval().toString(), Metric.DPART, TimeUUIDUtils.getTimeUUID(startTime),
+                TimeUUIDUtils.getTimeUUID(endTime)));
     }
 
     @Override

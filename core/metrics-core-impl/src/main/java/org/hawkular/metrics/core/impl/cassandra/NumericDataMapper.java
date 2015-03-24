@@ -16,18 +16,19 @@
  */
 package org.hawkular.metrics.core.impl.cassandra;
 
-import java.util.Collections;
+import static java.util.stream.Collectors.toList;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.NumericData;
-import org.hawkular.metrics.core.api.NumericMetric;
+import java.util.stream.StreamSupport;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.google.common.base.Function;
+import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.NumericData;
 
 /**
  * @author John Sanda
@@ -35,10 +36,6 @@ import com.google.common.base.Function;
 public class NumericDataMapper implements Function<ResultSet, List<NumericData>> {
 
     private enum ColumnIndex {
-        TENANT_ID,
-        METRIC_NAME,
-        INTERVAL,
-        DPART,
         TIME,
         METRIC_TAGS,
         DATA_RETENTION,
@@ -70,28 +67,32 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
 
     @Override
     public List<NumericData> apply(ResultSet resultSet) {
-        if (resultSet.isExhausted()) {
-            return Collections.emptyList();
-        }
-        Row firstRow = resultSet.one();
-        NumericMetric metric = getMetric(firstRow);
-        metric.addData(rowConverter.getData(firstRow));
+        List<NumericData> data = new ArrayList<>();
 
-        for (Row row : resultSet) {
-            metric.addData(rowConverter.getData(row));
-        }
+        return StreamSupport.stream(resultSet.spliterator(), false).map(row ->
+            new NumericData(row.getUUID(ColumnIndex.TIME.ordinal()), row.getDouble(ColumnIndex.VALUE.ordinal()),
+                row.getMap(ColumnIndex.TAGS.ordinal(), String.class, String.class))
+        ).collect(toList());
 
-        return metric.getData();
+//        Row firstRow = resultSet.one();
+//        NumericMetric metric = getMetric(firstRow);
+//        metric.addData(rowConverter.getData(firstRow));
+//
+//        for (Row row : resultSet) {
+//            metric.addData(rowConverter.getData(row));
+//        }
+//
+//        return metric.getData();
     }
 
-    private NumericMetric getMetric(Row row) {
-        NumericMetric metric = new NumericMetric(row.getString(ColumnIndex.TENANT_ID.ordinal()), getId(row),
-                row.getMap(ColumnIndex.METRIC_TAGS.ordinal(), String.class, String.class),
-                row.getInt(ColumnIndex.DATA_RETENTION.ordinal()));
-        metric.setDpart(row.getLong(ColumnIndex.DPART.ordinal()));
-
-        return metric;
-    }
+//    private NumericMetric getMetric(Row row) {
+//        NumericMetric metric = new NumericMetric(row.getString(ColumnIndex.TENANT_ID.ordinal()), getId(row),
+//                row.getMap(ColumnIndex.METRIC_TAGS.ordinal(), String.class, String.class),
+//                row.getInt(ColumnIndex.DATA_RETENTION.ordinal()));
+//        metric.setDpart(row.getLong(ColumnIndex.DPART.ordinal()));
+//
+//        return metric;
+//    }
 
     private MetricId getId(Row row) {
         return new MetricId(row.getString(1), Interval.parse(row.getString(2)));

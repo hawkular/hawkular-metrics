@@ -57,6 +57,10 @@ class CassandraBackendITest extends RESTTest {
             [timestamp: buckets[9] + seconds(10).toStandardDuration().millis, value: 19.01]
         ]]])
     assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/$metric/data",
+        query: [start: start.minusHours(12).millis, end: end.minusHours(11).millis])
+    assertEquals("Expected a 204 status code when there is no data", 204, response.status)
   }
 
   @Test

@@ -250,8 +250,8 @@ public class InfluxSeriesHandler {
                     if (idExists != Boolean.TRUE) {
                         return Futures.immediateFuture(null);
                     }
-                    return metricsService.findData(new NumericMetric(tenantId, new MetricId(metric)),
-                        timeInterval.getStartMillis(), timeInterval.getEndMillis());
+                    return metricsService.findNumericData(tenantId, new MetricId(metric),
+                            timeInterval.getStartMillis(), timeInterval.getEndMillis());
                 });
         ListenableFuture<List<InfluxObject>> influxObjectTranslatorFuture = Futures.transform(loadMetricsFuture,
                 (List<NumericData> metrics) -> {

@@ -22,8 +22,8 @@ import java.util.List;
 
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
-import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.MetricId;
 
 /**
  * A {@link BucketedOutputMapper} for {@link org.hawkular.metrics.core.api.AvailabilityMetric}.
@@ -31,13 +31,13 @@ import org.hawkular.metrics.core.api.Buckets;
  * @author Thomas Segismont
  */
 public class AvailabilityBucketedOutputMapper
-        extends BucketedOutputMapper<Availability, AvailabilityMetric, AvailabilityBucketDataPoint> {
+        extends BucketedOutputMapper<Availability, AvailabilityBucketDataPoint> {
 
     /**
      * @param buckets the bucket configuration
      */
-    public AvailabilityBucketedOutputMapper(Buckets buckets) {
-        super(buckets);
+    public AvailabilityBucketedOutputMapper(String tenantId, MetricId id, Buckets buckets) {
+        super(tenantId, id, buckets);
     }
 
     @Override

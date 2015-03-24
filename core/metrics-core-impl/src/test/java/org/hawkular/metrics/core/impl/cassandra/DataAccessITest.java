@@ -17,13 +17,20 @@
 package org.hawkular.metrics.core.impl.cassandra;
 
 import static java.util.Arrays.asList;
-
 import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
 import java.util.List;
 
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import org.hawkular.metrics.core.api.AggregationTemplate;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
@@ -39,15 +46,6 @@ import org.joda.time.Days;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * @author John Sanda
@@ -131,7 +129,8 @@ public class DataAccessITest extends MetricsITest {
 
         getUninterruptibly(dataAccess.insertData(metric, MetricsServiceCassandra.DEFAULT_TTL));
 
-        ResultSetFuture queryFuture = dataAccess.findData(metric, start.getMillis(), end.getMillis());
+        ResultSetFuture queryFuture = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
+                end.getMillis());
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
         List<NumericData> actual = getUninterruptibly(dataFuture);
         List<NumericData> expected = asList(
@@ -160,7 +159,8 @@ public class DataAccessITest extends MetricsITest {
         metric.addData(new NumericData(end.getMillis(), 1.234));
         getUninterruptibly(dataAccess.insertData(metric, MetricsServiceCassandra.DEFAULT_TTL));
 
-        ResultSetFuture queryFuture = dataAccess.findData(metric, start.getMillis(), end.getMillis());
+        ResultSetFuture queryFuture = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
+                end.getMillis());
         ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
         List<NumericData> actual = getUninterruptibly(dataFuture);
         List<NumericData> expected = asList(
@@ -303,8 +303,9 @@ public class DataAccessITest extends MetricsITest {
 
         getUninterruptibly(dataAccess.insertData(metric, 360));
 
-        ResultSetFuture future = dataAccess.findAvailabilityData(metric, start.getMillis(), end.getMillis());
-        ListenableFuture<List<Availability>> dataFuture = Futures.transform(future, new AvailabilityDataMapper());
+        ResultSetFuture future = dataAccess.findAvailabilityData(tenantId, new MetricId("m1"), start.getMillis(),
+                end.getMillis());
+        ListenableFuture<List<Availability>> dataFuture = Futures.transform(future, Functions.MAP_AVAILABILITY_DATA);
         List<Availability> actual = getUninterruptibly(dataFuture);
         List<Availability> expected = asList(new Availability(start.getMillis(), "up"));
 
