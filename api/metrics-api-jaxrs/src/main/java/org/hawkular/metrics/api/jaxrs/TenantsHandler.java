@@ -19,7 +19,6 @@ package org.hawkular.metrics.api.jaxrs;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import java.net.URI;
-import java.util.Collection;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -35,12 +34,11 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
+import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
 import org.hawkular.metrics.api.jaxrs.callback.TenantCreatedCallback;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.Tenant;
 
-import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.wordnik.swagger.annotations.Api;
@@ -91,34 +89,16 @@ public class TenantsHandler {
         Futures.addCallback(insertFuture, tenantCreatedCallback);
     }
 
-
-
     @GET
     @ApiOperation(value = "Returns a list of tenants.")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Returned a list of tenants successfully."),
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Returned a list of tenants successfully."),
             @ApiResponse(code = 204, message = "No tenants were found."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching tenants.",
                          response = ApiError.class)
     })
-    public void findTenants(@Suspended AsyncResponse response) {
+    public void findTenants(@Suspended AsyncResponse asyncResponse) {
         ListenableFuture<List<Tenant>> tenantsFuture = metricsService.getTenants();
-        Futures.addCallback(tenantsFuture, new FutureCallback<Collection<Tenant>>() {
-            @Override
-            public void onSuccess(Collection<Tenant> tenants) {
-                if (tenants.isEmpty()) {
-                    response.resume(Response.ok().status(Status.NO_CONTENT).build());
-                    return;
-                }
-                response.resume(Response.status(Status.OK).entity(tenants).build());
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                ApiError errors = new ApiError(
-                        "Failed to fetch tenants due to an "
-                    + "unexpected error: " + Throwables.getRootCause(t).getMessage());
-                response.resume(Response.status(Status.INTERNAL_SERVER_ERROR).entity(errors).build());
-            }
-        });
+        Futures.addCallback(tenantsFuture, new SimpleDataCallback<>(asyncResponse));
     }
 }

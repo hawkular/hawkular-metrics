@@ -101,6 +101,8 @@ public class MetricsServiceCassandra implements MetricsService {
 
     private static final AvailabilityMetricMapper AVAILABILITY_METRIC_MAPPER = new AvailabilityMetricMapper();
 
+    private static final TenantMapper TENANT_MAPPER = new TenantMapper();
+
     private static class DataRetentionKey {
         private final String tenantId;
         private final MetricId metricId;
@@ -408,15 +410,30 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public ListenableFuture<List<Tenant>> getTenants() {
-        TenantMapper mapper = new TenantMapper();
-        List<String> ids = loadTenantIds();
-        List<ListenableFuture<Tenant>> tenantFutures = new ArrayList<>(ids.size());
-        for (String id : ids) {
-            ResultSetFuture queryFuture = dataAccess.findTenant(id);
-            ListenableFuture<Tenant> tenantFuture = Futures.transform(queryFuture, mapper, metricsTasks);
-            tenantFutures.add(tenantFuture);
-        }
-        return Futures.allAsList(tenantFutures);
+        ListenableFuture<List<String>> tenantIdsFuture = Futures.transform(
+                dataAccess.findAllTenantIds(), (ResultSet input) -> {
+                    if (input.isExhausted()) {
+                        return null;
+                    }
+                    List<String> tenantIds = new ArrayList<>();
+                    for (Row row : input) {
+                        tenantIds.add(row.getString(0));
+                    }
+                    return tenantIds;
+                }, metricsTasks
+        );
+        return Futures.transform(
+                tenantIdsFuture, (List<String> input) -> {
+                    if (input == null) {
+                        return Futures.immediateFuture(null);
+                    }
+                    List<ListenableFuture<Tenant>> tenantFutures = new ArrayList<>();
+                    for (String tenantId : input) {
+                        tenantFutures.add(Futures.transform(dataAccess.findTenant(tenantId), TENANT_MAPPER));
+                    }
+                    return Futures.allAsList(tenantFutures);
+                }
+        );
     }
 
     private List<String> loadTenantIds() {
