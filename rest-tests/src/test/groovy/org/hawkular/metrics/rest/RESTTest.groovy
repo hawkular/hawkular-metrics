@@ -17,7 +17,6 @@
 package org.hawkular.metrics.rest
 
 import static org.junit.Assert.assertEquals
-import static org.junit.Assert.fail
 
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -82,9 +81,8 @@ class RESTTest {
     def originalFailureHandler = hawkularMetrics.handler.failure;
     hawkularMetrics.handler.failure = defaultFailureHandler;
     try {
-      def object = method(args)
-      fail("Expected exception to be thrown")
-      return object
+      method(args)
+      throw new AssertionError("Expected exception to be thrown")
     } catch (e) {
       errorHandler(e)
     } finally {
