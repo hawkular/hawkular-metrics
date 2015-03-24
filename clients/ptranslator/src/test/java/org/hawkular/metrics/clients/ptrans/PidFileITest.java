@@ -23,12 +23,12 @@ import static org.hawkular.metrics.clients.ptrans.CanReadMatcher.canRead;
 import static org.hawkular.metrics.clients.ptrans.ContainsMatcher.contains;
 import static org.hawkular.metrics.clients.ptrans.IsFileMatcher.isFile;
 import static org.hawkular.metrics.clients.ptrans.WriteLockedMatcher.writeLocked;
+import static org.hawkular.metrics.clients.ptrans.util.ProcessUtil.getPid;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.util.Optional;
 
@@ -62,10 +62,7 @@ public class PidFileITest extends ExecutableITestBase {
 
         if (ptransProcess.getClass().getName().equals("java.lang.UNIXProcess")) {
             // On UNIX-like platforms only
-            Field pidField = ptransProcess.getClass().getDeclaredField("pid");
-            pidField.setAccessible(true);
-            int pid = pidField.getInt(ptransProcess);
-
+            int pid = getPid(ptransProcess);
             Optional<String> firstLine = Files.lines(ptransPidFile.toPath()).limit(1).findAny();
             assertEquals(firstLine.orElse("").trim(), String.valueOf(pid));
         }
