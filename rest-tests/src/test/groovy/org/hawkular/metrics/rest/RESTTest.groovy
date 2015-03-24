@@ -70,10 +70,19 @@ class RESTTest {
   }
 
   static def badPost(args, errorHandler) {
+    badRequest(hawkularMetrics.&post, args, errorHandler)
+  }
+
+  static def badGet(args, errorHandler) {
+    badRequest(hawkularMetrics.&get, args, errorHandler)
+  }
+
+
+  static def badRequest(method, args, errorHandler) {
     def originalFailureHandler = hawkularMetrics.handler.failure;
     hawkularMetrics.handler.failure = defaultFailureHandler;
     try {
-      def object = hawkularMetrics.post(args)
+      def object = method(args)
       fail("Expected exception to be thrown")
       return object
     } catch (e) {
@@ -83,17 +92,4 @@ class RESTTest {
     }
   }
 
-  static def badGet(args, errorHandler) {
-    def originalFailureHandler = hawkularMetrics.handler.failure;
-    hawkularMetrics.handler.failure = defaultFailureHandler;
-    try {
-      def object = hawkularMetrics.get(args)
-      fail("Expected exception to be thrown")
-      return object
-    } catch (e) {
-      errorHandler(e)
-    } finally {
-      hawkularMetrics.handler.failure = originalFailureHandler;
-    }
-  }
 }
