@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -61,6 +62,7 @@ import org.hawkular.metrics.api.jaxrs.callback.MetricCreatedCallback;
 import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
 import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
+import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
@@ -74,7 +76,6 @@ import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericBucketDataPoint;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
-import org.hawkular.metrics.core.impl.cassandra.MetricUtils;
 import org.hawkular.metrics.core.impl.request.TagRequest;
 
 /**
@@ -162,9 +163,11 @@ public class MetricHandler {
     })
     public void getNumericMetricTags(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId, @PathParam("id") String id) {
-        ListenableFuture<Metric<?>> future = metricsService.findMetric(tenantId, MetricType.NUMERIC,
-            new MetricId(id));
-        Futures.addCallback(future, new SimpleDataCallback<Metric<?>>(asyncResponse));
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            ListenableFuture<Optional<Metric<?>>> future = metricsService.findMetric(tenantId, MetricType.NUMERIC,
+                    new MetricId(id));
+            return Futures.transform(future, ApiUtils.MAP_VALUE);
+        });
     }
 
     @PUT
@@ -177,9 +180,11 @@ public class MetricHandler {
     public void updateNumericMetricTags(@Suspended final AsyncResponse asyncResponse,
                                         @PathParam("tenantId") String tenantId, @PathParam("id") String id,
                                         @ApiParam(required = true) Map<String, String> tags) {
-        NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
-        ListenableFuture<Void> future = metricsService.addTags(metric, tags);
-        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
+            ListenableFuture<Void> future = metricsService.addTags(metric, tags);
+            return Futures.transform(future, ApiUtils.MAP_VOID);
+        });
     }
 
     @DELETE
@@ -195,9 +200,11 @@ public class MetricHandler {
             @PathParam("id") String id,
         @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
         @PathParam("tags") String encodedTags) {
-        NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
-        ListenableFuture<Void> future = metricsService.deleteTags(metric, MetricUtils.decodeTags(encodedTags));
-        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
+            ListenableFuture<Void> future = metricsService.deleteTags(metric, ApiUtils.decodeTags(encodedTags));
+            return Futures.transform(future, ApiUtils.MAP_VOID);
+        });
     }
 
     @GET
@@ -210,9 +217,11 @@ public class MetricHandler {
     })
     public void getAvailabilityMetricTags(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id) {
-        ListenableFuture<Metric<?>> future = metricsService.findMetric(tenantId, MetricType.AVAILABILITY,
-            new MetricId(id));
-        Futures.addCallback(future, new SimpleDataCallback<Metric<?>>(asyncResponse));
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            ListenableFuture<Optional<Metric<?>>> future = metricsService.findMetric(tenantId, MetricType.AVAILABILITY,
+                    new MetricId(id));
+            return Futures.transform(future, ApiUtils.MAP_VALUE);
+        });
     }
 
     @PUT
@@ -225,9 +234,11 @@ public class MetricHandler {
     public void updateAvailabilityMetricTags(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @PathParam("id") String id,
         @ApiParam(required = true) Map<String, String> tags) {
-        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
-        ListenableFuture<Void> future = metricsService.addTags(metric, tags);
-        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
+            ListenableFuture<Void> future = metricsService.addTags(metric, tags);
+            return Futures.transform(future, ApiUtils.MAP_VOID);
+        });
     }
 
     @DELETE
@@ -242,9 +253,11 @@ public class MetricHandler {
         @PathParam("tenantId") String tenantId, @PathParam("id") String id,
         @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
         @PathParam("tags") String encodedTags) {
-        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
-        ListenableFuture<Void> future = metricsService.deleteTags(metric, MetricUtils.decodeTags(encodedTags));
-        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
+            ListenableFuture<Void> future = metricsService.deleteTags(metric, ApiUtils.decodeTags(encodedTags));
+            return Futures.transform(future, ApiUtils.MAP_VOID);
+        });
     }
 
     @POST
@@ -263,15 +276,15 @@ public class MetricHandler {
             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
             List<NumericData> data
     ) {
-        if (data == null) {
-            Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Payload is empty")).build();
-            asyncResponse.resume(response);
-            return;
-        }
-        NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
-        data.forEach(metric::addData);
-        ListenableFuture<Void> future = metricsService.addNumericData(Collections.singletonList(metric));
-        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            if (data == null) {
+                return ApiUtils.emptyPayload();
+            }
+            NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
+            metric.getData().addAll(data);
+            ListenableFuture<Void> future = metricsService.addNumericData(Collections.singletonList(metric));
+            return Futures.transform(future, ApiUtils.MAP_VOID);
+        });
     }
 
     @POST
@@ -289,15 +302,15 @@ public class MetricHandler {
             @PathParam("tenantId") final String tenantId, @PathParam("id") String id,
             @ApiParam(value = "List of availability datapoints", required = true) List<Availability> data
     ) {
-        if (data == null) {
-            Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Payload is empty")).build();
-            asyncResponse.resume(response);
-            return;
-        }
-        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
-        data.forEach(metric::addData);
-        ListenableFuture<Void> future = metricsService.addAvailabilityData(Collections.singletonList(metric));
-        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            if (data == null) {
+                return ApiUtils.emptyPayload();
+            }
+            AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
+            metric.getData().addAll(data);
+            ListenableFuture<Void> future = metricsService.addAvailabilityData(Collections.singletonList(metric));
+            return Futures.transform(future, ApiUtils.MAP_VOID);
+        });
     }
 
     @POST
@@ -311,16 +324,14 @@ public class MetricHandler {
                                @PathParam("tenantId") String tenantId,
                                @ApiParam(value = "List of metrics", required = true)
                                List<NumericMetric> metrics) {
-        if (metrics.isEmpty()) {
-            asyncResponse.resume(Response.ok().build());
-        }
-
-        for (NumericMetric metric : metrics) {
-            metric.setTenantId(tenantId);
-        }
-
-        ListenableFuture<Void> future = metricsService.addNumericData(metrics);
-        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            if (metrics.isEmpty()) {
+                return Futures.immediateFuture(Response.ok().build());
+            }
+            metrics.forEach(m -> m.setTenantId(tenantId));
+            ListenableFuture<Void> future = metricsService.addNumericData(metrics);
+            return Futures.transform(future, ApiUtils.MAP_VOID);
+        });
     }
 
     @POST
@@ -333,16 +344,14 @@ public class MetricHandler {
     public void addAvailabilityData(@Suspended final AsyncResponse asyncResponse,
         @PathParam("tenantId") String tenantId, @ApiParam(value = "List of availability metrics", required = true)
         List<AvailabilityMetric> metrics) {
-        if (metrics.isEmpty()) {
-            asyncResponse.resume(Response.ok().build());
-        }
-
-        for (AvailabilityMetric metric : metrics) {
-            metric.setTenantId(tenantId);
-        }
-
-        ListenableFuture<Void> future = metricsService.addAvailabilityData(metrics);
-        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            if (metrics.isEmpty()) {
+                return Futures.immediateFuture(Response.ok().build());
+            }
+            metrics.forEach(m -> m.setTenantId(tenantId));
+            ListenableFuture<Void> future = metricsService.addAvailabilityData(metrics);
+            return Futures.transform(future, ApiUtils.MAP_VOID);
+        });
     }
 
     @GET
@@ -356,9 +365,12 @@ public class MetricHandler {
         @PathParam("tenantId") String tenantId,
         @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
         @QueryParam("tags") String encodedTags) {
-        ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(
-            tenantId, MetricUtils.decodeTags(encodedTags));
-        Futures.addCallback(queryFuture, new SimpleDataCallback<Map<MetricId, Set<NumericData>>>(asyncResponse));
+
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            ListenableFuture<Map<MetricId, Set<NumericData>>> future = metricsService.findNumericDataByTags(tenantId,
+                    ApiUtils.decodeTags(encodedTags));
+            return Futures.transform(future, ApiUtils.MAP_MAP);
+        });
     }
 
     @GET
@@ -374,9 +386,11 @@ public class MetricHandler {
         @PathParam("tenantId") String tenantId,
         @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
         @QueryParam("tags") String encodedTags) {
-        ListenableFuture<Map<MetricId, Set<Availability>>> queryFuture = metricsService.findAvailabilityByTags(
-            tenantId, MetricUtils.decodeTags(encodedTags));
-        Futures.addCallback(queryFuture, new SimpleDataCallback<Map<MetricId, Set<Availability>>>(asyncResponse));
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            ListenableFuture<Map<MetricId, Set<Availability>>> future = metricsService.findAvailabilityByTags(
+                    tenantId, ApiUtils.decodeTags(encodedTags));
+            return Futures.transform(future, ApiUtils.MAP_MAP);
+        });
     }
 
     @GET
@@ -396,69 +410,53 @@ public class MetricHandler {
             @Suspended AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId,
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration
     ) {
-        long now = System.currentTimeMillis();
-        start = start == null ? now - EIGHT_HOURS : start;
-        end = end == null ? now : end;
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            long now = System.currentTimeMillis();
+            long startTime = start == null ? now - EIGHT_HOURS : start;
+            long endTime = end == null ? now : end;
 
-        NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
+            NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
 
-        if (bucketsCount == null && bucketDuration == null) {
-            ListenableFuture<NumericMetric> dataFuture = metricsService.findNumericData(metric, start, end);
-            ListenableFuture<List<NumericData>> outputFuture = Futures.transform(
-                    dataFuture, new Function<NumericMetric, List<NumericData>>() {
+            if (bucketsCount == null && bucketDuration == null) {
+                ListenableFuture<List<NumericData>> dataFuture = metricsService.findNumericData(tenantId,
+                        new MetricId(id), startTime, endTime);
+                return Futures.transform(dataFuture, ApiUtils.MAP_COLLECTION);
+            }
+
+            if (bucketsCount != null && bucketDuration != null) {
+                return ApiUtils.badRequest(new ApiError("Both buckets and bucketDuration parameters are used"));
+            }
+
+            Buckets buckets;
+            try {
+                if (bucketsCount != null) {
+                    buckets = Buckets.fromCount(startTime, endTime, bucketsCount);
+                } else {
+                    buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
+                }
+            } catch (IllegalArgumentException e) {
+                return ApiUtils.badRequest(new ApiError("Bucket: " + e.getMessage()));
+            }
+
+            ListenableFuture<BucketedOutput<NumericBucketDataPoint>> dataFuture = metricsService.findNumericStats(
+                    metric, startTime, endTime, buckets);
+            ListenableFuture<List<NumericBucketDataPoint>> outputFuture = Futures.transform(dataFuture,
+                    new Function<BucketedOutput<NumericBucketDataPoint>, List<NumericBucketDataPoint>>() {
                         @Override
-                        public List<NumericData> apply(NumericMetric input) {
+                        public List<NumericBucketDataPoint> apply(BucketedOutput<NumericBucketDataPoint> input) {
                             if (input == null) {
                                 return null;
                             }
                             return input.getData();
                         }
-                    }
-            );
-            Futures.addCallback(outputFuture, new SimpleDataCallback<Object>(asyncResponse));
-            return;
-        }
-
-        if (bucketsCount != null && bucketDuration != null) {
-            ApiError apiError = new ApiError("Both buckets and bucketDuration parameters are used");
-            Response response = Response.status(Status.BAD_REQUEST).entity(apiError).build();
-            asyncResponse.resume(response);
-            return;
-        }
-
-        Buckets buckets;
-        try {
-            if (bucketsCount != null) {
-                buckets = Buckets.fromCount(start, end, bucketsCount);
-            } else {
-                buckets = Buckets.fromStep(start, end, bucketDuration.toMillis());
-            }
-        } catch (IllegalArgumentException e) {
-            ApiError apiError = new ApiError("Bucket: " + e.getMessage());
-            Response response = Response.status(Status.BAD_REQUEST).entity(apiError).build();
-            asyncResponse.resume(response);
-            return;
-        }
-        ListenableFuture<BucketedOutput<NumericBucketDataPoint>> dataFuture = metricsService.findNumericStats(
-                metric, start, end, buckets
-        );
-        ListenableFuture<List<NumericBucketDataPoint>> outputFuture = Futures.transform(
-                dataFuture, new Function<BucketedOutput<NumericBucketDataPoint>, List<NumericBucketDataPoint>>() {
-                    @Override
-                    public List<NumericBucketDataPoint> apply(BucketedOutput<NumericBucketDataPoint> input) {
-                        if (input == null) {
-                            return null;
-                        }
-                        return input.getData();
-                    }
-                }
-        );
-        Futures.addCallback(outputFuture, new SimpleDataCallback<Object>(asyncResponse));
+                    });
+            return Futures.transform(outputFuture, ApiUtils.MAP_COLLECTION);
+        });
     }
 
     @GET
@@ -470,58 +468,59 @@ public class MetricHandler {
         @ApiResponse(code = 204, message = "No numeric data was found."),
         @ApiResponse(code = 400, message = "Missing or invalid query parameters")})
     public void findPeriods(
-        @Suspended final AsyncResponse response, @PathParam("tenantId") String tenantId,
+        @Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         @PathParam("id") String id,
-        @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") Long start,
-        @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") Long end,
+        @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") final Long start,
+        @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") final Long end,
         @ApiParam(value = "A threshold against which values are compared", required = true) @QueryParam("threshold")
             double threshold,
         @ApiParam(value = "A comparison operation to perform between values and the threshold. Supported operations " +
             "include ge, gte, lt, lte, and eq", required = true) @QueryParam("op") String operator) {
 
-        long now = System.currentTimeMillis();
-        if (start == null) {
-            start = now - EIGHT_HOURS;
-        }
-        if (end == null) {
-            end = now;
-        }
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            long now = System.currentTimeMillis();
+            Long startTime = start;
+            Long endTime = end;
+            if (start == null) {
+                startTime = now - EIGHT_HOURS;
+            }
+            if (end == null) {
+                endTime = now;
+            }
 
-        Predicate<Double> predicate;
-        switch (operator) {
-            case "lt":
-                predicate = d -> d < threshold;
-                break;
-            case "lte":
-                predicate = d -> d <= threshold;
-                break;
-            case "eq":
-                predicate = d -> d == threshold;
-                break;
-            case "neq":
-                predicate = d -> d != threshold;
-                break;
-            case "gt":
-                predicate = d -> d > threshold;
-                break;
-            case "gte":
-                predicate = d -> d >= threshold;
-                break;
-            default:
-                predicate = null;
-        }
+            Predicate<Double> predicate;
+            switch (operator) {
+                case "lt":
+                    predicate = d -> d < threshold;
+                    break;
+                case "lte":
+                    predicate = d -> d <= threshold;
+                    break;
+                case "eq":
+                    predicate = d -> d == threshold;
+                    break;
+                case "neq":
+                    predicate = d -> d != threshold;
+                    break;
+                case "gt":
+                    predicate = d -> d > threshold;
+                    break;
+                case "gte":
+                    predicate = d -> d >= threshold;
+                    break;
+                default:
+                    predicate = null;
+            }
 
-        if (predicate == null) {
-            response.resume(Response.status(Status.BAD_REQUEST).entity(new ApiError("Invalid value for op parameter. "
-                + "Supported values are lt, lte, eq, gt, gte")).build());
-        } else {
-            ListenableFuture<List<long[]>> future = metricsService.getPeriods(tenantId, new MetricId(id), predicate,
-                start, end);
-            // We need to transform empty results to null because SimpleDataCallback returns a 204 status for null
-            // data.
-            future = Futures.transform(future, (List<long[]> periods) -> periods.isEmpty() ? null : periods);
-            Futures.addCallback(future, new SimpleDataCallback<>(response));
-        }
+            if (predicate == null) {
+                return ApiUtils.badRequest(new ApiError("Invalid value for op parameter. Supported values are lt, " +
+                        "lte, eq, gt, gte."));
+            } else {
+                ListenableFuture<List<long[]>> future = metricsService.getPeriods(tenantId, new MetricId(id), predicate,
+                        startTime, endTime);
+                return Futures.transform(future, ApiUtils.MAP_COLLECTION);
+            }
+        });
     }
 
     @GET
@@ -542,23 +541,46 @@ public class MetricHandler {
             @Suspended AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId,
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration
     ) {
-        long now = System.currentTimeMillis();
-        start = start == null ? now - EIGHT_HOURS : start;
-        end = end == null ? now : end;
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            long now = System.currentTimeMillis();
+            Long startTime = start == null ? now - EIGHT_HOURS : start;
+            Long endTime = end == null ? now : end;
 
-        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
+            AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
 
-        if (bucketsCount == null && bucketDuration == null) {
-            ListenableFuture<AvailabilityMetric> dataFuture = metricsService.findAvailabilityData(metric, start, end);
-            ListenableFuture<List<Availability>> outputFuture = Futures.transform(
-                    dataFuture, new Function<AvailabilityMetric, List<Availability>>() {
+            if (bucketsCount == null && bucketDuration == null) {
+                ListenableFuture<List<Availability>> dataFuture = metricsService.findAvailabilityData(tenantId,
+                        metric.getId(), startTime, endTime);
+                return Futures.transform(dataFuture, ApiUtils.MAP_COLLECTION);
+            }
+
+            if (bucketsCount != null && bucketDuration != null) {
+                return ApiUtils.badRequest(new ApiError("Both buckets and bucketDuration parameters are used"));
+            }
+
+            Buckets buckets;
+            try {
+                if (bucketsCount != null) {
+                    buckets = Buckets.fromCount(startTime, endTime, bucketsCount);
+                } else {
+                    buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
+                }
+            } catch (IllegalArgumentException e) {
+                return ApiUtils.badRequest(new ApiError("Bucket: " + e.getMessage()));
+            }
+            ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> dataFuture =
+                    metricsService.findAvailabilityStats(metric, startTime, endTime, buckets);
+            ListenableFuture<List<AvailabilityBucketDataPoint>> outputFuture = Futures.transform(
+                    dataFuture,
+                    new Function<BucketedOutput<AvailabilityBucketDataPoint>, List<AvailabilityBucketDataPoint>>() {
                         @Override
-                        public List<Availability> apply(AvailabilityMetric input) {
+                        public List<AvailabilityBucketDataPoint> apply(
+                                BucketedOutput<AvailabilityBucketDataPoint> input) {
                             if (input == null) {
                                 return null;
                             }
@@ -566,46 +588,8 @@ public class MetricHandler {
                         }
                     }
             );
-            Futures.addCallback(outputFuture, new SimpleDataCallback<Object>(asyncResponse));
-            return;
-        }
-
-        if (bucketsCount != null && bucketDuration != null) {
-            ApiError apiError = new ApiError("Both buckets and bucketDuration parameters are used");
-            Response response = Response.status(Status.BAD_REQUEST).entity(apiError).build();
-            asyncResponse.resume(response);
-            return;
-        }
-
-        Buckets buckets;
-        try {
-            if (bucketsCount != null) {
-                buckets = Buckets.fromCount(start, end, bucketsCount);
-            } else {
-                buckets = Buckets.fromStep(start, end, bucketDuration.toMillis());
-            }
-        } catch (IllegalArgumentException e) {
-            ApiError apiError = new ApiError("Bucket: " + e.getMessage());
-            Response response = Response.status(Status.BAD_REQUEST).entity(apiError).build();
-            asyncResponse.resume(response);
-            return;
-        }
-        ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> dataFuture = metricsService.findAvailabilityStats(
-                metric, start, end, buckets
-        );
-        ListenableFuture<List<AvailabilityBucketDataPoint>> outputFuture = Futures.transform(
-                dataFuture,
-                new Function<BucketedOutput<AvailabilityBucketDataPoint>, List<AvailabilityBucketDataPoint>>() {
-                    @Override
-                    public List<AvailabilityBucketDataPoint> apply(BucketedOutput<AvailabilityBucketDataPoint> input) {
-                        if (input == null) {
-                            return null;
-                        }
-                        return input.getData();
-                    }
-                }
-        );
-        Futures.addCallback(outputFuture, new SimpleDataCallback<Object>(asyncResponse));
+            return Futures.transform(outputFuture, ApiUtils.MAP_COLLECTION);
+        });
     }
 
     @POST
@@ -614,14 +598,17 @@ public class MetricHandler {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Tags were modified successfully.")})
     public void tagNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
             @PathParam("id") final String id, @ApiParam(required = true) TagRequest params) {
-        ListenableFuture<List<NumericData>> future;
-        NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
-        if (params.getTimestamp() != null) {
-            future = metricsService.tagNumericData(metric, params.getTags(), params.getTimestamp());
-        } else {
-            future = metricsService.tagNumericData(metric, params.getTags(), params.getStart(), params.getEnd());
-        }
-        Futures.addCallback(future, new NoDataCallback<List<NumericData>>(asyncResponse));
+
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            ListenableFuture<List<NumericData>> future;
+            NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
+            if (params.getTimestamp() != null) {
+                future = metricsService.tagNumericData(metric, params.getTags(), params.getTimestamp());
+            } else {
+                future = metricsService.tagNumericData(metric, params.getTags(), params.getStart(), params.getEnd());
+            }
+            return Futures.transform(future, (List<NumericData> data) -> Response.ok().build());
+        });
     }
 
     @POST
@@ -631,14 +618,18 @@ public class MetricHandler {
     public void tagAvailabilityData(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId, @PathParam("id") final String id,
             @ApiParam(required = true) TagRequest params) {
-        ListenableFuture<List<Availability>> future;
-        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
-        if (params.getTimestamp() != null) {
-            future = metricsService.tagAvailabilityData(metric, params.getTags(), params.getTimestamp());
-        } else {
-            future = metricsService.tagAvailabilityData(metric, params.getTags(), params.getStart(), params.getEnd());
-        }
-        Futures.addCallback(future, new NoDataCallback<List<Availability>>(asyncResponse));
+
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            ListenableFuture<List<Availability>> future;
+            AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
+            if (params.getTimestamp() != null) {
+                future = metricsService.tagAvailabilityData(metric, params.getTags(), params.getTimestamp());
+            } else {
+                future = metricsService.tagAvailabilityData(metric, params.getTags(), params.getStart(),
+                        params.getEnd());
+            }
+            return Futures.transform(future, (List<Availability> data) -> Response.ok().build());
+        });
     }
 
     @GET
@@ -653,22 +644,25 @@ public class MetricHandler {
         @PathParam("tenantId") String tenantId,
         @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
         @PathParam("tag") String encodedTag) {
-        ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(
-                tenantId, MetricUtils.decodeTags(encodedTag));
-        ListenableFuture<Map<String, Set<NumericData>>> resultFuture = Futures.transform(
-                queryFuture,
-                new Function<Map<MetricId, Set<NumericData>>, Map<String, Set<NumericData>>>() {
-                    @Override
-                    public Map<String, Set<NumericData>> apply(Map<MetricId, Set<NumericData>> input) {
-                        Map<String, Set<NumericData>> result = new HashMap<String, Set<NumericData>>(input.size());
-                        for (Map.Entry<MetricId, Set<NumericData>> entry : input.entrySet()) {
-                            result.put(entry.getKey().getName(), entry.getValue());
+
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(
+                    tenantId, ApiUtils.decodeTags(encodedTag));
+            ListenableFuture<Map<String, Set<NumericData>>> resultFuture = Futures.transform(
+                    queryFuture,
+                    new Function<Map<MetricId, Set<NumericData>>, Map<String, Set<NumericData>>>() {
+                        @Override
+                        public Map<String, Set<NumericData>> apply(Map<MetricId, Set<NumericData>> input) {
+                            Map<String, Set<NumericData>> result = new HashMap<>(input.size());
+                            for (Map.Entry<MetricId, Set<NumericData>> entry : input.entrySet()) {
+                                result.put(entry.getKey().getName(), entry.getValue());
+                            }
+                            return result;
                         }
-                        return result;
                     }
-                }
-        );
-        Futures.addCallback(resultFuture, new SimpleDataCallback<Map<String, Set<NumericData>>>(asyncResponse));
+            );
+            return Futures.transform(resultFuture, ApiUtils.MAP_MAP);
+        });
     }
 
     @GET
@@ -683,9 +677,12 @@ public class MetricHandler {
         @PathParam("tenantId") String tenantId,
         @ApiParam(allowMultiple = true, required = true, value = "A list of tags in the format of name:value")
         @PathParam("tag") String encodedTag) {
-        ListenableFuture<Map<MetricId, Set<Availability>>> queryFuture = metricsService.findAvailabilityByTags(tenantId,
-            MetricUtils.decodeTags(encodedTag));
-        Futures.addCallback(queryFuture, new SimpleDataCallback<Map<MetricId, Set<Availability>>>(asyncResponse));
+
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            ListenableFuture<Map<MetricId, Set<Availability>>> future = metricsService.findAvailabilityByTags(tenantId,
+                    ApiUtils.decodeTags(encodedTag));
+            return Futures.transform(future, ApiUtils.MAP_MAP);
+        });
     }
 
     @POST
@@ -693,7 +690,7 @@ public class MetricHandler {
     @ApiOperation(value = "List of counter definitions", hidden = true)
     public void updateCountersForGroups(@Suspended final AsyncResponse asyncResponse, Collection<Counter> counters) {
         ListenableFuture<Void> future = metricsService.updateCounters(counters);
-        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
+        Futures.addCallback(future, new NoDataCallback<>(asyncResponse));
     }
 
     @POST
@@ -705,7 +702,7 @@ public class MetricHandler {
             counter.setGroup(group);
         }
         ListenableFuture<Void> future = metricsService.updateCounters(counters);
-        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
+        Futures.addCallback(future, new NoDataCallback<>(asyncResponse));
     }
 
     @POST
@@ -715,7 +712,7 @@ public class MetricHandler {
         @PathParam("counter") String counter) {
         ListenableFuture<Void> future = metricsService
                 .updateCounter(new Counter(DEFAULT_TENANT_ID, group, counter, 1L));
-        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
+        Futures.addCallback(future, new NoDataCallback<>(asyncResponse));
     }
 
     @POST
@@ -725,7 +722,7 @@ public class MetricHandler {
         @PathParam("counter") String counter, @PathParam("value") Long value) {
         ListenableFuture<Void> future = metricsService.updateCounter(new Counter(DEFAULT_TENANT_ID, group, counter,
                 value));
-        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
+        Futures.addCallback(future, new NoDataCallback<>(asyncResponse));
     }
 
     @GET
@@ -735,7 +732,7 @@ public class MetricHandler {
     @Produces({ APPLICATION_JSON })
     public void getCountersForGroup(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group) {
         ListenableFuture<List<Counter>> future = metricsService.findCounters(group);
-        Futures.addCallback(future, new SimpleDataCallback<List<Counter>>(asyncResponse));
+        Futures.addCallback(future, new SimpleDataCallback<>(asyncResponse));
     }
 
     @GET
@@ -780,15 +777,18 @@ public class MetricHandler {
             @PathParam("tenantId") final String tenantId,
         @ApiParam(value = "Queried metric type", required = true, allowableValues = "[num, avail, log]")
         @QueryParam("type") String type) {
-        MetricType metricType = null;
-        try {
-            metricType = MetricType.fromTextCode(type);
-        } catch (IllegalArgumentException e) {
-            ApiError errors = new ApiError("[" + type + "] is not a valid type. Accepted values are num|avail|log");
-            asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity(errors).build());
-        }
-        ListenableFuture<List<Metric<?>>> future = metricsService.findMetrics(tenantId, metricType);
-        Futures.addCallback(future, new SimpleDataCallback<List<Metric<?>>>(asyncResponse));
+
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            MetricType metricType = null;
+            try {
+                metricType = MetricType.fromTextCode(type);
+            } catch (IllegalArgumentException e) {
+                return ApiUtils.badRequest(
+                        new ApiError("[" + type + "] is not a valid type. Accepted values are num|avail|log"));
+            }
+            ListenableFuture<List<Metric<?>>> future = metricsService.findMetrics(tenantId, metricType);
+            return Futures.transform(future, ApiUtils.MAP_COLLECTION);
+        });
     }
 
 }

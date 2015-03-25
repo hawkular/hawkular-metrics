@@ -41,7 +41,7 @@ public class AvailabilityBucketedOutputMapperTest {
     @Before
     public void setup() {
         Buckets buckets = new Buckets(1, 10, 10);
-        mapper = new AvailabilityBucketedOutputMapper(buckets);
+        mapper = new AvailabilityBucketedOutputMapper(null, null, buckets);
     }
 
     @Test

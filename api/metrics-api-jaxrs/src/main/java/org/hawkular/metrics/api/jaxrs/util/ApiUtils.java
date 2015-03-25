@@ -1,0 +1,90 @@
+/*
+ * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * and other contributors as indicated by the @author tags.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.hawkular.metrics.api.jaxrs.util;
+
+import static java.util.stream.Collectors.toMap;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
+
+import javax.ws.rs.container.AsyncResponse;
+import javax.ws.rs.core.Response;
+
+import com.google.common.base.Function;
+import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import org.hawkular.metrics.api.jaxrs.ApiError;
+
+/**
+ * @author jsanda
+ */
+public class ApiUtils {
+
+    private ApiUtils() {
+    }
+
+    public static final Function<Void, Response> MAP_VOID = v -> Response.ok().build();
+
+    public static final Function<Optional<?>, Response> MAP_VALUE = optional ->
+            optional.map(value -> Response.ok(value).build()).orElse(noContent());
+
+    public static final Function<Collection<?>, Response> MAP_COLLECTION = collection ->
+            collection.isEmpty() ? noContent() : Response.ok(collection).build();
+
+    public static final Function<Map<?, ?>, Response> MAP_MAP = map ->
+            map.isEmpty() ? noContent() : Response.ok(map).build();
+
+    public static Response noContent() {
+        return Response.noContent().build();
+    }
+
+    public static ListenableFuture<Response> emptyPayload() {
+        return badRequest(new ApiError("Payload is empty"));
+    }
+
+    public static ListenableFuture<Response> badRequest(ApiError error) {
+        return Futures.immediateFuture(Response.status(Response.Status.BAD_REQUEST).entity(error).build());
+    }
+
+    public static void executeAsync(AsyncResponse asyncResponse,
+            java.util.function.Supplier<ListenableFuture<Response>> supplier) {
+        ListenableFuture<Response> future = supplier.get();
+        Futures.addCallback(future, new FutureCallback<Response>() {
+            @Override
+            public void onSuccess(Response response) {
+                asyncResponse.resume(response);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                String msg = "Failed to perform operation due to an error: " + Throwables.getRootCause(t).getMessage();
+                asyncResponse.resume(Response.serverError().entity(new ApiError(msg)).build());
+            }
+        });
+    }
+
+    public static Map<String, String> decodeTags(String tags) {
+        return Arrays.stream(tags.split(","))
+                .map(s -> s.split(":"))
+                .collect(toMap(a -> a[0], a -> a[1]));
+    }
+
+}

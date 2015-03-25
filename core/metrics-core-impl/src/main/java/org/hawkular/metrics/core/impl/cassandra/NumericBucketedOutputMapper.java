@@ -24,9 +24,9 @@ import org.apache.commons.math3.stat.descriptive.rank.Max;
 import org.apache.commons.math3.stat.descriptive.rank.Min;
 import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.NumericBucketDataPoint;
 import org.hawkular.metrics.core.api.NumericData;
-import org.hawkular.metrics.core.api.NumericMetric;
 
 /**
  * A {@link org.hawkular.metrics.core.impl.cassandra.BucketedOutputMapper} for {@link org.hawkular.metrics.core.api
@@ -35,13 +35,13 @@ import org.hawkular.metrics.core.api.NumericMetric;
  * @author Thomas Segismont
  */
 public class NumericBucketedOutputMapper
-        extends BucketedOutputMapper<NumericData, NumericMetric, NumericBucketDataPoint> {
+        extends BucketedOutputMapper<NumericData, NumericBucketDataPoint> {
 
     /**
      * @param buckets the bucket configuration
      */
-    public NumericBucketedOutputMapper(Buckets buckets) {
-        super(buckets);
+    public NumericBucketedOutputMapper(String tenantId, MetricId id, Buckets buckets) {
+        super(tenantId, id, buckets);
     }
 
     @Override

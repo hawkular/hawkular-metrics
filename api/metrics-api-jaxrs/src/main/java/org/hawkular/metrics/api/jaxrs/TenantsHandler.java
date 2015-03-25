@@ -34,11 +34,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
-import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
-import org.hawkular.metrics.api.jaxrs.callback.TenantCreatedCallback;
-import org.hawkular.metrics.core.api.MetricsService;
-import org.hawkular.metrics.core.api.Tenant;
-
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.wordnik.swagger.annotations.Api;
@@ -46,6 +41,10 @@ import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
+import org.hawkular.metrics.api.jaxrs.callback.TenantCreatedCallback;
+import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.Tenant;
 
 /**
  * @author Thomas Segismont
@@ -98,7 +97,9 @@ public class TenantsHandler {
                          response = ApiError.class)
     })
     public void findTenants(@Suspended AsyncResponse asyncResponse) {
-        ListenableFuture<List<Tenant>> tenantsFuture = metricsService.getTenants();
-        Futures.addCallback(tenantsFuture, new SimpleDataCallback<>(asyncResponse));
+        ApiUtils.executeAsync(asyncResponse, () -> {
+            ListenableFuture<List<Tenant>> future = metricsService.getTenants();
+            return Futures.transform(future, ApiUtils.MAP_COLLECTION);
+        });
     }
 }

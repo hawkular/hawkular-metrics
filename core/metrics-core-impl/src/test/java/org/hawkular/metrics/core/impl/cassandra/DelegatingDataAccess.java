@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 
 import com.datastax.driver.core.ResultSetFuture;
-
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Counter;
@@ -109,8 +108,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findData(NumericMetric metric, long startTime, long endTime) {
-        return delegate.findData(metric, startTime, endTime);
+    public ResultSetFuture findData(String tenantId, MetricId id, long startTime, long endTime) {
+        return delegate.findData(tenantId, id, startTime, endTime);
     }
 
     @Override
@@ -119,8 +118,9 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findData(NumericMetric metric, long startTime, long endTime, boolean includeWriteTime) {
-        return delegate.findData(metric, startTime, endTime, includeWriteTime);
+    public ResultSetFuture findData(String tenantId, MetricId id, long startTime, long endTime,
+            boolean includeWriteTime) {
+        return delegate.findData(tenantId, id, startTime, endTime, includeWriteTime);
     }
 
     @Override
@@ -186,8 +186,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findAvailabilityData(AvailabilityMetric metric, long startTime, long endTime) {
-        return delegate.findAvailabilityData(metric, startTime, endTime);
+    public ResultSetFuture findAvailabilityData(String tenantId, MetricId id, long startTime, long endTime) {
+        return delegate.findAvailabilityData(tenantId, id, startTime, endTime);
     }
 
     @Override

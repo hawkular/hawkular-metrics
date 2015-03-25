@@ -19,6 +19,7 @@ package org.hawkular.metrics.core.api;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -69,7 +70,7 @@ public interface MetricsService {
 
     ListenableFuture<Void> createMetric(Metric<?> metric);
 
-    ListenableFuture<Metric<?>> findMetric(String tenantId, MetricType type, MetricId id);
+    ListenableFuture<Optional<Metric<?>>> findMetric(String tenantId, MetricType type, MetricId id);
 
     ListenableFuture<List<Metric<?>>> findMetrics(String tenantId, MetricType type);
 
@@ -79,18 +80,15 @@ public interface MetricsService {
 
     ListenableFuture<Void> addNumericData(List<NumericMetric> metrics);
 
-    ListenableFuture<NumericMetric> findNumericData(NumericMetric metric, long start, long end);
+    ListenableFuture<List<NumericData>> findNumericData(String tenantId, MetricId id, Long start, Long end);
 
     ListenableFuture<BucketedOutput<NumericBucketDataPoint>> findNumericStats(
             NumericMetric metric, long start, long end, Buckets buckets
     );
 
-    /** Find and return raw metrics for {id} that have a timestamp between {start} and {end} */
-    ListenableFuture<List<NumericData>> findData(NumericMetric metric, long start, long end);
-
     ListenableFuture<Void> addAvailabilityData(List<AvailabilityMetric> metrics);
 
-    ListenableFuture<AvailabilityMetric> findAvailabilityData(AvailabilityMetric metric, long start, long end);
+    ListenableFuture<List<Availability>> findAvailabilityData(String tenantId, MetricId id, long start, long end);
 
     ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(
             AvailabilityMetric metric, long start, long end, Buckets buckets

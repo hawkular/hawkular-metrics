@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 
 import com.datastax.driver.core.ResultSetFuture;
-
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Counter;
@@ -65,11 +64,12 @@ public interface DataAccess {
 
     ResultSetFuture insertData(NumericMetric metric, int ttl);
 
-    ResultSetFuture findData(NumericMetric metric, long startTime, long endTime);
+    ResultSetFuture findData(String tenantId, MetricId id, long startTime, long endTime);
+//    ResultSetFuture findData(QueryParams queryParams);
 
     ResultSetFuture findData(NumericMetric metric, long startTime, long endTime, Order order);
 
-    ResultSetFuture findData(NumericMetric metric, long startTime, long endTime, boolean includeWriteTime);
+    ResultSetFuture findData(String tenantId, MetricId id, long startTime, long endTime, boolean includeWriteTime);
 
     ResultSetFuture findData(NumericMetric metric, long timestamp, boolean includeWriteTime);
 
@@ -96,7 +96,7 @@ public interface DataAccess {
 
     ResultSetFuture insertData(AvailabilityMetric metric, int ttl);
 
-    ResultSetFuture findAvailabilityData(AvailabilityMetric metric, long startTime, long endTime);
+    ResultSetFuture findAvailabilityData(String tenantId, MetricId id, long startTime, long endTime);
 
     ResultSetFuture updateCounter(Counter counter);
 

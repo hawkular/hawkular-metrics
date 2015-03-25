@@ -17,7 +17,6 @@
 package org.hawkular.metrics.core.impl.cassandra;
 
 import static java.util.Arrays.asList;
-
 import static org.hawkular.metrics.core.api.AvailabilityType.DOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UP;
 import static org.hawkular.metrics.core.api.Metric.DPART;
@@ -28,8 +27,8 @@ import static org.joda.time.DateTime.now;
 import static org.joda.time.Days.days;
 import static org.joda.time.Hours.hours;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
-import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -37,6 +36,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import com.datastax.driver.core.BatchStatement;
@@ -147,13 +147,20 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
     @Test
     public void createAndFindMetrics() throws Exception {
+        Optional<Metric<?>> result = getUninterruptibly(metricsService.findMetric("t1", NUMERIC,
+                new MetricId("does-not-exist")));
+        assertNotNull(result, "null should not be returned when metric is not found");
+        assertFalse(result.isPresent(), "Did not expect a value when the metric is not found");
+
+
         NumericMetric m1 = new NumericMetric("t1", new MetricId("m1"), ImmutableMap.of("a1", "1", "a2", "2"),
             24);
         ListenableFuture<Void> insertFuture = metricsService.createMetric(m1);
         getUninterruptibly(insertFuture);
 
-        ListenableFuture<Metric<?>> queryFuture = metricsService.findMetric(m1.getTenantId(), m1.getType(), m1.getId());
-        Metric actual = getUninterruptibly(queryFuture);
+        ListenableFuture<Optional<Metric<?>>> queryFuture = metricsService.findMetric(m1.getTenantId(), m1.getType(),
+                m1.getId());
+         Metric actual = getUninterruptibly(queryFuture).get();
         assertEquals(actual, m1, "The metric does not match the expected value");
 
         AvailabilityMetric m2 = new AvailabilityMetric("t1", new MetricId("m2"), ImmutableMap.of("a3", "3", "a4", "3"));
@@ -161,7 +168,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         getUninterruptibly(insertFuture);
 
         queryFuture = metricsService.findMetric(m2.getTenantId(), m2.getType(), m2.getId());
-        actual = getUninterruptibly(queryFuture);
+        actual = getUninterruptibly(queryFuture).get();
         assertEquals(actual, m2, "The metric does not match the expected value");
 
         insertFuture = metricsService.createMetric(m1);
@@ -209,9 +216,9 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         ListenableFuture<Void> deleteFuture = metricsService.deleteTags(metric, deletions);
         getUninterruptibly(deleteFuture);
 
-        ListenableFuture<Metric<?>> queryFuture = metricsService.findMetric(metric.getTenantId(), NUMERIC,
+        ListenableFuture<Optional<Metric<?>>> queryFuture = metricsService.findMetric(metric.getTenantId(), NUMERIC,
             metric.getId());
-        Metric<?> updatedMetric = getUninterruptibly(queryFuture);
+        Metric<?> updatedMetric = getUninterruptibly(queryFuture).get();
 
         assertEquals(updatedMetric.getTags(), ImmutableMap.of("a2", "two", "a3", "3"),
             "The updated meta data does not match the expected values");
@@ -235,8 +242,8 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         ListenableFuture<Void> insertFuture = metricsService.addNumericData(asList(m1));
         getUninterruptibly(insertFuture);
 
-        ListenableFuture<List<NumericData>> queryFuture = metricsService.findData(m1, start.getMillis(),
-            end.getMillis());
+        ListenableFuture<List<NumericData>> queryFuture = metricsService.findNumericData("t1", new MetricId("m1"),
+                start.getMillis(), end.getMillis());
         List<NumericData> actual = getUninterruptibly(queryFuture);
         List<NumericData> expected = asList(
             new NumericData(start.plusMinutes(4).getMillis(), 3.3),
@@ -417,8 +424,8 @@ public class MetricsServiceCassandraITest extends MetricsITest {
             start.plusMinutes(5).getMillis());
         getUninterruptibly(tagFuture);
 
-        ListenableFuture<List<NumericData>> queryFuture = metricsService.findData(metric, start.getMillis(),
-            end.getMillis());
+        ListenableFuture<List<NumericData>> queryFuture = metricsService.findNumericData("tenant1", new MetricId("m1"),
+                start.getMillis(), end.getMillis());
         List<NumericData> actual = getUninterruptibly(queryFuture);
         List<NumericData> expected = asList(
             new NumericData(start.plusMinutes(6).getMillis(), 106.6),
@@ -463,25 +470,25 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         ListenableFuture<Void> insertFuture = metricsService.addNumericData(asList(m1, m2, m3, m4));
         getUninterruptibly(insertFuture);
 
-        ListenableFuture<NumericMetric> queryFuture = metricsService.findNumericData(m1, start.getMillis(),
-            end.getMillis());
-        NumericMetric actual = getUninterruptibly(queryFuture);
-        assertMetricEquals(actual, m1);
+        ListenableFuture<List<NumericData>> queryFuture = metricsService.findNumericData(tenantId, m1.getId(),
+                start.getMillis(), end.getMillis());
+        List<NumericData> actual = getUninterruptibly(queryFuture);
+        assertEquals(actual, m1.getData(), "The numeric data for " + m1.getId() + " does not match");
 
-        queryFuture = metricsService.findNumericData(m2, start.getMillis(), end.getMillis());
+        queryFuture = metricsService.findNumericData(tenantId, m2.getId(), start.getMillis(), end.getMillis());
         actual = getUninterruptibly(queryFuture);
-        assertMetricEquals(actual, m2);
+        assertEquals(actual, m2.getData(), "The numeric data for " + m2.getId() + " does not match");
 
-        queryFuture = metricsService.findNumericData(m3, start.getMillis(), end.getMillis());
+        queryFuture = metricsService.findNumericData(tenantId, m3.getId(), start.getMillis(), end.getMillis());
         actual = getUninterruptibly(queryFuture);
-        assertNull(actual, "Did not expect to get back results since there is no data for " + m3);
+        assertTrue(actual.isEmpty(), "Did not expect to get back results for " + m3.getId());
 
-        queryFuture = metricsService.findNumericData(m4, start.getMillis(), end.getMillis());
+        queryFuture = metricsService.findNumericData(tenantId, m4.getId(), start.getMillis(), end.getMillis());
         actual = getUninterruptibly(queryFuture);
         NumericMetric expected = new NumericMetric(tenantId, new MetricId("m4"));
         expected.setDataRetention(24);
         expected.addData(start.plusSeconds(30).getMillis(), 55.5);
-        assertMetricEquals(actual, expected);
+        assertEquals(actual, expected.getData(), "The numeric data for " + m4.getId() + " does not match");
 
         assertMetricIndexMatches(tenantId, NUMERIC, asList(m1, m2, m3, m4));
     }
@@ -507,18 +514,18 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         ListenableFuture<Void> insertFuture = metricsService.addAvailabilityData(asList(m1, m2, m3));
         getUninterruptibly(insertFuture);
 
-        ListenableFuture<AvailabilityMetric> queryFuture = metricsService.findAvailabilityData(m1, start.getMillis(),
-            end.getMillis());
-        AvailabilityMetric actual = getUninterruptibly(queryFuture);
-        assertMetricEquals(actual, m1);
+        ListenableFuture<List<Availability>> queryFuture = metricsService.findAvailabilityData(tenantId, m1.getId(),
+                start.getMillis(), end.getMillis());
+        List<Availability> actual = getUninterruptibly(queryFuture);
+        assertEquals(actual, m1.getData(), "The availability data does not match expected values");
 
-        queryFuture = metricsService.findAvailabilityData(m2, start.getMillis(), end.getMillis());
+        queryFuture = metricsService.findAvailabilityData(tenantId, m2.getId(), start.getMillis(), end.getMillis());
         actual = getUninterruptibly(queryFuture);
-        assertMetricEquals(actual, m2);
+        assertEquals(actual, m2.getData(), "The availability data does not match expected values");
 
-        queryFuture = metricsService.findAvailabilityData(m3, start.getMillis(), end.getMillis());
+        queryFuture = metricsService.findAvailabilityData(tenantId, m3.getId(), start.getMillis(), end.getMillis());
         actual = getUninterruptibly(queryFuture);
-        assertNull(actual, "Did not expect to get back results since there is no data for " + m3);
+        assertEquals(actual.size(), 0, "Did not expect to get back results since there is no data for " + m3);
 
         AvailabilityMetric m4 = new AvailabilityMetric(tenantId, new MetricId("m4"), Collections.EMPTY_MAP, 24);
         getUninterruptibly(metricsService.createMetric(m4));
@@ -528,11 +535,11 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         insertFuture = metricsService.addAvailabilityData(asList(m4));
         getUninterruptibly(insertFuture);
 
-        queryFuture = metricsService.findAvailabilityData(m4, start.getMillis(), end.getMillis());
+        queryFuture = metricsService.findAvailabilityData(tenantId, m4.getId(), start.getMillis(), end.getMillis());
         actual = getUninterruptibly(queryFuture);
         AvailabilityMetric expected = new AvailabilityMetric(tenantId, m4.getId(), Collections.EMPTY_MAP, 24);
         expected.addData(new Availability(start.plusMinutes(2).getMillis(), UP));
-        assertMetricEquals(actual, expected);
+        assertEquals(actual, expected.getData(), "The availability data does not match expected values");
 
         assertMetricIndexMatches(tenantId, AVAILABILITY, asList(m1, m2, m3, m4));
     }
@@ -566,10 +573,9 @@ public class MetricsServiceCassandraITest extends MetricsITest {
             start.plusMinutes(5).getMillis());
         getUninterruptibly(tagFuture);
 
-        ListenableFuture<AvailabilityMetric> queryFuture = metricsService.findAvailabilityData(metric,
-                start.getMillis(), end.getMillis());
-        AvailabilityMetric actualMetric = getUninterruptibly(queryFuture);
-        List<Availability> actual = actualMetric.getData();
+        ListenableFuture<List<Availability>> queryFuture = metricsService.findAvailabilityData("tenant1",
+                metric.getId(), start.getMillis(), end.getMillis());
+        List<Availability> actual = getUninterruptibly(queryFuture);
         List<Availability> expected = asList(
             new Availability(start.plusMinutes(6).getMillis(), UP),
             new Availability(start.plusMinutes(5).getMillis(), UP),
