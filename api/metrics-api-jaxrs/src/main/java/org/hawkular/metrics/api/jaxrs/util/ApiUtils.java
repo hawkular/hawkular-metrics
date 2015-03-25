@@ -23,7 +23,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 
@@ -37,8 +36,10 @@ import org.hawkular.metrics.api.jaxrs.ApiError;
 /**
  * @author jsanda
  */
-@ApplicationScoped
 public class ApiUtils {
+
+    private ApiUtils() {
+    }
 
     public static final Function<Void, Response> MAP_VOID = v -> Response.ok().build();
 
