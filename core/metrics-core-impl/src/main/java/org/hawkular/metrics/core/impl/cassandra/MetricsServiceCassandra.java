@@ -93,6 +93,8 @@ public class MetricsServiceCassandra implements MetricsService {
 
     public static final int DEFAULT_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
+    public static final TenantMapper TENANT_MAPPER = new TenantMapper();
+
     private static class DataRetentionKey {
         private final String tenantId;
         private final MetricId metricId;
