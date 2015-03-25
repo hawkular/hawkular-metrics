@@ -92,9 +92,6 @@ public class MetricHandler {
     @Inject
     private MetricsService metricsService;
 
-    @Inject
-    ApiUtils apiUtils;
-
     @POST
     @Path("/{tenantId}/metrics/numeric")
     @ApiOperation(value = "Create numeric metric definition.", notes = "Clients are not required to explicitly create "
