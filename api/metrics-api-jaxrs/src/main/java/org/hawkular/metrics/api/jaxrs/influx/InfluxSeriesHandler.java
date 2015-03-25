@@ -42,8 +42,14 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
-import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
+import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.influx.query.InfluxQueryParseTreeWalker;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.QueryContext;
@@ -66,6 +72,7 @@ import org.hawkular.metrics.api.jaxrs.influx.query.validation.IllegalQueryExcept
 import org.hawkular.metrics.api.jaxrs.influx.query.validation.QueryValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InfluxObjectValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InvalidObjectException;
+import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.api.jaxrs.util.StringValue;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
@@ -77,13 +84,6 @@ import org.joda.time.Instant;
 import org.joda.time.Interval;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * Some support for InfluxDB clients like Grafana.
@@ -110,42 +110,46 @@ public class InfluxSeriesHandler {
     @Inject
     ToIntervalTranslator toIntervalTranslator;
 
+    @Inject
+    ApiUtils apiUtils;
+
     @POST
     @Consumes(APPLICATION_JSON)
     public void write(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         List<InfluxObject> influxObjects) {
-        if (influxObjects == null) {
-            asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity("Null objects").build());
-            return;
-        }
-        try {
-            objectValidator.validateInfluxObjects(influxObjects);
-        } catch (InvalidObjectException e) {
-            asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build());
-            return;
-        }
-        List<NumericMetric> numericMetrics = FluentIterable.from(influxObjects) //
-            .transform(influxObject -> {
-                List<String> influxObjectColumns = influxObject.getColumns();
-                int valueColumnIndex = influxObjectColumns.indexOf("value");
-                List<List<?>> influxObjectPoints = influxObject.getPoints();
-                NumericMetric numericMetric = new NumericMetric(tenantId, new MetricId(influxObject.getName()));
-                for (List<?> point : influxObjectPoints) {
-                    double value;
-                    long timestamp;
-                    if (influxObjectColumns.size() == 1) {
-                        timestamp = System.currentTimeMillis();
-                        value = ((Number) point.get(0)).doubleValue();
-                    } else {
-                        timestamp = ((Number) point.get((valueColumnIndex + 1) % 2)).longValue();
-                        value = ((Number) point.get(valueColumnIndex)).doubleValue();
-                    }
-                        numericMetric.addData(new NumericData(timestamp, value));
-                }
-                return numericMetric;
-            }).toList();
-        ListenableFuture<Void> future = metricsService.addNumericData(numericMetrics);
-        Futures.addCallback(future, new NoDataCallback<Void>(asyncResponse));
+
+        apiUtils.executeAsync(asyncResponse, () -> {
+            if (influxObjects == null) {
+                return apiUtils.badRequest(new ApiError("Null objects"));
+            }
+            try {
+                objectValidator.validateInfluxObjects(influxObjects);
+            } catch (InvalidObjectException e) {
+                return apiUtils.badRequest(new ApiError(e.getMessage()));
+            }
+            List<NumericMetric> numericMetrics = FluentIterable.from(influxObjects) //
+                    .transform(influxObject -> {
+                        List<String> influxObjectColumns = influxObject.getColumns();
+                        int valueColumnIndex = influxObjectColumns.indexOf("value");
+                        List<List<?>> influxObjectPoints = influxObject.getPoints();
+                        NumericMetric numericMetric = new NumericMetric(tenantId, new MetricId(influxObject.getName()));
+                        for (List<?> point : influxObjectPoints) {
+                            double value;
+                            long timestamp;
+                            if (influxObjectColumns.size() == 1) {
+                                timestamp = System.currentTimeMillis();
+                                value = ((Number) point.get(0)).doubleValue();
+                            } else {
+                                timestamp = ((Number) point.get((valueColumnIndex + 1) % 2)).longValue();
+                                value = ((Number) point.get(valueColumnIndex)).doubleValue();
+                            }
+                            numericMetric.addData(new NumericData(timestamp, value));
+                        }
+                        return numericMetric;
+                    }).toList();
+            ListenableFuture<Void> future = metricsService.addNumericData(numericMetrics);
+            return Futures.transform(future, apiUtils.MAP_VOID);
+        });
     }
 
     @GET
