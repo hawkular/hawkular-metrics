@@ -34,6 +34,66 @@ class CassandraBackendITest extends RESTTest {
   }
 
   @Test
+  void findMetricsWhenThereIsNoData() {
+    def tenantId = nextTenantId()
+
+    def response = hawkularMetrics.get(path: "$tenantId/metrics", query: [type: "num"])
+    assertEquals("Expected a 204 status code when no numeric metrics are found", 204, response.status)
+
+    response = hawkularMetrics.get(path: "$tenantId/metrics", query: [type: "avail"])
+    assertEquals("Expected a 204 status code when no availability metrics are found", 204, response.status)
+  }
+
+  @Test
+  void findMetricTagsWhenThereIsNoData() {
+    def tenantId = nextTenantId()
+
+    def response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/missing/tags")
+    assertEquals("Expected a 204 response when the numeric metric is not found", 204, response.status)
+
+    response = hawkularMetrics.get(path: "$tenantId/metrics/availability/missing/tags")
+    assertEquals("Expected a 204 response when the availability metric is not found", 204, response.status)
+  }
+
+  @Test
+  void findNumericDataForMetricWhenThereIsNoData() {
+    def tenantId = nextTenantId()
+    def metric = "N1"
+
+    def response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/missing/data")
+    assertEquals("Expected a 204 response when the numeric metric does not exist", 204, response.status)
+
+    response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/$metric/data", body: [
+        [timestamp: now().minusHours(2).millis, value: 1.23],
+        [timestamp: now().minusHours(1).millis, value: 3.21]
+    ])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/$metric/data", query: [
+        start: now().minusDays(3).millis, end: now().minusDays(2).millis])
+    assertEquals("Expected a 204 response when there is no data for the specified date range", 204, response.status)
+  }
+
+  @Test
+  void findAvailabilityDataMetricWhenThereIsNoData() {
+    def tenantId = nextTenantId()
+    def metric = 'A1'
+
+    def response = hawkularMetrics.get(path: "$tenantId/metrics/availability/missing/data")
+    assertEquals("Expected a 204 response when the availability metric does not exist", 204, response.status)
+
+    response = hawkularMetrics.post(path: "$tenantId/metrics/availability/$metric/data", body: [
+        [timestamp: now().minusHours(2).millis, value: 'up'],
+        [timestamp: now().minusHours(1).millis, value: 'up']
+    ])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: "$tenantId/metrics/availability/$metric/data", query: [
+        start: now().minusDays(3).millis, end: now().minusDays(2).millis])
+    assertEquals("Expected a 204 response when there is no data for the specified date range", 204, response.status)
+  }
+
+  @Test
   void simpleInsertAndQueryNumericData() {
     DateTimeService dateTimeService = new DateTimeService()
     String tenantId = nextTenantId()
@@ -60,7 +120,7 @@ class CassandraBackendITest extends RESTTest {
 
     response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/$metric/data",
         query: [start: start.minusHours(12).millis, end: end.minusHours(11).millis])
-    assertEquals("Expected a 204 status code when there is no data", 204, response.status)
+    assertEquals("Expected a 204 status code when there is no numeric data", 204, response.status)
   }
 
   @Test
