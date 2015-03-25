@@ -23,7 +23,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.enterprise.context.Dependent;
+import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 
@@ -37,33 +37,33 @@ import org.hawkular.metrics.api.jaxrs.ApiError;
 /**
  * @author jsanda
  */
-@Dependent
+@ApplicationScoped
 public class ApiUtils {
 
-    public final Function<Void, Response> MAP_VOID = v -> Response.ok().build();
+    public static final Function<Void, Response> MAP_VOID = v -> Response.ok().build();
 
-    public final Function<Optional<?>, Response> MAP_VALUE = optional ->
+    public static final Function<Optional<?>, Response> MAP_VALUE = optional ->
             optional.map(value -> Response.ok(value).build()).orElse(noContent());
 
-    public final Function<Collection<?>, Response> MAP_COLLECTION = collection ->
+    public static final Function<Collection<?>, Response> MAP_COLLECTION = collection ->
             collection.isEmpty() ? noContent() : Response.ok(collection).build();
 
-    public final Function<Map<?, ?>, Response> MAP_MAP = map ->
+    public static final Function<Map<?, ?>, Response> MAP_MAP = map ->
             map.isEmpty() ? noContent() : Response.ok(map).build();
 
-    public Response noContent() {
+    public static Response noContent() {
         return Response.noContent().build();
     }
 
-    public ListenableFuture<Response> emptyPayload() {
+    public static ListenableFuture<Response> emptyPayload() {
         return badRequest(new ApiError("Payload is empty"));
     }
 
-    public ListenableFuture<Response> badRequest(ApiError error) {
+    public static ListenableFuture<Response> badRequest(ApiError error) {
         return Futures.immediateFuture(Response.status(Response.Status.BAD_REQUEST).entity(error).build());
     }
 
-    public void executeAsync(AsyncResponse asyncResponse,
+    public static void executeAsync(AsyncResponse asyncResponse,
             java.util.function.Supplier<ListenableFuture<Response>> supplier) {
         ListenableFuture<Response> future = supplier.get();
         Futures.addCallback(future, new FutureCallback<Response>() {
@@ -80,7 +80,7 @@ public class ApiUtils {
         });
     }
 
-    public Map<String, String> decodeTags(String tags) {
+    public static Map<String, String> decodeTags(String tags) {
         return Arrays.stream(tags.split(","))
                 .map(s -> s.split(":"))
                 .collect(toMap(a -> a[0], a -> a[1]));

@@ -60,9 +60,6 @@ public class TenantsHandler {
     @Inject
     private MetricsService metricsService;
 
-    @Inject
-    private ApiUtils apiUtils;
-
     @POST
     @ApiOperation(value = "Create a new tenant. ", notes = "Clients are not required to create explicitly create a "
             + "tenant before starting to store metric data. It is recommended to do so however to ensure that there "
@@ -100,9 +97,9 @@ public class TenantsHandler {
                          response = ApiError.class)
     })
     public void findTenants(@Suspended AsyncResponse asyncResponse) {
-        apiUtils.executeAsync(asyncResponse, () -> {
+        ApiUtils.executeAsync(asyncResponse, () -> {
             ListenableFuture<List<Tenant>> future = metricsService.getTenants();
-            return Futures.transform(future, apiUtils.MAP_COLLECTION);
+            return Futures.transform(future, ApiUtils.MAP_COLLECTION);
         });
     }
 }

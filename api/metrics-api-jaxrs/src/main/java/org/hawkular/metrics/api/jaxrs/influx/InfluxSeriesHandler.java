@@ -110,22 +110,19 @@ public class InfluxSeriesHandler {
     @Inject
     ToIntervalTranslator toIntervalTranslator;
 
-    @Inject
-    ApiUtils apiUtils;
-
     @POST
     @Consumes(APPLICATION_JSON)
     public void write(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         List<InfluxObject> influxObjects) {
 
-        apiUtils.executeAsync(asyncResponse, () -> {
+        ApiUtils.executeAsync(asyncResponse, () -> {
             if (influxObjects == null) {
-                return apiUtils.badRequest(new ApiError("Null objects"));
+                return ApiUtils.badRequest(new ApiError("Null objects"));
             }
             try {
                 objectValidator.validateInfluxObjects(influxObjects);
             } catch (InvalidObjectException e) {
-                return apiUtils.badRequest(new ApiError(e.getMessage()));
+                return ApiUtils.badRequest(new ApiError(e.getMessage()));
             }
             List<NumericMetric> numericMetrics = FluentIterable.from(influxObjects) //
                     .transform(influxObject -> {
@@ -148,7 +145,7 @@ public class InfluxSeriesHandler {
                         return numericMetric;
                     }).toList();
             ListenableFuture<Void> future = metricsService.addNumericData(numericMetrics);
-            return Futures.transform(future, apiUtils.MAP_VOID);
+            return Futures.transform(future, ApiUtils.MAP_VOID);
         });
     }
 

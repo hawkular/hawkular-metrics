@@ -17,6 +17,7 @@
 package org.hawkular.metrics.core.impl.cassandra;
 
 import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toList;
 import static org.joda.time.Hours.hours;
 
 import java.io.IOException;
@@ -36,6 +37,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.management.MBeanInfo;
 import javax.management.MBeanServerConnection;
@@ -92,8 +95,6 @@ public class MetricsServiceCassandra implements MetricsService {
     public static final String REQUEST_LIMIT = "hawkular.metrics.request.limit";
 
     public static final int DEFAULT_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
-
-    public static final TenantMapper TENANT_MAPPER = new TenantMapper();
 
     private static class DataRetentionKey {
         private final String tenantId;
@@ -402,30 +403,12 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public ListenableFuture<List<Tenant>> getTenants() {
-        ListenableFuture<List<String>> tenantIdsFuture = Futures.transform(
-                dataAccess.findAllTenantIds(), (ResultSet input) -> {
-                    if (input.isExhausted()) {
-                        return null;
-                    }
-                    List<String> tenantIds = new ArrayList<>();
-                    for (Row row : input) {
-                        tenantIds.add(row.getString(0));
-                    }
-                    return tenantIds;
-                }, metricsTasks
-        );
-        return Futures.transform(
-                tenantIdsFuture, (List<String> input) -> {
-                    if (input == null) {
-                        return Futures.immediateFuture(null);
-                    }
-                    List<ListenableFuture<Tenant>> tenantFutures = new ArrayList<>();
-                    for (String tenantId : input) {
-                        tenantFutures.add(Futures.transform(dataAccess.findTenant(tenantId), TENANT_MAPPER));
-                    }
-                    return Futures.allAsList(tenantFutures);
-                }
-        );
+        ListenableFuture<Stream<String>> tenantIdsFuture = Futures.transform(
+                dataAccess.findAllTenantIds(), (ResultSet input) ->
+                    StreamSupport.stream(input.spliterator(), false).map(row -> row.getString(0)), metricsTasks);
+
+        return Futures.transform(tenantIdsFuture, (Stream<String> input) ->
+                Futures.allAsList(input.map(dataAccess::findTenant).map(Functions::getTenant).collect(toList())));
     }
 
     private List<String> loadTenantIds() {

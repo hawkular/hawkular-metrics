@@ -102,7 +102,7 @@ public class DataAccessITest extends MetricsITest {
         getUninterruptibly(insertFuture);
 
         ResultSetFuture queryFuture = dataAccess.findTenant(tenant1.getId());
-        ListenableFuture<Tenant> tenantFuture = Futures.transform(queryFuture, new TenantMapper());
+        ListenableFuture<Tenant> tenantFuture = Functions.getTenant(queryFuture);
         Tenant actual = getUninterruptibly(tenantFuture);
         Tenant expected = tenant1;
 
@@ -131,7 +131,7 @@ public class DataAccessITest extends MetricsITest {
 
         ResultSetFuture queryFuture = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
                 end.getMillis());
-        ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
+        ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, Functions.MAP_NUMERIC_DATA);
         List<NumericData> actual = getUninterruptibly(dataFuture);
         List<NumericData> expected = asList(
             new NumericData(start.plusMinutes(2).getMillis(), 1.234),
@@ -161,7 +161,7 @@ public class DataAccessITest extends MetricsITest {
 
         ResultSetFuture queryFuture = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
                 end.getMillis());
-        ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
+        ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, Functions.MAP_NUMERIC_DATA);
         List<NumericData> actual = getUninterruptibly(dataFuture);
         List<NumericData> expected = asList(
             new NumericData(start.plusMinutes(4).getMillis(), 1.234),
