@@ -32,7 +32,7 @@ public class SimpleDataCallback<T> extends NoDataCallback<T> {
     @Override
     public void onSuccess(Object responseData) {
         if (responseData == null) {
-            asyncResponse.resume(Response.noContent().build());
+             asyncResponse.resume(Response.noContent().build());
         } else if (responseData instanceof Optional) {
             Optional optional = (Optional) responseData;
             if (optional.isPresent()) {
