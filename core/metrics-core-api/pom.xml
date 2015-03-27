@@ -81,14 +81,13 @@
     <dependency>
       <groupId>com.wordnik</groupId>
       <artifactId>swagger-annotations</artifactId>
-      <version>${swagger.version}</version>
       <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>com.wordnik</groupId>
       <artifactId>swagger-core_2.10</artifactId>
-      <version>${swagger.version}</version>
+      <scope>provided</scope>
     </dependency>
 
     <!-- test -->
