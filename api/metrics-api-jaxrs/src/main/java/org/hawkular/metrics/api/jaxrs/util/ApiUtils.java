@@ -16,9 +16,6 @@
  */
 package org.hawkular.metrics.api.jaxrs.util;
 
-import static java.util.stream.Collectors.toMap;
-
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -26,12 +23,13 @@ import java.util.Optional;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 
+import org.hawkular.metrics.api.jaxrs.ApiError;
+
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import org.hawkular.metrics.api.jaxrs.ApiError;
 
 /**
  * @author jsanda
@@ -80,11 +78,4 @@ public class ApiUtils {
             }
         });
     }
-
-    public static Map<String, String> decodeTags(String tags) {
-        return Arrays.stream(tags.split(","))
-                .map(s -> s.split(":"))
-                .collect(toMap(a -> a[0], a -> a[1]));
-    }
-
 }

@@ -23,6 +23,8 @@ import javax.ws.rs.ext.ParamConverter;
 import javax.ws.rs.ext.ParamConverterProvider;
 import javax.ws.rs.ext.Provider;
 
+import com.google.common.collect.ImmutableMap;
+
 /**
  * Provides Metrics {@link javax.ws.rs.ext.ParamConverterProvider} instances.
  *
@@ -30,16 +32,21 @@ import javax.ws.rs.ext.Provider;
  */
 @Provider
 public class ConvertersProvider implements ParamConverterProvider {
-    private final DurationConverter durationConverter = new DurationConverter();
+    private final ImmutableMap<Class<?>, ParamConverter<?>> paramConverters;
+
+    public ConvertersProvider() {
+        ImmutableMap.Builder<Class<?>, ParamConverter<?>> paramConvertersBuilder = ImmutableMap.builder();
+        paramConverters = paramConvertersBuilder
+                .put(Duration.class, new DurationConverter())
+                .put(Tags.class, new TagsConverter())
+                .build();
+    }
 
     @Override
     @SuppressWarnings("unchecked")
     public <T> ParamConverter<T> getConverter(
             Class<T> rawType, Type genericType, Annotation[] annotations
     ) {
-        if (rawType.equals(Duration.class)) {
-            return (ParamConverter<T>) durationConverter;
-        }
-        return null;
+        return (ParamConverter<T>) paramConverters.get(rawType);
     }
 }

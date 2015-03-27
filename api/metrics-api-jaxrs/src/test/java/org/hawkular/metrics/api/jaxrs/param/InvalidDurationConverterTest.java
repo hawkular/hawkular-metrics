@@ -29,7 +29,7 @@ import org.junit.runners.Parameterized.Parameters;
  * @author Thomas Segismont
  */
 @RunWith(Parameterized.class)
-public class InvalidValueDurationConverterTest {
+public class InvalidDurationConverterTest {
 
     @Parameters(name = "{0}")
     public static Iterable<Object[]> params() {
@@ -49,7 +49,7 @@ public class InvalidValueDurationConverterTest {
 
     private String value;
 
-    public InvalidValueDurationConverterTest(String value) {
+    public InvalidDurationConverterTest(String value) {
         this.value = value;
     }
 

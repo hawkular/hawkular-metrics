@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 package org.hawkular.metrics.rest
-import org.hawkular.metrics.core.impl.DateTimeService
-import org.joda.time.DateTime
-import org.junit.Test
 
 import static org.joda.time.DateTime.now
 import static org.joda.time.Seconds.seconds
 import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertTrue
+
+import org.hawkular.metrics.core.impl.DateTimeService
+import org.joda.time.DateTime
+import org.junit.Test
 
 class CassandraBackendITest extends RESTTest {
 
@@ -42,17 +42,6 @@ class CassandraBackendITest extends RESTTest {
 
     response = hawkularMetrics.get(path: "$tenantId/metrics", query: [type: "avail"])
     assertEquals("Expected a 204 status code when no availability metrics are found", 204, response.status)
-  }
-
-  @Test
-  void findMetricTagsWhenThereIsNoData() {
-    def tenantId = nextTenantId()
-
-    def response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/missing/tags")
-    assertEquals("Expected a 204 response when the numeric metric is not found", 204, response.status)
-
-    response = hawkularMetrics.get(path: "$tenantId/metrics/availability/missing/tags")
-    assertEquals("Expected a 204 response when the availability metric is not found", 204, response.status)
   }
 
   @Test
@@ -323,168 +312,6 @@ class CassandraBackendITest extends RESTTest {
   }
 
   @Test
-  void createMetricsAndUpdateTags() {
-    String tenantId = nextTenantId()
-
-    // Create a numeric metric
-    def response = hawkularMetrics.post(path: "$tenantId/metrics/numeric", body: [
-        id: 'N1',
-        tags: [a1: 'A', b1: 'B']
-    ])
-    assertEquals(201, response.status)
-
-    // Make sure we do not allow duplicates
-    badPost(path: "$tenantId/metrics/numeric", body: [id: 'N1']) { exception ->
-      assertEquals(409, exception.response.status)
-      assertNotNull(exception.response.data['errorMsg'])
-    }
-
-    // Create a numeric metric that sets its data retention
-    response = hawkularMetrics.post(path: "$tenantId/metrics/numeric", body: [
-        id: 'N2',
-        tags: [a2: '2', b2: 'B2'],
-        dataRetention: 96
-    ])
-    assertEquals(201, response.status)
-
-    // Create an availability metric
-    response = hawkularMetrics.post(path: "$tenantId/metrics/availability", body: [
-        id: 'A1',
-        tags: [a2: '2', b2: '2']
-    ])
-    assertEquals(201, response.status)
-
-    // Create an availability metric that sets its data retention
-    response = hawkularMetrics.post(path: "$tenantId/metrics/availability", body: [
-        id: 'A2',
-        tags: [a22: '22', b22: '22'],
-        dataRetention: 48
-    ])
-    assertEquals(201, response.status)
-
-    // Make sure we do not allow duplicates
-    badPost(path: "$tenantId/metrics/availability", body: [id: 'A1']) { exception ->
-      assertEquals(409, exception.response.status)
-      assertNotNull(exception.response.data['errorMsg'])
-    }
-
-    // Fetch numeric tags
-    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/N1/tags")
-    assertEquals(200, response.status)
-    assertEquals(
-        [
-            tenantId: tenantId,
-            id: 'N1',
-            tags: [a1: 'A', b1: 'B']
-        ],
-        response.data
-    )
-
-    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/N2/tags")
-    assertEquals(200, response.status)
-    assertEquals(
-        [
-            tenantId: tenantId,
-            id: 'N2',
-            tags: [a2: '2', b2: 'B2'],
-            dataRetention: 96
-        ],
-        response.data
-    )
-
-    // Verify the response for a non-existent metric
-    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/N-doesNotExist/tags")
-    assertEquals(204, response.status)
-
-    // Fetch availability metric tags
-    response = hawkularMetrics.get(path: "$tenantId/metrics/availability/A1/tags")
-    assertEquals(200, response.status)
-    assertEquals(
-        [
-            tenantId: tenantId,
-            id: 'A1',
-            tags: [a2: '2', b2: '2']
-        ],
-        response.data
-    )
-
-    response = hawkularMetrics.get(path: "$tenantId/metrics/availability/A2/tags")
-    assertEquals(200, response.status)
-    assertEquals(
-        [
-            tenantId: tenantId,
-            id: 'A2',
-            tags: [a22: '22', b22: '22'],
-            dataRetention: 48
-        ],
-        response.data
-    )
-
-    // Verify the response for a non-existent metric
-    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/A-doesNotExist/tags")
-    assertEquals(204, response.status)
-
-    // Update the numeric metric tags
-    response = hawkularMetrics.put(path: "$tenantId/metrics/numeric/N1/tags", body: [a1: 'one', a2: '2', b1: 'B'])
-    assertEquals(200, response.status)
-
-    // Fetch the updated tags
-    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/N1/tags")
-    assertEquals(200, response.status)
-    assertEquals(
-        [
-            tenantId: tenantId,
-            id: 'N1',
-            tags: [a1: 'one', a2: '2', b1: 'B']
-        ],
-        response.data
-    )
-
-    // Delete a numeric metric tag
-    response = hawkularMetrics.delete(path: "$tenantId/metrics/numeric/N1/tags/a2:2,b1:B")
-    assertEquals(200, response.status)
-    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/N1/tags")
-    assertEquals(
-        [
-            tenantId: tenantId,
-            id: 'N1',
-            tags: [a1: 'one']
-        ],
-        response.data
-    )
-
-    // Update the availability metric data
-    response = hawkularMetrics.put(path: "$tenantId/metrics/availability/A1/tags", body: [a2: 'two', a3: 'THREE'])
-    assertEquals(200, response.status)
-
-    // Fetch the updated tags
-    response = hawkularMetrics.get(path: "$tenantId/metrics/availability/A1/tags")
-    assertEquals(200, response.status)
-    assertEquals(
-        [
-            tenantId: tenantId,
-            id: 'A1',
-            tags: [a2: 'two', a3: 'THREE', b2: '2']
-        ],
-        response.data
-    )
-
-    // delete an availability metric tag
-    response = hawkularMetrics.delete(path: "$tenantId/metrics/availability/A1/tags/a2:two,b2:2")
-    assertEquals(200, response.status)
-
-    response = hawkularMetrics.get(path: "$tenantId/metrics/availability/A1/tags")
-    assertEquals(
-        [
-            tenantId: tenantId,
-            id    : 'A1',
-            tags    : [a3: 'THREE']
-        ],
-        response.data
-    )
-  }
-
-  @Test
   void findMetrics() {
     DateTime start = now().minusMinutes(20)
     def tenantId = nextTenantId()
@@ -650,20 +477,5 @@ class CassandraBackendITest extends RESTTest {
     expected.n4.eachWithIndex { expectedDataPoint, i ->
       assertNumericDataPointEquals(expectedDataPoint, response.data.n4[i])
     }
-  }
-
-    void assertMetricsEquals(Map expected, Map actual) {
-      expected.each { k, v ->
-        assertNotNull("The metrics do not contain an entry for $k", actual[k])
-      assertMetricEquals(v, actual[k])
-    }
-  }
-
-  void assertMetricEquals(Map expected, Map actual) {
-    assertEquals("The tenantId does not match", expected.tenantId, actual.tenantId)
-    assertEquals("The metric name does not match", expected.id, actual.id)
-    assertEquals("The number of data points does not match", expected.data.size, actual.data.size)
-    expected.data.eachWithIndex { expectedDataPoint, i ->
-      assertNumericDataPointEquals(expectedDataPoint, actual.data[i]) }
   }
 }

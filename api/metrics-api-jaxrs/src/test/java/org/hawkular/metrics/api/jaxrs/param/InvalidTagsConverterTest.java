@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.api.jaxrs.param;
 
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static org.hamcrest.CoreMatchers.equalTo;
 
 import java.util.Arrays;
 
@@ -32,14 +32,19 @@ import org.junit.runners.Parameterized.Parameters;
  * @author Thomas Segismont
  */
 @RunWith(Parameterized.class)
-public class InvalidDurationDurationConverterTest {
+public class InvalidTagsConverterTest {
 
     @Parameters(name = "{0}")
     public static Iterable<Object[]> params() {
         return Arrays.asList(
                 new Object[][]{
-                        {new Duration(1, NANOSECONDS)},
-                        {new Duration(2, MICROSECONDS)},
+                        {"       "},
+                        {","},
+                        {",,"},
+                        {",dsqqs"},
+                        {":"},
+                        {"7:5,  3  , a:b"},
+                        {"7:5,, a:b"},
                 }
         );
     }
@@ -47,16 +52,18 @@ public class InvalidDurationDurationConverterTest {
     @Rule
     public final ExpectedException expectedException = ExpectedException.none();
 
-    private Duration duration;
+    private String value;
 
-    public InvalidDurationDurationConverterTest(Duration duration) {
-        this.duration = duration;
+    public InvalidTagsConverterTest(String value) {
+        this.value = value;
     }
 
+
     @Test
-    public void testToString() throws Exception {
+    public void testFromString() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(equalTo("Invalid tags: " + value));
         //noinspection ResultOfMethodCallIgnored
-        new DurationConverter().toString(duration);
+        new TagsConverter().fromString(value);
     }
 }
