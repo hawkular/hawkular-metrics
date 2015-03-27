@@ -21,6 +21,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.executeAsync;
 import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
 
@@ -403,16 +404,13 @@ public class MetricHandler {
             @PathParam("tenantId") String tenantId,
             @ApiParam(value = "Tag list", required = true) @QueryParam("tags") Tags tags
     ) {
-        if (tags == null) {
-            Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Missing tags query")).build();
-            asyncResponse.resume(response);
-            return;
-        }
         executeAsync(
                 asyncResponse, () -> {
-                    ListenableFuture<Map<MetricId, Set<NumericData>>>
-                            future
-                            = metricsService.findNumericDataByTags(tenantId, tags.getTags());
+                    if (tags == null) {
+                        return badRequest(new ApiError("Missing tags query"));
+                    }
+                    ListenableFuture<Map<MetricId, Set<NumericData>>> future;
+                    future = metricsService.findNumericDataByTags(tenantId, tags.getTags());
                     return Futures.transform(future, ApiUtils.MAP_MAP);
                 }
         );
@@ -433,16 +431,13 @@ public class MetricHandler {
             @PathParam("tenantId") String tenantId,
             @ApiParam(value = "Tag list", required = true) @QueryParam("tags") Tags tags
     ) {
-        if (tags == null) {
-            Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Missing tags query")).build();
-            asyncResponse.resume(response);
-            return;
-        }
         executeAsync(
                 asyncResponse, () -> {
-                    ListenableFuture<Map<MetricId, Set<Availability>>> future = metricsService.findAvailabilityByTags(
-                            tenantId, tags.getTags()
-                    );
+                    if (tags == null) {
+                        return badRequest(new ApiError("Missing tags query"));
+                    }
+                    ListenableFuture<Map<MetricId, Set<Availability>>> future;
+                    future = metricsService.findAvailabilityByTags(tenantId, tags.getTags());
                     return Futures.transform(future, ApiUtils.MAP_MAP);
                 }
         );
