@@ -482,7 +482,7 @@ public class MetricHandler {
                     }
 
                     if (bucketsCount != null && bucketDuration != null) {
-                        return ApiUtils.badRequest(new ApiError("Both buckets and bucketDuration parameters are used"));
+                        return badRequest(new ApiError("Both buckets and bucketDuration parameters are used"));
                     }
 
                     Buckets buckets;
@@ -493,26 +493,15 @@ public class MetricHandler {
                             buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
                         }
                     } catch (IllegalArgumentException e) {
-                        return ApiUtils.badRequest(new ApiError("Bucket: " + e.getMessage()));
+                        return badRequest(new ApiError("Bucket: " + e.getMessage()));
                     }
 
-                    ListenableFuture<BucketedOutput<NumericBucketDataPoint>>
-                            dataFuture
-                            = metricsService.findNumericStats(
-                            metric, startTime, endTime, buckets
-                    );
-                    ListenableFuture<List<NumericBucketDataPoint>> outputFuture = Futures.transform(
-                            dataFuture,
-                            new Function<BucketedOutput<NumericBucketDataPoint>, List<NumericBucketDataPoint>>() {
-                                @Override
-                                public List<NumericBucketDataPoint> apply(BucketedOutput<NumericBucketDataPoint> input) {
-                                    if (input == null) {
-                                        return null;
-                                    }
-                                    return input.getData();
-                                }
-                            }
-                    );
+                    ListenableFuture<BucketedOutput<NumericBucketDataPoint>> dataFuture;
+                    dataFuture = metricsService.findNumericStats(metric, startTime, endTime, buckets);
+
+                    ListenableFuture<List<NumericBucketDataPoint>> outputFuture;
+                    outputFuture = Futures.transform(dataFuture, BucketedOutput<NumericBucketDataPoint>::getData);
+
                     return Futures.transform(outputFuture, ApiUtils.MAP_COLLECTION);
                 }
         );
@@ -573,7 +562,7 @@ public class MetricHandler {
                     }
 
                     if (predicate == null) {
-                        return ApiUtils.badRequest(
+                        return badRequest(
                                 new ApiError(
                                         "Invalid value for op parameter. Supported values are lt, " +
                                         "lte, eq, gt, gte."
@@ -630,7 +619,7 @@ public class MetricHandler {
                     }
 
                     if (bucketsCount != null && bucketDuration != null) {
-                        return ApiUtils.badRequest(new ApiError("Both buckets and bucketDuration parameters are used"));
+                        return badRequest(new ApiError("Both buckets and bucketDuration parameters are used"));
                     }
 
                     Buckets buckets;
@@ -641,24 +630,13 @@ public class MetricHandler {
                             buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
                         }
                     } catch (IllegalArgumentException e) {
-                        return ApiUtils.badRequest(new ApiError("Bucket: " + e.getMessage()));
+                        return badRequest(new ApiError("Bucket: " + e.getMessage()));
                     }
-                    ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> dataFuture =
-                            metricsService.findAvailabilityStats(metric, startTime, endTime, buckets);
-                    ListenableFuture<List<AvailabilityBucketDataPoint>> outputFuture = Futures.transform(
-                            dataFuture,
-                            new Function<BucketedOutput<AvailabilityBucketDataPoint>, List<AvailabilityBucketDataPoint>>() {
-                                @Override
-                                public List<AvailabilityBucketDataPoint> apply(
-                                        BucketedOutput<AvailabilityBucketDataPoint> input
-                                ) {
-                                    if (input == null) {
-                                        return null;
-                                    }
-                                    return input.getData();
-                                }
-                            }
-                    );
+                    ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> dataFuture;
+                    dataFuture = metricsService.findAvailabilityStats(metric, startTime, endTime, buckets);
+
+                    ListenableFuture<List<AvailabilityBucketDataPoint>> outputFuture;
+                    outputFuture = Futures.transform(dataFuture, BucketedOutput<AvailabilityBucketDataPoint>::getData);
                     return Futures.transform(outputFuture, ApiUtils.MAP_COLLECTION);
                 }
         );
@@ -875,7 +853,7 @@ public class MetricHandler {
                     try {
                         metricType = MetricType.fromTextCode(type);
                     } catch (IllegalArgumentException e) {
-                        return ApiUtils.badRequest(
+                        return badRequest(
                                 new ApiError("[" + type + "] is not a valid type. Accepted values are num|avail|log")
                         );
                     }
