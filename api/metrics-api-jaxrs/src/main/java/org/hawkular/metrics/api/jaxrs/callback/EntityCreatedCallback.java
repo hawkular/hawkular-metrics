@@ -77,7 +77,6 @@ public abstract class EntityCreatedCallback<E> implements FutureCallback<Void> {
             String message = "Failed to create tenant due to an unexpected error: "
                              + Throwables.getRootCause(t).getMessage();
             response = Response.serverError().entity(new ApiError(message)).build();
-
         }
         asyncResponse.resume(response);
     }
