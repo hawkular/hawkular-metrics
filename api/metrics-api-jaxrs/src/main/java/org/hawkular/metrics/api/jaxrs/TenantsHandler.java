@@ -16,90 +16,61 @@
  */
 package org.hawkular.metrics.api.jaxrs;
 
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static org.hawkular.metrics.api.jaxrs.util.ResponseUtils.alreadyExistsFallback;
+import static org.hawkular.metrics.api.jaxrs.util.ResponseUtils.created;
+import static org.hawkular.metrics.api.jaxrs.util.ResponseUtils.emptyPayload;
 
 import java.net.URI;
 import java.util.List;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.container.Suspended;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import org.hawkular.metrics.api.jaxrs.callback.TenantCreatedCallback;
-import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.api.jaxrs.service.TenantsServiceBase;
+import org.hawkular.metrics.api.jaxrs.util.ResponseUtils;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.Tenant;
+import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
+
+import com.google.common.util.concurrent.FutureFallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * @author Thomas Segismont
  */
-@Path("/tenants")
-@Consumes(APPLICATION_JSON)
-@Produces(APPLICATION_JSON)
-@Api(value = "/tenants", description = "Tenants related REST interface")
-public class TenantsHandler {
+@ApplicationScoped
+public class TenantsHandler extends TenantsServiceBase {
 
     // TODO: add back retention settings
 
     @Inject
     private MetricsService metricsService;
 
-    @POST
-    @ApiOperation(value = "Create a new tenant. ", notes = "Clients are not required to create explicitly create a "
-            + "tenant before starting to store metric data. It is recommended to do so however to ensure that there "
-            + "are no tenant id naming collisions and to provide default data retention settings. ")
-    @ApiResponses(value = {
-            @ApiResponse(code = 201, message = "Tenant has been succesfully created."),
-            @ApiResponse(code = 400, message = "Missing or invalid retention properties. ",
-                         response = ApiError.class),
-            @ApiResponse(code = 409, message = "Given tenant id has already been created.",
-                         response = ApiError.class),
-            @ApiResponse(code = 500, message = "An unexpected error occured while trying to create a tenant.",
-                         response = ApiError.class)
-    })
-    public void createTenant(
-            @Suspended AsyncResponse asyncResponse, @ApiParam(required = true) Tenant params,
-            @Context UriInfo uriInfo
-    ) {
+    @Override
+    protected ListenableFuture<Response> _createTenant(Tenant params, UriInfo uriInfo) {
         if (params == null) {
-            Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Payload is empty")).build();
-            asyncResponse.resume(response);
-            return;
+            return emptyPayload();
         }
         ListenableFuture<Void> insertFuture = metricsService.createTenant(params);
-        URI created = uriInfo.getBaseUriBuilder().path("/tenants").build();
-        TenantCreatedCallback tenantCreatedCallback = new TenantCreatedCallback(asyncResponse, created);
-        Futures.addCallback(insertFuture, tenantCreatedCallback);
+        URI location = uriInfo.getBaseUriBuilder().path("/tenants").build();
+        ListenableFuture<Response> responseFuture = Futures.transform(insertFuture, created(location));
+        FutureFallback<Response> fallback = alreadyExistsFallback(
+                TenantAlreadyExistsException.class,
+                TenantsHandler::alreadyExistsError
+        );
+        return Futures.withFallback(responseFuture, fallback);
     }
 
-    @GET
-    @ApiOperation(value = "Returns a list of tenants.")
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Returned a list of tenants successfully."),
-            @ApiResponse(code = 204, message = "No tenants were found."),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching tenants.",
-                         response = ApiError.class)
-    })
-    public void findTenants(@Suspended AsyncResponse asyncResponse) {
-        ApiUtils.executeAsync(asyncResponse, () -> {
-            ListenableFuture<List<Tenant>> future = metricsService.getTenants();
-            return Futures.transform(future, ApiUtils.MAP_COLLECTION);
-        });
+    private static ApiError alreadyExistsError(TenantAlreadyExistsException e) {
+        return new ApiError("Tenant with id " + e.getTenantId() + " already exists");
+    }
+
+    @Override
+    protected ListenableFuture<Response> _findTenants() {
+        ListenableFuture<List<Tenant>> future = metricsService.getTenants();
+        return Futures.transform(future, ResponseUtils.MAP_COLLECTION);
     }
 }

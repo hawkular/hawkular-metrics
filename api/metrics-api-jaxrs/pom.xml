@@ -125,11 +125,52 @@
             </goals>
             <phase>generate-sources</phase>
             <configuration>
+              <outputDirectory>${project.build.directory}/generated-sources/antlr4</outputDirectory>
               <listener>true</listener>
               <visitor>true</visitor>
             </configuration>
           </execution>
         </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.bsc.maven</groupId>
+        <artifactId>maven-processor-plugin</artifactId>
+        <version>2.2.4</version>
+        <executions>
+          <execution>
+            <id>process</id>
+            <goals>
+              <goal>process</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <processors>
+                <processor>org.hawkular.metrics.api.jaxrs.service.processor.ServiceInterfaceProcessor</processor>
+              </processors>
+              <outputDirectory>${project.build.directory}/generated-sources/jax-rs</outputDirectory>
+              <additionalSourceDirectories>
+                <additionalSourceDirectory>${project.build.directory}/generated-sources/antlr4
+                </additionalSourceDirectory>
+              </additionalSourceDirectories>
+            </configuration>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>org.hawkular.metrics</groupId>
+            <artifactId>metrics-api-jaxrs-processor</artifactId>
+            <version>${project.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <compilerArgument>-proc:none</compilerArgument>
+        </configuration>
       </plugin>
 
       <plugin>
