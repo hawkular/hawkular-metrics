@@ -37,7 +37,7 @@ class InfluxITest extends RESTTest {
 
     def influxQuery = 'select value from "' + timeseriesName + '" order asc'
 
-    def response = hawkularMetrics.get(path: "tenants/${tenantId}/influx/series", query: [q: influxQuery])
+    def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
 
     assertEquals(
@@ -66,7 +66,7 @@ class InfluxITest extends RESTTest {
 
     def influxQuery = 'select value from "' + timeseriesName + '"'
 
-    def response = hawkularMetrics.get(path: "tenants/${tenantId}/influx/series", query: [q: influxQuery])
+    def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
 
     assertEquals(
@@ -95,7 +95,7 @@ class InfluxITest extends RESTTest {
 
     def influxQuery = 'select mean(value) from "' + timeseriesName + '" where time > now() - 30s group by time(30s) '
 
-    def response = hawkularMetrics.get(path: "tenants/${tenantId}/influx/series", query: [q: influxQuery])
+    def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
 
     assertEquals(
@@ -120,7 +120,7 @@ class InfluxITest extends RESTTest {
 
     def influxQuery = 'select value from "' + timeseriesName + '" limit 2 order asc '
 
-    def response = hawkularMetrics.get(path: "tenants/${tenantId}/influx/series", query: [q: influxQuery])
+    def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
 
     assertEquals(
@@ -148,7 +148,7 @@ class InfluxITest extends RESTTest {
                         and time < '2013-08-13' group by time(30s) '''
 
 
-    def response = hawkularMetrics.get(path: "tenants/${tenantId}/influx/series", query: [q: influxQuery])
+    def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
 
     assertEquals(
@@ -170,7 +170,7 @@ class InfluxITest extends RESTTest {
 
     def influxQuery = 'select top(value, 3) from "' + timeseriesName + '" where time > now() - 30s group by time(30s)'
 
-    def response = hawkularMetrics.get(path: "tenants/${tenantId}/influx/series", query: [q: influxQuery])
+    def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
 
     assertEquals(
@@ -196,7 +196,7 @@ class InfluxITest extends RESTTest {
 
     def influxQuery = 'select bottom(value, 3) from "' + timeseriesName + '" where time > now() - 30s group by time(30s)'
 
-    def response = hawkularMetrics.get(path: "tenants/${tenantId}/influx/series", query: [q: influxQuery])
+    def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
 
     assertEquals(
@@ -223,7 +223,7 @@ class InfluxITest extends RESTTest {
 
     def influxQuery = 'select stddev(value) from "' + timeseriesName + '" where time > now() - 30s group by time(30s)'
 
-    def response = hawkularMetrics.get(path: "tenants/${tenantId}/influx/series", query: [q: influxQuery])
+    def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
 
     assertEquals(
@@ -241,7 +241,7 @@ class InfluxITest extends RESTTest {
   }
 
   private static void postData(String timeseriesName, DateTime start) {
-    def response = hawkularMetrics.post(path: "tenants/${tenantId}/influx/series", body: [
+    def response = hawkularMetrics.post(path: "db/${tenantId}/series", body: [
         [
             name: timeseriesName,
             columns: ["time", "value"],
