@@ -44,7 +44,6 @@ import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
-import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.influx.query.InfluxQueryParseTreeWalker;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.QueryContext;
@@ -67,7 +66,6 @@ import org.hawkular.metrics.api.jaxrs.influx.query.validation.IllegalQueryExcept
 import org.hawkular.metrics.api.jaxrs.influx.query.validation.QueryValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InfluxObjectValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InvalidObjectException;
-import org.hawkular.metrics.api.jaxrs.util.ResponseUtils;
 import org.hawkular.metrics.api.jaxrs.util.StringValue;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
@@ -116,39 +114,50 @@ public class InfluxSeriesHandler {
     @Consumes(APPLICATION_JSON)
     public void write(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         List<InfluxObject> influxObjects) {
+        if (influxObjects == null) {
+            asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity("Null objects").build());
+            return;
+        }
+        try {
+            objectValidator.validateInfluxObjects(influxObjects);
+        } catch (InvalidObjectException e) {
+            asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build());
+            return;
+        }
+        List<NumericMetric> numericMetrics = FluentIterable.from(influxObjects) //
+            .transform(influxObject -> {
+                List<String> influxObjectColumns = influxObject.getColumns();
+                int valueColumnIndex = influxObjectColumns.indexOf("value");
+                List<List<?>> influxObjectPoints = influxObject.getPoints();
+                NumericMetric numericMetric = new NumericMetric(tenantId, new MetricId(influxObject.getName()));
+                for (List<?> point : influxObjectPoints) {
+                    double value;
+                    long timestamp;
+                    if (influxObjectColumns.size() == 1) {
+                        timestamp = System.currentTimeMillis();
+                        value = ((Number) point.get(0)).doubleValue();
+                    } else {
+                        timestamp = ((Number) point.get((valueColumnIndex + 1) % 2)).longValue();
+                        value = ((Number) point.get(valueColumnIndex)).doubleValue();
+                    }
+                    numericMetric.addData(timestamp, value);
+                }
+                return numericMetric;
+            }).toList();
+        ListenableFuture<Void> future = metricsService.addNumericData(numericMetrics);
+        Futures.addCallback(
+                future, new FutureCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void result) {
+                        asyncResponse.resume(Response.ok());
+                    }
 
-        ResponseUtils.executeAsync(asyncResponse, () -> {
-            if (influxObjects == null) {
-                return ResponseUtils.badRequest(new ApiError("Null objects"));
-            }
-            try {
-                objectValidator.validateInfluxObjects(influxObjects);
-            } catch (InvalidObjectException e) {
-                return ResponseUtils.badRequest(new ApiError(e.getMessage()));
-            }
-            List<NumericMetric> numericMetrics = FluentIterable.from(influxObjects) //
-                    .transform(influxObject -> {
-                        List<String> influxObjectColumns = influxObject.getColumns();
-                        int valueColumnIndex = influxObjectColumns.indexOf("value");
-                        List<List<?>> influxObjectPoints = influxObject.getPoints();
-                        NumericMetric numericMetric = new NumericMetric(tenantId, new MetricId(influxObject.getName()));
-                        for (List<?> point : influxObjectPoints) {
-                            double value;
-                            long timestamp;
-                            if (influxObjectColumns.size() == 1) {
-                                timestamp = System.currentTimeMillis();
-                                value = ((Number) point.get(0)).doubleValue();
-                            } else {
-                                timestamp = ((Number) point.get((valueColumnIndex + 1) % 2)).longValue();
-                                value = ((Number) point.get(valueColumnIndex)).doubleValue();
-                            }
-                            numericMetric.addData(new NumericData(timestamp, value));
-                        }
-                        return numericMetric;
-                    }).toList();
-            ListenableFuture<Void> future = metricsService.addNumericData(numericMetrics);
-            return Futures.transform(future, ResponseUtils.MAP_VOID);
-        });
+                    @Override
+                    public void onFailure(Throwable t) {
+                        asyncResponse.resume(t);
+                    }
+                }
+        );
     }
 
     @GET

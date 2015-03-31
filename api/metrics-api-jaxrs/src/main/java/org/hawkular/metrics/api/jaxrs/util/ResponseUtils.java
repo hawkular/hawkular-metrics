@@ -24,15 +24,12 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.FutureFallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -129,26 +126,6 @@ public class ResponseUtils {
      */
     public static Function<Void, Response> created(URI location) {
         return (Void input) -> Response.created(location).build();
-    }
-
-    /**
-     * TODO remove
-     */
-    public static void executeAsync(AsyncResponse asyncResponse,
-            java.util.function.Supplier<ListenableFuture<Response>> supplier) {
-        ListenableFuture<Response> future = supplier.get();
-        Futures.addCallback(future, new FutureCallback<Response>() {
-            @Override
-            public void onSuccess(Response response) {
-                asyncResponse.resume(response);
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                String msg = "Failed to perform operation due to an error: " + Throwables.getRootCause(t).getMessage();
-                asyncResponse.resume(Response.serverError().entity(new ApiError(msg)).build());
-            }
-        });
     }
 
     private ResponseUtils() {
