@@ -17,6 +17,7 @@
 package org.hawkular.metrics.api.jaxrs.influx;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import java.util.ArrayList;
@@ -42,12 +43,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.influx.query.InfluxQueryParseTreeWalker;
@@ -72,7 +67,7 @@ import org.hawkular.metrics.api.jaxrs.influx.query.validation.IllegalQueryExcept
 import org.hawkular.metrics.api.jaxrs.influx.query.validation.QueryValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InfluxObjectValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InvalidObjectException;
-import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.api.jaxrs.util.ResponseUtils;
 import org.hawkular.metrics.api.jaxrs.util.StringValue;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
@@ -84,6 +79,13 @@ import org.joda.time.Instant;
 import org.joda.time.Interval;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * Some support for InfluxDB clients like Grafana.
@@ -115,14 +117,14 @@ public class InfluxSeriesHandler {
     public void write(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
         List<InfluxObject> influxObjects) {
 
-        ApiUtils.executeAsync(asyncResponse, () -> {
+        ResponseUtils.executeAsync(asyncResponse, () -> {
             if (influxObjects == null) {
-                return ApiUtils.badRequest(new ApiError("Null objects"));
+                return ResponseUtils.badRequest(new ApiError("Null objects"));
             }
             try {
                 objectValidator.validateInfluxObjects(influxObjects);
             } catch (InvalidObjectException e) {
-                return ApiUtils.badRequest(new ApiError(e.getMessage()));
+                return ResponseUtils.badRequest(new ApiError(e.getMessage()));
             }
             List<NumericMetric> numericMetrics = FluentIterable.from(influxObjects) //
                     .transform(influxObject -> {
@@ -145,7 +147,7 @@ public class InfluxSeriesHandler {
                         return numericMetric;
                     }).toList();
             ListenableFuture<Void> future = metricsService.addNumericData(numericMetrics);
-            return Futures.transform(future, ApiUtils.MAP_VOID);
+            return Futures.transform(future, ResponseUtils.MAP_VOID);
         });
     }
 

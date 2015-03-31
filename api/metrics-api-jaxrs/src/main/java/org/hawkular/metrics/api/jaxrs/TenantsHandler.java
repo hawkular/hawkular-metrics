@@ -16,7 +16,9 @@
  */
 package org.hawkular.metrics.api.jaxrs;
 
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
+import static org.hawkular.metrics.api.jaxrs.util.ResponseUtils.alreadyExistsFallback;
+import static org.hawkular.metrics.api.jaxrs.util.ResponseUtils.created;
+import static org.hawkular.metrics.api.jaxrs.util.ResponseUtils.emptyPayload;
 
 import java.net.URI;
 import java.util.List;
@@ -27,12 +29,12 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.service.TenantsServiceBase;
-import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.api.jaxrs.util.ResponseUtils;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
 
-import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.FutureFallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -50,33 +52,25 @@ public class TenantsHandler extends TenantsServiceBase {
     @Override
     protected ListenableFuture<Response> _createTenant(Tenant params, UriInfo uriInfo) {
         if (params == null) {
-            return badRequest(new ApiError("Payload is empty"));
+            return emptyPayload();
         }
         ListenableFuture<Void> insertFuture = metricsService.createTenant(params);
         URI location = uriInfo.getBaseUriBuilder().path("/tenants").build();
-        ListenableFuture<Response> responseFuture = Futures.transform(
-                insertFuture, (Void input) -> Response.created(location).build()
+        ListenableFuture<Response> responseFuture = Futures.transform(insertFuture, created(location));
+        FutureFallback<Response> fallback = alreadyExistsFallback(
+                TenantAlreadyExistsException.class,
+                TenantsHandler::alreadyExistsError
         );
-        return Futures.withFallback(
-                responseFuture, t -> {
-                    if (t instanceof TenantAlreadyExistsException) {
-                        TenantAlreadyExistsException e = (TenantAlreadyExistsException) t;
-                        String message = "A tenant with id [" + e.getTenantId() + "] already exists";
-                        Response.ResponseBuilder responseBuilder = Response.status(Response.Status.CONFLICT)
-                                                                           .entity(new ApiError(message));
-                        return Futures.immediateFuture(responseBuilder.build());
-                    }
-                    String message = "Failed to create tenant due to an unexpected error: "
-                                     + Throwables.getRootCause(t).getMessage();
-                    Response.ResponseBuilder responseBuilder = Response.serverError().entity(new ApiError(message));
-                    return Futures.immediateFuture(responseBuilder.build());
-                }
-        );
+        return Futures.withFallback(responseFuture, fallback);
+    }
+
+    private static ApiError alreadyExistsError(TenantAlreadyExistsException e) {
+        return new ApiError("Tenant with id " + e.getTenantId() + " already exists");
     }
 
     @Override
     protected ListenableFuture<Response> _findTenants() {
         ListenableFuture<List<Tenant>> future = metricsService.getTenants();
-        return Futures.transform(future, ApiUtils.MAP_COLLECTION);
+        return Futures.transform(future, ResponseUtils.MAP_COLLECTION);
     }
 }

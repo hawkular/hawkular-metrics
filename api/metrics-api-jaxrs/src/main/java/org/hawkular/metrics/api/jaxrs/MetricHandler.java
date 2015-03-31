@@ -21,8 +21,8 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.executeAsync;
+import static org.hawkular.metrics.api.jaxrs.util.ResponseUtils.badRequest;
+import static org.hawkular.metrics.api.jaxrs.util.ResponseUtils.executeAsync;
 import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
 
 import java.net.URI;
@@ -57,7 +57,7 @@ import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
 import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
-import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.api.jaxrs.util.ResponseUtils;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
@@ -174,7 +174,7 @@ public class MetricHandler {
                             tenantId, MetricType.NUMERIC,
                             new MetricId(id)
                     );
-                    return Futures.transform(future, ApiUtils.MAP_VALUE);
+                    return Futures.transform(future, ResponseUtils.MAP_VALUE);
                 }
         );
     }
@@ -193,7 +193,7 @@ public class MetricHandler {
                 asyncResponse, () -> {
                     NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
                     ListenableFuture<Void> future = metricsService.addTags(metric, tags);
-                    return Futures.transform(future, ApiUtils.MAP_VOID);
+                    return Futures.transform(future, ResponseUtils.MAP_VOID);
                 }
         );
     }
@@ -217,7 +217,7 @@ public class MetricHandler {
                 asyncResponse, () -> {
                     NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
                     ListenableFuture<Void> future = metricsService.deleteTags(metric, tags.getTags());
-                    return Futures.transform(future, ApiUtils.MAP_VOID);
+                    return Futures.transform(future, ResponseUtils.MAP_VOID);
                 }
         );
     }
@@ -238,7 +238,7 @@ public class MetricHandler {
                             tenantId, MetricType.AVAILABILITY,
                             new MetricId(id)
                     );
-                    return Futures.transform(future, ApiUtils.MAP_VALUE);
+                    return Futures.transform(future, ResponseUtils.MAP_VALUE);
                 }
         );
     }
@@ -257,7 +257,7 @@ public class MetricHandler {
                 asyncResponse, () -> {
                     AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
                     ListenableFuture<Void> future = metricsService.addTags(metric, tags);
-                    return Futures.transform(future, ApiUtils.MAP_VOID);
+                    return Futures.transform(future, ResponseUtils.MAP_VOID);
                 }
         );
     }
@@ -280,7 +280,7 @@ public class MetricHandler {
                 asyncResponse, () -> {
                     AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
                     ListenableFuture<Void> future = metricsService.deleteTags(metric, tags.getTags());
-                    return Futures.transform(future, ApiUtils.MAP_VOID);
+                    return Futures.transform(future, ResponseUtils.MAP_VOID);
                 }
         );
     }
@@ -304,12 +304,12 @@ public class MetricHandler {
         executeAsync(
                 asyncResponse, () -> {
                     if (data == null) {
-                        return ApiUtils.emptyPayload();
+                        return ResponseUtils.emptyPayload();
                     }
                     NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
                     metric.getData().addAll(data);
                     ListenableFuture<Void> future = metricsService.addNumericData(Collections.singletonList(metric));
-                    return Futures.transform(future, ApiUtils.MAP_VOID);
+                    return Futures.transform(future, ResponseUtils.MAP_VOID);
                 }
         );
     }
@@ -332,14 +332,14 @@ public class MetricHandler {
         executeAsync(
                 asyncResponse, () -> {
                     if (data == null) {
-                        return ApiUtils.emptyPayload();
+                        return ResponseUtils.emptyPayload();
                     }
                     AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
                     metric.getData().addAll(data);
                     ListenableFuture<Void>
                             future
                             = metricsService.addAvailabilityData(Collections.singletonList(metric));
-                    return Futures.transform(future, ApiUtils.MAP_VOID);
+                    return Futures.transform(future, ResponseUtils.MAP_VOID);
                 }
         );
     }
@@ -362,7 +362,7 @@ public class MetricHandler {
                     }
                     metrics.forEach(m -> m.setTenantId(tenantId));
                     ListenableFuture<Void> future = metricsService.addNumericData(metrics);
-                    return Futures.transform(future, ApiUtils.MAP_VOID);
+                    return Futures.transform(future, ResponseUtils.MAP_VOID);
                 }
         );
     }
@@ -384,7 +384,7 @@ public class MetricHandler {
                     }
                     metrics.forEach(m -> m.setTenantId(tenantId));
                     ListenableFuture<Void> future = metricsService.addAvailabilityData(metrics);
-                    return Futures.transform(future, ApiUtils.MAP_VOID);
+                    return Futures.transform(future, ResponseUtils.MAP_VOID);
                 }
         );
     }
@@ -411,7 +411,7 @@ public class MetricHandler {
                     }
                     ListenableFuture<Map<MetricId, Set<NumericData>>> future;
                     future = metricsService.findNumericDataByTags(tenantId, tags.getTags());
-                    return Futures.transform(future, ApiUtils.MAP_MAP);
+                    return Futures.transform(future, ResponseUtils.MAP_MAP);
                 }
         );
     }
@@ -438,7 +438,7 @@ public class MetricHandler {
                     }
                     ListenableFuture<Map<MetricId, Set<Availability>>> future;
                     future = metricsService.findAvailabilityByTags(tenantId, tags.getTags());
-                    return Futures.transform(future, ApiUtils.MAP_MAP);
+                    return Futures.transform(future, ResponseUtils.MAP_MAP);
                 }
         );
     }
@@ -478,7 +478,7 @@ public class MetricHandler {
                                 tenantId,
                                 new MetricId(id), startTime, endTime
                         );
-                        return Futures.transform(dataFuture, ApiUtils.MAP_COLLECTION);
+                        return Futures.transform(dataFuture, ResponseUtils.MAP_COLLECTION);
                     }
 
                     if (bucketsCount != null && bucketDuration != null) {
@@ -502,7 +502,7 @@ public class MetricHandler {
                     ListenableFuture<List<NumericBucketDataPoint>> outputFuture;
                     outputFuture = Futures.transform(dataFuture, BucketedOutput<NumericBucketDataPoint>::getData);
 
-                    return Futures.transform(outputFuture, ApiUtils.MAP_COLLECTION);
+                    return Futures.transform(outputFuture, ResponseUtils.MAP_COLLECTION);
                 }
         );
     }
@@ -573,7 +573,7 @@ public class MetricHandler {
                                 tenantId, new MetricId(id), predicate,
                                 startTime, endTime
                         );
-                        return Futures.transform(future, ApiUtils.MAP_COLLECTION);
+                        return Futures.transform(future, ResponseUtils.MAP_COLLECTION);
                     }
                 }
         );
@@ -615,7 +615,7 @@ public class MetricHandler {
                                 tenantId,
                                 metric.getId(), startTime, endTime
                         );
-                        return Futures.transform(dataFuture, ApiUtils.MAP_COLLECTION);
+                        return Futures.transform(dataFuture, ResponseUtils.MAP_COLLECTION);
                     }
 
                     if (bucketsCount != null && bucketDuration != null) {
@@ -637,7 +637,7 @@ public class MetricHandler {
 
                     ListenableFuture<List<AvailabilityBucketDataPoint>> outputFuture;
                     outputFuture = Futures.transform(dataFuture, BucketedOutput<AvailabilityBucketDataPoint>::getData);
-                    return Futures.transform(outputFuture, ApiUtils.MAP_COLLECTION);
+                    return Futures.transform(outputFuture, ResponseUtils.MAP_COLLECTION);
                 }
         );
     }
@@ -725,7 +725,7 @@ public class MetricHandler {
                                 }
                             }
                     );
-                    return Futures.transform(resultFuture, ApiUtils.MAP_MAP);
+                    return Futures.transform(resultFuture, ResponseUtils.MAP_MAP);
                 }
         );
     }
@@ -749,7 +749,7 @@ public class MetricHandler {
                 asyncResponse, () -> {
                     ListenableFuture<Map<MetricId, Set<Availability>>> future;
                     future = metricsService.findAvailabilityByTags(tenantId, tags.getTags());
-                    return Futures.transform(future, ApiUtils.MAP_MAP);
+                    return Futures.transform(future, ResponseUtils.MAP_MAP);
                 }
         );
     }
@@ -858,7 +858,7 @@ public class MetricHandler {
                         );
                     }
                     ListenableFuture<List<Metric<?>>> future = metricsService.findMetrics(tenantId, metricType);
-                    return Futures.transform(future, ApiUtils.MAP_COLLECTION);
+                    return Futures.transform(future, ResponseUtils.MAP_COLLECTION);
                 }
         );
     }
