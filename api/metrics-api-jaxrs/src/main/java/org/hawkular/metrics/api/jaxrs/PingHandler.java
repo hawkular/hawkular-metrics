@@ -25,6 +25,8 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.container.AsyncResponse;
+import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
 
 import org.hawkular.metrics.api.jaxrs.util.StringValue;
@@ -45,5 +47,14 @@ public class PingHandler {
             response = String.class, responseContainer = "Map")
     public Response ping() {
         return Response.ok(new StringValue(new Date().toString())).build();
+    }
+
+    @GET
+    @POST
+    @Path("/async")
+    @ApiOperation(value = "Async ping variant", response = String.class, responseContainer = "Map")
+    public void createNumericMetric(@Suspended final AsyncResponse asyncResponse) {
+        Response response = Response.ok(new StringValue(new Date().toString())).build();
+        asyncResponse.resume(response);
     }
 }
