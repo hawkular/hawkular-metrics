@@ -52,7 +52,7 @@ public class InfluxDatabaseITest extends InfluxDBTest{
                                             "select value from "+timeSeries+" order asc",
                                             TimeUnit.MILLISECONDS);
         Assert.assertNotNull(series);
-        this.validateTwoSerieWithDouble(generatedSerie, series.get(0));
+        this.assertSeriesEquals(generatedSerie, series.get(0));
     }
 
     @Test
@@ -78,7 +78,7 @@ public class InfluxDatabaseITest extends InfluxDBTest{
                                             "select value from "+timeSeries+" order desc",
                                             TimeUnit.MILLISECONDS);
         Assert.assertNotNull(series);
-        this.validateTwoSerieWithDouble(serieSource, series.get(0));
+        this.assertSeriesEquals(serieSource, series.get(0));
     }
 
     @Test
@@ -98,7 +98,7 @@ public class InfluxDatabaseITest extends InfluxDBTest{
                                             "select value from "+timeSeries+" limit 3 order asc",
                                             TimeUnit.MILLISECONDS);
         Assert.assertNotNull(series);
-        this.validateTwoSerieWithDouble(serieSource, series.get(0));
+        this.assertSeriesEquals(serieSource, series.get(0));
     }
 
     @Test
@@ -119,7 +119,7 @@ public class InfluxDatabaseITest extends InfluxDBTest{
                                             +" where time > now() - 30s group by time(30s)",
                                             TimeUnit.MILLISECONDS);
         Assert.assertNotNull(series);
-        this.validateTwoSerieWithDouble(serieSource, series.get(0));
+        this.assertSeriesEquals(serieSource, series.get(0));
     }
 
     @Test
@@ -140,7 +140,7 @@ public class InfluxDatabaseITest extends InfluxDBTest{
                                             +" where time > now() - 30s group by time(30s)",
                                             TimeUnit.MILLISECONDS);
         Assert.assertNotNull(series);
-        this.validateTwoSerieWithDouble(serieSource, series.get(0));
+        this.assertSeriesEquals(serieSource, series.get(0));
     }
 
     @Test
@@ -159,7 +159,7 @@ public class InfluxDatabaseITest extends InfluxDBTest{
                                             +" where time > now() - 30s group by time(30s)",
                                             TimeUnit.MILLISECONDS);
         Assert.assertNotNull(series);
-        this.validateTwoSerieWithDouble(serieSource, series.get(0));
+        this.assertSeriesEquals(serieSource, series.get(0));
     }
 
     @Test
@@ -178,7 +178,7 @@ public class InfluxDatabaseITest extends InfluxDBTest{
                                             +" where time > now() - 30s group by time(30s)",
                                             TimeUnit.MILLISECONDS);
         Assert.assertNotNull(series);
-        this.validateTwoSerieWithDouble(serieSource, series.get(0));
+        this.assertSeriesEquals(serieSource, series.get(0));
     }
 
     @Test
@@ -197,10 +197,10 @@ public class InfluxDatabaseITest extends InfluxDBTest{
                                             +" where time > now() - 30s group by time(30s)",
                                             TimeUnit.MILLISECONDS);
         Assert.assertNotNull(series);
-        this.validateTwoSerieWithDouble(serieSource, series.get(0));
+        this.assertSeriesEquals(serieSource, series.get(0));
     }
 
-    private void validateTwoSerieWithDouble(Serie serieOne, Serie serieTwo){
+    private void assertSeriesEquals(Serie serieOne, Serie serieTwo){
         Assert.assertNotNull(serieOne);
         Assert.assertNotNull(serieTwo);
         Assert.assertEquals(serieOne.getName(), serieTwo.getName());
