@@ -237,6 +237,12 @@
       <version>0.7</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.influxdb</groupId>
+      <artifactId>influxdb-java</artifactId>
+      <version>1.5</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
 </project>

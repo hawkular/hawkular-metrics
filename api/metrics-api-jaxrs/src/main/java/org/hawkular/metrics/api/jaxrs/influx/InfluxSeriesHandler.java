@@ -90,7 +90,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author Heiko W. Rupp
  */
-@Path("/tenants/{tenantId}/influx/series")
+@Path("/db/{tenantId}/series")
 @Produces(APPLICATION_JSON)
 @ApplicationScoped
 public class InfluxSeriesHandler {
