@@ -43,7 +43,18 @@ function post(uri, body) {
   return deferred.promise;
 }
 
-function callRest(task, callback) {
+function pingTest(task, callback) {
+  return q(post('/ping/async'))
+  .then(function(response) {
+    callback();
+  })
+  .catch(function(err){
+    console.log(err);
+    callback(err);
+  });
+}
+
+function numericMetricTest(task, callback) {
   var tenantId = uuid.v4();
   var metricId = uuid.v4();
 
@@ -102,7 +113,7 @@ if (cluster.isMaster) {
     }
   };
 
-  var rolling = async.queue(callRest, 200);
+  var rolling = async.queue(pingTest, 200);
 
   for(var i=0; i<100000; i++){
     rolling.push({}, rollingCallback);
