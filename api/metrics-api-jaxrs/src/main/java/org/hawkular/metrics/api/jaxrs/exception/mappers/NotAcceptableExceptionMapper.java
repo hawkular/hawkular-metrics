@@ -14,31 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs;
+package org.hawkular.metrics.api.jaxrs.exception.mappers;
 
+import javax.ws.rs.NotAcceptableException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
-import org.jboss.resteasy.spi.BadRequestException;
-
-import com.google.common.base.Throwables;
-
 /**
- * Exception mapper for any exception thrown by RESTEasy when HTTP Bad Request (400) is encountered.
+ * Exception mapper for any exception thrown by RESTEasy when HTTP Not Acceptable (406) is encountered.
  * <p>
  * This mapper let us reply to the user with a pre-determined message format if, for example, a {@link
  * javax.ws.rs.ext.ParamConverter} throws an {@link java.lang.IllegalArgumentException}.
  *
- * @author Thomas Segismont
+ * @author Jeeva Kandasamy
  */
 @Provider
-public class BadRequestExceptionMapper implements ExceptionMapper<BadRequestException> {
+public class NotAcceptableExceptionMapper implements ExceptionMapper<NotAcceptableException> {
 
     @Override
-    public Response toResponse(BadRequestException exception) {
-        return Response.status(Response.Status.BAD_REQUEST)
-                       .entity(new ApiError(Throwables.getRootCause(exception).getMessage()))
-                       .build();
+    public Response toResponse(NotAcceptableException exception) {
+        return ExceptionMapperUtils.buildResponse(exception, Response.Status.NOT_ACCEPTABLE);
     }
+
 }

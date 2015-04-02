@@ -14,33 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs;
+package org.hawkular.metrics.api.jaxrs.exception.mappers;
 
-import javax.ws.rs.core.MediaType;
+import javax.ws.rs.NotSupportedException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
-import org.jboss.resteasy.spi.ReaderException;
-
-import com.google.common.base.Throwables;
-
 /**
- * Exception mapper for any exception thrown by a body reader chain.
+ * Exception mapper for any exception thrown by RESTEasy when HTTP Unsupported Media Type (415) is encountered.
  * <p>
- * This mapper let us reply to the user with a pre-determined message format if, for example, a JSON entity cannot be
- * parsed.
+ * This mapper let us reply to the user with a pre-determined message format if, for example, a {@link
+ * javax.ws.rs.ext.ParamConverter} throws an {@link java.lang.IllegalArgumentException}.
  *
- * @author Thomas Segismont
+ * @author Jeeva Kandasamy
  */
 @Provider
-public class ReaderExceptionMapper implements ExceptionMapper<ReaderException> {
+public class NotSupportedExceptionMapper implements ExceptionMapper<NotSupportedException> {
 
     @Override
-    public Response toResponse(ReaderException exception) {
-        return Response.status(Response.Status.BAD_REQUEST)
-                       .entity(new ApiError(Throwables.getRootCause(exception).getMessage()))
-                       .type(MediaType.APPLICATION_JSON)
-                       .build();
+    public Response toResponse(NotSupportedException exception) {
+        return ExceptionMapperUtils.buildResponse(exception, Response.Status.UNSUPPORTED_MEDIA_TYPE);
     }
+
 }
