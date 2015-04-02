@@ -18,9 +18,7 @@ package org.hawkular.metrics.api.jaxrs;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.executeAsync;
 import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
@@ -32,7 +30,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 
 import javax.inject.Inject;
@@ -52,6 +53,18 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
+import com.google.common.base.Function;
+import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
 import org.hawkular.metrics.api.jaxrs.callback.MetricCreatedCallback;
 import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
 import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
@@ -68,20 +81,13 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.MetricsThreadFactory;
 import org.hawkular.metrics.core.api.NumericBucketDataPoint;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.request.TagRequest;
-
-import com.google.common.base.Function;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Interface to deal with metrics
@@ -92,10 +98,25 @@ import com.wordnik.swagger.annotations.ApiResponses;
 @Produces(APPLICATION_JSON)
 @Api(value = "/", description = "Metrics related REST interface")
 public class MetricHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(MetricHandler.class);
+
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
+
+    private static final long SLEEP = 20;
+
+    static {
+        logger.info("Starting Metrics REST server...");
+        logger.info("Background threads servicing requests will sleep for up to " + SLEEP + " ms to simulate latency");
+    }
 
     @Inject
     private MetricsService metricsService;
+
+    private Random random = new Random();
+
+    private static final ListeningExecutorService threadPool = MoreExecutors
+            .listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
 
     @POST
     @Path("/{tenantId}/metrics/numeric")
@@ -120,13 +141,14 @@ public class MetricHandler {
             asyncResponse.resume(response);
             return;
         }
-        metric.setTenantId(tenantId);
-        ListenableFuture<Void> future = metricsService.createMetric(metric);
-        URI created = uriInfo.getBaseUriBuilder()
-                             .path("/{tenantId}/metrics/numeric/{id}")
-                             .build(tenantId, metric.getId().getName());
-        MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(asyncResponse, created);
-        Futures.addCallback(future, metricCreatedCallback);
+//        metric.setTenantId(tenantId);
+//        ListenableFuture<Void> future = metricsService.createMetric(metric);
+//        URI created = uriInfo.getBaseUriBuilder()
+//                             .path("/{tenantId}/metrics/numeric/{id}")
+//                             .build(tenantId, metric.getId().getName());
+//        MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(asyncResponse, created);
+//        Futures.addCallback(future, metricCreatedCallback);
+        asyncResponse.resume(Response.status(Status.OK).build());
     }
 
     @POST
@@ -301,17 +323,75 @@ public class MetricHandler {
             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
             List<NumericData> data
     ) {
-        executeAsync(
-                asyncResponse, () -> {
-                    if (data == null) {
-                        return ApiUtils.emptyPayload();
-                    }
-                    NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
-                    metric.getData().addAll(data);
-                    ListenableFuture<Void> future = metricsService.addNumericData(Collections.singletonList(metric));
-                    return Futures.transform(future, ApiUtils.MAP_VOID);
-                }
-        );
+//        executeAsync(
+//                asyncResponse, () -> {
+//                    if (data == null) {
+//                        return ApiUtils.emptyPayload();
+//                    }
+//                    NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
+//                    metric.getData().addAll(data);
+//                    ListenableFuture<Void> future = metricsService.addNumericData(Collections.singletonList(metric));
+//                    return Futures.transform(future, ApiUtils.MAP_VOID);
+//                }
+//        );
+
+        Callable<Response> callable = () -> {
+//            long sleep = random.nextLong() % SLEEP;
+//            if (sleep > 0) {
+//                try {
+//                    Thread.sleep(sleep);
+//                } catch (InterruptedException e) {
+//                }
+//            }
+            return Response.status(Status.OK).build();
+        };
+        ListenableFuture<Response> future = threadPool.submit(callable);
+
+        Futures.addCallback(future, new FutureCallback<Response>() {
+            @Override
+            public void onSuccess(Response response) {
+                asyncResponse.resume(response);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                String msg = "Failed to perform operation due to an error: " + Throwables.getRootCause(t).getMessage();
+                asyncResponse.resume(Response.serverError().entity(new ApiError(msg)).build());
+            }
+        }, threadPool);
+
+//        executeAsync(asyncResponse, () -> threadPool.submit(callable));
+
+//        executeAsync(asyncResponse, () ->
+//            threadPool.submit(() -> {
+//                long sleep = random.nextLong() % SLEEP;
+//                if (sleep > 0) {
+//                    try {
+//                        Thread.sleep(sleep);
+//                    } catch (InterruptedException e) {
+//                    }
+//                }
+//                return Response.status(Status.OK).build();
+//            }));
+
+//            long sleep = random.nextLong() % 10;
+//            if (sleep > 0) {
+//                try {
+//                    Thread.sleep(sleep);
+//                } catch (InterruptedException e) {
+//                }
+//            }
+//            return Futures.immediateFuture(Response.status(Status.OK).build());
+//        });
+
+//        long sleep = random.nextLong() % 10;
+//        if (sleep > 0) {
+//            try {
+//                Thread.sleep(sleep);
+//            } catch (InterruptedException e) {
+//            }
+//        }
+//        asyncResponse.resume(Response.status(Status.OK).build());
     }
 
     @POST
@@ -355,16 +435,24 @@ public class MetricHandler {
                                @PathParam("tenantId") String tenantId,
                                @ApiParam(value = "List of metrics", required = true)
                                List<NumericMetric> metrics) {
-        executeAsync(
-                asyncResponse, () -> {
-                    if (metrics.isEmpty()) {
-                        return Futures.immediateFuture(Response.ok().build());
-                    }
-                    metrics.forEach(m -> m.setTenantId(tenantId));
-                    ListenableFuture<Void> future = metricsService.addNumericData(metrics);
-                    return Futures.transform(future, ApiUtils.MAP_VOID);
-                }
-        );
+//        executeAsync(
+//                asyncResponse, () -> {
+//                    if (metrics.isEmpty()) {
+//                        return Futures.immediateFuture(Response.ok().build());
+//                    }
+//                    metrics.forEach(m -> m.setTenantId(tenantId));
+//                    ListenableFuture<Void> future = metricsService.addNumericData(metrics);
+//                    return Futures.transform(future, ApiUtils.MAP_VOID);
+//                }
+//        );
+        long sleep = random.nextLong() % 3000;
+        if (sleep > 0) {
+            try {
+                Thread.sleep(sleep);
+            } catch (InterruptedException e) {
+            }
+        }
+        asyncResponse.resume(Response.status(Status.OK).build());
     }
 
     @POST

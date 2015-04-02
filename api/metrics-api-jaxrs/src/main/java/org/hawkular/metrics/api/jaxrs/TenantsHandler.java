@@ -18,7 +18,6 @@ package org.hawkular.metrics.api.jaxrs;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
-import java.net.URI;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -41,7 +40,6 @@ import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
-import org.hawkular.metrics.api.jaxrs.callback.TenantCreatedCallback;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.Tenant;
@@ -82,10 +80,11 @@ public class TenantsHandler {
             asyncResponse.resume(response);
             return;
         }
-        ListenableFuture<Void> insertFuture = metricsService.createTenant(params);
-        URI created = uriInfo.getBaseUriBuilder().path("/tenants").build();
-        TenantCreatedCallback tenantCreatedCallback = new TenantCreatedCallback(asyncResponse, created);
-        Futures.addCallback(insertFuture, tenantCreatedCallback);
+        asyncResponse.resume(Response.status(Status.OK).build());
+//        ListenableFuture<Void> insertFuture = metricsService.createTenant(params);
+//        URI created = uriInfo.getBaseUriBuilder().path("/tenants").build();
+//        TenantCreatedCallback tenantCreatedCallback = new TenantCreatedCallback(asyncResponse, created);
+//        Futures.addCallback(insertFuture, tenantCreatedCallback);
     }
 
     @GET
