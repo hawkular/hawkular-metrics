@@ -174,6 +174,30 @@
         <!-- Document generation from the Swagger annotations on the REST-API. -->
         <plugins>
           <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>unpack</id>
+                <phase>process-resources</phase>
+                <goals>
+                  <goal>unpack</goal>
+                </goals>
+                <configuration>
+                  <artifactItems>
+                    <artifactItem>
+                      <groupId>org.hawkular</groupId>
+                      <artifactId>hawkular-build-tools</artifactId>
+                      <version>${version.org.hawkular.hawkular-build-tools}</version>
+                      <type>jar</type>
+                      <includes>**/*.mustache</includes>
+                    </artifactItem>
+                  </artifactItems>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
             <groupId>com.github.kongchen</groupId>
             <artifactId>swagger-maven-plugin</artifactId>
             <configuration>
@@ -182,7 +206,7 @@
                   <locations>org.hawkular.metrics.api.jaxrs</locations>
                   <apiVersion>1.0</apiVersion>
                   <basePath>http://localhost:8080/hawkular-metrics/</basePath>
-                  <outputTemplate>https://raw.githubusercontent.com/hawkular/hawkular.github.io/swagger/asciidoc.mustache</outputTemplate>
+                  <outputTemplate>${project.build.directory}/dependency/hawkular-documentation/asciidoc.mustache</outputTemplate>
                   <swaggerDirectory>${project.build.directory}/generated/swagger-ui</swaggerDirectory>
                   <swaggerInternalFilter>org.hawkular.metrics.api.jaxrs.swagger.filter.JaxRsFilter</swaggerInternalFilter>
                   <swaggerApiReader>com.wordnik.swagger.jaxrs.reader.DefaultJaxrsApiReader</swaggerApiReader>
