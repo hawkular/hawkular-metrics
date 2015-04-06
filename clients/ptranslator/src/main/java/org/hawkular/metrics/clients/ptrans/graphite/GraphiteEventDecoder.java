@@ -16,24 +16,24 @@
  */
 package org.hawkular.metrics.clients.ptrans.graphite;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.util.CharsetUtil;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.hawkular.metrics.client.common.SingleMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.hawkular.metrics.client.common.SingleMetric;
-
 /**
  * Decoder for plaintext metric data sent from Graphite
+ *
  * @see <a href="http://graphite.readthedocs.org/en/latest/feeding-carbon.html">Graphite - Feeding Carbon</a>
  *
- * Format is source value path[\nsource value path]?
+ *      Format is source value path[source value path]?
  *
  * @author Heiko W. Rupp
  */

@@ -17,9 +17,9 @@
 package org.hawkular.metrics.clients.ptrans.collectd.packet;
 
 /**
- * Abstract structure representing a <a href="https://collectd.org/wiki/index
- * .php/Binary_protocol#Protocol_structure">collectd
- * datagram part</a>.
+ * Abstract structure representing a
+ * <a href="https://collectd.org/wiki/index.php/Binary_protocol#Protocol_structure">
+ * collectd datagram part</a>.
  * <p>
  * A Part is composed of a {@link PartType} and a value.
  *
