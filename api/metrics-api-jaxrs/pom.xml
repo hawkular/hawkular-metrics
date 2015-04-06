@@ -157,6 +157,7 @@
         <artifactId>wildfly-maven-plugin</artifactId>
         <configuration>
           <javaOpts>
+            <javaOpt>-Djboss.bind.address=0.0.0.0</javaOpt>
             <javaOpt>-Dhawkular-metrics.backend=em_cass</javaOpt>
             <javaOpt>-Xdebug</javaOpt>
             <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
