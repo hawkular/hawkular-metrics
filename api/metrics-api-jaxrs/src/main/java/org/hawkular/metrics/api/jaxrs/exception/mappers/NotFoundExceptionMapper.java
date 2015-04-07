@@ -21,11 +21,16 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
+import com.google.common.base.Predicates;
+import com.google.common.base.Throwables;
+import com.google.common.collect.FluentIterable;
+
 /**
  * Exception mapper for any exception thrown by RESTEasy when HTTP Not Found (404) is encountered.
+ * Also checks the case chain, if NumberFormatException is present building response with HTTP Bad Request (400).
  * <p>
- * This mapper let us reply to the user with a pre-determined message format if, for example, a {@link
- * javax.ws.rs.ext.ParamConverter} throws an {@link java.lang.IllegalArgumentException}.
+ * This mapper let us reply to the user with a pre-determined message format if, for example, receive
+ * a request for unavailable resource.
  *
  * @author Jeeva Kandasamy
  */
@@ -34,7 +39,12 @@ public class NotFoundExceptionMapper implements ExceptionMapper<NotFoundExceptio
 
     @Override
     public Response toResponse(NotFoundException exception) {
-        return ExceptionMapperUtils.buildResponse(exception, Response.Status.BAD_REQUEST);
+        if (FluentIterable.from(Throwables.getCausalChain(exception))
+                .filter(Predicates.instanceOf(NumberFormatException.class)).first().isPresent()) {
+            return ExceptionMapperUtils.buildResponse(exception, Response.Status.BAD_REQUEST);
+        } else {
+            return ExceptionMapperUtils.buildResponse(exception, Response.Status.NOT_FOUND);
+        }
     }
 
 }

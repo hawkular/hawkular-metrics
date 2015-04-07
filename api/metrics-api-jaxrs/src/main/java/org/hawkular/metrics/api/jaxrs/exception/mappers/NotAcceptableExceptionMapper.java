@@ -24,8 +24,8 @@ import javax.ws.rs.ext.Provider;
 /**
  * Exception mapper for any exception thrown by RESTEasy when HTTP Not Acceptable (406) is encountered.
  * <p>
- * This mapper let us reply to the user with a pre-determined message format if, for example, a {@link
- * javax.ws.rs.ext.ParamConverter} throws an {@link java.lang.IllegalArgumentException}.
+ * This mapper let us reply to the user with a pre-determined message format if, for example, receive a
+ * HTTP GET request with unsupported media type.
  *
  * @author Jeeva Kandasamy
  */

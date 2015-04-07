@@ -24,8 +24,8 @@ import javax.ws.rs.ext.Provider;
 /**
  * Exception mapper for any exception thrown by RESTEasy when HTTP Unsupported Media Type (415) is encountered.
  * <p>
- * This mapper let us reply to the user with a pre-determined message format if, for example, a {@link
- * javax.ws.rs.ext.ParamConverter} throws an {@link java.lang.IllegalArgumentException}.
+ * This mapper let us reply to the user with a pre-determined message format if, for example, receive a
+ * HTTP POST request with unsupported media type.
  *
  * @author Jeeva Kandasamy
  */
