@@ -16,19 +16,9 @@
  */
 package org.hawkular.metrics.test;
 
-import java.util.UUID;
-
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.NumericMetric;
-import org.hawkular.metrics.core.api.Tenant;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 
 /**
@@ -36,7 +26,6 @@ import org.junit.BeforeClass;
  */
 public class RESTTest {
     static String baseURI = System.getProperty("hawkular-metrics.base-uri", "127.0.0.1:8080/hawkular-metrics");
-    static final String TENANT_PREFIX = UUID.randomUUID().toString();
     static ResteasyClient restClient = null;
     static ResteasyWebTarget target = null;
 
@@ -46,21 +35,5 @@ public class RESTTest {
             restClient = new ResteasyClientBuilder().build();
             target = restClient.target("http://" + baseURI);
         }
-        //Create Tenant
-        Tenant tenant = new Tenant();
-        tenant.setId(TENANT_PREFIX + "test");
-        Response response = target.clone()
-                .path("/tenants")
-                .request(MediaType.APPLICATION_JSON_TYPE)
-                .post(Entity.entity(tenant, MediaType.APPLICATION_JSON));
-        Assert.assertEquals(201, response.getStatus());
-        response.close();
-        //Create Numeric Metric
-        response = target.clone()
-                .path("/" + TENANT_PREFIX + "test" + "/metrics/numeric")
-                .request(MediaType.APPLICATION_JSON_TYPE)
-                .post(Entity.entity(new NumericMetric(new MetricId("test")), MediaType.APPLICATION_JSON));
-        Assert.assertEquals(201, response.getStatus());
-        response.close();
     }
 }

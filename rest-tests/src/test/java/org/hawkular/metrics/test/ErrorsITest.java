@@ -40,7 +40,7 @@ public class ErrorsITest extends RESTTest {
     @Test
     public void testNotAllowedException() {
         response = target.clone()
-                .path("/" + TENANT_PREFIX + "test" + "/metrics/numeric/test/tags")
+                .path("/test/metrics/numeric/test/tags")
                 .request(MediaType.APPLICATION_JSON_TYPE)
                 .post(null);
         Assert.assertEquals(405, response.getStatus());
@@ -52,21 +52,21 @@ public class ErrorsITest extends RESTTest {
     @Test
     public void testNotFoundException() {
         response = target.clone()
-                .path("/" + TENANT_PREFIX + "test" + "/metricsssss/numeric/test/data")
+                .path("/test/metricsssss/numeric/test/data")
                 .queryParam("buckets", "999")
                 .request(MediaType.APPLICATION_JSON_TYPE)
                 .get();
         Assert.assertEquals(404, response.getStatus());
         ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
         Assert.assertEquals("Could not find resource for full path: http://127.0.0.1:55977"
-                + "/hawkular-metrics/" + TENANT_PREFIX + "test" + "/metricsssss/numeric/test/data?buckets=999",
+                + "/hawkular-metrics/test/metricsssss/numeric/test/data?buckets=999",
                 apiErrorJson.getErrorMsg());
     }
 
     @Test
     public void testNumberFormatException() {
         response = target.clone()
-                .path("/" + TENANT_PREFIX + "test" + "/metrics/numeric/test/data")
+                .path("/test/metrics/numeric/test/data")
                 .queryParam("buckets", "999999999999999999999999")
                 .request(MediaType.APPLICATION_JSON_TYPE)
                 .get();
@@ -79,7 +79,7 @@ public class ErrorsITest extends RESTTest {
     @Test
     public void testNotAcceptableException() {
         response = target.clone()
-                .path("/" + TENANT_PREFIX + "test" + "/metrics/numeric/test/data")
+                .path("/test/metrics/numeric/test/data")
                 .request(MediaType.TEXT_PLAIN)
                 .get();
         Assert.assertEquals(406, response.getStatus());
@@ -91,7 +91,7 @@ public class ErrorsITest extends RESTTest {
     @Test
     public void testNotSupportedException() {
         response = target.clone()
-                .path("/" + TENANT_PREFIX + "test" + "/metrics/numeric/test/data")
+                .path("/test/metrics/numeric/test/data")
                 .request(MediaType.TEXT_PLAIN)
                 .post(null);
         Assert.assertEquals(415, response.getStatus());
