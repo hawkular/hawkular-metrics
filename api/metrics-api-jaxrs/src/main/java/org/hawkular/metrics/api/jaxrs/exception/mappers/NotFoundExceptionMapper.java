@@ -35,7 +35,7 @@ public class NotFoundExceptionMapper implements ExceptionMapper<NotFoundExceptio
 
     @Override
     public Response toResponse(NotFoundException exception) {
-        if (exception.getCause() != null && exception.getCause() instanceof NumberFormatException) {
+        if (exception.getCause() instanceof NumberFormatException) {
             return ExceptionMapperUtils.buildResponse(exception, Response.Status.BAD_REQUEST);
         } else {
             return ExceptionMapperUtils.buildResponse(exception, Response.Status.NOT_FOUND);
