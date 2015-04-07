@@ -58,8 +58,8 @@ public class ErrorsITest extends RESTTest {
                 .get();
         Assert.assertEquals(404, response.getStatus());
         ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
-        Assert.assertEquals("Could not find resource for full path: http://127.0.0.1:55977"
-                + "/hawkular-metrics/test/metricsssss/numeric/test/data?buckets=999",
+        Assert.assertEquals("Could not find resource for full path: http://"+baseURI
+                + "/test/metricsssss/numeric/test/data?buckets=999",
                 apiErrorJson.getErrorMsg());
     }
 
