@@ -14,15 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs;
+package org.hawkular.metrics.api.jaxrs.exception.mappers;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
 import org.jboss.resteasy.spi.BadRequestException;
-
-import com.google.common.base.Throwables;
 
 /**
  * Exception mapper for any exception thrown by RESTEasy when HTTP Bad Request (400) is encountered.
@@ -37,8 +35,6 @@ public class BadRequestExceptionMapper implements ExceptionMapper<BadRequestExce
 
     @Override
     public Response toResponse(BadRequestException exception) {
-        return Response.status(Response.Status.BAD_REQUEST)
-                       .entity(new ApiError(Throwables.getRootCause(exception).getMessage()))
-                       .build();
+        return ExceptionMapperUtils.buildResponse(exception, Response.Status.BAD_REQUEST);
     }
 }

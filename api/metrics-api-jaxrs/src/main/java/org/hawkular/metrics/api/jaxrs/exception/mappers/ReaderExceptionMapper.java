@@ -14,16 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs;
+package org.hawkular.metrics.api.jaxrs.exception.mappers;
 
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
 import org.jboss.resteasy.spi.ReaderException;
-
-import com.google.common.base.Throwables;
 
 /**
  * Exception mapper for any exception thrown by a body reader chain.
@@ -38,9 +35,6 @@ public class ReaderExceptionMapper implements ExceptionMapper<ReaderException> {
 
     @Override
     public Response toResponse(ReaderException exception) {
-        return Response.status(Response.Status.BAD_REQUEST)
-                       .entity(new ApiError(Throwables.getRootCause(exception).getMessage()))
-                       .type(MediaType.APPLICATION_JSON)
-                       .build();
+        return ExceptionMapperUtils.buildResponse(exception, Response.Status.BAD_REQUEST);
     }
 }
