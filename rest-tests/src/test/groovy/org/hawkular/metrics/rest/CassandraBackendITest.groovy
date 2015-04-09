@@ -304,8 +304,41 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-         [timestamp: start.plusMinutes(1).millis, value: "up"],
-         [timestamp: start.millis, value: "up"]
+            [timestamp: start.millis, value: "up"],
+            [timestamp: start.plusMinutes(1).millis, value: "up"]
+        ],
+        response.data
+    )
+  }
+
+  @Test
+  void findDistinctAvailabilities() {
+    DateTime start = now().minusMinutes(10)
+    String tenantId = nextTenantId()
+    String metric = 'A1'
+
+    def response = hawkularMetrics.post(path: "${tenantId}/metrics/availability/$metric/data", body: [
+        [timestamp: start.millis, value: "up"],
+        [timestamp: start.plusMinutes(1).millis, value: "up"],
+        [timestamp: start.plusMinutes(2).millis, value: "down"],
+        [timestamp: start.plusMinutes(3).millis, value: "down"],
+        [timestamp: start.plusMinutes(4).millis, value: "up"],
+        [timestamp: start.plusMinutes(5).millis, value: "down"],
+        [timestamp: start.plusMinutes(6).millis, value: "down"],
+        [timestamp: start.plusMinutes(7).millis, value: "up"],
+        [timestamp: start.plusMinutes(8).millis, value: "up"]
+    ])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: "$tenantId/metrics/availability/$metric/data", query: [distinct: "true"])
+    assertEquals(200, response.status)
+    assertEquals(
+        [
+            [timestamp: start.millis, value: "up"],
+            [timestamp: start.plusMinutes(2).millis, value: "down"],
+            [timestamp: start.plusMinutes(4).millis, value: "up"],
+            [timestamp: start.plusMinutes(5).millis, value: "down"],
+            [timestamp: start.plusMinutes(7).millis, value: "up"]
         ],
         response.data
     )

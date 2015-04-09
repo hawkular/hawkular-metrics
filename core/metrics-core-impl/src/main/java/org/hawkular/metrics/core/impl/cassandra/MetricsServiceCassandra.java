@@ -592,8 +592,34 @@ public class MetricsServiceCassandra implements MetricsService {
     @Override
     public ListenableFuture<List<Availability>> findAvailabilityData(String tenantId, MetricId id, long start,
             long end) {
+        return findAvailabilityData(tenantId, id, start, end, false);
+    }
+
+    @Override
+    public ListenableFuture<List<Availability>> findAvailabilityData(String tenantId, MetricId id, long start, long end,
+            boolean distinct) {
         ResultSetFuture queryFuture = dataAccess.findAvailabilityData(tenantId, id, start, end);
-        return Futures.transform(queryFuture, Functions.MAP_AVAILABILITY_DATA, metricsTasks);
+        ListenableFuture<List<Availability>> availabilityFuture =  Futures.transform(queryFuture,
+                Functions.MAP_AVAILABILITY_DATA, metricsTasks);
+        if (distinct) {
+            return Futures.transform(availabilityFuture, (List<Availability> availabilities) -> {
+                if (availabilities.isEmpty()) {
+                    return availabilities;
+                }
+                List<Availability> distinctAvailabilities = new ArrayList<>(availabilities.size());
+                Availability previous = availabilities.get(0);
+                distinctAvailabilities.add(previous);
+                for (Availability availability : availabilities){
+                    if (availability.getType() != previous.getType()) {
+                        distinctAvailabilities.add(availability);
+                    }
+                    previous = availability;
+                }
+                return distinctAvailabilities;
+            }, metricsTasks);
+        } else {
+            return availabilityFuture;
+        }
     }
 
     @Override

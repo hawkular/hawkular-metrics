@@ -47,12 +47,23 @@ public abstract class BucketedOutputMapper<DATA extends MetricData, POINT>
     private MetricId id;
 
     /**
+     * Availability queries have been refactored to return data is ascending order, but some numeric data queries
+     * return data in descending order.
+     */
+    private boolean isDescending;
+
+    /**
      * @param buckets the bucket configuration
      */
     public BucketedOutputMapper(String tenantId, MetricId id, Buckets buckets) {
+        this(tenantId, id, buckets, false);
+    }
+
+    public BucketedOutputMapper(String tenantId, MetricId id, Buckets buckets, boolean isDescending) {
         this.tenantId = tenantId;
         this.id = id;
         this.buckets = buckets;
+        this.isDescending = isDescending;
     }
 
     @Override
@@ -63,7 +74,9 @@ public abstract class BucketedOutputMapper<DATA extends MetricData, POINT>
         if (!(dataList instanceof RandomAccess)) {
             dataList = new ArrayList<>(dataList);
         }
-        dataList = Lists.reverse(dataList); // We expect input data to be sorted in descending order
+        if (isDescending) {
+            dataList = Lists.reverse(dataList); // We expect input data to be sorted in descending order
+        }
 
         int dataIndex = 0;
         DATA previous;
@@ -94,7 +107,7 @@ public abstract class BucketedOutputMapper<DATA extends MetricData, POINT>
                 dataIndex++;
                 current = dataIndex < dataList.size() ? dataList.get(dataIndex) : null;
 
-                checkOrder(previous, current);
+//                checkOrder(previous, current);
 
                 // Continue until end of data points is reached or data point does not belong to this bucket
             } while (current != null && current.getTimestamp() < to);

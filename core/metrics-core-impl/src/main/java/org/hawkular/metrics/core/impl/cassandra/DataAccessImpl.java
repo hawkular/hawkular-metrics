@@ -283,12 +283,13 @@ public class DataAccessImpl implements DataAccess {
         findAvailabilities = session.prepare(
             "SELECT time, m_tags, data_retention, availability, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
-                + " AND time < ?");
+                + " AND time < ? " +
+            "ORDER BY time ASC");
 
         findAvailabilitiesWithWriteTime = session.prepare(
             "SELECT time, m_tags, data_retention, availability, tags, WRITETIME(availability) FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
-                + " AND time < ?");
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?" +
+                    " AND time < ?");
 
         updateRetentionsIndex = session.prepare(
             "INSERT INTO retentions_idx (tenant_id, type, interval, metric, retention) VALUES (?, ?, ?, ?, ?)");
