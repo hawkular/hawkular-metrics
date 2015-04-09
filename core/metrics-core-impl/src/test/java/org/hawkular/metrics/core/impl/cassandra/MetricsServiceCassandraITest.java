@@ -18,6 +18,7 @@ package org.hawkular.metrics.core.impl.cassandra;
 
 import static java.util.Arrays.asList;
 import static org.hawkular.metrics.core.api.AvailabilityType.DOWN;
+import static org.hawkular.metrics.core.api.AvailabilityType.UNKNOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UP;
 import static org.hawkular.metrics.core.api.Metric.DPART;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
@@ -596,7 +597,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
     @Test
     public void findDistinctAvailabilities() throws Exception {
         DateTime end = now();
-        DateTime start = end.minusMinutes(10);
+        DateTime start = end.minusMinutes(20);
         String tenantId = "tenant1";
         MetricId metricId = new MetricId("A1");
 
@@ -610,6 +611,10 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         metric.addData(new Availability(start.plusMinutes(4).getMillis(), DOWN));
         metric.addData(new Availability(start.plusMinutes(5).getMillis(), UP));
         metric.addData(new Availability(start.plusMinutes(6).getMillis(), UP));
+        metric.addData(new Availability(start.plusMinutes(7).getMillis(), UNKNOWN));
+        metric.addData(new Availability(start.plusMinutes(8).getMillis(), UNKNOWN));
+        metric.addData(new Availability(start.plusMinutes(9).getMillis(), DOWN));
+        metric.addData(new Availability(start.plusMinutes(10).getMillis(), UP));
 
         ListenableFuture<Void> insertFuture = metricsService.addAvailabilityData(asList(metric));
         getUninterruptibly(insertFuture);
@@ -622,7 +627,10 @@ public class MetricsServiceCassandraITest extends MetricsITest {
             metric.getData().get(1),
             metric.getData().get(3),
             metric.getData().get(4),
-            metric.getData().get(5)
+            metric.getData().get(5),
+            metric.getData().get(7),
+            metric.getData().get(9),
+            metric.getData().get(10)
         );
 
         assertEquals(actual, expected, "The availability data does not match the expected values");

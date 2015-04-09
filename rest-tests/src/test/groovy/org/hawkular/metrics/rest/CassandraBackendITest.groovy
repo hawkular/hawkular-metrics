@@ -313,7 +313,7 @@ class CassandraBackendITest extends RESTTest {
 
   @Test
   void findDistinctAvailabilities() {
-    DateTime start = now().minusMinutes(10)
+    DateTime start = now().minusMinutes(20)
     String tenantId = nextTenantId()
     String metric = 'A1'
 
@@ -326,7 +326,11 @@ class CassandraBackendITest extends RESTTest {
         [timestamp: start.plusMinutes(5).millis, value: "down"],
         [timestamp: start.plusMinutes(6).millis, value: "down"],
         [timestamp: start.plusMinutes(7).millis, value: "up"],
-        [timestamp: start.plusMinutes(8).millis, value: "up"]
+        [timestamp: start.plusMinutes(8).millis, value: "up"],
+        [timestamp: start.plusMinutes(9).millis, value: "unknown"],
+        [timestamp: start.plusMinutes(10).millis, value: "unknown"],
+        [timestamp: start.plusMinutes(11).millis, value: "unknown"],
+        [timestamp: start.plusMinutes(12).millis, value: "up"]
     ])
     assertEquals(200, response.status)
 
@@ -338,7 +342,9 @@ class CassandraBackendITest extends RESTTest {
             [timestamp: start.plusMinutes(2).millis, value: "down"],
             [timestamp: start.plusMinutes(4).millis, value: "up"],
             [timestamp: start.plusMinutes(5).millis, value: "down"],
-            [timestamp: start.plusMinutes(7).millis, value: "up"]
+            [timestamp: start.plusMinutes(7).millis, value: "up"],
+            [timestamp: start.plusMinutes(9).millis, value: "unknown"],
+            [timestamp: start.plusMinutes(12).millis, value: "up"]
         ],
         response.data
     )

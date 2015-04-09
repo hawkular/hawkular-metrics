@@ -28,7 +28,9 @@ public enum AvailabilityType {
 
     UP((byte) 0, "up"),
 
-    DOWN((byte) 1, "down");
+    DOWN((byte) 1, "down"),
+
+    UNKNOWN((byte) 2, "unknown");
 
     private byte code;
 
@@ -56,16 +58,18 @@ public enum AvailabilityType {
 
     public static AvailabilityType fromString(String s) {
         switch (s.toLowerCase()) {
-            case "up" : return UP;
-            case "down" : return DOWN;
+            case "up"     : return UP;
+            case "down"   : return DOWN;
+            case "unknown": return UNKNOWN;
             default: throw new IllegalArgumentException(s + " is not a recognized availability type");
         }
     }
 
     public static AvailabilityType fromBytes(ByteBuffer bytes) {
         switch (bytes.array()[bytes.position()]) {
-        case 0 : return UP;
-        case 1 : return DOWN;
+            case 0 : return UP;
+            case 1 : return DOWN;
+            case 2 : return UNKNOWN;
         default: throw new IllegalArgumentException(bytes.array()[0] + " is not a recognized availability type");
         }
     }
