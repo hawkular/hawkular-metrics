@@ -90,6 +90,9 @@ public interface MetricsService {
 
     ListenableFuture<List<Availability>> findAvailabilityData(String tenantId, MetricId id, long start, long end);
 
+    ListenableFuture<List<Availability>> findAvailabilityData(String tenantId, MetricId id, long start, long end,
+            boolean distinct);
+
     ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(
             AvailabilityMetric metric, long start, long end, Buckets buckets
     );

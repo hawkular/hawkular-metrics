@@ -41,7 +41,7 @@ public class NumericBucketedOutputMapper
      * @param buckets the bucket configuration
      */
     public NumericBucketedOutputMapper(String tenantId, MetricId id, Buckets buckets) {
-        super(tenantId, id, buckets);
+        super(tenantId, id, buckets, true);
     }
 
     @Override

@@ -18,6 +18,7 @@ package org.hawkular.metrics.core.impl.cassandra;
 
 import static java.util.Arrays.asList;
 import static org.hawkular.metrics.core.api.AvailabilityType.DOWN;
+import static org.hawkular.metrics.core.api.AvailabilityType.UNKNOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UP;
 import static org.hawkular.metrics.core.api.Metric.DPART;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
@@ -140,9 +141,9 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         }
 
         assertDataRetentionsIndexMatches(t1.getId(), NUMERIC, ImmutableSet.of(new Retention(
-            new MetricId("[" + NUMERIC.getText() + "]"), hours(24).toStandardSeconds().getSeconds())));
+                new MetricId("[" + NUMERIC.getText() + "]"), hours(24).toStandardSeconds().getSeconds())));
         assertDataRetentionsIndexMatches(t1.getId(), AVAILABILITY, ImmutableSet.of(new Retention(
-            new MetricId("[" + AVAILABILITY.getText() + "]"), hours(24).toStandardSeconds().getSeconds())));
+                new MetricId("[" + AVAILABILITY.getText() + "]"), hours(24).toStandardSeconds().getSeconds())));
     }
 
     @Test
@@ -246,9 +247,9 @@ public class MetricsServiceCassandraITest extends MetricsITest {
                 start.getMillis(), end.getMillis());
         List<NumericData> actual = getUninterruptibly(queryFuture);
         List<NumericData> expected = asList(
-            new NumericData(start.plusMinutes(4).getMillis(), 3.3),
-            new NumericData(start.plusMinutes(2).getMillis(), 2.2),
-            new NumericData(start.getMillis(), 1.1)
+                new NumericData(start.plusMinutes(4).getMillis(), 3.3),
+                new NumericData(start.plusMinutes(2).getMillis(), 2.2),
+                new NumericData(start.getMillis(), 1.1)
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
@@ -312,7 +313,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t1")));
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t2")
-            .setRetention(AVAILABILITY, days(14).toStandardHours().getHours())));
+                .setRetention(AVAILABILITY, days(14).toStandardHours().getHours())));
 
         VerifyTTLDataAccess verifyTTLDataAccess = new VerifyTTLDataAccess(dataAccess);
 
@@ -331,7 +332,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         verifyTTLDataAccess.availabilityTagTLLLessThanEqualTo(DEFAULT_TTL - days(2).toStandardSeconds().getSeconds());
         getUninterruptibly(metricsService.tagAvailabilityData(m1, tags, start.getMillis(),
-            start.plusMinutes(2).getMillis()));
+                start.plusMinutes(2).getMillis()));
 
         verifyTTLDataAccess.setAvailabilityTTL(days(14).toStandardSeconds().getSeconds());
         AvailabilityMetric m2 = new AvailabilityMetric("t2", new MetricId("m2"));
@@ -342,7 +343,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         getUninterruptibly(metricsService.tagAvailabilityData(m2, tags, start.plusMinutes(5).getMillis()));
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t3")
-            .setRetention(AVAILABILITY, 24)));
+                .setRetention(AVAILABILITY, 24)));
         verifyTTLDataAccess.setAvailabilityTTL(hours(24).toStandardSeconds().getSeconds());
         AvailabilityMetric m3 = new AvailabilityMetric("t3", new MetricId("m3"));
         m3.addData(new Availability(start.getMillis(), UP));
@@ -502,12 +503,12 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenantId)));
 
         AvailabilityMetric m1 = new AvailabilityMetric(tenantId, new MetricId("m1"));
-        m1.addData(new Availability(start.plusSeconds(20).getMillis(), "down"));
         m1.addData(new Availability(start.plusSeconds(10).getMillis(), "up"));
+        m1.addData(new Availability(start.plusSeconds(20).getMillis(), "down"));
 
         AvailabilityMetric m2 = new AvailabilityMetric(tenantId, new MetricId("m2"));
-        m2.addData(new Availability(start.plusSeconds(30).getMillis(), "up"));
         m2.addData(new Availability(start.plusSeconds(15).getMillis(), "down"));
+        m2.addData(new Availability(start.plusSeconds(30).getMillis(), "up"));
 
         AvailabilityMetric m3 = new AvailabilityMetric(tenantId, new MetricId("m3"));
 
@@ -577,20 +578,62 @@ public class MetricsServiceCassandraITest extends MetricsITest {
                 metric.getId(), start.getMillis(), end.getMillis());
         List<Availability> actual = getUninterruptibly(queryFuture);
         List<Availability> expected = asList(
-            new Availability(start.plusMinutes(6).getMillis(), UP),
-            new Availability(start.plusMinutes(5).getMillis(), UP),
-            new Availability(start.plusMinutes(4).getMillis(), DOWN),
-            new Availability(start.plusMinutes(3).getMillis(), UP),
-            new Availability(start.plusMinutes(2).getMillis(), DOWN),
+            new Availability(start.getMillis(), UP),
             new Availability(start.plusMinutes(1).getMillis(), DOWN),
-            new Availability(start.getMillis(), UP)
+            new Availability(start.plusMinutes(2).getMillis(), DOWN),
+            new Availability(start.plusMinutes(3).getMillis(), UP),
+            new Availability(start.plusMinutes(4).getMillis(), DOWN),
+            new Availability(start.plusMinutes(5).getMillis(), UP),
+            new Availability(start.plusMinutes(6).getMillis(), UP)
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
         assertEquals(actual.get(3).getTags(), tags2, "The tags do not match");
-        assertEquals(actual.get(2).getTags(), tags2, "The tags do not match");
-        assertEquals(actual.get(2).getTags(), tags2, "The tags do not match");
-        assertEquals(actual.get(4).getTags(), tags1, "The tags do not match");
+        assertEquals(actual.get(2).getTags(), tags1, "The tags do not match");
+        assertEquals(actual.get(2).getTags(), tags1, "The tags do not match");
+        assertEquals(actual.get(4).getTags(), tags2, "The tags do not match");
+    }
+
+    @Test
+    public void findDistinctAvailabilities() throws Exception {
+        DateTime end = now();
+        DateTime start = end.minusMinutes(20);
+        String tenantId = "tenant1";
+        MetricId metricId = new MetricId("A1");
+
+        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenantId)));
+
+        AvailabilityMetric metric = new AvailabilityMetric("tenant1", metricId);
+        metric.addData(new Availability(start.getMillis(), UP));
+        metric.addData(new Availability(start.plusMinutes(1).getMillis(), DOWN));
+        metric.addData(new Availability(start.plusMinutes(2).getMillis(), DOWN));
+        metric.addData(new Availability(start.plusMinutes(3).getMillis(), UP));
+        metric.addData(new Availability(start.plusMinutes(4).getMillis(), DOWN));
+        metric.addData(new Availability(start.plusMinutes(5).getMillis(), UP));
+        metric.addData(new Availability(start.plusMinutes(6).getMillis(), UP));
+        metric.addData(new Availability(start.plusMinutes(7).getMillis(), UNKNOWN));
+        metric.addData(new Availability(start.plusMinutes(8).getMillis(), UNKNOWN));
+        metric.addData(new Availability(start.plusMinutes(9).getMillis(), DOWN));
+        metric.addData(new Availability(start.plusMinutes(10).getMillis(), UP));
+
+        ListenableFuture<Void> insertFuture = metricsService.addAvailabilityData(asList(metric));
+        getUninterruptibly(insertFuture);
+
+        List<Availability> actual = getUninterruptibly(metricsService.findAvailabilityData(tenantId, metricId, start
+                .getMillis(), end.getMillis(), true));
+
+        List<Availability> expected = asList(
+            metric.getData().get(0),
+            metric.getData().get(1),
+            metric.getData().get(3),
+            metric.getData().get(4),
+            metric.getData().get(5),
+            metric.getData().get(7),
+            metric.getData().get(9),
+            metric.getData().get(10)
+        );
+
+        assertEquals(actual, expected, "The availability data does not match the expected values");
     }
 
     @Test
