@@ -20,6 +20,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.EventLoop;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,12 +45,6 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.EventLoop;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
 
 /**
  * @author Thomas Segismont
@@ -74,13 +73,13 @@ public class RestForwardingHandlerITest {
         when(eventLoop.parent()).thenReturn(eventLoopGroup);
 
         Properties properties = new Properties();
-        String addNumericDataUrl = "http://" + BASE_URI + "/" + TENANT + "/metrics/numeric/data";
+        String addNumericDataUrl = "http://" + BASE_URI + "/" + TENANT + "/numeric/data";
         properties.setProperty(ConfigurationKey.REST_URL.getExternalForm(), addNumericDataUrl);
         Configuration configuration = Configuration.from(properties);
 
         restForwardingHandler = new RestForwardingHandler(configuration);
 
-        findNumericDataUrl = "http://" + BASE_URI + "/" + TENANT + "/metrics/numeric/" + METRIC_NAME + "/data";
+        findNumericDataUrl = "http://" + BASE_URI + "/" + TENANT + "/numeric/" + METRIC_NAME + "/data";
     }
 
     @Test

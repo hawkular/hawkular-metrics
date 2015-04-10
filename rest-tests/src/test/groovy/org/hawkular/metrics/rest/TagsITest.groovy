@@ -28,7 +28,7 @@ class TagsITest extends RESTTest {
 
   @Test
   void shouldNotAcceptMissingOrInvalidTags() {
-    badDelete(path: "tenantId/metrics/numeric/id/tags/,") { exception ->
+    badDelete(path: "tenantId/numeric/id/tags/,") { exception ->
       assertEquals(400, exception.response.status)
     }
     badDelete(path: "tenantId/metrics/availability/id/tags/:5") { exception ->
@@ -48,7 +48,7 @@ class TagsITest extends RESTTest {
     badGet(path: "tenantId/availability", query: [tags: ",5:"]) { exception ->
       assertEquals(400, exception.response.status)
     }
-    badGet(path: "tenantId/tags/numeric/:") { exception ->
+    badGet(path: "tenantId/numeric/tags/:") { exception ->
       assertEquals(400, exception.response.status)
     }
     badGet(path: "tenantId/tags/availability/,a") { exception ->
@@ -60,7 +60,7 @@ class TagsITest extends RESTTest {
   void findMetricTagsWhenThereIsNoData() {
     def tenantId = nextTenantId()
 
-    def response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/missing/tags")
+    def response = hawkularMetrics.get(path: "$tenantId/numeric/missing/tags")
     assertEquals("Expected a 204 response when the numeric metric is not found", 204, response.status)
 
     response = hawkularMetrics.get(path: "$tenantId/metrics/availability/missing/tags")
@@ -72,20 +72,20 @@ class TagsITest extends RESTTest {
     String tenantId = nextTenantId()
 
     // Create a numeric metric
-    def response = hawkularMetrics.post(path: "$tenantId/metrics/numeric", body: [
+    def response = hawkularMetrics.post(path: "$tenantId/numeric", body: [
         id  : 'N1',
         tags: ['  a  1   ': '   A', 'bsq   d1': 'B   ']
     ])
     assertEquals(201, response.status)
 
     // Make sure we do not allow duplicates
-    badPost(path: "$tenantId/metrics/numeric", body: [id: 'N1']) { exception ->
+    badPost(path: "$tenantId/numeric", body: [id: 'N1']) { exception ->
       assertEquals(409, exception.response.status)
       assertNotNull(exception.response.data['errorMsg'])
     }
 
     // Create a numeric metric that sets its data retention
-    response = hawkularMetrics.post(path: "$tenantId/metrics/numeric", body: [
+    response = hawkularMetrics.post(path: "$tenantId/numeric", body: [
         id           : 'N2',
         tags         : [a2: '2', b2: 'B2'],
         dataRetention: 96
@@ -114,7 +114,7 @@ class TagsITest extends RESTTest {
     }
 
     // Fetch numeric tags
-    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/N1/tags")
+    response = hawkularMetrics.get(path: "$tenantId/numeric/N1/tags")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -125,7 +125,7 @@ class TagsITest extends RESTTest {
         response.data
     )
 
-    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/N2/tags")
+    response = hawkularMetrics.get(path: "$tenantId/numeric/N2/tags")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -138,7 +138,7 @@ class TagsITest extends RESTTest {
     )
 
     // Verify the response for a non-existent metric
-    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/N-doesNotExist/tags")
+    response = hawkularMetrics.get(path: "$tenantId/numeric/N-doesNotExist/tags")
     assertEquals(204, response.status)
 
     // Fetch availability metric tags
@@ -166,15 +166,15 @@ class TagsITest extends RESTTest {
     )
 
     // Verify the response for a non-existent metric
-    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/A-doesNotExist/tags")
+    response = hawkularMetrics.get(path: "$tenantId/numeric/A-doesNotExist/tags")
     assertEquals(204, response.status)
 
     // Update the numeric metric tags
-    response = hawkularMetrics.put(path: "$tenantId/metrics/numeric/N1/tags", body: [a1: 'one', a2: '2', b1: 'B'])
+    response = hawkularMetrics.put(path: "$tenantId/numeric/N1/tags", body: [a1: 'one', a2: '2', b1: 'B'])
     assertEquals(200, response.status)
 
     // Fetch the updated tags
-    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/N1/tags")
+    response = hawkularMetrics.get(path: "$tenantId/numeric/N1/tags")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -186,9 +186,9 @@ class TagsITest extends RESTTest {
     )
 
     // Delete a numeric metric tag
-    response = hawkularMetrics.delete(path: "$tenantId/metrics/numeric/N1/tags/a2:2,b1:B")
+    response = hawkularMetrics.delete(path: "$tenantId/numeric/N1/tags/a2:2,b1:B")
     assertEquals(200, response.status)
-    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/N1/tags")
+    response = hawkularMetrics.get(path: "$tenantId/numeric/N1/tags")
     assertEquals(
         [
             tenantId: tenantId,

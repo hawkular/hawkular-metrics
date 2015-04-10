@@ -18,7 +18,9 @@ package org.hawkular.metrics.api.jaxrs;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.executeAsync;
 import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
@@ -79,6 +81,7 @@ import org.hawkular.metrics.core.api.NumericBucketDataPoint;
 import org.hawkular.metrics.core.api.NumericData;
 import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.request.TagRequest;
+
 
 /**
  * Interface to deal with metrics
@@ -597,9 +600,7 @@ public class MetricHandler {
             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
             @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
-            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
-            @ApiParam(value = "Set to true to return only distinct, contiguous values")
-                @QueryParam("distinct") Boolean distinct
+            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration
     ) {
         executeAsync(
                 asyncResponse, () -> {
@@ -608,17 +609,13 @@ public class MetricHandler {
                     Long endTime = end == null ? now : end;
 
                     AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
-                    ListenableFuture<List<Availability>> queryFuture;
-
-                    if (distinct != null && distinct.equals(Boolean.TRUE)) {
-                        queryFuture = metricsService.findAvailabilityData(tenantId, metric.getId(), startTime,
-                                endTime, distinct);
-                        return Futures.transform(queryFuture, ApiUtils.MAP_COLLECTION);
-                    }
 
                     if (bucketsCount == null && bucketDuration == null) {
-                        queryFuture = metricsService.findAvailabilityData(tenantId, metric.getId(), startTime, endTime);
-                        return Futures.transform(queryFuture, ApiUtils.MAP_COLLECTION);
+                        ListenableFuture<List<Availability>> dataFuture = metricsService.findAvailabilityData(
+                                tenantId,
+                                metric.getId(), startTime, endTime
+                        );
+                        return Futures.transform(dataFuture, ApiUtils.MAP_COLLECTION);
                     }
 
                     if (bucketsCount != null && bucketDuration != null) {

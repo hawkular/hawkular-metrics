@@ -21,7 +21,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
-
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BATCH_DELAY;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BATCH_SIZE;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.REST_URL;
@@ -50,6 +49,8 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.stream.Stream;
 
+import jnr.constants.platform.Signal;
+
 import org.hawkular.metrics.clients.ptrans.ExecutableITestBase;
 import org.hawkular.metrics.clients.ptrans.PrintOutputOnFailureWatcher;
 import org.hawkular.metrics.clients.ptrans.Service;
@@ -64,8 +65,6 @@ import com.fasterxml.jackson.databind.type.CollectionType;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Resources;
-
-import jnr.constants.platform.Signal;
 
 /**
  * @author Thomas Segismont
@@ -145,7 +144,7 @@ public class CollectdITest extends ExecutableITestBase {
         properties.setProperty(SERVICES.getExternalForm(), Service.COLLECTD.getExternalForm());
         properties.setProperty(BATCH_DELAY.getExternalForm(), String.valueOf(1));
         properties.setProperty(BATCH_SIZE.getExternalForm(), String.valueOf(1));
-        String restUrl = "http://" + BASE_URI + "/" + tenant + "/metrics/numeric/data";
+        String restUrl = "http://" + BASE_URI + "/" + tenant + "/numeric/data";
         properties.setProperty(REST_URL.getExternalForm(), restUrl);
         try (OutputStream out = new FileOutputStream(ptransConfFile)) {
             properties.store(out, "");
@@ -291,7 +290,7 @@ public class CollectdITest extends ExecutableITestBase {
     }
 
     private String findNumericDataUrl(String metricName) {
-        return "http://" + BASE_URI + "/" + tenant + "/metrics/numeric/" + metricName + "/data";
+        return "http://" + BASE_URI + "/" + tenant + "/numeric/" + metricName + "/data";
     }
 
     @After
