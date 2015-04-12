@@ -111,7 +111,7 @@
     <test.keyspace>hawkulartest</test.keyspace>
     <nodes>127.0.0.1</nodes>
 
-    <datastax.driver.version>2.1.2</datastax.driver.version>
+    <datastax.driver.version>2.1.5</datastax.driver.version>
     <joda.time.version>2.3</joda.time.version>
     <testng.version>6.8.8</testng.version>
     <slf4j.version>1.7.7</slf4j.version>
