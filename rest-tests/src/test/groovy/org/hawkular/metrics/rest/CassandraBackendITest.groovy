@@ -68,16 +68,16 @@ class CassandraBackendITest extends RESTTest {
     def tenantId = nextTenantId()
     def metric = 'A1'
 
-    def response = hawkularMetrics.get(path: "$tenantId/metrics/availability/missing/data")
+    def response = hawkularMetrics.get(path: "$tenantId/availability/missing/data")
     assertEquals("Expected a 204 response when the availability metric does not exist", 204, response.status)
 
-    response = hawkularMetrics.post(path: "$tenantId/metrics/availability/$metric/data", body: [
+    response = hawkularMetrics.post(path: "$tenantId/availability/$metric/data", body: [
         [timestamp: now().minusHours(2).millis, value: 'up'],
         [timestamp: now().minusHours(1).millis, value: 'up']
     ])
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: "$tenantId/metrics/availability/$metric/data", query: [
+    response = hawkularMetrics.get(path: "$tenantId/availability/$metric/data", query: [
         start: now().minusDays(3).millis, end: now().minusDays(2).millis])
     assertEquals("Expected a 204 response when there is no data for the specified date range", 204, response.status)
   }
@@ -264,18 +264,18 @@ class CassandraBackendITest extends RESTTest {
 
     // Let's explicitly create one of the metrics with some tags and a data retention
     // so that we can verify we get back that info along with the data.
-    response = hawkularMetrics.post(path: "$tenantId/metrics/availability", body: [
+    response = hawkularMetrics.post(path: "$tenantId/availability", body: [
         id         : 'm2',
         tags         : [a: '1', b: '2'],
         dataRetention: 12
     ])
     assertEquals(201, response.status)
     assertEquals(
-        "http://$baseURI/$tenantId/metrics/availability/m2".toString(),
+        "http://$baseURI/$tenantId/availability/m2".toString(),
         response.getFirstHeader('location').value
     )
 
-    response = hawkularMetrics.post(path: "${tenantId}/metrics/availability/data", body: [
+    response = hawkularMetrics.post(path: "${tenantId}/availability/data", body: [
         [
             id: 'm1',
             data: [
@@ -300,7 +300,7 @@ class CassandraBackendITest extends RESTTest {
     ])
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: "${tenantId}/metrics/availability/m2/data")
+    response = hawkularMetrics.get(path: "${tenantId}/availability/m2/data")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -317,7 +317,7 @@ class CassandraBackendITest extends RESTTest {
     String tenantId = nextTenantId()
     String metric = 'A1'
 
-    def response = hawkularMetrics.post(path: "${tenantId}/metrics/availability/$metric/data", body: [
+    def response = hawkularMetrics.post(path: "${tenantId}/availability/$metric/data", body: [
         [timestamp: start.millis, value: "up"],
         [timestamp: start.plusMinutes(1).millis, value: "up"],
         [timestamp: start.plusMinutes(2).millis, value: "down"],
@@ -334,7 +334,7 @@ class CassandraBackendITest extends RESTTest {
     ])
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: "$tenantId/metrics/availability/$metric/data", query: [distinct: "true"])
+    response = hawkularMetrics.get(path: "$tenantId/availability/$metric/data", query: [distinct: "true"])
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -395,7 +395,7 @@ class CassandraBackendITest extends RESTTest {
     )
 
     // Create a couple availability metrics by only inserting data
-    response = hawkularMetrics.post(path: "$tenantId/metrics/availability/data", body: [
+    response = hawkularMetrics.post(path: "$tenantId/availability/data", body: [
         [
             id: 'm14',
             data: [
@@ -414,7 +414,7 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
 
     // Explicitly create an availability metric
-    response = hawkularMetrics.post(path: "$tenantId/metrics/availability", body: [
+    response = hawkularMetrics.post(path: "$tenantId/availability", body: [
         id: 'm16',
         tags: [a10: '10', a11: '11'],
         dataRetention: 7

@@ -35,34 +35,34 @@ class AvailabilityMetricStatisticsITest extends RESTTest {
     String tenantId = nextTenantId()
     String metric = "test"
 
-    def response = hawkularMetrics.post(path: "$tenantId/metrics/availability/$metric/data", body: [
+    def response = hawkularMetrics.post(path: "$tenantId/availability/$metric/data", body: [
         [timestamp: new DateTimeService().currentHour().minusHours(1).millis, value: "up"]
     ])
     assertEquals(200, response.status)
 
-    badGet(path: "${tenantId}/metrics/availability/$metric/data", query: [buckets: 0]) { exception ->
+    badGet(path: "${tenantId}/availability/$metric/data", query: [buckets: 0]) { exception ->
       // Bucket count = zero
       assertEquals(400, exception.response.status)
     }
 
-    badGet(path: "${tenantId}/metrics/availability/$metric/data", query: [buckets: Integer.MAX_VALUE]) { exception ->
+    badGet(path: "${tenantId}/availability/$metric/data", query: [buckets: Integer.MAX_VALUE]) { exception ->
       // Bucket size = zero
       assertEquals(400, exception.response.status)
     }
 
-    badGet(path: "${tenantId}/metrics/availability/$metric/data", query: [bucketDuration: "1w"]) { exception ->
+    badGet(path: "${tenantId}/availability/$metric/data", query: [bucketDuration: "1w"]) { exception ->
       // Illegal duration
       assertEquals(400, exception.response.status)
     }
 
-    badGet(path: "${tenantId}/metrics/availability/$metric/data",
+    badGet(path: "${tenantId}/availability/$metric/data",
         query: [start: 0, end: Long.MAX_VALUE, bucketDuration: "1ms"]) {
       exception ->
         // Number of buckets is too large
         assertEquals(400, exception.response.status)
     }
 
-    badGet(path: "${tenantId}/metrics/availability/$metric/data", query: [buckets: 1, bucketDuration: "1d"]) { exception ->
+    badGet(path: "${tenantId}/availability/$metric/data", query: [buckets: 1, bucketDuration: "1d"]) { exception ->
       // Both buckets and bucketDuration parameters provided
       assertEquals(400, exception.response.status)
     }
@@ -82,12 +82,12 @@ class AvailabilityMetricStatisticsITest extends RESTTest {
     def buckets = []
     numBuckets.times { buckets.add(start.millis + (it * bucketSize)) }
 
-    def response = hawkularMetrics.post(path: "$tenantId/metrics/availability/$metric/data", body: [
+    def response = hawkularMetrics.post(path: "$tenantId/availability/$metric/data", body: [
         [timestamp: buckets[1] + seconds(60).toStandardDuration().millis, value: "up"],
     ])
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: "${tenantId}/metrics/availability/$metric/data",
+    response = hawkularMetrics.get(path: "${tenantId}/availability/$metric/data",
         query: [start: start.millis, end: end.millis, buckets: numBuckets])
     assertEquals(200, response.status)
 
@@ -126,11 +126,11 @@ class AvailabilityMetricStatisticsITest extends RESTTest {
         data.add([timestamp: nextTimestamp(i - 1), value: i % 4 == 0 ? "down" : "up"])
       }
 
-      def response = hawkularMetrics.post(path: "$tenantId/metrics/availability/$metric/data", body: data)
+      def response = hawkularMetrics.post(path: "$tenantId/availability/$metric/data", body: data)
       assertEquals(200, response.status)
     }
 
-    def response = hawkularMetrics.get(path: "${tenantId}/metrics/availability/$metric/data",
+    def response = hawkularMetrics.get(path: "${tenantId}/availability/$metric/data",
         query: [start: start.millis, end: start.plusHours(bucketsCount).millis, bucketDuration: "1h"])
     assertEquals(200, response.status)
 

@@ -138,12 +138,12 @@ meta data and data retention.
 
 *Request URI*
 
-POST /hawkular-metrics/{tenantId}/metrics/availability
+POST /hawkular-metrics/{tenantId}/availability
 
 *Example Request*
 
 ----
-curl http://localhost:8080/hawkular-metrics/{tenantId}/metrics/availability -d@request.json -HContent-Type:application/json
+curl http://localhost:8080/hawkular-metrics/{tenantId}/availability -d@request.json -HContent-Type:application/json
 ----
 
 *Description*
@@ -258,7 +258,7 @@ points where each one consists of `timestamp` and `value` properties.
 
 *Request URI*
 
-POST /hawkular-metrics/{tenantId}/metrics/availability/{id}/data
+POST /hawkular-metrics/{tenantId}/availability/{id}/data
 
 *Request Body*
 
@@ -273,7 +273,7 @@ POST /hawkular-metrics/{tenantId}/metrics/availability/{id}/data
 *Example Request*
 
 ----
-curl -X POST http://localhost:8080/hawkular-metrics/{tenantId}/metrics/availability/{id}/data -d@request.json -HContent-Type:application/json
+curl -X POST http://localhost:8080/hawkular-metrics/{tenantId}/availability/{id}/data -d@request.json -HContent-Type:application/json
 ----
 
 *Description*
@@ -323,7 +323,7 @@ Insert data for multiple numeric metrics.
 
 *Request URI*
 
-POST /hawkular-metrics/{tenantId}/metrics/availability/data
+POST /hawkular-metrics/{tenantId}/availability/data
 
 *Request Body*
 
@@ -350,7 +350,7 @@ POST /hawkular-metrics/{tenantId}/metrics/availability/data
 *Example Request*
 
 ----
-curl -X POST http://localhost:8080/hawkular-metrics/{tenantId}/metrics/availability/data -d@request.json -HContent-Type:application/json
+curl -X POST http://localhost:8080/hawkular-metrics/{tenantId}/availability/data -d@request.json -HContent-Type:application/json
 ----
 
 *Description*
