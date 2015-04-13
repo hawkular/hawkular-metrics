@@ -57,6 +57,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.RateLimiter;
+
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityMetric;
@@ -301,6 +302,35 @@ public class MetricsServiceCassandra implements MetricsService {
         }
     }
 
+    private static class MergeTagsFunction<T extends MetricData> implements
+        Function<List<Map<MetricId, Set<T>>>, Map<MetricId, Set<T>>> {
+
+        @Override
+        public Map<MetricId, Set<T>> apply(List<Map<MetricId, Set<T>>> taggedDataMaps) {
+            if (taggedDataMaps.isEmpty()) {
+                return Collections.emptyMap();
+            }
+            if (taggedDataMaps.size() == 1) {
+                return taggedDataMaps.get(0);
+            }
+
+            Set<MetricId> ids = new HashSet<>(taggedDataMaps.get(0).keySet());
+            for (int i = 1; i < taggedDataMaps.size(); ++i) {
+                ids.retainAll(taggedDataMaps.get(i).keySet());
+            }
+
+            Map<MetricId, Set<T>> mergedDataMap = new HashMap<>();
+            for (MetricId id : ids) {
+                TreeSet<T> set = new TreeSet<>(MetricData.TIME_UUID_COMPARATOR);
+                for (Map<MetricId, Set<T>> taggedDataMap : taggedDataMaps) {
+                    set.addAll(taggedDataMap.get(id));
+                }
+                mergedDataMap.put(id, set);
+            }
+
+            return mergedDataMap;
+        }
+    }
 
     private class DataRetentionsLoadedCallback implements FutureCallback<Set<Retention>> {
 
@@ -665,18 +695,7 @@ public class MetricsServiceCassandra implements MetricsService {
                 Functions.MAP_NUMERIC_DATA_WITH_WRITE_TIME, metricsTasks);
         int ttl = getTTL(metric);
         ListenableFuture<List<NumericData>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
-        return Futures.transform(updatedDataFuture, new AsyncFunction<List<NumericData>, List<NumericData>>() {
-            @Override
-            public ListenableFuture<List<NumericData>> apply(final List<NumericData> taggedData) {
-                List<ResultSetFuture> insertFutures = new ArrayList<>(tags.size());
-                tags.forEach((k, v) -> insertFutures.add(dataAccess.insertNumericTag(k, v, metric, taggedData)));
-                for (NumericData d : taggedData) {
-                    insertFutures.add(dataAccess.updateDataWithTag(metric, d, tags));
-                }
-                ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
-                return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> taggedData);
-            }
-        });
+        return Futures.transform(updatedDataFuture, new TagAsyncFunction(tags, metric));
     }
 
     @Override
@@ -687,19 +706,7 @@ public class MetricsServiceCassandra implements MetricsService {
             Functions.MAP_AVAILABILITY_WITH_WRITE_TIME, metricsTasks);
         int ttl = getTTL(metric);
         ListenableFuture<List<Availability>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
-        return Futures.transform(updatedDataFuture, new AsyncFunction<List<Availability>, List<Availability>>() {
-            @Override
-            public ListenableFuture<List<Availability>> apply(final List<Availability> taggedData) throws Exception {
-                List<ResultSetFuture> insertFutures = new ArrayList<>(taggedData.size());
-                tags.forEach((k, v) -> insertFutures.add(dataAccess.insertAvailabilityTag(k, v, metric,
-                    taggedData)));
-                for (Availability a : taggedData) {
-                    insertFutures.add(dataAccess.updateDataWithTag(metric, a, tags));
-                }
-                ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
-                return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> taggedData);
-            }
-        });
+        return Futures.transform(updatedDataFuture, new TagAsyncFunction(tags, metric));
     }
 
     @Override
@@ -710,22 +717,7 @@ public class MetricsServiceCassandra implements MetricsService {
                 Functions.MAP_NUMERIC_DATA_WITH_WRITE_TIME, metricsTasks);
         int ttl = getTTL(metric);
         ListenableFuture<List<NumericData>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
-        return Futures.transform(updatedDataFuture, new AsyncFunction<List<NumericData>, List<NumericData>>() {
-            @Override
-            public ListenableFuture<List<NumericData>> apply(final List<NumericData> data) throws Exception {
-                if (data.isEmpty()) {
-                    List<NumericData> results = Collections.emptyList();
-                    return Futures.immediateFuture(results);
-                }
-                List<ResultSetFuture> insertFutures = new ArrayList<>(tags.size());
-                tags.forEach((k, v) -> insertFutures.add(dataAccess.insertNumericTag(k, v, metric, data)));
-                for (NumericData d : data) {
-                    insertFutures.add(dataAccess.updateDataWithTag(metric, d, tags));
-                }
-                ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
-                return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> data);
-            }
-        });
+        return Futures.transform(updatedDataFuture, new TagAsyncFunction(tags, metric));
     }
 
     @Override
@@ -736,22 +728,7 @@ public class MetricsServiceCassandra implements MetricsService {
             Functions.MAP_AVAILABILITY_WITH_WRITE_TIME, metricsTasks);
         int ttl = getTTL(metric);
         ListenableFuture<List<Availability>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
-        return Futures.transform(updatedDataFuture, new AsyncFunction<List<Availability>, List<Availability>>() {
-            @Override
-            public ListenableFuture<List<Availability>> apply(final List<Availability> data) throws Exception {
-                if (data.isEmpty()) {
-                    List<Availability> results = Collections.emptyList();
-                    return Futures.immediateFuture(results);
-                }
-                List<ResultSetFuture> insertFutures = new ArrayList<>();
-                tags.forEach((k, v) -> dataAccess.insertAvailabilityTag(k, v, metric, data));
-                for (Availability a : data) {
-                    insertFutures.add(dataAccess.updateDataWithTag(metric, a, tags));
-                }
-                ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
-                return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> data);
-            }
-        });
+        return Futures.transform(updatedDataFuture, new TagAsyncFunction(tags, metric));
     }
 
     @Override
@@ -761,34 +738,7 @@ public class MetricsServiceCassandra implements MetricsService {
         tags.forEach((k, v) -> queryFutures.add(Futures.transform(dataAccess.findNumericDataByTag(tenantId, k, v),
                 new TaggedNumericDataMapper(), metricsTasks)));
         ListenableFuture<List<Map<MetricId, Set<NumericData>>>> queriesFuture = Futures.allAsList(queryFutures);
-        return Futures.transform(queriesFuture,
-                new Function<List<Map<MetricId, Set<NumericData>>>, Map<MetricId, Set<NumericData>>>() {
-            @Override
-            public Map<MetricId, Set<NumericData>> apply(List<Map<MetricId, Set<NumericData>>> taggedDataMaps) {
-                if (taggedDataMaps.isEmpty()) {
-                    return Collections.emptyMap();
-                }
-                if (taggedDataMaps.size() == 1) {
-                    return taggedDataMaps.get(0);
-                }
-
-                Set<MetricId> ids = new HashSet<>(taggedDataMaps.get(0).keySet());
-                for (int i = 1; i < taggedDataMaps.size(); ++i) {
-                    ids.retainAll(taggedDataMaps.get(i).keySet());
-                }
-
-                Map<MetricId, Set<NumericData>> mergedDataMap = new HashMap<>();
-                for (MetricId id : ids) {
-                    TreeSet<NumericData> set = new TreeSet<>(MetricData.TIME_UUID_COMPARATOR);
-                    for (Map<MetricId, Set<NumericData>> taggedDataMap : taggedDataMaps) {
-                        set.addAll(taggedDataMap.get(id));
-                    }
-                    mergedDataMap.put(id, set);
-                }
-
-                return mergedDataMap;
-            }
-        });
+        return Futures.transform(queriesFuture, new MergeTagsFunction());
 
     }
 
@@ -799,34 +749,7 @@ public class MetricsServiceCassandra implements MetricsService {
         tags.forEach((k, v) -> queryFutures.add(Futures.transform(dataAccess.findAvailabilityByTag(tenantId, k, v),
                 new TaggedAvailabilityMappper(), metricsTasks)));
         ListenableFuture<List<Map<MetricId, Set<Availability>>>> queriesFuture = Futures.allAsList(queryFutures);
-        return Futures.transform(queriesFuture,
-                new Function<List<Map<MetricId, Set<Availability>>>, Map<MetricId, Set<Availability>>>() {
-            @Override
-            public Map<MetricId, Set<Availability>> apply(List<Map<MetricId, Set<Availability>>> taggedDataMaps) {
-                if (taggedDataMaps.isEmpty()) {
-                    return Collections.emptyMap();
-                }
-                if (taggedDataMaps.size() == 1) {
-                    return taggedDataMaps.get(0);
-                }
-
-                Set<MetricId> ids = new HashSet<>(taggedDataMaps.get(0).keySet());
-                for (int i = 1; i < taggedDataMaps.size(); ++i) {
-                    ids.retainAll(taggedDataMaps.get(i).keySet());
-                }
-
-                Map<MetricId, Set<Availability>> mergedDataMap = new HashMap<>();
-                for (MetricId id : ids) {
-                    TreeSet<Availability> set = new TreeSet<>(MetricData.TIME_UUID_COMPARATOR);
-                    for (Map<MetricId, Set<Availability>> taggedDataMap : taggedDataMaps) {
-                        set.addAll(taggedDataMap.get(id));
-                    }
-                    mergedDataMap.put(id, set);
-                }
-
-                return mergedDataMap;
-            }
-        });
+        return Futures.transform(queriesFuture, new MergeTagsFunction());
     }
 
     @Override
@@ -883,4 +806,34 @@ public class MetricsServiceCassandra implements MetricsService {
         }
     }
 
+    private class TagAsyncFunction<T extends MetricData> implements AsyncFunction<List<T>, List<T>> {
+        private final Map<String, String> tags;
+        private final Metric<?> metric;
+
+        public TagAsyncFunction(Map<String, String> tags, Metric<?> metric) {
+            this.tags = tags;
+            this.metric = metric;
+        }
+
+        @Override
+        public ListenableFuture<List<T>> apply(List<T> data) throws Exception {
+            if (data.isEmpty()) {
+                List<T> results = Collections.emptyList();
+                return Futures.immediateFuture(results);
+            }
+            List<ResultSetFuture> insertFutures = new ArrayList<>(tags.size());
+            tags.forEach((k, v) -> {
+                if(metric instanceof NumericMetric) {
+                    insertFutures.add(dataAccess.insertNumericTag(k, v, (NumericMetric) metric,
+                                                                  (List<NumericData>) data));
+                } else if(metric instanceof AvailabilityMetric) {
+                    insertFutures.add(dataAccess.insertAvailabilityTag(k, v, (AvailabilityMetric) metric,
+                                                                       (List<Availability>) data));
+                }
+            });
+            data.forEach(t -> insertFutures.add(dataAccess.updateDataWithTag(metric, t, tags)));
+            ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
+            return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> data);
+        }
+    }
 }
