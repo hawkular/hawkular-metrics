@@ -159,3 +159,23 @@ CREATE TABLE ${keyspace}.counters (
     c_value counter,
     PRIMARY KEY ((tenant_id, group), c_name)
 );
+
+-- #
+
+CREATE TABLE ${keyspace}.task_queue (
+    task_type text,
+    time_slice timestamp,
+    segment int,
+    metric text,
+    task_details text
+    PRIMARY KEY ((task_type, time_slice, segment), metric)
+);
+
+CREATE TABLE ${keyspace}.leases (
+    time_slice timestamp,
+    task_type text,
+    segment_offset int,
+    owner text,
+    finished boolean,
+    PRIMARY KEY (time_slice, task_type, segment_offset)
+) WITH default_time_to_live = 180;
