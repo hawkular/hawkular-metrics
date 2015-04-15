@@ -73,7 +73,7 @@ public class CollectdITest extends ExecutableITestBase {
     private static final String COLLECTD_PATH = System.getProperty("collectd.path", "/usr/sbin/collectd");
     private static final String BASE_URI = System.getProperty(
             "hawkular-metrics.base-uri",
-            "127.0.0.1:8080/hawkular-metrics"
+            "127.0.0.1:8080/hawkular/metrics"
     );
 
     private String tenant;

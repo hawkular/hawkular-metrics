@@ -18,7 +18,7 @@
 
 -->
 <jboss-web>
-  <context-root>/hawkular-metrics</context-root>
+  <context-root>/hawkular/metrics</context-root>
   <!-- see https://community.jboss.org/wiki/JBossAS7SecurityAuditing for the next tag -->
   <!--<disable-audit>false</disable-audit>-->
 </jboss-web>

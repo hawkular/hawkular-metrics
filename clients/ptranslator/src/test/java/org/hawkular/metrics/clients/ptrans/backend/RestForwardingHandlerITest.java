@@ -53,7 +53,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class RestForwardingHandlerITest {
     private static final String BASE_URI = System.getProperty(
             "hawkular-metrics.base-uri",
-            "127.0.0.1:8080/hawkular-metrics"
+            "127.0.0.1:8080/hawkular/metrics"
     );
     private static final String TENANT = "test";
     private static final String METRIC_NAME = RestForwardingHandler.class.getName();

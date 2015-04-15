@@ -39,7 +39,7 @@
     <hawkular-metrics.backend>cass</hawkular-metrics.backend>
     <cassandra.keyspace>hawkular_metrics_ptrans_integration_tests</cassandra.keyspace>
     <!-- IMPORTANT: The port must be the port offset + 8080. -->
-    <base-uri>127.0.0.1:55988/hawkular-metrics</base-uri>
+    <base-uri>127.0.0.1:55988/hawkular/metrics</base-uri>
     <ptrans.wildfly.port.offset>47908</ptrans.wildfly.port.offset>
     <!-- IMPORTANT: The management port must be the port offset + 9990. -->
     <ptrans.wildfly.management.port>57898</ptrans.wildfly.management.port>

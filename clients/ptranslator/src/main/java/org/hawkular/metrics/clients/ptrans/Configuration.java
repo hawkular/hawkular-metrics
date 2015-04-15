@@ -108,7 +108,7 @@ public class Configuration {
         int minimumBatchSize = getIntProperty(properties, BATCH_SIZE, 50);
         int maximumBatchDelay = getIntProperty(properties, BATCH_DELAY, 1);
         URI restUrl = URI.create(properties.getProperty(REST_URL.getExternalForm(),
-            "http://localhost:8080/hawkular-metrics/metrics"));
+            "http://localhost:8080/hawkular/metrics/"));
         int restCloseAfterRequests = getIntProperty(properties, REST_CLOSE_AFTER_REQUESTS, 200);
         int spoolSize = getIntProperty(properties, SPOOL_SIZE, 10000);
         return new Configuration(
