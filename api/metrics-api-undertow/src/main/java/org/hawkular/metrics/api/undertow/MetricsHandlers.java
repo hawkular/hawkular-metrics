@@ -53,7 +53,7 @@ public class MetricsHandlers {
 
     public void setup(RoutingHandler commonHandler) {
 
-        commonHandler.add(Methods.POST, "/{tenantId}/numeric", new AsyncHttpHandler() {
+        commonHandler.add(Methods.POST, "/{tenantId}/guage", new AsyncHttpHandler() {
 
             public void handleRequestAsync(HttpServerExchange exchange) throws Exception {
                 @SuppressWarnings("unchecked")
@@ -81,7 +81,7 @@ public class MetricsHandlers {
             }
         });
 
-        commonHandler.add(Methods.POST, "/{tenantId}/numeric/data", new AsyncHttpHandler() {
+        commonHandler.add(Methods.POST, "/{tenantId}/guage/data", new AsyncHttpHandler() {
             public void handleRequestAsync(HttpServerExchange exchange) throws Exception {
                 List<NumericMetric> metrics = mapper.readValue(Channels.newInputStream(exchange.getRequestChannel()),
                         new TypeReference<List<NumericMetric>>() {

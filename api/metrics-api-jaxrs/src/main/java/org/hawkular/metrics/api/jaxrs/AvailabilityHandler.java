@@ -89,7 +89,7 @@ public class AvailabilityHandler {
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "Metric definition created successfully"),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
-            @ApiResponse(code = 409, message = "Numeric metric with given id already exists",
+            @ApiResponse(code = 409, message = "Availability metric with given id already exists",
                 response = ApiError.class),
             @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
                 response = ApiError.class) })

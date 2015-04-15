@@ -73,13 +73,13 @@ public class RestForwardingHandlerITest {
         when(eventLoop.parent()).thenReturn(eventLoopGroup);
 
         Properties properties = new Properties();
-        String addNumericDataUrl = "http://" + BASE_URI + "/" + TENANT + "/numeric/data";
+        String addNumericDataUrl = "http://" + BASE_URI + "/" + TENANT + "/guage/data";
         properties.setProperty(ConfigurationKey.REST_URL.getExternalForm(), addNumericDataUrl);
         Configuration configuration = Configuration.from(properties);
 
         restForwardingHandler = new RestForwardingHandler(configuration);
 
-        findNumericDataUrl = "http://" + BASE_URI + "/" + TENANT + "/numeric/" + METRIC_NAME + "/data";
+        findNumericDataUrl = "http://" + BASE_URI + "/" + TENANT + "/guage/" + METRIC_NAME + "/data";
     }
 
     @Test

@@ -79,26 +79,26 @@ import com.wordnik.swagger.annotations.ApiResponses;
 @Path("/")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@Api(value = "", description = "Numeric metrics interface")
-public class NumericHandler {
+@Api(value = "", description = "Guage metrics interface")
+public class GuageHandler {
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
     @Inject
     private MetricsService metricsService;
 
     @POST
-    @Path("/{tenantId}/numeric")
-    @ApiOperation(value = "Create numeric metric definition.", notes = "Clients are not required to explicitly create "
+    @Path("/{tenantId}/guage")
+    @ApiOperation(value = "Create guage metric definition.", notes = "Clients are not required to explicitly create "
             + "a metric before storing data. Doing so however allows clients to prevent naming collisions and to "
             + "specify tags and data retention.")
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "Metric definition created successfully"),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
-            @ApiResponse(code = 409, message = "Numeric metric with given id already exists",
+            @ApiResponse(code = 409, message = "Guage metric with given id already exists",
                 response = ApiError.class),
             @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
                 response = ApiError.class) })
-    public void createNumericMetric(@Suspended final AsyncResponse asyncResponse,
+    public void createGuageMetric(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId, @ApiParam(required = true) NumericMetric metric,
             @Context UriInfo uriInfo) {
         if (metric == null) {
@@ -108,21 +108,21 @@ public class NumericHandler {
         }
         metric.setTenantId(tenantId);
         ListenableFuture<Void> future = metricsService.createMetric(metric);
-        URI created = uriInfo.getBaseUriBuilder().path("/{tenantId}/numeric/{id}")
+        URI created = uriInfo.getBaseUriBuilder().path("/{tenantId}/guage/{id}")
                 .build(tenantId, metric.getId().getName());
         MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(asyncResponse, created);
         Futures.addCallback(future, metricCreatedCallback);
     }
 
     @GET
-    @Path("/{tenantId}/numeric/{id}/tags")
+    @Path("/{tenantId}/guage/{id}/tags")
     @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = Metric.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's tags were successfully retrieved."),
             @ApiResponse(code = 204, message = "Query was successful, but no metrics were found."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's tags.",
                 response = ApiError.class) })
-    public void getNumericMetricTags(@Suspended final AsyncResponse asyncResponse,
+    public void getGuageMetricTags(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId, @PathParam("id") String id) {
         executeAsync(
                 asyncResponse,
@@ -134,13 +134,13 @@ public class NumericHandler {
     }
 
     @PUT
-    @Path("/{tenantId}/numeric/{id}/tags")
+    @Path("/{tenantId}/guage/{id}/tags")
     @ApiOperation(value = "Update tags associated with the metric definition.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while updating metric's tags.",
                 response = ApiError.class) })
-    public void updateNumericMetricTags(@Suspended final AsyncResponse asyncResponse,
+    public void updateGuageMetricTags(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId, @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags) {
         executeAsync(asyncResponse, () -> {
@@ -151,14 +151,14 @@ public class NumericHandler {
     }
 
     @DELETE
-    @Path("/{tenantId}/numeric/{id}/tags/{tags}")
+    @Path("/{tenantId}/guage/{id}/tags/{tags}")
     @ApiOperation(value = "Delete tags associated with the metric definition.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
             @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.",
                 response = ApiError.class) })
-    public void deleteNumericMetricTags(@Suspended final AsyncResponse asyncResponse,
+    public void deleteGuageMetricTags(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId, @PathParam("id") String id,
             @ApiParam("Tag list") @PathParam("tags") Tags tags) {
         executeAsync(asyncResponse, () -> {
@@ -169,8 +169,8 @@ public class NumericHandler {
     }
 
     @POST
-    @Path("/{tenantId}/numeric/{id}/data")
-    @ApiOperation(value = "Add data for a single numeric metric.")
+    @Path("/{tenantId}/guage/{id}/data")
+    @ApiOperation(value = "Add data for a single guage metric.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
@@ -194,13 +194,13 @@ public class NumericHandler {
     }
 
     @POST
-    @Path("/{tenantId}/numeric/data")
-    @ApiOperation(value = "Add metric data for multiple numeric metrics in a single call.")
+    @Path("/{tenantId}/guage/data")
+    @ApiOperation(value = "Add data for multiple guage metrics in a single call.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
                 response = ApiError.class) })
-    public void addNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
+    public void addGuageData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
             @ApiParam(value = "List of metrics", required = true) List<NumericMetric> metrics) {
         executeAsync(asyncResponse, () -> {
             if (metrics.isEmpty()) {
@@ -213,13 +213,13 @@ public class NumericHandler {
     }
 
     @GET
-    @Path("/{tenantId}/numeric")
-    @ApiOperation(value = "Find numeric metrics data by their tags.", response = Map.class, responseContainer = "List")
+    @Path("/{tenantId}/guage")
+    @ApiOperation(value = "Find guage metrics data by their tags.", response = Map.class, responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched data."),
             @ApiResponse(code = 204, message = "No matching data found."),
             @ApiResponse(code = 400, message = "Missing or invalid tags query", response = ApiError.class),
             @ApiResponse(code = 500, message = "Any error in the query.", response = ApiError.class), })
-    public void findNumericDataByTags(@Suspended final AsyncResponse asyncResponse,
+    public void findGuageDataByTags(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId,
             @ApiParam(value = "Tag list", required = true) @QueryParam("tags") Tags tags) {
         executeAsync(asyncResponse, () -> {
@@ -233,18 +233,18 @@ public class NumericHandler {
     }
 
     @GET
-    @Path("/{tenantId}/numeric/{id}/data")
-    @ApiOperation(value = "Retrieve numeric data. When buckets or bucketDuration query parameter is used, the time "
+    @Path("/{tenantId}/guage/{id}/data")
+    @ApiOperation(value = "Retrieve guage data. When buckets or bucketDuration query parameter is used, the time "
             + "range between start and end will be divided in buckets of equal duration, and metric "
             + "statistics will be computed for each bucket.", response = List.class)
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully fetched numeric data."),
-            @ApiResponse(code = 204, message = "No numeric data was found."),
+            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+            @ApiResponse(code = 204, message = "No metric data was found."),
             @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
                 response = ApiError.class),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching numeric data.",
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
                 response = ApiError.class) })
-    public void findNumericData(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
+    public void findGuageData(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
             @PathParam("id") String id,
             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
             @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
@@ -291,11 +291,11 @@ public class NumericHandler {
     }
 
     @GET
-    @Path("/{tenantId}/numeric/{id}/periods")
+    @Path("/{tenantId}/guage/{id}/periods")
     @ApiOperation(value = "Retrieve periods for which the condition holds true for each consecutive data point.",
         response = List.class)
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched periods."),
-            @ApiResponse(code = 204, message = "No numeric data was found."),
+            @ApiResponse(code = 204, message = "No data was found."),
             @ApiResponse(code = 400, message = "Missing or invalid query parameters") })
     public void findPeriods(
             @Suspended final AsyncResponse asyncResponse,
@@ -358,13 +358,13 @@ public class NumericHandler {
     }
 
     @GET
-    @Path("/{tenantId}/numeric/tags/{tags}")
-    @ApiOperation(value = "Find numeric metric data with given tags.", response = Map.class, responseContainer = "List")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Numeric values fetched successfully"),
+    @Path("/{tenantId}/guage/tags/{tags}")
+    @ApiOperation(value = "Find metric data with given tags.", response = Map.class, responseContainer = "List")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Me values fetched successfully"),
             @ApiResponse(code = 204, message = "No matching data found."),
             @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
             @ApiResponse(code = 500, message = "Any error while fetching data.", response = ApiError.class), })
-    public void findTaggedNumericData(@Suspended final AsyncResponse asyncResponse,
+    public void findTaggedGuageData(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId, @ApiParam("Tag list") @PathParam("tags") Tags tags) {
         executeAsync(
                 asyncResponse,
@@ -387,10 +387,10 @@ public class NumericHandler {
     }
 
     @POST
-    @Path("/{tenantId}/numeric/{id}/tag")
-    @ApiOperation(value = "Add or update numeric metric's tags.")
+    @Path("/{tenantId}/guage/{id}/tag")
+    @ApiOperation(value = "Add or update guage metric's tags.")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Tags were modified successfully.") })
-    public void tagNumericData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
+    public void tagGuageData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
             @PathParam("id") final String id, @ApiParam(required = true) TagRequest params) {
 
         executeAsync(asyncResponse, () -> {
