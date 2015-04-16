@@ -20,15 +20,10 @@ package org.hawkular.metrics.tasks;
 
 import static org.joda.time.DateTime.now;
 
-import java.util.Comparator;
-import java.util.PriorityQueue;
-import java.util.Set;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 import org.joda.time.DateTime;
 import org.joda.time.Seconds;
 
@@ -37,7 +32,7 @@ import org.joda.time.Seconds;
  */
 public class Scheduler {
 
-    private static final Comparator<TaskType> TASK_TYPE_COMPARATOR = Comparator.comparing(TaskType::getPriority);
+//    private static final Comparator<TaskType> TASK_TYPE_COMPARATOR = Comparator.comparing(TaskType::getPriority);
 
     private int numWorkers;
 
@@ -47,23 +42,23 @@ public class Scheduler {
 
     private DateTimeService dateTimeService;
 
-    private Set<TaskType> taskTypes;
+//    private Set<TaskType> taskTypes;
 
-    public Scheduler(int numWorkers, Set<TaskType> taskTypes) {
-        this.numWorkers = numWorkers;
-        workersPool = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(numWorkers));
-        executor = Executors.newSingleThreadScheduledExecutor();
-        dateTimeService =  new DateTimeService();
-        this.taskTypes = taskTypes;
-    }
+//    public Scheduler(int numWorkers, Set<TaskType> taskTypes) {
+//        this.numWorkers = numWorkers;
+//        workersPool = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(numWorkers));
+//        executor = Executors.newSingleThreadScheduledExecutor();
+//        dateTimeService =  new DateTimeService();
+//        this.taskTypes = taskTypes;
+//    }
 
     public void start() {
         executor.scheduleAtFixedRate(() -> {
             for (int i = 0; i < numWorkers; ++i) {
                 DateTime timeSlice = dateTimeService.getTimeSlice(now(), Seconds.ONE.toStandardDuration());
-                PriorityQueue<TaskType> typesQueue = new PriorityQueue<>(TASK_TYPE_COMPARATOR);
-                typesQueue.addAll(taskTypes);
-                workersPool.submit(new Worker(timeSlice, typesQueue));
+//                PriorityQueue<TaskType> typesQueue = new PriorityQueue<>(TASK_TYPE_COMPARATOR);
+//                typesQueue.addAll(taskTypes);
+//                workersPool.submit(new Worker(timeSlice, typesQueue));
             }
         }, 1, 1, TimeUnit.SECONDS);
     }

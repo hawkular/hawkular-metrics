@@ -166,10 +166,14 @@ CREATE TABLE ${keyspace}.task_queue (
     task_type text,
     time_slice timestamp,
     segment int,
-    metric text,
-    task_details text
-    PRIMARY KEY ((task_type, time_slice, segment), metric)
+    target text,
+    sources set<text>,
+    interval int,
+    window int,
+    PRIMARY KEY ((task_type, time_slice, segment), target)
 );
+
+-- #
 
 CREATE TABLE ${keyspace}.leases (
     time_slice timestamp,
@@ -178,4 +182,4 @@ CREATE TABLE ${keyspace}.leases (
     owner text,
     finished boolean,
     PRIMARY KEY (time_slice, task_type, segment_offset)
-) WITH default_time_to_live = 180;
+);

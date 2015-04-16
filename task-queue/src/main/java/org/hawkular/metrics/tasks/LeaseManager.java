@@ -49,41 +49,40 @@ public class LeaseManager {
     public ListenableFuture<List<Lease>> findUnfinishedLeases(DateTime timeSlice) {
         ResultSetFuture future = session.executeAsync(queries.findLeases.bind(timeSlice.toDate()));
         return Futures.transform(future, (ResultSet resultSet) -> StreamSupport.stream(resultSet.spliterator(), false)
-                .map(row->new Lease(timeSlice, new TaskType(0, row.getString(0)), row.getInt(1), row.getString(2),
-                        row.getBool(3)))
+                .map(row->new Lease(timeSlice, row.getString(0), row.getInt(1), row.getString(2), row.getBool(3)))
                 .filter(lease -> !lease.isFinished())
                 .collect(toList()));
     }
 
     public ListenableFuture<Boolean> acquire(Lease lease) {
         ResultSetFuture future = session.executeAsync(queries.acquireLease.bind(DEFAULT_LEASE_TTL, lease.getOwner(),
-                lease.getTimeSlice().toDate(), lease.getTaskType().getText(), lease.getSegmentOffset()));
+                lease.getTimeSlice().toDate(), lease.getTaskType(), lease.getSegmentOffset()));
         return Futures.transform(future, ResultSet::wasApplied);
     }
 
     public ListenableFuture<Boolean> acquire(Lease lease, int ttl) {
         ResultSetFuture future = session.executeAsync(queries.acquireLease.bind(ttl, lease.getOwner(),
-                lease.getTimeSlice().toDate(), lease.getTaskType().getText(), lease.getSegmentOffset()));
+                lease.getTimeSlice().toDate(), lease.getTaskType(), lease.getSegmentOffset()));
         return Futures.transform(future, ResultSet::wasApplied);
     }
 
     public ListenableFuture<Boolean> renew(Lease lease) {
         ResultSetFuture future = session.executeAsync(queries.renewLease.bind(DEFAULT_LEASE_TTL, lease.getOwner(),
-                lease.getTimeSlice().toDate(), lease.getTaskType().getText(), lease.getSegmentOffset(),
+                lease.getTimeSlice().toDate(), lease.getTaskType(), lease.getSegmentOffset(),
                 lease.getOwner()));
         return Futures.transform(future, ResultSet::wasApplied);
     }
 
     public ListenableFuture<Boolean> renew(Lease lease, int ttl) {
         ResultSetFuture future = session.executeAsync(queries.renewLease.bind(ttl, lease.getOwner(),
-                lease.getTimeSlice().toDate(), lease.getTaskType().getText(), lease.getSegmentOffset(),
+                lease.getTimeSlice().toDate(), lease.getTaskType(), lease.getSegmentOffset(),
                 lease.getOwner()));
         return Futures.transform(future, ResultSet::wasApplied);
     }
 
     public ListenableFuture<Boolean> finish(Lease lease) {
         ResultSetFuture future = session.executeAsync(queries.finishLease.bind(lease.getTimeSlice().toDate(),
-                lease.getTaskType().getText(), lease.getSegmentOffset(), lease.getOwner()));
+                lease.getTaskType(), lease.getSegmentOffset(), lease.getOwner()));
         return Futures.transform(future, ResultSet::wasApplied);
     }
 

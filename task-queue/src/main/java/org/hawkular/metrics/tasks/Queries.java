@@ -36,6 +36,10 @@ public class Queries {
 
     public PreparedStatement finishLease;
 
+    public PreparedStatement createTask;
+
+    public PreparedStatement findTasks;
+
     public Queries(Session session) {
         createLease = session.prepare(
             "INSERT INTO leases (time_slice, task_type, segment_offset) VALUES (?, ?, ?)");
@@ -62,6 +66,15 @@ public class Queries {
             "SET finished = true " +
             "WHERE time_slice = ? AND task_type = ? AND segment_offset = ? " +
             "IF owner = ?");
+
+        createTask = session.prepare(
+            "INSERT INTO task_queue (task_type, time_slice, segment, target, sources, interval, window) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?)");
+
+        findTasks = session.prepare(
+            "SELECT target, sources, interval, window " +
+            "FROM task_queue " +
+            "WHERE task_type = ? AND time_slice = ? AND segment = ?");
     }
 
 }

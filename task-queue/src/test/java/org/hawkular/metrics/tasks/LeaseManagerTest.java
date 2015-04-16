@@ -24,54 +24,43 @@ import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
-import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.Uninterruptibles;
 import org.joda.time.DateTime;
 import org.joda.time.Minutes;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 /**
  * @author jsanda
  */
-public class LeaseManagerTest {
+public class LeaseManagerTest extends BaseTest {
 
-    private static final long FUTURE_TIMEOUT = 3;
-
-    private Session session;
-
-    private DateTimeService dateTimeService;
-
-    private Queries queries;
-
+//    private static final long FUTURE_TIMEOUT = 3;
+//
+//    private Session session;
+//
+//    private DateTimeService dateTimeService;
+//
+//    private Queries queries;
+//
     private LeaseManager leaseManager;
-
+//
     private PreparedStatement createdFinishedLease;
-
+//
     @BeforeClass
     public void initClass() {
-        Cluster cluster = Cluster.builder().addContactPoints("127.0.0.01").build();
-        session = cluster.connect(System.getProperty("keyspace", "hawkular_metrics"));
-        queries = new Queries(session);
-        dateTimeService = new DateTimeService();
         leaseManager = new LeaseManager(session, queries);
         createdFinishedLease = session.prepare(
                 "INSERT INTO leases (time_slice, task_type, segment_offset, finished) VALUES (?, ?, ?, ?)");
     }
-
-    @BeforeMethod
-    public void resetDB() {
-        session.execute("TRUNCATE leases");
-    }
+//
+//    @BeforeMethod
+//    public void resetDB() {
+//        session.execute("TRUNCATE leases");
+//    }
 
     @Test
     public void findUnfinishedLeases() throws Exception {
@@ -92,8 +81,8 @@ public class LeaseManagerTest {
         ListenableFuture<List<Lease>> future = leaseManager.findUnfinishedLeases(timeSlice);
         List<Lease> actual = getUninterruptibly(future);
         List<Lease> expected = ImmutableList.of(
-                new Lease(timeSlice, new TaskType(0, taskType1), 0, null, false),
-                new Lease(timeSlice, new TaskType(0, taskType2), 0, null, false)
+                new Lease(timeSlice, taskType1, 0, null, false),
+                new Lease(timeSlice, taskType2, 0, null, false)
         );
 
         assertEquals(actual, expected, "The leases do not match");
@@ -116,7 +105,7 @@ public class LeaseManagerTest {
     @Test
     public void doNotAcquireLeaseThatIsAlreadyOwned() throws Exception {
         DateTime timeSlice = dateTimeService.getTimeSlice(now(), Minutes.ONE.toStandardDuration());
-        Lease lease = new Lease(timeSlice, new TaskType(0, "test"), 0, null, false);
+        Lease lease = new Lease(timeSlice, "test", 0, null, false);
 
         session.execute(queries.createLease.bind(timeSlice.toDate(), "test", 0));
 
@@ -135,7 +124,7 @@ public class LeaseManagerTest {
         // This test demonstrates that if a lease is not renewed by its owner then it will
         // expire and a different owner can acquire the lease.
         DateTime timeSlice = dateTimeService.getTimeSlice(now(), Minutes.ONE.toStandardDuration());
-        Lease lease = new Lease(timeSlice, new TaskType(0, "test"), 0, null, false);
+        Lease lease = new Lease(timeSlice, "test", 0, null, false);
 
         session.execute(queries.createLease.bind(timeSlice.toDate(), "test", 0));
 
@@ -154,7 +143,7 @@ public class LeaseManagerTest {
     @Test
     public void renewLeaseBeforeItExpires() throws Exception {
         DateTime timeSlice = dateTimeService.getTimeSlice(now(), Minutes.ONE.toStandardDuration());
-        Lease lease = new Lease(timeSlice, new TaskType(0, "test"), 0, null, false);
+        Lease lease = new Lease(timeSlice, "test", 0, null, false);
 
         session.execute(queries.createLease.bind(timeSlice.toDate(), "test", 0));
 
@@ -164,10 +153,6 @@ public class LeaseManagerTest {
 
         Boolean renewed = getUninterruptibly(leaseManager.renew(lease));
         assertTrue(renewed, "Expected lease to be renewed");
-    }
-
-    private <V> V getUninterruptibly(ListenableFuture<V> future) throws ExecutionException, TimeoutException {
-        return Uninterruptibles.getUninterruptibly(future, FUTURE_TIMEOUT, TimeUnit.SECONDS);
     }
 
 }

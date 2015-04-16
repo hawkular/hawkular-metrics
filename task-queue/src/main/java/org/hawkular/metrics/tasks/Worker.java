@@ -18,7 +18,7 @@
  */
 package org.hawkular.metrics.tasks;
 
-import java.util.PriorityQueue;
+import java.util.Queue;
 
 import org.joda.time.DateTime;
 
@@ -29,11 +29,11 @@ public class Worker implements Runnable {
 
     private DateTime timeSlice;
 
-    private PriorityQueue<TaskType> taskTypes;
+    private Queue<TaskDef> taskDefs;
 
-    public Worker(DateTime timeSlice, PriorityQueue<TaskType> taskTypes) {
+    public Worker(DateTime timeSlice, Queue<TaskDef> taskDefs) {
         this.timeSlice = timeSlice;
-        this.taskTypes = taskTypes;
+        this.taskDefs = taskDefs;
     }
 
     @Override

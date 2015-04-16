@@ -29,7 +29,7 @@ public class Lease {
 
     private DateTime timeSlice;
 
-    private TaskType taskType;
+    private String taskType;
 
     private int segmentOffset;
 
@@ -37,7 +37,7 @@ public class Lease {
 
     private boolean finished;
 
-    public Lease(DateTime timeSlice, TaskType taskType, int segmentOffset, String owner, boolean finished) {
+    public Lease(DateTime timeSlice, String taskType, int segmentOffset, String owner, boolean finished) {
         this.timeSlice = timeSlice;
         this.taskType = taskType;
         this.segmentOffset = segmentOffset;
@@ -49,7 +49,7 @@ public class Lease {
         return timeSlice;
     }
 
-    public TaskType getTaskType() {
+    public String getTaskType() {
         return taskType;
     }
 

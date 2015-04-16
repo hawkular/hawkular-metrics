@@ -18,9 +18,6 @@
  */
 package org.hawkular.metrics.tasks;
 
-import java.util.Set;
-
-import com.google.common.collect.ImmutableSet;
 import org.testng.annotations.Test;
 
 /**
@@ -30,7 +27,7 @@ public class SchedulerTest {
 
     @Test
     public void scheduleWorkers() {
-        Set<TaskType> taskTypes = ImmutableSet.of(new TaskType(0, "0"), new TaskType(1, "1"));
+//        Set<TaskType> taskTypes = ImmutableSet.of(new TaskType(0, "0"), new TaskType(1, "1"));
 //        Scheduler scheudler = new Scheduler(1)
     }
 
