@@ -34,8 +34,6 @@
   <properties>
     <!-- Properties for the fabric8-maven-plugin -->
     <fabric8.generateJson>false</fabric8.generateJson>
-    <hawkular-metrics.image>hawkular/hawkular-metrics:${project.version}</hawkular-metrics.image>
-    <cassandra.image>hawkular/cassandra:2.1.3-devel</cassandra.image>
   </properties>
 
   <build>

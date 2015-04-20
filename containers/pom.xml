@@ -35,6 +35,10 @@
   <properties>
     <cassandra.version>2.1.3</cassandra.version>
     <fabric8.version>2.0.39</fabric8.version>
+    <docker.user>hawkular</docker.user>
+    <hawkular-metrics.image>${docker.user}/hawkular-metrics:${project.version}</hawkular-metrics.image>
+    <cassandra.build>devel</cassandra.build>
+    <cassandra.image>${docker.user}/cassandra:2.1.3-${cassandra.build}</cassandra.image>
   </properties>
 
   <modules>
