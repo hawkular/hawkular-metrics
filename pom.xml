@@ -85,6 +85,7 @@
     <module>rest-tests</module>
     <module>clients</module>
     <module>ui/explorer</module>
+    <module>containers</module>
   </modules>
 
   <scm>
@@ -248,6 +249,8 @@
             <!-- Ignore Coverity files (useful on Travis) -->
             <exclude>cov-int/**</exclude>
             <exclude>analysis-results.tgz</exclude>
+            <!-- Exclude the cassandra.yaml file since modified from the Cassandra upstream project.-->
+            <exclude>src/main/docker/cassandra.yaml</exclude>
           </excludes>
         </configuration>
       </plugin>
