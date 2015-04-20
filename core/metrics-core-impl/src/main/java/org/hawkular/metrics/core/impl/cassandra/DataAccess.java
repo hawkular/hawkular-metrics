@@ -30,8 +30,8 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricData;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.NumericData;
-import org.hawkular.metrics.core.api.NumericMetric;
+import org.hawkular.metrics.core.api.GuageData;
+import org.hawkular.metrics.core.api.Guage;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
 
@@ -62,16 +62,16 @@ public interface DataAccess {
 
     ResultSetFuture findMetricsInMetricsIndex(String tenantId, MetricType type);
 
-    ResultSetFuture insertData(NumericMetric metric, int ttl);
+    ResultSetFuture insertData(Guage metric, int ttl);
 
     ResultSetFuture findData(String tenantId, MetricId id, long startTime, long endTime);
 //    ResultSetFuture findData(QueryParams queryParams);
 
-    ResultSetFuture findData(NumericMetric metric, long startTime, long endTime, Order order);
+    ResultSetFuture findData(Guage metric, long startTime, long endTime, Order order);
 
     ResultSetFuture findData(String tenantId, MetricId id, long startTime, long endTime, boolean includeWriteTime);
 
-    ResultSetFuture findData(NumericMetric metric, long timestamp, boolean includeWriteTime);
+    ResultSetFuture findData(Guage metric, long timestamp, boolean includeWriteTime);
 
     ResultSetFuture findData(AvailabilityMetric metric, long startTime, long endTime);
 
@@ -83,7 +83,7 @@ public interface DataAccess {
 
     ResultSetFuture findAllNumericMetrics();
 
-    ResultSetFuture insertNumericTag(String tag, String tagValue, NumericMetric metric, List<NumericData> data);
+    ResultSetFuture insertNumericTag(String tag, String tagValue, Guage metric, List<GuageData> data);
 
     ResultSetFuture insertAvailabilityTag(String tag, String tagValue, AvailabilityMetric metric,
             List<Availability> data);

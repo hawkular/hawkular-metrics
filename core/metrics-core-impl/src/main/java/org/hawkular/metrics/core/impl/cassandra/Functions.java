@@ -35,7 +35,7 @@ import org.hawkular.metrics.core.api.AggregationTemplate;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.NumericData;
+import org.hawkular.metrics.core.api.GuageData;
 import org.hawkular.metrics.core.api.Tenant;
 
 /**
@@ -66,22 +66,22 @@ public class Functions {
 
     public static final Function<List<ResultSet>, Void> TO_VOID = resultSets -> null;
 
-    public static final Function<ResultSet, List<NumericData>> MAP_NUMERIC_DATA = resultSet ->
+    public static final Function<ResultSet, List<GuageData>> MAP_NUMERIC_DATA = resultSet ->
             StreamSupport.stream(resultSet.spliterator(), false).map(Functions::getNumericData).collect(toList());
 
-    private static NumericData getNumericData(Row row) {
-        return new NumericData(
+    private static GuageData getNumericData(Row row) {
+        return new GuageData(
                 row.getUUID(NUMERIC_COLS.TIME.ordinal()), row.getDouble(NUMERIC_COLS.VALUE.ordinal()),
                 row.getMap(NUMERIC_COLS.TAGS.ordinal(), String.class, String.class)
         );
     }
 
-    public static final Function<ResultSet, List<NumericData>> MAP_NUMERIC_DATA_WITH_WRITE_TIME = resultSet ->
+    public static final Function<ResultSet, List<GuageData>> MAP_NUMERIC_DATA_WITH_WRITE_TIME = resultSet ->
         StreamSupport.stream(resultSet.spliterator(), false).map(Functions::getNumericDataAndWriteTime)
                 .collect(toList());
 
-    private static NumericData getNumericDataAndWriteTime(Row row) {
-        return new NumericData(
+    private static GuageData getNumericDataAndWriteTime(Row row) {
+        return new GuageData(
                 row.getUUID(NUMERIC_COLS.TIME.ordinal()),
                 row.getDouble(NUMERIC_COLS.VALUE.ordinal()),
                 row.getMap(NUMERIC_COLS.TAGS.ordinal(), String.class, String.class),

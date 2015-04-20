@@ -26,16 +26,16 @@ import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.NumericBucketDataPoint;
-import org.hawkular.metrics.core.api.NumericData;
+import org.hawkular.metrics.core.api.GuageData;
 
 /**
  * A {@link org.hawkular.metrics.core.impl.cassandra.BucketedOutputMapper} for {@link org.hawkular.metrics.core.api
- * .NumericMetric}.
+ * .Guage}.
  *
  * @author Thomas Segismont
  */
 public class NumericBucketedOutputMapper
-        extends BucketedOutputMapper<NumericData, NumericBucketDataPoint> {
+        extends BucketedOutputMapper<GuageData, NumericBucketDataPoint> {
 
     /**
      * @param buckets the bucket configuration
@@ -50,10 +50,10 @@ public class NumericBucketedOutputMapper
     }
 
     @Override
-    protected NumericBucketDataPoint newPointInstance(long from, long to, List<NumericData> numericDatas) {
+    protected NumericBucketDataPoint newPointInstance(long from, long to, List<GuageData> numericDatas) {
         double[] values = new double[numericDatas.size()];
-        for (ListIterator<NumericData> iterator = numericDatas.listIterator(); iterator.hasNext(); ) {
-            NumericData numericData = iterator.next();
+        for (ListIterator<GuageData> iterator = numericDatas.listIterator(); iterator.hasNext(); ) {
+            GuageData numericData = iterator.next();
             values[iterator.previousIndex()] = numericData.getValue();
         }
 

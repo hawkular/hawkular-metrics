@@ -72,7 +72,7 @@ public class MetricHandler {
     public void findMetrics(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") final String tenantId,
-        @ApiParam(value = "Queried metric type", required = true, allowableValues = "[num, avail, log]")
+        @ApiParam(value = "Queried metric type", required = true, allowableValues = "[guage, avail, log]")
         @QueryParam("type") String type) {
 
         executeAsync(

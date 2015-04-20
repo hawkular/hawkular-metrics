@@ -28,12 +28,12 @@ import com.datastax.driver.core.Row;
 import com.google.common.base.Function;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.NumericData;
+import org.hawkular.metrics.core.api.GuageData;
 
 /**
  * @author John Sanda
  */
-public class NumericDataMapper implements Function<ResultSet, List<NumericData>> {
+public class NumericDataMapper implements Function<ResultSet, List<GuageData>> {
 
     private enum ColumnIndex {
         TIME,
@@ -45,7 +45,7 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
     }
 
     private interface RowConverter {
-        NumericData getData(Row row);
+        GuageData getData(Row row);
     }
 
     private RowConverter rowConverter;
@@ -56,21 +56,21 @@ public class NumericDataMapper implements Function<ResultSet, List<NumericData>>
 
     public NumericDataMapper(boolean includeWriteTime) {
         if (includeWriteTime) {
-            rowConverter = row -> new NumericData(row.getUUID(ColumnIndex.TIME.ordinal()),
+            rowConverter = row -> new GuageData(row.getUUID(ColumnIndex.TIME.ordinal()),
                 row.getDouble(ColumnIndex.VALUE.ordinal()), getTags(row),
                 row.getLong(ColumnIndex.WRITE_TIME.ordinal()) / 1000);
         } else {
-            rowConverter = row -> new NumericData(row.getUUID(ColumnIndex.TIME.ordinal()),
+            rowConverter = row -> new GuageData(row.getUUID(ColumnIndex.TIME.ordinal()),
                 row.getDouble(ColumnIndex.VALUE.ordinal()), getTags(row));
         }
     }
 
     @Override
-    public List<NumericData> apply(ResultSet resultSet) {
-        List<NumericData> data = new ArrayList<>();
+    public List<GuageData> apply(ResultSet resultSet) {
+        List<GuageData> data = new ArrayList<>();
 
         return StreamSupport.stream(resultSet.spliterator(), false).map(row ->
-            new NumericData(row.getUUID(ColumnIndex.TIME.ordinal()), row.getDouble(ColumnIndex.VALUE.ordinal()),
+            new GuageData(row.getUUID(ColumnIndex.TIME.ordinal()), row.getDouble(ColumnIndex.VALUE.ordinal()),
                 row.getMap(ColumnIndex.TAGS.ordinal(), String.class, String.class))
         ).collect(toList());
 

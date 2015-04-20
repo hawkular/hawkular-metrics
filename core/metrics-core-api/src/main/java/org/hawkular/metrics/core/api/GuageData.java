@@ -31,29 +31,29 @@ import com.google.common.base.Objects;
  *
  * @author John Sanda
  */
-public class NumericData extends MetricData {
+public class GuageData extends MetricData {
 
     private double value;
 
     private Set<AggregatedValue> aggregatedValues = new HashSet<>();
 
     @JsonCreator
-    public NumericData(@JsonProperty("timestamp") long timestamp, @JsonProperty("value") double value) {
+    public GuageData(@JsonProperty("timestamp") long timestamp, @JsonProperty("value") double value) {
         super(timestamp);
         this.value = value;
     }
 
-    public NumericData(UUID timeUUID, double value) {
+    public GuageData(UUID timeUUID, double value) {
         super(timeUUID);
         this.value = value;
     }
 
-    public NumericData(UUID timeUUID, double value, Map<String, String> tags) {
+    public GuageData(UUID timeUUID, double value, Map<String, String> tags) {
         super(timeUUID, tags);
         this.value = value;
     }
 
-    public NumericData(UUID timeUUID, double value, Map<String, String> tags, Long writeTime) {
+    public GuageData(UUID timeUUID, double value, Map<String, String> tags, Long writeTime) {
         super(timeUUID, tags, writeTime);
         this.value = value;
     }
@@ -65,7 +65,7 @@ public class NumericData extends MetricData {
         return value;
     }
 
-    public NumericData setValue(double value) {
+    public GuageData setValue(double value) {
         this.value = value;
         return this;
     }
@@ -78,7 +78,7 @@ public class NumericData extends MetricData {
         return aggregatedValues;
     }
 
-    public NumericData addAggregatedValue(AggregatedValue aggregatedValue) {
+    public GuageData addAggregatedValue(AggregatedValue aggregatedValue) {
         aggregatedValues.add(aggregatedValue);
         return this;
     }
@@ -86,10 +86,10 @@ public class NumericData extends MetricData {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof NumericData)) return false;
+        if (!(o instanceof GuageData)) return false;
         if (!super.equals(o)) return false;
 
-        NumericData that = (NumericData) o;
+        GuageData that = (GuageData) o;
 
         if (Double.compare(that.value, value) != 0) return false;
 

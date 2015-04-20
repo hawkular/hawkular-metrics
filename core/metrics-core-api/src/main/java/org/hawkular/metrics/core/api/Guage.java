@@ -25,40 +25,40 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 /**
  * @author John Sanda
  */
-public class NumericMetric extends Metric<NumericData> {
+public class Guage extends Metric<GuageData> {
 
     @JsonCreator
-    public NumericMetric(@JsonProperty("id") MetricId id) {
+    public Guage(@JsonProperty("id") MetricId id) {
         super("", id);
     }
 
-    public NumericMetric(String tenantId, MetricId id) {
+    public Guage(String tenantId, MetricId id) {
         super(tenantId, id);
     }
 
-    public NumericMetric(String tenantId, MetricId id, Map<String, String> tags) {
+    public Guage(String tenantId, MetricId id, Map<String, String> tags) {
         super(tenantId, id, tags);
     }
 
-    public NumericMetric(String tenantId, MetricId id, Map<String, String> tags, Integer dataRetention) {
+    public Guage(String tenantId, MetricId id, Map<String, String> tags, Integer dataRetention) {
         super(tenantId, id, tags, dataRetention);
     }
 
     @Override
     public MetricType getType() {
-        return MetricType.NUMERIC;
+        return MetricType.GUAGE;
     }
 
     public void addData(long timestamp, double value) {
-        addData(new NumericData(timestamp, value));
+        addData(new GuageData(timestamp, value));
     }
 
     public void addData(UUID timeUUID, double value) {
-        addData(new NumericData(timeUUID, value));
+        addData(new GuageData(timeUUID, value));
     }
 
     public void addData(UUID timeUUID, double value, Map<String, String> tags) {
-        addData(new NumericData(timeUUID, value, tags));
+        addData(new GuageData(timeUUID, value, tags));
     }
 
 }

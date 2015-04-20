@@ -78,12 +78,12 @@ public interface MetricsService {
 
     ListenableFuture<Void> deleteTags(Metric metric, Map<String, String> tags);
 
-    ListenableFuture<Void> addNumericData(List<NumericMetric> metrics);
+    ListenableFuture<Void> addNumericData(List<Guage> metrics);
 
-    ListenableFuture<List<NumericData>> findNumericData(String tenantId, MetricId id, Long start, Long end);
+    ListenableFuture<List<GuageData>> findNumericData(String tenantId, MetricId id, Long start, Long end);
 
     ListenableFuture<BucketedOutput<NumericBucketDataPoint>> findNumericStats(
-            NumericMetric metric, long start, long end, Buckets buckets
+            Guage metric, long start, long end, Buckets buckets
     );
 
     ListenableFuture<Void> addAvailabilityData(List<AvailabilityMetric> metrics);
@@ -108,19 +108,19 @@ public interface MetricsService {
     /** Check if a metric with the passed {id} has been stored in the system */
     ListenableFuture<Boolean> idExists(String id);
 
-    ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Map<String, String> tags,
+    ListenableFuture<List<GuageData>> tagNumericData(Guage metric, Map<String, String> tags,
         long start, long end);
 
     ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, Map<String, String> tags,
             long start, long end);
 
-    ListenableFuture<List<NumericData>> tagNumericData(NumericMetric metric, Map<String, String> tags,
+    ListenableFuture<List<GuageData>> tagNumericData(Guage metric, Map<String, String> tags,
         long timestamp);
 
     ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, Map<String, String> tags,
             long timestamp);
 
-    ListenableFuture<Map<MetricId, Set<NumericData>>> findNumericDataByTags(String tenantId, Map<String, String> tags);
+    ListenableFuture<Map<MetricId, Set<GuageData>>> findNumericDataByTags(String tenantId, Map<String, String> tags);
 
     ListenableFuture<Map<MetricId, Set<Availability>>> findAvailabilityByTags(String tenantId,
             Map<String, String> tags);

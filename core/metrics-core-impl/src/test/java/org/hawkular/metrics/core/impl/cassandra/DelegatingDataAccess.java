@@ -30,8 +30,8 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricData;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.NumericData;
-import org.hawkular.metrics.core.api.NumericMetric;
+import org.hawkular.metrics.core.api.GuageData;
+import org.hawkular.metrics.core.api.Guage;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
 
@@ -103,7 +103,7 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertData(NumericMetric metric, int ttl) {
+    public ResultSetFuture insertData(Guage metric, int ttl) {
         return delegate.insertData(metric, ttl);
     }
 
@@ -113,7 +113,7 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findData(NumericMetric metric, long startTime, long endTime, Order order) {
+    public ResultSetFuture findData(Guage metric, long startTime, long endTime, Order order) {
         return delegate.findData(metric, startTime, endTime, order);
     }
 
@@ -124,7 +124,7 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findData(NumericMetric metric, long timestamp, boolean includeWriteTime) {
+    public ResultSetFuture findData(Guage metric, long timestamp, boolean includeWriteTime) {
         return delegate.findData(metric, timestamp, includeWriteTime);
     }
 
@@ -154,8 +154,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertNumericTag(String tag, String tagValue, NumericMetric metric,
-            List<NumericData> data) {
+    public ResultSetFuture insertNumericTag(String tag, String tagValue, Guage metric,
+            List<GuageData> data) {
         return delegate.insertNumericTag(tag, tagValue, metric, data);
     }
 

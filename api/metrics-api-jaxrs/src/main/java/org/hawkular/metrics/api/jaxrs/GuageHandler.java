@@ -54,13 +54,13 @@ import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.Guage;
+import org.hawkular.metrics.core.api.GuageData;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericBucketDataPoint;
-import org.hawkular.metrics.core.api.NumericData;
-import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.request.TagRequest;
 
 import com.google.common.base.Function;
@@ -99,7 +99,7 @@ public class GuageHandler {
             @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
                 response = ApiError.class) })
     public void createGuageMetric(@Suspended final AsyncResponse asyncResponse,
-            @PathParam("tenantId") String tenantId, @ApiParam(required = true) NumericMetric metric,
+            @PathParam("tenantId") String tenantId, @ApiParam(required = true) Guage metric,
             @Context UriInfo uriInfo) {
         if (metric == null) {
             Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Payload is empty")).build();
@@ -128,7 +128,7 @@ public class GuageHandler {
                 asyncResponse,
                 () -> {
                     ListenableFuture<Optional<Metric<?>>> future = metricsService.findMetric(tenantId,
-                            MetricType.NUMERIC, new MetricId(id));
+                            MetricType.GUAGE, new MetricId(id));
                     return Futures.transform(future, ApiUtils.MAP_VALUE);
                 });
     }
@@ -144,7 +144,7 @@ public class GuageHandler {
             @PathParam("tenantId") String tenantId, @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags) {
         executeAsync(asyncResponse, () -> {
-            NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
+            Guage metric = new Guage(tenantId, new MetricId(id));
             ListenableFuture<Void> future = metricsService.addTags(metric, tags);
             return Futures.transform(future, ApiUtils.MAP_VOID);
         });
@@ -162,7 +162,7 @@ public class GuageHandler {
             @PathParam("tenantId") String tenantId, @PathParam("id") String id,
             @ApiParam("Tag list") @PathParam("tags") Tags tags) {
         executeAsync(asyncResponse, () -> {
-            NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
+            Guage metric = new Guage(tenantId, new MetricId(id));
             ListenableFuture<Void> future = metricsService.deleteTags(metric, tags.getTags());
             return Futures.transform(future, ApiUtils.MAP_VOID);
         });
@@ -181,12 +181,12 @@ public class GuageHandler {
             @PathParam("tenantId") final String tenantId,
             @PathParam("id") String id,
             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
-                List<NumericData> data) {
+                List<GuageData> data) {
         executeAsync(asyncResponse, () -> {
             if (data == null) {
                 return ApiUtils.emptyPayload();
             }
-            NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
+            Guage metric = new Guage(tenantId, new MetricId(id));
             metric.getData().addAll(data);
             ListenableFuture<Void> future = metricsService.addNumericData(Collections.singletonList(metric));
             return Futures.transform(future, ApiUtils.MAP_VOID);
@@ -201,7 +201,7 @@ public class GuageHandler {
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
                 response = ApiError.class) })
     public void addGuageData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
-            @ApiParam(value = "List of metrics", required = true) List<NumericMetric> metrics) {
+            @ApiParam(value = "List of metrics", required = true) List<Guage> metrics) {
         executeAsync(asyncResponse, () -> {
             if (metrics.isEmpty()) {
                 return Futures.immediateFuture(Response.ok().build());
@@ -226,7 +226,7 @@ public class GuageHandler {
             if (tags == null) {
                 return badRequest(new ApiError("Missing tags query"));
             }
-            ListenableFuture<Map<MetricId, Set<NumericData>>> future;
+            ListenableFuture<Map<MetricId, Set<GuageData>>> future;
             future = metricsService.findNumericDataByTags(tenantId, tags.getTags());
             return Futures.transform(future, ApiUtils.MAP_MAP);
         });
@@ -257,10 +257,10 @@ public class GuageHandler {
                     long startTime = start == null ? now - EIGHT_HOURS : start;
                     long endTime = end == null ? now : end;
 
-                    NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
+                    Guage metric = new Guage(tenantId, new MetricId(id));
 
                     if (bucketsCount == null && bucketDuration == null) {
-                        ListenableFuture<List<NumericData>> dataFuture = metricsService.findNumericData(tenantId,
+                        ListenableFuture<List<GuageData>> dataFuture = metricsService.findNumericData(tenantId,
                                 new MetricId(id), startTime, endTime);
                         return Futures.transform(dataFuture, ApiUtils.MAP_COLLECTION);
                     }
@@ -369,14 +369,14 @@ public class GuageHandler {
         executeAsync(
                 asyncResponse,
                 () -> {
-                    ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture;
+                    ListenableFuture<Map<MetricId, Set<GuageData>>> queryFuture;
                     queryFuture = metricsService.findNumericDataByTags(tenantId, tags.getTags());
-                    ListenableFuture<Map<String, Set<NumericData>>> resultFuture = Futures.transform(queryFuture,
-                            new Function<Map<MetricId, Set<NumericData>>, Map<String, Set<NumericData>>>() {
+                    ListenableFuture<Map<String, Set<GuageData>>> resultFuture = Futures.transform(queryFuture,
+                            new Function<Map<MetricId, Set<GuageData>>, Map<String, Set<GuageData>>>() {
                                 @Override
-                                public Map<String, Set<NumericData>> apply(Map<MetricId, Set<NumericData>> input) {
-                                    Map<String, Set<NumericData>> result = new HashMap<>(input.size());
-                                    for (Map.Entry<MetricId, Set<NumericData>> entry : input.entrySet()) {
+                                public Map<String, Set<GuageData>> apply(Map<MetricId, Set<GuageData>> input) {
+                                    Map<String, Set<GuageData>> result = new HashMap<>(input.size());
+                                    for (Map.Entry<MetricId, Set<GuageData>> entry : input.entrySet()) {
                                         result.put(entry.getKey().getName(), entry.getValue());
                                     }
                                     return result;
@@ -394,14 +394,14 @@ public class GuageHandler {
             @PathParam("id") final String id, @ApiParam(required = true) TagRequest params) {
 
         executeAsync(asyncResponse, () -> {
-            ListenableFuture<List<NumericData>> future;
-            NumericMetric metric = new NumericMetric(tenantId, new MetricId(id));
+            ListenableFuture<List<GuageData>> future;
+            Guage metric = new Guage(tenantId, new MetricId(id));
             if (params.getTimestamp() != null) {
                 future = metricsService.tagNumericData(metric, params.getTags(), params.getTimestamp());
             } else {
                 future = metricsService.tagNumericData(metric, params.getTags(), params.getStart(), params.getEnd());
             }
-            return Futures.transform(future, (List<NumericData> data) -> Response.ok().build());
+            return Futures.transform(future, (List<GuageData> data) -> Response.ok().build());
         });
     }
 }

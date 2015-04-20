@@ -37,7 +37,7 @@ class CassandraBackendITest extends RESTTest {
   void findMetricsWhenThereIsNoData() {
     def tenantId = nextTenantId()
 
-    def response = hawkularMetrics.get(path: "$tenantId/metrics", query: [type: "num"])
+    def response = hawkularMetrics.get(path: "$tenantId/metrics", query: [type: "guage"])
     assertEquals("Expected a 204 status code when no guage metrics are found", 204, response.status)
 
     response = hawkularMetrics.get(path: "$tenantId/metrics", query: [type: "avail"])
@@ -383,7 +383,7 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(201, response.status)
 
     // Now query for the guage metrics
-    response = hawkularMetrics.get(path: "$tenantId/metrics", query: [type: 'num'])
+    response = hawkularMetrics.get(path: "$tenantId/metrics", query: [type: 'guage'])
     assertEquals(200, response.status)
     assertEquals(
         [

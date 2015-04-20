@@ -20,7 +20,7 @@ package org.hawkular.metrics.core.api;
  * An enumeration of the supported metric types which currently includes,
  *
  * <ul>
- *   <li>numeric</li>
+ *   <li>guage</li>
  *   <li>availability</li>
  *   <li>log events</li>
  * </ul>
@@ -29,7 +29,7 @@ package org.hawkular.metrics.core.api;
  */
 public enum MetricType {
 
-    NUMERIC(0, "numeric"),
+    GUAGE(0, "guage"),
 
     AVAILABILITY(1, "availability"),
 
@@ -59,7 +59,7 @@ public enum MetricType {
 
     public static MetricType fromCode(int code) {
         switch (code) {
-            case 0 : return NUMERIC;
+            case 0 : return GUAGE;
             case 1 : return AVAILABILITY;
             case 2 : return LOG_EVENT;
             default: throw new IllegalArgumentException(code + " is not a recognized metric type");
@@ -68,7 +68,7 @@ public enum MetricType {
 
     public static MetricType fromTextCode(String textCode) {
         switch (textCode) {
-        case "num": return NUMERIC;
+        case "guage": return GUAGE;
         case "avail": return AVAILABILITY;
         case "log": return LOG_EVENT;
         default: throw new IllegalArgumentException(textCode + " is not a recognized metric type code");

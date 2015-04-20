@@ -24,7 +24,7 @@ import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.NumericMetric;
+import org.hawkular.metrics.core.api.Guage;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
@@ -56,7 +56,7 @@ public class MetricsIndexMapper implements Function<ResultSet, List<Metric<?>>> 
 
     @Override
     public List<Metric<?>> apply(ResultSet resultSet) {
-        if (type == MetricType.NUMERIC) {
+        if (type == MetricType.GUAGE) {
             return getNumericMetrics(resultSet);
         } else {
             return getAvailabilityMetrics(resultSet);
@@ -66,7 +66,7 @@ public class MetricsIndexMapper implements Function<ResultSet, List<Metric<?>>> 
     private List<Metric<?>> getNumericMetrics(ResultSet resultSet) {
         List<Metric<?>> metrics = new ArrayList<>();
         for (Row row : resultSet) {
-            metrics.add(new NumericMetric(tenantId, new MetricId(row.getString(ColumnIndex.METRIC_NAME.ordinal()),
+            metrics.add(new Guage(tenantId, new MetricId(row.getString(ColumnIndex.METRIC_NAME.ordinal()),
                     Interval.parse(row.getString(ColumnIndex.INTERVAL.ordinal()))), row.getMap(
                     ColumnIndex.TAGS.ordinal(), String.class, String.class),
                 row.getInt(ColumnIndex.DATA_RETENTION.ordinal())));

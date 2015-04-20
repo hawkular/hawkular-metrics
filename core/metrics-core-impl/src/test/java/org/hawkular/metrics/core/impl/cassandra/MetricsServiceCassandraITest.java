@@ -22,7 +22,7 @@ import static org.hawkular.metrics.core.api.AvailabilityType.UNKNOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UP;
 import static org.hawkular.metrics.core.api.Metric.DPART;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
-import static org.hawkular.metrics.core.api.MetricType.NUMERIC;
+import static org.hawkular.metrics.core.api.MetricType.GUAGE;
 import static org.hawkular.metrics.core.impl.cassandra.MetricsServiceCassandra.DEFAULT_TTL;
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Days.days;
@@ -57,8 +57,8 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.NumericData;
-import org.hawkular.metrics.core.api.NumericMetric;
+import org.hawkular.metrics.core.api.GuageData;
+import org.hawkular.metrics.core.api.Guage;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
 import org.joda.time.DateTime;
@@ -112,8 +112,8 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
     @Test
     public void createTenants() throws Exception {
-        Tenant t1 = new Tenant().setId("t1").setRetention(NUMERIC, 24).setRetention(AVAILABILITY, 24);
-        Tenant t2 = new Tenant().setId("t2").setRetention(NUMERIC, 72);
+        Tenant t1 = new Tenant().setId("t1").setRetention(GUAGE, 24).setRetention(AVAILABILITY, 24);
+        Tenant t2 = new Tenant().setId("t2").setRetention(GUAGE, 72);
         Tenant t3 = new Tenant().setId("t3").setRetention(AVAILABILITY, 48);
         Tenant t4 = new Tenant().setId("t4");
 
@@ -140,21 +140,21 @@ public class MetricsServiceCassandraITest extends MetricsITest {
             assertEquals(actual, expected, "The tenant does not match");
         }
 
-        assertDataRetentionsIndexMatches(t1.getId(), NUMERIC, ImmutableSet.of(new Retention(
-                new MetricId("[" + NUMERIC.getText() + "]"), hours(24).toStandardSeconds().getSeconds())));
+        assertDataRetentionsIndexMatches(t1.getId(), GUAGE, ImmutableSet.of(new Retention(
+                new MetricId("[" + GUAGE.getText() + "]"), hours(24).toStandardSeconds().getSeconds())));
         assertDataRetentionsIndexMatches(t1.getId(), AVAILABILITY, ImmutableSet.of(new Retention(
                 new MetricId("[" + AVAILABILITY.getText() + "]"), hours(24).toStandardSeconds().getSeconds())));
     }
 
     @Test
     public void createAndFindMetrics() throws Exception {
-        Optional<Metric<?>> result = getUninterruptibly(metricsService.findMetric("t1", NUMERIC,
+        Optional<Metric<?>> result = getUninterruptibly(metricsService.findMetric("t1", GUAGE,
                 new MetricId("does-not-exist")));
         assertNotNull(result, "null should not be returned when metric is not found");
         assertFalse(result.isPresent(), "Did not expect a value when the metric is not found");
 
 
-        NumericMetric m1 = new NumericMetric("t1", new MetricId("m1"), ImmutableMap.of("a1", "1", "a2", "2"),
+        Guage m1 = new Guage("t1", new MetricId("m1"), ImmutableMap.of("a1", "1", "a2", "2"),
             24);
         ListenableFuture<Void> insertFuture = metricsService.createMetric(m1);
         getUninterruptibly(insertFuture);
@@ -182,30 +182,30 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         assertTrue(exception != null && exception instanceof MetricAlreadyExistsException,
             "Expected a " + MetricAlreadyExistsException.class.getSimpleName() + " to be thrown");
 
-        NumericMetric m3 = new NumericMetric("t1", new MetricId("m3"));
+        Guage m3 = new Guage("t1", new MetricId("m3"));
         m3.setDataRetention(24);
         insertFuture = metricsService.createMetric(m3);
         getUninterruptibly(insertFuture);
 
-        NumericMetric m4 = new NumericMetric("t1", new MetricId("m4"), ImmutableMap.of("a1", "A", "a2", ""));
+        Guage m4 = new Guage("t1", new MetricId("m4"), ImmutableMap.of("a1", "A", "a2", ""));
         insertFuture = metricsService.createMetric(m4);
         getUninterruptibly(insertFuture);
 
-        assertMetricIndexMatches("t1", NUMERIC, asList(m1, m3, m4));
+        assertMetricIndexMatches("t1", GUAGE, asList(m1, m3, m4));
         assertMetricIndexMatches("t1", AVAILABILITY, asList(m2));
 
-        assertDataRetentionsIndexMatches("t1", NUMERIC, ImmutableSet.of(new Retention(m3.getId(), 24),
+        assertDataRetentionsIndexMatches("t1", GUAGE, ImmutableSet.of(new Retention(m3.getId(), 24),
             new Retention(m1.getId(), 24)));
 
         assertMetricsTagsIndexMatches("t1", "a1", asList(
-            new MetricsTagsIndexEntry("1", NUMERIC, m1.getId()),
-            new MetricsTagsIndexEntry("A", NUMERIC, m4.getId())
+            new MetricsTagsIndexEntry("1", GUAGE, m1.getId()),
+            new MetricsTagsIndexEntry("A", GUAGE, m4.getId())
         ));
     }
 
     @Test
     public void updateMetricTags() throws Exception {
-        NumericMetric metric = new NumericMetric("t1", new MetricId("m1"), ImmutableMap.of("a1", "1", "a2", "2"));
+        Guage metric = new Guage("t1", new MetricId("m1"), ImmutableMap.of("a1", "1", "a2", "2"));
         ListenableFuture<Void> insertFuture = metricsService.createMetric(metric);
         getUninterruptibly(insertFuture);
 
@@ -217,14 +217,14 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         ListenableFuture<Void> deleteFuture = metricsService.deleteTags(metric, deletions);
         getUninterruptibly(deleteFuture);
 
-        ListenableFuture<Optional<Metric<?>>> queryFuture = metricsService.findMetric(metric.getTenantId(), NUMERIC,
+        ListenableFuture<Optional<Metric<?>>> queryFuture = metricsService.findMetric(metric.getTenantId(), GUAGE,
             metric.getId());
         Metric<?> updatedMetric = getUninterruptibly(queryFuture).get();
 
         assertEquals(updatedMetric.getTags(), ImmutableMap.of("a2", "two", "a3", "3"),
             "The updated meta data does not match the expected values");
 
-        assertMetricIndexMatches(metric.getTenantId(), NUMERIC, asList(updatedMetric));
+        assertMetricIndexMatches(metric.getTenantId(), GUAGE, asList(updatedMetric));
     }
 
     @Test
@@ -234,26 +234,26 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t1")));
 
-        NumericMetric m1 = new NumericMetric("t1", new MetricId("m1"));
-        m1.addData(new NumericData(start.getMillis(), 1.1));
-        m1.addData(new NumericData(start.plusMinutes(2).getMillis(), 2.2));
-        m1.addData(new NumericData(start.plusMinutes(4).getMillis(), 3.3));
-        m1.addData(new NumericData(end.getMillis(), 4.4));
+        Guage m1 = new Guage("t1", new MetricId("m1"));
+        m1.addData(new GuageData(start.getMillis(), 1.1));
+        m1.addData(new GuageData(start.plusMinutes(2).getMillis(), 2.2));
+        m1.addData(new GuageData(start.plusMinutes(4).getMillis(), 3.3));
+        m1.addData(new GuageData(end.getMillis(), 4.4));
 
         ListenableFuture<Void> insertFuture = metricsService.addNumericData(asList(m1));
         getUninterruptibly(insertFuture);
 
-        ListenableFuture<List<NumericData>> queryFuture = metricsService.findNumericData("t1", new MetricId("m1"),
+        ListenableFuture<List<GuageData>> queryFuture = metricsService.findNumericData("t1", new MetricId("m1"),
                 start.getMillis(), end.getMillis());
-        List<NumericData> actual = getUninterruptibly(queryFuture);
-        List<NumericData> expected = asList(
-                new NumericData(start.plusMinutes(4).getMillis(), 3.3),
-                new NumericData(start.plusMinutes(2).getMillis(), 2.2),
-                new NumericData(start.getMillis(), 1.1)
+        List<GuageData> actual = getUninterruptibly(queryFuture);
+        List<GuageData> expected = asList(
+                new GuageData(start.plusMinutes(4).getMillis(), 3.3),
+                new GuageData(start.plusMinutes(2).getMillis(), 2.2),
+                new GuageData(start.getMillis(), 1.1)
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
-        assertMetricIndexMatches("t1", NUMERIC, asList(m1));
+        assertMetricIndexMatches("t1", GUAGE, asList(m1));
     }
 
     @Test
@@ -262,7 +262,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t1")));
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t2")
-            .setRetention(NUMERIC, days(14).toStandardHours().getHours())));
+            .setRetention(GUAGE, days(14).toStandardHours().getHours())));
 
         VerifyTTLDataAccess verifyTTLDataAccess = new VerifyTTLDataAccess(dataAccess);
 
@@ -270,7 +270,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         metricsService.loadDataRetentions();
         metricsService.setDataAccess(verifyTTLDataAccess);
 
-        NumericMetric m1 = new NumericMetric("t1", new MetricId("m1"));
+        Guage m1 = new Guage("t1", new MetricId("m1"));
         m1.addData(start.getMillis(), 1.01);
         m1.addData(start.plusMinutes(1).getMillis(), 1.02);
         m1.addData(start.plusMinutes(2).getMillis(), 1.03);
@@ -284,7 +284,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
             start.plusMinutes(2).getMillis()));
 
         verifyTTLDataAccess.setNumericTTL(days(14).toStandardSeconds().getSeconds());
-        NumericMetric m2 = new NumericMetric("t2", new MetricId("m2"));
+        Guage m2 = new Guage("t2", new MetricId("m2"));
         m2.addData(start.plusMinutes(5).getMillis(), 2.02);
         addDataInThePast(m2, days(3).toStandardDuration());
 
@@ -292,13 +292,13 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         getUninterruptibly(metricsService.tagNumericData(m2, tags, start.plusMinutes(5).getMillis()));
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t3")
-            .setRetention(NUMERIC, 24)));
+            .setRetention(GUAGE, 24)));
         verifyTTLDataAccess.setNumericTTL(hours(24).toStandardSeconds().getSeconds());
-        NumericMetric m3 = new NumericMetric("t3", new MetricId("m3"));
+        Guage m3 = new Guage("t3", new MetricId("m3"));
         m3.addData(start.getMillis(), 3.03);
         getUninterruptibly(metricsService.addNumericData(asList(m3)));
 
-        NumericMetric m4 = new NumericMetric("t2", new MetricId("m4"), Collections.EMPTY_MAP, 28);
+        Guage m4 = new Guage("t2", new MetricId("m4"), Collections.EMPTY_MAP, 28);
         getUninterruptibly(metricsService.createMetric(m4));
 
         verifyTTLDataAccess.setNumericTTL(28);
@@ -350,17 +350,17 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         getUninterruptibly(metricsService.addAvailabilityData(asList(m3)));
     }
 
-    private void addDataInThePast(NumericMetric metric, final Duration duration) throws Exception {
+    private void addDataInThePast(Guage metric, final Duration duration) throws Exception {
         DataAccess originalDataAccess = metricsService.getDataAccess();
         try {
             metricsService.setDataAccess(new DelegatingDataAccess(dataAccess) {
                 @Override
-                public ResultSetFuture insertData(NumericMetric m, int ttl) {
+                public ResultSetFuture insertData(Guage m, int ttl) {
                     int actualTTL = ttl - duration.toStandardSeconds().getSeconds();
                     long writeTime = now().minus(duration).getMillis() * 1000;
                     BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
-                    for (NumericData d : m.getData()) {
-                        batchStatement.add(insertNumericDataWithTimestamp.bind(m.getTenantId(), NUMERIC.getCode(),
+                    for (GuageData d : m.getData()) {
+                        batchStatement.add(insertNumericDataWithTimestamp.bind(m.getTenantId(), GUAGE.getCode(),
                                 m.getId().getName(), m.getId().getInterval().toString(), DPART, d.getTimeUUID(),
                                 d.getValue(), actualTTL, writeTime));
                     }
@@ -403,7 +403,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("tenant1")));
 
-        NumericMetric metric = new NumericMetric("tenant1", new MetricId("m1"));
+        Guage metric = new Guage("tenant1", new MetricId("m1"));
         metric.addData(start.getMillis(), 100.0);
         metric.addData(start.plusMinutes(1).getMillis(), 101.1);
         metric.addData(start.plusMinutes(2).getMillis(), 102.2);
@@ -416,7 +416,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         getUninterruptibly(insertFuture);
 
         Map<String, String> tags1 = ImmutableMap.of("t1", "1", "t2", "");
-        ListenableFuture<List<NumericData>> tagFuture = metricsService.tagNumericData(metric, tags1,
+        ListenableFuture<List<GuageData>> tagFuture = metricsService.tagNumericData(metric, tags1,
             start.plusMinutes(2).getMillis());
         getUninterruptibly(tagFuture);
 
@@ -425,17 +425,17 @@ public class MetricsServiceCassandraITest extends MetricsITest {
             start.plusMinutes(5).getMillis());
         getUninterruptibly(tagFuture);
 
-        ListenableFuture<List<NumericData>> queryFuture = metricsService.findNumericData("tenant1", new MetricId("m1"),
+        ListenableFuture<List<GuageData>> queryFuture = metricsService.findNumericData("tenant1", new MetricId("m1"),
                 start.getMillis(), end.getMillis());
-        List<NumericData> actual = getUninterruptibly(queryFuture);
-        List<NumericData> expected = asList(
-            new NumericData(start.plusMinutes(6).getMillis(), 106.6),
-            new NumericData(start.plusMinutes(5).getMillis(), 105.5),
-            new NumericData(start.plusMinutes(4).getMillis(), 104.4),
-            new NumericData(start.plusMinutes(3).getMillis(), 103.3),
-            new NumericData(start.plusMinutes(2).getMillis(), 102.2),
-            new NumericData(start.plusMinutes(1).getMillis(), 101.1),
-            new NumericData(start.getMillis(), 100.0)
+        List<GuageData> actual = getUninterruptibly(queryFuture);
+        List<GuageData> expected = asList(
+            new GuageData(start.plusMinutes(6).getMillis(), 106.6),
+            new GuageData(start.plusMinutes(5).getMillis(), 105.5),
+            new GuageData(start.plusMinutes(4).getMillis(), 104.4),
+            new GuageData(start.plusMinutes(3).getMillis(), 103.3),
+            new GuageData(start.plusMinutes(2).getMillis(), 102.2),
+            new GuageData(start.plusMinutes(1).getMillis(), 101.1),
+            new GuageData(start.getMillis(), 100.0)
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
@@ -453,27 +453,27 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenantId)));
 
-        NumericMetric m1 = new NumericMetric(tenantId, new MetricId("m1"));
-        m1.addData(new NumericData(start.plusSeconds(30).getMillis(), 11.2));
-        m1.addData(new NumericData(start.getMillis(), 11.1));
+        Guage m1 = new Guage(tenantId, new MetricId("m1"));
+        m1.addData(new GuageData(start.plusSeconds(30).getMillis(), 11.2));
+        m1.addData(new GuageData(start.getMillis(), 11.1));
 
-        NumericMetric m2 = new NumericMetric(tenantId, new MetricId("m2"));
-        m2.addData(new NumericData(start.plusSeconds(30).getMillis(), 12.2));
-        m2.addData(new NumericData(start.getMillis(), 12.1));
+        Guage m2 = new Guage(tenantId, new MetricId("m2"));
+        m2.addData(new GuageData(start.plusSeconds(30).getMillis(), 12.2));
+        m2.addData(new GuageData(start.getMillis(), 12.1));
 
-        NumericMetric m3 = new NumericMetric(tenantId, new MetricId("m3"));
+        Guage m3 = new Guage(tenantId, new MetricId("m3"));
 
-        NumericMetric m4 = new NumericMetric(tenantId, new MetricId("m4"), Collections.EMPTY_MAP, 24);
+        Guage m4 = new Guage(tenantId, new MetricId("m4"), Collections.EMPTY_MAP, 24);
         getUninterruptibly(metricsService.createMetric(m4));
-        m4.addData(new NumericData(start.plusSeconds(30).getMillis(), 55.5));
-        m4.addData(new NumericData(end.getMillis(), 66.6));
+        m4.addData(new GuageData(start.plusSeconds(30).getMillis(), 55.5));
+        m4.addData(new GuageData(end.getMillis(), 66.6));
 
         ListenableFuture<Void> insertFuture = metricsService.addNumericData(asList(m1, m2, m3, m4));
         getUninterruptibly(insertFuture);
 
-        ListenableFuture<List<NumericData>> queryFuture = metricsService.findNumericData(tenantId, m1.getId(),
+        ListenableFuture<List<GuageData>> queryFuture = metricsService.findNumericData(tenantId, m1.getId(),
                 start.getMillis(), end.getMillis());
-        List<NumericData> actual = getUninterruptibly(queryFuture);
+        List<GuageData> actual = getUninterruptibly(queryFuture);
         assertEquals(actual, m1.getData(), "The numeric data for " + m1.getId() + " does not match");
 
         queryFuture = metricsService.findNumericData(tenantId, m2.getId(), start.getMillis(), end.getMillis());
@@ -486,12 +486,12 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         queryFuture = metricsService.findNumericData(tenantId, m4.getId(), start.getMillis(), end.getMillis());
         actual = getUninterruptibly(queryFuture);
-        NumericMetric expected = new NumericMetric(tenantId, new MetricId("m4"));
+        Guage expected = new Guage(tenantId, new MetricId("m4"));
         expected.setDataRetention(24);
         expected.addData(start.plusSeconds(30).getMillis(), 55.5);
         assertEquals(actual, expected.getData(), "The numeric data for " + m4.getId() + " does not match");
 
-        assertMetricIndexMatches(tenantId, NUMERIC, asList(m1, m2, m3, m4));
+        assertMetricIndexMatches(tenantId, GUAGE, asList(m1, m2, m3, m4));
     }
 
     @Test
@@ -643,28 +643,28 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenant)));
 
-        NumericData d1 = new NumericData(start.getMillis(), 101.1);
-        NumericData d2 = new NumericData(start.plusMinutes(2).getMillis(), 101.2);
-        NumericData d3 = new NumericData(start.plusMinutes(6).getMillis(), 102.2);
-        NumericData d4 = new NumericData(start.plusMinutes(8).getMillis(), 102.3);
-        NumericData d5 = new NumericData(start.plusMinutes(4).getMillis(), 102.1);
-        NumericData d6 = new NumericData(start.plusMinutes(4).getMillis(), 101.4);
-        NumericData d7 = new NumericData(start.plusMinutes(10).getMillis(), 102.4);
-        NumericData d8 = new NumericData(start.plusMinutes(6).getMillis(), 103.1);
-        NumericData d9 = new NumericData(start.plusMinutes(7).getMillis(), 103.1);
+        GuageData d1 = new GuageData(start.getMillis(), 101.1);
+        GuageData d2 = new GuageData(start.plusMinutes(2).getMillis(), 101.2);
+        GuageData d3 = new GuageData(start.plusMinutes(6).getMillis(), 102.2);
+        GuageData d4 = new GuageData(start.plusMinutes(8).getMillis(), 102.3);
+        GuageData d5 = new GuageData(start.plusMinutes(4).getMillis(), 102.1);
+        GuageData d6 = new GuageData(start.plusMinutes(4).getMillis(), 101.4);
+        GuageData d7 = new GuageData(start.plusMinutes(10).getMillis(), 102.4);
+        GuageData d8 = new GuageData(start.plusMinutes(6).getMillis(), 103.1);
+        GuageData d9 = new GuageData(start.plusMinutes(7).getMillis(), 103.1);
 
-        NumericMetric m1 = new NumericMetric(tenant, new MetricId("m1"));
+        Guage m1 = new Guage(tenant, new MetricId("m1"));
         m1.addData(d1);
         m1.addData(d2);
         m1.addData(d6);
 
-        NumericMetric m2 = new NumericMetric(tenant, new MetricId("m2"));
+        Guage m2 = new Guage(tenant, new MetricId("m2"));
         m2.addData(d3);
         m2.addData(d4);
         m2.addData(d5);
         m2.addData(d7);
 
-        NumericMetric m3 = new NumericMetric(tenant, new MetricId("m3"));
+        Guage m3 = new Guage(tenant, new MetricId("m3"));
         m3.addData(d8);
         m3.addData(d9);
 
@@ -674,15 +674,15 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         Map<String, String> tags1 = ImmutableMap.of("t1", "1");
         Map<String, String> tags2 = ImmutableMap.of("t2", "2");
 
-        ListenableFuture<List<NumericData>> tagFuture1 = metricsService.tagNumericData(m1, tags1, start.getMillis(),
+        ListenableFuture<List<GuageData>> tagFuture1 = metricsService.tagNumericData(m1, tags1, start.getMillis(),
             start.plusMinutes(6).getMillis());
-        ListenableFuture<List<NumericData>> tagFuture2 = metricsService.tagNumericData(m2, tags1, start.getMillis(),
+        ListenableFuture<List<GuageData>> tagFuture2 = metricsService.tagNumericData(m2, tags1, start.getMillis(),
             start.plusMinutes(6).getMillis());
-        ListenableFuture<List<NumericData>> tagFuture3 = metricsService.tagNumericData(m1, tags2,
+        ListenableFuture<List<GuageData>> tagFuture3 = metricsService.tagNumericData(m1, tags2,
             start.plusMinutes(4).getMillis(), start.plusMinutes(8).getMillis());
-        ListenableFuture<List<NumericData>> tagFuture4 = metricsService.tagNumericData(m2, tags2,
+        ListenableFuture<List<GuageData>> tagFuture4 = metricsService.tagNumericData(m2, tags2,
             start.plusMinutes(4).getMillis(), start.plusMinutes(8).getMillis());
-        ListenableFuture<List<NumericData>> tagFuture5 = metricsService.tagNumericData(m3, tags2,
+        ListenableFuture<List<GuageData>> tagFuture5 = metricsService.tagNumericData(m3, tags2,
             start.plusMinutes(4).getMillis(), start.plusMinutes(8).getMillis());
 
         getUninterruptibly(tagFuture1);
@@ -691,10 +691,10 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         getUninterruptibly(tagFuture4);
         getUninterruptibly(tagFuture5);
 
-        ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(tenant,
+        ListenableFuture<Map<MetricId, Set<GuageData>>> queryFuture = metricsService.findNumericDataByTags(tenant,
                 ImmutableMap.of("t1", "1", "t2", "2"));
-        Map<MetricId, Set<NumericData>> actual = getUninterruptibly(queryFuture);
-        ImmutableMap<MetricId, ImmutableSet<NumericData>> expected = ImmutableMap.of(
+        Map<MetricId, Set<GuageData>> actual = getUninterruptibly(queryFuture);
+        ImmutableMap<MetricId, ImmutableSet<GuageData>> expected = ImmutableMap.of(
             new MetricId("m1"), ImmutableSet.of(d1, d2, d6),
             new MetricId("m2"), ImmutableSet.of(d5, d3)
         );
@@ -776,28 +776,28 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenant)));
 
-        NumericData d1 = new NumericData(start.getMillis(), 101.1);
-        NumericData d2 = new NumericData(start.plusMinutes(2).getMillis(), 101.2);
-        NumericData d3 = new NumericData(start.plusMinutes(6).getMillis(), 102.2);
-        NumericData d4 = new NumericData(start.plusMinutes(8).getMillis(), 102.3);
-        NumericData d5 = new NumericData(start.plusMinutes(4).getMillis(), 102.1);
-        NumericData d6 = new NumericData(start.plusMinutes(4).getMillis(), 101.4);
-        NumericData d7 = new NumericData(start.plusMinutes(10).getMillis(), 102.4);
-        NumericData d8 = new NumericData(start.plusMinutes(6).getMillis(), 103.1);
-        NumericData d9 = new NumericData(start.plusMinutes(7).getMillis(), 103.1);
+        GuageData d1 = new GuageData(start.getMillis(), 101.1);
+        GuageData d2 = new GuageData(start.plusMinutes(2).getMillis(), 101.2);
+        GuageData d3 = new GuageData(start.plusMinutes(6).getMillis(), 102.2);
+        GuageData d4 = new GuageData(start.plusMinutes(8).getMillis(), 102.3);
+        GuageData d5 = new GuageData(start.plusMinutes(4).getMillis(), 102.1);
+        GuageData d6 = new GuageData(start.plusMinutes(4).getMillis(), 101.4);
+        GuageData d7 = new GuageData(start.plusMinutes(10).getMillis(), 102.4);
+        GuageData d8 = new GuageData(start.plusMinutes(6).getMillis(), 103.1);
+        GuageData d9 = new GuageData(start.plusMinutes(7).getMillis(), 103.1);
 
-        NumericMetric m1 = new NumericMetric(tenant, new MetricId("m1"));
+        Guage m1 = new Guage(tenant, new MetricId("m1"));
         m1.addData(d1);
         m1.addData(d2);
         m1.addData(d6);
 
-        NumericMetric m2 = new NumericMetric(tenant, new MetricId("m2"));
+        Guage m2 = new Guage(tenant, new MetricId("m2"));
         m2.addData(d3);
         m2.addData(d4);
         m2.addData(d5);
         m2.addData(d7);
 
-        NumericMetric m3 = new NumericMetric(tenant, new MetricId("m3"));
+        Guage m3 = new Guage(tenant, new MetricId("m3"));
         m3.addData(d8);
         m3.addData(d9);
 
@@ -806,7 +806,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         getUninterruptibly(insertFuture);
 
         Map<String, String> tags1 = ImmutableMap.of("t1", "");
-        ListenableFuture<List<NumericData>> tagFuture = metricsService.tagNumericData(m1, tags1, d1.getTimestamp());
+        ListenableFuture<List<GuageData>> tagFuture = metricsService.tagNumericData(m1, tags1, d1.getTimestamp());
         assertEquals(getUninterruptibly(tagFuture), asList(d1), "Tagging " + d1 + " returned unexpected results");
 
         Map<String, String> tags2 = ImmutableMap.of("t1", "", "t2", "", "t3", "");
@@ -825,10 +825,10 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         tagFuture = metricsService.tagNumericData(m2, tags4, d4.getTimestamp());
         assertEquals(getUninterruptibly(tagFuture), asList(d4), "Tagging " + d4 + " returned unexpected results");
 
-        ListenableFuture<Map<MetricId, Set<NumericData>>> queryFuture = metricsService.findNumericDataByTags(tenant,
+        ListenableFuture<Map<MetricId, Set<GuageData>>> queryFuture = metricsService.findNumericDataByTags(tenant,
                 ImmutableMap.of("t2", "", "t3", ""));
-        Map<MetricId, Set<NumericData>> actual = getUninterruptibly(queryFuture);
-        ImmutableMap<MetricId, ImmutableSet<NumericData>> expected = ImmutableMap.of(
+        Map<MetricId, Set<GuageData>> actual = getUninterruptibly(queryFuture);
+        ImmutableMap<MetricId, ImmutableSet<GuageData>> expected = ImmutableMap.of(
             new MetricId("m1"), ImmutableSet.of(d2),
             new MetricId("m2"), ImmutableSet.of(d3, d4)
         );
@@ -910,7 +910,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         DateTime start = now().minusMinutes(20);
         double threshold = 20.0;
 
-        NumericMetric m1 = new NumericMetric(tenantId, new MetricId("m1"));
+        Guage m1 = new Guage(tenantId, new MetricId("m1"));
         m1.addData(start.getMillis(), 14.0);
         m1.addData(start.plusMinutes(1).getMillis(), 18.0);
         m1.addData(start.plusMinutes(2).getMillis(), 21.0);
@@ -1060,7 +1060,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         }
 
         @Override
-        public ResultSetFuture insertData(NumericMetric metric, int ttl) {
+        public ResultSetFuture insertData(Guage metric, int ttl) {
             assertEquals(ttl, numericTTL, "The numeric data TTL does not match the expected value when " +
                 "inserting data");
             return super.insertData(metric, ttl);
@@ -1074,9 +1074,9 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         }
 
         @Override
-        public ResultSetFuture insertNumericTag(String tag, String tagValue, NumericMetric metric,
-                List<NumericData> data) {
-            for (NumericData d : data) {
+        public ResultSetFuture insertNumericTag(String tag, String tagValue, Guage metric,
+                List<GuageData> data) {
+            for (GuageData d : data) {
                 assertTrue(d.getTTL() <= numericTagTTL, "Expected the TTL to be <= " + numericTagTTL +
                     " but it was " + d.getTTL());
             }

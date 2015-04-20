@@ -26,9 +26,10 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 
+import org.hawkular.metrics.core.api.Guage;
+import org.hawkular.metrics.core.api.GuageData;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricsService;
-import org.hawkular.metrics.core.api.NumericMetric;
 import org.hawkular.metrics.core.impl.HawkularMetrics;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -65,7 +66,7 @@ public class MetricsHandlers {
                 String name = body.get("name").toString();
                 Integer dataRetention = Integer.parseInt(body.get("dataRetention").toString());
 
-                NumericMetric metric = new NumericMetric(tenantId, new MetricId(name), null, dataRetention);
+                Guage metric = new Guage(tenantId, new MetricId(name), null, dataRetention);
                 ListenableFuture<Void> future = metricsService.createMetric(metric);
                 Futures.addCallback(future, new FutureCallback<Void>() {
                     @Override
@@ -83,8 +84,8 @@ public class MetricsHandlers {
 
         commonHandler.add(Methods.POST, "/{tenantId}/guage/data", new AsyncHttpHandler() {
             public void handleRequestAsync(HttpServerExchange exchange) throws Exception {
-                List<NumericMetric> metrics = mapper.readValue(Channels.newInputStream(exchange.getRequestChannel()),
-                        new TypeReference<List<NumericMetric>>() {
+                List<Guage> metrics = mapper.readValue(Channels.newInputStream(exchange.getRequestChannel()),
+                        new TypeReference<List<GuageData>>() {
                         });
                 Map<String, Deque<String>> queryParams = exchange.getQueryParameters();
                 String tenantId = queryParams.get("tenantId").getFirst();
@@ -94,7 +95,7 @@ public class MetricsHandlers {
                     return;
                 }
 
-                for (NumericMetric metric : metrics) {
+                for (Guage metric : metrics) {
                     metric.setTenantId(tenantId);
                 }
 

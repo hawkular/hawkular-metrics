@@ -47,8 +47,8 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricData;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.NumericData;
-import org.hawkular.metrics.core.api.NumericMetric;
+import org.hawkular.metrics.core.api.GuageData;
+import org.hawkular.metrics.core.api.Guage;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.RetentionSettings;
 import org.hawkular.metrics.core.api.Tenant;
@@ -427,9 +427,9 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertData(NumericMetric metric, int ttl) {
+    public ResultSetFuture insertData(Guage metric, int ttl) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
-        for (NumericData d : metric.getData()) {
+        for (GuageData d : metric.getData()) {
             batchStatement.add(insertNumericData.bind(ttl, getTags(metric), d.getValue(), metric.getTenantId(),
                 metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 metric.getDpart(), d.getTimeUUID()));
@@ -456,14 +456,14 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findData(NumericMetric metric, long startTime, long endTime, Order order) {
+    public ResultSetFuture findData(Guage metric, long startTime, long endTime, Order order) {
         if (order == Order.ASC) {
             return session.executeAsync(findNumericDataByDateRangeExclusiveASC.bind(metric.getTenantId(),
-                MetricType.NUMERIC.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+                MetricType.GUAGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 metric.getDpart(), TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
         } else {
             return session.executeAsync(findNumericDataByDateRangeExclusive.bind(metric.getTenantId(),
-                MetricType.NUMERIC.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+                MetricType.GUAGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 metric.getDpart(), TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
         }
     }
@@ -473,24 +473,24 @@ public class DataAccessImpl implements DataAccess {
             boolean includeWriteTime) {
         if (includeWriteTime) {
             return session.executeAsync(findNumericDataWithWriteTimeByDateRangeExclusive.bind(tenantId,
-                    MetricType.NUMERIC.getCode(), id.getName(), id.getInterval().toString(), Metric.DPART,
+                    MetricType.GUAGE.getCode(), id.getName(), id.getInterval().toString(), Metric.DPART,
                     TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
         } else {
             return session.executeAsync(findNumericDataByDateRangeExclusive.bind(tenantId,
-                    MetricType.NUMERIC.getCode(), id.getName(), id.getInterval().toString(), Metric.DPART,
+                    MetricType.GUAGE.getCode(), id.getName(), id.getInterval().toString(), Metric.DPART,
                     TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
         }
     }
 
     @Override
-    public ResultSetFuture findData(NumericMetric metric, long timestamp, boolean includeWriteTime) {
+    public ResultSetFuture findData(Guage metric, long timestamp, boolean includeWriteTime) {
         if (includeWriteTime) {
             return session.executeAsync(findNumericDataWithWriteTimeByDateRangeInclusive.bind(metric.getTenantId(),
-                MetricType.NUMERIC.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+                MetricType.GUAGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 metric.getDpart(), UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
         } else {
             return session.executeAsync(findNumericDataByDateRangeInclusive.bind(metric.getTenantId(),
-                MetricType.NUMERIC.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+                MetricType.GUAGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 metric.getDpart(), UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
         }
     }
@@ -522,7 +522,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public ResultSetFuture deleteNumericMetric(String tenantId, String metric, Interval interval, long dpart) {
-        return session.executeAsync(deleteNumericMetric.bind(tenantId, MetricType.NUMERIC.getCode(), metric,
+        return session.executeAsync(deleteNumericMetric.bind(tenantId, MetricType.GUAGE.getCode(), metric,
             interval.toString(), dpart));
     }
 
@@ -532,12 +532,12 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertNumericTag(String tag, String tagValue, NumericMetric metric,
-            List<NumericData> data) {
+    public ResultSetFuture insertNumericTag(String tag, String tagValue, Guage metric,
+            List<GuageData> data) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
-        for (NumericData d : data) {
+        for (GuageData d : data) {
             batchStatement.add(insertNumericTags.bind(metric.getTenantId(), tag, tagValue,
-                    MetricType.NUMERIC.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+                    MetricType.GUAGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                     d.getTimeUUID(), d.getValue(), d.getTTL()));
         }
         return session.executeAsync(batchStatement);

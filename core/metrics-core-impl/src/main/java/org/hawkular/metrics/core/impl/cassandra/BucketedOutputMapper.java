@@ -32,7 +32,7 @@ import org.hawkular.metrics.core.api.MetricId;
  * Transform a {@link org.hawkular.metrics.core.api.Metric} with its {@link org.hawkular.metrics.core.api.MetricData}
  * into a {@link org.hawkular.metrics.core.api.BucketedOutput}.
  *
- * @param <DATA>   type of metric data, like {@link org.hawkular.metrics.core.api.NumericData}
+ * @param <DATA>   type of metric data, like {@link org.hawkular.metrics.core.api.GuageData}
  * @param <POINT>  type of bucket points, like {@link org.hawkular.metrics.core.api.NumericBucketDataPoint}
  *
  * @author Thomas Segismont
