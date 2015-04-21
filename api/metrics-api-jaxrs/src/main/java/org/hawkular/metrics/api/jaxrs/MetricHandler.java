@@ -25,17 +25,20 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
+import javax.ws.rs.core.Response;
 
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.impl.request.MixedMetricsRequest;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -90,4 +93,24 @@ public class MetricHandler {
                 }
         );
     }
+
+    @POST
+    @Path("/{tenantId}/data")
+    @ApiOperation(value = "Add data for multiple metrics in a single call.")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Adding data succeeded."),
+            @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
+                response = ApiError.class) })
+    public void addMetricsData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
+            @ApiParam(value = "List of metrics", required = true) MixedMetricsRequest metricsRequest) {
+        executeAsync(asyncResponse, () -> {
+            if (metricsRequest.getGuageMetrics() == null || metricsRequest.getGuageMetrics().isEmpty()) {
+                return Futures.immediateFuture(Response.ok().build());
+            }
+            metricsRequest.getGuageMetrics().forEach(m -> m.setTenantId(tenantId));
+            ListenableFuture<Void> future = metricsService.addGuageData(metricsRequest.getGuageMetrics());
+            return Futures.transform(future, ApiUtils.MAP_VOID);
+        });
+    }
+
 }
