@@ -58,6 +58,7 @@
               <name>${hawkular-metrics.image}</name>
               <build>
                 <assembly>
+                  <dockerFileDir>${project.basedir}/target/docker/hawkular/hawkular-metrics/${project.version}/build/maven</dockerFileDir>
                   <descriptor>../resources/assemblies/assemble-docker.xml</descriptor>
                 </assembly>
               </build>
