@@ -26,34 +26,34 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Objects;
 
 /**
- * A numeric metric data point. This class currently represents both raw and aggregated data; however, at some point
- * we may subclasses for each of them.
+ * A gauge metric data point. This class currently represents both raw and aggregated data; however,
+ * at some point we may subclasses for each of them.
  *
  * @author John Sanda
  */
-public class GuageData extends MetricData {
+public class GaugeData extends MetricData {
 
     private double value;
 
     private Set<AggregatedValue> aggregatedValues = new HashSet<>();
 
     @JsonCreator
-    public GuageData(@JsonProperty("timestamp") long timestamp, @JsonProperty("value") double value) {
+    public GaugeData(@JsonProperty("timestamp") long timestamp, @JsonProperty("value") double value) {
         super(timestamp);
         this.value = value;
     }
 
-    public GuageData(UUID timeUUID, double value) {
+    public GaugeData(UUID timeUUID, double value) {
         super(timeUUID);
         this.value = value;
     }
 
-    public GuageData(UUID timeUUID, double value, Map<String, String> tags) {
+    public GaugeData(UUID timeUUID, double value, Map<String, String> tags) {
         super(timeUUID, tags);
         this.value = value;
     }
 
-    public GuageData(UUID timeUUID, double value, Map<String, String> tags, Long writeTime) {
+    public GaugeData(UUID timeUUID, double value, Map<String, String> tags, Long writeTime) {
         super(timeUUID, tags, writeTime);
         this.value = value;
     }
@@ -65,7 +65,7 @@ public class GuageData extends MetricData {
         return value;
     }
 
-    public GuageData setValue(double value) {
+    public GaugeData setValue(double value) {
         this.value = value;
         return this;
     }
@@ -78,7 +78,7 @@ public class GuageData extends MetricData {
         return aggregatedValues;
     }
 
-    public GuageData addAggregatedValue(AggregatedValue aggregatedValue) {
+    public GaugeData addAggregatedValue(AggregatedValue aggregatedValue) {
         aggregatedValues.add(aggregatedValue);
         return this;
     }
@@ -86,10 +86,10 @@ public class GuageData extends MetricData {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof GuageData)) return false;
+        if (!(o instanceof GaugeData)) return false;
         if (!super.equals(o)) return false;
 
-        GuageData that = (GuageData) o;
+        GaugeData that = (GaugeData) o;
 
         if (Double.compare(that.value, value) != 0) return false;
 

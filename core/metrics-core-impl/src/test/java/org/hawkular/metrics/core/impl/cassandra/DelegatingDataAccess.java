@@ -30,8 +30,8 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricData;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.GuageData;
-import org.hawkular.metrics.core.api.Guage;
+import org.hawkular.metrics.core.api.GaugeData;
+import org.hawkular.metrics.core.api.Gauge;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
 
@@ -103,7 +103,7 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertData(Guage metric, int ttl) {
+    public ResultSetFuture insertData(Gauge metric, int ttl) {
         return delegate.insertData(metric, ttl);
     }
 
@@ -113,7 +113,7 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findData(Guage metric, long startTime, long endTime, Order order) {
+    public ResultSetFuture findData(Gauge metric, long startTime, long endTime, Order order) {
         return delegate.findData(metric, startTime, endTime, order);
     }
 
@@ -124,7 +124,7 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findData(Guage metric, long timestamp, boolean includeWriteTime) {
+    public ResultSetFuture findData(Gauge metric, long timestamp, boolean includeWriteTime) {
         return delegate.findData(metric, timestamp, includeWriteTime);
     }
 
@@ -144,19 +144,19 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture deleteNumericMetric(String tenantId, String metric, Interval interval, long dpart) {
-        return delegate.deleteNumericMetric(tenantId, metric, interval, dpart);
+    public ResultSetFuture deleteGuageMetric(String tenantId, String metric, Interval interval, long dpart) {
+        return delegate.deleteGuageMetric(tenantId, metric, interval, dpart);
     }
 
     @Override
-    public ResultSetFuture findAllNumericMetrics() {
-        return delegate.findAllNumericMetrics();
+    public ResultSetFuture findAllGuageMetrics() {
+        return delegate.findAllGuageMetrics();
     }
 
     @Override
-    public ResultSetFuture insertNumericTag(String tag, String tagValue, Guage metric,
-            List<GuageData> data) {
-        return delegate.insertNumericTag(tag, tagValue, metric, data);
+    public ResultSetFuture insertGuageTag(String tag, String tagValue, Gauge metric,
+            List<GaugeData> data) {
+        return delegate.insertGuageTag(tag, tagValue, metric, data);
     }
 
     @Override
@@ -171,8 +171,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findNumericDataByTag(String tenantId, String tag, String tagValue) {
-        return delegate.findNumericDataByTag(tenantId, tag, tagValue);
+    public ResultSetFuture findGuageDataByTag(String tenantId, String tag, String tagValue) {
+        return delegate.findGuageDataByTag(tenantId, tag, tagValue);
     }
 
     @Override

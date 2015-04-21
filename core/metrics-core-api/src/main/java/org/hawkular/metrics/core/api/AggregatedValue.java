@@ -21,8 +21,8 @@ import java.util.UUID;
 import com.google.common.base.Objects;
 
 /**
- * An aggregated numeric value. This value is the result of applying a function to data from one or more metrics. The
- * input data can itself be raw or aggregated.
+ * An aggregated gauge value. This value is the result of applying a function to data from one
+ * or more metrics. The input data can itself be raw or aggregated.
  *
  * @author John Sanda
  */

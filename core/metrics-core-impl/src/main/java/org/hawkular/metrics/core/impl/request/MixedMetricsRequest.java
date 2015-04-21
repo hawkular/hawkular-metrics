@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.hawkular.metrics.core.api.Availability;
-import org.hawkular.metrics.core.api.Guage;
+import org.hawkular.metrics.core.api.Gauge;
 
 import com.google.common.base.Objects;
 import com.wordnik.swagger.annotations.ApiModel;
@@ -31,16 +31,16 @@ import com.wordnik.swagger.annotations.ApiModel;
 @ApiModel
 public class MixedMetricsRequest {
 
-    private List<Guage> guageMetrics = new ArrayList<>();
+    private List<Gauge> gaugeMetrics = new ArrayList<>();
     private List<Availability> availabilityMetrics = new ArrayList<>();
 
 
-    public List<Guage> getGuageMetrics() {
-        return guageMetrics;
+    public List<Gauge> getGaugeMetrics() {
+        return gaugeMetrics;
     }
 
-    public void setGuageMetric(List<Guage> guageMetrics) {
-        this.guageMetrics = guageMetrics;
+    public void setGaugeMetric(List<Gauge> gaugeMetrics) {
+        this.gaugeMetrics = gaugeMetrics;
     }
 
     public List<Availability> getAvailabilityMetrics() {
@@ -55,7 +55,7 @@ public class MixedMetricsRequest {
     @Override
     public String toString() {
         return Objects.toStringHelper(this)
-            .add("guageMetrics", guageMetrics)
+.add("guageMetrics", gaugeMetrics)
             .add("availibilityMetrics", availabilityMetrics)
             .toString();
     }

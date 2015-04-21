@@ -26,8 +26,8 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 
-import org.hawkular.metrics.core.api.Guage;
-import org.hawkular.metrics.core.api.GuageData;
+import org.hawkular.metrics.core.api.Gauge;
+import org.hawkular.metrics.core.api.GaugeData;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.impl.HawkularMetrics;
@@ -54,7 +54,7 @@ public class MetricsHandlers {
 
     public void setup(RoutingHandler commonHandler) {
 
-        commonHandler.add(Methods.POST, "/{tenantId}/guage", new AsyncHttpHandler() {
+        commonHandler.add(Methods.POST, "/{tenantId}/gauge", new AsyncHttpHandler() {
 
             public void handleRequestAsync(HttpServerExchange exchange) throws Exception {
                 @SuppressWarnings("unchecked")
@@ -66,7 +66,7 @@ public class MetricsHandlers {
                 String name = body.get("name").toString();
                 Integer dataRetention = Integer.parseInt(body.get("dataRetention").toString());
 
-                Guage metric = new Guage(tenantId, new MetricId(name), null, dataRetention);
+                Gauge metric = new Gauge(tenantId, new MetricId(name), null, dataRetention);
                 ListenableFuture<Void> future = metricsService.createMetric(metric);
                 Futures.addCallback(future, new FutureCallback<Void>() {
                     @Override
@@ -82,10 +82,10 @@ public class MetricsHandlers {
             }
         });
 
-        commonHandler.add(Methods.POST, "/{tenantId}/guage/data", new AsyncHttpHandler() {
+        commonHandler.add(Methods.POST, "/{tenantId}/gauge/data", new AsyncHttpHandler() {
             public void handleRequestAsync(HttpServerExchange exchange) throws Exception {
-                List<Guage> metrics = mapper.readValue(Channels.newInputStream(exchange.getRequestChannel()),
-                        new TypeReference<List<GuageData>>() {
+                List<Gauge> metrics = mapper.readValue(Channels.newInputStream(exchange.getRequestChannel()),
+                        new TypeReference<List<GaugeData>>() {
                         });
                 Map<String, Deque<String>> queryParams = exchange.getQueryParameters();
                 String tenantId = queryParams.get("tenantId").getFirst();
@@ -95,11 +95,11 @@ public class MetricsHandlers {
                     return;
                 }
 
-                for (Guage metric : metrics) {
+                for (Gauge metric : metrics) {
                     metric.setTenantId(tenantId);
                 }
 
-                ListenableFuture<Void> future = metricsService.addNumericData(metrics);
+                ListenableFuture<Void> future = metricsService.addGaugeData(metrics);
                 Futures.addCallback(future, new FutureCallback<Void>() {
                     @Override
                     public void onSuccess(Void result) {

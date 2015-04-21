@@ -25,17 +25,17 @@ import org.apache.commons.math3.stat.descriptive.rank.Min;
 import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.NumericBucketDataPoint;
-import org.hawkular.metrics.core.api.GuageData;
+import org.hawkular.metrics.core.api.GaugeBucketDataPoint;
+import org.hawkular.metrics.core.api.GaugeData;
 
 /**
  * A {@link org.hawkular.metrics.core.impl.cassandra.BucketedOutputMapper} for {@link org.hawkular.metrics.core.api
- * .Guage}.
+ * .Gauge}.
  *
  * @author Thomas Segismont
  */
 public class NumericBucketedOutputMapper
-        extends BucketedOutputMapper<GuageData, NumericBucketDataPoint> {
+        extends BucketedOutputMapper<GaugeData, GaugeBucketDataPoint> {
 
     /**
      * @param buckets the bucket configuration
@@ -45,22 +45,22 @@ public class NumericBucketedOutputMapper
     }
 
     @Override
-    protected NumericBucketDataPoint newEmptyPointInstance(long from, long to) {
-        return new NumericBucketDataPoint.Builder(from, to).build();
+    protected GaugeBucketDataPoint newEmptyPointInstance(long from, long to) {
+        return new GaugeBucketDataPoint.Builder(from, to).build();
     }
 
     @Override
-    protected NumericBucketDataPoint newPointInstance(long from, long to, List<GuageData> numericDatas) {
+    protected GaugeBucketDataPoint newPointInstance(long from, long to, List<GaugeData> numericDatas) {
         double[] values = new double[numericDatas.size()];
-        for (ListIterator<GuageData> iterator = numericDatas.listIterator(); iterator.hasNext(); ) {
-            GuageData numericData = iterator.next();
+        for (ListIterator<GaugeData> iterator = numericDatas.listIterator(); iterator.hasNext(); ) {
+            GaugeData numericData = iterator.next();
             values[iterator.previousIndex()] = numericData.getValue();
         }
 
         Percentile percentile = new Percentile();
         percentile.setData(values);
 
-        return new NumericBucketDataPoint.Builder(from, to)
+        return new GaugeBucketDataPoint.Builder(from, to)
                 .setMin(new Min().evaluate(values))
                 .setAvg(new Mean().evaluate(values))
                 .setMedian(percentile.evaluate(50.0))

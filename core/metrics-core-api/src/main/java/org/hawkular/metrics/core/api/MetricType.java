@@ -29,11 +29,9 @@ package org.hawkular.metrics.core.api;
  */
 public enum MetricType {
 
-    GUAGE(0, "guage"),
+    GAUGE(0, "gauge"),
 
-    AVAILABILITY(1, "availability"),
-
-    LOG_EVENT(2, "log event");
+    AVAILABILITY(1, "availability");
 
     private int code;
 
@@ -59,18 +57,16 @@ public enum MetricType {
 
     public static MetricType fromCode(int code) {
         switch (code) {
-            case 0 : return GUAGE;
+            case 0 : return GAUGE;
             case 1 : return AVAILABILITY;
-            case 2 : return LOG_EVENT;
             default: throw new IllegalArgumentException(code + " is not a recognized metric type");
         }
     }
 
     public static MetricType fromTextCode(String textCode) {
         switch (textCode) {
-        case "guage": return GUAGE;
+        case "gauge": return GAUGE;
         case "avail": return AVAILABILITY;
-        case "log": return LOG_EVENT;
         default: throw new IllegalArgumentException(textCode + " is not a recognized metric type code");
         }
     }

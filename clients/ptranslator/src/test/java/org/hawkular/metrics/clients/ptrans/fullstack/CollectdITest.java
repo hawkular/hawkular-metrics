@@ -77,7 +77,7 @@ public class CollectdITest extends ExecutableITestBase {
     );
 
     private String tenant;
-    private String findNumericMetricsUrl;
+    private String findGuageMetricsUrl;
     private File collectdConfFile;
     private File collectdOut;
     private File collectdErr;
@@ -94,7 +94,7 @@ public class CollectdITest extends ExecutableITestBase {
     @Before
     public void setUp() throws Exception {
         tenant = getRandomTenantId();
-        findNumericMetricsUrl = "http://" + BASE_URI + "/" + tenant + "/metrics?type=guage";
+        findGuageMetricsUrl = "http://" + BASE_URI + "/" + tenant + "/metrics?type=guage";
         assumeCollectdIsPresent();
         configureCollectd();
         assertCollectdConfIsValid();
@@ -144,7 +144,7 @@ public class CollectdITest extends ExecutableITestBase {
         properties.setProperty(SERVICES.getExternalForm(), Service.COLLECTD.getExternalForm());
         properties.setProperty(BATCH_DELAY.getExternalForm(), String.valueOf(1));
         properties.setProperty(BATCH_SIZE.getExternalForm(), String.valueOf(1));
-        String restUrl = "http://" + BASE_URI + "/" + tenant + "/guage/data";
+        String restUrl = "http://" + BASE_URI + "/" + tenant + "/gauge/data";
         properties.setProperty(REST_URL.getExternalForm(), restUrl);
         try (OutputStream out = new FileOutputStream(ptransConfFile)) {
             properties.store(out, "");
@@ -242,12 +242,12 @@ public class CollectdITest extends ExecutableITestBase {
     private List<Point> getServerData() throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
 
-        HttpURLConnection urlConnection = (HttpURLConnection) new URL(findNumericMetricsUrl).openConnection();
+        HttpURLConnection urlConnection = (HttpURLConnection) new URL(findGuageMetricsUrl).openConnection();
         urlConnection.connect();
         int responseCode = urlConnection.getResponseCode();
         if (responseCode != HttpURLConnection.HTTP_OK) {
             String msg = "Could not get metrics list from server: %s, %d";
-            fail(String.format(Locale.ROOT, msg, findNumericMetricsUrl, responseCode));
+            fail(String.format(Locale.ROOT, msg, findGuageMetricsUrl, responseCode));
         }
         List<String> metricNames;
         try (InputStream inputStream = urlConnection.getInputStream()) {
@@ -290,7 +290,7 @@ public class CollectdITest extends ExecutableITestBase {
     }
 
     private String findNumericDataUrl(String metricName) {
-        return "http://" + BASE_URI + "/" + tenant + "/guage/" + metricName + "/data";
+        return "http://" + BASE_URI + "/" + tenant + "/gauge/" + metricName + "/data";
     }
 
     @After

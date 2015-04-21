@@ -44,6 +44,33 @@ import javax.management.MBeanInfo;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
+import org.hawkular.metrics.core.api.Availability;
+import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
+import org.hawkular.metrics.core.api.AvailabilityMetric;
+import org.hawkular.metrics.core.api.BucketedOutput;
+import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.Counter;
+import org.hawkular.metrics.core.api.Gauge;
+import org.hawkular.metrics.core.api.GaugeBucketDataPoint;
+import org.hawkular.metrics.core.api.GaugeData;
+import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
+import org.hawkular.metrics.core.api.MetricData;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.MetricsThreadFactory;
+import org.hawkular.metrics.core.api.Retention;
+import org.hawkular.metrics.core.api.RetentionSettings;
+import org.hawkular.metrics.core.api.Tenant;
+import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
+import org.hawkular.metrics.core.impl.schema.SchemaManager;
+import org.joda.time.Duration;
+import org.joda.time.Hours;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
@@ -57,33 +84,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.RateLimiter;
-
-import org.hawkular.metrics.core.api.Availability;
-import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
-import org.hawkular.metrics.core.api.AvailabilityMetric;
-import org.hawkular.metrics.core.api.BucketedOutput;
-import org.hawkular.metrics.core.api.Buckets;
-import org.hawkular.metrics.core.api.Counter;
-import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
-import org.hawkular.metrics.core.api.MetricData;
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
-import org.hawkular.metrics.core.api.MetricsThreadFactory;
-import org.hawkular.metrics.core.api.NumericBucketDataPoint;
-import org.hawkular.metrics.core.api.GuageData;
-import org.hawkular.metrics.core.api.Guage;
-import org.hawkular.metrics.core.api.Retention;
-import org.hawkular.metrics.core.api.RetentionSettings;
-import org.hawkular.metrics.core.api.Tenant;
-import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
-import org.hawkular.metrics.core.impl.schema.SchemaManager;
-import org.joda.time.Duration;
-import org.joda.time.Hours;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author John Sanda
@@ -227,13 +227,13 @@ public class MetricsServiceCassandra implements MetricsService {
         List<String> tenantIds = loadTenantIds();
         CountDownLatch latch = new CountDownLatch(tenantIds.size() * 2);
         for (String tenantId : tenantIds) {
-            ResultSetFuture numericFuture = dataAccess.findDataRetentions(tenantId, MetricType.GUAGE);
+            ResultSetFuture numericFuture = dataAccess.findDataRetentions(tenantId, MetricType.GAUGE);
             ResultSetFuture availabilityFuture = dataAccess.findDataRetentions(tenantId, MetricType.AVAILABILITY);
             ListenableFuture<Set<Retention>> numericRetentions = Futures.transform(numericFuture, mapper, metricsTasks);
             ListenableFuture<Set<Retention>> availabilityRetentions = Futures.transform(availabilityFuture, mapper,
                     metricsTasks);
             Futures.addCallback(numericRetentions,
-                    new DataRetentionsLoadedCallback(tenantId, MetricType.GUAGE, latch));
+                    new DataRetentionsLoadedCallback(tenantId, MetricType.GAUGE, latch));
             Futures.addCallback(availabilityRetentions, new DataRetentionsLoadedCallback(tenantId,
                     MetricType.AVAILABILITY, latch));
         }
@@ -486,9 +486,6 @@ public class MetricsServiceCassandra implements MetricsService {
     @Override
     public ListenableFuture<Optional<Metric<?>>> findMetric(final String tenantId, final MetricType type,
             final MetricId id) {
-        if (type == MetricType.LOG_EVENT) {
-            throw new IllegalArgumentException(MetricType.LOG_EVENT + " is not yet supported");
-        }
         ResultSetFuture future = dataAccess.findMetric(tenantId, type, id, Metric.DPART);
         return Futures.transform(future, new Function<ResultSet, Optional<Metric<?>>>() {
             @Override
@@ -497,8 +494,8 @@ public class MetricsServiceCassandra implements MetricsService {
                     return Optional.empty();
                 }
                 Row row = resultSet.one();
-                if (type == MetricType.GUAGE) {
-                    return Optional.of(new Guage(tenantId, id, row.getMap(5, String.class, String.class),
+                if (type == MetricType.GAUGE) {
+                    return Optional.of(new Gauge(tenantId, id, row.getMap(5, String.class, String.class),
                             row.getInt(6)));
                 } else {
                     return Optional.of(new AvailabilityMetric(tenantId, id, row.getMap(5, String.class, String.class),
@@ -539,9 +536,9 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> addNumericData(List<Guage> metrics) {
+    public ListenableFuture<Void> addGaugeData(List<Gauge> metrics) {
         List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
-        for (Guage metric : metrics) {
+        for (Gauge metric : metrics) {
             if (metric.getData().isEmpty()) {
                 logger.warn("There is no data to insert for {}", metric);
             } else {
@@ -598,7 +595,7 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<GuageData>> findNumericData(String tenantId, MetricId id, Long start, Long end) {
+    public ListenableFuture<List<GaugeData>> findGaugeData(String tenantId, MetricId id, Long start, Long end) {
         // When we implement date partitioning, dpart will have to be determined based on
         // the start and end params. And it is possible the the date range spans multiple
         // date partitions.
@@ -607,14 +604,14 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<BucketedOutput<NumericBucketDataPoint>> findNumericStats(
-            Guage metric, long start, long end, Buckets buckets
+    public ListenableFuture<BucketedOutput<GaugeBucketDataPoint>> findGaugeStats(
+            Gauge metric, long start, long end, Buckets buckets
     ) {
         // When we implement date partitioning, dpart will have to be determined based on
         // the start and end params. And it is possible the the date range spans multiple
         // date partitions.
         ResultSetFuture queryFuture = dataAccess.findData(metric.getTenantId(), metric.getId(), start, end);
-        ListenableFuture<List<GuageData>> raw = Futures.transform(queryFuture, Functions.MAP_NUMERIC_DATA,
+        ListenableFuture<List<GaugeData>> raw = Futures.transform(queryFuture, Functions.MAP_NUMERIC_DATA,
                 metricsTasks);
         return Futures.transform(raw, new NumericBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets));
     }
@@ -665,7 +662,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public ListenableFuture<Boolean> idExists(final String id) {
-        ResultSetFuture future = dataAccess.findAllNumericMetrics();
+        ResultSetFuture future = dataAccess.findAllGuageMetrics();
         return Futures.transform(future, new Function<ResultSet, Boolean>() {
             @Override
             public Boolean apply(ResultSet resultSet) {
@@ -688,13 +685,13 @@ public class MetricsServiceCassandra implements MetricsService {
     // Data for different metrics and for the same tag are stored within the same partition
     // in the tags table; therefore, it makes sense for the API to support tagging multiple
     // metrics since they could efficiently be inserted in a single batch statement.
-    public ListenableFuture<List<GuageData>> tagNumericData(Guage metric, final Map<String, String> tags,
+    public ListenableFuture<List<GaugeData>> tagGaugeData(Gauge metric, final Map<String, String> tags,
             long start, long end) {
         ResultSetFuture queryFuture = dataAccess.findData(metric.getTenantId(), metric.getId(), start, end, true);
-        ListenableFuture<List<GuageData>> dataFuture = Futures.transform(queryFuture,
+        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture,
                 Functions.MAP_NUMERIC_DATA_WITH_WRITE_TIME, metricsTasks);
         int ttl = getTTL(metric);
-        ListenableFuture<List<GuageData>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
+        ListenableFuture<List<GaugeData>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
         return Futures.transform(updatedDataFuture, new TagAsyncFunction(tags, metric));
     }
 
@@ -710,13 +707,13 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<GuageData>> tagNumericData(Guage metric, final Map<String, String> tags,
+    public ListenableFuture<List<GaugeData>> tagGaugeData(Gauge metric, final Map<String, String> tags,
             long timestamp) {
         ListenableFuture<ResultSet> queryFuture = dataAccess.findData(metric, timestamp, true);
-        ListenableFuture<List<GuageData>> dataFuture = Futures.transform(queryFuture,
+        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture,
                 Functions.MAP_NUMERIC_DATA_WITH_WRITE_TIME, metricsTasks);
         int ttl = getTTL(metric);
-        ListenableFuture<List<GuageData>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
+        ListenableFuture<List<GaugeData>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
         return Futures.transform(updatedDataFuture, new TagAsyncFunction(tags, metric));
     }
 
@@ -732,12 +729,12 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Map<MetricId, Set<GuageData>>> findNumericDataByTags(String tenantId,
+    public ListenableFuture<Map<MetricId, Set<GaugeData>>> findGaugeDataByTags(String tenantId,
             Map<String, String> tags) {
-        List<ListenableFuture<Map<MetricId, Set<GuageData>>>> queryFutures = new ArrayList<>(tags.size());
-        tags.forEach((k, v) -> queryFutures.add(Futures.transform(dataAccess.findNumericDataByTag(tenantId, k, v),
+        List<ListenableFuture<Map<MetricId, Set<GaugeData>>>> queryFutures = new ArrayList<>(tags.size());
+        tags.forEach((k, v) -> queryFutures.add(Futures.transform(dataAccess.findGuageDataByTag(tenantId, k, v),
                 new TaggedNumericDataMapper(), metricsTasks)));
-        ListenableFuture<List<Map<MetricId, Set<GuageData>>>> queriesFuture = Futures.allAsList(queryFutures);
+        ListenableFuture<List<Map<MetricId, Set<GaugeData>>>> queriesFuture = Futures.allAsList(queryFutures);
         return Futures.transform(queriesFuture, new MergeTagsFunction());
 
     }
@@ -755,15 +752,15 @@ public class MetricsServiceCassandra implements MetricsService {
     @Override
     public ListenableFuture<List<long[]>> getPeriods(String tenantId, MetricId id, Predicate<Double> predicate,
         long start, long end) {
-        ResultSetFuture resultSetFuture = dataAccess.findData(new Guage(tenantId, id), start, end, Order.ASC);
-        ListenableFuture<List<GuageData>> dataFuture = Futures.transform(resultSetFuture,
+        ResultSetFuture resultSetFuture = dataAccess.findData(new Gauge(tenantId, id), start, end, Order.ASC);
+        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(resultSetFuture,
                 Functions.MAP_NUMERIC_DATA, metricsTasks);
 
-        return Futures.transform(dataFuture, (List<GuageData> data) -> {
+        return Futures.transform(dataFuture, (List<GaugeData> data) -> {
             List<long[]> periods = new ArrayList<>(data.size());
             long[] period = null;
-            GuageData previous = null;
-            for (GuageData d : data) {
+            GaugeData previous = null;
+            for (GaugeData d : data) {
                 if (predicate.test(d.getValue())) {
                     if (period == null) {
                         period = new long[2];
@@ -823,9 +820,9 @@ public class MetricsServiceCassandra implements MetricsService {
             }
             List<ResultSetFuture> insertFutures = new ArrayList<>(tags.size());
             tags.forEach((k, v) -> {
-                if(metric instanceof Guage) {
-                    insertFutures.add(dataAccess.insertNumericTag(k, v, (Guage) metric,
-                                                                  (List<GuageData>) data));
+                if(metric instanceof Gauge) {
+                    insertFutures.add(dataAccess.insertGuageTag(k, v, (Gauge) metric,
+                                                                  (List<GaugeData>) data));
                 } else if(metric instanceof AvailabilityMetric) {
                     insertFutures.add(dataAccess.insertAvailabilityTag(k, v, (AvailabilityMetric) metric,
                                                                        (List<Availability>) data));

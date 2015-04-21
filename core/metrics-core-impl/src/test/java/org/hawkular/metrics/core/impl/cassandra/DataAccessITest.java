@@ -38,8 +38,8 @@ import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.GuageData;
-import org.hawkular.metrics.core.api.Guage;
+import org.hawkular.metrics.core.api.GaugeData;
+import org.hawkular.metrics.core.api.Gauge;
 import org.hawkular.metrics.core.api.Tenant;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
@@ -80,17 +80,17 @@ public class DataAccessITest extends MetricsITest {
     public void insertAndFindTenant() throws Exception {
         Tenant tenant1 = new Tenant().setId("tenant-1")
             .addAggregationTemplate(new AggregationTemplate()
-                .setType(MetricType.GUAGE)
+                .setType(MetricType.GAUGE)
                 .setInterval(new Interval(5, Interval.Units.MINUTES))
                 .setFunctions(ImmutableSet.of("max", "min", "avg")))
-            .setRetention(MetricType.GUAGE, Days.days(31).toStandardHours().getHours())
-            .setRetention(MetricType.GUAGE, new Interval(5, Interval.Units.MINUTES),
+            .setRetention(MetricType.GAUGE, Days.days(31).toStandardHours().getHours())
+            .setRetention(MetricType.GAUGE, new Interval(5, Interval.Units.MINUTES),
                 Days.days(100).toStandardHours().getHours());
 
         Tenant tenant2 = new Tenant().setId("tenant-2")
-            .setRetention(MetricType.GUAGE, Days.days(14).toStandardHours().getHours())
+            .setRetention(MetricType.GAUGE, Days.days(14).toStandardHours().getHours())
             .addAggregationTemplate(new AggregationTemplate()
-                .setType(MetricType.GUAGE)
+                .setType(MetricType.GAUGE)
                 .setInterval(new Interval(5, Interval.Units.HOURS))
                 .setFunctions(ImmutableSet.of("sum", "count")));
 
@@ -121,22 +121,22 @@ public class DataAccessITest extends MetricsITest {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);
 
-        Guage metric = new Guage("tenant-1", new MetricId("metric-1"));
-        metric.addData(new GuageData(start.getMillis(), 1.23));
-        metric.addData(new GuageData(start.plusMinutes(1).getMillis(), 1.234));
-        metric.addData(new GuageData(start.plusMinutes(2).getMillis(), 1.234));
-        metric.addData(new GuageData(end.getMillis(), 1.234));
+        Gauge metric = new Gauge("tenant-1", new MetricId("metric-1"));
+        metric.addData(new GaugeData(start.getMillis(), 1.23));
+        metric.addData(new GaugeData(start.plusMinutes(1).getMillis(), 1.234));
+        metric.addData(new GaugeData(start.plusMinutes(2).getMillis(), 1.234));
+        metric.addData(new GaugeData(end.getMillis(), 1.234));
 
         getUninterruptibly(dataAccess.insertData(metric, MetricsServiceCassandra.DEFAULT_TTL));
 
         ResultSetFuture queryFuture = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
                 end.getMillis());
-        ListenableFuture<List<GuageData>> dataFuture = Futures.transform(queryFuture, Functions.MAP_NUMERIC_DATA);
-        List<GuageData> actual = getUninterruptibly(dataFuture);
-        List<GuageData> expected = asList(
-            new GuageData(start.plusMinutes(2).getMillis(), 1.234),
-            new GuageData(start.plusMinutes(1).getMillis(), 1.234),
-            new GuageData(start.getMillis(), 1.23)
+        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture, Functions.MAP_NUMERIC_DATA);
+        List<GaugeData> actual = getUninterruptibly(dataFuture);
+        List<GaugeData> expected = asList(
+            new GaugeData(start.plusMinutes(2).getMillis(), 1.234),
+            new GaugeData(start.plusMinutes(1).getMillis(), 1.234),
+            new GaugeData(start.getMillis(), 1.23)
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
@@ -147,26 +147,26 @@ public class DataAccessITest extends MetricsITest {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);
 
-        Guage metric = new Guage("tenant-1", new MetricId("metric-1"),
+        Gauge metric = new Gauge("tenant-1", new MetricId("metric-1"),
             ImmutableMap.of("units", "KB", "env", "test"));
 
         ResultSetFuture insertFuture = dataAccess.addTagsAndDataRetention(metric);
         getUninterruptibly(insertFuture);
 
-        metric.addData(new GuageData(start.getMillis(), 1.23));
-        metric.addData(new GuageData(start.plusMinutes(2).getMillis(), 1.234));
-        metric.addData(new GuageData(start.plusMinutes(4).getMillis(), 1.234));
-        metric.addData(new GuageData(end.getMillis(), 1.234));
+        metric.addData(new GaugeData(start.getMillis(), 1.23));
+        metric.addData(new GaugeData(start.plusMinutes(2).getMillis(), 1.234));
+        metric.addData(new GaugeData(start.plusMinutes(4).getMillis(), 1.234));
+        metric.addData(new GaugeData(end.getMillis(), 1.234));
         getUninterruptibly(dataAccess.insertData(metric, MetricsServiceCassandra.DEFAULT_TTL));
 
         ResultSetFuture queryFuture = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
                 end.getMillis());
-        ListenableFuture<List<GuageData>> dataFuture = Futures.transform(queryFuture, Functions.MAP_NUMERIC_DATA);
-        List<GuageData> actual = getUninterruptibly(dataFuture);
-        List<GuageData> expected = asList(
-            new GuageData(start.plusMinutes(4).getMillis(), 1.234),
-            new GuageData(start.plusMinutes(2).getMillis(), 1.234),
-            new GuageData(start.getMillis(), 1.23)
+        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture, Functions.MAP_NUMERIC_DATA);
+        List<GaugeData> actual = getUninterruptibly(dataFuture);
+        List<GaugeData> expected = asList(
+            new GaugeData(start.plusMinutes(4).getMillis(), 1.234),
+            new GaugeData(start.plusMinutes(2).getMillis(), 1.234),
+            new GaugeData(start.getMillis(), 1.23)
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");

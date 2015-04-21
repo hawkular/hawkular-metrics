@@ -23,12 +23,12 @@ import com.wordnik.swagger.annotations.ApiModel;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
- * Statistics for numeric data in a time range.
+ * Statistics for gauge data in a time range.
  *
  * @author Heiko W. Rupp
  */
-@ApiModel(value = "Statistics for numeric data in a time range.")
-public class NumericBucketDataPoint {
+@ApiModel(value = "Statistics for gauge data in a time range.")
+public class GaugeBucketDataPoint {
     private long start;
     private long end;
     private double value;
@@ -38,7 +38,7 @@ public class NumericBucketDataPoint {
     private double max;
     private double percentile95th;
 
-    public NumericBucketDataPoint(
+    public GaugeBucketDataPoint(
             long start,
             long end,
             double value,
@@ -136,7 +136,7 @@ public class NumericBucketDataPoint {
 
     @Override
     public String toString() {
-        return "NumericBucketDataPoint[" +
+        return "GuageBucketDataPoint[" +
                "start=" + start +
                ", end=" + end +
                ", min=" + min +
@@ -148,7 +148,7 @@ public class NumericBucketDataPoint {
     }
 
     /**
-     * Create {@link NumericBucketDataPoint} instances following the builder pattern.
+     * Create {@link GaugeBucketDataPoint} instances following the builder pattern.
      */
     public static class Builder {
         private final long start;
@@ -201,8 +201,8 @@ public class NumericBucketDataPoint {
             return this;
         }
 
-        public NumericBucketDataPoint build() {
-            return new NumericBucketDataPoint(start, end, value, min, avg, median, max, percentile95th);
+        public GaugeBucketDataPoint build() {
+            return new GaugeBucketDataPoint(start, end, value, min, avg, median, max, percentile95th);
         }
     }
 }

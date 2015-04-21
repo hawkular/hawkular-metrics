@@ -62,7 +62,7 @@ public class MetricHandler {
     private MetricsService metricsService;
 
     @GET
-    @Path("/{tenantId}/metrics")
+    @Path("/{tenantId}")
     @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ",
             response = List.class, responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully retrieved at least one metric "
@@ -75,7 +75,7 @@ public class MetricHandler {
     public void findMetrics(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") final String tenantId,
-        @ApiParam(value = "Queried metric type", required = true, allowableValues = "[guage, avail, log]")
+        @ApiParam(value = "Queried metric type", required = true, allowableValues = "[gauge, avail, log]")
         @QueryParam("type") String type) {
 
         executeAsync(
@@ -85,7 +85,7 @@ public class MetricHandler {
                         metricType = MetricType.fromTextCode(type);
                     } catch (IllegalArgumentException e) {
                         return badRequest(
-                                new ApiError("[" + type + "] is not a valid type. Accepted values are num|avail|log")
+                                new ApiError("[" + type + "] is not a valid type. Accepted values are gauge|avail|log")
                         );
                     }
                     ListenableFuture<List<Metric<?>>> future = metricsService.findMetrics(tenantId, metricType);
@@ -104,11 +104,11 @@ public class MetricHandler {
     public void addMetricsData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
             @ApiParam(value = "List of metrics", required = true) MixedMetricsRequest metricsRequest) {
         executeAsync(asyncResponse, () -> {
-            if (metricsRequest.getGuageMetrics() == null || metricsRequest.getGuageMetrics().isEmpty()) {
+            if (metricsRequest.getGaugeMetrics() == null || metricsRequest.getGaugeMetrics().isEmpty()) {
                 return Futures.immediateFuture(Response.ok().build());
             }
-            metricsRequest.getGuageMetrics().forEach(m -> m.setTenantId(tenantId));
-            ListenableFuture<Void> future = metricsService.addGuageData(metricsRequest.getGuageMetrics());
+            metricsRequest.getGaugeMetrics().forEach(m -> m.setTenantId(tenantId));
+            ListenableFuture<Void> future = metricsService.addGaugeData(metricsRequest.getGaugeMetrics());
             return Futures.transform(future, ApiUtils.MAP_VOID);
         });
     }

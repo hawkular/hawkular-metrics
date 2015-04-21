@@ -25,40 +25,40 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 /**
  * @author John Sanda
  */
-public class Guage extends Metric<GuageData> {
+public class Gauge extends Metric<GaugeData> {
 
     @JsonCreator
-    public Guage(@JsonProperty("id") MetricId id) {
+    public Gauge(@JsonProperty("id") MetricId id) {
         super("", id);
     }
 
-    public Guage(String tenantId, MetricId id) {
+    public Gauge(String tenantId, MetricId id) {
         super(tenantId, id);
     }
 
-    public Guage(String tenantId, MetricId id, Map<String, String> tags) {
+    public Gauge(String tenantId, MetricId id, Map<String, String> tags) {
         super(tenantId, id, tags);
     }
 
-    public Guage(String tenantId, MetricId id, Map<String, String> tags, Integer dataRetention) {
+    public Gauge(String tenantId, MetricId id, Map<String, String> tags, Integer dataRetention) {
         super(tenantId, id, tags, dataRetention);
     }
 
     @Override
     public MetricType getType() {
-        return MetricType.GUAGE;
+        return MetricType.GAUGE;
     }
 
     public void addData(long timestamp, double value) {
-        addData(new GuageData(timestamp, value));
+        addData(new GaugeData(timestamp, value));
     }
 
     public void addData(UUID timeUUID, double value) {
-        addData(new GuageData(timeUUID, value));
+        addData(new GaugeData(timeUUID, value));
     }
 
     public void addData(UUID timeUUID, double value, Map<String, String> tags) {
-        addData(new GuageData(timeUUID, value, tags));
+        addData(new GaugeData(timeUUID, value, tags));
     }
 
 }

@@ -30,8 +30,8 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricData;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.GuageData;
-import org.hawkular.metrics.core.api.Guage;
+import org.hawkular.metrics.core.api.GaugeData;
+import org.hawkular.metrics.core.api.Gauge;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
 
@@ -62,16 +62,16 @@ public interface DataAccess {
 
     ResultSetFuture findMetricsInMetricsIndex(String tenantId, MetricType type);
 
-    ResultSetFuture insertData(Guage metric, int ttl);
+    ResultSetFuture insertData(Gauge metric, int ttl);
 
     ResultSetFuture findData(String tenantId, MetricId id, long startTime, long endTime);
 //    ResultSetFuture findData(QueryParams queryParams);
 
-    ResultSetFuture findData(Guage metric, long startTime, long endTime, Order order);
+    ResultSetFuture findData(Gauge metric, long startTime, long endTime, Order order);
 
     ResultSetFuture findData(String tenantId, MetricId id, long startTime, long endTime, boolean includeWriteTime);
 
-    ResultSetFuture findData(Guage metric, long timestamp, boolean includeWriteTime);
+    ResultSetFuture findData(Gauge metric, long timestamp, boolean includeWriteTime);
 
     ResultSetFuture findData(AvailabilityMetric metric, long startTime, long endTime);
 
@@ -79,18 +79,18 @@ public interface DataAccess {
 
     ResultSetFuture findData(AvailabilityMetric metric, long timestamp);
 
-    ResultSetFuture deleteNumericMetric(String tenantId, String metric, Interval interval, long dpart);
+    ResultSetFuture deleteGuageMetric(String tenantId, String metric, Interval interval, long dpart);
 
-    ResultSetFuture findAllNumericMetrics();
+    ResultSetFuture findAllGuageMetrics();
 
-    ResultSetFuture insertNumericTag(String tag, String tagValue, Guage metric, List<GuageData> data);
+    ResultSetFuture insertGuageTag(String tag, String tagValue, Gauge metric, List<GaugeData> data);
 
     ResultSetFuture insertAvailabilityTag(String tag, String tagValue, AvailabilityMetric metric,
             List<Availability> data);
 
     ResultSetFuture updateDataWithTag(Metric<?> metric, MetricData data, Map<String, String> tags);
 
-    ResultSetFuture findNumericDataByTag(String tenantId, String tag, String tagValue);
+    ResultSetFuture findGuageDataByTag(String tenantId, String tag, String tagValue);
 
     ResultSetFuture findAvailabilityByTag(String tenantId, String tag, String tagValue);
 

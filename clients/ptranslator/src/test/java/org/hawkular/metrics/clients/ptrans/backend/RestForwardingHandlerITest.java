@@ -61,7 +61,7 @@ public class RestForwardingHandlerITest {
     @Mock
     private ChannelHandlerContext channelHandlerContext;
     private RestForwardingHandler restForwardingHandler;
-    private String findNumericDataUrl;
+    private String findGuageDataUrl;
 
     @Before
     public void setUp() throws Exception {
@@ -73,13 +73,13 @@ public class RestForwardingHandlerITest {
         when(eventLoop.parent()).thenReturn(eventLoopGroup);
 
         Properties properties = new Properties();
-        String addNumericDataUrl = "http://" + BASE_URI + "/" + TENANT + "/guage/data";
-        properties.setProperty(ConfigurationKey.REST_URL.getExternalForm(), addNumericDataUrl);
+        String addGuageDataUrl = "http://" + BASE_URI + "/" + TENANT + "/gauge/data";
+        properties.setProperty(ConfigurationKey.REST_URL.getExternalForm(), addGuageDataUrl);
         Configuration configuration = Configuration.from(properties);
 
         restForwardingHandler = new RestForwardingHandler(configuration);
 
-        findNumericDataUrl = "http://" + BASE_URI + "/" + TENANT + "/guage/" + METRIC_NAME + "/data";
+        findGuageDataUrl = "http://" + BASE_URI + "/" + TENANT + "/gauge/" + METRIC_NAME + "/data";
     }
 
     @Test
@@ -100,7 +100,7 @@ public class RestForwardingHandlerITest {
     }
 
     private JsonNode findNumericDataOnServer() throws IOException {
-        HttpURLConnection urlConnection = (HttpURLConnection) new URL(findNumericDataUrl).openConnection();
+        HttpURLConnection urlConnection = (HttpURLConnection) new URL(findGuageDataUrl).openConnection();
         urlConnection.connect();
         int responseCode = urlConnection.getResponseCode();
         if (responseCode != HttpURLConnection.HTTP_OK) {

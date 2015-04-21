@@ -28,17 +28,17 @@ class TagsITest extends RESTTest {
 
   @Test
   void shouldNotAcceptMissingOrInvalidTags() {
-    badDelete(path: "tenantId/guage/id/tags/,") { exception ->
+    badDelete(path: "tenantId/gauge/id/tags/,") { exception ->
       assertEquals(400, exception.response.status)
     }
     badDelete(path: "tenantId/availability/id/tags/:5") { exception ->
       assertEquals(400, exception.response.status)
     }
-    badGet(path: "tenantId/guage") { exception ->
+    badGet(path: "tenantId/gauge") { exception ->
       // Missing query
       assertEquals(400, exception.response.status)
     }
-    badGet(path: "tenantId/guage", query: [tags: ",5:"]) { exception ->
+    badGet(path: "tenantId/gauge", query: [tags: ",5:"]) { exception ->
       assertEquals(400, exception.response.status)
     }
     badGet(path: "tenantId/availability") { exception ->
@@ -48,7 +48,7 @@ class TagsITest extends RESTTest {
     badGet(path: "tenantId/availability", query: [tags: ",5:"]) { exception ->
       assertEquals(400, exception.response.status)
     }
-    badGet(path: "tenantId/guage/tags/:") { exception ->
+    badGet(path: "tenantId/gauge/tags/:") { exception ->
       assertEquals(400, exception.response.status)
     }
     badGet(path: "tenantId/availability/tags/:") { exception ->
@@ -60,8 +60,8 @@ class TagsITest extends RESTTest {
   void findMetricTagsWhenThereIsNoData() {
     def tenantId = nextTenantId()
 
-    def response = hawkularMetrics.get(path: "$tenantId/guage/missing/tags")
-    assertEquals("Expected a 204 response when the guage metric is not found", 204, response.status)
+    def response = hawkularMetrics.get(path: "$tenantId/gauge/missing/tags")
+    assertEquals("Expected a 204 response when the gauge metric is not found", 204, response.status)
 
     response = hawkularMetrics.get(path: "$tenantId/availability/missing/tags")
     assertEquals("Expected a 204 response when the availability metric is not found", 204, response.status)
@@ -71,21 +71,21 @@ class TagsITest extends RESTTest {
   void createMetricsAndUpdateTags() {
     String tenantId = nextTenantId()
 
-    // Create a guage metric
-    def response = hawkularMetrics.post(path: "$tenantId/guage", body: [
+    // Create a gauge metric
+    def response = hawkularMetrics.post(path: "$tenantId/gauge", body: [
         id  : 'N1',
         tags: ['  a  1   ': '   A', 'bsq   d1': 'B   ']
     ])
     assertEquals(201, response.status)
 
     // Make sure we do not allow duplicates
-    badPost(path: "$tenantId/guage", body: [id: 'N1']) { exception ->
+    badPost(path: "$tenantId/gauge", body: [id: 'N1']) { exception ->
       assertEquals(409, exception.response.status)
       assertNotNull(exception.response.data['errorMsg'])
     }
 
-    // Create a guage metric that sets its data retention
-    response = hawkularMetrics.post(path: "$tenantId/guage", body: [
+    // Create a gauge metric that sets its data retention
+    response = hawkularMetrics.post(path: "$tenantId/gauge", body: [
         id           : 'N2',
         tags         : [a2: '2', b2: 'B2'],
         dataRetention: 96
@@ -113,8 +113,8 @@ class TagsITest extends RESTTest {
       assertNotNull(exception.response.data['errorMsg'])
     }
 
-    // Fetch guage tags
-    response = hawkularMetrics.get(path: "$tenantId/guage/N1/tags")
+    // Fetch gauge tags
+    response = hawkularMetrics.get(path: "$tenantId/gauge/N1/tags")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -125,7 +125,7 @@ class TagsITest extends RESTTest {
         response.data
     )
 
-    response = hawkularMetrics.get(path: "$tenantId/guage/N2/tags")
+    response = hawkularMetrics.get(path: "$tenantId/gauge/N2/tags")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -138,7 +138,7 @@ class TagsITest extends RESTTest {
     )
 
     // Verify the response for a non-existent metric
-    response = hawkularMetrics.get(path: "$tenantId/guage/N-doesNotExist/tags")
+    response = hawkularMetrics.get(path: "$tenantId/gauge/N-doesNotExist/tags")
     assertEquals(204, response.status)
 
     // Fetch availability metric tags
@@ -166,15 +166,15 @@ class TagsITest extends RESTTest {
     )
 
     // Verify the response for a non-existent metric
-    response = hawkularMetrics.get(path: "$tenantId/guage/A-doesNotExist/tags")
+    response = hawkularMetrics.get(path: "$tenantId/gauge/A-doesNotExist/tags")
     assertEquals(204, response.status)
 
-    // Update the guage metric tags
-    response = hawkularMetrics.put(path: "$tenantId/guage/N1/tags", body: [a1: 'one', a2: '2', b1: 'B'])
+    // Update the gauge metric tags
+    response = hawkularMetrics.put(path: "$tenantId/gauge/N1/tags", body: [a1: 'one', a2: '2', b1: 'B'])
     assertEquals(200, response.status)
 
     // Fetch the updated tags
-    response = hawkularMetrics.get(path: "$tenantId/guage/N1/tags")
+    response = hawkularMetrics.get(path: "$tenantId/gauge/N1/tags")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -185,10 +185,10 @@ class TagsITest extends RESTTest {
         response.data
     )
 
-    // Delete a guage metric tag
-    response = hawkularMetrics.delete(path: "$tenantId/guage/N1/tags/a2:2,b1:B")
+    // Delete a gauge metric tag
+    response = hawkularMetrics.delete(path: "$tenantId/gauge/N1/tags/a2:2,b1:B")
     assertEquals(200, response.status)
-    response = hawkularMetrics.get(path: "$tenantId/guage/N1/tags")
+    response = hawkularMetrics.get(path: "$tenantId/gauge/N1/tags")
     assertEquals(
         [
             tenantId: tenantId,
