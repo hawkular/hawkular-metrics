@@ -26,6 +26,7 @@ import java.util.stream.StreamSupport;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
+import com.google.common.base.Function;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import org.joda.time.DateTime;
@@ -36,6 +37,8 @@ import org.joda.time.DateTime;
 public class LeaseManager {
 
     public static final int DEFAULT_LEASE_TTL = 180;
+
+    public static final Function<ResultSet, Void> TO_VOID = resultSet -> null;
 
     private Session session;
 
@@ -84,6 +87,11 @@ public class LeaseManager {
         ResultSetFuture future = session.executeAsync(queries.finishLease.bind(lease.getTimeSlice().toDate(),
                 lease.getTaskType(), lease.getSegmentOffset(), lease.getOwner()));
         return Futures.transform(future, ResultSet::wasApplied);
+    }
+
+    public ListenableFuture<Void> deleteLeases(DateTime timeSlice) {
+        ResultSetFuture future = session.executeAsync(queries.deleteLeases.bind(timeSlice.toDate()));
+        return Futures.transform(future, TO_VOID);
     }
 
 }

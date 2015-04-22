@@ -19,17 +19,16 @@
 package org.hawkular.metrics.tasks;
 
 import java.util.Objects;
-
-import com.google.common.base.Supplier;
+import java.util.function.Function;
 
 /**
  * @author jsanda
  */
-public class TaskDef {
+public class TaskType {
 
     private String name;
 
-    private Supplier<Runnable> factory;
+    private Function<Task, Runnable> factory;
 
     private int segments;
 
@@ -39,16 +38,16 @@ public class TaskDef {
         return name;
     }
 
-    public TaskDef setName(String name) {
+    public TaskType setName(String name) {
         this.name = name;
         return this;
     }
 
-    public Supplier<Runnable> getFactory() {
+    public Function<Task, Runnable> getFactory() {
         return factory;
     }
 
-    public TaskDef setFactory(Supplier<Runnable> factory) {
+    public TaskType setFactory(Function<Task, Runnable> factory) {
         this.factory = factory;
         return this;
     }
@@ -57,7 +56,7 @@ public class TaskDef {
         return segments;
     }
 
-    public TaskDef setSegments(int segments) {
+    public TaskType setSegments(int segments) {
         this.segments = segments;
         return this;
     }
@@ -66,7 +65,7 @@ public class TaskDef {
         return segmentOffsets;
     }
 
-    public TaskDef setSegmentOffsets(int segmentOffsets) {
+    public TaskType setSegmentOffsets(int segmentOffsets) {
         this.segmentOffsets = segmentOffsets;
         return this;
     }
@@ -75,8 +74,8 @@ public class TaskDef {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        TaskDef taskDef = (TaskDef) o;
-        return Objects.equals(name, taskDef.name);
+        TaskType taskType = (TaskType) o;
+        return Objects.equals(name, taskType.name);
     }
 
     @Override

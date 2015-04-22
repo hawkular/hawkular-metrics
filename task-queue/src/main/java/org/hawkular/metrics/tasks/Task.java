@@ -31,7 +31,7 @@ import org.joda.time.Duration;
  */
 public class Task {
 
-    private TaskDef taskDef;
+    private TaskType taskType;
 
     private String target;
 
@@ -44,24 +44,24 @@ public class Task {
     public Task() {
     }
 
-    public Task(TaskDef taskDef, String target, Set<String> sources, int interval, int window) {
-        this.taskDef = taskDef;
+    public Task(TaskType taskType, String target, Set<String> sources, int interval, int window) {
+        this.taskType = taskType;
         this.target = target;
         this.sources = sources;
         this.interval = minutes(interval).toStandardDuration();
         this.window = minutes(window).toStandardDuration();
     }
 
-    public Task(TaskDef taskDef, String target, String source, int interval, int window) {
-        this.taskDef = taskDef;
+    public Task(TaskType taskType, String target, String source, int interval, int window) {
+        this.taskType = taskType;
         this.target = target;
         this.sources = ImmutableSet.of(source);
         this.interval = minutes(interval).toStandardDuration();
         this.window = minutes(window).toStandardDuration();
     }
 
-    public TaskDef getTaskDef() {
-        return taskDef;
+    public TaskType getTaskType() {
+        return taskType;
     }
 
     public String getTarget() {
@@ -85,7 +85,7 @@ public class Task {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Task task = (Task) o;
-        return Objects.equals(taskDef, task.taskDef) &&
+        return Objects.equals(taskType, task.taskType) &&
                 Objects.equals(target, task.target) &&
                 Objects.equals(sources, task.sources) &&
                 Objects.equals(interval, task.interval) &&
@@ -94,6 +94,17 @@ public class Task {
 
     @Override
     public int hashCode() {
-        return Objects.hash(taskDef, target, sources, interval, window);
+        return Objects.hash(taskType, target, sources, interval, window);
+    }
+
+    @Override
+    public String toString() {
+        return com.google.common.base.Objects.toStringHelper(Task.class)
+                .add("taskDef", taskType.getName())
+                .add("target", target)
+                .add("sources", sources)
+                .add("interval", interval.toStandardMinutes())
+                .add("window", window.toStandardMinutes())
+                .toString();
     }
 }
