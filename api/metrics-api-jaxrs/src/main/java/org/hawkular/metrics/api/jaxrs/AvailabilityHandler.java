@@ -85,7 +85,7 @@ public class AvailabilityHandler {
 
     @POST
     @Path("/{tenantId}/availability")
-    @ApiOperation(value = "Create availability metric definition. Same notes as creating numeric metric apply.")
+    @ApiOperation(value = "Create availability metric definition. Same notes as creating gauge metric apply.")
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "Metric definition created successfully"),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),

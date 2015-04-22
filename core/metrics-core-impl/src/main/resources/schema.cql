@@ -58,7 +58,7 @@ CREATE TYPE ${keyspace}.aggregate_data (
 -- #
 
 -- The type column identifies the type of metric. We currently only support
--- numeric and availability. More types may be added in the future. For numeric
+-- gauge and availability. More types may be added in the future. For gauge
 -- metrics the n_value column will be set, and the availability column will not
 -- be set. For availability metrics the availability column will be set, and
 -- the n_value column will not be set.
@@ -136,7 +136,7 @@ CREATE TABLE ${keyspace}.metrics_idx (
 -- and the interval. The type is used in the partition key, while the name and
 -- interval are used as clustering columns. We also store tenant-level
 -- retentions in this table. They will be stored using some special, reserved
--- names, e.g., [numeric], [availability]. Square brackets are reserved
+-- names, e.g., [gauge], [availability]. Square brackets are reserved
 -- characters, so we can safely use these.
 --
 -- The retention is stored in seconds.

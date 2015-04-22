@@ -54,13 +54,13 @@ public class MetricsIndexMapper implements Function<ResultSet, List<Metric<?>>> 
     @Override
     public List<Metric<?>> apply(ResultSet resultSet) {
         if (type == MetricType.GAUGE) {
-            return getNumericMetrics(resultSet);
+            return getGaugeMetrics(resultSet);
         } else {
             return getAvailabilityMetrics(resultSet);
         }
     }
 
-    private List<Metric<?>> getNumericMetrics(ResultSet resultSet) {
+    private List<Metric<?>> getGaugeMetrics(ResultSet resultSet) {
         List<Metric<?>> metrics = new ArrayList<>();
         for (Row row : resultSet) {
             metrics.add(new Gauge(tenantId, new MetricId(row.getString(ColumnIndex.METRIC_NAME.ordinal()),

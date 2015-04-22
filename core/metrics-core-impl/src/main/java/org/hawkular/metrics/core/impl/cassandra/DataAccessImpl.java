@@ -26,6 +26,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
+import org.hawkular.metrics.core.api.AggregationTemplate;
+import org.hawkular.metrics.core.api.Availability;
+import org.hawkular.metrics.core.api.AvailabilityMetric;
+import org.hawkular.metrics.core.api.Counter;
+import org.hawkular.metrics.core.api.Gauge;
+import org.hawkular.metrics.core.api.GaugeData;
+import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricData;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.Retention;
+import org.hawkular.metrics.core.api.RetentionSettings;
+import org.hawkular.metrics.core.api.Tenant;
+import org.hawkular.metrics.core.api.TimeUUIDUtils;
+
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.DataType;
@@ -38,21 +54,6 @@ import com.datastax.driver.core.TupleValue;
 import com.datastax.driver.core.UDTValue;
 import com.datastax.driver.core.UserType;
 import com.datastax.driver.core.utils.UUIDs;
-import org.hawkular.metrics.core.api.AggregationTemplate;
-import org.hawkular.metrics.core.api.Availability;
-import org.hawkular.metrics.core.api.AvailabilityMetric;
-import org.hawkular.metrics.core.api.Counter;
-import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricData;
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.GaugeData;
-import org.hawkular.metrics.core.api.Gauge;
-import org.hawkular.metrics.core.api.Retention;
-import org.hawkular.metrics.core.api.RetentionSettings;
-import org.hawkular.metrics.core.api.Tenant;
-import org.hawkular.metrics.core.api.TimeUUIDUtils;
 
 /**
  *
@@ -78,23 +79,23 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement deleteMetricTagsFromDataTable;
 
-    private PreparedStatement insertNumericData;
+    private PreparedStatement insertGaugeData;
 
-    private PreparedStatement findNumericDataByDateRangeExclusive;
+    private PreparedStatement findGaugeDataByDateRangeExclusive;
 
-    private PreparedStatement findNumericDataByDateRangeExclusiveASC;
+    private PreparedStatement findGaugeDataByDateRangeExclusiveASC;
 
-    private PreparedStatement findNumericDataWithWriteTimeByDateRangeExclusive;
+    private PreparedStatement findGaugeDataWithWriteTimeByDateRangeExclusive;
 
-    private PreparedStatement findNumericDataByDateRangeInclusive;
+    private PreparedStatement findGaugeDataByDateRangeInclusive;
 
-    private PreparedStatement findNumericDataWithWriteTimeByDateRangeInclusive;
+    private PreparedStatement findGaugeDataWithWriteTimeByDateRangeInclusive;
 
     private PreparedStatement findAvailabilityByDateRangeInclusive;
 
-    private PreparedStatement deleteNumericMetric;
+    private PreparedStatement deleteGaugeMetric;
 
-    private PreparedStatement findNumericMetrics;
+    private PreparedStatement findGaugeMetrics;
 
     private PreparedStatement updateCounter;
 
@@ -102,13 +103,13 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findCountersByGroupAndName;
 
-    private PreparedStatement insertNumericTags;
+    private PreparedStatement insertGaugeTags;
 
     private PreparedStatement insertAvailabilityTags;
 
     private PreparedStatement updateDataWithTags;
 
-    private PreparedStatement findNumericDataByTag;
+    private PreparedStatement findGaugeDataByTag;
 
     private PreparedStatement findAvailabilityByTag;
 
@@ -194,34 +195,34 @@ public class DataAccessImpl implements DataAccess {
             "FROM metrics_idx " +
             "WHERE tenant_id = ? AND type = ?");
 
-        insertNumericData = session.prepare(
+        insertGaugeData = session.prepare(
             "UPDATE data " +
             "USING TTL ?" +
             "SET m_tags = m_tags + ?, n_value = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ? ");
 
-        findNumericDataByDateRangeExclusive = session.prepare(
+        findGaugeDataByDateRangeExclusive = session.prepare(
             "SELECT time, m_tags, data_retention, n_value, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time < ?");
 
-        findNumericDataByDateRangeExclusiveASC = session.prepare(
+        findGaugeDataByDateRangeExclusiveASC = session.prepare(
             "SELECT time, m_tags, data_retention, n_value, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?" +
             " AND time < ? ORDER BY time ASC");
 
-        findNumericDataWithWriteTimeByDateRangeExclusive = session.prepare(
+        findGaugeDataWithWriteTimeByDateRangeExclusive = session.prepare(
             "SELECT time, m_tags, data_retention, n_value, tags, WRITETIME(n_value) FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time < ?");
 
-        findNumericDataByDateRangeInclusive = session.prepare(
+        findGaugeDataByDateRangeInclusive = session.prepare(
             "SELECT tenant_id, metric, interval, dpart, time, m_tags, data_retention, n_value, tags " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time <= ?");
 
-        findNumericDataWithWriteTimeByDateRangeInclusive = session.prepare(
+        findGaugeDataWithWriteTimeByDateRangeInclusive = session.prepare(
             "SELECT time, m_tags, data_retention, n_value, tags, WRITETIME(n_value) FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time <= ?");
@@ -231,11 +232,11 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time <= ?");
 
-        deleteNumericMetric = session.prepare(
+        deleteGaugeMetric = session.prepare(
             "DELETE FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
 
-        findNumericMetrics = session.prepare(
+        findGaugeMetrics = session.prepare(
             "SELECT DISTINCT tenant_id, type, metric, interval, dpart FROM data;");
 
         updateCounter = session.prepare(
@@ -249,7 +250,7 @@ public class DataAccessImpl implements DataAccess {
         findCountersByGroupAndName = session.prepare(
             "SELECT tenant_id, group, c_name, c_value FROM counters WHERE tenant_id = ? AND group = ? AND c_name IN ?");
 
-        insertNumericTags = session.prepare(
+        insertGaugeTags = session.prepare(
             "INSERT INTO tags (tenant_id, tname, tvalue, type, metric, interval, time, n_value) " +
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
             "USING TTL ?");
@@ -264,7 +265,7 @@ public class DataAccessImpl implements DataAccess {
             "SET tags = tags + ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
-        findNumericDataByTag = session.prepare(
+        findGaugeDataByTag = session.prepare(
             "SELECT tenant_id, tname, tvalue, type, metric, interval, time, n_value " +
             "FROM tags " +
             "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
@@ -430,25 +431,12 @@ public class DataAccessImpl implements DataAccess {
     public ResultSetFuture insertData(Gauge metric, int ttl) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (GaugeData d : metric.getData()) {
-            batchStatement.add(insertNumericData.bind(ttl, getTags(metric), d.getValue(), metric.getTenantId(),
+            batchStatement.add(insertGaugeData.bind(ttl, getTags(metric), d.getValue(), metric.getTenantId(),
                 metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 metric.getDpart(), d.getTimeUUID()));
         }
         return session.executeAsync(batchStatement);
     }
-
-//    @Override
-//    public ResultSetFuture findData(NumericMetric metric, long startTime, long endTime) {
-//        return findData(metric, startTime, endTime, false);
-//    }
-
-//    @Override
-//    public ResultSetFuture findData(QueryParams params) {
-//        return session.executeAsync(findNumericDataByDateRangeExclusive.bind(params.getTenantId(),
-//            MetricType.NUMERIC.getCode(), params.getId().getName(), params.getId().getInterval().toString(),
-//            Metric.DPART, TimeUUIDUtils.getTimeUUID(params.getStart()), TimeUUIDUtils.getTimeUUID(params.getEnd())));
-//    }
-
 
     @Override
     public ResultSetFuture findData(String tenantId, MetricId id, long startTime, long endTime) {
@@ -458,11 +446,11 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public ResultSetFuture findData(Gauge metric, long startTime, long endTime, Order order) {
         if (order == Order.ASC) {
-            return session.executeAsync(findNumericDataByDateRangeExclusiveASC.bind(metric.getTenantId(),
+            return session.executeAsync(findGaugeDataByDateRangeExclusiveASC.bind(metric.getTenantId(),
                 MetricType.GAUGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 metric.getDpart(), TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
         } else {
-            return session.executeAsync(findNumericDataByDateRangeExclusive.bind(metric.getTenantId(),
+            return session.executeAsync(findGaugeDataByDateRangeExclusive.bind(metric.getTenantId(),
                 MetricType.GAUGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 metric.getDpart(), TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
         }
@@ -472,11 +460,11 @@ public class DataAccessImpl implements DataAccess {
     public ResultSetFuture findData(String tenantId, MetricId id, long startTime, long endTime,
             boolean includeWriteTime) {
         if (includeWriteTime) {
-            return session.executeAsync(findNumericDataWithWriteTimeByDateRangeExclusive.bind(tenantId,
+            return session.executeAsync(findGaugeDataWithWriteTimeByDateRangeExclusive.bind(tenantId,
                     MetricType.GAUGE.getCode(), id.getName(), id.getInterval().toString(), Metric.DPART,
                     TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
         } else {
-            return session.executeAsync(findNumericDataByDateRangeExclusive.bind(tenantId,
+            return session.executeAsync(findGaugeDataByDateRangeExclusive.bind(tenantId,
                     MetricType.GAUGE.getCode(), id.getName(), id.getInterval().toString(), Metric.DPART,
                     TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
         }
@@ -485,11 +473,11 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public ResultSetFuture findData(Gauge metric, long timestamp, boolean includeWriteTime) {
         if (includeWriteTime) {
-            return session.executeAsync(findNumericDataWithWriteTimeByDateRangeInclusive.bind(metric.getTenantId(),
+            return session.executeAsync(findGaugeDataWithWriteTimeByDateRangeInclusive.bind(metric.getTenantId(),
                 MetricType.GAUGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 metric.getDpart(), UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
         } else {
-            return session.executeAsync(findNumericDataByDateRangeInclusive.bind(metric.getTenantId(),
+            return session.executeAsync(findGaugeDataByDateRangeInclusive.bind(metric.getTenantId(),
                 MetricType.GAUGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 metric.getDpart(), UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
         }
@@ -522,13 +510,13 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public ResultSetFuture deleteGuageMetric(String tenantId, String metric, Interval interval, long dpart) {
-        return session.executeAsync(deleteNumericMetric.bind(tenantId, MetricType.GAUGE.getCode(), metric,
+        return session.executeAsync(deleteGaugeMetric.bind(tenantId, MetricType.GAUGE.getCode(), metric,
             interval.toString(), dpart));
     }
 
     @Override
     public ResultSetFuture findAllGuageMetrics() {
-        return session.executeAsync(findNumericMetrics.bind());
+        return session.executeAsync(findGaugeMetrics.bind());
     }
 
     @Override
@@ -536,7 +524,7 @@ public class DataAccessImpl implements DataAccess {
             List<GaugeData> data) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (GaugeData d : data) {
-            batchStatement.add(insertNumericTags.bind(metric.getTenantId(), tag, tagValue,
+            batchStatement.add(insertGaugeTags.bind(metric.getTenantId(), tag, tagValue,
                     MetricType.GAUGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                     d.getTimeUUID(), d.getValue(), d.getTTL()));
         }
@@ -564,7 +552,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public ResultSetFuture findGuageDataByTag(String tenantId, String tag, String tagValue) {
-        return session.executeAsync(findNumericDataByTag.bind(tenantId, tag, tagValue));
+        return session.executeAsync(findGaugeDataByTag.bind(tenantId, tag, tagValue));
     }
 
     @Override

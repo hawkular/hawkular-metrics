@@ -56,7 +56,7 @@ public class DataAccessITest extends MetricsITest {
 
     private PreparedStatement truncateTenants;
 
-    private PreparedStatement truncateNumericData;
+    private PreparedStatement truncateGaugeData;
 
     private PreparedStatement truncateCounters;
 
@@ -65,14 +65,14 @@ public class DataAccessITest extends MetricsITest {
         initSession();
         dataAccess = new DataAccessImpl(session);
         truncateTenants = session.prepare("TRUNCATE tenants");
-        truncateNumericData = session.prepare("TRUNCATE data");
+        truncateGaugeData = session.prepare("TRUNCATE data");
         truncateCounters = session.prepare("TRUNCATE counters");
     }
 
     @BeforeMethod
     public void initMethod() {
         session.execute(truncateTenants.bind());
-        session.execute(truncateNumericData.bind());
+        session.execute(truncateGaugeData.bind());
         session.execute(truncateCounters.bind());
     }
 
@@ -117,7 +117,7 @@ public class DataAccessITest extends MetricsITest {
     }
 
     @Test
-    public void insertAndFindNumericRawData() throws Exception {
+    public void insertAndFindGaugeRawData() throws Exception {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);
 
@@ -131,7 +131,7 @@ public class DataAccessITest extends MetricsITest {
 
         ResultSetFuture queryFuture = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
                 end.getMillis());
-        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture, Functions.MAP_NUMERIC_DATA);
+        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture, Functions.MAP_GAUGE_DATA);
         List<GaugeData> actual = getUninterruptibly(dataFuture);
         List<GaugeData> expected = asList(
             new GaugeData(start.plusMinutes(2).getMillis(), 1.234),
@@ -143,7 +143,7 @@ public class DataAccessITest extends MetricsITest {
     }
 
     @Test
-    public void addMetadataToNumericRawData() throws Exception {
+    public void addMetadataToGaugeRawData() throws Exception {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);
 
@@ -161,7 +161,7 @@ public class DataAccessITest extends MetricsITest {
 
         ResultSetFuture queryFuture = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
                 end.getMillis());
-        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture, Functions.MAP_NUMERIC_DATA);
+        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture, Functions.MAP_GAUGE_DATA);
         List<GaugeData> actual = getUninterruptibly(dataFuture);
         List<GaugeData> expected = asList(
             new GaugeData(start.plusMinutes(4).getMillis(), 1.234),
@@ -173,55 +173,55 @@ public class DataAccessITest extends MetricsITest {
     }
 
 //    @Test
-//    public void insertAndFindAggregatedNumericData() throws Exception {
+//    public void insertAndFindAggregatedGaugeData() throws Exception {
 //        DateTime start = now().minusMinutes(10);
 //        DateTime end = start.plusMinutes(6);
 //
 //        Metric metric = new Metric()
 //            .setTenantId("tenant-1")
 //            .setId(new MetricId("m1", Interval.parse("5min")));
-//        List<NumericData> data = asList(
+//        List<GaugeData> data = asList(
 //
 //        );
 //
-//        NumericData d1 = new NumericData()
+//        GaugeData d1 = new GaugeData()
 //            .setTenantId("tenant-1")
 //            .setId(new MetricId("m1", Interval.parse("5min")))
 //            .setTimestamp(start.getMillis())
 //            .addAggregatedValue(new AggregatedValue("sum", 100.1))
 //            .addAggregatedValue(new AggregatedValue("max", 51.5, null, null, getTimeUUID(now().minusMinutes(3))));
 //
-//        NumericData d2 = new NumericData()
+//        GaugeData d2 = new GaugeData()
 //            .setTenantId("tenant-1")
 //            .setId(new MetricId("m1", Interval.parse("5min")))
 //            .setTimestamp(start.plusMinutes(2).getMillis())
 //            .addAggregatedValue(new AggregatedValue("sum", 110.1))
 //            .addAggregatedValue(new AggregatedValue("max", 54.7, null, null, getTimeUUID(now().minusMinutes(3))));
 //
-//        NumericData d3 = new NumericData()
+//        GaugeData d3 = new GaugeData()
 //            .setTenantId("tenant-1")
 //            .setId(new MetricId("m1", Interval.parse("5min")))
 //            .setTimestamp(start.plusMinutes(4).getMillis())
 //            .setValue(22.2);
 //
-//        NumericData d4 = new NumericData()
+//        GaugeData d4 = new GaugeData()
 //            .setTenantId("tenant-1")
 //            .setId(new MetricId("m1", Interval.parse("5min")))
 //            .setTimestamp(end.getMillis())
 //            .setValue(22.2);
 //
-//        getUninterruptibly(dataAccess.insertNumericData(d1));
-//        getUninterruptibly(dataAccess.insertNumericData(d2));
-//        getUninterruptibly(dataAccess.insertNumericData(d3));
-//        getUninterruptibly(dataAccess.insertNumericData(d4));
+//        getUninterruptibly(dataAccess.insertGaugeData(d1));
+//        getUninterruptibly(dataAccess.insertGaugeData(d2));
+//        getUninterruptibly(dataAccess.insertGaugeData(d3));
+//        getUninterruptibly(dataAccess.insertGaugeData(d4));
 //
-//        ResultSetFuture queryFuture = dataAccess.findNumericData(d1.getTenantId(), d1.getId(), 0L, start.getMillis(),
+//        ResultSetFuture queryFuture = dataAccess.findGaugeData(d1.getTenantId(), d1.getId(), 0L, start.getMillis(),
 //            end.getMillis());
-//        ListenableFuture<List<NumericData>> dataFuture = Futures.transform(queryFuture, new NumericDataMapper());
-//        List<NumericData> actual = getUninterruptibly(dataFuture);
-//        List<NumericData> expected = asList(d3, d2, d1);
+//        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture, new GaugeDataMapper());
+//        List<GaugeData> actual = getUninterruptibly(dataFuture);
+//        List<GaugeData> expected = asList(d3, d2, d1);
 //
-//        assertEquals(actual, expected, "The aggregated numeric data does not match");
+//        assertEquals(actual, expected, "The aggregated gauge data does not match");
 //    }
 
     @Test

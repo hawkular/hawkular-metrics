@@ -216,7 +216,7 @@ PUT /hawkular/metrics/{tenantId}/gauge/{id}/meta
 *Example Request*
 
 ----
-curl -X PUT http://localhost:8080/hawkular/metrics/{tenantId}/numeric -d@request.json -HContent-Type:application/json
+curl -X PUT http://localhost:8080/hawkular/metrics/{tenantId}/gauge -d@request.json -HContent-Type:application/json
 ----
 
 *Description*
@@ -281,11 +281,11 @@ curl -X POST http://localhost:8080/hawkular/metrics/{tenantId}/availability/{id}
 Inserts data for a single availablity metric. Accepted values are the strings
 `up` and `down`.
 
-=== Insert Data for Multiple Numeric Metrics
+=== Insert Data for Multiple Gauge Metrics
 
 *Request URI*
 
-POST /hawkular/metrics/{tenantId}/numeric/data
+POST /hawkular/metrics/{tenantId}/gauge/data
 
 *Request Body*
 
@@ -312,12 +312,12 @@ POST /hawkular/metrics/{tenantId}/numeric/data
 *Example Request*
 
 ----
-curl -X POST http://localhost:8080/hawkular/metrics/{tenantId}/numeric/data -d@request.json -HContent-Type:application/json
+curl -X POST http://localhost:8080/hawkular/metrics/{tenantId}/gauge/data -d@request.json -HContent-Type:application/json
 ----
 
 *Description*
 
-Insert data for multiple numeric metrics.
+Insert data for multiple gauge metrics.
 
 === Insert Data for Multiple Availability Metrics
 

@@ -43,7 +43,7 @@ import org.hawkular.metrics.core.api.Tenant;
  */
 public class Functions {
 
-    private static enum NUMERIC_COLS {
+    private static enum GAUGE_COLS {
         TIME,
         METRIC_TAGS,
         DATA_RETENTION,
@@ -66,26 +66,26 @@ public class Functions {
 
     public static final Function<List<ResultSet>, Void> TO_VOID = resultSets -> null;
 
-    public static final Function<ResultSet, List<GaugeData>> MAP_NUMERIC_DATA = resultSet ->
-            StreamSupport.stream(resultSet.spliterator(), false).map(Functions::getNumericData).collect(toList());
+    public static final Function<ResultSet, List<GaugeData>> MAP_GAUGE_DATA = resultSet ->
+            StreamSupport.stream(resultSet.spliterator(), false).map(Functions::getGaugeData).collect(toList());
 
-    private static GaugeData getNumericData(Row row) {
+    private static GaugeData getGaugeData(Row row) {
         return new GaugeData(
-                row.getUUID(NUMERIC_COLS.TIME.ordinal()), row.getDouble(NUMERIC_COLS.VALUE.ordinal()),
-                row.getMap(NUMERIC_COLS.TAGS.ordinal(), String.class, String.class)
+                row.getUUID(GAUGE_COLS.TIME.ordinal()), row.getDouble(GAUGE_COLS.VALUE.ordinal()),
+                row.getMap(GAUGE_COLS.TAGS.ordinal(), String.class, String.class)
         );
     }
 
-    public static final Function<ResultSet, List<GaugeData>> MAP_NUMERIC_DATA_WITH_WRITE_TIME = resultSet ->
-        StreamSupport.stream(resultSet.spliterator(), false).map(Functions::getNumericDataAndWriteTime)
+    public static final Function<ResultSet, List<GaugeData>> MAP_GAUGE_DATA_WITH_WRITE_TIME = resultSet ->
+        StreamSupport.stream(resultSet.spliterator(), false).map(Functions::getGaugeDataAndWriteTime)
                 .collect(toList());
 
-    private static GaugeData getNumericDataAndWriteTime(Row row) {
+    private static GaugeData getGaugeDataAndWriteTime(Row row) {
         return new GaugeData(
-                row.getUUID(NUMERIC_COLS.TIME.ordinal()),
-                row.getDouble(NUMERIC_COLS.VALUE.ordinal()),
-                row.getMap(NUMERIC_COLS.TAGS.ordinal(), String.class, String.class),
-                row.getLong(NUMERIC_COLS.WRITE_TIME.ordinal()) / 1000);
+                row.getUUID(GAUGE_COLS.TIME.ordinal()),
+                row.getDouble(GAUGE_COLS.VALUE.ordinal()),
+                row.getMap(GAUGE_COLS.TAGS.ordinal(), String.class, String.class),
+                row.getLong(GAUGE_COLS.WRITE_TIME.ordinal()) / 1000);
     }
 
     public static final Function<ResultSet, List<Availability>> MAP_AVAILABILITY_DATA = resultSet ->

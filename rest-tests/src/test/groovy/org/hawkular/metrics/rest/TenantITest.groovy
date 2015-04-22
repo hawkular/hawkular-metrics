@@ -33,14 +33,14 @@ class TenantITest extends RESTTest {
 
     def response = hawkularMetrics.post(path: "tenants", body: [
         id: firstTenantId,
-        //retentionSettings: [numeric: 45, availability: 30]
+        //retentionSettings: [gauge: 45, availability: 30]
     ])
     assertEquals(201, response.status)
     assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
 
     response = hawkularMetrics.post(path: "tenants", body: [
         id: secondTenantId//,
-        //retentionSettings: [numeric: 45, availability: 30]
+        //retentionSettings: [gauge: 45, availability: 30]
     ])
     assertEquals(201, response.status)
     assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
@@ -48,10 +48,10 @@ class TenantITest extends RESTTest {
     response = hawkularMetrics.get(path: "tenants")
     def expectedData = [
         [id: firstTenantId,
-         //retentionSettings:[availability:30, numeric:45]
+         //retentionSettings:[availability:30, gauge:45]
         ],
         [id: secondTenantId,
-         //retentionSettings:[availability:30, numeric:45]
+         //retentionSettings:[availability:30, gauge:45]
         ]]
 
     assertTrue("${expectedData} not in ${response.data}", response.data.containsAll((expectedData)))

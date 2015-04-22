@@ -34,13 +34,13 @@ import org.hawkular.metrics.core.api.GaugeData;
  *
  * @author Thomas Segismont
  */
-public class NumericBucketedOutputMapper
+public class GaugeBucketedOutputMapper
         extends BucketedOutputMapper<GaugeData, GaugeBucketDataPoint> {
 
     /**
      * @param buckets the bucket configuration
      */
-    public NumericBucketedOutputMapper(String tenantId, MetricId id, Buckets buckets) {
+    public GaugeBucketedOutputMapper(String tenantId, MetricId id, Buckets buckets) {
         super(tenantId, id, buckets, true);
     }
 
@@ -50,11 +50,11 @@ public class NumericBucketedOutputMapper
     }
 
     @Override
-    protected GaugeBucketDataPoint newPointInstance(long from, long to, List<GaugeData> numericDatas) {
-        double[] values = new double[numericDatas.size()];
-        for (ListIterator<GaugeData> iterator = numericDatas.listIterator(); iterator.hasNext(); ) {
-            GaugeData numericData = iterator.next();
-            values[iterator.previousIndex()] = numericData.getValue();
+    protected GaugeBucketDataPoint newPointInstance(long from, long to, List<GaugeData> gaugeDatas) {
+        double[] values = new double[gaugeDatas.size()];
+        for (ListIterator<GaugeData> iterator = gaugeDatas.listIterator(); iterator.hasNext(); ) {
+            GaugeData gaugeData = iterator.next();
+            values[iterator.previousIndex()] = gaugeData.getValue();
         }
 
         Percentile percentile = new Percentile();

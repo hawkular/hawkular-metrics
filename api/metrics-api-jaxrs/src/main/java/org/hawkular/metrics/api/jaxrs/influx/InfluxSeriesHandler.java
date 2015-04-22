@@ -125,12 +125,12 @@ public class InfluxSeriesHandler {
             } catch (InvalidObjectException e) {
                 return ApiUtils.badRequest(new ApiError(e.getMessage()));
             }
-            List<Gauge> numericMetrics = FluentIterable.from(influxObjects) //
+            List<Gauge> gaugeMetrics = FluentIterable.from(influxObjects) //
                     .transform(influxObject -> {
                         List<String> influxObjectColumns = influxObject.getColumns();
                         int valueColumnIndex = influxObjectColumns.indexOf("value");
                         List<List<?>> influxObjectPoints = influxObject.getPoints();
-                        Gauge numericMetric = new Gauge(tenantId, new MetricId(influxObject.getName()));
+                        Gauge gaugeMetric = new Gauge(tenantId, new MetricId(influxObject.getName()));
                         for (List<?> point : influxObjectPoints) {
                             double value;
                             long timestamp;
@@ -141,11 +141,11 @@ public class InfluxSeriesHandler {
                                 timestamp = ((Number) point.get((valueColumnIndex + 1) % 2)).longValue();
                                 value = ((Number) point.get(valueColumnIndex)).doubleValue();
                             }
-                            numericMetric.addData(new GaugeData(timestamp, value));
+                            gaugeMetric.addData(new GaugeData(timestamp, value));
                         }
-                        return numericMetric;
+                        return gaugeMetric;
                     }).toList();
-            ListenableFuture<Void> future = metricsService.addGaugeData(numericMetrics);
+            ListenableFuture<Void> future = metricsService.addGaugeData(gaugeMetrics);
             return Futures.transform(future, ApiUtils.MAP_VOID);
         });
     }

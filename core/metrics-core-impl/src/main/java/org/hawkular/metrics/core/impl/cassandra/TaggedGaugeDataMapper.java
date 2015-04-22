@@ -33,7 +33,7 @@ import com.google.common.base.Function;
 /**
  * @author John Sanda
  */
-public class TaggedNumericDataMapper implements Function<ResultSet, Map<MetricId, Set<GaugeData>>> {
+public class TaggedGaugeDataMapper implements Function<ResultSet, Map<MetricId, Set<GaugeData>>> {
 
     @Override
     public Map<MetricId, Set<GaugeData>> apply(ResultSet resultSet) {
@@ -43,16 +43,16 @@ public class TaggedNumericDataMapper implements Function<ResultSet, Map<MetricId
         for (Row row : resultSet) {
             if (metric == null) {
                 metric = createMetric(row);
-                set.add(createNumericData(row));
+                set.add(createGaugeData(row));
             } else {
                 Gauge nextMetric = createMetric(row);
                 if (metric.equals(nextMetric)) {
-                    set.add(createNumericData(row));
+                    set.add(createGaugeData(row));
                 } else {
                     taggedData.put(metric.getId(), set);
                     metric = nextMetric;
                     set = new LinkedHashSet<>();
-                    set.add(createNumericData(row));
+                    set.add(createGaugeData(row));
                 }
             }
         }
@@ -66,7 +66,7 @@ public class TaggedNumericDataMapper implements Function<ResultSet, Map<MetricId
         return new Gauge(row.getString(0), new MetricId(row.getString(4), Interval.parse(row.getString(5))));
     }
 
-    private GaugeData createNumericData(Row row) {
+    private GaugeData createGaugeData(Row row) {
         return new GaugeData(row.getUUID(6), row.getDouble(7));
     }
 

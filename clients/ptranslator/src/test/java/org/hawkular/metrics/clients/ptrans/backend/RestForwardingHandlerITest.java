@@ -61,7 +61,7 @@ public class RestForwardingHandlerITest {
     @Mock
     private ChannelHandlerContext channelHandlerContext;
     private RestForwardingHandler restForwardingHandler;
-    private String findGuageDataUrl;
+    private String findGaugeDataUrl;
 
     @Before
     public void setUp() throws Exception {
@@ -79,7 +79,7 @@ public class RestForwardingHandlerITest {
 
         restForwardingHandler = new RestForwardingHandler(configuration);
 
-        findGuageDataUrl = "http://" + BASE_URI + "/" + TENANT + "/gauge/" + METRIC_NAME + "/data";
+        findGaugeDataUrl = "http://" + BASE_URI + "/" + TENANT + "/gauge/" + METRIC_NAME + "/data";
     }
 
     @Test
@@ -90,7 +90,7 @@ public class RestForwardingHandlerITest {
         boolean foundMetricOnServer = false;
         for (int i = 0; i < 20; i++) {
             Thread.sleep(TimeUnit.SECONDS.toMillis(1));
-            JsonNode jsonNode = findNumericDataOnServer();
+            JsonNode jsonNode = findGaugeDataOnServer();
             if (jsonNode != null && expectedMetricIsPresent(metric, jsonNode)) {
                 foundMetricOnServer = true;
                 break;
@@ -99,8 +99,8 @@ public class RestForwardingHandlerITest {
         assertTrue("Did not find expected metric on server", foundMetricOnServer);
     }
 
-    private JsonNode findNumericDataOnServer() throws IOException {
-        HttpURLConnection urlConnection = (HttpURLConnection) new URL(findGuageDataUrl).openConnection();
+    private JsonNode findGaugeDataOnServer() throws IOException {
+        HttpURLConnection urlConnection = (HttpURLConnection) new URL(findGaugeDataUrl).openConnection();
         urlConnection.connect();
         int responseCode = urlConnection.getResponseCode();
         if (responseCode != HttpURLConnection.HTTP_OK) {
@@ -115,12 +115,12 @@ public class RestForwardingHandlerITest {
     private boolean expectedMetricIsPresent(SingleMetric metric, JsonNode jsonNode) {
         assertTrue("Data is not an array", jsonNode.isArray());
 
-        for (JsonNode numericData : jsonNode) {
-            JsonNode timestamp = numericData.get("timestamp");
-            assertNotNull("Numeric data has no timestamp attribute", timestamp);
+        for (JsonNode gaugeData : jsonNode) {
+            JsonNode timestamp = gaugeData.get("timestamp");
+            assertNotNull("Gauge data has no timestamp attribute", timestamp);
             assertTrue("Timestamp is not a number", timestamp.isNumber());
-            JsonNode value = numericData.get("value");
-            assertNotNull("Numeric data has no value attribute", value);
+            JsonNode value = gaugeData.get("value");
+            assertNotNull("Gauge data has no value attribute", value);
             assertTrue("Value is not a floating point number", value.isFloatingPointNumber());
 
             if (timestamp.asLong() == metric.getTimestamp() && value.asDouble() == metric.getValue()) {

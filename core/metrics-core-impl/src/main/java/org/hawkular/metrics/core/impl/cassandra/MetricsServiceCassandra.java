@@ -227,12 +227,12 @@ public class MetricsServiceCassandra implements MetricsService {
         List<String> tenantIds = loadTenantIds();
         CountDownLatch latch = new CountDownLatch(tenantIds.size() * 2);
         for (String tenantId : tenantIds) {
-            ResultSetFuture numericFuture = dataAccess.findDataRetentions(tenantId, MetricType.GAUGE);
+            ResultSetFuture gaugeFuture = dataAccess.findDataRetentions(tenantId, MetricType.GAUGE);
             ResultSetFuture availabilityFuture = dataAccess.findDataRetentions(tenantId, MetricType.AVAILABILITY);
-            ListenableFuture<Set<Retention>> numericRetentions = Futures.transform(numericFuture, mapper, metricsTasks);
+            ListenableFuture<Set<Retention>> gaugeRetentions = Futures.transform(gaugeFuture, mapper, metricsTasks);
             ListenableFuture<Set<Retention>> availabilityRetentions = Futures.transform(availabilityFuture, mapper,
                     metricsTasks);
-            Futures.addCallback(numericRetentions,
+            Futures.addCallback(gaugeRetentions,
                     new DataRetentionsLoadedCallback(tenantId, MetricType.GAUGE, latch));
             Futures.addCallback(availabilityRetentions, new DataRetentionsLoadedCallback(tenantId,
                     MetricType.AVAILABILITY, latch));
@@ -600,7 +600,7 @@ public class MetricsServiceCassandra implements MetricsService {
         // the start and end params. And it is possible the the date range spans multiple
         // date partitions.
         ResultSetFuture future = dataAccess.findData(tenantId, id, start, end);
-        return Futures.transform(future, Functions.MAP_NUMERIC_DATA, metricsTasks);
+        return Futures.transform(future, Functions.MAP_GAUGE_DATA, metricsTasks);
     }
 
     @Override
@@ -611,9 +611,9 @@ public class MetricsServiceCassandra implements MetricsService {
         // the start and end params. And it is possible the the date range spans multiple
         // date partitions.
         ResultSetFuture queryFuture = dataAccess.findData(metric.getTenantId(), metric.getId(), start, end);
-        ListenableFuture<List<GaugeData>> raw = Futures.transform(queryFuture, Functions.MAP_NUMERIC_DATA,
+        ListenableFuture<List<GaugeData>> raw = Futures.transform(queryFuture, Functions.MAP_GAUGE_DATA,
                 metricsTasks);
-        return Futures.transform(raw, new NumericBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets));
+        return Futures.transform(raw, new GaugeBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets));
     }
 
     @Override
@@ -689,7 +689,7 @@ public class MetricsServiceCassandra implements MetricsService {
             long start, long end) {
         ResultSetFuture queryFuture = dataAccess.findData(metric.getTenantId(), metric.getId(), start, end, true);
         ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture,
-                Functions.MAP_NUMERIC_DATA_WITH_WRITE_TIME, metricsTasks);
+                Functions.MAP_GAUGE_DATA_WITH_WRITE_TIME, metricsTasks);
         int ttl = getTTL(metric);
         ListenableFuture<List<GaugeData>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
         return Futures.transform(updatedDataFuture, new TagAsyncFunction(tags, metric));
@@ -711,7 +711,7 @@ public class MetricsServiceCassandra implements MetricsService {
             long timestamp) {
         ListenableFuture<ResultSet> queryFuture = dataAccess.findData(metric, timestamp, true);
         ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture,
-                Functions.MAP_NUMERIC_DATA_WITH_WRITE_TIME, metricsTasks);
+                Functions.MAP_GAUGE_DATA_WITH_WRITE_TIME, metricsTasks);
         int ttl = getTTL(metric);
         ListenableFuture<List<GaugeData>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
         return Futures.transform(updatedDataFuture, new TagAsyncFunction(tags, metric));
@@ -733,7 +733,7 @@ public class MetricsServiceCassandra implements MetricsService {
             Map<String, String> tags) {
         List<ListenableFuture<Map<MetricId, Set<GaugeData>>>> queryFutures = new ArrayList<>(tags.size());
         tags.forEach((k, v) -> queryFutures.add(Futures.transform(dataAccess.findGuageDataByTag(tenantId, k, v),
-                new TaggedNumericDataMapper(), metricsTasks)));
+                new TaggedGaugeDataMapper(), metricsTasks)));
         ListenableFuture<List<Map<MetricId, Set<GaugeData>>>> queriesFuture = Futures.allAsList(queryFutures);
         return Futures.transform(queriesFuture, new MergeTagsFunction());
 
@@ -754,7 +754,7 @@ public class MetricsServiceCassandra implements MetricsService {
         long start, long end) {
         ResultSetFuture resultSetFuture = dataAccess.findData(new Gauge(tenantId, id), start, end, Order.ASC);
         ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(resultSetFuture,
-                Functions.MAP_NUMERIC_DATA, metricsTasks);
+                Functions.MAP_GAUGE_DATA, metricsTasks);
 
         return Futures.transform(dataFuture, (List<GaugeData> data) -> {
             List<long[]> periods = new ArrayList<>(data.size());

@@ -40,6 +40,23 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.hawkular.metrics.core.api.Availability;
+import org.hawkular.metrics.core.api.AvailabilityMetric;
+import org.hawkular.metrics.core.api.Gauge;
+import org.hawkular.metrics.core.api.GaugeData;
+import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.Retention;
+import org.hawkular.metrics.core.api.Tenant;
+import org.joda.time.DateTime;
+import org.joda.time.Duration;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
@@ -50,23 +67,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import org.hawkular.metrics.core.api.Availability;
-import org.hawkular.metrics.core.api.AvailabilityMetric;
-import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.GaugeData;
-import org.hawkular.metrics.core.api.Gauge;
-import org.hawkular.metrics.core.api.Retention;
-import org.hawkular.metrics.core.api.Tenant;
-import org.joda.time.DateTime;
-import org.joda.time.Duration;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
-
 /**
  * @author John Sanda
  */
@@ -76,7 +76,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
     private DataAccess dataAccess;
 
-    private PreparedStatement insertNumericDataWithTimestamp;
+    private PreparedStatement insertGaugeDataWithTimestamp;
 
     private PreparedStatement insertAvailabilityDateWithTimestamp;
 
@@ -87,7 +87,8 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         metricsService.startUp(session);
         dataAccess = metricsService.getDataAccess();
 
-        insertNumericDataWithTimestamp = session.prepare(
+        insertGaugeDataWithTimestamp = session
+                .prepare(
             "INSERT INTO data (tenant_id, type, metric, interval, dpart, time, n_value) " +
             "VALUES (?, ?, ?, ?, ?, ?, ?) " +
             "USING TTL ? AND TIMESTAMP ?");
@@ -228,7 +229,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
     }
 
     @Test
-    public void addAndFetchNumericData() throws Exception {
+    public void addAndFetchGaugeData() throws Exception {
         DateTime start = now().minusMinutes(30);
         DateTime end = start.plusMinutes(20);
 
@@ -257,7 +258,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
     }
 
     @Test
-    public void verifyTTLsSetOnNumericData() throws Exception {
+    public void verifyTTLsSetOnGaugeData() throws Exception {
         DateTime start = now().minusMinutes(10);
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t1")));
@@ -279,21 +280,21 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         Map<String, String> tags = ImmutableMap.of("tag1", "");
 
-        verifyTTLDataAccess.numericTagTTLLessThanEqualTo(DEFAULT_TTL - days(2).toStandardSeconds().getSeconds());
+        verifyTTLDataAccess.gaugeTagTTLLessThanEqualTo(DEFAULT_TTL - days(2).toStandardSeconds().getSeconds());
         getUninterruptibly(metricsService.tagGaugeData(m1, tags, start.getMillis(),
             start.plusMinutes(2).getMillis()));
 
-        verifyTTLDataAccess.setNumericTTL(days(14).toStandardSeconds().getSeconds());
+        verifyTTLDataAccess.setGaugeTTL(days(14).toStandardSeconds().getSeconds());
         Gauge m2 = new Gauge("t2", new MetricId("m2"));
         m2.addData(start.plusMinutes(5).getMillis(), 2.02);
         addDataInThePast(m2, days(3).toStandardDuration());
 
-        verifyTTLDataAccess.numericTagTTLLessThanEqualTo(days(14).minus(3).toStandardSeconds().getSeconds());
+        verifyTTLDataAccess.gaugeTagTTLLessThanEqualTo(days(14).minus(3).toStandardSeconds().getSeconds());
         getUninterruptibly(metricsService.tagGaugeData(m2, tags, start.plusMinutes(5).getMillis()));
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t3")
             .setRetention(GAUGE, 24)));
-        verifyTTLDataAccess.setNumericTTL(hours(24).toStandardSeconds().getSeconds());
+        verifyTTLDataAccess.setGaugeTTL(hours(24).toStandardSeconds().getSeconds());
         Gauge m3 = new Gauge("t3", new MetricId("m3"));
         m3.addData(start.getMillis(), 3.03);
         getUninterruptibly(metricsService.addGaugeData(asList(m3)));
@@ -301,7 +302,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         Gauge m4 = new Gauge("t2", new MetricId("m4"), Collections.EMPTY_MAP, 28);
         getUninterruptibly(metricsService.createMetric(m4));
 
-        verifyTTLDataAccess.setNumericTTL(28);
+        verifyTTLDataAccess.setGaugeTTL(28);
         m4.addData(start.plusMinutes(3).getMillis(), 4.1);
         m4.addData(start.plusMinutes(4).getMillis(), 4.2);
         getUninterruptibly(metricsService.addGaugeData(asList(m4)));
@@ -360,7 +361,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
                     long writeTime = now().minus(duration).getMillis() * 1000;
                     BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
                     for (GaugeData d : m.getData()) {
-                        batchStatement.add(insertNumericDataWithTimestamp.bind(m.getTenantId(), GAUGE.getCode(),
+                        batchStatement.add(insertGaugeDataWithTimestamp.bind(m.getTenantId(), GAUGE.getCode(),
                                 m.getId().getName(), m.getId().getInterval().toString(), DPART, d.getTimeUUID(),
                                 d.getValue(), actualTTL, writeTime));
                     }
@@ -397,7 +398,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
     }
 
     @Test
-    public void fetchNumericDataThatHasTags() throws Exception {
+    public void fetchGaugeDataThatHasTags() throws Exception {
         DateTime end = now();
         DateTime start = end.minusMinutes(10);
 
@@ -446,7 +447,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
     }
 
     @Test
-    public void addNumericDataForMultipleMetrics() throws Exception {
+    public void addGaugeDataForMultipleMetrics() throws Exception {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(8);
         String tenantId = "test-tenant";
@@ -474,11 +475,11 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         ListenableFuture<List<GaugeData>> queryFuture = metricsService.findGaugeData(tenantId, m1.getId(),
                 start.getMillis(), end.getMillis());
         List<GaugeData> actual = getUninterruptibly(queryFuture);
-        assertEquals(actual, m1.getData(), "The numeric data for " + m1.getId() + " does not match");
+        assertEquals(actual, m1.getData(), "The gauge data for " + m1.getId() + " does not match");
 
         queryFuture = metricsService.findGaugeData(tenantId, m2.getId(), start.getMillis(), end.getMillis());
         actual = getUninterruptibly(queryFuture);
-        assertEquals(actual, m2.getData(), "The numeric data for " + m2.getId() + " does not match");
+        assertEquals(actual, m2.getData(), "The gauge data for " + m2.getId() + " does not match");
 
         queryFuture = metricsService.findGaugeData(tenantId, m3.getId(), start.getMillis(), end.getMillis());
         actual = getUninterruptibly(queryFuture);
@@ -489,7 +490,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         Gauge expected = new Gauge(tenantId, new MetricId("m4"));
         expected.setDataRetention(24);
         expected.addData(start.plusSeconds(30).getMillis(), 55.5);
-        assertEquals(actual, expected.getData(), "The numeric data for " + m4.getId() + " does not match");
+        assertEquals(actual, expected.getData(), "The gauge data for " + m4.getId() + " does not match");
 
         assertMetricIndexMatches(tenantId, GAUGE, asList(m1, m2, m3, m4));
     }
@@ -637,7 +638,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
     }
 
     @Test
-    public void tagNumericDataByDateRangeAndQueryByMultipleTags() throws Exception {
+    public void tagGaugeDataByDateRangeAndQueryByMultipleTags() throws Exception {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
@@ -770,7 +771,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
     }
 
     @Test
-    public void tagIndividualNumericDataPoints() throws Exception {
+    public void tagIndividualGaugeDataPoints() throws Exception {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
@@ -1027,9 +1028,9 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
     private static class VerifyTTLDataAccess extends DelegatingDataAccess {
 
-        private int numericTTL;
+        private int gaugeTTL;
 
-        private int numericTagTTL;
+        private int gaugeTagTTL;
 
         private int availabilityTTL;
 
@@ -1037,18 +1038,18 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         public VerifyTTLDataAccess(DataAccess instance) {
             super(instance);
-            numericTTL = DEFAULT_TTL;
-            numericTagTTL = DEFAULT_TTL;
+            gaugeTTL = DEFAULT_TTL;
+            gaugeTagTTL = DEFAULT_TTL;
             availabilityTTL = DEFAULT_TTL;
             availabilityTagTTL = DEFAULT_TTL;
         }
 
-        public void setNumericTTL(int expectedTTL) {
-            this.numericTTL = expectedTTL;
+        public void setGaugeTTL(int expectedTTL) {
+            this.gaugeTTL = expectedTTL;
         }
 
-        public void numericTagTTLLessThanEqualTo(int numericTagTTL) {
-            this.numericTagTTL = numericTagTTL;
+        public void gaugeTagTTLLessThanEqualTo(int gaugeTagTTL) {
+            this.gaugeTagTTL = gaugeTagTTL;
         }
 
         public void setAvailabilityTTL(int availabilityTTL) {
@@ -1061,7 +1062,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         @Override
         public ResultSetFuture insertData(Gauge metric, int ttl) {
-            assertEquals(ttl, numericTTL, "The numeric data TTL does not match the expected value when " +
+            assertEquals(ttl, gaugeTTL, "The gauge data TTL does not match the expected value when " +
                 "inserting data");
             return super.insertData(metric, ttl);
         }
@@ -1077,7 +1078,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         public ResultSetFuture insertGuageTag(String tag, String tagValue, Gauge metric,
                 List<GaugeData> data) {
             for (GaugeData d : data) {
-                assertTrue(d.getTTL() <= numericTagTTL, "Expected the TTL to be <= " + numericTagTTL +
+                assertTrue(d.getTTL() <= gaugeTagTTL, "Expected the TTL to be <= " + gaugeTagTTL +
                     " but it was " + d.getTTL());
             }
             return super.insertGuageTag(tag, tagValue, metric, data);

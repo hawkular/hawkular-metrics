@@ -94,7 +94,7 @@ public class CollectdITest extends ExecutableITestBase {
     @Before
     public void setUp() throws Exception {
         tenant = getRandomTenantId();
-        findGuageMetricsUrl = "http://" + BASE_URI + "/" + tenant + "/metrics?type=guage";
+        findGuageMetricsUrl = "http://" + BASE_URI + "/" + tenant + "/metrics?type=gauge";
         assumeCollectdIsPresent();
         configureCollectd();
         assertCollectdConfIsValid();
@@ -263,7 +263,7 @@ public class CollectdITest extends ExecutableITestBase {
             String[] split = metricName.split("\\.");
             String type = split[split.length - 1];
 
-            urlConnection = (HttpURLConnection) new URL(findNumericDataUrl(metricName)).openConnection();
+            urlConnection = (HttpURLConnection) new URL(findGaugeDataUrl(metricName)).openConnection();
             urlConnection.connect();
             responseCode = urlConnection.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {
@@ -289,7 +289,7 @@ public class CollectdITest extends ExecutableITestBase {
         return points.sorted(Comparator.comparing(Point::getType).thenComparing(Point::getTimestamp)).collect(toList());
     }
 
-    private String findNumericDataUrl(String metricName) {
+    private String findGaugeDataUrl(String metricName) {
         return "http://" + BASE_URI + "/" + tenant + "/gauge/" + metricName + "/data";
     }
 
