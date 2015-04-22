@@ -17,6 +17,7 @@
 package org.hawkular.metrics.api.jaxrs.util;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -40,6 +41,8 @@ public class ApiUtils {
     }
 
     public static final Function<Void, Response> MAP_VOID = v -> Response.ok().build();
+
+    public static final Function<List<Void>, Response> MAP_LIST_VOID = v -> Response.ok().build();
 
     public static final Function<Optional<?>, Response> MAP_VALUE = optional ->
             optional.map(value -> Response.ok(value).build()).orElse(noContent());

@@ -20,6 +20,7 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.executeAsync;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -104,12 +105,25 @@ public class MetricHandler {
     public void addMetricsData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
             @ApiParam(value = "List of metrics", required = true) MixedMetricsRequest metricsRequest) {
         executeAsync(asyncResponse, () -> {
-            if (metricsRequest.getGaugeMetrics() == null || metricsRequest.getGaugeMetrics().isEmpty()) {
+            if ((metricsRequest.getGaugeMetrics() == null || !metricsRequest.getGaugeMetrics().isEmpty())
+                    && (metricsRequest.getAvailabilityMetrics() == null || metricsRequest.getAvailabilityMetrics()
+                            .isEmpty())) {
                 return Futures.immediateFuture(Response.ok().build());
             }
-            metricsRequest.getGaugeMetrics().forEach(m -> m.setTenantId(tenantId));
-            ListenableFuture<Void> future = metricsService.addGaugeData(metricsRequest.getGaugeMetrics());
-            return Futures.transform(future, ApiUtils.MAP_VOID);
+
+            List<ListenableFuture<Void>> simpleFuturesList = new ArrayList<>();
+
+            if (metricsRequest.getGaugeMetrics() != null && !metricsRequest.getGaugeMetrics().isEmpty()) {
+                metricsRequest.getGaugeMetrics().forEach(m -> m.setTenantId(tenantId));
+                simpleFuturesList.add(metricsService.addGaugeData(metricsRequest.getGaugeMetrics()));
+            }
+
+            if (metricsRequest.getAvailabilityMetrics() != null && !metricsRequest.getAvailabilityMetrics().isEmpty()) {
+                metricsRequest.getAvailabilityMetrics().forEach(m -> m.setTenantId(tenantId));
+                simpleFuturesList.add(metricsService.addAvailabilityData(metricsRequest.getAvailabilityMetrics()));
+            }
+
+            return Futures.transform(Futures.successfulAsList(simpleFuturesList), ApiUtils.MAP_LIST_VOID);
         });
     }
 
