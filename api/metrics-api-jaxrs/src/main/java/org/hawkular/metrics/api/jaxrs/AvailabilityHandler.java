@@ -50,9 +50,9 @@ import org.hawkular.metrics.api.jaxrs.callback.MetricCreatedCallback;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
-import org.hawkular.metrics.core.api.Availability;
+import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
-import org.hawkular.metrics.core.api.AvailabilityMetric;
+import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.Metric;
@@ -94,7 +94,7 @@ public class AvailabilityHandler {
             @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
                 response = ApiError.class) })
     public void createAvailabilityMetric(@Suspended final AsyncResponse asyncResponse,
-            @PathParam("tenantId") String tenantId, @ApiParam(required = true) AvailabilityMetric metric,
+            @PathParam("tenantId") String tenantId, @ApiParam(required = true) Availability metric,
             @Context UriInfo uriInfo) {
         if (metric == null) {
             Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Payload is empty")).build();
@@ -139,7 +139,7 @@ public class AvailabilityHandler {
             @PathParam("tenantId") String tenantId, @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags) {
         executeAsync(asyncResponse, () -> {
-            AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
+            Availability metric = new Availability(tenantId, new MetricId(id));
             ListenableFuture<Void> future = metricsService.addTags(metric, tags);
             return Futures.transform(future, ApiUtils.MAP_VOID);
         });
@@ -157,7 +157,7 @@ public class AvailabilityHandler {
             @PathParam("tenantId") String tenantId, @PathParam("id") String id,
             @ApiParam("Tag list") @PathParam("tags") Tags tags) {
         executeAsync(asyncResponse, () -> {
-            AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
+            Availability metric = new Availability(tenantId, new MetricId(id));
             ListenableFuture<Void> future = metricsService.deleteTags(metric, tags.getTags());
             return Futures.transform(future, ApiUtils.MAP_VOID);
         });
@@ -173,12 +173,12 @@ public class AvailabilityHandler {
                 response = ApiError.class) })
     public void addAvailabilityForMetric(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") final String tenantId, @PathParam("id") String id,
-            @ApiParam(value = "List of availability datapoints", required = true) List<Availability> data) {
+            @ApiParam(value = "List of availability datapoints", required = true) List<AvailabilityData> data) {
         executeAsync(asyncResponse, () -> {
             if (data == null) {
                 return ApiUtils.emptyPayload();
             }
-            AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
+            Availability metric = new Availability(tenantId, new MetricId(id));
             metric.getData().addAll(data);
             ListenableFuture<Void> future = metricsService.addAvailabilityData(Collections.singletonList(metric));
             return Futures.transform(future, ApiUtils.MAP_VOID);
@@ -194,7 +194,7 @@ public class AvailabilityHandler {
                 response = ApiError.class) })
     public void addAvailabilityData(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId,
-            @ApiParam(value = "List of availability metrics", required = true) List<AvailabilityMetric> metrics) {
+            @ApiParam(value = "List of availability metrics", required = true) List<Availability> metrics) {
         executeAsync(asyncResponse, () -> {
             if (metrics.isEmpty()) {
                 return Futures.immediateFuture(Response.ok().build());
@@ -220,7 +220,7 @@ public class AvailabilityHandler {
             if (tags == null) {
                 return badRequest(new ApiError("Missing tags query"));
             }
-            ListenableFuture<Map<MetricId, Set<Availability>>> future;
+            ListenableFuture<Map<MetricId, Set<AvailabilityData>>> future;
             future = metricsService.findAvailabilityByTags(tenantId, tags.getTags());
             return Futures.transform(future, ApiUtils.MAP_MAP);
         });
@@ -255,8 +255,8 @@ public class AvailabilityHandler {
                     Long startTime = start == null ? now - EIGHT_HOURS : start;
                     Long endTime = end == null ? now : end;
 
-                    AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
-                    ListenableFuture<List<Availability>> queryFuture;
+                    Availability metric = new Availability(tenantId, new MetricId(id));
+                    ListenableFuture<List<AvailabilityData>> queryFuture;
 
                     if (distinct != null && distinct.equals(Boolean.TRUE)) {
                         queryFuture = metricsService.findAvailabilityData(tenantId, metric.getId(), startTime, endTime,
@@ -303,15 +303,15 @@ public class AvailabilityHandler {
         executeAsync(
                 asyncResponse,
                 () -> {
-                    ListenableFuture<List<Availability>> future;
-                    AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
+                    ListenableFuture<List<AvailabilityData>> future;
+                    Availability metric = new Availability(tenantId, new MetricId(id));
                     if (params.getTimestamp() != null) {
                         future = metricsService.tagAvailabilityData(metric, params.getTags(), params.getTimestamp());
                     } else {
                         future = metricsService.tagAvailabilityData(metric, params.getTags(), params.getStart(),
                                 params.getEnd());
                     }
-                    return Futures.transform(future, (List<Availability> data) -> Response.ok().build());
+                    return Futures.transform(future, (List<AvailabilityData> data) -> Response.ok().build());
                 });
     }
 
@@ -326,7 +326,7 @@ public class AvailabilityHandler {
     public void findTaggedAvailabilityData(@Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") String tenantId, @ApiParam("Tag list") @PathParam("tags") Tags tags) {
         executeAsync(asyncResponse, () -> {
-            ListenableFuture<Map<MetricId, Set<Availability>>> future;
+            ListenableFuture<Map<MetricId, Set<AvailabilityData>>> future;
             future = metricsService.findAvailabilityByTags(tenantId, tags.getTags());
             return Futures.transform(future, ApiUtils.MAP_MAP);
         });

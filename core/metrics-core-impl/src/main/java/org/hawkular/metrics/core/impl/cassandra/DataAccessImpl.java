@@ -27,8 +27,8 @@ import java.util.Set;
 import java.util.function.BiFunction;
 
 import org.hawkular.metrics.core.api.AggregationTemplate;
+import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.Availability;
-import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.Gauge;
 import org.hawkular.metrics.core.api.GaugeData;
@@ -484,12 +484,12 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findData(AvailabilityMetric metric, long startTime, long endTime) {
+    public ResultSetFuture findData(Availability metric, long startTime, long endTime) {
         return findData(metric, startTime, endTime, false);
     }
 
     @Override
-    public ResultSetFuture findData(AvailabilityMetric metric, long startTime, long endTime, boolean includeWriteTime) {
+    public ResultSetFuture findData(Availability metric, long startTime, long endTime, boolean includeWriteTime) {
         if (includeWriteTime) {
             return session.executeAsync(findAvailabilitiesWithWriteTime.bind(metric.getTenantId(),
                 MetricType.AVAILABILITY.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
@@ -502,7 +502,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findData(AvailabilityMetric metric, long timestamp) {
+    public ResultSetFuture findData(Availability metric, long timestamp) {
         return session.executeAsync(findAvailabilityByDateRangeInclusive.bind(metric.getTenantId(),
             MetricType.AVAILABILITY.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
             metric.getDpart(), UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
@@ -532,10 +532,10 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertAvailabilityTag(String tag, String tagValue, AvailabilityMetric metric,
-            List<Availability> data) {
+    public ResultSetFuture insertAvailabilityTag(String tag, String tagValue, Availability metric,
+            List<AvailabilityData> data) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
-        for (Availability a : data) {
+        for (AvailabilityData a : data) {
             batchStatement.add(insertAvailabilityTags.bind(metric.getTenantId(), tag, tagValue,
                     MetricType.AVAILABILITY.getCode(), metric.getId().getName(), metric.getId().getInterval()
                             .toString(), a.getTimeUUID(), a.getBytes(), a.getTTL()));
@@ -561,9 +561,9 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertData(AvailabilityMetric metric, int ttl) {
+    public ResultSetFuture insertData(Availability metric, int ttl) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
-        for (Availability a : metric.getData()) {
+        for (AvailabilityData a : metric.getData()) {
             batchStatement.add(insertAvailability.bind(ttl, metric.getTags(), a.getBytes(), metric.getTenantId(),
                 metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 metric.getDpart(), a.getTimeUUID()));

@@ -22,8 +22,8 @@ import java.util.Map;
 import java.util.Set;
 
 import com.datastax.driver.core.ResultSetFuture;
+import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.Availability;
-import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
@@ -73,11 +73,11 @@ public interface DataAccess {
 
     ResultSetFuture findData(Gauge metric, long timestamp, boolean includeWriteTime);
 
-    ResultSetFuture findData(AvailabilityMetric metric, long startTime, long endTime);
+    ResultSetFuture findData(Availability metric, long startTime, long endTime);
 
-    ResultSetFuture findData(AvailabilityMetric metric, long startTime, long endTime, boolean includeWriteTime);
+    ResultSetFuture findData(Availability metric, long startTime, long endTime, boolean includeWriteTime);
 
-    ResultSetFuture findData(AvailabilityMetric metric, long timestamp);
+    ResultSetFuture findData(Availability metric, long timestamp);
 
     ResultSetFuture deleteGuageMetric(String tenantId, String metric, Interval interval, long dpart);
 
@@ -85,8 +85,8 @@ public interface DataAccess {
 
     ResultSetFuture insertGuageTag(String tag, String tagValue, Gauge metric, List<GaugeData> data);
 
-    ResultSetFuture insertAvailabilityTag(String tag, String tagValue, AvailabilityMetric metric,
-            List<Availability> data);
+    ResultSetFuture insertAvailabilityTag(String tag, String tagValue, Availability metric,
+            List<AvailabilityData> data);
 
     ResultSetFuture updateDataWithTag(Metric<?> metric, MetricData data, Map<String, String> tags);
 
@@ -94,7 +94,7 @@ public interface DataAccess {
 
     ResultSetFuture findAvailabilityByTag(String tenantId, String tag, String tagValue);
 
-    ResultSetFuture insertData(AvailabilityMetric metric, int ttl);
+    ResultSetFuture insertData(Availability metric, int ttl);
 
     ResultSetFuture findAvailabilityData(String tenantId, MetricId id, long startTime, long endTime);
 

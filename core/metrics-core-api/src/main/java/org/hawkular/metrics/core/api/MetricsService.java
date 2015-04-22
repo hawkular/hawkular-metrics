@@ -86,15 +86,15 @@ public interface MetricsService {
             Gauge metric, long start, long end, Buckets buckets
     );
 
-    ListenableFuture<Void> addAvailabilityData(List<AvailabilityMetric> metrics);
+    ListenableFuture<Void> addAvailabilityData(List<Availability> metrics);
 
-    ListenableFuture<List<Availability>> findAvailabilityData(String tenantId, MetricId id, long start, long end);
+    ListenableFuture<List<AvailabilityData>> findAvailabilityData(String tenantId, MetricId id, long start, long end);
 
-    ListenableFuture<List<Availability>> findAvailabilityData(String tenantId, MetricId id, long start, long end,
+    ListenableFuture<List<AvailabilityData>> findAvailabilityData(String tenantId, MetricId id, long start, long end,
             boolean distinct);
 
     ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(
-            AvailabilityMetric metric, long start, long end, Buckets buckets
+            Availability metric, long start, long end, Buckets buckets
     );
 
     ListenableFuture<Void> updateCounter(Counter counter);
@@ -111,18 +111,18 @@ public interface MetricsService {
     ListenableFuture<List<GaugeData>> tagGaugeData(Gauge metric, Map<String, String> tags,
         long start, long end);
 
-    ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, Map<String, String> tags,
+    ListenableFuture<List<AvailabilityData>> tagAvailabilityData(Availability metric, Map<String, String> tags,
             long start, long end);
 
     ListenableFuture<List<GaugeData>> tagGaugeData(Gauge metric, Map<String, String> tags,
         long timestamp);
 
-    ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric, Map<String, String> tags,
+    ListenableFuture<List<AvailabilityData>> tagAvailabilityData(Availability metric, Map<String, String> tags,
             long timestamp);
 
     ListenableFuture<Map<MetricId, Set<GaugeData>>> findGaugeDataByTags(String tenantId, Map<String, String> tags);
 
-    ListenableFuture<Map<MetricId, Set<Availability>>> findAvailabilityByTags(String tenantId,
+    ListenableFuture<Map<MetricId, Set<AvailabilityData>>> findAvailabilityByTags(String tenantId,
             Map<String, String> tags);
 
     /**

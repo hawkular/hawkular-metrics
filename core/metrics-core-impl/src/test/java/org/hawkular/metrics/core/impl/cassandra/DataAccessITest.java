@@ -23,6 +23,22 @@ import static org.testng.Assert.assertFalse;
 
 import java.util.List;
 
+import org.hawkular.metrics.core.api.AggregationTemplate;
+import org.hawkular.metrics.core.api.Availability;
+import org.hawkular.metrics.core.api.AvailabilityData;
+import org.hawkular.metrics.core.api.Counter;
+import org.hawkular.metrics.core.api.Gauge;
+import org.hawkular.metrics.core.api.GaugeData;
+import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.Tenant;
+import org.joda.time.DateTime;
+import org.joda.time.Days;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
@@ -31,21 +47,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import org.hawkular.metrics.core.api.AggregationTemplate;
-import org.hawkular.metrics.core.api.Availability;
-import org.hawkular.metrics.core.api.AvailabilityMetric;
-import org.hawkular.metrics.core.api.Counter;
-import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.GaugeData;
-import org.hawkular.metrics.core.api.Gauge;
-import org.hawkular.metrics.core.api.Tenant;
-import org.joda.time.DateTime;
-import org.joda.time.Days;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
 
 /**
  * @author John Sanda
@@ -298,16 +299,17 @@ public class DataAccessITest extends MetricsITest {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);
         String tenantId = "avail-test";
-        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId("m1"));
-        metric.addData(new Availability(start.getMillis(), "up"));
+        Availability metric = new Availability(tenantId, new MetricId("m1"));
+        metric.addData(new AvailabilityData(start.getMillis(), "up"));
 
         getUninterruptibly(dataAccess.insertData(metric, 360));
 
         ResultSetFuture future = dataAccess.findAvailabilityData(tenantId, new MetricId("m1"), start.getMillis(),
                 end.getMillis());
-        ListenableFuture<List<Availability>> dataFuture = Futures.transform(future, Functions.MAP_AVAILABILITY_DATA);
-        List<Availability> actual = getUninterruptibly(dataFuture);
-        List<Availability> expected = asList(new Availability(start.getMillis(), "up"));
+        ListenableFuture<List<AvailabilityData>> dataFuture = Futures
+                .transform(future, Functions.MAP_AVAILABILITY_DATA);
+        List<AvailabilityData> actual = getUninterruptibly(dataFuture);
+        List<AvailabilityData> expected = asList(new AvailabilityData(start.getMillis(), "up"));
 
         assertEquals(actual, expected, "The availability data does not match the expected values");
     }

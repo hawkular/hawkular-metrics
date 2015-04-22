@@ -46,7 +46,7 @@ import javax.management.ObjectName;
 
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
-import org.hawkular.metrics.core.api.AvailabilityMetric;
+import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.Counter;
@@ -498,7 +498,7 @@ public class MetricsServiceCassandra implements MetricsService {
                     return Optional.of(new Gauge(tenantId, id, row.getMap(5, String.class, String.class),
                             row.getInt(6)));
                 } else {
-                    return Optional.of(new AvailabilityMetric(tenantId, id, row.getMap(5, String.class, String.class),
+                    return Optional.of(new Availability(tenantId, id, row.getMap(5, String.class, String.class),
                             row.getInt(6)));
                 }
             }
@@ -552,9 +552,9 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> addAvailabilityData(List<AvailabilityMetric> metrics) {
+    public ListenableFuture<Void> addAvailabilityData(List<Availability> metrics) {
         List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
-        for (AvailabilityMetric metric : metrics) {
+        for (Availability metric : metrics) {
             if (metric.getData().isEmpty()) {
                 logger.warn("There is no data to insert for {}", metric);
             } else {
@@ -617,26 +617,26 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<Availability>> findAvailabilityData(String tenantId, MetricId id, long start,
+    public ListenableFuture<List<AvailabilityData>> findAvailabilityData(String tenantId, MetricId id, long start,
             long end) {
         return findAvailabilityData(tenantId, id, start, end, false);
     }
 
     @Override
-    public ListenableFuture<List<Availability>> findAvailabilityData(String tenantId, MetricId id, long start, long end,
-            boolean distinct) {
+    public ListenableFuture<List<AvailabilityData>> findAvailabilityData(String tenantId, MetricId id, long start,
+            long end, boolean distinct) {
         ResultSetFuture queryFuture = dataAccess.findAvailabilityData(tenantId, id, start, end);
-        ListenableFuture<List<Availability>> availabilityFuture =  Futures.transform(queryFuture,
+        ListenableFuture<List<AvailabilityData>> availabilityFuture =  Futures.transform(queryFuture,
                 Functions.MAP_AVAILABILITY_DATA, metricsTasks);
         if (distinct) {
-            return Futures.transform(availabilityFuture, (List<Availability> availabilities) -> {
+            return Futures.transform(availabilityFuture, (List<AvailabilityData> availabilities) -> {
                 if (availabilities.isEmpty()) {
                     return availabilities;
                 }
-                List<Availability> distinctAvailabilities = new ArrayList<>(availabilities.size());
-                Availability previous = availabilities.get(0);
+                List<AvailabilityData> distinctAvailabilities = new ArrayList<>(availabilities.size());
+                AvailabilityData previous = availabilities.get(0);
                 distinctAvailabilities.add(previous);
-                for (Availability availability : availabilities){
+                for (AvailabilityData availability : availabilities){
                     if (availability.getType() != previous.getType()) {
                         distinctAvailabilities.add(availability);
                     }
@@ -651,10 +651,10 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(
-            AvailabilityMetric metric, long start, long end, Buckets buckets
+            Availability metric, long start, long end, Buckets buckets
     ) {
         ResultSetFuture queryFuture = dataAccess.findAvailabilityData(metric.getTenantId(), metric.getId(), start, end);
-        ListenableFuture<List<Availability>> raw = Futures.transform(queryFuture, Functions.MAP_AVAILABILITY_DATA,
+        ListenableFuture<List<AvailabilityData>> raw = Futures.transform(queryFuture, Functions.MAP_AVAILABILITY_DATA,
                 metricsTasks);
         return Futures.transform(raw, new AvailabilityBucketedOutputMapper(metric.getTenantId(), metric.getId(),
                 buckets));
@@ -696,13 +696,14 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric,
+    public ListenableFuture<List<AvailabilityData>> tagAvailabilityData(Availability metric,
             Map<String, String> tags, long start, long end) {
         ResultSetFuture queryFuture = dataAccess.findData(metric, start, end, true);
-        ListenableFuture<List<Availability>> dataFuture = Futures.transform(queryFuture,
+        ListenableFuture<List<AvailabilityData>> dataFuture = Futures.transform(queryFuture,
             Functions.MAP_AVAILABILITY_WITH_WRITE_TIME, metricsTasks);
         int ttl = getTTL(metric);
-        ListenableFuture<List<Availability>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
+        ListenableFuture<List<AvailabilityData>> updatedDataFuture = Futures.transform(dataFuture,
+                new ComputeTTL<>(ttl));
         return Futures.transform(updatedDataFuture, new TagAsyncFunction(tags, metric));
     }
 
@@ -718,13 +719,14 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<Availability>> tagAvailabilityData(AvailabilityMetric metric,
+    public ListenableFuture<List<AvailabilityData>> tagAvailabilityData(Availability metric,
             final Map<String, String> tags, long timestamp) {
         ListenableFuture<ResultSet> queryFuture = dataAccess.findData(metric, timestamp);
-        ListenableFuture<List<Availability>> dataFuture = Futures.transform(queryFuture,
+        ListenableFuture<List<AvailabilityData>> dataFuture = Futures.transform(queryFuture,
             Functions.MAP_AVAILABILITY_WITH_WRITE_TIME, metricsTasks);
         int ttl = getTTL(metric);
-        ListenableFuture<List<Availability>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
+        ListenableFuture<List<AvailabilityData>> updatedDataFuture = Futures.transform(dataFuture,
+                new ComputeTTL<>(ttl));
         return Futures.transform(updatedDataFuture, new TagAsyncFunction(tags, metric));
     }
 
@@ -740,12 +742,12 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Map<MetricId, Set<Availability>>> findAvailabilityByTags(String tenantId,
+    public ListenableFuture<Map<MetricId, Set<AvailabilityData>>> findAvailabilityByTags(String tenantId,
             Map<String, String> tags) {
-        List<ListenableFuture<Map<MetricId, Set<Availability>>>> queryFutures = new ArrayList<>(tags.size());
+        List<ListenableFuture<Map<MetricId, Set<AvailabilityData>>>> queryFutures = new ArrayList<>(tags.size());
         tags.forEach((k, v) -> queryFutures.add(Futures.transform(dataAccess.findAvailabilityByTag(tenantId, k, v),
                 new TaggedAvailabilityMappper(), metricsTasks)));
-        ListenableFuture<List<Map<MetricId, Set<Availability>>>> queriesFuture = Futures.allAsList(queryFutures);
+        ListenableFuture<List<Map<MetricId, Set<AvailabilityData>>>> queriesFuture = Futures.allAsList(queryFutures);
         return Futures.transform(queriesFuture, new MergeTagsFunction());
     }
 
@@ -823,9 +825,9 @@ public class MetricsServiceCassandra implements MetricsService {
                 if(metric instanceof Gauge) {
                     insertFutures.add(dataAccess.insertGuageTag(k, v, (Gauge) metric,
                                                                   (List<GaugeData>) data));
-                } else if(metric instanceof AvailabilityMetric) {
-                    insertFutures.add(dataAccess.insertAvailabilityTag(k, v, (AvailabilityMetric) metric,
-                                                                       (List<Availability>) data));
+                } else if(metric instanceof Availability) {
+                    insertFutures.add(dataAccess.insertAvailabilityTag(k, v, (Availability) metric,
+                                                                       (List<AvailabilityData>) data));
                 }
             });
             data.forEach(t -> insertFutures.add(dataAccess.updateDataWithTag(metric, t, tags)));

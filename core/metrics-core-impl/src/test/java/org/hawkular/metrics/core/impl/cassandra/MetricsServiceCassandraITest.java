@@ -41,7 +41,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.hawkular.metrics.core.api.Availability;
-import org.hawkular.metrics.core.api.AvailabilityMetric;
+import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.Gauge;
 import org.hawkular.metrics.core.api.GaugeData;
 import org.hawkular.metrics.core.api.Interval;
@@ -165,7 +165,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
          Metric actual = getUninterruptibly(queryFuture).get();
         assertEquals(actual, m1, "The metric does not match the expected value");
 
-        AvailabilityMetric m2 = new AvailabilityMetric("t1", new MetricId("m2"), ImmutableMap.of("a3", "3", "a4", "3"));
+        Availability m2 = new Availability("t1", new MetricId("m2"), ImmutableMap.of("a3", "3", "a4", "3"));
         insertFuture = metricsService.createMetric(m2);
         getUninterruptibly(insertFuture);
 
@@ -323,10 +323,10 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         metricsService.setDataAccess(verifyTTLDataAccess);
         metricsService.setDataAccess(verifyTTLDataAccess);
 
-        AvailabilityMetric m1 = new AvailabilityMetric("t1", new MetricId("m1"));
-        m1.addData(new Availability(start.getMillis(), UP));
-        m1.addData(new Availability(start.plusMinutes(1).getMillis(), DOWN));
-        m1.addData(new Availability(start.plusMinutes(2).getMillis(), DOWN));
+        Availability m1 = new Availability("t1", new MetricId("m1"));
+        m1.addData(new AvailabilityData(start.getMillis(), UP));
+        m1.addData(new AvailabilityData(start.plusMinutes(1).getMillis(), DOWN));
+        m1.addData(new AvailabilityData(start.plusMinutes(2).getMillis(), DOWN));
         addDataInThePast(m1, days(2).toStandardDuration());
 
         Map<String, String> tags = ImmutableMap.of("tag1", "");
@@ -336,8 +336,8 @@ public class MetricsServiceCassandraITest extends MetricsITest {
                 start.plusMinutes(2).getMillis()));
 
         verifyTTLDataAccess.setAvailabilityTTL(days(14).toStandardSeconds().getSeconds());
-        AvailabilityMetric m2 = new AvailabilityMetric("t2", new MetricId("m2"));
-        m2.addData(new Availability(start.plusMinutes(5).getMillis(), UP));
+        Availability m2 = new Availability("t2", new MetricId("m2"));
+        m2.addData(new AvailabilityData(start.plusMinutes(5).getMillis(), UP));
         addDataInThePast(m2, days(5).toStandardDuration());
 
         verifyTTLDataAccess.availabilityTagTLLLessThanEqualTo(days(14).minus(5).toStandardSeconds().getSeconds());
@@ -346,8 +346,8 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("t3")
                 .setRetention(AVAILABILITY, 24)));
         verifyTTLDataAccess.setAvailabilityTTL(hours(24).toStandardSeconds().getSeconds());
-        AvailabilityMetric m3 = new AvailabilityMetric("t3", new MetricId("m3"));
-        m3.addData(new Availability(start.getMillis(), UP));
+        Availability m3 = new Availability("t3", new MetricId("m3"));
+        m3.addData(new AvailabilityData(start.getMillis(), UP));
         getUninterruptibly(metricsService.addAvailabilityData(asList(m3)));
     }
 
@@ -374,16 +374,16 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         }
     }
 
-    private void addDataInThePast(AvailabilityMetric metric, final Duration duration) throws Exception {
+    private void addDataInThePast(Availability metric, final Duration duration) throws Exception {
         DataAccess originalDataAccess = metricsService.getDataAccess();
         try {
             metricsService.setDataAccess(new DelegatingDataAccess(dataAccess) {
                 @Override
-                public ResultSetFuture insertData(AvailabilityMetric m, int ttl) {
+                public ResultSetFuture insertData(Availability m, int ttl) {
                     int actualTTL = ttl - duration.toStandardSeconds().getSeconds();
                     long writeTime = now().minus(duration).getMillis() * 1000;
                     BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
-                    for (Availability a : m.getData()) {
+                    for (AvailabilityData a : m.getData()) {
                         batchStatement.add(insertAvailabilityDateWithTimestamp.bind(m.getTenantId(),
                             AVAILABILITY.getCode(), m.getId().getName(), m.getId().getInterval().toString(), DPART,
                             a.getTimeUUID(), a.getBytes(), actualTTL, writeTime));
@@ -503,22 +503,22 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenantId)));
 
-        AvailabilityMetric m1 = new AvailabilityMetric(tenantId, new MetricId("m1"));
-        m1.addData(new Availability(start.plusSeconds(10).getMillis(), "up"));
-        m1.addData(new Availability(start.plusSeconds(20).getMillis(), "down"));
+        Availability m1 = new Availability(tenantId, new MetricId("m1"));
+        m1.addData(new AvailabilityData(start.plusSeconds(10).getMillis(), "up"));
+        m1.addData(new AvailabilityData(start.plusSeconds(20).getMillis(), "down"));
 
-        AvailabilityMetric m2 = new AvailabilityMetric(tenantId, new MetricId("m2"));
-        m2.addData(new Availability(start.plusSeconds(15).getMillis(), "down"));
-        m2.addData(new Availability(start.plusSeconds(30).getMillis(), "up"));
+        Availability m2 = new Availability(tenantId, new MetricId("m2"));
+        m2.addData(new AvailabilityData(start.plusSeconds(15).getMillis(), "down"));
+        m2.addData(new AvailabilityData(start.plusSeconds(30).getMillis(), "up"));
 
-        AvailabilityMetric m3 = new AvailabilityMetric(tenantId, new MetricId("m3"));
+        Availability m3 = new Availability(tenantId, new MetricId("m3"));
 
         ListenableFuture<Void> insertFuture = metricsService.addAvailabilityData(asList(m1, m2, m3));
         getUninterruptibly(insertFuture);
 
-        ListenableFuture<List<Availability>> queryFuture = metricsService.findAvailabilityData(tenantId, m1.getId(),
+        ListenableFuture<List<AvailabilityData>> queryFuture = metricsService.findAvailabilityData(tenantId, m1.getId(),
                 start.getMillis(), end.getMillis());
-        List<Availability> actual = getUninterruptibly(queryFuture);
+        List<AvailabilityData> actual = getUninterruptibly(queryFuture);
         assertEquals(actual, m1.getData(), "The availability data does not match expected values");
 
         queryFuture = metricsService.findAvailabilityData(tenantId, m2.getId(), start.getMillis(), end.getMillis());
@@ -529,18 +529,18 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         actual = getUninterruptibly(queryFuture);
         assertEquals(actual.size(), 0, "Did not expect to get back results since there is no data for " + m3);
 
-        AvailabilityMetric m4 = new AvailabilityMetric(tenantId, new MetricId("m4"), Collections.EMPTY_MAP, 24);
+        Availability m4 = new Availability(tenantId, new MetricId("m4"), Collections.EMPTY_MAP, 24);
         getUninterruptibly(metricsService.createMetric(m4));
-        m4.addData(new Availability(start.plusMinutes(2).getMillis(), UP));
-        m4.addData(new Availability(end.plusMinutes(2).getMillis(), UP));
+        m4.addData(new AvailabilityData(start.plusMinutes(2).getMillis(), UP));
+        m4.addData(new AvailabilityData(end.plusMinutes(2).getMillis(), UP));
 
         insertFuture = metricsService.addAvailabilityData(asList(m4));
         getUninterruptibly(insertFuture);
 
         queryFuture = metricsService.findAvailabilityData(tenantId, m4.getId(), start.getMillis(), end.getMillis());
         actual = getUninterruptibly(queryFuture);
-        AvailabilityMetric expected = new AvailabilityMetric(tenantId, m4.getId(), Collections.EMPTY_MAP, 24);
-        expected.addData(new Availability(start.plusMinutes(2).getMillis(), UP));
+        Availability expected = new Availability(tenantId, m4.getId(), Collections.EMPTY_MAP, 24);
+        expected.addData(new AvailabilityData(start.plusMinutes(2).getMillis(), UP));
         assertEquals(actual, expected.getData(), "The availability data does not match expected values");
 
         assertMetricIndexMatches(tenantId, AVAILABILITY, asList(m1, m2, m3, m4));
@@ -553,20 +553,20 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId("tenant1")));
 
-        AvailabilityMetric metric = new AvailabilityMetric("tenant1", new MetricId("A1"));
-        metric.addData(new Availability(start.getMillis(), UP));
-        metric.addData(new Availability(start.plusMinutes(1).getMillis(), DOWN));
-        metric.addData(new Availability(start.plusMinutes(2).getMillis(), DOWN));
-        metric.addData(new Availability(start.plusMinutes(3).getMillis(), UP));
-        metric.addData(new Availability(start.plusMinutes(4).getMillis(), DOWN));
-        metric.addData(new Availability(start.plusMinutes(5).getMillis(), UP));
-        metric.addData(new Availability(start.plusMinutes(6).getMillis(), UP));
+        Availability metric = new Availability("tenant1", new MetricId("A1"));
+        metric.addData(new AvailabilityData(start.getMillis(), UP));
+        metric.addData(new AvailabilityData(start.plusMinutes(1).getMillis(), DOWN));
+        metric.addData(new AvailabilityData(start.plusMinutes(2).getMillis(), DOWN));
+        metric.addData(new AvailabilityData(start.plusMinutes(3).getMillis(), UP));
+        metric.addData(new AvailabilityData(start.plusMinutes(4).getMillis(), DOWN));
+        metric.addData(new AvailabilityData(start.plusMinutes(5).getMillis(), UP));
+        metric.addData(new AvailabilityData(start.plusMinutes(6).getMillis(), UP));
 
         ListenableFuture<Void> insertFuture = metricsService.addAvailabilityData(asList(metric));
         getUninterruptibly(insertFuture);
 
         Map<String, String> tags1 = ImmutableMap.of("t1", "1", "t2", "");
-        ListenableFuture<List<Availability>> tagFuture = metricsService.tagAvailabilityData(metric, tags1,
+        ListenableFuture<List<AvailabilityData>> tagFuture = metricsService.tagAvailabilityData(metric, tags1,
             start.plusMinutes(2).getMillis());
         getUninterruptibly(tagFuture);
 
@@ -575,17 +575,17 @@ public class MetricsServiceCassandraITest extends MetricsITest {
             start.plusMinutes(5).getMillis());
         getUninterruptibly(tagFuture);
 
-        ListenableFuture<List<Availability>> queryFuture = metricsService.findAvailabilityData("tenant1",
+        ListenableFuture<List<AvailabilityData>> queryFuture = metricsService.findAvailabilityData("tenant1",
                 metric.getId(), start.getMillis(), end.getMillis());
-        List<Availability> actual = getUninterruptibly(queryFuture);
-        List<Availability> expected = asList(
-            new Availability(start.getMillis(), UP),
-            new Availability(start.plusMinutes(1).getMillis(), DOWN),
-            new Availability(start.plusMinutes(2).getMillis(), DOWN),
-            new Availability(start.plusMinutes(3).getMillis(), UP),
-            new Availability(start.plusMinutes(4).getMillis(), DOWN),
-            new Availability(start.plusMinutes(5).getMillis(), UP),
-            new Availability(start.plusMinutes(6).getMillis(), UP)
+        List<AvailabilityData> actual = getUninterruptibly(queryFuture);
+        List<AvailabilityData> expected = asList(
+            new AvailabilityData(start.getMillis(), UP),
+            new AvailabilityData(start.plusMinutes(1).getMillis(), DOWN),
+            new AvailabilityData(start.plusMinutes(2).getMillis(), DOWN),
+            new AvailabilityData(start.plusMinutes(3).getMillis(), UP),
+            new AvailabilityData(start.plusMinutes(4).getMillis(), DOWN),
+            new AvailabilityData(start.plusMinutes(5).getMillis(), UP),
+            new AvailabilityData(start.plusMinutes(6).getMillis(), UP)
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
@@ -604,26 +604,26 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenantId)));
 
-        AvailabilityMetric metric = new AvailabilityMetric("tenant1", metricId);
-        metric.addData(new Availability(start.getMillis(), UP));
-        metric.addData(new Availability(start.plusMinutes(1).getMillis(), DOWN));
-        metric.addData(new Availability(start.plusMinutes(2).getMillis(), DOWN));
-        metric.addData(new Availability(start.plusMinutes(3).getMillis(), UP));
-        metric.addData(new Availability(start.plusMinutes(4).getMillis(), DOWN));
-        metric.addData(new Availability(start.plusMinutes(5).getMillis(), UP));
-        metric.addData(new Availability(start.plusMinutes(6).getMillis(), UP));
-        metric.addData(new Availability(start.plusMinutes(7).getMillis(), UNKNOWN));
-        metric.addData(new Availability(start.plusMinutes(8).getMillis(), UNKNOWN));
-        metric.addData(new Availability(start.plusMinutes(9).getMillis(), DOWN));
-        metric.addData(new Availability(start.plusMinutes(10).getMillis(), UP));
+        Availability metric = new Availability("tenant1", metricId);
+        metric.addData(new AvailabilityData(start.getMillis(), UP));
+        metric.addData(new AvailabilityData(start.plusMinutes(1).getMillis(), DOWN));
+        metric.addData(new AvailabilityData(start.plusMinutes(2).getMillis(), DOWN));
+        metric.addData(new AvailabilityData(start.plusMinutes(3).getMillis(), UP));
+        metric.addData(new AvailabilityData(start.plusMinutes(4).getMillis(), DOWN));
+        metric.addData(new AvailabilityData(start.plusMinutes(5).getMillis(), UP));
+        metric.addData(new AvailabilityData(start.plusMinutes(6).getMillis(), UP));
+        metric.addData(new AvailabilityData(start.plusMinutes(7).getMillis(), UNKNOWN));
+        metric.addData(new AvailabilityData(start.plusMinutes(8).getMillis(), UNKNOWN));
+        metric.addData(new AvailabilityData(start.plusMinutes(9).getMillis(), DOWN));
+        metric.addData(new AvailabilityData(start.plusMinutes(10).getMillis(), UP));
 
         ListenableFuture<Void> insertFuture = metricsService.addAvailabilityData(asList(metric));
         getUninterruptibly(insertFuture);
 
-        List<Availability> actual = getUninterruptibly(metricsService.findAvailabilityData(tenantId, metricId, start
-                .getMillis(), end.getMillis(), true));
+        List<AvailabilityData> actual = getUninterruptibly(metricsService.findAvailabilityData(tenantId, metricId,
+                start.getMillis(), end.getMillis(), true));
 
-        List<Availability> expected = asList(
+        List<AvailabilityData> expected = asList(
             metric.getData().get(0),
             metric.getData().get(1),
             metric.getData().get(3),
@@ -710,19 +710,19 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenant)));
 
-        AvailabilityMetric m1 = new AvailabilityMetric(tenant, new MetricId("m1"));
-        AvailabilityMetric m2 = new AvailabilityMetric(tenant, new MetricId("m2"));
-        AvailabilityMetric m3 = new AvailabilityMetric(tenant, new MetricId("m3"));
+        Availability m1 = new Availability(tenant, new MetricId("m1"));
+        Availability m2 = new Availability(tenant, new MetricId("m2"));
+        Availability m3 = new Availability(tenant, new MetricId("m3"));
 
-        Availability a1 = new Availability(start.getMillis(), UP);
-        Availability a2 = new Availability(start.plusMinutes(2).getMillis(), UP);
-        Availability a3 = new Availability(start.plusMinutes(6).getMillis(), DOWN);
-        Availability a4 = new Availability(start.plusMinutes(8).getMillis(), DOWN);
-        Availability a5 = new Availability(start.plusMinutes(4).getMillis(), UP);
-        Availability a6 = new Availability(start.plusMinutes(4).getMillis(), DOWN);
-        Availability a7 = new Availability(start.plusMinutes(10).getMillis(), UP);
-        Availability a8 = new Availability(start.plusMinutes(6).getMillis(), DOWN);
-        Availability a9 = new Availability(start.plusMinutes(7).getMillis(), UP);
+        AvailabilityData a1 = new AvailabilityData(start.getMillis(), UP);
+        AvailabilityData a2 = new AvailabilityData(start.plusMinutes(2).getMillis(), UP);
+        AvailabilityData a3 = new AvailabilityData(start.plusMinutes(6).getMillis(), DOWN);
+        AvailabilityData a4 = new AvailabilityData(start.plusMinutes(8).getMillis(), DOWN);
+        AvailabilityData a5 = new AvailabilityData(start.plusMinutes(4).getMillis(), UP);
+        AvailabilityData a6 = new AvailabilityData(start.plusMinutes(4).getMillis(), DOWN);
+        AvailabilityData a7 = new AvailabilityData(start.plusMinutes(10).getMillis(), UP);
+        AvailabilityData a8 = new AvailabilityData(start.plusMinutes(6).getMillis(), DOWN);
+        AvailabilityData a9 = new AvailabilityData(start.plusMinutes(7).getMillis(), UP);
 
         m1.addData(a1);
         m1.addData(a2);
@@ -742,15 +742,15 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         Map<String, String> tags1 = ImmutableMap.of("t1", "1");
         Map<String, String> tags2 = ImmutableMap.of("t2", "2");
 
-        ListenableFuture<List<Availability>> tagFuture1 = metricsService.tagAvailabilityData(m1, tags1,
+        ListenableFuture<List<AvailabilityData>> tagFuture1 = metricsService.tagAvailabilityData(m1, tags1,
             start.getMillis(), start.plusMinutes(6).getMillis());
-        ListenableFuture<List<Availability>> tagFuture2 = metricsService.tagAvailabilityData(m2, tags1,
+        ListenableFuture<List<AvailabilityData>> tagFuture2 = metricsService.tagAvailabilityData(m2, tags1,
             start.getMillis(), start.plusMinutes(6).getMillis());
-        ListenableFuture<List<Availability>> tagFuture3 = metricsService.tagAvailabilityData(m1, tags2,
+        ListenableFuture<List<AvailabilityData>> tagFuture3 = metricsService.tagAvailabilityData(m1, tags2,
             start.plusMinutes(4).getMillis(), start.plusMinutes(8).getMillis());
-        ListenableFuture<List<Availability>> tagFuture4 = metricsService.tagAvailabilityData(m2, tags2,
+        ListenableFuture<List<AvailabilityData>> tagFuture4 = metricsService.tagAvailabilityData(m2, tags2,
             start.plusMinutes(4).getMillis(), start.plusMinutes(8).getMillis());
-        ListenableFuture<List<Availability>> tagFuture5 = metricsService.tagAvailabilityData(m3, tags2,
+        ListenableFuture<List<AvailabilityData>> tagFuture5 = metricsService.tagAvailabilityData(m3, tags2,
             start.plusMinutes(4).getMillis(), start.plusMinutes(8).getMillis());
 
         getUninterruptibly(tagFuture1);
@@ -759,10 +759,10 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         getUninterruptibly(tagFuture4);
         getUninterruptibly(tagFuture5);
 
-        ListenableFuture<Map<MetricId, Set<Availability>>> queryFuture = metricsService.findAvailabilityByTags(tenant,
-                ImmutableMap.of("t1", "1", "t2", "2"));
-        Map<MetricId, Set<Availability>> actual = getUninterruptibly(queryFuture);
-        ImmutableMap<MetricId, ImmutableSet<Availability>> expected = ImmutableMap.of(
+        ListenableFuture<Map<MetricId, Set<AvailabilityData>>> queryFuture = metricsService.findAvailabilityByTags(
+                tenant, ImmutableMap.of("t1", "1", "t2", "2"));
+        Map<MetricId, Set<AvailabilityData>> actual = getUninterruptibly(queryFuture);
+        ImmutableMap<MetricId, ImmutableSet<AvailabilityData>> expected = ImmutableMap.of(
             new MetricId("m1"), ImmutableSet.of(a1, a2, a6),
             new MetricId("m2"), ImmutableSet.of(a5, a3)
         );
@@ -844,19 +844,19 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenant)));
 
-        AvailabilityMetric m1 = new AvailabilityMetric(tenant, new MetricId("m1"));
-        AvailabilityMetric m2 = new AvailabilityMetric(tenant, new MetricId("m2"));
-        AvailabilityMetric m3 = new AvailabilityMetric(tenant, new MetricId("m3"));
+        Availability m1 = new Availability(tenant, new MetricId("m1"));
+        Availability m2 = new Availability(tenant, new MetricId("m2"));
+        Availability m3 = new Availability(tenant, new MetricId("m3"));
 
-        Availability a1 = new Availability(start.getMillis(), UP);
-        Availability a2 = new Availability(start.plusMinutes(2).getMillis(), UP);
-        Availability a3 = new Availability(start.plusMinutes(6).getMillis(), DOWN);
-        Availability a4 = new Availability(start.plusMinutes(8).getMillis(), DOWN);
-        Availability a5 = new Availability(start.plusMinutes(4).getMillis(), UP);
-        Availability a6 = new Availability(start.plusMinutes(4).getMillis(), DOWN);
-        Availability a7 = new Availability(start.plusMinutes(10).getMillis(), UP);
-        Availability a8 = new Availability(start.plusMinutes(6).getMillis(), DOWN);
-        Availability a9 = new Availability(start.plusMinutes(7).getMillis(), UP);
+        AvailabilityData a1 = new AvailabilityData(start.getMillis(), UP);
+        AvailabilityData a2 = new AvailabilityData(start.plusMinutes(2).getMillis(), UP);
+        AvailabilityData a3 = new AvailabilityData(start.plusMinutes(6).getMillis(), DOWN);
+        AvailabilityData a4 = new AvailabilityData(start.plusMinutes(8).getMillis(), DOWN);
+        AvailabilityData a5 = new AvailabilityData(start.plusMinutes(4).getMillis(), UP);
+        AvailabilityData a6 = new AvailabilityData(start.plusMinutes(4).getMillis(), DOWN);
+        AvailabilityData a7 = new AvailabilityData(start.plusMinutes(10).getMillis(), UP);
+        AvailabilityData a8 = new AvailabilityData(start.plusMinutes(6).getMillis(), DOWN);
+        AvailabilityData a9 = new AvailabilityData(start.plusMinutes(7).getMillis(), UP);
 
         m1.addData(a1);
         m1.addData(a2);
@@ -874,7 +874,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         getUninterruptibly(insertFuture);
 
         Map<String, String> tags1 = ImmutableMap.of("t1", "");
-        ListenableFuture<List<Availability>> tagFuture = metricsService.tagAvailabilityData(m1, tags1,
+        ListenableFuture<List<AvailabilityData>> tagFuture = metricsService.tagAvailabilityData(m1, tags1,
             a1.getTimestamp());
         assertEquals(getUninterruptibly(tagFuture), asList(a1), "Tagging " + a1 + " returned unexpected results");
 
@@ -894,10 +894,10 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         tagFuture = metricsService.tagAvailabilityData(m2, tags4, a4.getTimestamp());
         assertEquals(getUninterruptibly(tagFuture), asList(a4), "Tagging " + a4 + " returned unexpected results");
 
-        ListenableFuture<Map<MetricId, Set<Availability>>> queryFuture = metricsService.findAvailabilityByTags(tenant,
-            tags3);
-        Map<MetricId, Set<Availability>> actual = getUninterruptibly(queryFuture);
-        ImmutableMap<MetricId, ImmutableSet<Availability>> expected = ImmutableMap.of(
+        ListenableFuture<Map<MetricId, Set<AvailabilityData>>> queryFuture = metricsService.findAvailabilityByTags(
+                tenant, tags3);
+        Map<MetricId, Set<AvailabilityData>> actual = getUninterruptibly(queryFuture);
+        ImmutableMap<MetricId, ImmutableSet<AvailabilityData>> expected = ImmutableMap.of(
             new MetricId("m1"), ImmutableSet.of(a2),
             new MetricId("m2"), ImmutableSet.of(a3, a4)
         );
@@ -1068,7 +1068,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         }
 
         @Override
-        public ResultSetFuture insertData(AvailabilityMetric metric, int ttl) {
+        public ResultSetFuture insertData(Availability metric, int ttl) {
             assertEquals(ttl, availabilityTTL, "The availability data TTL does not match the expected value when " +
                 "inserting data");
             return super.insertData(metric, ttl);
@@ -1085,9 +1085,9 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         }
 
         @Override
-        public ResultSetFuture insertAvailabilityTag(String tag, String tagValue, AvailabilityMetric metric,
-                List<Availability> data) {
-            for (Availability a : data) {
+        public ResultSetFuture insertAvailabilityTag(String tag, String tagValue, Availability metric,
+                List<AvailabilityData> data) {
+            for (AvailabilityData a : data) {
                 assertTrue(a.getTTL() <= availabilityTagTTL, "Expected the TTL to be <= " + availabilityTagTTL +
                     " but it was " + a.getTTL());
             }

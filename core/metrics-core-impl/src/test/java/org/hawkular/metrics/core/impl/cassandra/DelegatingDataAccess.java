@@ -22,8 +22,8 @@ import java.util.Map;
 import java.util.Set;
 
 import com.datastax.driver.core.ResultSetFuture;
+import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.Availability;
-import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
@@ -129,17 +129,17 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findData(AvailabilityMetric metric, long startTime, long endTime) {
+    public ResultSetFuture findData(Availability metric, long startTime, long endTime) {
         return delegate.findData(metric, startTime, endTime);
     }
 
     @Override
-    public ResultSetFuture findData(AvailabilityMetric metric, long startTime, long endTime, boolean includeWriteTime) {
+    public ResultSetFuture findData(Availability metric, long startTime, long endTime, boolean includeWriteTime) {
         return delegate.findData(metric, startTime, endTime, includeWriteTime);
     }
 
     @Override
-    public ResultSetFuture findData(AvailabilityMetric metric, long timestamp) {
+    public ResultSetFuture findData(Availability metric, long timestamp) {
         return delegate.findData(metric, timestamp);
     }
 
@@ -160,8 +160,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertAvailabilityTag(String tag, String tagValue, AvailabilityMetric metric,
-            List<Availability> data) {
+    public ResultSetFuture insertAvailabilityTag(String tag, String tagValue, Availability metric,
+            List<AvailabilityData> data) {
         return delegate.insertAvailabilityTag(tag, tagValue, metric, data);
     }
 
@@ -181,7 +181,7 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertData(AvailabilityMetric metric, int ttl) {
+    public ResultSetFuture insertData(Availability metric, int ttl) {
         return delegate.insertData(metric, ttl);
     }
 

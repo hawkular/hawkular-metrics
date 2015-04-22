@@ -20,18 +20,18 @@ import static org.hawkular.metrics.core.api.AvailabilityType.DOWN;
 
 import java.util.List;
 
-import org.hawkular.metrics.core.api.Availability;
+import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.MetricId;
 
 /**
- * A {@link BucketedOutputMapper} for {@link org.hawkular.metrics.core.api.AvailabilityMetric}.
+ * A {@link BucketedOutputMapper} for {@link org.hawkular.metrics.core.api.Availability}.
  *
  * @author Thomas Segismont
  */
 public class AvailabilityBucketedOutputMapper
-        extends BucketedOutputMapper<Availability, AvailabilityBucketDataPoint> {
+        extends BucketedOutputMapper<AvailabilityData, AvailabilityBucketDataPoint> {
 
     /**
      * @param buckets the bucket configuration
@@ -46,11 +46,11 @@ public class AvailabilityBucketedOutputMapper
     }
 
     @Override
-    protected AvailabilityBucketDataPoint newPointInstance(long from, long to, List<Availability> availabilities) {
+    protected AvailabilityBucketDataPoint newPointInstance(long from, long to, List<AvailabilityData> availabilities) {
         long downtimeDuration = 0, lastDowntime = 0, downtimeCount = 0;
 
         for (int i = 0; i < availabilities.size(); i++) {
-            Availability availability = availabilities.get(i);
+            AvailabilityData availability = availabilities.get(i);
             long leftTimestamp = i == 0 ? from : availability.getTimestamp();
             long rightTimestamp = i == availabilities.size() - 1 ? to : availabilities.get(i + 1).getTimestamp();
 

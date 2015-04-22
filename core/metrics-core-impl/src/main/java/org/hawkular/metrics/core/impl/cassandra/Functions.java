@@ -32,7 +32,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import org.hawkular.metrics.core.api.AggregationTemplate;
-import org.hawkular.metrics.core.api.Availability;
+import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.GaugeData;
@@ -88,21 +88,21 @@ public class Functions {
                 row.getLong(GAUGE_COLS.WRITE_TIME.ordinal()) / 1000);
     }
 
-    public static final Function<ResultSet, List<Availability>> MAP_AVAILABILITY_DATA = resultSet ->
+    public static final Function<ResultSet, List<AvailabilityData>> MAP_AVAILABILITY_DATA = resultSet ->
             StreamSupport.stream(resultSet.spliterator(), false).map(Functions::getAvailability).collect(toList());
 
-    private static Availability getAvailability(Row row) {
-        return new Availability(
+    private static AvailabilityData getAvailability(Row row) {
+        return new AvailabilityData(
                 row.getUUID(AVAILABILITY_COLS.TIME.ordinal()), row.getBytes(AVAILABILITY_COLS.AVAILABILITY.ordinal()),
                 row.getMap(AVAILABILITY_COLS.TAGS.ordinal(), String.class, String.class));
     }
 
-    public static final Function<ResultSet, List<Availability>> MAP_AVAILABILITY_WITH_WRITE_TIME = resultSet ->
+    public static final Function<ResultSet, List<AvailabilityData>> MAP_AVAILABILITY_WITH_WRITE_TIME = resultSet ->
             StreamSupport.stream(resultSet.spliterator(), false).map(Functions::getAvailabilityAndWriteTime)
                     .collect(toList());
 
-    private static Availability getAvailabilityAndWriteTime(Row row) {
-        return new Availability(
+    private static AvailabilityData getAvailabilityAndWriteTime(Row row) {
+        return new AvailabilityData(
                 row.getUUID(AVAILABILITY_COLS.TIME.ordinal()),
                 row.getBytes(AVAILABILITY_COLS.AVAILABILITY.ordinal()),
                 row.getMap(AVAILABILITY_COLS.TAGS.ordinal(), String.class, String.class),
