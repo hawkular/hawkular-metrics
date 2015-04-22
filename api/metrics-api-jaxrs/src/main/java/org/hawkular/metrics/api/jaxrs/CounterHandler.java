@@ -58,7 +58,7 @@ public class CounterHandler {
     private MetricsService metricsService;
 
     @POST
-    @Path("/{tenantId}/counters")
+    @Path("/{tenantId}/counter")
     @ApiOperation(value = "List of counter definitions", hidden = true)
     public void updateCountersForGroups(@Suspended final AsyncResponse asyncResponse, Collection<Counter> counters) {
         ListenableFuture<Void> future = metricsService.updateCounters(counters);
@@ -66,7 +66,7 @@ public class CounterHandler {
     }
 
     @POST
-    @Path("/{tenantId}/counters/{group}")
+    @Path("/{tenantId}/counter/{group}")
     @ApiOperation(value = "Update multiple counters in a single counter group", hidden = true)
     public void updateCounterForGroup(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group,
             Collection<Counter> counters) {
@@ -78,7 +78,7 @@ public class CounterHandler {
     }
 
     @POST
-    @Path("/{tenantId}/counters/{group}/{counter}")
+    @Path("/{tenantId}/counter/{group}/{counter}")
     @ApiOperation(value = "Increase value of a counter", hidden = true)
     public void updateCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group,
             @PathParam("counter") String counter) {
@@ -88,7 +88,7 @@ public class CounterHandler {
     }
 
     @POST
-    @Path("/{tenantId}/counters/{group}/{counter}/{value}")
+    @Path("/{tenantId}/counter/{group}/{counter}/{value}")
     @ApiOperation(value = "Update value of a counter", hidden = true)
     public void updateCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group,
             @PathParam("counter") String counter, @PathParam("value") Long value) {
@@ -98,7 +98,7 @@ public class CounterHandler {
     }
 
     @GET
-    @Path("/{tenantId}/counters/{group}")
+    @Path("/{tenantId}/counter/{group}")
     @ApiOperation(value = "Retrieve a list of counter values in this group", hidden = true,
         response = Counter.class, responseContainer = "List")
     @Produces({ APPLICATION_JSON })
@@ -108,7 +108,7 @@ public class CounterHandler {
     }
 
     @GET
-    @Path("/{tenantId}/counters/{group}/{counter}")
+    @Path("/{tenantId}/counter/{group}/{counter}")
     @ApiOperation(value = "Retrieve value of a counter", hidden = true,
         response = Counter.class, responseContainer = "List")
     public void getCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") final String group,

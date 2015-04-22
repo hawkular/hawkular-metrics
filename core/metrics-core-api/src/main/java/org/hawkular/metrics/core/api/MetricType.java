@@ -66,7 +66,7 @@ public enum MetricType {
     public static MetricType fromTextCode(String textCode) {
         switch (textCode) {
         case "gauge": return GAUGE;
-        case "avail": return AVAILABILITY;
+        case "availability": return AVAILABILITY;
         default: throw new IllegalArgumentException(textCode + " is not a recognized metric type code");
         }
     }

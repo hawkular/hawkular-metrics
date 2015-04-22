@@ -170,7 +170,7 @@ GET /hawkular/metrics/{tenantId}/metrics
 *Example Request*
 
 ----
-curl http://localhost:8080/hawkular/metrics/{tenantId}/metrics?type=gauge
+curl http://localhost:8080/hawkular/metrics/{tenantId}/metric?type=gauge
 ----
 
 *Response Body*

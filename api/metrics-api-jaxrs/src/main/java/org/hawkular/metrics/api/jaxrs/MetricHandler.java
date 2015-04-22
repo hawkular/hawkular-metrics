@@ -63,7 +63,7 @@ public class MetricHandler {
     private MetricsService metricsService;
 
     @GET
-    @Path("/{tenantId}")
+    @Path("/{tenantId}/metric")
     @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ",
             response = List.class, responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully retrieved at least one metric "
@@ -76,7 +76,7 @@ public class MetricHandler {
     public void findMetrics(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("tenantId") final String tenantId,
-        @ApiParam(value = "Queried metric type", required = true, allowableValues = "[gauge, avail, log]")
+            @ApiParam(value = "Queried metric type", required = true, allowableValues = "[gauge, availability]")
         @QueryParam("type") String type) {
 
         executeAsync(
@@ -96,7 +96,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/{tenantId}/data")
+    @Path("/{tenantId}/metric/data")
     @ApiOperation(value = "Add data for multiple metrics in a single call.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data succeeded."),

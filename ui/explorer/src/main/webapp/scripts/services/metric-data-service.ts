@@ -41,7 +41,7 @@ module Services {
 
         getAllMetrics() {
             console.info('-- Retrieving all metrics');
-            var base = this.getBaseUrl()+'/?type=guage',
+            var base = this.getBaseUrl()+'/metric?type=guage',
                 deferred = this.$q.defer();
 
             this.$http.get(base).success((data) => {
