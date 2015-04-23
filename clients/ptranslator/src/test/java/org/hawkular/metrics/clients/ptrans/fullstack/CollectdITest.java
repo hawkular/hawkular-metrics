@@ -21,7 +21,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
-
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BATCH_DELAY;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BATCH_SIZE;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.REST_URL;
@@ -50,6 +49,8 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.stream.Stream;
 
+import jnr.constants.platform.Signal;
+
 import org.hawkular.metrics.clients.ptrans.ExecutableITestBase;
 import org.hawkular.metrics.clients.ptrans.PrintOutputOnFailureWatcher;
 import org.hawkular.metrics.clients.ptrans.Service;
@@ -65,8 +66,6 @@ import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Resources;
 
-import jnr.constants.platform.Signal;
-
 /**
  * @author Thomas Segismont
  */
@@ -74,11 +73,11 @@ public class CollectdITest extends ExecutableITestBase {
     private static final String COLLECTD_PATH = System.getProperty("collectd.path", "/usr/sbin/collectd");
     private static final String BASE_URI = System.getProperty(
             "hawkular-metrics.base-uri",
-            "127.0.0.1:8080/hawkular-metrics"
+            "127.0.0.1:8080/hawkular/metrics"
     );
 
     private String tenant;
-    private String findNumericMetricsUrl;
+    private String findGuageMetricsUrl;
     private File collectdConfFile;
     private File collectdOut;
     private File collectdErr;
@@ -95,7 +94,7 @@ public class CollectdITest extends ExecutableITestBase {
     @Before
     public void setUp() throws Exception {
         tenant = getRandomTenantId();
-        findNumericMetricsUrl = "http://" + BASE_URI + "/" + tenant + "/metrics?type=num";
+        findGuageMetricsUrl = "http://" + BASE_URI + "/" + tenant + "/metrics?type=gauge";
         assumeCollectdIsPresent();
         configureCollectd();
         assertCollectdConfIsValid();
@@ -145,7 +144,7 @@ public class CollectdITest extends ExecutableITestBase {
         properties.setProperty(SERVICES.getExternalForm(), Service.COLLECTD.getExternalForm());
         properties.setProperty(BATCH_DELAY.getExternalForm(), String.valueOf(1));
         properties.setProperty(BATCH_SIZE.getExternalForm(), String.valueOf(1));
-        String restUrl = "http://" + BASE_URI + "/" + tenant + "/metrics/numeric/data";
+        String restUrl = "http://" + BASE_URI + "/" + tenant + "/gauges/data";
         properties.setProperty(REST_URL.getExternalForm(), restUrl);
         try (OutputStream out = new FileOutputStream(ptransConfFile)) {
             properties.store(out, "");
@@ -243,12 +242,12 @@ public class CollectdITest extends ExecutableITestBase {
     private List<Point> getServerData() throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
 
-        HttpURLConnection urlConnection = (HttpURLConnection) new URL(findNumericMetricsUrl).openConnection();
+        HttpURLConnection urlConnection = (HttpURLConnection) new URL(findGuageMetricsUrl).openConnection();
         urlConnection.connect();
         int responseCode = urlConnection.getResponseCode();
         if (responseCode != HttpURLConnection.HTTP_OK) {
             String msg = "Could not get metrics list from server: %s, %d";
-            fail(String.format(Locale.ROOT, msg, findNumericMetricsUrl, responseCode));
+            fail(String.format(Locale.ROOT, msg, findGuageMetricsUrl, responseCode));
         }
         List<String> metricNames;
         try (InputStream inputStream = urlConnection.getInputStream()) {
@@ -264,7 +263,7 @@ public class CollectdITest extends ExecutableITestBase {
             String[] split = metricName.split("\\.");
             String type = split[split.length - 1];
 
-            urlConnection = (HttpURLConnection) new URL(findNumericDataUrl(metricName)).openConnection();
+            urlConnection = (HttpURLConnection) new URL(findGaugeDataUrl(metricName)).openConnection();
             urlConnection.connect();
             responseCode = urlConnection.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {
@@ -290,8 +289,8 @@ public class CollectdITest extends ExecutableITestBase {
         return points.sorted(Comparator.comparing(Point::getType).thenComparing(Point::getTimestamp)).collect(toList());
     }
 
-    private String findNumericDataUrl(String metricName) {
-        return "http://" + BASE_URI + "/" + tenant + "/metrics/numeric/" + metricName + "/data";
+    private String findGaugeDataUrl(String metricName) {
+        return "http://" + BASE_URI + "/" + tenant + "/gauges/" + metricName + "/data";
     }
 
     @After

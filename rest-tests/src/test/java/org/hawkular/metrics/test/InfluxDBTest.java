@@ -25,7 +25,7 @@ import org.junit.BeforeClass;
  * @author Jeeva Kandasamy
  */
 public class InfluxDBTest {
-    static String baseURI = System.getProperty("hawkular-metrics.base-uri","127.0.0.1:8080/hawkular-metrics");
+    static String baseURI = System.getProperty("hawkular-metrics.base-uri", "127.0.0.1:8080/hawkular/metrics");
     static final String DB_PREFIX = UUID.randomUUID().toString();
     static InfluxDB influxDB = null;
 

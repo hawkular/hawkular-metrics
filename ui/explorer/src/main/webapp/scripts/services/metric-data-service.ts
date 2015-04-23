@@ -41,7 +41,7 @@ module Services {
 
         getAllMetrics() {
             console.info('-- Retrieving all metrics');
-            var base = this.getBaseUrl()+'/?type=num',
+            var base = this.getBaseUrl()+'/metric?type=guage',
                 deferred = this.$q.defer();
 
             this.$http.get(base).success((data) => {
@@ -75,7 +75,7 @@ module Services {
                 deferred.reject("Start date was after end date");
             }
 
-            this.$http.get(this.getBaseUrl() + '/numeric/' + id+'/data', searchParams).success((data) => {
+            this.$http.get(this.getBaseUrl() + '/gauges/' + id+'/data', searchParams).success((data) => {
                 deferred.resolve(data);
             }).error((reason, status) => {
                 console.error('Error Loading Chart Data:' + status + ", " + reason);
@@ -87,7 +87,7 @@ module Services {
 
         insertMultiplePayload(jsonPayload):ng.IPromise<any> {
             var deferred = this.$q.defer();
-            this.$http.post(this.getBaseUrl() + '/numeric/data', jsonPayload
+            this.$http.post(this.getBaseUrl() + '/gauges/data', jsonPayload
             ).success(() => {
                     deferred.resolve("Success");
                 }).error((response, status) => {

@@ -23,13 +23,13 @@ import com.google.common.base.Objects;
 /**
  * <p>
  * A template for creating pre-computed aggregate metrics. Templates are used for tenant-level configuration. A template
- * applies to all metrics (of the specified type) for a tenant. For example, suppose we create a template for numeric
- * metrics to compute the max and min at an interval of 5 minutes. Then for every numeric metric aggregate metrics that
+ * applies to all metrics (of the specified type) for a tenant. For example, suppose we create a template for gauge
+ * metrics to compute the max and min at an interval of 5 minutes. Then for every gauge metric aggregate metrics that
  * consist of the max and min will be computed every 5 minutes.
  * </p>
  * <p>
- * There are a couple caveats with using templates. First, the input must be a raw metric, be it numeric, availability,
- * or a log event. Secondly, the input source can only be a single metric.
+ * There are a couple caveats with using templates. First, the input must be a raw metric, be it gauge, availability, or
+ * a log event. Secondly, the input source can only be a single metric.
  * </p>
  *
  * @author John Sanda

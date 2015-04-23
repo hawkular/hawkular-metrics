@@ -19,12 +19,12 @@ package org.hawkular.metrics.core.impl.cassandra;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.hawkular.metrics.core.api.AvailabilityMetric;
+import org.hawkular.metrics.core.api.Availability;
+import org.hawkular.metrics.core.api.Gauge;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.NumericMetric;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
@@ -47,26 +47,23 @@ public class MetricsIndexMapper implements Function<ResultSet, List<Metric<?>>> 
     private MetricType type;
 
     public MetricsIndexMapper(String tenantId, MetricType type) {
-        if (type == MetricType.LOG_EVENT) {
-            throw new IllegalArgumentException(type + " is not supported");
-        }
         this.tenantId = tenantId;
         this.type = type;
     }
 
     @Override
     public List<Metric<?>> apply(ResultSet resultSet) {
-        if (type == MetricType.NUMERIC) {
-            return getNumericMetrics(resultSet);
+        if (type == MetricType.GAUGE) {
+            return getGaugeMetrics(resultSet);
         } else {
             return getAvailabilityMetrics(resultSet);
         }
     }
 
-    private List<Metric<?>> getNumericMetrics(ResultSet resultSet) {
+    private List<Metric<?>> getGaugeMetrics(ResultSet resultSet) {
         List<Metric<?>> metrics = new ArrayList<>();
         for (Row row : resultSet) {
-            metrics.add(new NumericMetric(tenantId, new MetricId(row.getString(ColumnIndex.METRIC_NAME.ordinal()),
+            metrics.add(new Gauge(tenantId, new MetricId(row.getString(ColumnIndex.METRIC_NAME.ordinal()),
                     Interval.parse(row.getString(ColumnIndex.INTERVAL.ordinal()))), row.getMap(
                     ColumnIndex.TAGS.ordinal(), String.class, String.class),
                 row.getInt(ColumnIndex.DATA_RETENTION.ordinal())));
@@ -77,7 +74,7 @@ public class MetricsIndexMapper implements Function<ResultSet, List<Metric<?>>> 
     private List<Metric<?>> getAvailabilityMetrics(ResultSet resultSet) {
         List<Metric<?>> metrics = new ArrayList<>();
         for (Row row : resultSet) {
-            metrics.add(new AvailabilityMetric(tenantId, new MetricId(row.getString(ColumnIndex.METRIC_NAME.ordinal()),
+            metrics.add(new Availability(tenantId, new MetricId(row.getString(ColumnIndex.METRIC_NAME.ordinal()),
                     Interval.parse(row.getString(ColumnIndex.INTERVAL.ordinal()))), row.getMap(
                     ColumnIndex.TAGS.ordinal(), String.class, String.class),
                 row.getInt(ColumnIndex.DATA_RETENTION.ordinal())));

@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.hawkular.metrics</groupId>
     <artifactId>hawkular-metrics-parent</artifactId>
-    <version>0.3.2-SNAPSHOT</version>
+    <version>0.3.3-SNAPSHOT</version>
   </parent>
 
   <artifactId>hawkular-metrics-rest-tests</artifactId>
@@ -131,7 +131,7 @@
 
       <properties>
         <!-- IMPORTANT: The port must be the port offset + 8080. -->
-        <base-uri>127.0.0.1:55977/hawkular-metrics</base-uri>
+        <base-uri>127.0.0.1:55977/hawkular/metrics</base-uri>
         <wildfly.port.offset>47897</wildfly.port.offset>
         <!-- IMPORTANT: The management port must be the port offset + 9990. -->
         <wildfly.management.port>57887</wildfly.management.port>

@@ -29,7 +29,7 @@ import groovyx.net.http.RESTClient
 
 class RESTTest {
 
-  static baseURI = System.getProperty('hawkular-metrics.base-uri') ?: '127.0.0.1:8080/hawkular-metrics'
+  static baseURI = System.getProperty('hawkular-metrics.base-uri') ?: '127.0.0.1:8080/hawkular/metrics'
   static final double DELTA = 0.001
   static final String TENANT_PREFIX = UUID.randomUUID().toString()
   static final AtomicInteger TENANT_ID_COUNTER = new AtomicInteger(0)

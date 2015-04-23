@@ -21,8 +21,8 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.Availability;
-import org.hawkular.metrics.core.api.AvailabilityMetric;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricId;
 
@@ -33,19 +33,19 @@ import com.google.common.base.Function;
 /**
  * @author John Sanda
  */
-public class TaggedAvailabilityMappper implements Function<ResultSet, Map<MetricId, Set<Availability>>> {
+public class TaggedAvailabilityMappper implements Function<ResultSet, Map<MetricId, Set<AvailabilityData>>> {
 
     @Override
-    public Map<MetricId, Set<Availability>> apply(ResultSet resultSet) {
-        Map<MetricId, Set<Availability>> taggedData = new HashMap<>();
-        AvailabilityMetric metric = null;
-        LinkedHashSet<Availability> set = new LinkedHashSet<>();
+    public Map<MetricId, Set<AvailabilityData>> apply(ResultSet resultSet) {
+        Map<MetricId, Set<AvailabilityData>> taggedData = new HashMap<>();
+        Availability metric = null;
+        LinkedHashSet<AvailabilityData> set = new LinkedHashSet<>();
         for (Row row : resultSet) {
             if (metric == null) {
                 metric = createMetric(row);
                 set.add(createAvailability(row));
             } else {
-                AvailabilityMetric nextMetric = createMetric(row);
+                Availability nextMetric = createMetric(row);
                 if (metric.equals(nextMetric)) {
                     set.add(createAvailability(row));
                 } else {
@@ -62,13 +62,13 @@ public class TaggedAvailabilityMappper implements Function<ResultSet, Map<Metric
         return taggedData;
     }
 
-    private AvailabilityMetric createMetric(Row row) {
-        return new AvailabilityMetric(row.getString(0), new MetricId(row.getString(4),
+    private Availability createMetric(Row row) {
+        return new Availability(row.getString(0), new MetricId(row.getString(4),
             Interval.parse(row.getString(5))));
     }
 
-    private Availability createAvailability(Row row) {
-        return new Availability(row.getUUID(6), row.getBytes(7));
+    private AvailabilityData createAvailability(Row row) {
+        return new AvailabilityData(row.getUUID(6), row.getBytes(7));
     }
 
 }

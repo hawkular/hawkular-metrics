@@ -27,7 +27,7 @@ import org.junit.Test
 
 class CassandraBackendITest extends RESTTest {
 
-  def assertNumericDataPointEquals = { expected, actual ->
+  def assertGaugeDataPointEquals = { expected, actual ->
     assertEquals("The timestamp does not match", expected.timestamp, actual.timestamp)
     assertTrue("Expected a value of $expected.value but found $actual.value",
         expected.value.compareTo(actual.value) == 0)
@@ -37,28 +37,28 @@ class CassandraBackendITest extends RESTTest {
   void findMetricsWhenThereIsNoData() {
     def tenantId = nextTenantId()
 
-    def response = hawkularMetrics.get(path: "$tenantId/metrics", query: [type: "num"])
-    assertEquals("Expected a 204 status code when no numeric metrics are found", 204, response.status)
+    def response = hawkularMetrics.get(path: "$tenantId/metrics", query: [type: "gauge"])
+    assertEquals("Expected a 204 status code when no gauge metrics are found", 204, response.status)
 
-    response = hawkularMetrics.get(path: "$tenantId/metrics", query: [type: "avail"])
+    response = hawkularMetrics.get(path: "$tenantId/metrics", query: [type: "availability"])
     assertEquals("Expected a 204 status code when no availability metrics are found", 204, response.status)
   }
 
   @Test
-  void findNumericDataForMetricWhenThereIsNoData() {
+  void findGaugeDataForMetricWhenThereIsNoData() {
     def tenantId = nextTenantId()
     def metric = "N1"
 
-    def response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/missing/data")
-    assertEquals("Expected a 204 response when the numeric metric does not exist", 204, response.status)
+    def response = hawkularMetrics.get(path: "$tenantId/gauges/missing/data")
+    assertEquals("Expected a 204 response when the gauge metric does not exist", 204, response.status)
 
-    response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/$metric/data", body: [
+    response = hawkularMetrics.post(path: "$tenantId/gauges/$metric/data", body: [
         [timestamp: now().minusHours(2).millis, value: 1.23],
         [timestamp: now().minusHours(1).millis, value: 3.21]
     ])
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/$metric/data", query: [
+    response = hawkularMetrics.get(path: "$tenantId/gauges/$metric/data", query: [
         start: now().minusDays(3).millis, end: now().minusDays(2).millis])
     assertEquals("Expected a 204 response when there is no data for the specified date range", 204, response.status)
   }
@@ -68,22 +68,22 @@ class CassandraBackendITest extends RESTTest {
     def tenantId = nextTenantId()
     def metric = 'A1'
 
-    def response = hawkularMetrics.get(path: "$tenantId/metrics/availability/missing/data")
+    def response = hawkularMetrics.get(path: "$tenantId/availability/missing/data")
     assertEquals("Expected a 204 response when the availability metric does not exist", 204, response.status)
 
-    response = hawkularMetrics.post(path: "$tenantId/metrics/availability/$metric/data", body: [
+    response = hawkularMetrics.post(path: "$tenantId/availability/$metric/data", body: [
         [timestamp: now().minusHours(2).millis, value: 'up'],
         [timestamp: now().minusHours(1).millis, value: 'up']
     ])
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: "$tenantId/metrics/availability/$metric/data", query: [
+    response = hawkularMetrics.get(path: "$tenantId/availability/$metric/data", query: [
         start: now().minusDays(3).millis, end: now().minusDays(2).millis])
     assertEquals("Expected a 204 response when there is no data for the specified date range", 204, response.status)
   }
 
   @Test
-  void simpleInsertAndQueryNumericData() {
+  void simpleInsertAndQueryGaugeData() {
     DateTimeService dateTimeService = new DateTimeService()
     String tenantId = nextTenantId()
     String metric = 'n1'
@@ -95,7 +95,7 @@ class CassandraBackendITest extends RESTTest {
     def buckets = []
     numBuckets.times { buckets.add(start.millis + (it * bucketSize)) }
 
-    def response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/data", body: [
+    def response = hawkularMetrics.post(path: "$tenantId/gauges/data", body: [
         [id: 'test',
          data: [
             [timestamp: buckets[0], value: 12.22],
@@ -107,9 +107,9 @@ class CassandraBackendITest extends RESTTest {
         ]]])
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/$metric/data",
+    response = hawkularMetrics.get(path: "$tenantId/gauges/$metric/data",
         query: [start: start.minusHours(12).millis, end: end.minusHours(11).millis])
-    assertEquals("Expected a 204 status code when there is no numeric data", 204, response.status)
+    assertEquals("Expected a 204 status code when there is no gauge data", 204, response.status)
   }
 
   @Test
@@ -119,7 +119,7 @@ class CassandraBackendITest extends RESTTest {
     String tenantId = nextTenantId()
     String metric = "n1"
 
-    def response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/$metric/data", body: [
+    def response = hawkularMetrics.post(path: "$tenantId/gauges/$metric/data", body: [
         [timestamp: start.millis, value: 22.3],
         [timestamp: start.plusMinutes(1).millis, value: 17.4],
         [timestamp: start.plusMinutes(2).millis, value: 16.6],
@@ -135,7 +135,7 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
 
     def getPeriods = { operation, threshold ->
-      def periodsResponse = hawkularMetrics.get(path: "$tenantId/metrics/numeric/$metric/periods",
+      def periodsResponse = hawkularMetrics.get(path: "$tenantId/gauges/$metric/periods",
           query: [threshold: threshold, op: operation])
       assertEquals(200, response.status)
 
@@ -189,17 +189,17 @@ class CassandraBackendITest extends RESTTest {
     expectedData = [[start.millis, start.plusMinutes(9).millis]]
     assertEquals(expectedData, response.data)
 
-    badGet(path: "$tenantId/metrics/numeric/$metric/periods", query: [threshold: 20, op: "foo"], { exception ->
+    badGet(path: "$tenantId/gauges/$metric/periods", query: [threshold: 20, op: "foo"], { exception ->
       assertEquals(400, exception.response.status)
     })
 
-    response = hawkularMetrics.get(path: "$tenantId/metrics/numeric/$metric/periods", query: [threshold: 20, op: "gt",
+    response = hawkularMetrics.get(path: "$tenantId/gauges/$metric/periods", query: [threshold: 20, op: "gt",
         start: start.minusMinutes(10).millis, end: start.minusMinutes(5).millis])
     assertEquals(204, response.status)
   }
 
   @Test
-  void insertNumericDataForMultipleMetrics() {
+  void insertGaugeDataForMultipleMetrics() {
     DateTime start = now().minusMinutes(10)
     def tenantId = nextTenantId()
 
@@ -209,15 +209,15 @@ class CassandraBackendITest extends RESTTest {
 
     // Let's explicitly create one of the metrics with some tags and a data retention
     // so that we can verify we get back that info along with the data.
-    response = hawkularMetrics.post(path: "$tenantId/metrics/numeric", body: [
+    response = hawkularMetrics.post(path: "$tenantId/gauges", body: [
         id: 'm2',
         tags: [a: '1', b: '2'],
         dataRetention: 24
     ])
     assertEquals(201, response.status)
-    assertEquals("http://$baseURI/$tenantId/metrics/numeric/m2".toString(), response.getFirstHeader('location').value)
+    assertEquals("http://$baseURI/$tenantId/gauges/m2".toString(), response.getFirstHeader('location').value)
 
-    response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/data", body: [
+    response = hawkularMetrics.post(path: "$tenantId/gauges/data", body: [
         [
             id: 'm1',
             data: [
@@ -242,7 +242,7 @@ class CassandraBackendITest extends RESTTest {
     ])
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: "${tenantId}/metrics/numeric/m2/data")
+    response = hawkularMetrics.get(path: "${tenantId}/gauges/m2/data")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -264,18 +264,18 @@ class CassandraBackendITest extends RESTTest {
 
     // Let's explicitly create one of the metrics with some tags and a data retention
     // so that we can verify we get back that info along with the data.
-    response = hawkularMetrics.post(path: "$tenantId/metrics/availability", body: [
+    response = hawkularMetrics.post(path: "$tenantId/availability", body: [
         id         : 'm2',
         tags         : [a: '1', b: '2'],
         dataRetention: 12
     ])
     assertEquals(201, response.status)
     assertEquals(
-        "http://$baseURI/$tenantId/metrics/availability/m2".toString(),
+        "http://$baseURI/$tenantId/availability/m2".toString(),
         response.getFirstHeader('location').value
     )
 
-    response = hawkularMetrics.post(path: "${tenantId}/metrics/availability/data", body: [
+    response = hawkularMetrics.post(path: "${tenantId}/availability/data", body: [
         [
             id: 'm1',
             data: [
@@ -300,7 +300,7 @@ class CassandraBackendITest extends RESTTest {
     ])
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: "${tenantId}/metrics/availability/m2/data")
+    response = hawkularMetrics.get(path: "${tenantId}/availability/m2/data")
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -317,7 +317,7 @@ class CassandraBackendITest extends RESTTest {
     String tenantId = nextTenantId()
     String metric = 'A1'
 
-    def response = hawkularMetrics.post(path: "${tenantId}/metrics/availability/$metric/data", body: [
+    def response = hawkularMetrics.post(path: "${tenantId}/availability/$metric/data", body: [
         [timestamp: start.millis, value: "up"],
         [timestamp: start.plusMinutes(1).millis, value: "up"],
         [timestamp: start.plusMinutes(2).millis, value: "down"],
@@ -334,7 +334,7 @@ class CassandraBackendITest extends RESTTest {
     ])
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: "$tenantId/metrics/availability/$metric/data", query: [distinct: "true"])
+    response = hawkularMetrics.get(path: "$tenantId/availability/$metric/data", query: [distinct: "true"])
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -355,8 +355,8 @@ class CassandraBackendITest extends RESTTest {
     DateTime start = now().minusMinutes(20)
     def tenantId = nextTenantId()
 
-    // First create a couple numeric metrics by only inserting data
-    def response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/data", body: [
+    // First create a couple gauge metrics by only inserting data
+    def response = hawkularMetrics.post(path: "$tenantId/gauges/data", body: [
         [
             id: 'm11',
             data: [
@@ -374,16 +374,16 @@ class CassandraBackendITest extends RESTTest {
     ])
     assertEquals(200, response.status)
 
-    // Explicitly create a numeric metric
-    response = hawkularMetrics.post(path: "$tenantId/metrics/numeric", body: [
+    // Explicitly create a gauge metric
+    response = hawkularMetrics.post(path: "$tenantId/gauges", body: [
         id: 'm13',
         tags: [a1: 'A', B1: 'B'],
         dataRetention: 32
     ])
     assertEquals(201, response.status)
 
-    // Now query for the numeric metrics
-    response = hawkularMetrics.get(path: "$tenantId/metrics", query: [type: 'num'])
+    // Now query for the gauge metrics
+    response = hawkularMetrics.get(path: "$tenantId/metrics", query: [type: 'gauge'])
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -395,7 +395,7 @@ class CassandraBackendITest extends RESTTest {
     )
 
     // Create a couple availability metrics by only inserting data
-    response = hawkularMetrics.post(path: "$tenantId/metrics/availability/data", body: [
+    response = hawkularMetrics.post(path: "$tenantId/availability/data", body: [
         [
             id: 'm14',
             data: [
@@ -414,7 +414,7 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
 
     // Explicitly create an availability metric
-    response = hawkularMetrics.post(path: "$tenantId/metrics/availability", body: [
+    response = hawkularMetrics.post(path: "$tenantId/availability", body: [
         id: 'm16',
         tags: [a10: '10', a11: '11'],
         dataRetention: 7
@@ -422,7 +422,7 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(201, response.status)
 
     // Query for the availability metrics
-    response = hawkularMetrics.get(path: "$tenantId/metrics", query: [type: 'avail'])
+    response = hawkularMetrics.get(path: "$tenantId/metrics", query: [type: 'availability'])
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -435,11 +435,11 @@ class CassandraBackendITest extends RESTTest {
   }
 
   @Test
-  void findNumericDataByTags() {
+  void findGaugeDataByTags() {
     DateTime start = now().minusMinutes(30)
     def tenantId = nextTenantId()
 
-    def response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/data", body: [
+    def response = hawkularMetrics.post(path: "$tenantId/gauges/data", body: [
         [
             id: 'n1',
             data: [
@@ -484,7 +484,7 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
 
     def tagData = { metric, tags ->
-      response = hawkularMetrics.post(path: "$tenantId/metrics/numeric/$metric/tag", body: [
+      response = hawkularMetrics.post(path: "$tenantId/gauges/$metric/tag", body: [
           start : start.plusMinutes(6).millis,
           end   : start.plusMinutes(10).millis,
           tags  : tags
@@ -497,7 +497,7 @@ class CassandraBackendITest extends RESTTest {
     tagData('n3', [t3: "3", t4: "4", t5: "five"])
     tagData('n4', [t3: "3", t4: "4"])
 
-    response = hawkularMetrics.get(path: "$tenantId/tags/numeric/t3:3,t4:4")
+    response = hawkularMetrics.get(path: "$tenantId/gauges/tags/t3:3,t4:4")
     assertEquals(200, response.status)
 
     def expected = [
@@ -511,10 +511,10 @@ class CassandraBackendITest extends RESTTest {
     ]
 
     expected.n3.eachWithIndex { expectedDataPoint, i ->
-      assertNumericDataPointEquals(expectedDataPoint, response.data.n3[i])
+      assertGaugeDataPointEquals(expectedDataPoint, response.data.n3[i])
     }
     expected.n4.eachWithIndex { expectedDataPoint, i ->
-      assertNumericDataPointEquals(expectedDataPoint, response.data.n4[i])
+      assertGaugeDataPointEquals(expectedDataPoint, response.data.n4[i])
     }
   }
 }

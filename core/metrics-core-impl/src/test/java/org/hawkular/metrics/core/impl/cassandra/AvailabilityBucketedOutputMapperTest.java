@@ -24,7 +24,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import org.hawkular.metrics.core.api.Availability;
+import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.Buckets;
 import org.junit.Before;
@@ -51,7 +51,7 @@ public class AvailabilityBucketedOutputMapperTest {
 
     @Test
     public void testWithOneUp() throws Exception {
-        Availability a1 = new Availability(15, UP);
+        AvailabilityData a1 = new AvailabilityData(15, UP);
         AvailabilityBucketDataPoint actual = mapper.newPointInstance(10, 20, ImmutableList.of(a1));
         AvailabilityBucketDataPoint expected = new AvailabilityBucketDataPoint.Builder(10, 20)
                 .setUptimeRatio(1.0)
@@ -62,7 +62,7 @@ public class AvailabilityBucketedOutputMapperTest {
 
     @Test
     public void testWithOneDown() throws Exception {
-        Availability a1 = new Availability(15, DOWN);
+        AvailabilityData a1 = new AvailabilityData(15, DOWN);
         AvailabilityBucketDataPoint actual = mapper.newPointInstance(10, 20, ImmutableList.of(a1));
         AvailabilityBucketDataPoint expected = new AvailabilityBucketDataPoint.Builder(10, 20)
                 .setDowntimeCount(1)
@@ -76,8 +76,8 @@ public class AvailabilityBucketedOutputMapperTest {
 
     @Test
     public void testWithOneDownOneUp() throws Exception {
-        Availability a1 = new Availability(12, DOWN);
-        Availability a2 = new Availability(18, UP);
+        AvailabilityData a1 = new AvailabilityData(12, DOWN);
+        AvailabilityData a2 = new AvailabilityData(18, UP);
         AvailabilityBucketDataPoint actual = mapper.newPointInstance(10, 20, ImmutableList.of(a1, a2));
         AvailabilityBucketDataPoint expected = new AvailabilityBucketDataPoint.Builder(10, 20)
                 .setDowntimeCount(1)
@@ -91,8 +91,8 @@ public class AvailabilityBucketedOutputMapperTest {
 
     @Test
     public void testWithOneUpOneDown() throws Exception {
-        Availability a1 = new Availability(13, UP);
-        Availability a2 = new Availability(17, DOWN);
+        AvailabilityData a1 = new AvailabilityData(13, UP);
+        AvailabilityData a2 = new AvailabilityData(17, DOWN);
         AvailabilityBucketDataPoint actual = mapper.newPointInstance(10, 20, ImmutableList.of(a1, a2));
         AvailabilityBucketDataPoint expected = new AvailabilityBucketDataPoint.Builder(10, 20)
                 .setDowntimeCount(1)

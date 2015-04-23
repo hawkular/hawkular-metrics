@@ -18,7 +18,7 @@ instance into `standalone/deployments/` and start the server with `bin/standalon
 
 *Request URI*
 
-POST /hawkular-metrics/tenants
+POST /hawkular/metrics/tenants
 
 *Request Body*
 
@@ -27,7 +27,7 @@ POST /hawkular-metrics/tenants
 {
   "id": "com.acme.eng",
   "retentions": {
-    "numeric": 100,
+    "gauge": 100,
     "availability": 80
   }
 }
@@ -36,7 +36,7 @@ POST /hawkular-metrics/tenants
 *Example Request*
 
 ----
-curl -X POST http://localhost:8080/hawkular-metrics/tenants -d@request.json -HContent-Type:application/json
+curl -X POST http://localhost:8080/hawkular/metrics/tenants -d@request.json -HContent-Type:application/json
 ----
 
 
@@ -50,7 +50,7 @@ operations, like this one, it is specified in the request body.
 
 `retentions` is like a template that specifies data retentions for metrics. The
 values are integers and are interpreted as hours. For this example request body,
-all numeric metric data will have a data retention of 100 hours by default.
+all gauge metric data will have a data retention of 100 hours by default.
 Availability metric data will have a data retention of 80 hours by defatult.
 
 NOTE: Clients are not required to create explicitly create a tenant before
@@ -62,12 +62,12 @@ default data retention settings.
 
 *Request URI*
 
-GET /hawkular-metrics/tenants
+GET /hawkular/metrics/tenants
 
 *Example Request*
 
 ----
-curl http://localhost:8080/hawkular-metrics/tenants
+curl http://localhost:8080/hawkular/metrics/tenants
 ----
 
 
@@ -79,7 +79,7 @@ curl http://localhost:8080/hawkular-metrics/tenants
   {
     "id": "com.acme.eng",
     "retentions": {
-      "numeric": 100,
+      "gauge": 100,
       "availability": 80
     }
   },
@@ -96,11 +96,11 @@ Returns a list of tenants. Notice that the second object does not include a
 
 == Metrics
 
-=== Create Numeric Metric
+=== Create Gauge Metric
 
 *Request URI*
 
-POST /hawkular-metrics/{tenantId}/metrics/numeric
+POST /hawkular/metrics/{tenantId}/gauges
 
 *Request Body*
 
@@ -119,12 +119,12 @@ POST /hawkular-metrics/{tenantId}/metrics/numeric
 *Example Request*
 
 ----
-curl http://localhost:8080/hawkular-metrics/{tenantId}/metrics/numeric -d@request.json -HContent-Type:application/json
+curl http://localhost:8080/hawkular/metrics/{tenantId}/gauges -d@request.json -HContent-Type:application/json
 ----
 
 *Description*
 
-Creates a numeric metric. Only the `name` property is required. An error is
+Creates a gauge metric. Only the `name` property is required. An error is
 returned if a metric with `name` already exists. `metadata` is map of arbitary
 key/value pairs that applies to the time series as a whole. The `dataRetention`
 property specifies the data retention in hours and overrides the data retention
@@ -138,24 +138,24 @@ meta data and data retention.
 
 *Request URI*
 
-POST /hawkular-metrics/{tenantId}/metrics/availability
+POST /hawkular/metrics/{tenantId}/availability
 
 *Example Request*
 
 ----
-curl http://localhost:8080/hawkular-metrics/{tenantId}/metrics/availability -d@request.json -HContent-Type:application/json
+curl http://localhost:8080/hawkular/metrics/{tenantId}/availability -d@request.json -HContent-Type:application/json
 ----
 
 *Description*
 
-The request body is the same as creating a numeric metric.
+The request body is the same as creating a gauge metric.
 
 
 === Find Metrics
 
 *Request URI*
 
-GET /hawkular-metrics/{tenantId}/metrics
+GET /hawkular/metrics/{tenantId}/metrics
 
 *Query Parameters*
 
@@ -163,14 +163,14 @@ GET /hawkular-metrics/{tenantId}/metrics
 |Name |Description
 
 |type
-|Accepted values are `num` and `avail`
+|Accepted values are `gauge` and `avail`
 
 |===
 
 *Example Request*
 
 ----
-curl http://localhost:8080/hawkular-metrics/{tenantId}/metrics?type=num
+curl http://localhost:8080/hawkular/metrics/{tenantId}/metric?type=gauge
 ----
 
 *Response Body*
@@ -201,7 +201,7 @@ Returns a list of metrics. The results do *not* include metric data points. The
 
 *Request URI*
 
-PUT /hawkular-metrics/{tenantId}/numeric/{id}/meta
+PUT /hawkular/metrics/{tenantId}/gauges/{id}/meta
 
 *Request Body*
 
@@ -216,7 +216,7 @@ PUT /hawkular-metrics/{tenantId}/numeric/{id}/meta
 *Example Request*
 
 ----
-curl -X PUT http://localhost:8080/hawkular-metrics/{tenantId}/metrics/numeric -d@request.json -HContent-Type:application/json
+curl -X PUT http://localhost:8080/hawkular/metrics/{tenantId}/gauges -d@request.json -HContent-Type:application/json
 ----
 
 *Description*
@@ -226,11 +226,11 @@ either created or overwritten.
 
 == Metric Data
 
-=== Add Numeric Data for a Single Metric
+=== Add Gauge Data for a Single Metric
 
 *Request URI*
 
-POST /hawkular-metrics/{tenantId}/metrics/numeric/{id}/data
+POST /hawkular/metrics/{tenantId}/gauges/{id}/data
 
 *Request Body*
 
@@ -246,19 +246,19 @@ POST /hawkular-metrics/{tenantId}/metrics/numeric/{id}/data
 *Example Request*
 
 ----
-curl -X POST http://localhost:8080/hawkular-metrics/{tenantId}/metrics/numeric/{id}/data -d@request.json -HContent-Type:application/json
+curl -X POST http://localhost:8080/hawkular/metrics/{tenantId}/gauges/{id}/data -d@request.json -HContent-Type:application/json
 ----
 
 *Description*
 
-Inserts data for a single numeric metric. The request body is an array of data
+Inserts data for a single gauge metric. The request body is an array of data
 points where each one consists of `timestamp` and `value` properties.
 
 === Add Availability Data for a Single Metric
 
 *Request URI*
 
-POST /hawkular-metrics/{tenantId}/metrics/availability/{id}/data
+POST /hawkular/metrics/{tenantId}/availability/{id}/data
 
 *Request Body*
 
@@ -273,7 +273,7 @@ POST /hawkular-metrics/{tenantId}/metrics/availability/{id}/data
 *Example Request*
 
 ----
-curl -X POST http://localhost:8080/hawkular-metrics/{tenantId}/metrics/availability/{id}/data -d@request.json -HContent-Type:application/json
+curl -X POST http://localhost:8080/hawkular/metrics/{tenantId}/availability/{id}/data -d@request.json -HContent-Type:application/json
 ----
 
 *Description*
@@ -281,11 +281,11 @@ curl -X POST http://localhost:8080/hawkular-metrics/{tenantId}/metrics/availabil
 Inserts data for a single availablity metric. Accepted values are the strings
 `up` and `down`.
 
-=== Insert Data for Multiple Numeric Metrics
+=== Insert Data for Multiple Gauge Metrics
 
 *Request URI*
 
-POST /hawkular-metrics/{tenantId}/metrics/numeric/data
+POST /hawkular/metrics/{tenantId}/gauges/data
 
 *Request Body*
 
@@ -312,18 +312,18 @@ POST /hawkular-metrics/{tenantId}/metrics/numeric/data
 *Example Request*
 
 ----
-curl -X POST http://localhost:8080/hawkular-metrics/{tenantId}/metrics/numeric/data -d@request.json -HContent-Type:application/json
+curl -X POST http://localhost:8080/hawkular/metrics/{tenantId}/gauges/data -d@request.json -HContent-Type:application/json
 ----
 
 *Description*
 
-Insert data for multiple numeric metrics.
+Insert data for multiple gauge metrics.
 
 === Insert Data for Multiple Availability Metrics
 
 *Request URI*
 
-POST /hawkular-metrics/{tenantId}/metrics/availability/data
+POST /hawkular/metrics/{tenantId}/availability/data
 
 *Request Body*
 
@@ -350,18 +350,18 @@ POST /hawkular-metrics/{tenantId}/metrics/availability/data
 *Example Request*
 
 ----
-curl -X POST http://localhost:8080/hawkular-metrics/{tenantId}/metrics/availability/data -d@request.json -HContent-Type:application/json
+curl -X POST http://localhost:8080/hawkular/metrics/{tenantId}/availability/data -d@request.json -HContent-Type:application/json
 ----
 
 *Description*
 
 Insert data for multiple availability metrics.
 
-=== Retrieve Numeric data
+=== Retrieve Gauge data
 
 *Request URI*
 
-GET /hawkular-metrics/{tenantId}/metrics/numeric/{id}/data
+GET /hawkular/metrics/{tenantId}/gauges/{id}/data
 
 *Request Parameters*
 
@@ -384,7 +384,7 @@ start and end times, having max/min/avg calculated for each bucket.
 *Example Request*
 
 ----
-curl http://localhost:8080/hawkular-metrics/{tenantId}/metrics/numeric/{id}/data?start=1416857688195&end=1416857688195 -d@request.json -HContent-Type:application/json
+curl http://localhost:8080/hawkular/metrics/{tenantId}/gauges/{id}/data?start=1416857688195&end=1416857688195 -d@request.json -HContent-Type:application/json
 ----
 
 *Response Body*

@@ -17,6 +17,7 @@
 package org.hawkular.metrics.core.api;
 
 import java.util.Map;
+import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -24,27 +25,40 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 /**
  * @author John Sanda
  */
-public class AvailabilityMetric extends Metric<Availability> {
+public class Gauge extends Metric<GaugeData> {
 
     @JsonCreator
-    public AvailabilityMetric(@JsonProperty("id") MetricId id) {
+    public Gauge(@JsonProperty("id") MetricId id) {
         super("", id);
     }
 
-    public AvailabilityMetric(String tenantId, MetricId id) {
+    public Gauge(String tenantId, MetricId id) {
         super(tenantId, id);
     }
 
-    public AvailabilityMetric(String tenantId, MetricId id, Map<String, String> tags) {
+    public Gauge(String tenantId, MetricId id, Map<String, String> tags) {
         super(tenantId, id, tags);
     }
 
-    public AvailabilityMetric(String tenantId, MetricId id, Map<String, String> tags, Integer dataRetention) {
+    public Gauge(String tenantId, MetricId id, Map<String, String> tags, Integer dataRetention) {
         super(tenantId, id, tags, dataRetention);
     }
 
     @Override
     public MetricType getType() {
-        return MetricType.AVAILABILITY;
+        return MetricType.GAUGE;
     }
+
+    public void addData(long timestamp, double value) {
+        addData(new GaugeData(timestamp, value));
+    }
+
+    public void addData(UUID timeUUID, double value) {
+        addData(new GaugeData(timeUUID, value));
+    }
+
+    public void addData(UUID timeUUID, double value, Map<String, String> tags) {
+        addData(new GaugeData(timeUUID, value, tags));
+    }
+
 }
