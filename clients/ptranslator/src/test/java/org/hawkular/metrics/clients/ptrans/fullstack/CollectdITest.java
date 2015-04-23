@@ -144,7 +144,7 @@ public class CollectdITest extends ExecutableITestBase {
         properties.setProperty(SERVICES.getExternalForm(), Service.COLLECTD.getExternalForm());
         properties.setProperty(BATCH_DELAY.getExternalForm(), String.valueOf(1));
         properties.setProperty(BATCH_SIZE.getExternalForm(), String.valueOf(1));
-        String restUrl = "http://" + BASE_URI + "/" + tenant + "/gauge/data";
+        String restUrl = "http://" + BASE_URI + "/" + tenant + "/gauges/data";
         properties.setProperty(REST_URL.getExternalForm(), restUrl);
         try (OutputStream out = new FileOutputStream(ptransConfFile)) {
             properties.store(out, "");
@@ -290,7 +290,7 @@ public class CollectdITest extends ExecutableITestBase {
     }
 
     private String findGaugeDataUrl(String metricName) {
-        return "http://" + BASE_URI + "/" + tenant + "/gauge/" + metricName + "/data";
+        return "http://" + BASE_URI + "/" + tenant + "/gauges/" + metricName + "/data";
     }
 
     @After

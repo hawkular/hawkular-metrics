@@ -87,7 +87,7 @@ public class GaugeHandler {
     private MetricsService metricsService;
 
     @POST
-    @Path("/{tenantId}/gauge")
+    @Path("/{tenantId}/gauges")
     @ApiOperation(value = "Create gauge metric definition.", notes = "Clients are not required to explicitly create "
             + "a metric before storing data. Doing so however allows clients to prevent naming collisions and to "
             + "specify tags and data retention.")
@@ -108,14 +108,14 @@ public class GaugeHandler {
         }
         metric.setTenantId(tenantId);
         ListenableFuture<Void> future = metricsService.createMetric(metric);
-        URI created = uriInfo.getBaseUriBuilder().path("/{tenantId}/gauge/{id}")
+        URI created = uriInfo.getBaseUriBuilder().path("/{tenantId}/gauges/{id}")
                 .build(tenantId, metric.getId().getName());
         MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(asyncResponse, created);
         Futures.addCallback(future, metricCreatedCallback);
     }
 
     @GET
-    @Path("/{tenantId}/gauge/{id}/tags")
+    @Path("/{tenantId}/gauges/{id}/tags")
     @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = Metric.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's tags were successfully retrieved."),
@@ -134,7 +134,7 @@ public class GaugeHandler {
     }
 
     @PUT
-    @Path("/{tenantId}/gauge/{id}/tags")
+    @Path("/{tenantId}/gauges/{id}/tags")
     @ApiOperation(value = "Update tags associated with the metric definition.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
@@ -151,7 +151,7 @@ public class GaugeHandler {
     }
 
     @DELETE
-    @Path("/{tenantId}/gauge/{id}/tags/{tags}")
+    @Path("/{tenantId}/gauges/{id}/tags/{tags}")
     @ApiOperation(value = "Delete tags associated with the metric definition.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
@@ -169,7 +169,7 @@ public class GaugeHandler {
     }
 
     @POST
-    @Path("/{tenantId}/gauge/{id}/data")
+    @Path("/{tenantId}/gauges/{id}/data")
     @ApiOperation(value = "Add data for a single gauge metric.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
@@ -194,7 +194,7 @@ public class GaugeHandler {
     }
 
     @POST
-    @Path("/{tenantId}/gauge/data")
+    @Path("/{tenantId}/gauges/data")
     @ApiOperation(value = "Add data for multiple gauge metrics in a single call.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
@@ -213,7 +213,7 @@ public class GaugeHandler {
     }
 
     @GET
-    @Path("/{tenantId}/gauge")
+    @Path("/{tenantId}/gauges")
     @ApiOperation(value = "Find gauge metrics data by their tags.", response = Map.class, responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched data."),
             @ApiResponse(code = 204, message = "No matching data found."),
@@ -233,7 +233,7 @@ public class GaugeHandler {
     }
 
     @GET
-    @Path("/{tenantId}/gauge/{id}/data")
+    @Path("/{tenantId}/gauges/{id}/data")
     @ApiOperation(value = "Retrieve gauge data. When buckets or bucketDuration query parameter is used, the time "
             + "range between start and end will be divided in buckets of equal duration, and metric "
             + "statistics will be computed for each bucket.", response = List.class)
@@ -291,7 +291,7 @@ public class GaugeHandler {
     }
 
     @GET
-    @Path("/{tenantId}/gauge/{id}/periods")
+    @Path("/{tenantId}/gauges/{id}/periods")
     @ApiOperation(value = "Retrieve periods for which the condition holds true for each consecutive data point.",
         response = List.class)
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched periods."),
@@ -358,7 +358,7 @@ public class GaugeHandler {
     }
 
     @GET
-    @Path("/{tenantId}/gauge/tags/{tags}")
+    @Path("/{tenantId}/gauges/tags/{tags}")
     @ApiOperation(value = "Find metric data with given tags.", response = Map.class, responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Me values fetched successfully"),
             @ApiResponse(code = 204, message = "No matching data found."),
@@ -387,7 +387,7 @@ public class GaugeHandler {
     }
 
     @POST
-    @Path("/{tenantId}/gauge/{id}/tag")
+    @Path("/{tenantId}/gauges/{id}/tag")
     @ApiOperation(value = "Add or update gauge metric's tags.")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Tags were modified successfully.") })
     public void tagGaugeData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,

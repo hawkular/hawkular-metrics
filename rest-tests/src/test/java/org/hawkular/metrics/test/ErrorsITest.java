@@ -40,7 +40,7 @@ public class ErrorsITest extends RESTTest {
     @Test
     public void testNotAllowedException() {
         response = target.clone()
-                .path("/test/gauge/test/tags")
+                .path("/test/gauges/test/tags")
                 .request(MediaType.APPLICATION_JSON_TYPE)
                 .post(null);
         Assert.assertEquals(405, response.getStatus());
@@ -66,7 +66,7 @@ public class ErrorsITest extends RESTTest {
     @Test
     public void testNumberFormatException() {
         response = target.clone()
-                .path("/test/gauge/test/data")
+                .path("/test/gauges/test/data")
                 .queryParam("buckets", "999999999999999999999999")
                 .request(MediaType.APPLICATION_JSON_TYPE)
                 .get();
@@ -79,7 +79,7 @@ public class ErrorsITest extends RESTTest {
     @Test
     public void testNotAcceptableException() {
         response = target.clone()
-                .path("/test/gauge/test/data")
+                .path("/test/gauges/test/data")
                 .request(MediaType.TEXT_PLAIN)
                 .get();
         Assert.assertEquals(406, response.getStatus());
@@ -91,7 +91,7 @@ public class ErrorsITest extends RESTTest {
     @Test
     public void testNotSupportedException() {
         response = target.clone()
-                .path("/test/gauge/test/data")
+                .path("/test/gauges/test/data")
                 .request(MediaType.TEXT_PLAIN)
                 .post(null);
         Assert.assertEquals(415, response.getStatus());

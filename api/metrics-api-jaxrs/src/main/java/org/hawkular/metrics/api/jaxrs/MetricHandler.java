@@ -63,7 +63,7 @@ public class MetricHandler {
     private MetricsService metricsService;
 
     @GET
-    @Path("/{tenantId}/metric")
+    @Path("/{tenantId}/metrics")
     @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ",
             response = List.class, responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully retrieved at least one metric "
@@ -96,7 +96,7 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/{tenantId}/metric/data")
+    @Path("/{tenantId}/metrics/data")
     @ApiOperation(value = "Add data for multiple metrics in a single call.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data succeeded."),

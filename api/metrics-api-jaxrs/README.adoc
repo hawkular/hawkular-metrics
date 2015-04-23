@@ -100,7 +100,7 @@ Returns a list of tenants. Notice that the second object does not include a
 
 *Request URI*
 
-POST /hawkular/metrics/{tenantId}/gauge
+POST /hawkular/metrics/{tenantId}/gauges
 
 *Request Body*
 
@@ -119,7 +119,7 @@ POST /hawkular/metrics/{tenantId}/gauge
 *Example Request*
 
 ----
-curl http://localhost:8080/hawkular/metrics/{tenantId}/gauge -d@request.json -HContent-Type:application/json
+curl http://localhost:8080/hawkular/metrics/{tenantId}/gauges -d@request.json -HContent-Type:application/json
 ----
 
 *Description*
@@ -201,7 +201,7 @@ Returns a list of metrics. The results do *not* include metric data points. The
 
 *Request URI*
 
-PUT /hawkular/metrics/{tenantId}/gauge/{id}/meta
+PUT /hawkular/metrics/{tenantId}/gauges/{id}/meta
 
 *Request Body*
 
@@ -216,7 +216,7 @@ PUT /hawkular/metrics/{tenantId}/gauge/{id}/meta
 *Example Request*
 
 ----
-curl -X PUT http://localhost:8080/hawkular/metrics/{tenantId}/gauge -d@request.json -HContent-Type:application/json
+curl -X PUT http://localhost:8080/hawkular/metrics/{tenantId}/gauges -d@request.json -HContent-Type:application/json
 ----
 
 *Description*
@@ -230,7 +230,7 @@ either created or overwritten.
 
 *Request URI*
 
-POST /hawkular/metrics/{tenantId}/gauge/{id}/data
+POST /hawkular/metrics/{tenantId}/gauges/{id}/data
 
 *Request Body*
 
@@ -246,7 +246,7 @@ POST /hawkular/metrics/{tenantId}/gauge/{id}/data
 *Example Request*
 
 ----
-curl -X POST http://localhost:8080/hawkular/metrics/{tenantId}/gauge/{id}/data -d@request.json -HContent-Type:application/json
+curl -X POST http://localhost:8080/hawkular/metrics/{tenantId}/gauges/{id}/data -d@request.json -HContent-Type:application/json
 ----
 
 *Description*
@@ -285,7 +285,7 @@ Inserts data for a single availablity metric. Accepted values are the strings
 
 *Request URI*
 
-POST /hawkular/metrics/{tenantId}/gauge/data
+POST /hawkular/metrics/{tenantId}/gauges/data
 
 *Request Body*
 
@@ -312,7 +312,7 @@ POST /hawkular/metrics/{tenantId}/gauge/data
 *Example Request*
 
 ----
-curl -X POST http://localhost:8080/hawkular/metrics/{tenantId}/gauge/data -d@request.json -HContent-Type:application/json
+curl -X POST http://localhost:8080/hawkular/metrics/{tenantId}/gauges/data -d@request.json -HContent-Type:application/json
 ----
 
 *Description*
@@ -361,7 +361,7 @@ Insert data for multiple availability metrics.
 
 *Request URI*
 
-GET /hawkular/metrics/{tenantId}/gauge/{id}/data
+GET /hawkular/metrics/{tenantId}/gauges/{id}/data
 
 *Request Parameters*
 
@@ -384,7 +384,7 @@ start and end times, having max/min/avg calculated for each bucket.
 *Example Request*
 
 ----
-curl http://localhost:8080/hawkular/metrics/{tenantId}/gauge/{id}/data?start=1416857688195&end=1416857688195 -d@request.json -HContent-Type:application/json
+curl http://localhost:8080/hawkular/metrics/{tenantId}/gauges/{id}/data?start=1416857688195&end=1416857688195 -d@request.json -HContent-Type:application/json
 ----
 
 *Response Body*
