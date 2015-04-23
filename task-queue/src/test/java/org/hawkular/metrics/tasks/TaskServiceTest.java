@@ -24,9 +24,11 @@ import static org.joda.time.Duration.standardMinutes;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import com.datastax.driver.core.ResultSet;
 import com.google.common.collect.ImmutableSet;
@@ -39,14 +41,11 @@ import org.testng.annotations.Test;
  */
 public class TaskServiceTest extends BaseTest {
 
-//    private TaskService taskService;
-
     private LeaseManager leaseManager;
 
     @BeforeClass
     public void initClass() {
         leaseManager = new LeaseManager(session, queries);
-//        taskService = new TaskService(session, queries, leaseManager, standardMinutes(1), )
     }
 
     @Test
@@ -73,7 +72,7 @@ public class TaskServiceTest extends BaseTest {
     }
 
     @Test
-    public void executeTasksForTimeSlice() throws Exception {
+    public void executeTasksOfOneType() throws Exception {
         DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(1), standardMinutes(1));
         String type = "test";
         int interval = 5;
@@ -109,6 +108,47 @@ public class TaskServiceTest extends BaseTest {
         assertLeasePartitionDeleted(timeSlice);
     }
 
+    @Test
+    public void executeTasksOfMultipleTypes() throws Exception {
+        DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(1), standardMinutes(1));
+        String type1 = "test1";
+        String type2 = "test2";
+        int interval = 5;
+        int window = 15;
+        int segment0 = 0;
+        int segment1 = 1;
+        int segmentOffset = 0;
+        TaskExecutionHistory executionHistory = new TaskExecutionHistory();
+        Function<Task, Runnable> taskFactory = task -> () -> executionHistory.add(task.getTarget());
+
+        TaskType taskType1 = new TaskType().setName(type1).setSegments(5).setSegmentOffsets(1).setFactory(taskFactory);
+        TaskType taskType2 = new TaskType().setName(type2).setSegments(5).setSegmentOffsets(1).setFactory(taskFactory);
+
+        session.execute(queries.createTask.bind(type1, timeSlice.toDate(), segment0, "test1.metric1.5min",
+                ImmutableSet.of("test1.metric1"), interval, window));
+        session.execute(queries.createTask.bind(type1, timeSlice.toDate(), segment1, "test1.metric2.5min",
+                ImmutableSet.of("test1.metric2"), interval, window));
+        session.execute(queries.createLease.bind(timeSlice.toDate(), type1, segmentOffset));
+
+        session.execute(queries.createTask.bind(type2, timeSlice.toDate(), segment0, "test2.metric1.5min",
+                ImmutableSet.of("test2.metric1"), interval, window));
+        session.execute(queries.createTask.bind(type2, timeSlice.toDate(), segment1, "test2.metric2.5min",
+                ImmutableSet.of("test2.metric2"), interval, window));
+        session.execute(queries.createLease.bind(timeSlice.toDate(), type2, segmentOffset));
+
+        TaskService taskService = new TaskService(session, queries, leaseManager, standardMinutes(1),
+                asList(taskType1, taskType2));
+        taskService.executeTasks(timeSlice);
+
+        // We need to verify that tasks are executed. We also need to verify that they are
+        // executed in the correct order with respect to type.
+        assertEquals(executionHistory.getExecutedTasks().size(), 4, "Expected 4 tasks to be executed");
+        assertTaskExecuted("test1.metric1.5min", 0, 1, executionHistory);
+        assertTaskExecuted("test1.metric2.5min", 0, 1, executionHistory);
+        assertTaskExecuted("test2.metric1.5min", 2, 3, executionHistory);
+        assertTaskExecuted("test2.metric2.5min", 2, 3, executionHistory);
+    }
+
     private void assertTasksPartitionDeleted(String taskType, DateTime timeSlice, int segment) {
         ResultSet resultSet = session.execute(queries.findTasks.bind(taskType, timeSlice.toDate(), segment));
         assertTrue(resultSet.isExhausted(), "Expected task partition {taskType: " + taskType + ", timeSlice: " +
@@ -119,6 +159,26 @@ public class TaskServiceTest extends BaseTest {
         ResultSet leasesResultSet = session.execute(queries.findLeases.bind(timeSlice.toDate()));
         assertTrue(leasesResultSet.isExhausted(), "Expected lease partition for time slice " + timeSlice +
                 " to be empty");
+    }
+
+    private void assertTaskExecuted(String taskId, int lowerBound, int upperBound,
+            TaskExecutionHistory executionHistory) {
+        int index = executionHistory.getExecutedTasks().indexOf(taskId);
+        assertTrue(index > -1, "Failed to execute " + taskId);
+        assertTrue(index >= lowerBound && index <= upperBound, taskId + " was executed out of order. Its index in " +
+            "the execution history is " + index);
+    }
+
+    private static class TaskExecutionHistory {
+        private List<String> executedTasks = new ArrayList<>();
+
+        public synchronized void add(String task) {
+            executedTasks.add(task);
+        }
+
+        public List<String> getExecutedTasks() {
+            return executedTasks;
+        }
     }
 
 }

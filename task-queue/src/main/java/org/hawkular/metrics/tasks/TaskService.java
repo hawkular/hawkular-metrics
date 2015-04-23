@@ -19,14 +19,18 @@
 package org.hawkular.metrics.tasks;
 
 import static java.util.stream.Collectors.toList;
+import static org.joda.time.DateTime.now;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.StreamSupport;
 
@@ -59,15 +63,23 @@ public class TaskService {
 
     private List<TaskType> taskTypes;
 
-    private DateTimeService dateTimeService = new DateTimeService();
-
     private LeaseManager leaseManager;
 
-    private ListeningExecutorService threadPool = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(4));
+    private ScheduledExecutorService ticker = Executors.newScheduledThreadPool(1);
 
-    private Semaphore permits = new Semaphore(1);
+    private ExecutorService scheduler = Executors.newSingleThreadExecutor();
+
+    private ListeningExecutorService workers = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(4));
+
+    /**
+     * Used to limit the amount of leases we try to acquire concurrently to the same number of worker threads available
+     * for processing tasks.
+     */
+    private Semaphore permits = new Semaphore(4);
 
     private String owner;
+
+    private DateTimeService dateTimeService;
 
     public TaskService(Session session, Queries queries, LeaseManager leaseManager, Duration timeSliceDuration,
             List<TaskType> taskTypes) {
@@ -81,6 +93,15 @@ public class TaskService {
         } catch (UnknownHostException e) {
             throw new RuntimeException("Failed to initialize owner name", e);
         }
+        dateTimeService = new DateTimeService();
+    }
+
+    public void start() {
+        Runnable runnable = () -> {
+            DateTime timeSlice = dateTimeService.getTimeSlice(now(), Duration.standardSeconds(1));
+            scheduler.submit(() -> executeTasks(timeSlice));
+        };
+        ticker.scheduleAtFixedRate(runnable, 1, 1, TimeUnit.SECONDS);
     }
 
     public ListenableFuture<List<Task>> findTasks(String type, DateTime timeSlice, int segment) {
@@ -117,9 +138,36 @@ public class TaskService {
 
     public void executeTasks(DateTime timeSlice) {
         try {
-            List<Lease> leases = Uninterruptibles.getUninterruptibly(leaseManager.findUnfinishedLeases(timeSlice));
+            // Execute tasks in order of task types. Once all of the tasks are executed, we delete the lease partition.
+            taskTypes.forEach(taskType -> executeTasks(timeSlice, taskType));
+            Uninterruptibles.getUninterruptibly(leaseManager.deleteLeases(timeSlice));
+        } catch (ExecutionException e) {
+            logger.warn("Failed to delete lease partition for time slice " + timeSlice);
+        }
+    }
+
+    /**
+     * This method does not return until all tasks of the specified type have been executed.
+     *
+     * @param timeSlice
+     * @param taskType
+     */
+    private void executeTasks(DateTime timeSlice, TaskType taskType) {
+        try {
+            List<Lease> leases = Uninterruptibles.getUninterruptibly(leaseManager.findUnfinishedLeases(timeSlice))
+                    .stream().filter(lease -> lease.getTaskType().equals(taskType.getName())).collect(toList());
+
+            // A CountDownLatch is used to let us know when to query again for leases. We do not want to query (again)
+            // for leases until we have gone through each one. If a lease already has an owner, then we just count
+            // down the latch and move on. If the lease does not have an owner, we attempt to acquire it. When the
+            // result from trying to acquire the lease are available, we count down the latch.
             AtomicReference<CountDownLatch> latchRef = new AtomicReference<>(new CountDownLatch(leases.size()));
-            while (!leases.isEmpty() && leases.stream().anyMatch(lease -> !lease.isFinished())) {
+
+
+            // Keep checking for and process leases as long as the query returns leases and there is at least one
+            // that is not finished. When these conditions do not hold, then the leases for the current time slice
+            // are finished.
+            while (!(leases.isEmpty() || leases.stream().allMatch(Lease::isFinished))) {
                 for (final Lease lease : leases) {
                     if (lease.getOwner() == null) {
                         permits.acquire();
@@ -134,7 +182,7 @@ public class TaskService {
                                     for (int i = lease.getSegmentOffset(); i < taskType.getSegments(); ++i) {
                                         ListenableFuture<List<Task>> tasksFuture = findTasks(lease.getTaskType(),
                                                 timeSlice, i);
-                                        Futures.addCallback(tasksFuture, executeTasksCallback(lease, i), threadPool);
+                                        Futures.addCallback(tasksFuture, executeTasksCallback(lease, i), workers);
                                     }
                                 } else {
                                     // someone else has the lease so return the permit and try to
@@ -148,17 +196,17 @@ public class TaskService {
                                 logger.warn("There was an error trying to acquire a lease", t);
                                 latchRef.get().countDown();
                             }
-                        }, threadPool);
+                        }, workers);
                     } else {
                         latchRef.get().countDown();
                     }
                 }
                 latchRef.get().await();
-                leases = Uninterruptibles.getUninterruptibly(leaseManager.findUnfinishedLeases(timeSlice));
+                leases = Uninterruptibles.getUninterruptibly(leaseManager.findUnfinishedLeases(timeSlice))
+                        .stream().filter(lease -> lease.getTaskType().equals(taskType.getName())).collect(toList());
                 latchRef.set(new CountDownLatch(leases.size()));
             }
 
-            Uninterruptibles.getUninterruptibly(leaseManager.deleteLeases(timeSlice));
         } catch (ExecutionException e) {
             logger.warn("Failed to load leases for time slice " + timeSlice, e);
         } catch (InterruptedException e) {
@@ -190,7 +238,7 @@ public class TaskService {
                     public void onFailure(Throwable t) {
                         logger.warn("Failed to mark lease finished", t);
                     }
-                }, threadPool);
+                }, TaskService.this.workers);
             }
 
             @Override
