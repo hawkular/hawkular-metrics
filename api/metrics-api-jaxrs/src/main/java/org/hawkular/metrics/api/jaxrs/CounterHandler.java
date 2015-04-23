@@ -26,6 +26,7 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -52,23 +53,25 @@ import com.wordnik.swagger.annotations.ApiOperation;
 @Path("/")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@Api(value = "", description = "Availability metrics interface")
+@Api(value = "/counters", description = "Availability metrics interface")
 public class CounterHandler {
     @Inject
     private MetricsService metricsService;
 
     @POST
-    @Path("/{tenantId}/counters")
+    @Path("/")
     @ApiOperation(value = "List of counter definitions", hidden = true)
-    public void updateCountersForGroups(@Suspended final AsyncResponse asyncResponse, Collection<Counter> counters) {
+    public void updateCountersForGroups(@Suspended final AsyncResponse asyncResponse,
+            @HeaderParam("tenantId") String tenantId, Collection<Counter> counters) {
         ListenableFuture<Void> future = metricsService.updateCounters(counters);
         Futures.addCallback(future, new NoDataCallback<>(asyncResponse));
     }
 
     @POST
-    @Path("/{tenantId}/counters/{group}")
+    @Path("/{group}")
     @ApiOperation(value = "Update multiple counters in a single counter group", hidden = true)
-    public void updateCounterForGroup(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group,
+    public void updateCounterForGroup(@Suspended final AsyncResponse asyncResponse,
+            @HeaderParam("tenantId") String tenantId, @PathParam("group") String group,
             Collection<Counter> counters) {
         for (Counter counter : counters) {
             counter.setGroup(group);
@@ -78,37 +81,38 @@ public class CounterHandler {
     }
 
     @POST
-    @Path("/{tenantId}/counters/{group}/{counter}")
+    @Path("/{group}/{counter}")
     @ApiOperation(value = "Increase value of a counter", hidden = true)
-    public void updateCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group,
-            @PathParam("counter") String counter) {
+    public void updateCounter(@Suspended final AsyncResponse asyncResponse, @HeaderParam("tenantId") String tenantId,
+            @PathParam("group") String group, @PathParam("counter") String counter) {
         ListenableFuture<Void> future = metricsService
                 .updateCounter(new Counter(DEFAULT_TENANT_ID, group, counter, 1L));
         Futures.addCallback(future, new NoDataCallback<>(asyncResponse));
     }
 
     @POST
-    @Path("/{tenantId}/counters/{group}/{counter}/{value}")
+    @Path("/{group}/{counter}/{value}")
     @ApiOperation(value = "Update value of a counter", hidden = true)
-    public void updateCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group,
-            @PathParam("counter") String counter, @PathParam("value") Long value) {
+    public void updateCounter(@Suspended final AsyncResponse asyncResponse, @HeaderParam("tenantId") String tenantId,
+            @PathParam("group") String group, @PathParam("counter") String counter, @PathParam("value") Long value) {
         ListenableFuture<Void> future = metricsService.updateCounter(new Counter(DEFAULT_TENANT_ID, group, counter,
                 value));
         Futures.addCallback(future, new NoDataCallback<>(asyncResponse));
     }
 
     @GET
-    @Path("/{tenantId}/counters/{group}")
+    @Path("/{group}")
     @ApiOperation(value = "Retrieve a list of counter values in this group", hidden = true,
         response = Counter.class, responseContainer = "List")
     @Produces({ APPLICATION_JSON })
-    public void getCountersForGroup(@Suspended final AsyncResponse asyncResponse, @PathParam("group") String group) {
+    public void getCountersForGroup(@Suspended final AsyncResponse asyncResponse,
+            @HeaderParam("tenantId") String tenantId, @PathParam("group") String group) {
         ListenableFuture<List<Counter>> future = metricsService.findCounters(group);
         Futures.addCallback(future, new SimpleDataCallback<>(asyncResponse));
     }
 
     @GET
-    @Path("/{tenantId}/counters/{group}/{counter}")
+    @Path("/{group}/{counter}")
     @ApiOperation(value = "Retrieve value of a counter", hidden = true,
         response = Counter.class, responseContainer = "List")
     public void getCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("group") final String group,

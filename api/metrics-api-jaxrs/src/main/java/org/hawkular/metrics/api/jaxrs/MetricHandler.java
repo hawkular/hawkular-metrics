@@ -26,9 +26,9 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
@@ -57,13 +57,13 @@ import com.wordnik.swagger.annotations.ApiResponses;
 @Path("/")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@Api(value = "/", description = "Metrics related REST interface")
+@Api(value = "/metrics", description = "Metrics related REST interface")
 public class MetricHandler {
     @Inject
     private MetricsService metricsService;
 
     @GET
-    @Path("/{tenantId}/metrics")
+    @Path("/")
     @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ",
             response = List.class, responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully retrieved at least one metric "
@@ -75,7 +75,7 @@ public class MetricHandler {
     })
     public void findMetrics(
             @Suspended final AsyncResponse asyncResponse,
-            @PathParam("tenantId") final String tenantId,
+            @HeaderParam("tenantId") final String tenantId,
             @ApiParam(value = "Queried metric type", required = true, allowableValues = "[gauge, availability]")
         @QueryParam("type") String type) {
 
@@ -96,13 +96,13 @@ public class MetricHandler {
     }
 
     @POST
-    @Path("/{tenantId}/metrics/data")
+    @Path("/data")
     @ApiOperation(value = "Add data for multiple metrics in a single call.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
                 response = ApiError.class) })
-    public void addMetricsData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
+    public void addMetricsData(@Suspended final AsyncResponse asyncResponse, @HeaderParam("tenantId") String tenantId,
             @ApiParam(value = "List of metrics", required = true) MixedMetricsRequest metricsRequest) {
         executeAsync(asyncResponse, () -> {
             if ((metricsRequest.getGaugeMetrics() == null || !metricsRequest.getGaugeMetrics().isEmpty())
