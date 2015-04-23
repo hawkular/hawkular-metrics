@@ -94,7 +94,7 @@ public class CollectdITest extends ExecutableITestBase {
     @Before
     public void setUp() throws Exception {
         tenant = getRandomTenantId();
-        findGuageMetricsUrl = "http://" + BASE_URI + "/" + tenant + "/metric?type=gauge";
+        findGuageMetricsUrl = "http://" + BASE_URI + "/" + tenant + "/metrics?type=gauge";
         assumeCollectdIsPresent();
         configureCollectd();
         assertCollectdConfIsValid();
