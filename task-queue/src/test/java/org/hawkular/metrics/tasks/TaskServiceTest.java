@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import com.datastax.driver.core.ResultSet;
@@ -147,6 +148,61 @@ public class TaskServiceTest extends BaseTest {
         assertTaskExecuted("test1.metric2.5min", 0, 1, executionHistory);
         assertTaskExecuted("test2.metric1.5min", 2, 3, executionHistory);
         assertTaskExecuted("test2.metric2.5min", 2, 3, executionHistory);
+    }
+
+    @Test
+    public void tryToExecuteTasksWhenAllLeasesAreAlreadyReserved() throws Exception {
+        DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(1), standardMinutes(1));
+        String type1 = "test1";
+        int interval = 5;
+        int window = 15;
+        int segment0 = 0;
+        int segment1 = 1;
+        int segmentOffset = 0;
+
+        TaskExecutionHistory executionHistory = new TaskExecutionHistory();
+        Function<Task, Runnable> taskFactory = task -> () -> executionHistory.add(task.getTarget());
+
+        TaskType taskType1 = new TaskType().setName(type1).setSegments(5).setSegmentOffsets(1).setFactory(taskFactory);
+
+        session.execute(queries.createTask.bind(type1, timeSlice.toDate(), segment0, "test1.metric1.5min",
+                ImmutableSet.of("test1.metric1"), interval, window));
+        session.execute(queries.createTask.bind(type1, timeSlice.toDate(), segment1, "test1.metric2.5min",
+                ImmutableSet.of("test1.metric2"), interval, window));
+        session.execute(queries.createLease.bind(timeSlice.toDate(), type1, segmentOffset));
+
+        String owner = "host2";
+        Lease lease = new Lease(timeSlice, type1, segmentOffset, owner, false);
+        boolean acquired = getUninterruptibly(leaseManager.acquire(lease));
+        assertTrue(acquired, "Should have acquired lease");
+
+        TaskService taskService = new TaskService(session, queries, leaseManager, standardMinutes(1),
+                asList(taskType1));
+
+        Thread t1 = new Thread(() -> taskService.executeTasks(timeSlice));
+        t1.start();
+
+        AtomicReference<Exception> executionErrorRef = new AtomicReference<>();
+        Runnable executeTasks = () -> {
+            try {
+                session.execute(queries.deleteTasks.bind(lease.getTaskType(), lease.getTimeSlice().toDate(), segment0));
+                session.execute(queries.deleteTasks.bind(lease.getTaskType(), lease.getTimeSlice().toDate(), segment1));
+                getUninterruptibly(leaseManager.finish(lease));
+            } catch (Exception e) {
+                executionErrorRef.set(e);
+            }
+        };
+        Thread t2 = new Thread(executeTasks);
+        t2.start();
+
+        t2.join(10000);
+        t1.join(10000);
+
+        assertTrue(executionHistory.getExecutedTasks().isEmpty(), "Did not expect this task service to execute any " +
+            "tasks but it executed " + executionHistory.getExecutedTasks());
+        assertTasksPartitionDeleted(type1, timeSlice, segment0);
+        assertTasksPartitionDeleted(type1, timeSlice, segment1);
+        assertLeasePartitionDeleted(timeSlice);
     }
 
     private void assertTasksPartitionDeleted(String taskType, DateTime timeSlice, int segment) {
