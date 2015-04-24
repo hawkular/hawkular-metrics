@@ -20,10 +20,15 @@ package org.hawkular.metrics.tasks;
 
 import static org.joda.time.Minutes.minutes;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import com.google.common.collect.ImmutableSet;
+import org.joda.time.DateTime;
 import org.joda.time.Duration;
 
 /**
@@ -41,6 +46,8 @@ public class Task {
 
     private Duration window;
 
+    private SortedSet<DateTime> failedTimeSlices = new TreeSet<>();
+
     public Task() {
     }
 
@@ -53,11 +60,17 @@ public class Task {
     }
 
     public Task(TaskType taskType, String target, String source, int interval, int window) {
+        this(taskType, target, source, interval, window, Collections.emptySet());
+    }
+
+    public Task(TaskType taskType, String target, String source, int interval, int window,
+            Collection<DateTime> failedTimeSlices) {
         this.taskType = taskType;
         this.target = target;
         this.sources = ImmutableSet.of(source);
         this.interval = minutes(interval).toStandardDuration();
         this.window = minutes(window).toStandardDuration();
+        this.failedTimeSlices.addAll(failedTimeSlices);
     }
 
     public TaskType getTaskType() {
@@ -78,6 +91,10 @@ public class Task {
 
     public Duration getWindow() {
         return window;
+    }
+
+    public SortedSet<DateTime> getFailedTimeSlices() {
+        return failedTimeSlices;
     }
 
     @Override
@@ -105,6 +122,7 @@ public class Task {
                 .add("sources", sources)
                 .add("interval", interval.toStandardMinutes())
                 .add("window", window.toStandardMinutes())
+                .add("failedTimeSlices", failedTimeSlices)
                 .toString();
     }
 }

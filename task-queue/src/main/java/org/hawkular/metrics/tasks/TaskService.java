@@ -23,6 +23,7 @@ import static org.joda.time.DateTime.now;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -37,6 +38,8 @@ import java.util.stream.StreamSupport;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
+import com.google.common.base.Function;
+import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -121,19 +124,31 @@ public class TaskService {
     }
 
     public ListenableFuture<DateTime> scheduleTask(DateTime time, Task task) {
+        TaskType taskType = findTaskType(task.getTaskType().getName());
+
         DateTime currentTimeSlice = dateTimeService.getTimeSlice(time, timeSliceDuration);
         DateTime timeSlice = currentTimeSlice.plus(task.getInterval());
-        int segment = task.getTarget().hashCode() % task.getTaskType().getSegments();
-        int segmentOffset = segment / task.getTaskType().getSegmentOffsets();
 
-        ResultSetFuture queueFuture = session.executeAsync(queries.createTask.bind(task.getTaskType().getName(),
-                timeSlice.toDate(), segment, task.getTarget(), task.getSources(), (int) task.getInterval()
+        return scheduleTaskAt(timeSlice, task, taskType);
+    }
+
+    private ListenableFuture<DateTime> rescheduleTask(DateTime currentTimeSlice, Task task) {
+        DateTime nextTimeSlice = currentTimeSlice.plus(task.getInterval());
+        return scheduleTaskAt(nextTimeSlice, task, task.getTaskType());
+    }
+
+    private ListenableFuture<DateTime> scheduleTaskAt(DateTime time, Task task, TaskType taskType) {
+        int segment = task.getTarget().hashCode() % taskType.getSegments();
+        int segmentOffset = segment / taskType.getSegmentOffsets();
+
+        ResultSetFuture queueFuture = session.executeAsync(queries.createTask.bind(taskType.getName(),
+                time.toDate(), segment, task.getTarget(), task.getSources(), (int) task.getInterval()
                         .getStandardMinutes(), (int) task.getWindow().getStandardMinutes()));
-        ResultSetFuture leaseFuture = session.executeAsync(queries.createLease.bind(timeSlice.toDate(),
-                task.getTaskType().getName(), segmentOffset));
+        ResultSetFuture leaseFuture = session.executeAsync(queries.createLease.bind(time.toDate(),
+                taskType.getName(), segmentOffset));
         ListenableFuture<List<ResultSet>> futures = Futures.allAsList(queueFuture, leaseFuture);
 
-        return Futures.transform(futures, (List<ResultSet> resultSets) -> timeSlice);
+        return Futures.transform(futures, (List<ResultSet> resultSets) -> time);
     }
 
     public void executeTasks(DateTime timeSlice) {
@@ -178,12 +193,25 @@ public class TaskService {
                             public void onSuccess(Boolean acquired) {
                                 latchRef.get().countDown();
                                 if (acquired) {
+                                    List<ListenableFuture<ResultSet>> deleteFutures = new ArrayList<>();
                                     TaskType taskType = findTaskType(lease.getTaskType());
                                     for (int i = lease.getSegmentOffset(); i < taskType.getSegments(); ++i) {
                                         ListenableFuture<List<Task>> tasksFuture = findTasks(lease.getTaskType(),
                                                 timeSlice, i);
-                                        Futures.addCallback(tasksFuture, executeTasksCallback(lease, i), workers);
+                                        ListenableFuture<ExecutionResults> resultsFuture =
+                                                Futures.transform(tasksFuture, executeTaskSegment1(timeSlice,
+                                                        taskType, i), workers);
+                                        ListenableFuture<List<DateTime>> nextExecutionsFuture = Futures.transform(
+                                                resultsFuture, scheduleNextExecution, workers);
+                                        ListenableFuture<ResultSet> deleteFuture = Futures.transform(
+                                                nextExecutionsFuture, deleteTaskSegment(timeSlice, taskType, i));
+                                        deleteFutures.add(deleteFuture);
                                     }
+                                    ListenableFuture<List<ResultSet>> deletesFuture =
+                                            Futures.allAsList(deleteFutures);
+                                    ListenableFuture<Boolean> leaseFinishedFuture = Futures.transform(deletesFuture,
+                                            (List<ResultSet> resultSets) -> leaseManager.finish(lease), workers);
+                                    Futures.addCallback(leaseFinishedFuture, leaseFinished(lease), workers);
                                 } else {
                                     // someone else has the lease so return the permit and try to
                                     // acquire another lease
@@ -214,36 +242,58 @@ public class TaskService {
         }
     }
 
-    private FutureCallback<List<Task>> executeTasksCallback(Lease lease, int segment) {
-        return new FutureCallback<List<Task>>() {
-            @Override
-            public void onSuccess(List<Task> tasks) {
-                tasks.forEach(task -> {
-                    TaskType taskType = task.getTaskType();
-                    Runnable taskRunner = taskType.getFactory().apply(task);
+    private Function<List<Task>, ExecutionResults> executeTaskSegment1(DateTime timeSlice, TaskType taskType,
+            int segment) {
+        return tasks -> {
+            ExecutionResults results = new ExecutionResults(timeSlice, taskType, segment);
+            tasks.forEach(task -> {
+                Runnable taskRunner = taskType.getFactory().apply(task);
+                try {
                     taskRunner.run();
-                });
+                    results.add(new ExecutedTask(task, true));
+                } catch (Throwable t) {
+                    logger.warn("Failed to to execute " + task, t);
+                    results.add(new ExecutedTask(task, false));
+                }
+            });
+            return results;
+        };
+    }
 
-                logger.info("deleting tasks for time slice " + lease.getTimeSlice());
+    private AsyncFunction<ExecutionResults, List<DateTime>> scheduleNextExecution = results -> {
+        List<ListenableFuture<DateTime>> scheduledFutures = new ArrayList<>();
+        results.getExecutedTasks().forEach(task ->
+            scheduledFutures.add(rescheduleTask(results.getTimeSlice(), task)));
+        return Futures.allAsList(scheduledFutures);
+    };
 
-                session.execute(queries.deleteTasks.bind(lease.getTaskType(), lease.getTimeSlice().toDate(), segment));
-                ListenableFuture<Boolean> leaseFinished = leaseManager.finish(lease);
-                Futures.addCallback(leaseFinished, new FutureCallback<Boolean>() {
-                    @Override
-                    public void onSuccess(Boolean result) {
-                        permits.release();
-                    }
+    private AsyncFunction<List<DateTime>, ResultSet> deleteTaskSegment(DateTime timeSlice, TaskType taskType,
+            int segment) {
+        return nextExecutions -> session.executeAsync(queries.deleteTasks.bind(taskType.getName(), timeSlice.toDate(),
+                segment));
+    }
 
-                    @Override
-                    public void onFailure(Throwable t) {
-                        logger.warn("Failed to mark lease finished", t);
-                    }
-                }, TaskService.this.workers);
+    private FutureCallback<Boolean> leaseFinished(Lease lease) {
+        return new FutureCallback<Boolean>() {
+            @Override
+            public void onSuccess(Boolean finished) {
+                if (!finished) {
+                    logger.warn("All tasks for {} have completed but unable to set it to finished", lease);
+                }
+                permits.release();
             }
 
             @Override
             public void onFailure(Throwable t) {
+                // We can wind up in the onFailure callback when either any of the task segment deletions fail or when
+                // marking the lease finished fails with an error. In order to determine what exactly failed, we need
+                // to register additional callbacks on each future with either Futures.addCallback or
+                // Futures.withFallback. Neither is particular appealing as it makes the code more complicated. This is
+                // one of a growing number of reasons I want to prototype a solution using RxJava.
 
+                logger.warn("There was an error either while deleting one or more task segments or while attempting "
+                        + "to mark " + lease + " finished", t);
+                permits.release();
             }
         };
     }

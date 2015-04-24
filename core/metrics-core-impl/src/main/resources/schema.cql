@@ -170,6 +170,7 @@ CREATE TABLE ${keyspace}.task_queue (
     sources set<text>,
     interval int,
     window int,
+    failed_time_slices set<timestamp>,
     PRIMARY KEY ((task_type, time_slice, segment), target)
 );
 
