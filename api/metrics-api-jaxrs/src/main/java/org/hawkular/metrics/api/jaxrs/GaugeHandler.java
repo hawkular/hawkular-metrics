@@ -77,10 +77,10 @@ import com.wordnik.swagger.annotations.ApiResponses;
  * @author Stefan Negrea
  *
  */
-@Path("/")
+@Path("/gauges")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@Api(value = "/gauges", description = "Gauge metrics interface")
+@Api(value = "", description = "Gauge metrics interface")
 public class GaugeHandler {
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
@@ -109,7 +109,7 @@ public class GaugeHandler {
         }
         metric.setTenantId(tenantId);
         ListenableFuture<Void> future = metricsService.createMetric(metric);
-        URI created = uriInfo.getBaseUriBuilder().path("/{tenantId}/gauges/{id}")
+        URI created = uriInfo.getBaseUriBuilder().path("/gauges/{id}")
                 .build(tenantId, metric.getId().getName());
         MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(asyncResponse, created);
         Futures.addCallback(future, metricCreatedCallback);

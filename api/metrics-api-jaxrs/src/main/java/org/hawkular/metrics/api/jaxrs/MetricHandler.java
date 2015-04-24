@@ -54,10 +54,10 @@ import com.wordnik.swagger.annotations.ApiResponses;
  * Interface to deal with metrics
  * @author Heiko W. Rupp
  */
-@Path("/")
+@Path("/metrics")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@Api(value = "/metrics", description = "Metrics related REST interface")
+@Api(value = "", description = "Metrics related REST interface")
 public class MetricHandler {
     @Inject
     private MetricsService metricsService;

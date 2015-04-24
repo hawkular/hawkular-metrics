@@ -74,10 +74,10 @@ import com.wordnik.swagger.annotations.ApiResponses;
  * @author Stefan Negrea
  *
  */
-@Path("/")
+@Path("/availability")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@Api(value = "/availability", description = "Availability metrics interface")
+@Api(value = "", description = "Availability metrics interface")
 public class AvailabilityHandler {
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
@@ -95,7 +95,8 @@ public class AvailabilityHandler {
             @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
                 response = ApiError.class) })
     public void createAvailabilityMetric(@Suspended final AsyncResponse asyncResponse,
-            @HeaderParam("tenantId") String tenantId, @ApiParam(required = true) Availability metric,
+            @HeaderParam("tenantId") String tenantId,
+            @ApiParam(required = true) Availability metric,
             @Context UriInfo uriInfo) {
         if (metric == null) {
             Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Payload is empty")).build();
@@ -104,7 +105,7 @@ public class AvailabilityHandler {
         }
         metric.setTenantId(tenantId);
         ListenableFuture<Void> future = metricsService.createMetric(metric);
-        URI created = uriInfo.getBaseUriBuilder().path("/{tenantId}/availability/{id}")
+        URI created = uriInfo.getBaseUriBuilder().path("/availability/{id}")
                 .build(tenantId, metric.getId().getName());
         MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(asyncResponse, created);
         Futures.addCallback(future, metricCreatedCallback);

@@ -50,10 +50,10 @@ import com.wordnik.swagger.annotations.ApiOperation;
  * @author Stefan Negrea
  *
  */
-@Path("/")
+@Path("/counters")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@Api(value = "/counters", description = "Availability metrics interface")
+@Api(value = "", description = "Availability metrics interface")
 public class CounterHandler {
     @Inject
     private MetricsService metricsService;
