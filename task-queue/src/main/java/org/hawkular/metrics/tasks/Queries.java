@@ -78,7 +78,7 @@ public class Queries {
             "VALUES (?, ?, ?, ?, ?, ?, ?)");
 
         findTasks = session.prepare(
-            "SELECT target, sources, interval, window " +
+            "SELECT target, sources, interval, window, failed_time_slices " +
             "FROM task_queue " +
             "WHERE task_type = ? AND time_slice = ? AND segment = ?");
 

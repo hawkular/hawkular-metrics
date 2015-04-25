@@ -138,8 +138,9 @@ public class TaskService {
     }
 
     private ListenableFuture<DateTime> scheduleTaskAt(DateTime time, Task task, TaskType taskType) {
-        int segment = task.getTarget().hashCode() % taskType.getSegments();
-        int segmentOffset = segment / taskType.getSegmentOffsets();
+        int segment = Math.abs(task.getTarget().hashCode() % taskType.getSegments());
+        int segmentsPerOffset = taskType.getSegments() / taskType.getSegmentOffsets();
+        int segmentOffset = (segment / segmentsPerOffset) * segmentsPerOffset;
 
         ResultSetFuture queueFuture = session.executeAsync(queries.createTask.bind(taskType.getName(),
                 time.toDate(), segment, task.getTarget(), task.getSources(), (int) task.getInterval()
