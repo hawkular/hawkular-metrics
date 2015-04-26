@@ -66,8 +66,15 @@ public class TaskService {
 
     private LeaseManager leaseManager;
 
+    /**
+     * The ticker thread pool is responsible for scheduling task execution every tick on the scheduler thread pool.
+     */
     private ScheduledExecutorService ticker = Executors.newScheduledThreadPool(1);
 
+    /**
+     * Thread pool that schedules or kicks of task execution. Task execution runs on the workers thread pool. The
+     * scheduler blocks though until task execution for a time slice is finished.
+     */
     private ExecutorService scheduler = Executors.newSingleThreadExecutor();
 
     private ListeningExecutorService workers = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(4));
@@ -81,6 +88,8 @@ public class TaskService {
     private String owner;
 
     private DateTimeService dateTimeService;
+
+    private TimeUnit tickerUnit = TimeUnit.MINUTES;
 
     public TaskService(Session session, Queries queries, LeaseManager leaseManager, Duration timeSliceDuration,
             List<TaskType> taskTypes) {
@@ -97,12 +106,25 @@ public class TaskService {
         dateTimeService = new DateTimeService();
     }
 
+    void setTickerUnit(TimeUnit tickerUnit) {
+        this.tickerUnit = tickerUnit;
+    }
+
+    /**
+     * Starts the scheduler. Task execution can be scheduled every second or every minute. Task execution for a
+     * particular time slice will run at the end of said time slice or later but never sooner.
+     *
+     * TODO log warning if scheulding falls behind
+     */
     public void start() {
         Runnable runnable = () -> {
-            DateTime timeSlice = dateTimeService.getTimeSlice(now(), Duration.standardSeconds(1));
+            DateTime timeSlice = dateTimeService.getTimeSlice(now(), timeSliceDuration);
             scheduler.submit(() -> executeTasks(timeSlice));
         };
-        ticker.scheduleAtFixedRate(runnable, 1, 1, TimeUnit.SECONDS);
+        ticker.scheduleAtFixedRate(runnable, 0, 1, tickerUnit);
+    }
+
+    public void shutdown() {
     }
 
     public ListenableFuture<List<Task>> findTasks(String type, DateTime timeSlice, int segment) {

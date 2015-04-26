@@ -47,7 +47,7 @@ import org.testng.annotations.Test;
  */
 public class TaskServiceTest extends BaseTest {
 
-    private LeaseManager leaseManager;
+    protected LeaseManager leaseManager;
 
     @BeforeClass
     public void initClass() {
@@ -326,7 +326,7 @@ public class TaskServiceTest extends BaseTest {
     }
 
     @SafeVarargs
-    private void assertLeasesCreated(DateTime timeSlice, Function<DateTime, Lease>... leaseFns) throws Exception {
+    private final void assertLeasesCreated(DateTime timeSlice, Function<DateTime, Lease>... leaseFns) throws Exception {
         Lease[] leases = Arrays.stream(leaseFns)
                 .map((Function<DateTime, Lease> fn) -> fn.apply(timeSlice))
                 .toArray(Lease[]::new);
