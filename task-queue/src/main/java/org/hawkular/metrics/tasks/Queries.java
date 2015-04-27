@@ -38,6 +38,8 @@ public class Queries {
 
     public PreparedStatement createTask;
 
+    public PreparedStatement createTaskWithFailures;
+
     public PreparedStatement findTasks;
 
     public PreparedStatement deleteTasks;
@@ -74,6 +76,10 @@ public class Queries {
         createTask = session.prepare(
             "INSERT INTO task_queue (task_type, time_slice, segment, target, sources, interval, window) " +
             "VALUES (?, ?, ?, ?, ?, ?, ?)");
+
+        createTaskWithFailures = session.prepare(
+            "INSERT INTO task_queue (task_type, time_slice, segment, target, sources, interval, window, " +
+            "failed_time_slices) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
 
         findTasks = session.prepare(
             "SELECT target, sources, interval, window, failed_time_slices " +

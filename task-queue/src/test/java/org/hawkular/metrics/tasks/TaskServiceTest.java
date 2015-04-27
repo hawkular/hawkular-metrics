@@ -325,8 +325,17 @@ public class TaskServiceTest extends BaseTest {
         return timeSlice -> new Lease(timeSlice, taskType.getName(), segmentOffset, null, false);
     }
 
+    /**
+     * The compiler requires that a method with @SafeVarargs be either static or final.
+     * checkstyle fails when making a private method final, so this method is protected to
+     * avoid any more wasted time with checkstyle/
+     * @param timeSlice
+     * @param leaseFns
+     * @throws Exception
+     */
     @SafeVarargs
-    private final void assertLeasesCreated(DateTime timeSlice, Function<DateTime, Lease>... leaseFns) throws Exception {
+    protected final void assertLeasesCreated(DateTime timeSlice, Function<DateTime, Lease>... leaseFns)
+            throws Exception {
         Lease[] leases = Arrays.stream(leaseFns)
                 .map((Function<DateTime, Lease> fn) -> fn.apply(timeSlice))
                 .toArray(Lease[]::new);

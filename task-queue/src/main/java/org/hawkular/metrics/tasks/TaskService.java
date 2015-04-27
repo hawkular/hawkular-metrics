@@ -17,12 +17,15 @@
 package org.hawkular.metrics.tasks;
 
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 import static org.joda.time.DateTime.now;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -125,6 +128,9 @@ public class TaskService {
     }
 
     public void shutdown() {
+//        ticker.shutdownNow();
+//        scheduler.shutdownNow();
+//        List<Runnable> droppedTasks = workers.shutdownNow()
     }
 
     public ListenableFuture<List<Task>> findTasks(String type, DateTime timeSlice, int segment) {
@@ -149,19 +155,45 @@ public class TaskService {
         DateTime currentTimeSlice = dateTimeService.getTimeSlice(time, timeSliceDuration);
         DateTime timeSlice = currentTimeSlice.plus(task.getInterval());
 
-        return scheduleTaskAt(timeSlice, task, taskType);
+        return scheduleTaskAt(timeSlice, task);
     }
 
     private ListenableFuture<DateTime> rescheduleTask(DateTime currentTimeSlice, Task task) {
         DateTime nextTimeSlice = currentTimeSlice.plus(task.getInterval());
-        return scheduleTaskAt(nextTimeSlice, task, task.getTaskType());
+        return scheduleTaskAt(nextTimeSlice, task);
     }
 
-    private ListenableFuture<DateTime> scheduleTaskAt(DateTime time, Task task, TaskType taskType) {
+    private ListenableFuture<DateTime> rescheduleFailedTask(DateTime currentTimeSlice, Task task) {
+        TaskType taskType = task.getTaskType();
         int segment = Math.abs(task.getTarget().hashCode() % taskType.getSegments());
         int segmentsPerOffset = taskType.getSegments() / taskType.getSegmentOffsets();
         int segmentOffset = (segment / segmentsPerOffset) * segmentsPerOffset;
 
+        task.getFailedTimeSlices().add(currentTimeSlice);
+
+        DateTime timeSlice = currentTimeSlice.plus(task.getInterval());
+
+        ResultSetFuture queueFuture = session.executeAsync(queries.createTaskWithFailures.bind(taskType.getName(),
+                timeSlice.toDate(), segment, task.getTarget(), task.getSources(), (int) task.getInterval()
+                        .getStandardMinutes(), (int) task.getWindow().getStandardMinutes(),
+                toDates(task.getFailedTimeSlices())));
+        ResultSetFuture leaseFuture = session.executeAsync(queries.createLease.bind(timeSlice.toDate(),
+                taskType.getName(), segmentOffset));
+        ListenableFuture<List<ResultSet>> futures = Futures.allAsList(queueFuture, leaseFuture);
+
+        return Futures.transform(futures, (List<ResultSet> resultSets) -> timeSlice);
+    }
+
+    private Set<Date> toDates(Set<DateTime> times) {
+        return times.stream().map(DateTime::toDate).collect(toSet());
+    }
+
+    private ListenableFuture<DateTime> scheduleTaskAt(DateTime time, Task task) {
+        TaskType taskType = task.getTaskType();
+        int segment = Math.abs(task.getTarget().hashCode() % taskType.getSegments());
+        int segmentsPerOffset = taskType.getSegments() / taskType.getSegmentOffsets();
+        int segmentOffset = (segment / segmentsPerOffset) * segmentsPerOffset;
+        
         ResultSetFuture queueFuture = session.executeAsync(queries.createTask.bind(taskType.getName(),
                 time.toDate(), segment, task.getTarget(), task.getSources(), (int) task.getInterval()
                         .getStandardMinutes(), (int) task.getWindow().getStandardMinutes()));
@@ -220,7 +252,7 @@ public class TaskService {
                                         ListenableFuture<List<Task>> tasksFuture = findTasks(lease.getTaskType(),
                                                 timeSlice, i);
                                         ListenableFuture<ExecutionResults> resultsFuture =
-                                                Futures.transform(tasksFuture, executeTaskSegment1(timeSlice,
+                                                Futures.transform(tasksFuture, executeTaskSegment(timeSlice,
                                                         taskType, i), workers);
                                         ListenableFuture<List<DateTime>> nextExecutionsFuture = Futures.transform(
                                                 resultsFuture, scheduleNextExecution, workers);
@@ -263,7 +295,7 @@ public class TaskService {
         }
     }
 
-    private Function<List<Task>, ExecutionResults> executeTaskSegment1(DateTime timeSlice, TaskType taskType,
+    private Function<List<Task>, ExecutionResults> executeTaskSegment(DateTime timeSlice, TaskType taskType,
             int segment) {
         return tasks -> {
             ExecutionResults results = new ExecutionResults(timeSlice, taskType, segment);
@@ -283,8 +315,13 @@ public class TaskService {
 
     private AsyncFunction<ExecutionResults, List<DateTime>> scheduleNextExecution = results -> {
         List<ListenableFuture<DateTime>> scheduledFutures = new ArrayList<>();
-        results.getExecutedTasks().forEach(task ->
-            scheduledFutures.add(rescheduleTask(results.getTimeSlice(), task)));
+        results.getExecutedTasks().forEach(task -> {
+            if (task.succeeded()) {
+                scheduledFutures.add(rescheduleTask(results.getTimeSlice(), task));
+            } else {
+                scheduledFutures.add(rescheduleFailedTask(results.getTimeSlice(), task));
+            }
+        });
         return Futures.allAsList(scheduledFutures);
     };
 

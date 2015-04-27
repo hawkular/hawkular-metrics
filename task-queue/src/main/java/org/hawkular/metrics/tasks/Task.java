@@ -81,16 +81,6 @@ public class Task {
         this.failedTimeSlices.addAll(failedTimeSlices);
     }
 
-//    public Task(TaskType taskType, String target, String source, int interval, int window,
-//            Collection<Date> failedTimeSlices) {
-//        this.taskType = taskType;
-//        this.target = target;
-//        this.sources = ImmutableSet.of(source);
-//        this.interval = minutes(interval).toStandardDuration();
-//        this.window = minutes(window).toStandardDuration();
-//        this.failedTimeSlices.addAll(failedTimeSlices.stream().map(DateTime::new).collect(toList()));
-//    }
-
     public TaskType getTaskType() {
         return taskType;
     }
@@ -124,7 +114,8 @@ public class Task {
                 Objects.equals(target, task.target) &&
                 Objects.equals(sources, task.sources) &&
                 Objects.equals(interval, task.interval) &&
-                Objects.equals(window, task.window);
+                Objects.equals(window, task.window) &&
+                Objects.equals(failedTimeSlices, task.failedTimeSlices);
     }
 
     @Override
