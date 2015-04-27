@@ -44,6 +44,8 @@ public class Task {
 
     private Duration window;
 
+    private DateTime timeSlice;
+
     private SortedSet<DateTime> failedTimeSlices = new TreeSet<>();
 
     public Task() {
@@ -58,26 +60,28 @@ public class Task {
     }
 
     public Task(TaskType taskType, String target, String source, int interval, int window) {
-        this(taskType, target, source, interval, window, Collections.emptySet());
+        this(taskType, target, source, interval, window, null, Collections.emptySet());
     }
 
-    public Task(TaskType taskType, String target, String source, int interval, int window,
+    public Task(TaskType taskType, String target, String source, int interval, int window, DateTime timeSlice,
             Collection<DateTime> failedTimeSlices) {
         this.taskType = taskType;
         this.target = target;
         this.sources = ImmutableSet.of(source);
         this.interval = minutes(interval).toStandardDuration();
         this.window = minutes(window).toStandardDuration();
+        this.timeSlice = timeSlice;
         this.failedTimeSlices.addAll(failedTimeSlices);
     }
 
-    public Task(TaskType taskType, String target, Set<String> sources, int interval, int window,
+    public Task(TaskType taskType, String target, Set<String> sources, int interval, int window, DateTime timeSlice,
             Collection<DateTime> failedTimeSlices) {
         this.taskType = taskType;
         this.target = target;
         this.sources = sources;
         this.interval = minutes(interval).toStandardDuration();
         this.window = minutes(window).toStandardDuration();
+        this.timeSlice = timeSlice;
         this.failedTimeSlices.addAll(failedTimeSlices);
     }
 
@@ -105,6 +109,10 @@ public class Task {
         return failedTimeSlices;
     }
 
+    public DateTime getTimeSlice() {
+        return timeSlice;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -116,11 +124,13 @@ public class Task {
                 Objects.equals(interval, task.interval) &&
                 Objects.equals(window, task.window) &&
                 Objects.equals(failedTimeSlices, task.failedTimeSlices);
+//                Objects.equals(timeSlice, task.timeSlice);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(taskType, target, sources, interval, window);
+        return Objects.hash(taskType, target, sources, interval, window, failedTimeSlices,
+                timeSlice);
     }
 
     @Override
@@ -132,6 +142,7 @@ public class Task {
                 .add("interval", interval.toStandardMinutes())
                 .add("window", window.toStandardMinutes())
                 .add("failedTimeSlices", failedTimeSlices)
+//                .add("timeSlice", timeSlice)
                 .toString();
     }
 }

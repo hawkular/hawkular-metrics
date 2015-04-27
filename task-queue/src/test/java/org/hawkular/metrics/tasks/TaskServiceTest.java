@@ -17,6 +17,7 @@
 package org.hawkular.metrics.tasks;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.joda.time.DateTime.now;
@@ -33,7 +34,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
 import com.datastax.driver.core.ResultSet;
@@ -64,7 +67,8 @@ public class TaskServiceTest extends BaseTest {
 
         TaskService taskService = new TaskService(session, queries, leaseManager, standardMinutes(1), taskTypes);
 
-        Task task = new Task(taskTypes.get(0), "my.metric.5min", "my.metric", 5, 15);
+        DateTime expectedTimeSlice = dateTimeService.getTimeSlice(now().plusMinutes(5), standardMinutes(1));
+        Task task = new Task(taskTypes.get(0), "my.metric.5min", "my.metric", 5, 15, expectedTimeSlice, emptySet());
         DateTime timeSlice =  getUninterruptibly(taskService.scheduleTask(now(), task));
 
         int segment = Math.abs(task.getTarget().hashCode() % task.getTaskType().getSegments());
@@ -106,10 +110,10 @@ public class TaskServiceTest extends BaseTest {
         int metric2Segment = Math.abs(metric2.hashCode() % taskType.getSegments());
 
         Map<Task, Boolean> executedTasks = new HashMap<>();
-        executedTasks.put(new Task(taskType, metric1, "metric1", interval, window), false);
-        executedTasks.put(new Task(taskType, metric2, "metric2", interval, window), false);
+        executedTasks.put(new Task(taskType, metric1, "metric1", interval, window, timeSlice, emptySet()), false);
+        executedTasks.put(new Task(taskType, metric2, "metric2", interval, window, timeSlice, emptySet()), false);
 
-        taskType.setFactory(task -> () -> executedTasks.put(task, true));
+        taskType.setFactory(() -> task -> executedTasks.put(task, true));
 
         session.execute(queries.createTask.bind(type, timeSlice.toDate(), metric1Segment, metric1,
                 ImmutableSet.of("metric1"), interval, window));
@@ -134,9 +138,9 @@ public class TaskServiceTest extends BaseTest {
         assertLeasesCreated(nextTimeSlice, newLease(taskType, segmentOffset));
 
         assertTasksRescheduled(taskType, nextTimeSlice, segment0, new Task(taskType, metric1, "metric1",
-                interval, window));
+                interval, window, nextTimeSlice, emptySet()));
         assertTasksRescheduled(taskType, nextTimeSlice, segment1, new Task(taskType, metric2, "metric2",
-                interval, window));
+                interval, window, nextTimeSlice, emptySet()));
     }
 
     @Test
@@ -148,7 +152,7 @@ public class TaskServiceTest extends BaseTest {
         int window = 15;
         int segmentOffset = 0;
         TaskExecutionHistory executionHistory = new TaskExecutionHistory();
-        Function<Task, Runnable> taskFactory = task -> () -> executionHistory.add(task.getTarget());
+        Supplier<Consumer<Task>> taskFactory = () -> task -> executionHistory.add(task.getTarget());
 
         TaskType taskType1 = new TaskType().setName(type1).setSegments(2).setSegmentOffsets(1).setFactory(taskFactory);
         TaskType taskType2 = new TaskType().setName(type2).setSegments(2).setSegmentOffsets(1).setFactory(taskFactory);
@@ -199,13 +203,13 @@ public class TaskServiceTest extends BaseTest {
         assertLeasesCreated(nextTimeSlice, newLease(taskType1, segmentOffset), newLease(taskType2, segmentOffset));
 
         assertTasksRescheduled(taskType1, nextTimeSlice, metric1Segment, new Task(taskType1, metric1,
-                "test1.metric1", interval, window));
+                "test1.metric1", interval, window, nextTimeSlice, emptySet()));
         assertTasksRescheduled(taskType1, nextTimeSlice, metric2Segment, new Task(taskType1, metric2,
-                "test1.metric2", interval, window));
+                "test1.metric2", interval, window, nextTimeSlice, emptySet()));
         assertTasksRescheduled(taskType2, nextTimeSlice, metric3Segment, new Task(taskType2, metric3,
-                "test2.metric1", interval, window));
+                "test2.metric1", interval, window, nextTimeSlice, emptySet()));
         assertTasksRescheduled(taskType2, nextTimeSlice, metric4Segment, new Task(taskType2, metric4,
-                "test2.metric2", interval, window));
+                "test2.metric2", interval, window, nextTimeSlice, emptySet()));
     }
 
     /**
@@ -223,7 +227,7 @@ public class TaskServiceTest extends BaseTest {
         int segmentOffset = 0;
 
         TaskExecutionHistory executionHistory = new TaskExecutionHistory();
-        Function<Task, Runnable> taskFactory = task -> () -> executionHistory.add(task.getTarget());
+        Supplier<Consumer<Task>> taskFactory = () -> task -> executionHistory.add(task.getTarget());
 
         TaskType taskType1 = new TaskType().setName(type1).setSegments(5).setSegmentOffsets(1).setFactory(taskFactory);
 
@@ -279,7 +283,7 @@ public class TaskServiceTest extends BaseTest {
         DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(1), standardMinutes(1));
         String type = "test";
         TaskType taskType = new TaskType().setName(type).setSegments(1).setSegmentOffsets(1)
-                .setFactory(task -> () -> {
+                .setFactory(() -> task -> {
                     throw new RuntimeException();
                 });
         String metric = "metric1.5min";
@@ -302,7 +306,44 @@ public class TaskServiceTest extends BaseTest {
         // now verify that the task is rescheduled
         DateTime nextTimeSlice = timeSlice.plusMinutes(interval);
         assertTasksRescheduled(taskType, nextTimeSlice, segment, new Task(taskType, metric, "metric1", interval, window,
-                asList(timeSlice)));
+                nextTimeSlice, asList(timeSlice)));
+    }
+
+    @Test
+    public void executeTaskThatPreviouslyFailed() throws Exception {
+        DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(2), standardMinutes(1));
+        String type = "test";
+        TaskType taskType = new TaskType().setName(type).setSegments(1).setSegmentOffsets(1);
+        String metric = "metric.5min";
+        int interval = 5;
+        int window = 15;
+        int segment = metric.hashCode() % taskType.getSegments();
+        int segmentOffset = 0;
+        DateTime previousTimeSlice = timeSlice.minusMinutes(interval);
+
+        List<Task> executedTasks = new ArrayList<>();
+        taskType.setFactory(() -> executedTasks::add);
+
+        session.execute(queries.createTaskWithFailures.bind(type, timeSlice.toDate(), segment, metric,
+                ImmutableSet.of("metric"), interval, window, ImmutableSet.of(previousTimeSlice.toDate())));
+        session.execute(queries.createLease.bind(timeSlice.toDate(), type, segmentOffset));
+
+        TaskService taskService = new TaskService(session, queries, leaseManager, standardMinutes(1), asList(taskType));
+        taskService.executeTasks(timeSlice);
+
+        List<Task> expectedExecutedTasks = asList(
+                new Task(taskType, metric, "metric", interval, window, previousTimeSlice, emptySet()),
+                new Task(taskType, metric, "metric", interval, window, timeSlice, emptySet())
+        );
+
+        assertEquals(executedTasks, expectedExecutedTasks, "The executed tasks do not match expected values");
+
+//        assertEquals(executedTasks.size(), 1, "Expected one task to get executed");
+//        assertEquals(executedTasks.get(0), new Task(taskType, metric, "metric", interval, window, timeSlice,
+//                ImmutableSet.of(previousTimeSlice)));
+
+        assertTasksPartitionDeleted(type, timeSlice, segment);
+        assertLeasePartitionDeleted(timeSlice);
     }
 
     private void assertTasksPartitionDeleted(String taskType, DateTime timeSlice, int segment) {
@@ -364,7 +405,8 @@ public class TaskServiceTest extends BaseTest {
         ResultSet resultSet = session.execute(queries.findTasks.bind(type.getName(), timeSlice.toDate(), segment));
         Set<Task> actualTasks = StreamSupport.stream(resultSet.spliterator(), false)
                 .map(row -> new Task(type, row.getString(0), row.getSet(1, String.class), row.getInt(2),
-                        row.getInt(3), row.getSet(4, Date.class).stream().map(DateTime::new).collect(toList())))
+                        row.getInt(3), timeSlice,
+                        row.getSet(4, Date.class).stream().map(DateTime::new).collect(toList())))
                 .collect(toSet());
         Set<Task> expectedTasks = ImmutableSet.copyOf(expected);
 

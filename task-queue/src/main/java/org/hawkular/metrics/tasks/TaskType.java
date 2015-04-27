@@ -17,7 +17,8 @@
 package org.hawkular.metrics.tasks;
 
 import java.util.Objects;
-import java.util.function.Function;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * @author jsanda
@@ -26,7 +27,7 @@ public class TaskType {
 
     private String name;
 
-    private Function<Task, Runnable> factory;
+    private Supplier<Consumer<Task>> factory;
 
     private int segments;
 
@@ -41,11 +42,11 @@ public class TaskType {
         return this;
     }
 
-    public Function<Task, Runnable> getFactory() {
+    public Supplier<Consumer<Task>> getFactory() {
         return factory;
     }
 
-    public TaskType setFactory(Function<Task, Runnable> factory) {
+    public TaskType setFactory(Supplier<Consumer<Task>> factory) {
         this.factory = factory;
         return this;
     }

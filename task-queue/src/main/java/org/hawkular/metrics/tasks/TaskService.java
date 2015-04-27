@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.tasks;
 
+import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.joda.time.DateTime.now;
@@ -34,6 +35,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
 
 import com.datastax.driver.core.ResultSet;
@@ -117,7 +119,7 @@ public class TaskService {
      * Starts the scheduler. Task execution can be scheduled every second or every minute. Task execution for a
      * particular time slice will run at the end of said time slice or later but never sooner.
      *
-     * TODO log warning if scheulding falls behind
+     * TODO log warning if scheduling falls behind
      */
     public void start() {
         Runnable runnable = () -> {
@@ -138,7 +140,8 @@ public class TaskService {
         TaskType taskType = findTaskType(type);
         return Futures.transform(future, (ResultSet resultSet) -> StreamSupport.stream(resultSet.spliterator(), false)
                 .map(row -> new Task(taskType, row.getString(0), row.getSet(1, String.class), row.getInt(2),
-                        row.getInt(3)))
+                        row.getInt(3), timeSlice,
+                        row.getSet(4, Date.class).stream().map(DateTime::new).collect(toSet())))
                 .collect(toList()));
     }
 
@@ -193,7 +196,7 @@ public class TaskService {
         int segment = Math.abs(task.getTarget().hashCode() % taskType.getSegments());
         int segmentsPerOffset = taskType.getSegments() / taskType.getSegmentOffsets();
         int segmentOffset = (segment / segmentsPerOffset) * segmentsPerOffset;
-        
+
         ResultSetFuture queueFuture = session.executeAsync(queries.createTask.bind(taskType.getName(),
                 time.toDate(), segment, task.getTarget(), task.getSources(), (int) task.getInterval()
                         .getStandardMinutes(), (int) task.getWindow().getStandardMinutes()));
@@ -300,9 +303,14 @@ public class TaskService {
         return tasks -> {
             ExecutionResults results = new ExecutionResults(timeSlice, taskType, segment);
             tasks.forEach(task -> {
-                Runnable taskRunner = taskType.getFactory().apply(task);
+                Consumer<Task> taskRunner = taskType.getFactory().get();
                 try {
-                    taskRunner.run();
+                    task.getFailedTimeSlices().forEach(previousTimeSlice -> taskRunner.accept(new Task(taskType, task
+                            .getTarget(),
+                            task.getSources(), task.getInterval().toStandardMinutes().getMinutes(), task.getWindow()
+                            .toStandardMinutes().getMinutes(), previousTimeSlice, emptySet())));
+                    task.getFailedTimeSlices().clear();
+                    taskRunner.accept(task);
                     results.add(new ExecutedTask(task, true));
                 } catch (Throwable t) {
                     logger.warn("Failed to to execute " + task, t);
