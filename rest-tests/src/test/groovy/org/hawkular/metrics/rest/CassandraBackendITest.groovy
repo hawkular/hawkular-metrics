@@ -242,7 +242,7 @@ class CassandraBackendITest extends RESTTest {
     ], headers: ["tenantId": tenantId])
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: "${tenantId}/gauges/m2/data")
+    response = hawkularMetrics.get(path: "gauges/m2/data", headers: ["tenantId": tenantId])
     assertEquals(200, response.status)
     assertEquals(
         [

@@ -109,8 +109,7 @@ public class GaugeHandler {
         }
         metric.setTenantId(tenantId);
         ListenableFuture<Void> future = metricsService.createMetric(metric);
-        URI created = uriInfo.getBaseUriBuilder().path("/gauges/{id}")
-                .build(tenantId, metric.getId().getName());
+        URI created = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getId().getName());
         MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(asyncResponse, created);
         Futures.addCallback(future, metricCreatedCallback);
     }

@@ -105,8 +105,7 @@ public class AvailabilityHandler {
         }
         metric.setTenantId(tenantId);
         ListenableFuture<Void> future = metricsService.createMetric(metric);
-        URI created = uriInfo.getBaseUriBuilder().path("/availability/{id}")
-                .build(tenantId, metric.getId().getName());
+        URI created = uriInfo.getBaseUriBuilder().path("/availability/{id}").build(metric.getId().getName());
         MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(asyncResponse, created);
         Futures.addCallback(future, metricCreatedCallback);
     }
