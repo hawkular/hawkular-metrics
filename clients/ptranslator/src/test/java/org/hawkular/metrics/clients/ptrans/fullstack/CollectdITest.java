@@ -274,14 +274,8 @@ public class CollectdITest extends ExecutableITestBase {
                 TypeFactory typeFactory = objectMapper.getTypeFactory();
                 CollectionType valueType = typeFactory.constructCollectionType(List.class, MetricData.class);
                 List<MetricData> data = objectMapper.readValue(inputStream, valueType);
-                Stream<Point> metricPoints = data.stream()
-                                                 .map(
-                                                         metricData -> new Point(
-                                                                 type,
-                                                                 metricData.timestamp,
-                                                                 metricData.value
-                                                         )
-                                                 );
+                Stream<Point> metricPoints = data.stream().map(
+                        metricData -> new Point(type, metricData.timestamp, metricData.value));
                 points = Stream.concat(points, metricPoints);
             }
         }
