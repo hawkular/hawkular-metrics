@@ -32,7 +32,8 @@ public class TenantIdFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
-        if (!requestContext.getUriInfo().getAbsolutePath().toString().contains("tenants")) {
+        if (!requestContext.getUriInfo().getAbsolutePath().toString().contains("/tenants")
+                && !requestContext.getUriInfo().getAbsolutePath().toString().contains("/series")) {
             String tenantIdHeaderParam = requestContext.getHeaderString("tenantId");
             if (tenantIdHeaderParam == null || tenantIdHeaderParam.isEmpty()) {
                 String tenandIdQueryParam = requestContext.getUriInfo().getQueryParameters().getFirst("tenantId");
