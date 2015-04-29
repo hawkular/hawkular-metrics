@@ -27,7 +27,7 @@ import org.joda.time.Period;
 /**
  * @author jsanda
  */
-class DateTimeService {
+public class DateTimeService {
 
     /**
      * @return A DateTime object rounded down to the start of the current hour. For example, if the current time is

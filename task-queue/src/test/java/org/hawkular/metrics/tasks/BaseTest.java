@@ -24,6 +24,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
+import org.hawkular.metrics.tasks.impl.Queries;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
 

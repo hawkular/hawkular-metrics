@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.tasks;
+package org.hawkular.metrics.tasks.api;
 
 import java.util.Set;
 
@@ -33,14 +33,14 @@ public interface Task {
     TaskType getTaskType();
 
     /**
-     * This is a key or identifier of the entity or thing associated with any data produced by the task. Consider
-     * aggregating metrics or events as an example. Let's say there is a task for computing a 5 minute rollup from raw
+     * This is a key or identifier of the time series that is associated with the task. Consider aggregating metrics or
+     * events as an example. Let's say there is a task for computing a 5 minute rollup from raw
      * data. This property should be the key or identifier of the 5 minute rollup time series.
      */
     String getTarget();
 
     /**
-     * The keys or identifiers of the entities associated with the source data being operated on. There can be one or
+     * The keys or identifiers of the time series associated with the source data being operated on. There can be one or
      * more sources. Consider aggregating metrics or events as an example. There is a task for computing a 5 minute
      * rollup from raw data. This property identifies the time series of the raw data to be aggregated.
      */

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.tasks;
+package org.hawkular.metrics.tasks.impl;
 
 import static java.util.Arrays.asList;
 import static org.joda.time.DateTime.now;
@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.hawkular.metrics.tasks.BaseTest;
+import org.hawkular.metrics.tasks.api.TaskType;
 import org.joda.time.DateTime;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -52,7 +54,8 @@ public class TaskSchedulerTest extends BaseTest {
                 dateTimeService.getTimeSlice(now().plusSeconds(2), standardSeconds(3))
         );
 
-        TaskService taskService = new TaskService(session, queries, leaseManager, standardSeconds(1), taskTypes) {
+        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseManager, standardSeconds(1),
+                taskTypes) {
             @Override
             public void executeTasks(DateTime timeSlice) {
                 actualTimeSlices.add(timeSlice);

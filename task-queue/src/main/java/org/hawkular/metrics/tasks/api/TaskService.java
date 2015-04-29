@@ -14,21 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.tasks;
+package org.hawkular.metrics.tasks.api;
+
+import com.google.common.util.concurrent.ListenableFuture;
+import org.joda.time.DateTime;
 
 /**
  * @author jsanda
  */
-public class TaskExecutionException extends RuntimeException {
+public interface TaskService {
+    /**
+     * Starts the scheduler. Task execution can be scheduled every second or every minute. Task execution for a
+     * particular time slice will run at the end of said time slice or later but never sooner.
+     *
+     * TODO log warning if scheduling falls behind
+     */
+    void start();
 
-    private Task failedTask;
+    void shutdown();
 
-    public TaskExecutionException(Task failedTask, Throwable cause) {
-        super(cause);
-        this.failedTask = failedTask;
-    }
-
-    public Task getFailedTask() {
-        return failedTask;
-    }
+    ListenableFuture<Task> scheduleTask(DateTime time, Task task);
 }

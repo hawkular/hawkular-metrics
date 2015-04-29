@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.tasks;
+package org.hawkular.metrics.tasks.impl;
 
 import java.util.Iterator;
 import java.util.Objects;
@@ -25,6 +25,8 @@ import java.util.Spliterators;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 
+import org.hawkular.metrics.tasks.api.TaskType;
+import org.hawkular.metrics.tasks.api.Task;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 

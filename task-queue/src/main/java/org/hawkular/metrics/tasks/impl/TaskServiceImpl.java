@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.tasks;
+package org.hawkular.metrics.tasks.impl;
 
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
@@ -48,6 +48,10 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Uninterruptibles;
+import org.hawkular.metrics.tasks.DateTimeService;
+import org.hawkular.metrics.tasks.api.TaskExecutionException;
+import org.hawkular.metrics.tasks.api.Task;
+import org.hawkular.metrics.tasks.api.TaskType;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.slf4j.Logger;
@@ -56,9 +60,9 @@ import org.slf4j.LoggerFactory;
 /**
  * @author jsanda
  */
-public class TaskService {
+public class TaskServiceImpl implements org.hawkular.metrics.tasks.api.TaskService {
 
-    private static final Logger logger = LoggerFactory.getLogger(TaskService.class);
+    private static final Logger logger = LoggerFactory.getLogger(TaskServiceImpl.class);
 
     private Duration timeSliceDuration;
 
@@ -95,7 +99,7 @@ public class TaskService {
 
     private TimeUnit tickerUnit = TimeUnit.MINUTES;
 
-    public TaskService(Session session, Queries queries, LeaseManager leaseManager, Duration timeSliceDuration,
+    public TaskServiceImpl(Session session, Queries queries, LeaseManager leaseManager, Duration timeSliceDuration,
             List<TaskType> taskTypes) {
         this.session = session;
         this.queries = queries;
@@ -114,12 +118,7 @@ public class TaskService {
         this.tickerUnit = tickerUnit;
     }
 
-    /**
-     * Starts the scheduler. Task execution can be scheduled every second or every minute. Task execution for a
-     * particular time slice will run at the end of said time slice or later but never sooner.
-     *
-     * TODO log warning if scheduling falls behind
-     */
+    @Override
     public void start() {
         Runnable runnable = () -> {
             DateTime timeSlice = dateTimeService.getTimeSlice(now(), timeSliceDuration);
@@ -128,6 +127,7 @@ public class TaskService {
         ticker.scheduleAtFixedRate(runnable, 0, 1, tickerUnit);
     }
 
+    @Override
     public void shutdown() {
 //        ticker.shutdownNow();
 //        scheduler.shutdownNow();
@@ -150,6 +150,7 @@ public class TaskService {
                 .orElseThrow(() -> new IllegalArgumentException(type + " is not a recognized task type"));
     }
 
+    @Override
     public ListenableFuture<Task> scheduleTask(DateTime time, Task task) {
         TaskType taskType = findTaskType(task.getTaskType().getName());
 

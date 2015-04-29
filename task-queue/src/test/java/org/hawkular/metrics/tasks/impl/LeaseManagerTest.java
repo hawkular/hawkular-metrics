@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.tasks;
+package org.hawkular.metrics.tasks.impl;
 
 import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
@@ -26,6 +26,7 @@ import java.util.List;
 import com.datastax.driver.core.PreparedStatement;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
+import org.hawkular.metrics.tasks.BaseTest;
 import org.joda.time.DateTime;
 import org.joda.time.Minutes;
 import org.testng.annotations.BeforeClass;
