@@ -69,6 +69,10 @@ public class TaskType {
         return this;
     }
 
+    public Task createTask(String target, String source, int interval, int window) {
+        return new TaskImpl(this, null, target, source, interval, window);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

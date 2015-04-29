@@ -19,17 +19,16 @@ package org.hawkular.metrics.tasks;
 /**
  * @author jsanda
  */
-class ExecutedTask extends Task {
+public class TaskExecutionException extends RuntimeException {
 
-    private boolean succeed;
+    private Task failedTask;
 
-    public ExecutedTask(Task task, boolean succeed) {
-        super(task.getTaskType(), task.getTarget(), task.getSources(), task.getInterval().toStandardMinutes()
-                .getMinutes(), task.getWindow().toStandardMinutes().getMinutes());
-        this.succeed = succeed;
+    public TaskExecutionException(Task failedTask, Throwable cause) {
+        super(cause);
+        this.failedTask = failedTask;
     }
 
-    public boolean succeeded() {
-        return succeed;
+    public Task getFailedTask() {
+        return failedTask;
     }
 }

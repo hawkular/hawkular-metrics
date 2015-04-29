@@ -16,133 +16,52 @@
  */
 package org.hawkular.metrics.tasks;
 
-import static org.joda.time.Minutes.minutes;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Objects;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
-import com.google.common.collect.ImmutableSet;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 
 /**
+ * Represents a unit of work to be performed by a user supplied function. All tasks are considered repeating and are
+ * rescheduled on fixed intervals.
+
  * @author jsanda
  */
-public class Task {
+public interface Task {
 
-    private TaskType taskType;
 
-    private String target;
+    TaskType getTaskType();
 
-    private Set<String> sources;
+    /**
+     * This is a key or identifier of the entity or thing associated with any data produced by the task. Consider
+     * aggregating metrics or events as an example. Let's say there is a task for computing a 5 minute rollup from raw
+     * data. This property should be the key or identifier of the 5 minute rollup time series.
+     */
+    String getTarget();
 
-    private Duration interval;
+    /**
+     * The keys or identifiers of the entities associated with the source data being operated on. There can be one or
+     * more sources. Consider aggregating metrics or events as an example. There is a task for computing a 5 minute
+     * rollup from raw data. This property identifies the time series of the raw data to be aggregated.
+     */
+    Set<String> getSources();
 
-    private Duration window;
+    /**
+     * The frequency of the task execution, e.g., five minutes.
+     */
+    Duration getInterval();
 
-    private DateTime timeSlice;
+    /**
+     * Specifies the amount of data to be included. For an aggregation task that runs every 5 minutes with a window of
+     * 15 minutes, the task should query for data from the past 15 minutes using {@link #getTimeSlice() timeSlice} as
+     * the end time.
+     */
+    Duration getWindow();
 
-    private SortedSet<DateTime> failedTimeSlices = new TreeSet<>();
+    /**
+     * The end time of the time slice for which the task is scheduled. If a task has an interval of an hour, then the
+     * time slice would be 9:00 - 10:00, 10:00 - 11:00, etc. The task is guaranteed to run no earlier than this time.
+     */
+    DateTime getTimeSlice();
 
-    public Task() {
-    }
-
-    public Task(TaskType taskType, String target, Set<String> sources, int interval, int window) {
-        this.taskType = taskType;
-        this.target = target;
-        this.sources = sources;
-        this.interval = minutes(interval).toStandardDuration();
-        this.window = minutes(window).toStandardDuration();
-    }
-
-    public Task(TaskType taskType, String target, String source, int interval, int window) {
-        this(taskType, target, source, interval, window, null, Collections.emptySet());
-    }
-
-    public Task(TaskType taskType, String target, String source, int interval, int window, DateTime timeSlice,
-            Collection<DateTime> failedTimeSlices) {
-        this.taskType = taskType;
-        this.target = target;
-        this.sources = ImmutableSet.of(source);
-        this.interval = minutes(interval).toStandardDuration();
-        this.window = minutes(window).toStandardDuration();
-        this.timeSlice = timeSlice;
-        this.failedTimeSlices.addAll(failedTimeSlices);
-    }
-
-    public Task(TaskType taskType, String target, Set<String> sources, int interval, int window, DateTime timeSlice,
-            Collection<DateTime> failedTimeSlices) {
-        this.taskType = taskType;
-        this.target = target;
-        this.sources = sources;
-        this.interval = minutes(interval).toStandardDuration();
-        this.window = minutes(window).toStandardDuration();
-        this.timeSlice = timeSlice;
-        this.failedTimeSlices.addAll(failedTimeSlices);
-    }
-
-    public TaskType getTaskType() {
-        return taskType;
-    }
-
-    public String getTarget() {
-        return target;
-    }
-
-    public Set<String> getSources() {
-        return sources;
-    }
-
-    public Duration getInterval() {
-        return interval;
-    }
-
-    public Duration getWindow() {
-        return window;
-    }
-
-    public SortedSet<DateTime> getFailedTimeSlices() {
-        return failedTimeSlices;
-    }
-
-    public DateTime getTimeSlice() {
-        return timeSlice;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Task task = (Task) o;
-        return Objects.equals(taskType, task.taskType) &&
-                Objects.equals(target, task.target) &&
-                Objects.equals(sources, task.sources) &&
-                Objects.equals(interval, task.interval) &&
-                Objects.equals(window, task.window) &&
-                Objects.equals(failedTimeSlices, task.failedTimeSlices);
-//                Objects.equals(timeSlice, task.timeSlice);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(taskType, target, sources, interval, window, failedTimeSlices,
-                timeSlice);
-    }
-
-    @Override
-    public String toString() {
-        return com.google.common.base.Objects.toStringHelper(Task.class)
-                .add("taskDef", taskType.getName())
-                .add("target", target)
-                .add("sources", sources)
-                .add("interval", interval.toStandardMinutes())
-                .add("window", window.toStandardMinutes())
-                .add("failedTimeSlices", failedTimeSlices)
-//                .add("timeSlice", timeSlice)
-                .toString();
-    }
 }
