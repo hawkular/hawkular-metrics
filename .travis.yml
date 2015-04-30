@@ -31,10 +31,11 @@ before_install:
 install:
 - mvn -version -B
 script:
-- mvn -s .travis.maven.settings.xml verify -Dwildfly.logging.console.level=DEBUG -B
-  | grep -vF "[INFO] Downloading:" | grep -vF "[INFO] Downloaded:"; test ${PIPESTATUS[0]}
-  -eq 0
+- mvn -s .travis.maven.settings.xml verify -Dwildfly.logging.console.level=DEBUG -B | grep -vF "[INFO] Downloading:" | grep -vF "[INFO] Downloaded:"; test ${PIPESTATUS[0]} -eq 0
 after_failure: bash .travis.diagnose.sh
 after_success:
 - VERSION=`mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -v '\['`
-- [[ "$VERSION" =~ .*SNAPSHOT ]] && [[ "${TRAVIS_BRANCH}" = "master" ]] && [[ "${TRAVIS_PULL_REQUEST}" = "false" ]] && mvn -s .travis.maven.settings.xml deploy -DskipTests && ./.travis.swagger.sh
+- if [[ "$VERSION" =~ .*SNAPSHOT ]] && [[ "${TRAVIS_BRANCH}" = "master" ]] && [[ "${TRAVIS_PULL_REQUEST}" = "false" ]];
+  then
+    mvn -s .travis.maven.settings.xml deploy -DskipTests && ./.travis.swagger.sh
+  fi
