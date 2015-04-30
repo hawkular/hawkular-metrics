@@ -16,12 +16,17 @@
  */
 package org.hawkular.metrics.tasks.impl;
 
+import static java.util.Collections.singletonList;
 import static org.joda.time.DateTime.now;
+import static org.joda.time.Duration.standardMinutes;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.google.common.collect.ImmutableList;
@@ -29,7 +34,10 @@ import com.google.common.util.concurrent.ListenableFuture;
 import org.hawkular.metrics.tasks.BaseTest;
 import org.joda.time.DateTime;
 import org.joda.time.Minutes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 /**
@@ -37,29 +45,22 @@ import org.testng.annotations.Test;
  */
 public class LeaseManagerTest extends BaseTest {
 
-//    private static final long FUTURE_TIMEOUT = 3;
-//
-//    private Session session;
-//
-//    private DateTimeService dateTimeService;
-//
-//    private Queries queries;
-//
+    private static Logger logger = LoggerFactory.getLogger(LeaseManagerTest.class);
+
     private LeaseManager leaseManager;
-//
+
     private PreparedStatement createdFinishedLease;
-//
+
     @BeforeClass
     public void initClass() {
-        leaseManager = new LeaseManager(session, queries);
         createdFinishedLease = session.prepare(
                 "INSERT INTO leases (time_slice, task_type, segment_offset, finished) VALUES (?, ?, ?, ?)");
     }
-//
-//    @BeforeMethod
-//    public void resetDB() {
-//        session.execute("TRUNCATE leases");
-//    }
+
+    @BeforeMethod
+    public void init() {
+        leaseManager = new LeaseManager(session, queries);
+    }
 
     @Test
     public void findUnfinishedLeases() throws Exception {
@@ -74,7 +75,7 @@ public class LeaseManagerTest extends BaseTest {
         session.execute(queries.createLease.bind(timeSlice.toDate(), taskType3, 0));
         session.execute(queries.createLease.bind(timeSlice.toDate(), taskType4, 0));
 
-        session.execute(createdFinishedLease.bind(timeSlice.toDate(), taskType3,  0, true));
+        session.execute(createdFinishedLease.bind(timeSlice.toDate(), taskType3, 0, true));
         session.execute(createdFinishedLease.bind(timeSlice.toDate(), taskType4, 0, true));
 
         ListenableFuture<List<Lease>> future = leaseManager.findUnfinishedLeases(timeSlice);
@@ -152,6 +153,116 @@ public class LeaseManagerTest extends BaseTest {
 
         Boolean renewed = getUninterruptibly(leaseManager.renew(lease));
         assertTrue(renewed, "Expected lease to be renewed");
+    }
+
+    @Test
+    public void autoRenewLease() throws Exception {
+        int ttl = 3;
+        int renewalRate = 1;
+
+        DateTime timeSlice = dateTimeService.getTimeSlice(now(), standardMinutes(1));
+        Lease lease = new Lease(timeSlice, "autoRenew", 0, null, false);
+
+        session.execute(queries.createLease.bind(lease.getTimeSlice().toDate(), lease.getTaskType(),
+                lease.getSegmentOffset()));
+
+        leaseManager.setTTL(ttl);
+        leaseManager.setRenewalRate(renewalRate);
+
+        lease.setOwner("server1");
+        Boolean acquired = getUninterruptibly(leaseManager.acquire(lease));
+        assertTrue(acquired, "Expected to acquire " + lease);
+
+        executeInNewThread(() -> {
+            leaseManager.autoRenew(lease);
+            List<Lease> expectedLeases = singletonList(lease);
+            try {
+                for (int i = 0; i < 5; ++i) {
+                    Thread.sleep(ttl * 1000);
+                    List<Lease> remainingLeases = getUninterruptibly(leaseManager.findUnfinishedLeases(timeSlice));
+                    logger.info("Remaining leases = {}", remainingLeases);
+                    assertEquals(remainingLeases, expectedLeases,
+                            "The unfinished leases do not match expected values");
+                }
+                Boolean finished = getUninterruptibly(leaseManager.finish(lease));
+                assertTrue(finished, "Expected " + lease + " to be finished");
+            } catch (Exception e) {
+                fail("There was an unexpected error", e);
+            }
+        }, 20000);
+
+        List<Lease> unfinishedLeases = getUninterruptibly(leaseManager.findUnfinishedLeases(timeSlice));
+        assertTrue(unfinishedLeases.isEmpty(), "There should not be any unfinished leases but found " +
+                unfinishedLeases);
+    }
+
+    @Test
+    public void failToRenewLease() throws Exception {
+        int ttl = 2;
+        int renewalRate = 10;
+        DateTime timeSlice = dateTimeService.getTimeSlice(now(), standardMinutes(1));
+        Lease lease = new Lease(timeSlice, "failToRenew", 0, null, false);
+
+        session.execute(queries.createLease.bind(lease.getTimeSlice().toDate(), lease.getTaskType(),
+                lease.getSegmentOffset()));
+
+        leaseManager.setTTL(ttl);
+        leaseManager.setRenewalRate(renewalRate);
+
+        lease.setOwner("server1");
+        Boolean acquired = getUninterruptibly(leaseManager.acquire(lease));
+        assertTrue(acquired, "Expected to acquire " + lease);
+
+        executeInNewThread(() -> {
+            leaseManager.autoRenew(lease);
+
+            try {
+                lease.setOwner("server2");
+                Thread.sleep(2000);
+                Boolean acquiredByNewOwner =  getUninterruptibly(leaseManager.acquire(lease));
+                assertTrue(acquiredByNewOwner, "Expected " + lease + " to be acquired by new owner");
+            } catch (Exception e) {
+                fail("There was an unexpected error trying to acquire " + lease, e);
+            }
+
+            InterruptedException exception = null;
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                exception = e;
+            }
+            assertNotNull(exception, "Expected an " + InterruptedException.class.getSimpleName() +
+                    " to be thrown.");
+        }, 20000);
+    }
+
+    /**
+     * Executes the runnable in a new thread. If an AssertionError or any other exception is
+     * thrown in the new thread, it will be caught and rethrown in the calling thread as an
+     * AssertionError.
+     *
+     * @param runnable
+     * @param wait
+     * @throws InterruptedException
+     */
+    private void executeInNewThread(Runnable runnable, long wait) throws InterruptedException {
+        AtomicReference<AssertionError> errorRef = new AtomicReference<>();
+        Runnable wrappedRunnable = () -> {
+            try {
+                runnable.run();
+            } catch (AssertionError e) {
+                errorRef.set(e);
+            } catch (Throwable t) {
+                errorRef.set(new AssertionError("There was an unexpected exception", t));
+            }
+        };
+        Thread thread = new Thread(wrappedRunnable);
+        thread.start();
+        thread.join(wait);
+
+        if (errorRef.get() != null) {
+            throw errorRef.get();
+        }
     }
 
 }
