@@ -36,4 +36,5 @@ script:
   -eq 0
 after_failure: bash .travis.diagnose.sh
 after_success:
-- test "${TRAVIS_BRANCH}" = "master" && test "${TRAVIS_PULL_REQUEST}" = "false" && mvn -s .travis.maven.settings.xml deploy -DskipTests && ./.travis.swagger.sh
+- VERSION=`mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -v '\['`
+- [[ "$VERSION" == *"SNAPSHOT"* ]] && [[ "${TRAVIS_BRANCH}" = "master" ]] && [[ "${TRAVIS_PULL_REQUEST}" = "false" ]] && mvn -s .travis.maven.settings.xml deploy -DskipTests && ./.travis.swagger.sh
