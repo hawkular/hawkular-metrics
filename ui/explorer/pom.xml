@@ -80,7 +80,7 @@
       <plugin>
         <groupId>com.github.eirslett</groupId>
         <artifactId>frontend-maven-plugin</artifactId>
-        <version>0.0.16</version>
+        <version>0.0.23</version>
 
         <configuration>
           <workingDirectory>${basedir}/src/main/webapp</workingDirectory>
@@ -94,8 +94,8 @@
             </goals>
             <phase>generate-sources</phase>
             <configuration>
-              <nodeVersion>v0.10.33</nodeVersion>
-              <npmVersion>1.4.28</npmVersion>
+              <nodeVersion>v0.10.38</nodeVersion>
+              <npmVersion>2.9.0</npmVersion>
             </configuration>
           </execution>
 

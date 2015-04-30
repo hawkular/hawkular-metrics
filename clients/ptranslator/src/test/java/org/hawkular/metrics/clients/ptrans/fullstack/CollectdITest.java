@@ -94,7 +94,7 @@ public class CollectdITest extends ExecutableITestBase {
     @Before
     public void setUp() throws Exception {
         tenant = getRandomTenantId();
-        findGuageMetricsUrl = "http://" + BASE_URI + "/" + tenant + "/metrics?type=gauge";
+        findGuageMetricsUrl = "http://" + BASE_URI + "/metrics?type=gauge&tenantId=" + tenant;
         assumeCollectdIsPresent();
         configureCollectd();
         assertCollectdConfIsValid();
@@ -144,7 +144,7 @@ public class CollectdITest extends ExecutableITestBase {
         properties.setProperty(SERVICES.getExternalForm(), Service.COLLECTD.getExternalForm());
         properties.setProperty(BATCH_DELAY.getExternalForm(), String.valueOf(1));
         properties.setProperty(BATCH_SIZE.getExternalForm(), String.valueOf(1));
-        String restUrl = "http://" + BASE_URI + "/" + tenant + "/gauges/data";
+        String restUrl = "http://" + BASE_URI + "/gauges/data?tenantId=" + tenant;
         properties.setProperty(REST_URL.getExternalForm(), restUrl);
         try (OutputStream out = new FileOutputStream(ptransConfFile)) {
             properties.store(out, "");
@@ -274,14 +274,8 @@ public class CollectdITest extends ExecutableITestBase {
                 TypeFactory typeFactory = objectMapper.getTypeFactory();
                 CollectionType valueType = typeFactory.constructCollectionType(List.class, MetricData.class);
                 List<MetricData> data = objectMapper.readValue(inputStream, valueType);
-                Stream<Point> metricPoints = data.stream()
-                                                 .map(
-                                                         metricData -> new Point(
-                                                                 type,
-                                                                 metricData.timestamp,
-                                                                 metricData.value
-                                                         )
-                                                 );
+                Stream<Point> metricPoints = data.stream().map(
+                        metricData -> new Point(type, metricData.timestamp, metricData.value));
                 points = Stream.concat(points, metricPoints);
             }
         }
@@ -290,7 +284,7 @@ public class CollectdITest extends ExecutableITestBase {
     }
 
     private String findGaugeDataUrl(String metricName) {
-        return "http://" + BASE_URI + "/" + tenant + "/gauges/" + metricName + "/data";
+        return "http://" + BASE_URI + "/gauges/" + metricName + "/data?tenantId=" + tenant;
     }
 
     @After

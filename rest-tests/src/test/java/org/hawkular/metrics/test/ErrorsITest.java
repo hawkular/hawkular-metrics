@@ -40,8 +40,9 @@ public class ErrorsITest extends RESTTest {
     @Test
     public void testNotAllowedException() {
         response = target.clone()
-                .path("/test/gauges/test/tags")
+                .path("/gauges/test/tags")
                 .request(MediaType.APPLICATION_JSON_TYPE)
+                .header("tenantId", "test")
                 .post(null);
         Assert.assertEquals(405, response.getStatus());
         ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
@@ -52,23 +53,25 @@ public class ErrorsITest extends RESTTest {
     @Test
     public void testNotFoundException() {
         response = target.clone()
-                .path("/test/gaugesssss/test/data")
+                .path("/gaugesssss/test/data")
                 .queryParam("buckets", "999")
                 .request(MediaType.APPLICATION_JSON_TYPE)
+                .header("tenantId", "test")
                 .get();
         Assert.assertEquals(404, response.getStatus());
         ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
         Assert.assertEquals("Could not find resource for full path: http://"+baseURI
-                + "/test/gaugesssss/test/data?buckets=999",
+                + "/gaugesssss/test/data?buckets=999",
                 apiErrorJson.getErrorMsg());
     }
 
     @Test
     public void testNumberFormatException() {
         response = target.clone()
-                .path("/test/gauges/test/data")
+                .path("/gauges/test/data")
                 .queryParam("buckets", "999999999999999999999999")
                 .request(MediaType.APPLICATION_JSON_TYPE)
+                .header("tenantId", "test")
                 .get();
         Assert.assertEquals(400, response.getStatus());
         ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
@@ -79,8 +82,9 @@ public class ErrorsITest extends RESTTest {
     @Test
     public void testNotAcceptableException() {
         response = target.clone()
-                .path("/test/gauges/test/data")
+                .path("/gauges/test/data")
                 .request(MediaType.TEXT_PLAIN)
+                .header("tenantId", "test")
                 .get();
         Assert.assertEquals(406, response.getStatus());
         ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
@@ -91,8 +95,9 @@ public class ErrorsITest extends RESTTest {
     @Test
     public void testNotSupportedException() {
         response = target.clone()
-                .path("/test/gauges/test/data")
+                .path("/gauges/test/data")
                 .request(MediaType.TEXT_PLAIN)
+                .header("tenantId", "test")
                 .post(null);
         Assert.assertEquals(415, response.getStatus());
         ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);

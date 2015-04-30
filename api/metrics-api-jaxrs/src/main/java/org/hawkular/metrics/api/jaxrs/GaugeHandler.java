@@ -35,6 +35,7 @@ import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -76,7 +77,7 @@ import com.wordnik.swagger.annotations.ApiResponses;
  * @author Stefan Negrea
  *
  */
-@Path("/")
+@Path("/gauges")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
 @Api(value = "", description = "Gauge metrics interface")
@@ -87,7 +88,7 @@ public class GaugeHandler {
     private MetricsService metricsService;
 
     @POST
-    @Path("/{tenantId}/gauges")
+    @Path("/")
     @ApiOperation(value = "Create gauge metric definition.", notes = "Clients are not required to explicitly create "
             + "a metric before storing data. Doing so however allows clients to prevent naming collisions and to "
             + "specify tags and data retention.")
@@ -99,7 +100,7 @@ public class GaugeHandler {
             @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
                 response = ApiError.class) })
     public void createGaugeMetric(@Suspended final AsyncResponse asyncResponse,
-            @PathParam("tenantId") String tenantId, @ApiParam(required = true) Gauge metric,
+            @HeaderParam("tenantId") String tenantId, @ApiParam(required = true) Gauge metric,
             @Context UriInfo uriInfo) {
         if (metric == null) {
             Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Payload is empty")).build();
@@ -108,14 +109,13 @@ public class GaugeHandler {
         }
         metric.setTenantId(tenantId);
         ListenableFuture<Void> future = metricsService.createMetric(metric);
-        URI created = uriInfo.getBaseUriBuilder().path("/{tenantId}/gauges/{id}")
-                .build(tenantId, metric.getId().getName());
+        URI created = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getId().getName());
         MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(asyncResponse, created);
         Futures.addCallback(future, metricCreatedCallback);
     }
 
     @GET
-    @Path("/{tenantId}/gauges/{id}/tags")
+    @Path("/{id}/tags")
     @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = Metric.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's tags were successfully retrieved."),
@@ -123,7 +123,7 @@ public class GaugeHandler {
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's tags.",
                 response = ApiError.class) })
     public void getGaugeMetricTags(@Suspended final AsyncResponse asyncResponse,
-            @PathParam("tenantId") String tenantId, @PathParam("id") String id) {
+            @HeaderParam("tenantId") String tenantId, @PathParam("id") String id) {
         executeAsync(
                 asyncResponse,
                 () -> {
@@ -134,14 +134,14 @@ public class GaugeHandler {
     }
 
     @PUT
-    @Path("/{tenantId}/gauges/{id}/tags")
+    @Path("/{id}/tags")
     @ApiOperation(value = "Update tags associated with the metric definition.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while updating metric's tags.",
                 response = ApiError.class) })
     public void updateGaugeMetricTags(@Suspended final AsyncResponse asyncResponse,
-            @PathParam("tenantId") String tenantId, @PathParam("id") String id,
+            @HeaderParam("tenantId") String tenantId, @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags) {
         executeAsync(asyncResponse, () -> {
             Gauge metric = new Gauge(tenantId, new MetricId(id));
@@ -151,7 +151,7 @@ public class GaugeHandler {
     }
 
     @DELETE
-    @Path("/{tenantId}/gauges/{id}/tags/{tags}")
+    @Path("/{id}/tags/{tags}")
     @ApiOperation(value = "Delete tags associated with the metric definition.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
@@ -159,7 +159,7 @@ public class GaugeHandler {
             @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.",
                 response = ApiError.class) })
     public void deleteGaugeMetricTags(@Suspended final AsyncResponse asyncResponse,
-            @PathParam("tenantId") String tenantId, @PathParam("id") String id,
+            @HeaderParam("tenantId") String tenantId, @PathParam("id") String id,
             @ApiParam("Tag list") @PathParam("tags") Tags tags) {
         executeAsync(asyncResponse, () -> {
             Gauge metric = new Gauge(tenantId, new MetricId(id));
@@ -169,7 +169,7 @@ public class GaugeHandler {
     }
 
     @POST
-    @Path("/{tenantId}/gauges/{id}/data")
+    @Path("/{id}/data")
     @ApiOperation(value = "Add data for a single gauge metric.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
@@ -178,7 +178,7 @@ public class GaugeHandler {
                 response = ApiError.class), })
     public void addDataForMetric(
             @Suspended final AsyncResponse asyncResponse,
-            @PathParam("tenantId") final String tenantId,
+            @HeaderParam("tenantId") final String tenantId,
             @PathParam("id") String id,
             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
                 List<GaugeData> data) {
@@ -194,13 +194,13 @@ public class GaugeHandler {
     }
 
     @POST
-    @Path("/{tenantId}/gauges/data")
+    @Path("/data")
     @ApiOperation(value = "Add data for multiple gauge metrics in a single call.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
                 response = ApiError.class) })
-    public void addGaugeData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
+    public void addGaugeData(@Suspended final AsyncResponse asyncResponse, @HeaderParam("tenantId") String tenantId,
             @ApiParam(value = "List of metrics", required = true) List<Gauge> metrics) {
         executeAsync(asyncResponse, () -> {
             if (metrics.isEmpty()) {
@@ -213,14 +213,14 @@ public class GaugeHandler {
     }
 
     @GET
-    @Path("/{tenantId}/gauges")
+    @Path("/")
     @ApiOperation(value = "Find gauge metrics data by their tags.", response = Map.class, responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched data."),
             @ApiResponse(code = 204, message = "No matching data found."),
             @ApiResponse(code = 400, message = "Missing or invalid tags query", response = ApiError.class),
             @ApiResponse(code = 500, message = "Any error in the query.", response = ApiError.class), })
     public void findGaugeDataByTags(@Suspended final AsyncResponse asyncResponse,
-            @PathParam("tenantId") String tenantId,
+            @HeaderParam("tenantId") String tenantId,
             @ApiParam(value = "Tag list", required = true) @QueryParam("tags") Tags tags) {
         executeAsync(asyncResponse, () -> {
             if (tags == null) {
@@ -233,7 +233,7 @@ public class GaugeHandler {
     }
 
     @GET
-    @Path("/{tenantId}/gauges/{id}/data")
+    @Path("/{id}/data")
     @ApiOperation(value = "Retrieve gauge data. When buckets or bucketDuration query parameter is used, the time "
             + "range between start and end will be divided in buckets of equal duration, and metric "
             + "statistics will be computed for each bucket.", response = List.class)
@@ -244,7 +244,7 @@ public class GaugeHandler {
                 response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
                 response = ApiError.class) })
-    public void findGaugeData(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
+    public void findGaugeData(@Suspended AsyncResponse asyncResponse, @HeaderParam("tenantId") String tenantId,
             @PathParam("id") String id,
             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
             @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
@@ -291,7 +291,7 @@ public class GaugeHandler {
     }
 
     @GET
-    @Path("/{tenantId}/gauges/{id}/periods")
+    @Path("/{id}/periods")
     @ApiOperation(value = "Retrieve periods for which the condition holds true for each consecutive data point.",
         response = List.class)
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched periods."),
@@ -299,7 +299,7 @@ public class GaugeHandler {
             @ApiResponse(code = 400, message = "Missing or invalid query parameters") })
     public void findPeriods(
             @Suspended final AsyncResponse asyncResponse,
-            @PathParam("tenantId") String tenantId,
+            @HeaderParam("tenantId") String tenantId,
             @PathParam("id") String id,
             @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") final Long start,
             @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") final Long end,
@@ -358,14 +358,14 @@ public class GaugeHandler {
     }
 
     @GET
-    @Path("/{tenantId}/gauges/tags/{tags}")
+    @Path("/tags/{tags}")
     @ApiOperation(value = "Find metric data with given tags.", response = Map.class, responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Me values fetched successfully"),
             @ApiResponse(code = 204, message = "No matching data found."),
             @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
             @ApiResponse(code = 500, message = "Any error while fetching data.", response = ApiError.class), })
     public void findTaggedGaugeData(@Suspended final AsyncResponse asyncResponse,
-            @PathParam("tenantId") String tenantId, @ApiParam("Tag list") @PathParam("tags") Tags tags) {
+            @HeaderParam("tenantId") String tenantId, @ApiParam("Tag list") @PathParam("tags") Tags tags) {
         executeAsync(
                 asyncResponse,
                 () -> {
@@ -387,10 +387,10 @@ public class GaugeHandler {
     }
 
     @POST
-    @Path("/{tenantId}/gauges/{id}/tag")
+    @Path("/{id}/tag")
     @ApiOperation(value = "Add or update gauge metric's tags.")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Tags were modified successfully.") })
-    public void tagGaugeData(@Suspended final AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
+    public void tagGaugeData(@Suspended final AsyncResponse asyncResponse, @HeaderParam("tenantId") String tenantId,
             @PathParam("id") final String id, @ApiParam(required = true) TagRequest params) {
 
         executeAsync(asyncResponse, () -> {

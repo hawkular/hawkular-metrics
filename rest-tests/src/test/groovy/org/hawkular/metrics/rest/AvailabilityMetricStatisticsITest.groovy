@@ -35,34 +35,34 @@ class AvailabilityMetricStatisticsITest extends RESTTest {
     String tenantId = nextTenantId()
     String metric = "test"
 
-    def response = hawkularMetrics.post(path: "$tenantId/availability/$metric/data", body: [
+    def response = hawkularMetrics.post(path: "availability/$metric/data", body: [
         [timestamp: new DateTimeService().currentHour().minusHours(1).millis, value: "up"]
-    ])
+    ], headers: ["tenantId": tenantId])
     assertEquals(200, response.status)
 
-    badGet(path: "${tenantId}/availability/$metric/data", query: [buckets: 0]) { exception ->
+    badGet(path: "availability/$metric/data", query: [buckets: 0], headers: ["tenantId": tenantId]) { exception ->
       // Bucket count = zero
       assertEquals(400, exception.response.status)
     }
 
-    badGet(path: "${tenantId}/availability/$metric/data", query: [buckets: Integer.MAX_VALUE]) { exception ->
+    badGet(path: "availability/$metric/data", query: [buckets: Integer.MAX_VALUE], headers: ["tenantId": tenantId]) { exception ->
       // Bucket size = zero
       assertEquals(400, exception.response.status)
     }
 
-    badGet(path: "${tenantId}/availability/$metric/data", query: [bucketDuration: "1w"]) { exception ->
+    badGet(path: "availability/$metric/data", query: [bucketDuration: "1w"], headers: ["tenantId": tenantId]) { exception ->
       // Illegal duration
       assertEquals(400, exception.response.status)
     }
 
-    badGet(path: "${tenantId}/availability/$metric/data",
-        query: [start: 0, end: Long.MAX_VALUE, bucketDuration: "1ms"]) {
+    badGet(path: "availability/$metric/data",
+        query: [start: 0, end: Long.MAX_VALUE, bucketDuration: "1ms"], headers: ["tenantId": tenantId]) {
       exception ->
         // Number of buckets is too large
         assertEquals(400, exception.response.status)
     }
 
-    badGet(path: "${tenantId}/availability/$metric/data", query: [buckets: 1, bucketDuration: "1d"]) { exception ->
+    badGet(path: "availability/$metric/data", query: [buckets: 1, bucketDuration: "1d"], headers: ["tenantId": tenantId]) { exception ->
       // Both buckets and bucketDuration parameters provided
       assertEquals(400, exception.response.status)
     }
@@ -82,13 +82,13 @@ class AvailabilityMetricStatisticsITest extends RESTTest {
     def buckets = []
     numBuckets.times { buckets.add(start.millis + (it * bucketSize)) }
 
-    def response = hawkularMetrics.post(path: "$tenantId/availability/$metric/data", body: [
+    def response = hawkularMetrics.post(path: "availability/$metric/data", body: [
         [timestamp: buckets[1] + seconds(60).toStandardDuration().millis, value: "up"],
-    ])
+    ], headers: ["tenantId": tenantId])
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: "${tenantId}/availability/$metric/data",
-        query: [start: start.millis, end: end.millis, buckets: numBuckets])
+    response = hawkularMetrics.get(path: "availability/$metric/data",
+        query: [start: start.millis, end: end.millis, buckets: numBuckets], headers: ["tenantId": tenantId])
     assertEquals(200, response.status)
 
     def expectedData = [
@@ -126,12 +126,12 @@ class AvailabilityMetricStatisticsITest extends RESTTest {
         data.add([timestamp: nextTimestamp(i - 1), value: i % 4 == 0 ? "down" : "up"])
       }
 
-      def response = hawkularMetrics.post(path: "$tenantId/availability/$metric/data", body: data)
+      def response = hawkularMetrics.post(path: "availability/$metric/data", body: data, headers: ["tenantId": tenantId])
       assertEquals(200, response.status)
     }
 
-    def response = hawkularMetrics.get(path: "${tenantId}/availability/$metric/data",
-        query: [start: start.millis, end: start.plusHours(bucketsCount).millis, bucketDuration: "1h"])
+    def response = hawkularMetrics.get(path: "availability/$metric/data",
+        query: [start: start.millis, end: start.plusHours(bucketsCount).millis, bucketDuration: "1h"], headers: ["tenantId": tenantId])
     assertEquals(200, response.status)
 
     def expectedData = []

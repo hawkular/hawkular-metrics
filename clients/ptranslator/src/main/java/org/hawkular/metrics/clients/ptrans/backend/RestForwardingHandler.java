@@ -69,6 +69,7 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
     private final String restHost;
     private final int restPort;
     private final String restPrefix;
+    private final String restParams;
     private final int restCloseAfterRequests;
 
     BoundMetricFifo fifo;
@@ -91,6 +92,7 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
         restHost = restUrl.getHost();
         restPort = restUrl.getPort();
         restPrefix = restUrl.getPath();
+        restParams = restUrl.getQuery();
 
         restCloseAfterRequests = configuration.getRestCloseAfterRequests();
 
@@ -155,7 +157,7 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
 
         String payload = Batcher.metricListToJson(metricsToSend);
         ByteBuf content = Unpooled.copiedBuffer(payload, CharsetUtil.UTF_8);
-        FullHttpRequest request = new DefaultFullHttpRequest(HTTP_1_1, POST, restPrefix, content);
+        FullHttpRequest request = new DefaultFullHttpRequest(HTTP_1_1, POST, restPrefix + "?" + restParams, content);
         HttpHeaders.setContentLength(request, content.readableBytes());
         HttpHeaders.setKeepAlive(request, true);
         HttpHeaders.setHeader(request, HttpHeaders.Names.CONTENT_TYPE, "application/json;charset=utf-8");

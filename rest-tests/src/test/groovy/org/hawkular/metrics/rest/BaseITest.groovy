@@ -29,10 +29,10 @@ class BaseITest extends RESTTest {
     def start = end - 100
     def tenantId = 'test-tenant'
     def metric = 'foo'
-    def response = hawkularMetrics.post(path: "$tenantId/gauges/$metric/data", body: [[timestamp: start + 10, value: 42]])
+    def response = hawkularMetrics.post(path: "gauges/$metric/data", body: [[timestamp: start + 10, value: 42]], headers: ["tenantId": tenantId])
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: "$tenantId/gauges/$metric/data", query: [start: start, end: end])
+    response = hawkularMetrics.get(path: "gauges/$metric/data", query: [start: start, end: end], headers: ["tenantId": tenantId])
     assertEquals(200, response.status)
 
     println "response = $response.data"

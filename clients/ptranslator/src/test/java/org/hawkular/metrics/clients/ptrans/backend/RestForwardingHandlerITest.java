@@ -73,13 +73,13 @@ public class RestForwardingHandlerITest {
         when(eventLoop.parent()).thenReturn(eventLoopGroup);
 
         Properties properties = new Properties();
-        String addGuageDataUrl = "http://" + BASE_URI + "/" + TENANT + "/gauges/data";
+        String addGuageDataUrl = "http://" + BASE_URI + "/gauges/data?tenantId=" + TENANT;
         properties.setProperty(ConfigurationKey.REST_URL.getExternalForm(), addGuageDataUrl);
         Configuration configuration = Configuration.from(properties);
 
         restForwardingHandler = new RestForwardingHandler(configuration);
 
-        findGaugeDataUrl = "http://" + BASE_URI + "/" + TENANT + "/gauges/" + METRIC_NAME + "/data";
+        findGaugeDataUrl = "http://" + BASE_URI + "/gauges/" + METRIC_NAME + "/data?tenantId=" + TENANT;
     }
 
     @Test
