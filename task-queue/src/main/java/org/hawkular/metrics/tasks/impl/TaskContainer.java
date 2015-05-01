@@ -49,6 +49,9 @@ public class TaskContainer implements Iterable<Task> {
 
     private SortedSet<DateTime> failedTimeSlices = new TreeSet<>();
 
+    /**
+     * Creates a copy of the task container, excluding its {@link #getFailedTimeSlices() failedTimeSlices}.
+     */
     public static TaskContainer copyWithoutFailures(TaskContainer container) {
         TaskContainer newContainer = new TaskContainer();
         newContainer.taskType = container.taskType;

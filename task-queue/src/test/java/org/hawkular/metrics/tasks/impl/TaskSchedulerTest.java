@@ -36,11 +36,11 @@ import org.testng.annotations.Test;
  */
 public class TaskSchedulerTest extends BaseTest {
 
-    private LeaseManager leaseManager;
+    private LeaseService leaseService;
 
     @BeforeClass
     public void initClass() {
-        leaseManager = new LeaseManager(session, queries);
+        leaseService = new LeaseService(session, queries);
     }
 
     @Test
@@ -54,20 +54,22 @@ public class TaskSchedulerTest extends BaseTest {
                 dateTimeService.getTimeSlice(now().plusSeconds(2), standardSeconds(3))
         );
 
-        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseManager, standardSeconds(1),
-                taskTypes) {
+        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService, taskTypes) {
             @Override
             public void executeTasks(DateTime timeSlice) {
                 actualTimeSlices.add(timeSlice);
             }
         };
-        taskService.setTickerUnit(TimeUnit.SECONDS);
+        taskService.setTimeUnit(TimeUnit.SECONDS);
         taskService.start();
 
         Thread.sleep(4000);
+        taskService.shutdown();
 
-        assertTrue(actualTimeSlices.size() >= 3, "Expected task execution to be schedule at least 3 times but it " +
-                "was scheduled " + actualTimeSlices.size() + " times");
+        assertTrue(actualTimeSlices.size() >= 3, "Expected task execution to be scheduled at least 3 times but it " +
+                "was scheduled " + actualTimeSlices.size() + " times.");
+        assertTrue(actualTimeSlices.size() <= 5, "Exepected no more that 5 task executions to be scheduled since " +
+            "shutdown was called, but it was scheduled " + actualTimeSlices.size() + " times.");
         assertTaskExecutionScheduleForTimeSlices(actualTimeSlices, expectedTimeSlices);
     }
 

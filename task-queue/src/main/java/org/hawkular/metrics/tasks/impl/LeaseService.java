@@ -38,9 +38,9 @@ import org.slf4j.LoggerFactory;
 /**
  * @author jsanda
  */
-public class LeaseManager {
+public class LeaseService {
 
-    private static final Logger logger = LoggerFactory.getLogger(LeaseManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(LeaseService.class);
 
     public static final int DEFAULT_LEASE_TTL = 180;
 
@@ -58,9 +58,14 @@ public class LeaseManager {
 
     private int renewalRate = DEFAULT_RENEWAL_RATE;
 
-    public LeaseManager(Session session, Queries queries) {
+    public LeaseService(Session session, Queries queries) {
         this.session = session;
         this.queries = queries;
+    }
+
+    public void shutdown() {
+        logger.info("Shutting down");
+        renewals.shutdownNow();
     }
 
     void setTTL(int ttl) {
@@ -124,7 +129,7 @@ public class LeaseManager {
                     if (renewed) {
                         autoRenew(lease, leaseOwner);
                     } else {
-                        logger.info("Failed to renew " + lease);
+                        logger.info("Failed to renew " + lease + " for " + leaseOwner);
                         leaseOwner.interrupt();
                     }
                 }
@@ -136,13 +141,6 @@ public class LeaseManager {
                 }
             });
         };
-    }
-
-    public ListenableFuture<Boolean> renew(Lease lease, int ttl) {
-        ResultSetFuture future = session.executeAsync(queries.renewLease.bind(ttl, lease.getOwner(),
-                lease.getTimeSlice().toDate(), lease.getTaskType(), lease.getSegmentOffset(),
-                lease.getOwner()));
-        return Futures.transform(future, ResultSet::wasApplied);
     }
 
     public ListenableFuture<Boolean> finish(Lease lease) {
