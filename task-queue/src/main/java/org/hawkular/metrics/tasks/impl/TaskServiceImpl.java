@@ -136,7 +136,7 @@ public class TaskServiceImpl implements TaskService {
      * <strong>Note:</strong> This should only be called prior to calling {@link #start()}.
      * </p>
      */
-    void setTimeUnit(TimeUnit timeUnit) {
+    public void setTimeUnit(TimeUnit timeUnit) {
         switch (timeUnit) {
             case SECONDS:
                 this.timeUnit = TimeUnit.SECONDS;
@@ -168,6 +168,7 @@ public class TaskServiceImpl implements TaskService {
     public void shutdown() {
         logger.info("Shutting down");
 
+        leaseService.shutdown();
         ticker.shutdownNow();
         scheduler.shutdownNow();
         workers.shutdown();
