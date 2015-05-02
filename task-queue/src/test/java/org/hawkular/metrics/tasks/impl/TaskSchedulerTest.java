@@ -49,9 +49,9 @@ public class TaskSchedulerTest extends BaseTest {
 
         List<DateTime> actualTimeSlices = new ArrayList<>();
         List<DateTime> expectedTimeSlices = asList(
-                dateTimeService.getTimeSlice(now().plusSeconds(1), standardSeconds(2)),
-                dateTimeService.getTimeSlice(now().plusSeconds(2), standardSeconds(3)),
-                dateTimeService.getTimeSlice(now().plusSeconds(2), standardSeconds(3))
+                dateTimeService.getTimeSlice(now().plusSeconds(2), standardSeconds(1)),
+                dateTimeService.getTimeSlice(now().plusSeconds(3), standardSeconds(1)),
+                dateTimeService.getTimeSlice(now().plusSeconds(4), standardSeconds(1))
         );
 
         TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService, taskTypes) {
@@ -63,12 +63,12 @@ public class TaskSchedulerTest extends BaseTest {
         taskService.setTimeUnit(TimeUnit.SECONDS);
         taskService.start();
 
-        Thread.sleep(4000);
+        Thread.sleep(5000);
         taskService.shutdown();
 
         assertTrue(actualTimeSlices.size() >= 3, "Expected task execution to be scheduled at least 3 times but it " +
                 "was scheduled " + actualTimeSlices.size() + " times.");
-        assertTrue(actualTimeSlices.size() <= 5, "Exepected no more that 5 task executions to be scheduled since " +
+        assertTrue(actualTimeSlices.size() <= 6, "Expected no more that 5 task executions to be scheduled since " +
             "shutdown was called, but it was scheduled " + actualTimeSlices.size() + " times.");
         assertTaskExecutionScheduleForTimeSlices(actualTimeSlices, expectedTimeSlices);
     }
