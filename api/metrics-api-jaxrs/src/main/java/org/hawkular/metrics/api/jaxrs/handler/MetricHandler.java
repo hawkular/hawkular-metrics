@@ -87,7 +87,8 @@ public class MetricHandler {
                         metricType = MetricType.fromTextCode(type);
                     } catch (IllegalArgumentException e) {
                         return badRequest(
-                                new ApiError("[" + type + "] is not a valid type. Accepted values are gauge|avail|log")
+                                new ApiError("[" + type + "] is not a valid type. Accepted values are " +
+                                                     "gauge|gauges|availability")
                         );
                     }
                     ListenableFuture<List<Metric<?>>> future = metricsService.findMetrics(tenantId, metricType);
