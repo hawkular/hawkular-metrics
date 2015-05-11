@@ -44,6 +44,19 @@ import javax.management.MBeanInfo;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.google.common.base.Function;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.RateLimiter;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityData;
@@ -65,25 +78,11 @@ import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.RetentionSettings;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
-import org.hawkular.metrics.core.impl.schema.SchemaManager;
+import org.hawkular.metrics.schema.SchemaManager;
 import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.google.common.base.Function;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.RateLimiter;
 
 /**
  * @author John Sanda
@@ -96,6 +95,8 @@ public class MetricsServiceCassandra implements MetricsService {
     public static final String REQUEST_LIMIT = "hawkular.metrics.request.limit";
 
     public static final int DEFAULT_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
+
+    private static final String SCHEMA_FILE = "/schema.cql";
 
     private static class DataRetentionKey {
         private final String tenantId;
@@ -799,7 +800,7 @@ public class MetricsServiceCassandra implements MetricsService {
     private void updateSchemaIfNecessary(String schemaName) {
         try {
             SchemaManager schemaManager = new SchemaManager(session.get());
-            schemaManager.createSchema(schemaName);
+            schemaManager.createSchema(schemaName, SCHEMA_FILE);
         } catch (IOException e) {
             throw new RuntimeException("Schema creation failed", e);
         }
