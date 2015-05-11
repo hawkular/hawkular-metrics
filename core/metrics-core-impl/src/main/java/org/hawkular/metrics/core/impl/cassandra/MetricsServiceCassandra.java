@@ -65,7 +65,7 @@ import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.RetentionSettings;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
-import org.hawkular.metrics.core.impl.schema.SchemaManager;
+import org.hawkular.metrics.schema.SchemaManager;
 import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
@@ -96,6 +96,8 @@ public class MetricsServiceCassandra implements MetricsService {
     public static final String REQUEST_LIMIT = "hawkular.metrics.request.limit";
 
     public static final int DEFAULT_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
+
+    private static final String SCHEMA_FILE = "/schema.cql";
 
     private static class DataRetentionKey {
         private final String tenantId;
@@ -799,7 +801,7 @@ public class MetricsServiceCassandra implements MetricsService {
     private void updateSchemaIfNecessary(String schemaName) {
         try {
             SchemaManager schemaManager = new SchemaManager(session.get());
-            schemaManager.createSchema(schemaName);
+            schemaManager.createSchema(schemaName, SCHEMA_FILE);
         } catch (IOException e) {
             throw new RuntimeException("Schema creation failed", e);
         }

@@ -38,6 +38,12 @@
 
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>schema-manager</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>hawkular-metrics-core-api</artifactId>
       <version>${project.version}</version>
     </dependency>

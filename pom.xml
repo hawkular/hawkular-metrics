@@ -77,6 +77,7 @@
   </developers>
 
   <modules>
+    <module>schema-manager</module>
     <module>core/metrics-core-api</module>
     <module>core/metrics-core-impl</module>
     <module>task-queue</module>

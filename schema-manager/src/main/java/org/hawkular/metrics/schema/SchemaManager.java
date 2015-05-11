@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.impl.schema;
+package org.hawkular.metrics.schema;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,7 +27,6 @@ import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharStreams;
 
-import org.hawkular.metrics.core.impl.util.TokenReplacingReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +49,7 @@ public class SchemaManager {
         session.execute("DROP KEYSPACE " + keyspace);
     }
 
-    public void createSchema(String keyspace) throws IOException {
+    public void createSchema(String keyspace, String cqlFile) throws IOException {
         logger.info("Creating schema for keyspace " + keyspace);
 
         ResultSet resultSet = session.execute("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = '" +
@@ -62,7 +61,7 @@ public class SchemaManager {
 
         ImmutableMap<String, String> schemaVars = ImmutableMap.of("keyspace", keyspace);
 
-        try (InputStream inputStream = getClass().getResourceAsStream("/schema.cql");
+        try (InputStream inputStream = getClass().getResourceAsStream(cqlFile);
             InputStreamReader reader = new InputStreamReader(inputStream)) {
             String content = CharStreams.toString(reader);
 
