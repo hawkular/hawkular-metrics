@@ -28,6 +28,7 @@ import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SPOOL_SIZE;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.STATSD_PORT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.TCP_PORT;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.TENANT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.UDP_PORT;
 
 import java.net.URI;
@@ -59,6 +60,7 @@ public class Configuration {
     private final int minimumBatchSize;
     private final int maximumBatchDelay;
     private final URI restUrl;
+    private final String tenant;
     private final int restCloseAfterRequests;
     private final int spoolSize;
     private final Set<String> validationMessages;
@@ -75,6 +77,7 @@ public class Configuration {
             int minimumBatchSize,
             int maximumBatchDelay,
             URI restUrl,
+            String tenant,
             int restCloseAfterRequests,
             int spoolSize,
             Set<String> validationMessages
@@ -90,6 +93,7 @@ public class Configuration {
         this.minimumBatchSize = minimumBatchSize;
         this.maximumBatchDelay = maximumBatchDelay;
         this.restUrl = restUrl;
+        this.tenant = tenant;
         this.restCloseAfterRequests = restCloseAfterRequests;
         this.spoolSize = spoolSize;
         this.validationMessages = Collections.unmodifiableSet(validationMessages);
@@ -101,14 +105,15 @@ public class Configuration {
         int udpPort = getIntProperty(properties, UDP_PORT, 5140);
         int tcpPort = getIntProperty(properties, TCP_PORT, 5140);
         int gangliaPort = getIntProperty(properties, GANGLIA_PORT, 8649);
-        String gangliaGroup = properties.getProperty(GANGLIA_GROUP.getExternalForm(), "239.2.11.71");
-        String multicastIfOverride = properties.getProperty(GANGLIA_MULTICAST_INTERFACE.getExternalForm());
+        String gangliaGroup = properties.getProperty(GANGLIA_GROUP.toString(), "239.2.11.71");
+        String multicastIfOverride = properties.getProperty(GANGLIA_MULTICAST_INTERFACE.toString());
         int statsDport = getIntProperty(properties, STATSD_PORT, 8125);
         int collectdPort = getIntProperty(properties, COLLECTD_PORT, 25826);
         int minimumBatchSize = getIntProperty(properties, BATCH_SIZE, 50);
         int maximumBatchDelay = getIntProperty(properties, BATCH_DELAY, 1);
-        URI restUrl = URI.create(properties.getProperty(REST_URL.getExternalForm(),
-            "http://localhost:8080/hawkular/metrics/"));
+        URI restUrl = URI.create(properties.getProperty(REST_URL.toString(),
+            "http://localhost:8080/hawkular/metrics/gauges/data"));
+        String tenant = properties.getProperty(TENANT.toString(), "default");
         int restCloseAfterRequests = getIntProperty(properties, REST_CLOSE_AFTER_REQUESTS, 200);
         int spoolSize = getIntProperty(properties, SPOOL_SIZE, 10000);
         return new Configuration(
@@ -123,6 +128,7 @@ public class Configuration {
                 minimumBatchSize,
                 maximumBatchDelay,
                 restUrl,
+                tenant,
                 restCloseAfterRequests,
                 spoolSize,
                 validationMessages
@@ -130,9 +136,9 @@ public class Configuration {
     }
 
     private static Set<Service> getServices(Properties properties, Set<String> validationMessages) {
-        String servicesProperty = properties.getProperty(SERVICES.getExternalForm());
+        String servicesProperty = properties.getProperty(SERVICES.toString());
         if (servicesProperty == null) {
-            validationMessages.add(String.format(Locale.ROOT, "Property %s not found", SERVICES.getExternalForm()));
+            validationMessages.add(String.format(Locale.ROOT, "Property %s not found", SERVICES.toString()));
             return Collections.emptySet();
         }
         Set<Service> services = EnumSet.noneOf(Service.class);
@@ -156,7 +162,7 @@ public class Configuration {
     }
 
     private static int getIntProperty(Properties properties, ConfigurationKey key, int defaultValue) {
-        String property = properties.getProperty(key.getExternalForm());
+        String property = properties.getProperty(key.toString());
         if (property == null) {
             return defaultValue;
         }
@@ -219,6 +225,10 @@ public class Configuration {
 
     public URI getRestUrl() {
         return restUrl;
+    }
+
+    public String getTenant() {
+        return tenant;
     }
 
     public int getRestCloseAfterRequests() {

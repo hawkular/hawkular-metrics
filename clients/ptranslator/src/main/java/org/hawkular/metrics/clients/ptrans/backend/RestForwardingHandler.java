@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.clients.ptrans.backend;
 
+import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
 import static io.netty.handler.codec.http.HttpMethod.POST;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 import io.netty.bootstrap.Bootstrap;
@@ -66,10 +67,12 @@ import org.slf4j.LoggerFactory;
 public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
     private static final Logger LOG = LoggerFactory.getLogger(RestForwardingHandler.class);
 
+    private static final String TENANT_HEADER_NAME = "tenantId";
+
     private final String restHost;
     private final int restPort;
-    private final String restPrefix;
-    private final String restParams;
+    private final String restUri;
+    private final String tenant;
     private final int restCloseAfterRequests;
 
     BoundMetricFifo fifo;
@@ -91,8 +94,9 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
         URI restUrl = configuration.getRestUrl();
         restHost = restUrl.getHost();
         restPort = restUrl.getPort();
-        restPrefix = restUrl.getPath();
-        restParams = restUrl.getQuery();
+        restUri = restUrl.getPath();
+
+        tenant = configuration.getTenant();
 
         restCloseAfterRequests = configuration.getRestCloseAfterRequests();
 
@@ -157,10 +161,11 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
 
         String payload = Batcher.metricListToJson(metricsToSend);
         ByteBuf content = Unpooled.copiedBuffer(payload, CharsetUtil.UTF_8);
-        FullHttpRequest request = new DefaultFullHttpRequest(HTTP_1_1, POST, restPrefix + "?" + restParams, content);
+        FullHttpRequest request = new DefaultFullHttpRequest(HTTP_1_1, POST, restUri, content);
+        HttpHeaders.setHeader(request, CONTENT_TYPE, "application/json;charset=utf-8");
         HttpHeaders.setContentLength(request, content.readableBytes());
         HttpHeaders.setKeepAlive(request, true);
-        HttpHeaders.setHeader(request, HttpHeaders.Names.CONTENT_TYPE, "application/json;charset=utf-8");
+        HttpHeaders.setHeader(request, TENANT_HEADER_NAME, tenant);
         // We need to send the list of metrics we are sending down the pipeline, so the status watcher
         // can later clean them out of the fifo
         ch.attr(listKey).set(metricsToSend);

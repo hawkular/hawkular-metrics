@@ -46,6 +46,8 @@ public enum ConfigurationKey {
     BATCH_DELAY("batch.delay"),
     /** REST endpoint **/
     REST_URL("rest.url"),
+    /** Tenant **/
+    TENANT("tenant"),
     /** Close connection to rest-server after this many requests **/
     REST_CLOSE_AFTER_REQUESTS("rest.close-after"),
     /** Maximum number of metrics to spool if the server is not reachable **/
@@ -60,7 +62,8 @@ public enum ConfigurationKey {
     /**
      * @return string representation of this configuration key
      */
-    public String getExternalForm() {
+    @Override
+    public String toString() {
         return externalForm;
     }
 }

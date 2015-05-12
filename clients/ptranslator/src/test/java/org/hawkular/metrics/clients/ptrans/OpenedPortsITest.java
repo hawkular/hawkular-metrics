@@ -48,7 +48,7 @@ public class OpenedPortsITest extends ExecutableITestBase {
         try (InputStream in = new FileInputStream(ptransConfFile)) {
             properties.load(in);
         }
-        properties.setProperty(SERVICES.getExternalForm(), Service.COLLECTD.getExternalForm());
+        properties.setProperty(SERVICES.toString(), Service.COLLECTD.getExternalForm());
         try (OutputStream out = new FileOutputStream(ptransConfFile)) {
             properties.store(out, "");
         }
