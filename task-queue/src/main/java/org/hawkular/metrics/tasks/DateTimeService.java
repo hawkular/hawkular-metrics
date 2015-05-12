@@ -19,6 +19,7 @@ package org.hawkular.metrics.tasks;
 import static org.joda.time.DateTime.now;
 
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.Days;
 import org.joda.time.Duration;
 import org.joda.time.Hours;
@@ -28,6 +29,11 @@ import org.joda.time.Period;
  * @author jsanda
  */
 public class DateTimeService {
+
+    static {
+        // Force the timezone to UTC to avoid any problems due to transitions from DST to non-DST
+        DateTimeZone.setDefault(DateTimeZone.UTC);
+    }
 
     /**
      * @return A DateTime object rounded down to the start of the current hour. For example, if the current time is
