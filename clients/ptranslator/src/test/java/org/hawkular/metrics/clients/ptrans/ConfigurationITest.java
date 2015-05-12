@@ -47,7 +47,7 @@ public class ConfigurationITest extends ExecutableITestBase {
         try (InputStream in = new FileInputStream(ptransConfFile)) {
             properties.load(in);
         }
-        properties.remove(SERVICES.getExternalForm());
+        properties.remove(SERVICES.toString());
         try (OutputStream out = new FileOutputStream(ptransConfFile)) {
             properties.store(out, "");
         }
@@ -71,7 +71,7 @@ public class ConfigurationITest extends ExecutableITestBase {
         try (InputStream in = new FileInputStream(ptransConfFile)) {
             properties.load(in);
         }
-        properties.setProperty(SERVICES.getExternalForm(), "   , , ,,,,   ,,,,   ,");
+        properties.setProperty(SERVICES.toString(), "   , , ,,,,   ,,,,   ,");
         try (OutputStream out = new FileOutputStream(ptransConfFile)) {
             properties.store(out, "");
         }
@@ -95,7 +95,7 @@ public class ConfigurationITest extends ExecutableITestBase {
         try (InputStream in = new FileInputStream(ptransConfFile)) {
             properties.load(in);
         }
-        properties.setProperty(SERVICES.getExternalForm(), "marseille, collectd");
+        properties.setProperty(SERVICES.toString(), "marseille, collectd");
         try (OutputStream out = new FileOutputStream(ptransConfFile)) {
             properties.store(out, "");
         }
