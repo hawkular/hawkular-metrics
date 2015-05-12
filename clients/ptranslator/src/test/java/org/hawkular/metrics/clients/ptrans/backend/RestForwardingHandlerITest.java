@@ -73,13 +73,14 @@ public class RestForwardingHandlerITest {
         when(eventLoop.parent()).thenReturn(eventLoopGroup);
 
         Properties properties = new Properties();
-        String addGuageDataUrl = "http://" + BASE_URI + "/gauges/data?tenantId=" + TENANT;
-        properties.setProperty(ConfigurationKey.REST_URL.getExternalForm(), addGuageDataUrl);
+        String addGaugeDataUrl = "http://" + BASE_URI + "/gauges/data";
+        properties.setProperty(ConfigurationKey.REST_URL.getExternalForm(), addGaugeDataUrl);
+        properties.setProperty(ConfigurationKey.TENANT.getExternalForm(), TENANT);
         Configuration configuration = Configuration.from(properties);
 
         restForwardingHandler = new RestForwardingHandler(configuration);
 
-        findGaugeDataUrl = "http://" + BASE_URI + "/gauges/" + METRIC_NAME + "/data?tenantId=" + TENANT;
+        findGaugeDataUrl = "http://" + BASE_URI + "/gauges/" + METRIC_NAME + "/data";
     }
 
     @Test
@@ -101,6 +102,7 @@ public class RestForwardingHandlerITest {
 
     private JsonNode findGaugeDataOnServer() throws IOException {
         HttpURLConnection urlConnection = (HttpURLConnection) new URL(findGaugeDataUrl).openConnection();
+        urlConnection.setRequestProperty("tenantId", TENANT);
         urlConnection.connect();
         int responseCode = urlConnection.getResponseCode();
         if (responseCode != HttpURLConnection.HTTP_OK) {

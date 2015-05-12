@@ -28,6 +28,7 @@ import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SPOOL_SIZE;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.STATSD_PORT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.TCP_PORT;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.TENANT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.UDP_PORT;
 
 import java.net.URI;
@@ -59,6 +60,7 @@ public class Configuration {
     private final int minimumBatchSize;
     private final int maximumBatchDelay;
     private final URI restUrl;
+    private final String tenant;
     private final int restCloseAfterRequests;
     private final int spoolSize;
     private final Set<String> validationMessages;
@@ -75,6 +77,7 @@ public class Configuration {
             int minimumBatchSize,
             int maximumBatchDelay,
             URI restUrl,
+            String tenant,
             int restCloseAfterRequests,
             int spoolSize,
             Set<String> validationMessages
@@ -90,6 +93,7 @@ public class Configuration {
         this.minimumBatchSize = minimumBatchSize;
         this.maximumBatchDelay = maximumBatchDelay;
         this.restUrl = restUrl;
+        this.tenant = tenant;
         this.restCloseAfterRequests = restCloseAfterRequests;
         this.spoolSize = spoolSize;
         this.validationMessages = Collections.unmodifiableSet(validationMessages);
@@ -108,7 +112,8 @@ public class Configuration {
         int minimumBatchSize = getIntProperty(properties, BATCH_SIZE, 50);
         int maximumBatchDelay = getIntProperty(properties, BATCH_DELAY, 1);
         URI restUrl = URI.create(properties.getProperty(REST_URL.getExternalForm(),
-            "http://localhost:8080/hawkular/metrics/"));
+            "http://localhost:8080/hawkular/metrics/gauges/data"));
+        String tenant = properties.getProperty(TENANT.getExternalForm(), "default");
         int restCloseAfterRequests = getIntProperty(properties, REST_CLOSE_AFTER_REQUESTS, 200);
         int spoolSize = getIntProperty(properties, SPOOL_SIZE, 10000);
         return new Configuration(
@@ -123,6 +128,7 @@ public class Configuration {
                 minimumBatchSize,
                 maximumBatchDelay,
                 restUrl,
+                tenant,
                 restCloseAfterRequests,
                 spoolSize,
                 validationMessages
@@ -219,6 +225,10 @@ public class Configuration {
 
     public URI getRestUrl() {
         return restUrl;
+    }
+
+    public String getTenant() {
+        return tenant;
     }
 
     public int getRestCloseAfterRequests() {
