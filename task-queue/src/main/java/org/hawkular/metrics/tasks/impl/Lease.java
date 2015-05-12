@@ -21,6 +21,10 @@ import java.util.Objects;
 import org.joda.time.DateTime;
 
 /**
+ * Tasks are associated with a lease. Clients must acquire a lease before they can start executing tasks associated
+ * with it; however, leases are not directly exposed to clients. The actions of acquiring, renewing, and finishing a
+ * lease are handled internally allowing clients to focus on their tasks.
+ *
  * @author jsanda
  */
 public class Lease {
@@ -43,18 +47,34 @@ public class Lease {
         this.finished = finished;
     }
 
+    /**
+     * The time slice for which the lease has been allocated. For example, if a client schedules a task to aggregate
+     * data every hour and if the current time is 13:33, then a lease will be created and persisted for 14:00.
+     */
     public DateTime getTimeSlice() {
         return timeSlice;
     }
 
+    /**
+     *
+     * @return The {@link org.hawkular.metrics.tasks.api.TaskType task type} name
+     */
     public String getTaskType() {
         return taskType;
     }
 
+    /**
+     * Specifies how many tasks in terms of segments are associated with this lease. Suppose there are 100 segments and
+     * use a segment offset size of 10. There will be 10 task segments per lease. When a client acquires this lease,
+     * all tasks in each of the 10 segments assigned to this lease will be executed.
+     */
     public int getSegmentOffset() {
         return segmentOffset;
     }
 
+    /**
+     * The current lease owner or null if there is no owner.
+     */
     public String getOwner() {
         return owner;
     }
@@ -63,6 +83,9 @@ public class Lease {
         this.owner = owner;
     }
 
+    /**
+     * @return True if all tasks associated with the lease are finished, false otherwise.
+     */
     public boolean isFinished() {
         return finished;
     }
