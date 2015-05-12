@@ -74,8 +74,8 @@ public class RestForwardingHandlerITest {
 
         Properties properties = new Properties();
         String addGaugeDataUrl = "http://" + BASE_URI + "/gauges/data";
-        properties.setProperty(ConfigurationKey.REST_URL.getExternalForm(), addGaugeDataUrl);
-        properties.setProperty(ConfigurationKey.TENANT.getExternalForm(), TENANT);
+        properties.setProperty(ConfigurationKey.REST_URL.toString(), addGaugeDataUrl);
+        properties.setProperty(ConfigurationKey.TENANT.toString(), TENANT);
         Configuration configuration = Configuration.from(properties);
 
         restForwardingHandler = new RestForwardingHandler(configuration);

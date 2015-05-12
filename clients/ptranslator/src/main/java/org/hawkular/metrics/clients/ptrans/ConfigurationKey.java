@@ -62,7 +62,8 @@ public enum ConfigurationKey {
     /**
      * @return string representation of this configuration key
      */
-    public String getExternalForm() {
+    @Override
+    public String toString() {
         return externalForm;
     }
 }

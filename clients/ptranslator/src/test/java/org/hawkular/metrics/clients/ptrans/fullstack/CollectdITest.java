@@ -140,12 +140,12 @@ public class CollectdITest extends ExecutableITestBase {
         try (InputStream in = new FileInputStream(ptransConfFile)) {
             properties.load(in);
         }
-        properties.setProperty(ConfigurationKey.SERVICES.getExternalForm(), Service.COLLECTD.getExternalForm());
-        properties.setProperty(ConfigurationKey.BATCH_DELAY.getExternalForm(), String.valueOf(1));
-        properties.setProperty(ConfigurationKey.BATCH_SIZE.getExternalForm(), String.valueOf(1));
+        properties.setProperty(ConfigurationKey.SERVICES.toString(), Service.COLLECTD.getExternalForm());
+        properties.setProperty(ConfigurationKey.BATCH_DELAY.toString(), String.valueOf(1));
+        properties.setProperty(ConfigurationKey.BATCH_SIZE.toString(), String.valueOf(1));
         String restUrl = "http://" + BASE_URI + "/gauges/data";
-        properties.setProperty(ConfigurationKey.REST_URL.getExternalForm(), restUrl);
-        properties.setProperty(ConfigurationKey.TENANT.getExternalForm(), tenant);
+        properties.setProperty(ConfigurationKey.REST_URL.toString(), restUrl);
+        properties.setProperty(ConfigurationKey.TENANT.toString(), tenant);
         try (OutputStream out = new FileOutputStream(ptransConfFile)) {
             properties.store(out, "");
         }

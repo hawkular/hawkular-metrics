@@ -105,15 +105,15 @@ public class Configuration {
         int udpPort = getIntProperty(properties, UDP_PORT, 5140);
         int tcpPort = getIntProperty(properties, TCP_PORT, 5140);
         int gangliaPort = getIntProperty(properties, GANGLIA_PORT, 8649);
-        String gangliaGroup = properties.getProperty(GANGLIA_GROUP.getExternalForm(), "239.2.11.71");
-        String multicastIfOverride = properties.getProperty(GANGLIA_MULTICAST_INTERFACE.getExternalForm());
+        String gangliaGroup = properties.getProperty(GANGLIA_GROUP.toString(), "239.2.11.71");
+        String multicastIfOverride = properties.getProperty(GANGLIA_MULTICAST_INTERFACE.toString());
         int statsDport = getIntProperty(properties, STATSD_PORT, 8125);
         int collectdPort = getIntProperty(properties, COLLECTD_PORT, 25826);
         int minimumBatchSize = getIntProperty(properties, BATCH_SIZE, 50);
         int maximumBatchDelay = getIntProperty(properties, BATCH_DELAY, 1);
-        URI restUrl = URI.create(properties.getProperty(REST_URL.getExternalForm(),
+        URI restUrl = URI.create(properties.getProperty(REST_URL.toString(),
             "http://localhost:8080/hawkular/metrics/gauges/data"));
-        String tenant = properties.getProperty(TENANT.getExternalForm(), "default");
+        String tenant = properties.getProperty(TENANT.toString(), "default");
         int restCloseAfterRequests = getIntProperty(properties, REST_CLOSE_AFTER_REQUESTS, 200);
         int spoolSize = getIntProperty(properties, SPOOL_SIZE, 10000);
         return new Configuration(
@@ -136,9 +136,9 @@ public class Configuration {
     }
 
     private static Set<Service> getServices(Properties properties, Set<String> validationMessages) {
-        String servicesProperty = properties.getProperty(SERVICES.getExternalForm());
+        String servicesProperty = properties.getProperty(SERVICES.toString());
         if (servicesProperty == null) {
-            validationMessages.add(String.format(Locale.ROOT, "Property %s not found", SERVICES.getExternalForm()));
+            validationMessages.add(String.format(Locale.ROOT, "Property %s not found", SERVICES.toString()));
             return Collections.emptySet();
         }
         Set<Service> services = EnumSet.noneOf(Service.class);
@@ -162,7 +162,7 @@ public class Configuration {
     }
 
     private static int getIntProperty(Properties properties, ConfigurationKey key, int defaultValue) {
-        String property = properties.getProperty(key.getExternalForm());
+        String property = properties.getProperty(key.toString());
         if (property == null) {
             return defaultValue;
         }

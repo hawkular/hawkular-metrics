@@ -51,7 +51,7 @@ public class PTransTest {
     @Test
     public void constructorShouldNotThrowExceptionWhenProvidedConfigurationIsValid() {
         Properties properties = new Properties();
-        properties.setProperty(SERVICES.getExternalForm(), COLLECTD.getExternalForm());
+        properties.setProperty(SERVICES.toString(), COLLECTD.getExternalForm());
         new PTrans(Configuration.from(properties));
     }
 
