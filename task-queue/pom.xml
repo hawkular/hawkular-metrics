@@ -31,7 +31,17 @@
   <artifactId>hawkular-metrics-task-queue</artifactId>
   <name>Hawkular Metrics Task Queue</name>
 
+  <properties>
+    <test.keyspace>hawkulartest</test.keyspace>
+  </properties>
+
   <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>schema-manager</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
     <dependency>
       <groupId>com.datastax.cassandra</groupId>
       <artifactId>cassandra-driver-core</artifactId>
@@ -62,4 +72,18 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <keyspace>${test.keyspace}</keyspace>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

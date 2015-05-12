@@ -24,6 +24,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
+import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.metrics.tasks.impl.Queries;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
@@ -42,9 +43,16 @@ public class BaseTest {
     protected static Queries queries;
 
     @BeforeSuite
-    public static void initSuite() {
+    public static void initSuite() throws Exception {
         Cluster cluster = Cluster.builder().addContactPoints("127.0.0.01").build();
-        session = cluster.connect(System.getProperty("keyspace", "hawkulartest"));
+        String keyspace = System.getProperty("keyspace", "hawkulartest");
+        session = cluster.connect("system");
+
+        SchemaManager schemaManager = new SchemaManager(session);
+        schemaManager.createSchema(keyspace);
+
+        session.execute("USE " + keyspace);
+
         queries = new Queries(session);
         dateTimeService = new DateTimeService();
     }

@@ -22,6 +22,7 @@ import static org.joda.time.DateTime.now;
 import static org.joda.time.Duration.standardMinutes;
 import static org.joda.time.Duration.standardSeconds;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -50,6 +51,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Uninterruptibles;
+import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.metrics.tasks.DateTimeService;
 import org.hawkular.metrics.tasks.api.Task;
 import org.hawkular.metrics.tasks.api.TaskExecutionException;
@@ -112,16 +114,22 @@ public class TaskServiceImpl implements TaskService {
     private TimeUnit timeUnit = TimeUnit.MINUTES;
 
     public TaskServiceImpl(Session session, Queries queries, LeaseService leaseService, List<TaskType> taskTypes) {
-        this.session = session;
-        this.queries = queries;
-        this.leaseService = leaseService;
-        this.taskTypes = taskTypes;
         try {
+            this.session = session;
+            this.queries = queries;
+            this.leaseService = leaseService;
+            this.taskTypes = taskTypes;
+            dateTimeService = new DateTimeService();
             owner = InetAddress.getLocalHost().getHostName();
+
+            SchemaManager schemaManager = new SchemaManager(session);
+            String keyspace = System.getProperty("keyspace", "hawkular_metrics");
+            schemaManager.createSchema(keyspace);
         } catch (UnknownHostException e) {
             throw new RuntimeException("Failed to initialize owner name", e);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to initialize schema", e);
         }
-        dateTimeService = new DateTimeService();
     }
 
     /**

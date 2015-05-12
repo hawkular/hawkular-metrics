@@ -49,7 +49,7 @@ public class SchemaManager {
         session.execute("DROP KEYSPACE " + keyspace);
     }
 
-    public void createSchema(String keyspace, String cqlFile) throws IOException {
+    public void createSchema(String keyspace) throws IOException {
         logger.info("Creating schema for keyspace " + keyspace);
 
         ResultSet resultSet = session.execute("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = '" +
@@ -61,7 +61,7 @@ public class SchemaManager {
 
         ImmutableMap<String, String> schemaVars = ImmutableMap.of("keyspace", keyspace);
 
-        try (InputStream inputStream = getClass().getResourceAsStream(cqlFile);
+        try (InputStream inputStream = getClass().getResourceAsStream("/schema.cql");
             InputStreamReader reader = new InputStreamReader(inputStream)) {
             String content = CharStreams.toString(reader);
 

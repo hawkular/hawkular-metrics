@@ -27,4 +27,4 @@ Session session = cluster.connect()
 String keyspace = properties["keyspace"] ?: "hawkulartest"
 SchemaManager schemaManager = new SchemaManager(session)
 if (properties["resetdb"]) schemaManager.dropKeyspace(keyspace)
-schemaManager.createSchema(keyspace, "/schema.cql")
+schemaManager.createSchema(keyspace)

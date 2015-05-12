@@ -97,8 +97,6 @@ public class MetricsServiceCassandra implements MetricsService {
 
     public static final int DEFAULT_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
-    private static final String SCHEMA_FILE = "/schema.cql";
-
     private static class DataRetentionKey {
         private final String tenantId;
         private final MetricId metricId;
@@ -205,7 +203,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
         if (keyspace==null||keyspace.isEmpty()) {
             logger.debug("No explicit keyspace given, will default to 'hawkular'");
-            keyspace = "hawkular-metrics";
+            keyspace = "hawkular_metrics";
         }
 
         logger.info("Using a key space of '" + keyspace + "'");
@@ -801,7 +799,7 @@ public class MetricsServiceCassandra implements MetricsService {
     private void updateSchemaIfNecessary(String schemaName) {
         try {
             SchemaManager schemaManager = new SchemaManager(session.get());
-            schemaManager.createSchema(schemaName, SCHEMA_FILE);
+            schemaManager.createSchema(schemaName);
         } catch (IOException e) {
             throw new RuntimeException("Schema creation failed", e);
         }
