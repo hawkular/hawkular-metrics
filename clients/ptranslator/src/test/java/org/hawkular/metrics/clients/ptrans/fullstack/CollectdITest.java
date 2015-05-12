@@ -22,11 +22,6 @@ import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BATCH_DELAY;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BATCH_SIZE;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.REST_URL;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.TENANT;
 import static org.hawkular.metrics.clients.ptrans.util.ProcessUtil.kill;
 import static org.hawkular.metrics.clients.ptrans.util.TenantUtil.getRandomTenantId;
 import static org.junit.Assert.assertEquals;
@@ -51,6 +46,7 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.stream.Stream;
 
+import org.hawkular.metrics.clients.ptrans.ConfigurationKey;
 import org.hawkular.metrics.clients.ptrans.ExecutableITestBase;
 import org.hawkular.metrics.clients.ptrans.PrintOutputOnFailureWatcher;
 import org.hawkular.metrics.clients.ptrans.Service;
@@ -77,6 +73,7 @@ public class CollectdITest extends ExecutableITestBase {
             "hawkular-metrics.base-uri",
             "127.0.0.1:8080/hawkular/metrics"
     );
+    private static final String HAWKULAR_TENANT_HEADER = "tenantId";
 
     private String tenant;
     private String findGaugeMetricsUrl;
@@ -143,12 +140,12 @@ public class CollectdITest extends ExecutableITestBase {
         try (InputStream in = new FileInputStream(ptransConfFile)) {
             properties.load(in);
         }
-        properties.setProperty(SERVICES.getExternalForm(), Service.COLLECTD.getExternalForm());
-        properties.setProperty(BATCH_DELAY.getExternalForm(), String.valueOf(1));
-        properties.setProperty(BATCH_SIZE.getExternalForm(), String.valueOf(1));
+        properties.setProperty(ConfigurationKey.SERVICES.getExternalForm(), Service.COLLECTD.getExternalForm());
+        properties.setProperty(ConfigurationKey.BATCH_DELAY.getExternalForm(), String.valueOf(1));
+        properties.setProperty(ConfigurationKey.BATCH_SIZE.getExternalForm(), String.valueOf(1));
         String restUrl = "http://" + BASE_URI + "/gauges/data";
-        properties.setProperty(REST_URL.getExternalForm(), restUrl);
-        properties.setProperty(TENANT.getExternalForm(), tenant);
+        properties.setProperty(ConfigurationKey.REST_URL.getExternalForm(), restUrl);
+        properties.setProperty(ConfigurationKey.TENANT.getExternalForm(), tenant);
         try (OutputStream out = new FileOutputStream(ptransConfFile)) {
             properties.store(out, "");
         }
@@ -246,7 +243,7 @@ public class CollectdITest extends ExecutableITestBase {
         ObjectMapper objectMapper = new ObjectMapper();
 
         HttpURLConnection urlConnection = (HttpURLConnection) new URL(findGaugeMetricsUrl).openConnection();
-        urlConnection.setRequestProperty("tenantId", tenant);
+        urlConnection.setRequestProperty(HAWKULAR_TENANT_HEADER, tenant);
         urlConnection.connect();
         int responseCode = urlConnection.getResponseCode();
         if (responseCode != HttpURLConnection.HTTP_OK) {
@@ -268,7 +265,7 @@ public class CollectdITest extends ExecutableITestBase {
             String type = split[split.length - 1];
 
             urlConnection = (HttpURLConnection) new URL(findGaugeDataUrl(metricName)).openConnection();
-            urlConnection.setRequestProperty("tenantId", tenant);
+            urlConnection.setRequestProperty(HAWKULAR_TENANT_HEADER, tenant);
             urlConnection.connect();
             responseCode = urlConnection.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {
