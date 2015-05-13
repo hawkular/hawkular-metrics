@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -128,9 +127,9 @@ public class GaugeHandler {
         executeAsync(
                 asyncResponse,
                 () -> {
-                    ListenableFuture<Optional<Metric<?>>> future = metricsService.findMetric(tenantId,
-                            MetricType.GAUGE, new MetricId(id));
-                    return Futures.transform(future, ApiUtils.MAP_VALUE);
+                ListenableFuture<Map<String, String>> future = metricsService.getMetricTags(tenantId, MetricType.GAUGE,
+                    new MetricId(id));
+                    return Futures.transform(future, ApiUtils.MAP_MAP);
                 });
     }
 

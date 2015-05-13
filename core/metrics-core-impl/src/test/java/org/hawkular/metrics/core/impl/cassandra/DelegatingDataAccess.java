@@ -72,6 +72,11 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
+    public ResultSetFuture getMetricTags(String tenantId, MetricType type, MetricId id, long dpart) {
+        return delegate.getMetricTags(tenantId, type, id, dpart);
+    }
+
+    @Override
     public ResultSetFuture addTagsAndDataRetention(Metric metric) {
         return delegate.addTagsAndDataRetention(metric);
     }

@@ -26,7 +26,6 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -58,7 +57,6 @@ import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
-import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
@@ -124,9 +122,9 @@ public class AvailabilityHandler {
         executeAsync(
                 asyncResponse,
                 () -> {
-                    ListenableFuture<Optional<Metric<?>>> future = metricsService.findMetric(tenantId,
-                            MetricType.AVAILABILITY, new MetricId(id));
-                    return Futures.transform(future, ApiUtils.MAP_VALUE);
+                ListenableFuture<Map<String, String>> future = metricsService.getMetricTags(tenantId,
+                    MetricType.AVAILABILITY, new MetricId(id));
+                    return Futures.transform(future, ApiUtils.MAP_MAP);
                 });
     }
 

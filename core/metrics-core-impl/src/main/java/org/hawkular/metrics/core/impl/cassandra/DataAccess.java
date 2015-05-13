@@ -51,6 +51,8 @@ public interface DataAccess {
 
     ResultSetFuture addTagsAndDataRetention(Metric<?> metric);
 
+    ResultSetFuture getMetricTags(String tenantId, MetricType type, MetricId id, long dpart);
+
     ResultSetFuture addTags(Metric<?> metric, Map<String, String> tags);
 
     ResultSetFuture deleteTags(Metric<?> metric, Set<String> tags);
