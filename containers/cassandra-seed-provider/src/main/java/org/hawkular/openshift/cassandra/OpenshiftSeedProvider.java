@@ -42,6 +42,11 @@ public class OpenshiftSeedProvider implements SeedProvider {
     private static final String CASSANDRA_NODES_SERVICE_NAME_ENVAR_NAME = "CASSANDRA_NODES_SERVICE_NAME";
     private static final String DEFAULT_CASSANDRA_NODES_SERVICE_NAME = "cassandra-nodes";
 
+    // properties to determine how long to wait for the service to come online.
+    // Currently set to 60 seconds
+    private static final int SERVICE_TRIES = 30;
+    private static final int SERVICE_TRY_WAIT_TIME_MILLISECONDS = 2000;
+
     //Required Constructor
     public OpenshiftSeedProvider(Map<String, String> args) {
     }
@@ -52,11 +57,31 @@ public class OpenshiftSeedProvider implements SeedProvider {
 
         String serviceName = getEnv(CASSANDRA_NODES_SERVICE_NAME_ENVAR_NAME, DEFAULT_CASSANDRA_NODES_SERVICE_NAME);
         try {
-            InetAddress[] inetAddresses = InetAddress.getAllByName(serviceName);
+            InetAddress[] inetAddresses = null;
+
+            // we need to wait until the service is started
+            for (int i = 0; i < SERVICE_TRIES; i++) {
+                try {
+                    inetAddresses = InetAddress.getAllByName(serviceName);
+                } catch (UnknownHostException e) {
+                    if (i == (SERVICE_TRIES - 1)) {
+                        logger.error("Could not detect service. Aborting.");
+                        throw e;
+                    } else {
+                        logger.warn("Could not detect service '" + serviceName +
+                                "'. It may not be up yet trying again.", e);
+                        Thread.sleep(SERVICE_TRY_WAIT_TIME_MILLISECONDS);
+                    }
+                }
+            }
+
+            if (inetAddresses == null) {
+                inetAddresses = InetAddress.getAllByName(serviceName);
+            }
 
             logger.debug(inetAddresses.length + " addresses found for service name " + serviceName);
 
-            if (inetAddresses.length > 1) {
+            if (inetAddresses.length >= 1) {
                 for (InetAddress inetAddress : inetAddresses) {
                     logger.debug("Adding address " + inetAddress.getHostAddress() + " to seed list");
                     seeds.add(inetAddress);
