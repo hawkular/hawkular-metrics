@@ -132,7 +132,8 @@ public class AvailabilityHandler {
 
     @GET
     @Path("/{id}/tags")
-    @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = Map.class)
+    @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = String.class,
+                  responseContainer = "Map")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's tags were successfully retrieved."),
             @ApiResponse(code = 204, message = "Query was successful, but no metrics were found."),
