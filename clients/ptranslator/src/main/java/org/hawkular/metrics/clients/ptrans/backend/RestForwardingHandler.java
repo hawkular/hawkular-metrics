@@ -68,7 +68,7 @@ import io.netty.util.CharsetUtil;
 public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
     private static final Logger LOG = LoggerFactory.getLogger(RestForwardingHandler.class);
 
-    public static final String TENANT_HEADER_NAME = "tenantId";
+    public static final String TENANT_HEADER_NAME = "Hawkular-Tenant";
 
     private final String restHost;
     private final int restPort;
