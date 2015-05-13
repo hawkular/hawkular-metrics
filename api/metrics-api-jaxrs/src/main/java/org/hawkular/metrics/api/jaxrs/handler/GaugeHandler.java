@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -112,6 +113,25 @@ public class GaugeHandler {
         URI created = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getId().getName());
         MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(asyncResponse, created);
         Futures.addCallback(future, metricCreatedCallback);
+    }
+
+    @GET
+    @Path("/{id}")
+    @ApiOperation(value = "Retrieve single metric definition.", response = Metric.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Metric's definition was successfully retrieved."),
+            @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.",
+                         response = ApiError.class) })
+    public void getGaugeMetric(@Suspended final AsyncResponse asyncResponse,
+                                   @HeaderParam("tenantId") String tenantId, @PathParam("id") String id) {
+        executeAsync(
+                asyncResponse,
+                () -> {
+                ListenableFuture<Optional<Metric<?>>> future = metricsService.findMetric(tenantId, MetricType.GAUGE,
+                    new MetricId(id));
+                 return Futures.transform(future, ApiUtils.MAP_VALUE);
+                });
     }
 
     @GET

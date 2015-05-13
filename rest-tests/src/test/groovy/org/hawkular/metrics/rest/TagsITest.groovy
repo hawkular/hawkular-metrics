@@ -69,6 +69,9 @@ class TagsITest extends RESTTest {
 
     response = hawkularMetrics.get(path: "availability/missing/tags", headers: ["tenantId": tenantId])
     assertEquals("Expected a 204 response when the availability metric is not found", 204, response.status)
+
+    response = hawkularMetrics.get(path: "gauges/missing", headers: ["tenantId": tenantId])
+    assertEquals("Expected a 204 response when the gauge metric is not found", 204, response.status)
   }
 
   @Test
@@ -81,6 +84,15 @@ class TagsITest extends RESTTest {
         tags: ['  a  1   ': '   A', 'bsq   d1': 'B   ']
     ], headers: ["tenantId": tenantId])
     assertEquals(201, response.status)
+
+    // Fetch the metric
+    response = hawkularMetrics.get(path: "gauges/N1", headers: ["tenantId": tenantId])
+    assertEquals(200, response.status)
+    assertEquals([
+        tenantId: tenantId,
+        id  : 'N1',
+        tags: ['  a  1   ': '   A', 'bsq   d1': 'B   ']
+    ], response.data)
 
     // Make sure we do not allow duplicates
     badPost(path: "gauges", body: [id: 'N1'], headers: ["tenantId": tenantId]) { exception ->

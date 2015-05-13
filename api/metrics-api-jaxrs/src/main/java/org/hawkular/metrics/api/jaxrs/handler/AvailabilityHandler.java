@@ -26,6 +26,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -57,6 +58,7 @@ import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
@@ -107,6 +109,25 @@ public class AvailabilityHandler {
         URI created = uriInfo.getBaseUriBuilder().path("/availability/{id}").build(metric.getId().getName());
         MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(asyncResponse, created);
         Futures.addCallback(future, metricCreatedCallback);
+    }
+
+    @GET
+    @Path("/{id}")
+    @ApiOperation(value = "Retrieve single metric definition.", response = Metric.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Metric's definition was successfully retrieved."),
+            @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.",
+                         response = ApiError.class) })
+    public void getAvailabilityMetric(@Suspended final AsyncResponse asyncResponse,
+                                         @HeaderParam("tenantId") String tenantId, @PathParam("id") String id) {
+        executeAsync(
+                asyncResponse,
+                () -> {
+                ListenableFuture<Optional<Metric<?>>> future = metricsService.findMetric(tenantId,
+                    MetricType.AVAILABILITY, new MetricId(id));
+                    return Futures.transform(future, ApiUtils.MAP_VALUE);
+                });
     }
 
     @GET
