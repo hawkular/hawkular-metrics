@@ -38,6 +38,25 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import javax.management.MBeanInfo;
+import javax.management.MBeanServerConnection;
+import javax.management.ObjectName;
+
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.RateLimiter;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityData;
@@ -63,19 +82,7 @@ import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.google.common.base.Function;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.RateLimiter;
+import rx.Observable;
 
 /**
  * @author John Sanda
@@ -431,19 +438,32 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> addGaugeData(List<Gauge> metrics) {
-        List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
-        for (Gauge metric : metrics) {
-            if (metric.getData().isEmpty()) {
-                logger.warn("There is no data to insert for {}", metric);
-            } else {
-                int ttl = getTTL(metric);
-                insertFutures.add(dataAccess.insertData(metric, ttl));
-            }
-        }
-        insertFutures.add(dataAccess.updateMetricsIndex(metrics));
-        ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
-        return Futures.transform(insertsFuture, Functions.TO_VOID, metricsTasks);
+    public Observable<Void> addGaugeData(Observable<Gauge> gaugeObservable) {
+        // This is a first, rough cut at an RxJava implementation for storing metric data. This code will change but
+        // for now the goal is 1) replace ListenableFuture in the API with Observable and 2) make sure tests still
+        // pass. This means that the behavior basically remains the same as before. The idea here is to implement a
+        // pub/sub workflow. 
+
+        return Observable.create(subscriber -> {
+            Map<Gauge, ResultSetFuture> insertsMap = new HashMap<>();
+            gaugeObservable.subscribe(
+                    gauge -> {
+                        int ttl = getTTL(gauge);
+                        insertsMap.put(gauge, dataAccess.insertData(gauge, ttl));
+                    },
+                    t -> logger.warn("There was an error receive gauge data to insert", t),
+                    () -> {
+                        List<ResultSetFuture> inserts = Lists.newArrayList(insertsMap.values());
+                        inserts.add(dataAccess.updateMetricsIndex(ImmutableList.copyOf(insertsMap.keySet())));
+                        ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(inserts);
+                        Observable<List<ResultSet>> insertsObservable = RxUtil.from(insertsFuture, metricsTasks);
+                        insertsObservable.subscribe(
+                                resultSets -> {},
+                                subscriber::onError,
+                                subscriber::onCompleted
+                        );
+                    });
+        });
     }
 
     @Override
@@ -490,12 +510,12 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<GaugeData>> findGaugeData(String tenantId, MetricId id, Long start, Long end) {
+    public Observable<GaugeData> findGaugeData(String tenantId, MetricId id, Long start, Long end) {
         // When we implement date partitioning, dpart will have to be determined based on
         // the start and end params. And it is possible the the date range spans multiple
         // date partitions.
         ResultSetFuture future = dataAccess.findData(tenantId, id, start, end);
-        return Futures.transform(future, Functions.MAP_GAUGE_DATA, metricsTasks);
+        return RxUtil.from(future, metricsTasks).flatMap(Observable::from).map(Functions::getGaugeData);
     }
 
     @Override

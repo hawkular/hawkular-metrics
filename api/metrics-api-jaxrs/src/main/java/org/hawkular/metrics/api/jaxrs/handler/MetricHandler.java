@@ -22,7 +22,6 @@ import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_N
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.executeAsync;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -35,14 +34,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
-import javax.ws.rs.core.Response;
-
-import org.hawkular.metrics.api.jaxrs.ApiError;
-import org.hawkular.metrics.api.jaxrs.request.MixedMetricsRequest;
-import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -51,6 +42,12 @@ import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
+import org.hawkular.metrics.api.jaxrs.ApiError;
+import org.hawkular.metrics.api.jaxrs.request.MixedMetricsRequest;
+import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.MetricsService;
 
 
 /**
@@ -117,21 +114,5 @@ public class MetricHandler {
                             .isEmpty())) {
                 return Futures.immediateFuture(Response.ok().build());
             }
-
-            List<ListenableFuture<Void>> simpleFuturesList = new ArrayList<>();
-
-            if (metricsRequest.getGaugeMetrics() != null && !metricsRequest.getGaugeMetrics().isEmpty()) {
-                metricsRequest.getGaugeMetrics().forEach(m -> m.setTenantId(tenantId));
-                simpleFuturesList.add(metricsService.addGaugeData(metricsRequest.getGaugeMetrics()));
-            }
-
-            if (metricsRequest.getAvailabilityMetrics() != null && !metricsRequest.getAvailabilityMetrics().isEmpty()) {
-                metricsRequest.getAvailabilityMetrics().forEach(m -> m.setTenantId(tenantId));
-                simpleFuturesList.add(metricsService.addAvailabilityData(metricsRequest.getAvailabilityMetrics()));
-            }
-
-            return Futures.transform(Futures.successfulAsList(simpleFuturesList), ApiUtils.MAP_LIST_VOID);
-        });
-    }
 
 }

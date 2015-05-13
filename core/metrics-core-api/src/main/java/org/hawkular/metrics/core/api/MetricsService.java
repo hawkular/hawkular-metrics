@@ -25,6 +25,7 @@ import java.util.function.Predicate;
 
 import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.ListenableFuture;
+import rx.Observable;
 
 /**
  * Interface that defines the functionality of the Metrics Service.
@@ -85,9 +86,9 @@ public interface MetricsService {
 
     ListenableFuture<Void> deleteTags(Metric metric, Map<String, String> tags);
 
-    ListenableFuture<Void> addGaugeData(List<Gauge> metrics);
+    Observable<Void> addGaugeData(Observable<Gauge> gaugeObservable);
 
-    ListenableFuture<List<GaugeData>> findGaugeData(String tenantId, MetricId id, Long start, Long end);
+    Observable<GaugeData> findGaugeData(String tenantId, MetricId id, Long start, Long end);
 
     ListenableFuture<BucketedOutput<GaugeBucketDataPoint>> findGaugeStats(
             Gauge metric, long start, long end, Buckets buckets

@@ -69,7 +69,7 @@ public class Functions {
     public static final Function<ResultSet, List<GaugeData>> MAP_GAUGE_DATA = resultSet ->
             StreamSupport.stream(resultSet.spliterator(), false).map(Functions::getGaugeData).collect(toList());
 
-    private static GaugeData getGaugeData(Row row) {
+    public static GaugeData getGaugeData(Row row) {
         return new GaugeData(
                 row.getUUID(GAUGE_COLS.TIME.ordinal()), row.getDouble(GAUGE_COLS.VALUE.ordinal()),
                 row.getMap(GAUGE_COLS.TAGS.ordinal(), String.class, String.class)
