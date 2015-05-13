@@ -16,15 +16,11 @@
  */
 package org.hawkular.metrics.clients.ptrans.backend;
 
+import static org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler.TENANT_HEADER_NAME;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.EventLoop;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,6 +41,12 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.EventLoop;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
 
 /**
  * @author Thomas Segismont
@@ -102,7 +104,7 @@ public class RestForwardingHandlerITest {
 
     private JsonNode findGaugeDataOnServer() throws IOException {
         HttpURLConnection urlConnection = (HttpURLConnection) new URL(findGaugeDataUrl).openConnection();
-        urlConnection.setRequestProperty("tenantId", TENANT);
+        urlConnection.setRequestProperty(TENANT_HEADER_NAME, TENANT);
         urlConnection.connect();
         int responseCode = urlConnection.getResponseCode();
         if (responseCode != HttpURLConnection.HTTP_OK) {

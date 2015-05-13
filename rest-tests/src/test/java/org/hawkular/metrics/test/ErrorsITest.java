@@ -42,7 +42,7 @@ public class ErrorsITest extends RESTTest {
         response = target.clone()
                 .path("/gauges/test/tags")
                 .request(MediaType.APPLICATION_JSON_TYPE)
-                .header("tenantId", "test")
+                .header(TENANT_HEADER_NAME, "test")
                 .post(null);
         Assert.assertEquals(405, response.getStatus());
         ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
@@ -56,7 +56,7 @@ public class ErrorsITest extends RESTTest {
                 .path("/gaugesssss/test/data")
                 .queryParam("buckets", "999")
                 .request(MediaType.APPLICATION_JSON_TYPE)
-                .header("tenantId", "test")
+                .header(TENANT_HEADER_NAME, "test")
                 .get();
         Assert.assertEquals(404, response.getStatus());
         ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
@@ -71,7 +71,7 @@ public class ErrorsITest extends RESTTest {
                 .path("/gauges/test/data")
                 .queryParam("buckets", "999999999999999999999999")
                 .request(MediaType.APPLICATION_JSON_TYPE)
-                .header("tenantId", "test")
+                .header(TENANT_HEADER_NAME, "test")
                 .get();
         Assert.assertEquals(400, response.getStatus());
         ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
@@ -84,7 +84,7 @@ public class ErrorsITest extends RESTTest {
         response = target.clone()
                 .path("/gauges/test/data")
                 .request(MediaType.TEXT_PLAIN)
-                .header("tenantId", "test")
+                .header(TENANT_HEADER_NAME, "test")
                 .get();
         Assert.assertEquals(406, response.getStatus());
         ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
@@ -97,7 +97,7 @@ public class ErrorsITest extends RESTTest {
         response = target.clone()
                 .path("/gauges/test/data")
                 .request(MediaType.TEXT_PLAIN)
-                .header("tenantId", "test")
+                .header(TENANT_HEADER_NAME, "test")
                 .post(null);
         Assert.assertEquals(415, response.getStatus());
         ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
