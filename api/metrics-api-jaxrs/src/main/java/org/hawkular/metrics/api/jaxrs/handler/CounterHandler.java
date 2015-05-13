@@ -17,6 +17,8 @@
 package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+
+import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
 
 import java.util.Collection;
@@ -58,11 +60,16 @@ public class CounterHandler {
     @Inject
     private MetricsService metricsService;
 
+    @HeaderParam(TENANT_HEADER_NAME)
+    private String tenantId;
+
     @POST
     @Path("/")
     @ApiOperation(value = "List of counter definitions", hidden = true)
-    public void updateCountersForGroups(@Suspended final AsyncResponse asyncResponse,
-            @HeaderParam("tenantId") String tenantId, Collection<Counter> counters) {
+    public void updateCountersForGroups(
+            @Suspended final AsyncResponse asyncResponse,
+            Collection<Counter> counters
+    ) {
         ListenableFuture<Void> future = metricsService.updateCounters(counters);
         Futures.addCallback(future, new NoDataCallback<>(asyncResponse));
     }
@@ -70,9 +77,11 @@ public class CounterHandler {
     @POST
     @Path("/{group}")
     @ApiOperation(value = "Update multiple counters in a single counter group", hidden = true)
-    public void updateCounterForGroup(@Suspended final AsyncResponse asyncResponse,
-            @HeaderParam("tenantId") String tenantId, @PathParam("group") String group,
-            Collection<Counter> counters) {
+    public void updateCounterForGroup(
+            @Suspended final AsyncResponse asyncResponse,
+            @PathParam("group") String group,
+            Collection<Counter> counters
+    ) {
         for (Counter counter : counters) {
             counter.setGroup(group);
         }
@@ -83,8 +92,10 @@ public class CounterHandler {
     @POST
     @Path("/{group}/{counter}")
     @ApiOperation(value = "Increase value of a counter", hidden = true)
-    public void updateCounter(@Suspended final AsyncResponse asyncResponse, @HeaderParam("tenantId") String tenantId,
-            @PathParam("group") String group, @PathParam("counter") String counter) {
+    public void updateCounter(
+            @Suspended final AsyncResponse asyncResponse,
+            @PathParam("group") String group, @PathParam("counter") String counter
+    ) {
         ListenableFuture<Void> future = metricsService
                 .updateCounter(new Counter(DEFAULT_TENANT_ID, group, counter, 1L));
         Futures.addCallback(future, new NoDataCallback<>(asyncResponse));
@@ -93,8 +104,10 @@ public class CounterHandler {
     @POST
     @Path("/{group}/{counter}/{value}")
     @ApiOperation(value = "Update value of a counter", hidden = true)
-    public void updateCounter(@Suspended final AsyncResponse asyncResponse, @HeaderParam("tenantId") String tenantId,
-            @PathParam("group") String group, @PathParam("counter") String counter, @PathParam("value") Long value) {
+    public void updateCounter(
+            @Suspended final AsyncResponse asyncResponse,
+            @PathParam("group") String group, @PathParam("counter") String counter, @PathParam("value") Long value
+    ) {
         ListenableFuture<Void> future = metricsService.updateCounter(new Counter(DEFAULT_TENANT_ID, group, counter,
                 value));
         Futures.addCallback(future, new NoDataCallback<>(asyncResponse));
@@ -105,8 +118,10 @@ public class CounterHandler {
     @ApiOperation(value = "Retrieve a list of counter values in this group", hidden = true,
         response = Counter.class, responseContainer = "List")
     @Produces({ APPLICATION_JSON })
-    public void getCountersForGroup(@Suspended final AsyncResponse asyncResponse,
-            @HeaderParam("tenantId") String tenantId, @PathParam("group") String group) {
+    public void getCountersForGroup(
+            @Suspended final AsyncResponse asyncResponse,
+            @PathParam("group") String group
+    ) {
         ListenableFuture<List<Counter>> future = metricsService.findCounters(group);
         Futures.addCallback(future, new SimpleDataCallback<>(asyncResponse));
     }

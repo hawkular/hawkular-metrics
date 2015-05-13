@@ -17,6 +17,8 @@
 package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+
+import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.executeAsync;
 
@@ -63,6 +65,9 @@ public class MetricHandler {
     @Inject
     private MetricsService metricsService;
 
+    @HeaderParam(TENANT_HEADER_NAME)
+    private String tenantId;
+
     @GET
     @Path("/")
     @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ",
@@ -76,10 +81,9 @@ public class MetricHandler {
     })
     public void findMetrics(
             @Suspended final AsyncResponse asyncResponse,
-            @HeaderParam("tenantId") final String tenantId,
             @ApiParam(value = "Queried metric type", required = true, allowableValues = "[gauge, availability]")
-        @QueryParam("type") String type) {
-
+            @QueryParam("type") String type
+    ) {
         executeAsync(
                 asyncResponse, () -> {
                     MetricType metricType = null;
@@ -103,8 +107,10 @@ public class MetricHandler {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
                 response = ApiError.class) })
-    public void addMetricsData(@Suspended final AsyncResponse asyncResponse, @HeaderParam("tenantId") String tenantId,
-            @ApiParam(value = "List of metrics", required = true) MixedMetricsRequest metricsRequest) {
+    public void addMetricsData(
+            @Suspended final AsyncResponse asyncResponse,
+            @ApiParam(value = "List of metrics", required = true) MixedMetricsRequest metricsRequest
+    ) {
         executeAsync(asyncResponse, () -> {
             if ((metricsRequest.getGaugeMetrics() == null || !metricsRequest.getGaugeMetrics().isEmpty())
                     && (metricsRequest.getAvailabilityMetrics() == null || metricsRequest.getAvailabilityMetrics()

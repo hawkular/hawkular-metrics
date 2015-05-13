@@ -32,7 +32,8 @@ import org.hawkular.metrics.api.jaxrs.ApiError;
  */
 @Provider
 public class TenantFilter implements ContainerRequestFilter {
-    private static final String TENANT_HEADER_NAME = "tenantId";
+    public static final String TENANT_HEADER_NAME = "tenantId";
+
     private static final String TENANT_QUERY_PARAM_NAME = "tenantId";
     private static final String MISSING_TENANT_MSG;
 
