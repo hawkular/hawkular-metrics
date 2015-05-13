@@ -97,8 +97,27 @@ else
     sed -i 's#${SEED_PROVIDER_CLASSNAME}#org.apache.cassandra.locator.SimpleSeedProvider#g' /opt/apache-cassandra/conf/cassandra.yaml
 fi
 
+
+CASSANDRA_PID_FILE="cass.pid"
+
+function decommission() {
+  nodetool decommission
+  nodetool stopdaemon
+  exit 1
+}
+
+#trap "decommission" SIGINT SIGTERM
+
 if [ -n "$CASSANDRA_HOME" ]; then
-  exec ${CASSANDRA_HOME}/bin/cassandra -f
+  ${CASSANDRA_HOME}/bin/cassandra -p $CASSANDRA_PID_FILE
 else
-  exec /opt/apache-cassandra/bin/cassandra -f
+  /opt/apache-cassandra/bin/cassandra -p $CASSANDRA_PID_FILE
 fi
+
+CASSANDRA_PID=`cat $CASSANDRA_PID_FILE`
+echo "CASSANDRA_PID = $CASSANDRA_PID"
+
+while [ `ps -p $CASSANDRA_PID| wc -l` = 2 ] ; do
+    sleep 5;
+done
+
