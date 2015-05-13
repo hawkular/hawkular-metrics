@@ -17,6 +17,7 @@
 package org.hawkular.metrics.rest
 
 import org.joda.time.DateTime
+import org.junit.Ignore
 import org.junit.Test
 
 import static org.joda.time.DateTime.now
@@ -25,6 +26,7 @@ import static org.junit.Assert.assertEquals
 /**
  * @author Thomas Segismont
  */
+@Ignore
 class InfluxITest extends RESTTest {
 
   static def tenantId = "influxtest"

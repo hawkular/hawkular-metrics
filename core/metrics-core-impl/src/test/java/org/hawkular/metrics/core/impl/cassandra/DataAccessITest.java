@@ -23,6 +23,15 @@ import static org.testng.Assert.assertFalse;
 
 import java.util.List;
 
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import org.hawkular.metrics.core.api.AggregationTemplate;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityData;
@@ -38,15 +47,8 @@ import org.joda.time.Days;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import rx.Observable;
+import rx.schedulers.Schedulers;
 
 /**
  * @author John Sanda
@@ -132,8 +134,20 @@ public class DataAccessITest extends MetricsITest {
 
         ResultSetFuture queryFuture = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
                 end.getMillis());
-        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture, Functions.MAP_GAUGE_DATA);
-        List<GaugeData> actual = getUninterruptibly(dataFuture);
+
+        Observable<ResultSet> observable = RxUtil.from(queryFuture, Schedulers.io());
+        Observable<Row> rowsObservable = observable.flatMap(Observable::from);
+        Observable<GaugeData> gaugeDataObservable = rowsObservable.map(Functions::getGaugeData);
+
+//        List<GaugeData> actual = ImmutableList.copyOf(gaugeDataObservable.toBlocking().toIterable());
+        List<GaugeData> actual = ImmutableList.copyOf(observable
+                .flatMap(Observable::from)
+                .map(Functions::getGaugeData)
+                .toBlocking()
+                .toIterable());
+
+//        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture, Functions.MAP_GAUGE_DATA);
+//        List<GaugeData> actual = getUninterruptibly(dataFuture);
         List<GaugeData> expected = asList(
             new GaugeData(start.plusMinutes(2).getMillis(), 1.234),
             new GaugeData(start.plusMinutes(1).getMillis(), 1.234),
