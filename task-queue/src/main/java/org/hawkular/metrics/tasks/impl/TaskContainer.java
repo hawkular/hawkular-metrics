@@ -33,7 +33,7 @@ import org.joda.time.Duration;
 /**
  * @author jsanda
  */
-public class TaskContainer implements Iterable<Task> {
+class TaskContainer implements Iterable<Task> {
 
     private TaskType taskType;
 

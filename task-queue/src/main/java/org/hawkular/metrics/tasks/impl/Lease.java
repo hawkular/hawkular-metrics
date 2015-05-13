@@ -27,7 +27,7 @@ import org.joda.time.DateTime;
  *
  * @author jsanda
  */
-public class Lease {
+class Lease {
 
     private DateTime timeSlice;
 

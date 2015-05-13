@@ -68,7 +68,7 @@ public class TaskSchedulerTest extends BaseTest {
 
         assertTrue(actualTimeSlices.size() >= 3, "Expected task execution to be scheduled at least 3 times but it " +
                 "was scheduled " + actualTimeSlices.size() + " times.");
-        assertTrue(actualTimeSlices.size() <= 6, "Expected no more that 5 task executions to be scheduled since " +
+        assertTrue(actualTimeSlices.size() <= 6, "Expected no more that 6 task executions to be scheduled since " +
             "shutdown was called, but it was scheduled " + actualTimeSlices.size() + " times.");
         assertTaskExecutionScheduleForTimeSlices(actualTimeSlices, expectedTimeSlices);
     }
