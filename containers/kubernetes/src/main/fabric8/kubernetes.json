@@ -47,15 +47,32 @@
               "id": "hawkular-cassandra",
               "version": "v1beta1",
                "containers" : [{
-                 "image": "${cassandra.image}",
                  "name" : "hawkular-cassandra",
+                 "image": "${cassandra.image}",
+                 "command" : ["/opt/apache-cassandra/bin/cassandra-docker.sh",
+                              "--seed_provider_classname=org.hawkular.openshift.cassandra.OpenshiftSeedProvider",
+                              "--cluster_name=hawkular-metrics",
+                              "--data_volume=/cassandra_data"],
                  "ports": [
                    { "name": "cassandra-cql-port", "containerPort": 9042},
                    { "name": "cassandra-thift-port", "containerPort": 9160},
                    { "name": "cassandra-tcp-port", "containerPort": 7000},
                    { "name": "cassandra-ssl-port", "containerPort": 7001}
-                 ]
-               }]
+                 ],
+                 "volumeMounts": [
+                   { "name": "cassandra-data", "mountPath": "/cassandra_data" }
+                 ],
+                 "lifecycle": {
+                   "preStop": {
+                     "exec": {
+                       "command": ["/opt/apache-cassandra/bin/cassandra-docker-pre-stop.sh"]
+                     }
+                   }
+                 }
+               }],
+               "volumes": [
+                 { "name": "cassandra-data", "emptyDir":"" }
+               ]
             }
           },
           "labels": {
