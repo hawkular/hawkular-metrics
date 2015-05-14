@@ -63,6 +63,9 @@ COPY cassandra-seed-provider.jar /opt/apache-cassandra/lib/
 # Copy our customized run script over to the cassandra bin directory
 COPY cassandra-docker.sh /opt/apache-cassandra/bin/
 
+# Copy the preStop scriptover to the cassandra bin directory
+COPY cassandra-docker-pre-stop.sh /opt/apache-cassandra/bin/
+
 # TODO: remove this line once https://bugzilla.redhat.com/show_bug.cgi?id=1201848 has been fixed
 ENV PATH /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 

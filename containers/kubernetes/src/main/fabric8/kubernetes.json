@@ -54,7 +54,14 @@
                    { "name": "cassandra-thift-port", "containerPort": 9160},
                    { "name": "cassandra-tcp-port", "containerPort": 7000},
                    { "name": "cassandra-ssl-port", "containerPort": 7001}
-                 ]
+                 ],
+                 "lifecycle": {
+                   "preStop": {
+                     "exec": {
+                       "command": ["/opt/apache-cassandra/bin/cassandra-docker-pre-stop.sh"]
+                     }
+                   }
+                 }
                }]
             }
           },
