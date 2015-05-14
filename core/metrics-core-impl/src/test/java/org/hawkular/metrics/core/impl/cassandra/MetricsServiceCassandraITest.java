@@ -17,6 +17,8 @@
 package org.hawkular.metrics.core.impl.cassandra;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
 import static org.hawkular.metrics.core.api.AvailabilityType.DOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UNKNOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UP;
@@ -39,6 +41,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.PreparedStatement;
@@ -158,8 +163,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         Gauge m1 = new Gauge("t1", new MetricId("m1"), ImmutableMap.of("a1", "1", "a2", "2"),
             24);
-        ListenableFuture<Void> insertFuture = metricsService.createMetric(m1);
-        getUninterruptibly(insertFuture);
+        metricsService.createMetric(m1).toBlocking().lastOrDefault(null);
 
         ListenableFuture<Optional<Metric<?>>> queryFuture = metricsService.findMetric(m1.getTenantId(), m1.getType(),
                 m1.getId());
@@ -167,34 +171,35 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         assertEquals(actual, m1, "The metric does not match the expected value");
 
         Availability m2 = new Availability("t1", new MetricId("m2"), ImmutableMap.of("a3", "3", "a4", "3"));
-        insertFuture = metricsService.createMetric(m2);
-        getUninterruptibly(insertFuture);
+        metricsService.createMetric(m2).toBlocking().lastOrDefault(null);
 
         queryFuture = metricsService.findMetric(m2.getTenantId(), m2.getType(), m2.getId());
         actual = getUninterruptibly(queryFuture).get();
         assertEquals(actual, m2, "The metric does not match the expected value");
 
-        insertFuture = metricsService.createMetric(m1);
-        Throwable exception = null;
-        try {
-            getUninterruptibly(insertFuture);
-        } catch (Exception e) {
-            exception = e.getCause();
-        }
-        assertTrue(exception != null && exception instanceof MetricAlreadyExistsException,
-            "Expected a " + MetricAlreadyExistsException.class.getSimpleName() + " to be thrown");
+        final CountDownLatch latch = new CountDownLatch(1);
+        final AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
+        metricsService.createMetric(m1).subscribe(
+                nullArg -> {
+                },
+                t -> {
+                    exceptionRef.set(t);
+                    latch.countDown();
+                },
+                latch::countDown);
+        latch.await(10, TimeUnit.SECONDS);
+        assertTrue(exceptionRef.get() != null && exceptionRef.get() instanceof MetricAlreadyExistsException,
+                "Expected a " + MetricAlreadyExistsException.class.getSimpleName() + " to be thrown");
 
         Gauge m3 = new Gauge("t1", new MetricId("m3"));
         m3.setDataRetention(24);
-        insertFuture = metricsService.createMetric(m3);
-        getUninterruptibly(insertFuture);
+        metricsService.createMetric(m3).toBlocking().lastOrDefault(null);
 
         Gauge m4 = new Gauge("t1", new MetricId("m4"), ImmutableMap.of("a1", "A", "a2", ""));
-        insertFuture = metricsService.createMetric(m4);
-        getUninterruptibly(insertFuture);
+        metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
 
         assertMetricIndexMatches("t1", GAUGE, asList(m1, m3, m4));
-        assertMetricIndexMatches("t1", AVAILABILITY, asList(m2));
+        assertMetricIndexMatches("t1", AVAILABILITY, singletonList(m2));
 
         assertDataRetentionsIndexMatches("t1", GAUGE, ImmutableSet.of(new Retention(m3.getId(), 24),
             new Retention(m1.getId(), 24)));
@@ -208,11 +213,10 @@ public class MetricsServiceCassandraITest extends MetricsITest {
     @Test
     public void updateMetricTags() throws Exception {
         Gauge metric = new Gauge("t1", new MetricId("m1"), ImmutableMap.of("a1", "1", "a2", "2"));
-        ListenableFuture<Void> insertFuture = metricsService.createMetric(metric);
-        getUninterruptibly(insertFuture);
+        metricsService.createMetric(metric).toBlocking().lastOrDefault(null);
 
         Map<String, String> additions = ImmutableMap.of("a2", "two", "a3", "3");
-        insertFuture = metricsService.addTags(metric, additions);
+        ListenableFuture<Void> insertFuture = metricsService.addTags(metric, additions);
         getUninterruptibly(insertFuture);
 
         Map<String, String> deletions = ImmutableMap.of("a1", "1");
@@ -226,7 +230,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         assertEquals(updatedMetric.getTags(), ImmutableMap.of("a2", "two", "a3", "3"),
             "The updated meta data does not match the expected values");
 
-        assertMetricIndexMatches(metric.getTenantId(), GAUGE, asList(updatedMetric));
+        assertMetricIndexMatches(metric.getTenantId(), GAUGE, singletonList(updatedMetric));
     }
 
     @Test
@@ -255,7 +259,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
-        assertMetricIndexMatches("t1", GAUGE, asList(m1));
+        assertMetricIndexMatches("t1", GAUGE, singletonList(m1));
     }
 
     @Test
@@ -300,8 +304,8 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         m3.addData(start.getMillis(), 3.03);
         metricsService.addGaugeData(Observable.just(m3)).toBlocking().lastOrDefault(null);
 
-        Gauge m4 = new Gauge("t2", new MetricId("m4"), Collections.EMPTY_MAP, 28);
-        getUninterruptibly(metricsService.createMetric(m4));
+        Gauge m4 = new Gauge("t2", new MetricId("m4"), emptyMap(), 28);
+        metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
 
         verifyTTLDataAccess.setGaugeTTL(28);
         m4.addData(start.plusMinutes(3).getMillis(), 4.1);
@@ -349,7 +353,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         verifyTTLDataAccess.setAvailabilityTTL(hours(24).toStandardSeconds().getSeconds());
         Availability m3 = new Availability("t3", new MetricId("m3"));
         m3.addData(new AvailabilityData(start.getMillis(), UP));
-        getUninterruptibly(metricsService.addAvailabilityData(asList(m3)));
+        getUninterruptibly(metricsService.addAvailabilityData(singletonList(m3)));
     }
 
     private void addDataInThePast(Gauge metric, final Duration duration) throws Exception {
@@ -392,7 +396,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
                     return session.executeAsync(batchStatement);
                 }
             });
-            metricsService.addAvailabilityData(asList(metric));
+            metricsService.addAvailabilityData(singletonList(metric));
         } finally {
             metricsService.setDataAccess(originalDataAccess);
         }
@@ -464,8 +468,8 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         Gauge m3 = new Gauge(tenantId, new MetricId("m3"));
 
-        Gauge m4 = new Gauge(tenantId, new MetricId("m4"), Collections.EMPTY_MAP, 24);
-        getUninterruptibly(metricsService.createMetric(m4));
+        Gauge m4 = new Gauge(tenantId, new MetricId("m4"), emptyMap(), 24);
+        metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
         m4.addData(new GaugeData(start.plusSeconds(30).getMillis(), 55.5));
         m4.addData(new GaugeData(end.getMillis(), 66.6));
 
@@ -527,17 +531,17 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         actual = getUninterruptibly(queryFuture);
         assertEquals(actual.size(), 0, "Did not expect to get back results since there is no data for " + m3);
 
-        Availability m4 = new Availability(tenantId, new MetricId("m4"), Collections.EMPTY_MAP, 24);
-        getUninterruptibly(metricsService.createMetric(m4));
+        Availability m4 = new Availability(tenantId, new MetricId("m4"), emptyMap(), 24);
+        metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
         m4.addData(new AvailabilityData(start.plusMinutes(2).getMillis(), UP));
         m4.addData(new AvailabilityData(end.plusMinutes(2).getMillis(), UP));
 
-        insertFuture = metricsService.addAvailabilityData(asList(m4));
+        insertFuture = metricsService.addAvailabilityData(singletonList(m4));
         getUninterruptibly(insertFuture);
 
         queryFuture = metricsService.findAvailabilityData(tenantId, m4.getId(), start.getMillis(), end.getMillis());
         actual = getUninterruptibly(queryFuture);
-        Availability expected = new Availability(tenantId, m4.getId(), Collections.EMPTY_MAP, 24);
+        Availability expected = new Availability(tenantId, m4.getId(), emptyMap(), 24);
         expected.addData(new AvailabilityData(start.plusMinutes(2).getMillis(), UP));
         assertEquals(actual, expected.getData(), "The availability data does not match expected values");
 
@@ -560,7 +564,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         metric.addData(new AvailabilityData(start.plusMinutes(5).getMillis(), UP));
         metric.addData(new AvailabilityData(start.plusMinutes(6).getMillis(), UP));
 
-        ListenableFuture<Void> insertFuture = metricsService.addAvailabilityData(asList(metric));
+        ListenableFuture<Void> insertFuture = metricsService.addAvailabilityData(singletonList(metric));
         getUninterruptibly(insertFuture);
 
         Map<String, String> tags1 = ImmutableMap.of("t1", "1", "t2", "");
@@ -615,7 +619,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         metric.addData(new AvailabilityData(start.plusMinutes(9).getMillis(), DOWN));
         metric.addData(new AvailabilityData(start.plusMinutes(10).getMillis(), UP));
 
-        ListenableFuture<Void> insertFuture = metricsService.addAvailabilityData(asList(metric));
+        ListenableFuture<Void> insertFuture = metricsService.addAvailabilityData(singletonList(metric));
         getUninterruptibly(insertFuture);
 
         List<AvailabilityData> actual = getUninterruptibly(metricsService.findAvailabilityData(tenantId, metricId,
@@ -804,11 +808,13 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         Map<String, String> tags1 = ImmutableMap.of("t1", "");
         ListenableFuture<List<GaugeData>> tagFuture = metricsService.tagGaugeData(m1, tags1, d1.getTimestamp());
-        assertEquals(getUninterruptibly(tagFuture), asList(d1), "Tagging " + d1 + " returned unexpected results");
+        assertEquals(getUninterruptibly(tagFuture), singletonList(d1),
+                "Tagging " + d1 + " returned unexpected results");
 
         Map<String, String> tags2 = ImmutableMap.of("t1", "", "t2", "", "t3", "");
         tagFuture = metricsService.tagGaugeData(m1, tags2, d2.getTimestamp());
-        assertEquals(getUninterruptibly(tagFuture), asList(d2), "Tagging " + d2 + " returned unexpected results");
+        assertEquals(getUninterruptibly(tagFuture), singletonList(d2),
+                "Tagging " + d2 + " returned unexpected results");
 
         tagFuture = metricsService.tagGaugeData(m1, tags1, start.minusMinutes(10).getMillis());
         assertEquals(getUninterruptibly(tagFuture), Collections.emptyList(),
@@ -816,11 +822,13 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         Map<String, String> tags3 = ImmutableMap.of("t1", "", "t2", "");
         tagFuture = metricsService.tagGaugeData(m2, tags3, d3.getTimestamp());
-        assertEquals(getUninterruptibly(tagFuture), asList(d3), "Tagging " + d3 + " returned unexpected results");
+        assertEquals(getUninterruptibly(tagFuture), singletonList(d3),
+                "Tagging " + d3 + " returned unexpected results");
 
         Map<String, String> tags4 = ImmutableMap.of("t3", "", "t4", "");
         tagFuture = metricsService.tagGaugeData(m2, tags4, d4.getTimestamp());
-        assertEquals(getUninterruptibly(tagFuture), asList(d4), "Tagging " + d4 + " returned unexpected results");
+        assertEquals(getUninterruptibly(tagFuture), singletonList(d4),
+                "Tagging " + d4 + " returned unexpected results");
 
         ListenableFuture<Map<MetricId, Set<GaugeData>>> queryFuture = metricsService.findGaugeDataByTags(tenant,
                 ImmutableMap.of("t2", "", "t3", ""));
@@ -872,11 +880,13 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         Map<String, String> tags1 = ImmutableMap.of("t1", "");
         ListenableFuture<List<AvailabilityData>> tagFuture = metricsService.tagAvailabilityData(m1, tags1,
                 a1.getTimestamp());
-        assertEquals(getUninterruptibly(tagFuture), asList(a1), "Tagging " + a1 + " returned unexpected results");
+        assertEquals(getUninterruptibly(tagFuture), singletonList(a1),
+                "Tagging " + a1 + " returned unexpected results");
 
         Map<String, String> tags2 = ImmutableMap.of("t1", "", "t2", "", "t3", "");
         tagFuture = metricsService.tagAvailabilityData(m1, tags2, a2.getTimestamp());
-        assertEquals(getUninterruptibly(tagFuture), asList(a2), "Tagging " + a2 + " returned unexpected results");
+        assertEquals(getUninterruptibly(tagFuture), singletonList(a2),
+                "Tagging " + a2 + " returned unexpected results");
 
         tagFuture = metricsService.tagAvailabilityData(m1, tags1, start.minusMinutes(10).getMillis());
         assertEquals(getUninterruptibly(tagFuture), Collections.emptyList(),
@@ -884,11 +894,13 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         Map<String, String> tags3 = ImmutableMap.of("t2", "", "t3", "");
         tagFuture = metricsService.tagAvailabilityData(m2, tags3, a3.getTimestamp());
-        assertEquals(getUninterruptibly(tagFuture), asList(a3), "Tagging " + a3 + " returned unexpected results");
+        assertEquals(getUninterruptibly(tagFuture), singletonList(a3),
+                "Tagging " + a3 + " returned unexpected results");
 
         Map<String, String> tags4 = ImmutableMap.of("t3", "", "t4", "");
         tagFuture = metricsService.tagAvailabilityData(m2, tags4, a4.getTimestamp());
-        assertEquals(getUninterruptibly(tagFuture), asList(a4), "Tagging " + a4 + " returned unexpected results");
+        assertEquals(getUninterruptibly(tagFuture), singletonList(a4),
+                "Tagging " + a4 + " returned unexpected results");
 
         ListenableFuture<Map<MetricId, Set<AvailabilityData>>> queryFuture = metricsService.findAvailabilityByTags(
                 tenant, tags3);

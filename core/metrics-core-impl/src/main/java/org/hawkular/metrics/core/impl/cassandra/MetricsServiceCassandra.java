@@ -346,36 +346,49 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> createMetric(final Metric<?> metric) {
+    public Observable<Void> createMetric(final Metric<?> metric) {
         ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric);
-        return Futures.transform(future, new AsyncFunction<ResultSet, Void>() {
-            @Override
-            public ListenableFuture<Void> apply(ResultSet resultSet) {
-                if (!resultSet.wasApplied()) {
-                    throw new MetricAlreadyExistsException(metric);
-                }
-                // TODO Need error handling if either of the following updates fail
-                // If adding tags/retention fails, then we want to report the error to the
-                // client. Updating the retentions_idx table could also fail. We need to
-                // report that failure as well.
-                ResultSetFuture metadataFuture = dataAccess.addTagsAndDataRetention(metric);
-                ResultSetFuture tagsFuture = dataAccess.insertIntoMetricsTagsIndex(metric, metric.getTags());
+        Observable<ResultSet> indexUpdated = RxUtil.from(future, metricsTasks);
+        return Observable.create(subscriber -> {
+            indexUpdated.subscribe(
+                    resultSet -> {
+                        if (!resultSet.wasApplied()) {
+                            subscriber.onError(new MetricAlreadyExistsException(metric));
 
-                List<ResultSetFuture> futures = new ArrayList<>();
-                futures.add(metadataFuture);
-                futures.add(tagsFuture);
+                        } else {
+                            // TODO Need error handling if either of the following updates fail
+                            // If adding tags/retention fails, then we want to report the error to the
+                            // client. Updating the retentions_idx table could also fail. We need to
+                            // report that failure as well.
+                            ResultSetFuture metadataFuture = dataAccess.addTagsAndDataRetention(metric);
+                            Observable<ResultSet> metadataUpdated = RxUtil.from(metadataFuture, metricsTasks);
+                            ResultSetFuture tagsFuture = dataAccess.insertIntoMetricsTagsIndex(metric,
+                                    metric.getTags());
+                            Observable<ResultSet> tagsUpdated = RxUtil.from(tagsFuture, metricsTasks);
+                            Observable<ResultSet> metricUpdates;
 
-                if (metric.getDataRetention() != null) {
-                    ResultSetFuture dataRetentionFuture = dataAccess.updateRetentionsIndex(metric);
-                    dataRetentions.put(new DataRetentionKey(metric), metric.getDataRetention());
-                    futures.add(dataRetentionFuture);
-                }
+                            if (metric.getDataRetention() != null) {
+                                ResultSetFuture dataRetentionFuture = dataAccess.updateRetentionsIndex(metric);
+                                Observable<ResultSet> dataRetentionUpdated = RxUtil.from(dataRetentionFuture,
+                                        metricsTasks);
+                                dataRetentions.put(new DataRetentionKey(metric), metric.getDataRetention());
+                                metricUpdates = Observable.merge(metadataUpdated, tagsUpdated, dataRetentionUpdated);
+                            } else {
+                                metricUpdates = Observable.merge(metadataUpdated, tagsUpdated);
+                            }
 
-                ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(futures);
-
-                return Futures.transform(insertsFuture, Functions.TO_VOID);
-            }
-        }, metricsTasks);
+                            metricUpdates.subscribe(
+                                    resultSets -> {},
+                                    // The error handling is the same as it was with Guava futures. That is, if any
+                                    // future fails, we treat the entire client request as a failure. We probably
+                                    // eventually want to implement more fine-grained error handling where we can
+                                    // notify the subscriber of what exactly fails.
+                                    subscriber::onError,
+                                    subscriber::onCompleted
+                            );
+                        }
+                    });
+        });
     }
 
     @Override
@@ -442,7 +455,7 @@ public class MetricsServiceCassandra implements MetricsService {
         // This is a first, rough cut at an RxJava implementation for storing metric data. This code will change but
         // for now the goal is 1) replace ListenableFuture in the API with Observable and 2) make sure tests still
         // pass. This means that the behavior basically remains the same as before. The idea here is to implement a
-        // pub/sub workflow. 
+        // pub/sub workflow.
 
         return Observable.create(subscriber -> {
             Map<Gauge, ResultSetFuture> insertsMap = new HashMap<>();
@@ -458,7 +471,8 @@ public class MetricsServiceCassandra implements MetricsService {
                         ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(inserts);
                         Observable<List<ResultSet>> insertsObservable = RxUtil.from(insertsFuture, metricsTasks);
                         insertsObservable.subscribe(
-                                resultSets -> {},
+                                resultSets -> {
+                                },
                                 subscriber::onError,
                                 subscriber::onCompleted
                         );
