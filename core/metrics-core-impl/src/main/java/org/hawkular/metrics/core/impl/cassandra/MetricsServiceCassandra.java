@@ -349,7 +349,7 @@ public class MetricsServiceCassandra implements MetricsService {
     public Observable<Void> createMetric(final Metric<?> metric) {
         ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric);
         Observable<ResultSet> indexUpdated = RxUtil.from(future, metricsTasks);
-        return Observable.create(subscriber -> {
+        return Observable.create(subscriber ->
             indexUpdated.subscribe(
                     resultSet -> {
                         if (!resultSet.wasApplied()) {
@@ -360,6 +360,11 @@ public class MetricsServiceCassandra implements MetricsService {
                             // If adding tags/retention fails, then we want to report the error to the
                             // client. Updating the retentions_idx table could also fail. We need to
                             // report that failure as well.
+                            //
+                            // The error handling is the same as it was with Guava futures. That is, if any
+                            // future fails, we treat the entire client request as a failure. We probably
+                            // eventually want to implement more fine-grained error handling where we can
+                            // notify the subscriber of what exactly fails.
                             ResultSetFuture metadataFuture = dataAccess.addTagsAndDataRetention(metric);
                             Observable<ResultSet> metadataUpdated = RxUtil.from(metadataFuture, metricsTasks);
                             ResultSetFuture tagsFuture = dataAccess.insertIntoMetricsTagsIndex(metric,
@@ -377,18 +382,9 @@ public class MetricsServiceCassandra implements MetricsService {
                                 metricUpdates = Observable.merge(metadataUpdated, tagsUpdated);
                             }
 
-                            metricUpdates.subscribe(
-                                    resultSets -> {},
-                                    // The error handling is the same as it was with Guava futures. That is, if any
-                                    // future fails, we treat the entire client request as a failure. We probably
-                                    // eventually want to implement more fine-grained error handling where we can
-                                    // notify the subscriber of what exactly fails.
-                                    subscriber::onError,
-                                    subscriber::onCompleted
-                            );
+                            metricUpdates.subscribe(new VoidSubscriber<>(subscriber));
                         }
-                    });
-        });
+                    }));
     }
 
     @Override
@@ -469,13 +465,8 @@ public class MetricsServiceCassandra implements MetricsService {
                         List<ResultSetFuture> inserts = Lists.newArrayList(insertsMap.values());
                         inserts.add(dataAccess.updateMetricsIndex(ImmutableList.copyOf(insertsMap.keySet())));
                         ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(inserts);
-                        Observable<List<ResultSet>> insertsObservable = RxUtil.from(insertsFuture, metricsTasks);
-                        insertsObservable.subscribe(
-                                resultSets -> {
-                                },
-                                subscriber::onError,
-                                subscriber::onCompleted
-                        );
+                        Observable<List<ResultSet>> dataInserted = RxUtil.from(insertsFuture, metricsTasks);
+                        dataInserted.subscribe(new VoidSubscriber<>(subscriber));
                     });
         });
     }
