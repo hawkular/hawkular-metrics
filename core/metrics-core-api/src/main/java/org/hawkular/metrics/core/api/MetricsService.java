@@ -69,7 +69,7 @@ public interface MetricsService {
 
     ListenableFuture<List<Tenant>> getTenants();
 
-    ListenableFuture<Void> createMetric(Metric<?> metric);
+    Observable<Void> createMetric(Metric<?> metric);
 
     ListenableFuture<Optional<Metric<?>>> findMetric(String tenantId, MetricType type, MetricId id);
 

@@ -54,6 +54,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
 import com.google.common.base.Function;
+import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.wordnik.swagger.annotations.Api;
@@ -62,7 +63,6 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import org.hawkular.metrics.api.jaxrs.ApiError;
-import org.hawkular.metrics.api.jaxrs.callback.MetricCreatedCallback;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.request.TagRequest;
@@ -73,6 +73,7 @@ import org.hawkular.metrics.core.api.Gauge;
 import org.hawkular.metrics.core.api.GaugeBucketDataPoint;
 import org.hawkular.metrics.core.api.GaugeData;
 import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
@@ -118,10 +119,26 @@ public class GaugeHandler {
             return;
         }
         metric.setTenantId(tenantId);
-        ListenableFuture<Void> future = metricsService.createMetric(metric);
-        URI created = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getId().getName());
-        MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(asyncResponse, created);
-        Futures.addCallback(future, metricCreatedCallback);
+        Observable<Void> metricCreated = metricsService.createMetric(metric);
+        URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getId().getName());
+//        MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(asyncResponse, created);
+//        Futures.addCallback(future, metricCreatedCallback);
+        metricCreated.subscribe(
+                nullArg -> {},
+                t -> {
+                    if (t instanceof MetricAlreadyExistsException) {
+                        MetricAlreadyExistsException exception = (MetricAlreadyExistsException) t;
+                        String message = "A metric with name [" + exception.getMetric().getId().getName() + "] " +
+                                "already exists";
+                        asyncResponse.resume(Response.status(Status.CONFLICT).entity(new ApiError(message)).build());
+                    } else {
+                        String message = "Failed to create metric due to an unexpected error: "
+                                + Throwables.getRootCause(t).getMessage();
+                        asyncResponse.resume(Response.serverError().entity(new ApiError(message)).build());
+                    }
+                },
+                () -> asyncResponse.resume(Response.created(location).build())
+        );
     }
 
     @GET
