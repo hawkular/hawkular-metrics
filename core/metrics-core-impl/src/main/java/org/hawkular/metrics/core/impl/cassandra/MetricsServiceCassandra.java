@@ -487,20 +487,17 @@ public class MetricsServiceCassandra implements MetricsService {
     public ListenableFuture<Optional<Metric<?>>> findMetric(final String tenantId, final MetricType type,
             final MetricId id) {
         ResultSetFuture future = dataAccess.findMetric(tenantId, type, id, Metric.DPART);
-        return Futures.transform(future, new Function<ResultSet, Optional<Metric<?>>>() {
-            @Override
-            public Optional<Metric<?>> apply(ResultSet resultSet) {
-                if (resultSet.isExhausted()) {
-                    return Optional.empty();
-                }
-                Row row = resultSet.one();
-                if (type == MetricType.GAUGE) {
-                    return Optional.of(new Gauge(tenantId, id, row.getMap(5, String.class, String.class),
-                            row.getInt(6)));
-                } else {
-                    return Optional.of(new Availability(tenantId, id, row.getMap(5, String.class, String.class),
-                            row.getInt(6)));
-                }
+        return Futures.transform(future, (ResultSet resultSet) -> {
+            if (resultSet.isExhausted()) {
+                return Optional.empty();
+            }
+            Row row = resultSet.one();
+            if (type == MetricType.GAUGE) {
+                return Optional.of(new Gauge(tenantId, id, row.getMap(5, String.class, String.class),
+                        row.getInt(6)));
+            } else {
+                return Optional.of(new Availability(tenantId, id, row.getMap(5, String.class, String.class),
+                        row.getInt(6)));
             }
         }, metricsTasks);
     }
@@ -511,10 +508,20 @@ public class MetricsServiceCassandra implements MetricsService {
         return Futures.transform(future, new MetricsIndexMapper(tenantId, type), metricsTasks);
     }
 
+    @Override
+    public ListenableFuture<Map<String, String>> getMetricTags(String tenantId, MetricType type, MetricId id) {
+        ResultSetFuture metricTags = dataAccess.getMetricTags(tenantId, type, id, Metric.DPART);
+        return Futures.transform(metricTags, (ResultSet input) -> {
+            if (input.isExhausted()) {
+                return Collections.EMPTY_MAP;
+            }
+            return input.one().getMap(0, String.class, String.class);
+        }, metricsTasks);
+    }
+
     // Adding/deleting metric tags currently involves writing to three tables - data,
     // metrics_idx, and metrics_tags_idx. It might make sense to refactor tag related
     // functionality into a separate class.
-
     @Override
     public ListenableFuture<Void> addTags(Metric metric, Map<String, String> tags) {
         List<ResultSetFuture> insertFutures = asList(

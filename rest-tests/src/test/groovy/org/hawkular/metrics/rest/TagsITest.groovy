@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.rest
 
+import groovy.json.JsonOutput
+
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
 
@@ -67,6 +69,9 @@ class TagsITest extends RESTTest {
 
     response = hawkularMetrics.get(path: "availability/missing/tags", headers: ["tenantId": tenantId])
     assertEquals("Expected a 204 response when the availability metric is not found", 204, response.status)
+
+    response = hawkularMetrics.get(path: "gauges/missing", headers: ["tenantId": tenantId])
+    assertEquals("Expected a 204 response when the gauge metric is not found", 204, response.status)
   }
 
   @Test
@@ -79,6 +84,15 @@ class TagsITest extends RESTTest {
         tags: ['  a  1   ': '   A', 'bsq   d1': 'B   ']
     ], headers: ["tenantId": tenantId])
     assertEquals(201, response.status)
+
+    // Fetch the metric
+    response = hawkularMetrics.get(path: "gauges/N1", headers: ["tenantId": tenantId])
+    assertEquals(200, response.status)
+    assertEquals([
+        tenantId: tenantId,
+        id  : 'N1',
+        tags: ['  a  1   ': '   A', 'bsq   d1': 'B   ']
+    ], response.data)
 
     // Make sure we do not allow duplicates
     badPost(path: "gauges", body: [id: 'N1'], headers: ["tenantId": tenantId]) { exception ->
@@ -118,26 +132,11 @@ class TagsITest extends RESTTest {
     // Fetch gauge tags
     response = hawkularMetrics.get(path: "gauges/N1/tags", headers: ["tenantId": tenantId])
     assertEquals(200, response.status)
-    assertEquals(
-        [
-            tenantId: tenantId,
-            id      : 'N1',
-            tags    : ['  a  1   ': '   A', 'bsq   d1': 'B   ']
-        ],
-        response.data
-    )
+    assertEquals('  a  1   ': '   A', 'bsq   d1': 'B   ', response.data)
 
     response = hawkularMetrics.get(path: "gauges/N2/tags", headers: ["tenantId": tenantId])
     assertEquals(200, response.status)
-    assertEquals(
-        [
-            tenantId     : tenantId,
-            id           : 'N2',
-            tags         : [a2: '2', b2: 'B2'],
-            dataRetention: 96
-        ],
-        response.data
-    )
+    assertEquals([a2: '2', b2: 'B2'], response.data)
 
     // Verify the response for a non-existent metric
     response = hawkularMetrics.get(path: "gauges/N-doesNotExist/tags", headers: ["tenantId": tenantId])
@@ -146,26 +145,11 @@ class TagsITest extends RESTTest {
     // Fetch availability metric tags
     response = hawkularMetrics.get(path: "availability/A1/tags", headers: ["tenantId": tenantId])
     assertEquals(200, response.status)
-    assertEquals(
-        [
-            tenantId: tenantId,
-            id      : 'A1',
-            tags    : [a2: '2', b2: '2']
-        ],
-        response.data
-    )
+    assertEquals([a2: '2', b2: '2'], response.data)
 
     response = hawkularMetrics.get(path: "availability/A2/tags", headers: ["tenantId": tenantId])
     assertEquals(200, response.status)
-    assertEquals(
-        [
-            tenantId     : tenantId,
-            id           : 'A2',
-            tags         : [a22: '22', b22: '22'],
-            dataRetention: 48
-        ],
-        response.data
-    )
+    assertEquals([a22: '22', b22: '22'], response.data)
 
     // Verify the response for a non-existent metric
     response = hawkularMetrics.get(path: "gauges/A-doesNotExist/tags", headers: ["tenantId": tenantId])
@@ -178,27 +162,13 @@ class TagsITest extends RESTTest {
     // Fetch the updated tags
     response = hawkularMetrics.get(path: "gauges/N1/tags", headers: ["tenantId": tenantId])
     assertEquals(200, response.status)
-    assertEquals(
-        [
-            tenantId: tenantId,
-            id      : 'N1',
-            tags    : ['  a  1   ': '   A', a1: 'one', a2: '2', b1: 'B', 'bsq   d1': 'B   ']
-        ],
-        response.data
-    )
+    assertEquals(['  a  1   ': '   A', a1: 'one', a2: '2', b1: 'B', 'bsq   d1': 'B   '], response.data)
 
     // Delete a gauge metric tag
     response = hawkularMetrics.delete(path: "gauges/N1/tags/a2:2,b1:B", headers: ["tenantId": tenantId])
     assertEquals(200, response.status)
     response = hawkularMetrics.get(path: "gauges/N1/tags", headers: ["tenantId": tenantId])
-    assertEquals(
-        [
-            tenantId: tenantId,
-            id      : 'N1',
-            tags    : ['  a  1   ': '   A', a1: 'one', 'bsq   d1': 'B   ']
-        ],
-        response.data
-    )
+    assertEquals(['  a  1   ': '   A', a1: 'one', 'bsq   d1': 'B   '], response.data)
 
     // Update the availability metric data
     response = hawkularMetrics.put(path: "availability/A1/tags", body: [a2: 'two', a3: 'THREE'], headers: ["tenantId": tenantId])
@@ -207,27 +177,13 @@ class TagsITest extends RESTTest {
     // Fetch the updated tags
     response = hawkularMetrics.get(path: "availability/A1/tags", headers: ["tenantId": tenantId])
     assertEquals(200, response.status)
-    assertEquals(
-        [
-            tenantId: tenantId,
-            id      : 'A1',
-            tags    : [a2: 'two', a3: 'THREE', b2: '2']
-        ],
-        response.data
-    )
+    assertEquals([a2: 'two', a3: 'THREE', b2: '2'], response.data)
 
     // delete an availability metric tag
     response = hawkularMetrics.delete(path: "availability/A1/tags/a2:two,b2:2", headers: ["tenantId": tenantId])
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(path: "availability/A1/tags", headers: ["tenantId": tenantId])
-    assertEquals(
-        [
-            tenantId: tenantId,
-            id      : 'A1',
-            tags    : [a3: 'THREE']
-        ],
-        response.data
-    )
+    assertEquals([a3: 'THREE'], response.data)
   }
 }

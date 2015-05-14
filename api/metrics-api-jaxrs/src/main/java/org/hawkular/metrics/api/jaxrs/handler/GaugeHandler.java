@@ -116,8 +116,28 @@ public class GaugeHandler {
     }
 
     @GET
+    @Path("/{id}")
+    @ApiOperation(value = "Retrieve single metric definition.", response = Metric.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Metric's definition was successfully retrieved."),
+            @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.",
+                         response = ApiError.class) })
+    public void getGaugeMetric(@Suspended final AsyncResponse asyncResponse,
+                                   @HeaderParam("tenantId") String tenantId, @PathParam("id") String id) {
+        executeAsync(
+                asyncResponse,
+                () -> {
+                ListenableFuture<Optional<Metric<?>>> future = metricsService.findMetric(tenantId, MetricType.GAUGE,
+                    new MetricId(id));
+                 return Futures.transform(future, ApiUtils.MAP_VALUE);
+                });
+    }
+
+    @GET
     @Path("/{id}/tags")
-    @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = Metric.class)
+    @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = String.class,
+                  responseContainer = "Map")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's tags were successfully retrieved."),
             @ApiResponse(code = 204, message = "Query was successful, but no metrics were found."),
@@ -128,9 +148,9 @@ public class GaugeHandler {
         executeAsync(
                 asyncResponse,
                 () -> {
-                    ListenableFuture<Optional<Metric<?>>> future = metricsService.findMetric(tenantId,
-                            MetricType.GAUGE, new MetricId(id));
-                    return Futures.transform(future, ApiUtils.MAP_VALUE);
+                ListenableFuture<Map<String, String>> future = metricsService.getMetricTags(tenantId, MetricType.GAUGE,
+                    new MetricId(id));
+                    return Futures.transform(future, ApiUtils.MAP_MAP);
                 });
     }
 

@@ -73,6 +73,8 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findMetric;
 
+    private PreparedStatement getMetricTags;
+
     private PreparedStatement addMetricTagsToDataTable;
 
     private PreparedStatement addMetadataAndDataRetention;
@@ -156,6 +158,11 @@ public class DataAccessImpl implements DataAccess {
             "SELECT tenant_id, type, metric, interval, dpart, m_tags, data_retention " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
+
+        getMetricTags = session.prepare(
+                "SELECT m_tags " +
+                "FROM data " +
+                "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
 
         addMetricTagsToDataTable = session.prepare(
             "UPDATE data " +
@@ -367,6 +374,12 @@ public class DataAccessImpl implements DataAccess {
     public ResultSetFuture findMetric(String tenantId, MetricType type, MetricId id, long dpart) {
         return session.executeAsync(findMetric.bind(tenantId, type.getCode(), id.getName(),
             id.getInterval().toString(), dpart));
+    }
+
+    @Override
+    public ResultSetFuture getMetricTags(String tenantId, MetricType type, MetricId id, long dpart) {
+        return session.executeAsync(getMetricTags.bind(tenantId, type.getCode(), id.getName(), id.getInterval()
+            .toString(), dpart));
     }
 
     // This method updates the metric tags and data retention in the data table. In the

@@ -74,6 +74,8 @@ public interface MetricsService {
 
     ListenableFuture<List<Metric<?>>> findMetrics(String tenantId, MetricType type);
 
+    ListenableFuture<Map<String, String>> getMetricTags(String tenantId, MetricType type, MetricId id);
+
     ListenableFuture<Void> addTags(Metric metric, Map<String, String> tags);
 
     ListenableFuture<Void> deleteTags(Metric metric, Map<String, String> tags);
