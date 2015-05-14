@@ -159,3 +159,28 @@ CREATE TABLE ${keyspace}.counters (
     c_value counter,
     PRIMARY KEY ((tenant_id, group), c_name)
 );
+
+-- #
+
+CREATE TABLE ${keyspace}.task_queue (
+    task_type text,
+    time_slice timestamp,
+    segment int,
+    target text,
+    sources set<text>,
+    interval int,
+    window int,
+    failed_time_slices set<timestamp>,
+    PRIMARY KEY ((task_type, time_slice, segment), target)
+);
+
+-- #
+
+CREATE TABLE ${keyspace}.leases (
+    time_slice timestamp,
+    task_type text,
+    segment_offset int,
+    owner text,
+    finished boolean,
+    PRIMARY KEY (time_slice, task_type, segment_offset)
+);

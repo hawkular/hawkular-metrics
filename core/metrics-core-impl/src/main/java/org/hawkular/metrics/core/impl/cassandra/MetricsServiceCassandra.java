@@ -65,7 +65,7 @@ import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.RetentionSettings;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
-import org.hawkular.metrics.core.impl.schema.SchemaManager;
+import org.hawkular.metrics.schema.SchemaManager;
 import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
@@ -203,7 +203,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
         if (keyspace==null||keyspace.isEmpty()) {
             logger.debug("No explicit keyspace given, will default to 'hawkular'");
-            keyspace = "hawkular-metrics";
+            keyspace = "hawkular_metrics";
         }
 
         logger.info("Using a key space of '" + keyspace + "'");

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
@@ -14,17 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import com.datastax.driver.core.Cluster
-import com.datastax.driver.core.Session
-import org.hawkular.metrics.schema.SchemaManager
+package org.hawkular.metrics.tasks.api;
 
-Cluster cluster = new Cluster.Builder()
-        .addContactPoint("127.0.0.1")
-        .withoutJMXReporting()
-        .build()
-Session session = cluster.connect()
+/**
+ * @author jsanda
+ */
+public class TaskExecutionException extends RuntimeException {
 
-String keyspace = properties["keyspace"] ?: "hawkulartest"
-SchemaManager schemaManager = new SchemaManager(session)
-if (properties["resetdb"]) schemaManager.dropKeyspace(keyspace)
-schemaManager.createSchema(keyspace)
+    private Task failedTask;
+
+    public TaskExecutionException(Task failedTask, Throwable cause) {
+        super(cause);
+        this.failedTask = failedTask;
+    }
+
+    public Task getFailedTask() {
+        return failedTask;
+    }
+}

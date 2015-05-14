@@ -77,8 +77,10 @@
   </developers>
 
   <modules>
+    <module>schema-manager</module>
     <module>core/metrics-core-api</module>
     <module>core/metrics-core-impl</module>
+    <module>task-queue</module>
     <module>embedded-cassandra/embedded-cassandra-service</module>
     <module>embedded-cassandra/embedded-cassandra-ear</module>
     <module>api/metrics-api-jaxrs</module>
