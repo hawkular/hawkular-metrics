@@ -78,7 +78,7 @@ public interface MetricsService {
 
     ListenableFuture<Optional<Metric<?>>> findMetric(String tenantId, MetricType type, MetricId id);
 
-    ListenableFuture<List<Metric<?>>> findMetrics(String tenantId, MetricType type);
+    Observable<Metric<?>> findMetrics(String tenantId, MetricType type);
 
     ListenableFuture<Map<String, String>> getMetricTags(String tenantId, MetricType type, MetricId id);
 

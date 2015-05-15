@@ -332,7 +332,7 @@ public class MetricsServiceCassandra implements MetricsService {
     public ListenableFuture<List<Tenant>> getTenants() {
         ListenableFuture<Stream<String>> tenantIdsFuture = Futures.transform(
                 dataAccess.findAllTenantIds(), (ResultSet input) ->
-                    StreamSupport.stream(input.spliterator(), false).map(row -> row.getString(0)), metricsTasks);
+                        StreamSupport.stream(input.spliterator(), false).map(row -> row.getString(0)), metricsTasks);
 
         return Futures.transform(tenantIdsFuture, (Stream<String> input) ->
                 Futures.allAsList(input.map(dataAccess::findTenant).map(Functions::getTenant).collect(toList())));
@@ -409,9 +409,31 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<Metric<?>>> findMetrics(String tenantId, MetricType type) {
-        ResultSetFuture future = dataAccess.findMetricsInMetricsIndex(tenantId, type);
-        return Futures.transform(future, new MetricsIndexMapper(tenantId, type), metricsTasks);
+    public Observable<Metric<?>> findMetrics(String tenantId, MetricType type) {
+        Observable<ResultSet> observable = dataAccess.findMetricsInMetricsIndex(tenantId, type);
+        if (type == MetricType.GAUGE) {
+            return observable.flatMap(Observable::from).map(row -> toGauge(tenantId, row));
+        } else {
+            return observable.flatMap(Observable::from).map(row -> toAvailability(tenantId, row));
+        }
+    }
+
+    private Gauge toGauge(String tenantId, Row row) {
+        return new Gauge(
+                tenantId,
+                new MetricId(row.getString(0), Interval.parse(row.getString(1))),
+                row.getMap(2, String.class, String.class),
+                row.getInt(3)
+        );
+    }
+
+    private Availability toAvailability(String tenantId, Row row) {
+        return new Availability(
+                tenantId,
+                new MetricId(row.getString(0), Interval.parse(row.getString(1))),
+                row.getMap(2, String.class, String.class),
+                row.getInt(3)
+        );
     }
 
     @Override

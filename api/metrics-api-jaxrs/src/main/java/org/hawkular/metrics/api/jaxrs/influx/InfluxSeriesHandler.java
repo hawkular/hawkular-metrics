@@ -42,12 +42,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.hawkular.metrics.api.jaxrs.influx.query.InfluxQueryParseTreeWalker;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser;
@@ -67,8 +63,6 @@ import org.hawkular.metrics.api.jaxrs.influx.query.validation.QueryValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InfluxObjectValidator;
 import org.hawkular.metrics.api.jaxrs.util.StringValue;
 import org.hawkular.metrics.core.api.GaugeData;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -176,30 +170,35 @@ public class InfluxSeriesHandler {
     }
 
     private void listSeries(AsyncResponse asyncResponse, String tenantId) {
-        ListenableFuture<List<Metric<?>>> future = metricsService.findMetrics(tenantId, MetricType.GAUGE);
-        ListenableFuture<List<InfluxObject>> resultFuture = Futures.transform(
-                future,
-                InfluxSeriesHandler::metricsListToListSeries
-        );
-        Futures.addCallback(resultFuture, new ReadCallback(asyncResponse));
+//        ListenableFuture<List<Metric<?>>> future = metricsService.findMetrics(tenantId, MetricType.GAUGE);
+//        Futures.addCallback(future, new FutureCallback<List<Metric<?>>>() {
+//            @Override
+//            public void onSuccess(List<Metric<?>> result) {
+//                List<InfluxObject> objects = new ArrayList<>(result.size());
+//
+//                for (Metric metric : result) {
+//                    List<String> columns = new ArrayList<>(2);
+//                    columns.add("time");
+//                    columns.add("sequence_number");
+//                    columns.add("val");
+//                    InfluxObject.Builder builder = new InfluxObject.Builder(metric.getId().getName(), columns)
+//                            .withForeseenPoints(0);
+//                    objects.add(builder.createInfluxObject());
+//                }
+//
+//                ResponseBuilder builder = Response.ok(objects);
+//
+//                asyncResponse.resume(builder.build());
+//            }
+//
+//            @Override
+//            public void onFailure(Throwable t) {
+//                asyncResponse.resume(t);
+//            }
+//        });
     }
 
-                for (Metric metric : result) {
-                    List<String> columns = new ArrayList<>(2);
-                    columns.add("time");
-                    columns.add(columnName);
-
-                    InfluxObject.Builder builder = new InfluxObject.Builder(metric, columns)
-                            .withForeseenPoints(metrics.size());
-
-                    for (GaugeData m : metrics) {
-                        List<Object> data = new ArrayList<>();
-                        data.add(m.getTimestamp());
-                        data.add(m.getValue());
-                        builder.addPoint(data);
-                    }
-
-                    objects.add(builder.createInfluxObject());
+                ResponseBuilder builder = Response.ok(objects);
 
                 asyncResponse.resume(builder.build());
             }

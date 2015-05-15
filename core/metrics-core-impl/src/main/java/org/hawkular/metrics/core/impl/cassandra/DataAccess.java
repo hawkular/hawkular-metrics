@@ -64,7 +64,7 @@ public interface DataAccess {
 
     <T extends Metric<?>> ResultSetFuture updateMetricsIndex(List<T> metrics);
 
-    ResultSetFuture findMetricsInMetricsIndex(String tenantId, MetricType type);
+    Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType type);
 
     ResultSetFuture insertData(Gauge metric, int ttl);
 

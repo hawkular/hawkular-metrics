@@ -959,9 +959,8 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
     private void assertMetricIndexMatches(String tenantId, MetricType type, List<? extends Metric> expected)
         throws Exception {
-        ListenableFuture<List<Metric<?>>> metricsFuture = metricsService.findMetrics(tenantId, type);
-        List<Metric<?>> actualIndex = getUninterruptibly(metricsFuture);
-
+        List<Metric<?>> actualIndex = ImmutableList.copyOf(metricsService.findMetrics(tenantId, type).toBlocking()
+                        .toIterable());
         assertEquals(actualIndex, expected, "The metrics index results do not match");
     }
 
