@@ -26,9 +26,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
+import com.datastax.driver.core.BatchStatement;
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.TupleType;
+import com.datastax.driver.core.TupleValue;
+import com.datastax.driver.core.UDTValue;
+import com.datastax.driver.core.UserType;
+import com.datastax.driver.core.utils.UUIDs;
 import org.hawkular.metrics.core.api.AggregationTemplate;
-import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.Availability;
+import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.Gauge;
 import org.hawkular.metrics.core.api.GaugeData;
@@ -41,19 +54,9 @@ import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.RetentionSettings;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TimeUUIDUtils;
-
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.DataType;
-import com.datastax.driver.core.KeyspaceMetadata;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.TupleType;
-import com.datastax.driver.core.TupleValue;
-import com.datastax.driver.core.UDTValue;
-import com.datastax.driver.core.UserType;
-import com.datastax.driver.core.utils.UUIDs;
+import org.hawkular.rx.cassandra.driver.RxSession;
+import org.hawkular.rx.cassandra.driver.RxSessionImpl;
+import rx.Observable;
 
 /**
  *
@@ -62,6 +65,8 @@ import com.datastax.driver.core.utils.UUIDs;
 public class DataAccessImpl implements DataAccess {
 
     private Session session;
+
+    private RxSession rxSession;
 
     private PreparedStatement insertTenant;
 
@@ -141,6 +146,7 @@ public class DataAccessImpl implements DataAccess {
 
     public DataAccessImpl(Session session) {
         this.session = session;
+        rxSession = new RxSessionImpl(session);
         initPreparedStatements();
     }
 
@@ -452,7 +458,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findData(String tenantId, MetricId id, long startTime, long endTime) {
+    public Observable<ResultSet> findData(String tenantId, MetricId id, long startTime, long endTime) {
         return findData(tenantId, id, startTime, endTime, false);
     }
 
@@ -470,16 +476,16 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findData(String tenantId, MetricId id, long startTime, long endTime,
+    public Observable<ResultSet> findData(String tenantId, MetricId id, long startTime, long endTime,
             boolean includeWriteTime) {
         if (includeWriteTime) {
-            return session.executeAsync(findGaugeDataWithWriteTimeByDateRangeExclusive.bind(tenantId,
+            return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeExclusive.bind(tenantId,
                     MetricType.GAUGE.getCode(), id.getName(), id.getInterval().toString(), Metric.DPART,
                     TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
         } else {
-            return session.executeAsync(findGaugeDataByDateRangeExclusive.bind(tenantId,
-                    MetricType.GAUGE.getCode(), id.getName(), id.getInterval().toString(), Metric.DPART,
-                    TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
+            return rxSession.execute(findGaugeDataByDateRangeExclusive.bind(tenantId, MetricType.GAUGE.getCode(),
+                    id.getName(), id.getInterval().toString(), Metric.DPART, TimeUUIDUtils.getTimeUUID(startTime),
+                    TimeUUIDUtils.getTimeUUID(endTime)));
         }
     }
 

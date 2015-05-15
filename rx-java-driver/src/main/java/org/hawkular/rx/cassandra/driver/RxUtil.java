@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.impl.cassandra;
+package org.hawkular.rx.cassandra.driver;
 
 import java.util.concurrent.Executor;
 
@@ -28,6 +28,9 @@ import rx.functions.Action0;
 /**
  * The functions in this class are copied directly from https://github.com/ReactiveX/RxJavaGuava at least for the time
  * being since the artifact(s) are not available in maven central.
+ * <br/><br/>
+ * This should be an internal, help class only. For now though it is exposed as we transition away from
+ * ListenableFuture.
  *
  * @author jsanda
  */

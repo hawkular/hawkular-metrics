@@ -26,7 +26,6 @@ import java.util.List;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -48,7 +47,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import rx.Observable;
-import rx.schedulers.Schedulers;
 
 /**
  * @author John Sanda
@@ -132,22 +130,14 @@ public class DataAccessITest extends MetricsITest {
 
         getUninterruptibly(dataAccess.insertData(metric, MetricsServiceCassandra.DEFAULT_TTL));
 
-        ResultSetFuture queryFuture = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
+        Observable<ResultSet> observable = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
                 end.getMillis());
-
-        Observable<ResultSet> observable = RxUtil.from(queryFuture, Schedulers.io());
-        Observable<Row> rowsObservable = observable.flatMap(Observable::from);
-        Observable<GaugeData> gaugeDataObservable = rowsObservable.map(Functions::getGaugeData);
-
-//        List<GaugeData> actual = ImmutableList.copyOf(gaugeDataObservable.toBlocking().toIterable());
         List<GaugeData> actual = ImmutableList.copyOf(observable
                 .flatMap(Observable::from)
                 .map(Functions::getGaugeData)
                 .toBlocking()
                 .toIterable());
 
-//        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture, Functions.MAP_GAUGE_DATA);
-//        List<GaugeData> actual = getUninterruptibly(dataFuture);
         List<GaugeData> expected = asList(
             new GaugeData(start.plusMinutes(2).getMillis(), 1.234),
             new GaugeData(start.plusMinutes(1).getMillis(), 1.234),
@@ -174,10 +164,14 @@ public class DataAccessITest extends MetricsITest {
         metric.addData(new GaugeData(end.getMillis(), 1.234));
         getUninterruptibly(dataAccess.insertData(metric, MetricsServiceCassandra.DEFAULT_TTL));
 
-        ResultSetFuture queryFuture = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
+        Observable<ResultSet> observable = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
                 end.getMillis());
-        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture, Functions.MAP_GAUGE_DATA);
-        List<GaugeData> actual = getUninterruptibly(dataFuture);
+        List<GaugeData> actual = ImmutableList.copyOf(observable
+                .flatMap(Observable::from)
+                .map(Functions::getGaugeData)
+                .toBlocking()
+                .toIterable());
+
         List<GaugeData> expected = asList(
             new GaugeData(start.plusMinutes(4).getMillis(), 1.234),
             new GaugeData(start.plusMinutes(2).getMillis(), 1.234),

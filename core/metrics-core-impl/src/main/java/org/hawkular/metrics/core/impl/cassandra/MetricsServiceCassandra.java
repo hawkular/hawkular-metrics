@@ -78,6 +78,8 @@ import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.RetentionSettings;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
+import org.hawkular.metrics.schema.SchemaManager;
+import org.hawkular.rx.cassandra.driver.RxUtil;
 import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
@@ -519,8 +521,7 @@ public class MetricsServiceCassandra implements MetricsService {
         // When we implement date partitioning, dpart will have to be determined based on
         // the start and end params. And it is possible the the date range spans multiple
         // date partitions.
-        ResultSetFuture future = dataAccess.findData(tenantId, id, start, end);
-        return RxUtil.from(future, metricsTasks).flatMap(Observable::from).map(Functions::getGaugeData);
+        return dataAccess.findData(tenantId, id, start, end).flatMap(Observable::from).map(Functions::getGaugeData);
     }
 
     @Override
@@ -530,10 +531,22 @@ public class MetricsServiceCassandra implements MetricsService {
         // When we implement date partitioning, dpart will have to be determined based on
         // the start and end params. And it is possible the the date range spans multiple
         // date partitions.
-        ResultSetFuture queryFuture = dataAccess.findData(metric.getTenantId(), metric.getId(), start, end);
-        ListenableFuture<List<GaugeData>> raw = Futures.transform(queryFuture, Functions.MAP_GAUGE_DATA,
-                metricsTasks);
-        return Futures.transform(raw, new GaugeBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets));
+
+//
+//
+//        ResultSetFuture queryFuture = dataAccess.findData(metric.getTenantId(), metric.getId(), start, end);
+//        ListenableFuture<List<GaugeData>> raw = Futures.transform(queryFuture, Functions.MAP_GAUGE_DATA,
+//                metricsTasks);
+//        return Futures.transform(raw, new GaugeBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets));
+
+        List<GaugeData> data = ImmutableList.copyOf(
+                dataAccess.findData(metric.getTenantId(), metric.getId(), start, end)
+                        .flatMap(Observable::from)
+                        .map(Functions::getGaugeData)
+                        .toBlocking()
+                        .toIterable());
+        GaugeBucketedOutputMapper mapper = new GaugeBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets);
+        return Futures.immediateFuture(mapper.apply(data));
     }
 
     @Override
@@ -603,12 +616,27 @@ public class MetricsServiceCassandra implements MetricsService {
     // metrics since they could efficiently be inserted in a single batch statement.
     public ListenableFuture<List<GaugeData>> tagGaugeData(Gauge metric, final Map<String, String> tags,
             long start, long end) {
-        ResultSetFuture queryFuture = dataAccess.findData(metric.getTenantId(), metric.getId(), start, end, true);
-        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture,
-                Functions.MAP_GAUGE_DATA_WITH_WRITE_TIME, metricsTasks);
+//        ResultSetFuture queryFuture = dataAccess.findData(metric.getTenantId(), metric.getId(), start, end, true);
+//        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture,
+//                Functions.MAP_GAUGE_DATA_WITH_WRITE_TIME, metricsTasks);
+//        int ttl = getTTL(metric);
+//        ListenableFuture<List<GaugeData>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
+//        return Futures.transform(updatedDataFuture, new TagAsyncFunction(tags, metric));
+
+        List<GaugeData> data = ImmutableList.copyOf(
+                dataAccess.findData(metric.getTenantId(), metric.getId(), start, end, true)
+                .flatMap(Observable::from)
+                .map(Functions::getGaugeDataAndWriteTime)
+                .toBlocking()
+                .toIterable()
+        );
         int ttl = getTTL(metric);
-        ListenableFuture<List<GaugeData>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
-        return Futures.transform(updatedDataFuture, new TagAsyncFunction(tags, metric));
+        List<GaugeData> updatedData = new ComputeTTL<GaugeData>(ttl).apply(data);
+        try {
+            return new TagAsyncFunction<GaugeData>(tags, metric).apply(updatedData);
+        } catch (Exception e) {
+            return Futures.immediateFailedFuture(e);
+        }
     }
 
     @Override
