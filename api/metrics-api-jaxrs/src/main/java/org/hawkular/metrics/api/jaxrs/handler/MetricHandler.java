@@ -22,6 +22,7 @@ import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_N
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.executeAsync;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -34,9 +35,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
+import javax.ws.rs.core.Response;
 
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.base.Throwables;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
@@ -44,10 +45,10 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.request.MixedMetricsRequest;
-import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
+import rx.Observable;
 
 
 /**
@@ -79,22 +80,25 @@ public class MetricHandler {
     public void findMetrics(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "Queried metric type", required = true, allowableValues = "[gauge, availability]")
-            @QueryParam("type") String type
-    ) {
-        executeAsync(
-                asyncResponse, () -> {
-                    MetricType metricType = null;
-                    try {
-                        metricType = MetricType.fromTextCode(type);
-                    } catch (IllegalArgumentException e) {
-                        return badRequest(
-                                new ApiError("[" + type + "] is not a valid type. Accepted values are gauge|avail|log")
-                        );
-                    }
-                    ListenableFuture<List<Metric<?>>> future = metricsService.findMetrics(tenantId, metricType);
-                    return Futures.transform(future, ApiUtils.MAP_COLLECTION);
-                }
-        );
+        @QueryParam("type") String type) {
+
+        try {
+            Observable<Metric<?>> metrics = metricsService.findMetrics(tenantId, MetricType.fromTextCode(type));
+            metrics.reduce(new ArrayList<>(), (ArrayList<Metric> list, Metric metric) -> {
+                list.add(metric);
+                return list;
+            }).map(list -> list.isEmpty() ? noContent() : Response.ok(list).build()).subscribe(
+                    asyncResponse::resume,
+                    t -> {
+                        String msg = "Failed to perform operation due to an error: " +
+                                Throwables.getRootCause(t).getMessage();
+                        asyncResponse.resume(Response.serverError().entity(new ApiError(msg)).build());
+                    });
+
+        } catch (IllegalArgumentException e) {
+            ApiError error = new ApiError("[" + type + "] is not a valid type. Accepted values are gauge|avail|log");
+            asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity(error).build());
+        }
     }
 
     @POST
