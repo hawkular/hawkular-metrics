@@ -24,7 +24,6 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.executeAsync;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -315,20 +314,11 @@ public class GaugeHandler {
             long now = System.currentTimeMillis();
             long startTime = start == null ? now - EIGHT_HOURS : start;
             long endTime = end == null ? now : end;
-            Observable<GaugeData> observable = metricsService.findGaugeData(tenantId, new MetricId(id), startTime,
-                    endTime);
-            List<GaugeData> dataPoints = new ArrayList<>();
-            observable.subscribe(
-                    dataPoints::add,
-                    t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()),
-                    () -> {
-                        if (dataPoints.isEmpty()) {
-                            asyncResponse.resume(noContent());
-                        } else {
-                            asyncResponse.resume(Response.ok(dataPoints).build());
-                        }
-                    }
-            );
+
+            metricsService.findGaugeData(tenantId, new MetricId(id), startTime, endTime)
+                    .reduce(new ArrayList<>(), ApiUtils::addToCollection)
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         } else {
             executeAsync(
                     asyncResponse,

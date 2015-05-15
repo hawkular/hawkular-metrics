@@ -37,7 +37,6 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
 
-import com.google.common.base.Throwables;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
@@ -45,10 +44,9 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.request.MixedMetricsRequest;
-import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
-import rx.Observable;
 
 
 /**
@@ -83,17 +81,10 @@ public class MetricHandler {
         @QueryParam("type") String type) {
 
         try {
-            Observable<Metric<?>> metrics = metricsService.findMetrics(tenantId, MetricType.fromTextCode(type));
-            metrics.reduce(new ArrayList<>(), (ArrayList<Metric> list, Metric metric) -> {
-                list.add(metric);
-                return list;
-            }).map(list -> list.isEmpty() ? noContent() : Response.ok(list).build()).subscribe(
-                    asyncResponse::resume,
-                    t -> {
-                        String msg = "Failed to perform operation due to an error: " +
-                                Throwables.getRootCause(t).getMessage();
-                        asyncResponse.resume(Response.serverError().entity(new ApiError(msg)).build());
-                    });
+            metricsService.findMetrics(tenantId, MetricType.fromTextCode(type))
+                    .reduce(new ArrayList<>(), ApiUtils::addToCollection)
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
 
         } catch (IllegalArgumentException e) {
             ApiError error = new ApiError("[" + type + "] is not a valid type. Accepted values are gauge|avail|log");
