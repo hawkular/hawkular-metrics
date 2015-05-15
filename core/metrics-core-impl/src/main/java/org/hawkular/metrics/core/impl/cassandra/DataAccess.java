@@ -21,19 +21,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
-import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.Availability;
+import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.Counter;
+import org.hawkular.metrics.core.api.Gauge;
+import org.hawkular.metrics.core.api.GaugeData;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricData;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.GaugeData;
-import org.hawkular.metrics.core.api.Gauge;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
+import rx.Observable;
 
 /**
  * @author John Sanda
@@ -66,12 +68,12 @@ public interface DataAccess {
 
     ResultSetFuture insertData(Gauge metric, int ttl);
 
-    ResultSetFuture findData(String tenantId, MetricId id, long startTime, long endTime);
-//    ResultSetFuture findData(QueryParams queryParams);
+    Observable<ResultSet> findData(String tenantId, MetricId id, long startTime, long endTime);
 
     ResultSetFuture findData(Gauge metric, long startTime, long endTime, Order order);
 
-    ResultSetFuture findData(String tenantId, MetricId id, long startTime, long endTime, boolean includeWriteTime);
+    Observable<ResultSet> findData(String tenantId, MetricId id, long startTime, long endTime,
+            boolean includeWriteTime);
 
     ResultSetFuture findData(Gauge metric, long timestamp, boolean includeWriteTime);
 

@@ -80,7 +80,7 @@ public class Functions {
         StreamSupport.stream(resultSet.spliterator(), false).map(Functions::getGaugeDataAndWriteTime)
                 .collect(toList());
 
-    private static GaugeData getGaugeDataAndWriteTime(Row row) {
+    public static GaugeData getGaugeDataAndWriteTime(Row row) {
         return new GaugeData(
                 row.getUUID(GAUGE_COLS.TIME.ordinal()),
                 row.getDouble(GAUGE_COLS.VALUE.ordinal()),
