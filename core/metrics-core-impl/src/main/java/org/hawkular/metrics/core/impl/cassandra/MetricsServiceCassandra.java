@@ -390,22 +390,37 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Optional<Metric<?>>> findMetric(final String tenantId, final MetricType type,
-            final MetricId id) {
-        ResultSetFuture future = dataAccess.findMetric(tenantId, type, id, Metric.DPART);
-        return Futures.transform(future, (ResultSet resultSet) -> {
-            if (resultSet.isExhausted()) {
-                return Optional.empty();
-            }
-            Row row = resultSet.one();
-            if (type == MetricType.GAUGE) {
-                return Optional.of(new Gauge(tenantId, id, row.getMap(5, String.class, String.class),
-                        row.getInt(6)));
-            } else {
-                return Optional.of(new Availability(tenantId, id, row.getMap(5, String.class, String.class),
-                        row.getInt(6)));
-            }
-        }, metricsTasks);
+    public Observable<Optional<? extends Metric<? extends MetricData>>> findMetric(final String tenantId,
+            final MetricType type, final MetricId id) {
+
+        return dataAccess.findMetric(tenantId, type, id, Metric.DPART)
+                .flatMap(Observable::from)
+                .map(row -> {
+                    if (type == MetricType.GAUGE) {
+                        return Optional.of(new Gauge(tenantId, id, row.getMap(5, String.class, String.class),
+                                row.getInt(6)));
+                    } else {
+                        return Optional.of(new Availability(tenantId, id, row.getMap(5, String.class, String.class),
+                                row.getInt(6)));
+                    }
+                })
+                .defaultIfEmpty(Optional.empty());
+
+
+//        ResultSetFuture future = dataAccess.findMetric(tenantId, type, id, Metric.DPART);
+//        return Futures.transform(future, (ResultSet resultSet) -> {
+//            if (resultSet.isExhausted()) {
+//                return Optional.empty();
+//            }
+//            Row row = resultSet.one();
+//            if (type == MetricType.GAUGE) {
+//                return Optional.of(new Gauge(tenantId, id, row.getMap(5, String.class, String.class),
+//                        row.getInt(6)));
+//            } else {
+//                return Optional.of(new Availability(tenantId, id, row.getMap(5, String.class, String.class),
+//                        row.getInt(6)));
+//            }
+//        }, metricsTasks);
     }
 
     @Override

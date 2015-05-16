@@ -62,6 +62,7 @@ import org.hawkular.metrics.core.api.GaugeData;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
+import org.hawkular.metrics.core.api.MetricData;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Retention;
@@ -155,8 +156,8 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
     @Test
     public void createAndFindMetrics() throws Exception {
-        Optional<Metric<?>> result = getUninterruptibly(metricsService.findMetric("t1", GAUGE,
-                new MetricId("does-not-exist")));
+        Optional<? extends Metric<? extends MetricData>> result = metricsService.findMetric("t1", GAUGE,
+                new MetricId("does-not-exist")).toBlocking().last();
         assertNotNull(result, "null should not be returned when metric is not found");
         assertFalse(result.isPresent(), "Did not expect a value when the metric is not found");
 
@@ -165,17 +166,16 @@ public class MetricsServiceCassandraITest extends MetricsITest {
             24);
         metricsService.createMetric(m1).toBlocking().lastOrDefault(null);
 
-        ListenableFuture<Optional<Metric<?>>> queryFuture = metricsService.findMetric(m1.getTenantId(), m1.getType(),
-                m1.getId());
-         Metric actual = getUninterruptibly(queryFuture).get();
+        Gauge actual = (Gauge) metricsService.findMetric(m1.getTenantId(), m1.getType(), m1.getId())
+                .toBlocking().last().get();
         assertEquals(actual, m1, "The metric does not match the expected value");
 
         Availability m2 = new Availability("t1", new MetricId("m2"), ImmutableMap.of("a3", "3", "a4", "3"));
         metricsService.createMetric(m2).toBlocking().lastOrDefault(null);
 
-        queryFuture = metricsService.findMetric(m2.getTenantId(), m2.getType(), m2.getId());
-        actual = getUninterruptibly(queryFuture).get();
-        assertEquals(actual, m2, "The metric does not match the expected value");
+        Availability actualAvail = (Availability) metricsService.findMetric(m2.getTenantId(), m2.getType(), m2.getId())
+                .toBlocking().last().get();
+        assertEquals(actualAvail, m2, "The metric does not match the expected value");
 
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
@@ -223,9 +223,8 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         ListenableFuture<Void> deleteFuture = metricsService.deleteTags(metric, deletions);
         getUninterruptibly(deleteFuture);
 
-        ListenableFuture<Optional<Metric<?>>> queryFuture = metricsService.findMetric(metric.getTenantId(), GAUGE,
-            metric.getId());
-        Metric<?> updatedMetric = getUninterruptibly(queryFuture).get();
+        Metric<? extends MetricData> updatedMetric = metricsService.findMetric(metric.getTenantId(), GAUGE,
+            metric.getId()).toBlocking().last().get();
 
         assertEquals(updatedMetric.getTags(), ImmutableMap.of("a2", "two", "a3", "3"),
             "The updated meta data does not match the expected values");
@@ -960,7 +959,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
     private void assertMetricIndexMatches(String tenantId, MetricType type, List<? extends Metric> expected)
         throws Exception {
         List<Metric<?>> actualIndex = ImmutableList.copyOf(metricsService.findMetrics(tenantId, type).toBlocking()
-                        .toIterable());
+                .toIterable());
         assertEquals(actualIndex, expected, "The metrics index results do not match");
     }
 

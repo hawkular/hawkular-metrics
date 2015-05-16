@@ -49,7 +49,7 @@ public interface DataAccess {
 
     ResultSetFuture insertMetricInMetricsIndex(Metric<?> metric);
 
-    ResultSetFuture findMetric(String tenantId, MetricType type, MetricId id, long dpart);
+    Observable<ResultSet> findMetric(String tenantId, MetricType type, MetricId id, long dpart);
 
     ResultSetFuture addTagsAndDataRetention(Metric<?> metric);
 

@@ -69,7 +69,7 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findMetric(String tenantId, MetricType type, MetricId id, long dpart) {
+    public Observable<ResultSet> findMetric(String tenantId, MetricType type, MetricId id, long dpart) {
         return delegate.findMetric(tenantId, type, id, dpart);
     }
 
