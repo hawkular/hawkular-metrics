@@ -377,9 +377,9 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findMetric(String tenantId, MetricType type, MetricId id, long dpart) {
-        return session.executeAsync(findMetric.bind(tenantId, type.getCode(), id.getName(),
-            id.getInterval().toString(), dpart));
+    public Observable<ResultSet> findMetric(String tenantId, MetricType type, MetricId id, long dpart) {
+        return rxSession.execute(findMetric.bind(tenantId, type.getCode(), id.getName(), id.getInterval().toString(),
+                dpart));
     }
 
     @Override

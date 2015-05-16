@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -131,9 +130,10 @@ public class GaugeHandler {
                                 "already exists";
                         asyncResponse.resume(Response.status(Status.CONFLICT).entity(new ApiError(message)).build());
                     } else {
+
                         String message = "Failed to create metric due to an unexpected error: "
                                 + Throwables.getRootCause(t).getMessage();
-                        asyncResponse.resume(Response.serverError().entity(new ApiError(message)).build());
+                        asyncResponse.resume(ApiUtils.serverError(t, message));
                     }
                 },
                 () -> asyncResponse.resume(Response.created(location).build())
@@ -148,14 +148,14 @@ public class GaugeHandler {
             @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.",
                          response = ApiError.class) })
-    public void getGaugeMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
-        executeAsync(
-                asyncResponse,
-                () -> {
-                ListenableFuture<Optional<Metric<?>>> future = metricsService.findMetric(tenantId, MetricType.GAUGE,
-                    new MetricId(id));
-                 return Futures.transform(future, ApiUtils.MAP_VALUE);
-                });
+    public void getGaugeMetric(@Suspended final AsyncResponse asyncResponse,
+            @HeaderParam("tenantId") String tenantId, @PathParam("id") String id) {
+
+        metricsService.findMetric(tenantId, MetricType.GAUGE, new MetricId(id))
+                .subscribe(
+                        optional -> asyncResponse.resume(ApiUtils.valueToResponse(optional)),
+                        t -> asyncResponse.resume(ApiUtils.serverError(t))
+                );
     }
 
     @GET

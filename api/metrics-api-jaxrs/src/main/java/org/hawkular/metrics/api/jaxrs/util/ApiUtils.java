@@ -57,6 +57,10 @@ public class ApiUtils {
         return Response.serverError().entity(new ApiError(Throwables.getRootCause(t).getMessage())).build();
     }
 
+    public static Response valueToResponse(Optional<?> optional) {
+        return optional.map(value -> Response.ok(value).build()).orElse(noContent());
+    }
+
     public static final Function<Void, Response> MAP_VOID = v -> Response.ok().build();
 
     public static final Function<List<Void>, Response> MAP_LIST_VOID = v -> Response.ok().build();

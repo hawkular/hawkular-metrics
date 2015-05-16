@@ -29,7 +29,6 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -115,8 +114,6 @@ public class AvailabilityHandler {
         metric.setTenantId(tenantId);
         Observable<Void> metricCreated = metricsService.createMetric(metric);
         URI location = uriInfo.getBaseUriBuilder().path("/availability/{id}").build(metric.getId().getName());
-//        MetricCreatedCallback metricCreatedCallback = new MetricCreatedCallback(asyncResponse, created);
-//        Futures.addCallback(future, metricCreatedCallback);
         metricCreated.subscribe(
                 nullArg -> {},
                 t -> {
@@ -143,14 +140,14 @@ public class AvailabilityHandler {
             @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.",
                          response = ApiError.class) })
-    public void getAvailabilityMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
-        executeAsync(
-                asyncResponse,
-                () -> {
-                ListenableFuture<Optional<Metric<?>>> future = metricsService.findMetric(tenantId,
-                    MetricType.AVAILABILITY, new MetricId(id));
-                    return Futures.transform(future, ApiUtils.MAP_VALUE);
-                });
+    public void getAvailabilityMetric(@Suspended final AsyncResponse asyncResponse,
+            @HeaderParam("tenantId") String tenantId, @PathParam("id") String id) {
+
+        metricsService.findMetric(tenantId, MetricType.AVAILABILITY, new MetricId(id))
+                .subscribe(
+                        optional -> asyncResponse.resume(ApiUtils.valueToResponse(optional)),
+                        t -> asyncResponse.resume(ApiUtils.serverError(t))
+                );
     }
 
     @GET
