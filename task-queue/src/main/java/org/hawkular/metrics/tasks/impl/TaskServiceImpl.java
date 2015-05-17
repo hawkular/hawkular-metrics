@@ -30,7 +30,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -44,28 +43,31 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.Uninterruptibles;
 import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.metrics.tasks.DateTimeService;
 import org.hawkular.metrics.tasks.api.Task;
 import org.hawkular.metrics.tasks.api.TaskExecutionException;
 import org.hawkular.metrics.tasks.api.TaskService;
 import org.hawkular.metrics.tasks.api.TaskType;
+import org.hawkular.rx.cassandra.driver.RxUtil;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.Observable;
 
 /**
  * @author jsanda
  */
-public class TaskServiceImpl implements TaskService {
+public class
+        TaskServiceImpl implements TaskService {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskServiceImpl.class);
 
@@ -270,8 +272,9 @@ public class TaskServiceImpl implements TaskService {
         try {
             // Execute tasks in order of task types. Once all of the tasks are executed, we delete the lease partition.
             taskTypes.forEach(taskType -> executeTasks(timeSlice, taskType));
-            Uninterruptibles.getUninterruptibly(leaseService.deleteLeases(timeSlice));
-        } catch (ExecutionException e) {
+            leaseService.deleteLeases(timeSlice).toBlocking().last();
+//            Uninterruptibles.getUninterruptibly(leaseService.deleteLeases(timeSlice));
+        } catch (Exception e) {
             logger.warn("Failed to delete lease partition for time slice " + timeSlice);
         }
     }
@@ -284,8 +287,10 @@ public class TaskServiceImpl implements TaskService {
      */
     private void executeTasks(DateTime timeSlice, TaskType taskType) {
         try {
-            List<Lease> leases = Uninterruptibles.getUninterruptibly(leaseService.findUnfinishedLeases(timeSlice))
-                    .stream().filter(lease -> lease.getTaskType().equals(taskType.getName())).collect(toList());
+            List<Lease> leases = ImmutableList.copyOf(leaseService.findUnfinishedLeases(timeSlice)
+                    .filter(lease -> lease.getTaskType().equals(taskType.getName()))
+                    .toBlocking()
+                    .toIterable());
 
             // A CountDownLatch is used to let us know when to query again for leases. We do not want to query (again)
             // for leases until we have gone through each one. If a lease already has an owner, then we just count
@@ -308,55 +313,63 @@ public class TaskServiceImpl implements TaskService {
                     if (lease.getOwner() == null) {
                         permits.acquire();
                         lease.setOwner(owner);
-                        ListenableFuture<Boolean> acquiredFuture = leaseService.acquire(lease);
-                        Futures.addCallback(acquiredFuture, new FutureCallback<Boolean>() {
-                            @Override
-                            public void onSuccess(Boolean acquired) {
-                                latchRef.get().countDown();
-                                if (acquired) {
-                                    List<ListenableFuture<ResultSet>> deleteFutures = new ArrayList<>();
-                                    TaskType taskType = findTaskType(lease.getTaskType());
-                                    for (int i = lease.getSegmentOffset(); i < taskType.getSegments(); ++i) {
-                                        ListenableFuture<List<TaskContainer>> tasksFuture =
-                                                findTasks(lease.getTaskType(), timeSlice, i);
-                                        ListenableFuture<List<TaskContainer>> resultsFuture =
-                                                Futures.transform(tasksFuture, executeTasksSegment, workers);
-                                        ListenableFuture<List<DateTime>> nextExecutionsFuture = Futures.transform(
-                                                resultsFuture, scheduleNextExecution, workers);
-                                        ListenableFuture<ResultSet> deleteFuture = Futures.transform(
-                                                nextExecutionsFuture, deleteTaskSegment(timeSlice, taskType, i));
-                                        deleteFutures.add(deleteFuture);
-                                    }
-                                    ListenableFuture<List<ResultSet>> deletesFuture =
-                                            Futures.allAsList(deleteFutures);
-                                    ListenableFuture<Boolean> leaseFinishedFuture = Futures.transform(deletesFuture,
-                                            (List<ResultSet> resultSets) -> leaseService.finish(lease), workers);
-                                    Futures.addCallback(leaseFinishedFuture, leaseFinished(lease), workers);
-                                } else {
-                                    // someone else has the lease so return the permit and try to
-                                    // acquire another lease
-                                    permits.release();
-                                }
-                            }
+                        Observable<Boolean> acquiredObservable = leaseService.acquire(lease);
 
-                            @Override
-                            public void onFailure(Throwable t) {
-                                logger.warn("There was an error trying to acquire a lease", t);
-                                latchRef.get().countDown();
-                            }
-                        }, workers);
+                        acquiredObservable.subscribe(
+                                acquired -> {
+                                    latchRef.get().countDown();
+                                    if (acquired) {
+                                        List<ListenableFuture<ResultSet>> deleteFutures = new ArrayList<>();
+                                        TaskType type = findTaskType(lease.getTaskType());
+                                        for (int i = lease.getSegmentOffset(); i < type.getSegments(); ++i) {
+                                            ListenableFuture<List<TaskContainer>> tasksFuture =
+                                                    findTasks(lease.getTaskType(), timeSlice, i);
+                                            ListenableFuture<List<TaskContainer>> resultsFuture =
+                                                    Futures.transform(tasksFuture, executeTasksSegment, workers);
+                                            ListenableFuture<List<DateTime>> nextExecutionsFuture = Futures.transform(
+                                                    resultsFuture, scheduleNextExecution, workers);
+                                            ListenableFuture<ResultSet> deleteFuture = Futures.transform(
+                                                    nextExecutionsFuture, deleteTaskSegment(timeSlice, type, i));
+                                            deleteFutures.add(deleteFuture);
+                                        }
+                                        ListenableFuture<List<ResultSet>> deletesFuture =
+                                                Futures.allAsList(deleteFutures);
+                                        RxUtil.from(deletesFuture, workers)
+                                                .flatMap(resultSets -> leaseService.finish(lease)).subscribe(
+                                                finished -> {
+                                                    if (!finished) {
+                                                        logger.warn("All tasks for {} have completed but unable to " +
+                                                                "set it to finished", lease);
+                                                    }
+                                                    permits.release();
+                                                },
+                                                t -> {
+                                                    logger.warn("Failed to process tasks for " + lease, t);
+                                                    permits.release();
+                                                });
+                                    } else {
+                                        // someone else has the lease so return the permit and try to
+                                        // acquire another lease
+                                        permits.release();
+                                    }
+                                },
+                                t -> {
+                                    logger.warn("There was an error trying to acquire a lease", t);
+                                    latchRef.get().countDown();
+                                }
+                        );
                     } else {
                         latchRef.get().countDown();
                     }
                 }
                 latchRef.get().await();
-                leases = Uninterruptibles.getUninterruptibly(leaseService.findUnfinishedLeases(timeSlice))
-                        .stream().filter(lease -> lease.getTaskType().equals(taskType.getName())).collect(toList());
+                leases = ImmutableList.copyOf(leaseService.findUnfinishedLeases(timeSlice)
+                        .filter(lease -> lease.getTaskType().equals(taskType.getName()))
+                        .toBlocking()
+                        .toIterable());
                 latchRef.set(new CountDownLatch(leases.size()));
             }
 
-        } catch (ExecutionException e) {
-            logger.warn("Failed to load leases for time slice " + timeSlice, e);
         } catch (InterruptedException e) {
             logger.info("Execution of " + taskType.getName() + " tasks for time slice " + timeSlice +
                     "was interrupted.", e);
