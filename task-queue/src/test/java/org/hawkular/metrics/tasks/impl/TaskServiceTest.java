@@ -43,6 +43,7 @@ import com.google.common.collect.ImmutableSet;
 import org.hawkular.metrics.tasks.BaseTest;
 import org.hawkular.metrics.tasks.api.Task;
 import org.hawkular.metrics.tasks.api.TaskType;
+import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.joda.time.DateTime;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -56,7 +57,7 @@ public class TaskServiceTest extends BaseTest {
 
     @BeforeClass
     public void initClass() {
-        leaseService = new LeaseService(session, queries);
+        leaseService = new LeaseService(new RxSessionImpl(session), queries);
     }
 
     @Test
@@ -242,7 +243,7 @@ public class TaskServiceTest extends BaseTest {
 
         String owner = "host2";
         Lease lease = new Lease(timeSlice, type1, segmentOffset, owner, false);
-        boolean acquired = getUninterruptibly(leaseService.acquire(lease));
+        boolean acquired = leaseService.acquire(lease).toBlocking().first();
         assertTrue(acquired, "Should have acquired lease");
 
         TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService, asList(taskType1));
@@ -256,7 +257,7 @@ public class TaskServiceTest extends BaseTest {
                 Thread.sleep(1000);
                 session.execute(queries.deleteTasks.bind(lease.getTaskType(), lease.getTimeSlice().toDate(), segment0));
                 session.execute(queries.deleteTasks.bind(lease.getTaskType(), lease.getTimeSlice().toDate(), segment1));
-                getUninterruptibly(leaseService.finish(lease));
+                leaseService.finish(lease).toBlocking().first();
             } catch (Exception e) {
                 executionErrorRef.set(e);
             }

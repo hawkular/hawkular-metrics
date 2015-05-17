@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.tasks.BaseTest;
 import org.hawkular.metrics.tasks.api.TaskType;
+import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.joda.time.DateTime;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -40,7 +41,7 @@ public class TaskSchedulerTest extends BaseTest {
 
     @BeforeClass
     public void initClass() {
-        leaseService = new LeaseService(session, queries);
+        leaseService = new LeaseService(new RxSessionImpl(session), queries);
     }
 
     @Test
