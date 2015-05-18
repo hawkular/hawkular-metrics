@@ -117,7 +117,7 @@ public class MetricHandler {
                 // TODO This needs to be fix
                 // Temporarily commented out to get it to compile as we midst of updating MetricsService
                 // to use rx.Observable instead of ListenableFuture
-                
+
 //                simpleFuturesList.add(metricsService.addGaugeData(metricsRequest.getGaugeMetrics()));
             }
 
