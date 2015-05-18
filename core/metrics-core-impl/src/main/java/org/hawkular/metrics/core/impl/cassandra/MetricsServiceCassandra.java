@@ -17,7 +17,7 @@
 package org.hawkular.metrics.core.impl.cassandra;
 
 import static java.util.Arrays.asList;
-import static java.util.stream.Collectors.toList;
+
 import static org.joda.time.Hours.hours;
 
 import java.util.ArrayList;
@@ -35,28 +35,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import javax.management.MBeanInfo;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.RateLimiter;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityData;
@@ -84,6 +67,23 @@ import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.RateLimiter;
+
 import rx.Observable;
 
 /**
@@ -329,22 +329,22 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<Tenant>> getTenants() {
-        ListenableFuture<Stream<String>> tenantIdsFuture = Futures.transform(
-                dataAccess.findAllTenantIds(), (ResultSet input) ->
-                        StreamSupport.stream(input.spliterator(), false).map(row -> row.getString(0)), metricsTasks);
-
-        return Futures.transform(tenantIdsFuture, (Stream<String> input) ->
-                Futures.allAsList(input.map(dataAccess::findTenant).map(Functions::getTenant).collect(toList())));
+    public Observable<Tenant> getTenants() {
+        return dataAccess.findAllTenantIds()
+                         .flatMap(Observable::from)
+                         .map(row -> row.getString(0))
+                         .flatMap(dataAccess::findTenant)
+                         .flatMap(Observable::from)
+                         .map(Functions::getTenant);
     }
 
     private List<String> loadTenantIds() {
-        ResultSet resultSet = dataAccess.findAllTenantIds().getUninterruptibly();
-        List<String> ids = new ArrayList<>();
-        for (Row row : resultSet) {
-            ids.add(row.getString(0));
-        }
-        return ids;
+        Iterable<String> tenantIds = dataAccess.findAllTenantIds()
+                                               .flatMap(Observable::from)
+                                               .map(row -> row.getString(0))
+                                               .toBlocking()
+                                               .toIterable();
+        return ImmutableList.copyOf(tenantIds);
     }
 
     @Override

@@ -25,6 +25,7 @@ import java.util.function.Predicate;
 
 import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.ListenableFuture;
+
 import rx.Observable;
 
 /**
@@ -72,7 +73,7 @@ public interface MetricsService {
      */
     ListenableFuture<Void> createTenant(Tenant tenant);
 
-    ListenableFuture<List<Tenant>> getTenants();
+    Observable<Tenant> getTenants();
 
     Observable<Void> createMetric(Metric<?> metric);
 
