@@ -19,6 +19,7 @@ package org.hawkular.metrics.core.impl.cassandra;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
+
 import static org.hawkular.metrics.core.api.AvailabilityType.DOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UNKNOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UP;
@@ -35,7 +36,6 @@ import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -45,16 +45,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.Gauge;
@@ -72,6 +62,18 @@ import org.joda.time.Duration;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import com.datastax.driver.core.BatchStatement;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+
 import rx.Observable;
 
 /**
@@ -133,8 +135,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         ListenableFuture<List<Void>> insertsFuture = Futures.allAsList(insertFutures);
         getUninterruptibly(insertsFuture);
 
-        Collection<Tenant> tenants = getUninterruptibly(metricsService.getTenants());
-        Set<Tenant> actualTenants = ImmutableSet.copyOf(tenants);
+        Set<Tenant> actualTenants = ImmutableSet.copyOf(metricsService.getTenants().toBlocking().toIterable());
         Set<Tenant> expectedTenants = ImmutableSet.of(t1, t2, t3, t4);
 
         for (Tenant expected : expectedTenants) {

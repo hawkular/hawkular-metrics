@@ -17,20 +17,13 @@
 package org.hawkular.metrics.core.impl.cassandra;
 
 import static java.util.Arrays.asList;
+
 import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
 import java.util.List;
 
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import org.hawkular.metrics.core.api.AggregationTemplate;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityData;
@@ -46,6 +39,16 @@ import org.joda.time.Days;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+
 import rx.Observable;
 
 /**
@@ -102,12 +105,11 @@ public class DataAccessITest extends MetricsITest {
         insertFuture = dataAccess.insertTenant(tenant2);
         getUninterruptibly(insertFuture);
 
-        ResultSetFuture queryFuture = dataAccess.findTenant(tenant1.getId());
-        ListenableFuture<Tenant> tenantFuture = Functions.getTenant(queryFuture);
-        Tenant actual = getUninterruptibly(tenantFuture);
-        Tenant expected = tenant1;
-
-        assertEquals(actual, expected, "The tenants do not match");
+        Tenant actual = dataAccess.findTenant(tenant1.getId())
+                                  .flatMap(Observable::from)
+                                  .map(Functions::getTenant)
+                                  .toBlocking().single();
+        assertEquals(actual, tenant1, "The tenants do not match");
     }
 
     @Test

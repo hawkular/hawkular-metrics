@@ -26,19 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.DataType;
-import com.datastax.driver.core.KeyspaceMetadata;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.TupleType;
-import com.datastax.driver.core.TupleValue;
-import com.datastax.driver.core.UDTValue;
-import com.datastax.driver.core.UserType;
-import com.datastax.driver.core.utils.UUIDs;
 import org.hawkular.metrics.core.api.AggregationTemplate;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityData;
@@ -56,6 +43,21 @@ import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TimeUUIDUtils;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
+
+import com.datastax.driver.core.BatchStatement;
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.TupleType;
+import com.datastax.driver.core.TupleValue;
+import com.datastax.driver.core.UDTValue;
+import com.datastax.driver.core.UserType;
+import com.datastax.driver.core.utils.UUIDs;
+
 import rx.Observable;
 
 /**
@@ -356,13 +358,13 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findAllTenantIds() {
-        return session.executeAsync(findAllTenantIds.bind());
+    public Observable<ResultSet> findAllTenantIds() {
+        return rxSession.execute(findAllTenantIds.bind());
     }
 
     @Override
-    public ResultSetFuture findTenant(String id) {
-        return session.executeAsync(findTenant.bind(id));
+    public Observable<ResultSet> findTenant(String id) {
+        return rxSession.execute(findTenant.bind(id));
     }
 
     @Override

@@ -18,8 +18,9 @@ package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.collectionToResponse;
+
 import java.net.URI;
-import java.util.List;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -34,6 +35,12 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
+import org.hawkular.metrics.api.jaxrs.ApiError;
+import org.hawkular.metrics.api.jaxrs.callback.TenantCreatedCallback;
+import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.Tenant;
+
+import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.wordnik.swagger.annotations.Api;
@@ -41,12 +48,6 @@ import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
-
-import org.hawkular.metrics.api.jaxrs.ApiError;
-import org.hawkular.metrics.api.jaxrs.callback.TenantCreatedCallback;
-import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
-import org.hawkular.metrics.core.api.MetricsService;
-import org.hawkular.metrics.core.api.Tenant;
 
 /**
  * @author Thomas Segismont
@@ -99,9 +100,13 @@ public class TenantsHandler {
                          response = ApiError.class)
     })
     public void findTenants(@Suspended AsyncResponse asyncResponse) {
-        ApiUtils.executeAsync(asyncResponse, () -> {
-            ListenableFuture<List<Tenant>> future = metricsService.getTenants();
-            return Futures.transform(future, ApiUtils.MAP_COLLECTION);
-        });
+        metricsService.getTenants().toList().subscribe(
+                tenants -> asyncResponse.resume(collectionToResponse(tenants)),
+                error -> {
+                    String msg = "Failed to perform operation due to an error: " + Throwables.getRootCause(error)
+                                                                                             .getMessage();
+                    asyncResponse.resume(Response.serverError().entity(new ApiError(msg)).build());
+                }
+        );
     }
 }

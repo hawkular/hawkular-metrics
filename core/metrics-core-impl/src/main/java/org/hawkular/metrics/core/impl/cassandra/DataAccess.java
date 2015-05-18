@@ -21,8 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.Counter;
@@ -35,6 +33,10 @@ import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
+
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+
 import rx.Observable;
 
 /**
@@ -43,9 +45,9 @@ import rx.Observable;
 public interface DataAccess {
     ResultSetFuture insertTenant(Tenant tenant);
 
-    ResultSetFuture findAllTenantIds();
+    Observable<ResultSet> findAllTenantIds();
 
-    ResultSetFuture findTenant(String id);
+    Observable<ResultSet> findTenant(String id);
 
     ResultSetFuture insertMetricInMetricsIndex(Metric<?> metric);
 
