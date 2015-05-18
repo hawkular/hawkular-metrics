@@ -148,8 +148,7 @@ public class GaugeHandler {
             @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.",
                          response = ApiError.class) })
-    public void getGaugeMetric(@Suspended final AsyncResponse asyncResponse,
-            @HeaderParam("tenantId") String tenantId, @PathParam("id") String id) {
+    public void getGaugeMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
 
         metricsService.findMetric(tenantId, MetricType.GAUGE, new MetricId(id))
                 .subscribe(
@@ -233,10 +232,9 @@ public class GaugeHandler {
             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
             List<GaugeData> data
     ) {
-        executeAsync(asyncResponse, () -> {
-            if (data == null) {
-                return ApiUtils.emptyPayload();
-            }
+        if (data.isEmpty()) {
+            asyncResponse.resume(badRequest(new ApiError("Payload is empty")));
+        } else {
             Gauge metric = new Gauge(tenantId, new MetricId(id));
             metric.getData().addAll(data);
             Observable<Void> observable = metricsService.addGaugeData(Observable.just(metric));
@@ -254,7 +252,7 @@ public class GaugeHandler {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
                 response = ApiError.class) })
-    public void addGaugeData(@Suspended final AsyncResponse asyncResponse, @HeaderParam("tenantId") String tenantId,
+    public void addGaugeData(@Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of metrics", required = true) List<Gauge> metrics) {
 
         if (metrics.isEmpty()) {
