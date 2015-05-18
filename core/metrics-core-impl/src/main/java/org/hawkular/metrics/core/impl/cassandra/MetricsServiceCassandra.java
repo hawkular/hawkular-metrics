@@ -504,22 +504,22 @@ public class MetricsServiceCassandra implements MetricsService {
         // pass. This means that the behavior basically remains the same as before. The idea here is to implement a
         // pub/sub workflow.
 
-        return Observable.create(subscriber -> {
-            Map<Gauge, ResultSetFuture> insertsMap = new HashMap<>();
-            gaugeObservable.subscribe(
-                    gauge -> {
-                        int ttl = getTTL(gauge);
-                        insertsMap.put(gauge, dataAccess.insertData(gauge, ttl));
-                    },
-                    t -> logger.warn("There was an error receive gauge data to insert", t),
-                    () -> {
-                        List<ResultSetFuture> inserts = Lists.newArrayList(insertsMap.values());
-                        inserts.add(dataAccess.updateMetricsIndex(ImmutableList.copyOf(insertsMap.keySet())));
-                        ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(inserts);
-                        Observable<List<ResultSet>> dataInserted = RxUtil.from(insertsFuture, metricsTasks);
-                        dataInserted.subscribe(new VoidSubscriber<>(subscriber));
-                    });
-        });
+        return Observable.create(subscriber -> gaugeObservable
+                        .reduce(new HashMap<>(), (HashMap<Gauge, ResultSetFuture> map, Gauge gauge) -> {
+                            int ttl = getTTL(gauge);
+                            ResultSetFuture future = dataAccess.insertData(gauge, ttl);
+                            map.put(gauge, future);
+                            return map;
+                        })
+                        .map(insertsMap -> {
+                            List<ResultSetFuture> inserts = Lists.newArrayList(insertsMap.values());
+                            inserts.add(dataAccess.updateMetricsIndex(ImmutableList.copyOf(insertsMap.keySet())));
+                            return inserts;
+                        })
+                        .map(Futures::allAsList)
+                        .map(insertsFuture -> RxUtil.from(insertsFuture, metricsTasks))
+                        .subscribe(new VoidSubscriber<>(subscriber))
+        );
     }
 
     @Override
