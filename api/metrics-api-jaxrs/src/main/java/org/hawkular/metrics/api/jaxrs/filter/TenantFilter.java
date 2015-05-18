@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.api.jaxrs.filter;
 
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
+
 import java.io.IOException;
 
 import javax.ws.rs.container.ContainerRequestContext;
@@ -70,7 +72,10 @@ public class TenantFilter implements ContainerRequestFilter {
         }
 
         // Fail on missing tenant info
-        Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError(MISSING_TENANT_MSG)).build();
+        Response response = Response.status(Status.BAD_REQUEST)
+                                    .type(APPLICATION_JSON_TYPE)
+                                    .entity(new ApiError(MISSING_TENANT_MSG))
+                                    .build();
         requestContext.abortWith(response);
     }
 }
