@@ -17,9 +17,7 @@
 package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.executeAsync;
 
 import java.util.ArrayList;
@@ -37,6 +35,8 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
@@ -106,8 +106,27 @@ public class MetricHandler {
         executeAsync(asyncResponse, () -> {
             if ((metricsRequest.getGaugeMetrics() == null || !metricsRequest.getGaugeMetrics().isEmpty())
                     && (metricsRequest.getAvailabilityMetrics() == null || metricsRequest.getAvailabilityMetrics()
-                            .isEmpty())) {
+                    .isEmpty())) {
                 return Futures.immediateFuture(Response.ok().build());
             }
 
+            List<ListenableFuture<Void>> simpleFuturesList = new ArrayList<>();
+
+            if (metricsRequest.getGaugeMetrics() != null && !metricsRequest.getGaugeMetrics().isEmpty()) {
+                metricsRequest.getGaugeMetrics().forEach(m -> m.setTenantId(tenantId));
+                // TODO This needs to be fix
+                // Temporarily commented out to get it to compile as we midst of updating MetricsService
+                // to use rx.Observable instead of ListenableFuture
+                
+//                simpleFuturesList.add(metricsService.addGaugeData(metricsRequest.getGaugeMetrics()));
+            }
+
+            if (metricsRequest.getAvailabilityMetrics() != null && !metricsRequest.getAvailabilityMetrics().isEmpty()) {
+                metricsRequest.getAvailabilityMetrics().forEach(m -> m.setTenantId(tenantId));
+                simpleFuturesList.add(metricsService.addAvailabilityData(metricsRequest.getAvailabilityMetrics()));
+            }
+
+            return Futures.transform(Futures.successfulAsList(simpleFuturesList), ApiUtils.MAP_LIST_VOID);
+        });
+    }
 }
