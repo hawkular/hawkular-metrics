@@ -14,7 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.callback;
+
+package org.hawkular.metrics.api.jaxrs.observer;
 
 import java.net.URI;
 
@@ -26,17 +27,19 @@ import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
 
 /**
- * An implementation of {@code EntityCreatedCallback} for tenant entities.
+ * An implementation of {@code EntityCreatedObserver} for tenant entities.
  *
  * @author Thomas Segismont
  */
-public class TenantCreatedCallback extends EntityCreatedCallback<TenantAlreadyExistsException> {
+public class TenantCreatedObserver extends EntityCreatedObserver<TenantAlreadyExistsException> {
 
-    public TenantCreatedCallback(
-            AsyncResponse asyncResponse,
-            URI location) {
-        super(asyncResponse, location, TenantAlreadyExistsException.class,
-                TenantCreatedCallback::getTenantAlreadyExistsResponse);
+    public TenantCreatedObserver(AsyncResponse asyncResponse, URI location) {
+        super(
+                asyncResponse,
+                location,
+                TenantAlreadyExistsException.class,
+                TenantCreatedObserver::getTenantAlreadyExistsResponse
+        );
     }
 
     private static Response getTenantAlreadyExistsResponse(TenantAlreadyExistsException e) {

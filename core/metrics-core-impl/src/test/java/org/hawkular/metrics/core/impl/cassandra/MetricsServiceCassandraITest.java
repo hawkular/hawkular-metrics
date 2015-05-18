@@ -127,13 +127,12 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         Tenant t3 = new Tenant().setId("t3").setRetention(AVAILABILITY, 48);
         Tenant t4 = new Tenant().setId("t4");
 
-        List<ListenableFuture<Void>> insertFutures = new ArrayList<>();
-        insertFutures.add(metricsService.createTenant(t1));
-        insertFutures.add(metricsService.createTenant(t2));
-        insertFutures.add(metricsService.createTenant(t3));
-        insertFutures.add(metricsService.createTenant(t4));
-        ListenableFuture<List<Void>> insertsFuture = Futures.allAsList(insertFutures);
-        getUninterruptibly(insertsFuture);
+        Observable.concat(
+                metricsService.createTenant(t1),
+                metricsService.createTenant(t2),
+                metricsService.createTenant(t3),
+                metricsService.createTenant(t4)
+        ).toBlocking().lastOrDefault(null);
 
         Set<Tenant> actualTenants = ImmutableSet.copyOf(metricsService.getTenants().toBlocking().toIterable());
         Set<Tenant> expectedTenants = ImmutableSet.of(t1, t2, t3, t4);
@@ -238,7 +237,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         DateTime start = now().minusMinutes(30);
         DateTime end = start.plusMinutes(20);
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId("t1")));
+        metricsService.createTenant(new Tenant().setId("t1")).toBlocking().lastOrDefault(null);
 
         Gauge m1 = new Gauge("t1", new MetricId("m1"));
         m1.addData(new GaugeData(start.getMillis(), 1.1));
@@ -266,9 +265,10 @@ public class MetricsServiceCassandraITest extends MetricsITest {
     public void verifyTTLsSetOnGaugeData() throws Exception {
         DateTime start = now().minusMinutes(10);
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId("t1")));
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId("t2")
-            .setRetention(GAUGE, days(14).toStandardHours().getHours())));
+        metricsService.createTenant(new Tenant().setId("t1")).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant().setId("t2").setRetention(GAUGE, days(14).toStandardHours().getHours()))
+                      .toBlocking()
+                      .lastOrDefault(null);
 
         VerifyTTLDataAccess verifyTTLDataAccess = new VerifyTTLDataAccess(dataAccess);
 
@@ -297,8 +297,9 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         verifyTTLDataAccess.gaugeTagTTLLessThanEqualTo(days(14).minus(3).toStandardSeconds().getSeconds());
         getUninterruptibly(metricsService.tagGaugeData(m2, tags, start.plusMinutes(5).getMillis()));
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId("t3")
-            .setRetention(GAUGE, 24)));
+        metricsService.createTenant(new Tenant().setId("t3").setRetention(GAUGE, 24))
+                      .toBlocking()
+                      .lastOrDefault(null);
         verifyTTLDataAccess.setGaugeTTL(hours(24).toStandardSeconds().getSeconds());
         Gauge m3 = new Gauge("t3", new MetricId("m3"));
         m3.addData(start.getMillis(), 3.03);
@@ -317,9 +318,10 @@ public class MetricsServiceCassandraITest extends MetricsITest {
     public void verifyTTLsSetOnAvailabilityData() throws Exception {
         DateTime start = now().minusMinutes(10);
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId("t1")));
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId("t2")
-                .setRetention(AVAILABILITY, days(14).toStandardHours().getHours())));
+        metricsService.createTenant(new Tenant().setId("t1")).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(
+                new Tenant().setId("t2").setRetention(AVAILABILITY, days(14).toStandardHours().getHours())
+        ).toBlocking().lastOrDefault(null);
 
         VerifyTTLDataAccess verifyTTLDataAccess = new VerifyTTLDataAccess(dataAccess);
 
@@ -348,8 +350,9 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         verifyTTLDataAccess.availabilityTagTLLLessThanEqualTo(days(14).minus(5).toStandardSeconds().getSeconds());
         getUninterruptibly(metricsService.tagAvailabilityData(m2, tags, start.plusMinutes(5).getMillis()));
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId("t3")
-                .setRetention(AVAILABILITY, 24)));
+        metricsService.createTenant(new Tenant().setId("t3").setRetention(AVAILABILITY, 24))
+                      .toBlocking()
+                      .lastOrDefault(null);
         verifyTTLDataAccess.setAvailabilityTTL(hours(24).toStandardSeconds().getSeconds());
         Availability m3 = new Availability("t3", new MetricId("m3"));
         m3.addData(new AvailabilityData(start.getMillis(), UP));
@@ -407,7 +410,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         DateTime end = now();
         DateTime start = end.minusMinutes(10);
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId("tenant1")));
+        metricsService.createTenant(new Tenant().setId("tenant1")).toBlocking().lastOrDefault(null);
 
         Gauge metric = new Gauge("tenant1", new MetricId("m1"));
         metric.addData(start.getMillis(), 100.0);
@@ -456,7 +459,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         DateTime end = start.plusMinutes(8);
         String tenantId = "test-tenant";
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenantId)));
+        metricsService.createTenant(new Tenant().setId(tenantId)).toBlocking().lastOrDefault(null);
 
         Gauge m1 = new Gauge(tenantId, new MetricId("m1"));
         m1.addData(new GaugeData(start.plusSeconds(30).getMillis(), 11.2));
@@ -503,7 +506,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         DateTime end = start.plusMinutes(8);
         String tenantId = "test-tenant";
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenantId)));
+        metricsService.createTenant(new Tenant().setId(tenantId)).toBlocking().lastOrDefault(null);
 
         Availability m1 = new Availability(tenantId, new MetricId("m1"));
         m1.addData(new AvailabilityData(start.plusSeconds(10).getMillis(), "up"));
@@ -553,7 +556,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         DateTime end = now();
         DateTime start = end.minusMinutes(10);
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId("tenant1")));
+        metricsService.createTenant(new Tenant().setId("tenant1")).toBlocking().lastOrDefault(null);
 
         Availability metric = new Availability("tenant1", new MetricId("A1"));
         metric.addData(new AvailabilityData(start.getMillis(), UP));
@@ -604,7 +607,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         String tenantId = "tenant1";
         MetricId metricId = new MetricId("A1");
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenantId)));
+        metricsService.createTenant(new Tenant().setId(tenantId)).toBlocking().lastOrDefault(null);
 
         Availability metric = new Availability("tenant1", metricId);
         metric.addData(new AvailabilityData(start.getMillis(), UP));
@@ -644,7 +647,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenant)));
+        metricsService.createTenant(new Tenant().setId(tenant)).toBlocking().lastOrDefault(null);
 
         GaugeData d1 = new GaugeData(start.getMillis(), 101.1);
         GaugeData d2 = new GaugeData(start.plusMinutes(2).getMillis(), 101.2);
@@ -709,7 +712,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenant)));
+        metricsService.createTenant(new Tenant().setId(tenant)).toBlocking().lastOrDefault(null);
 
         Availability m1 = new Availability(tenant, new MetricId("m1"));
         Availability m2 = new Availability(tenant, new MetricId("m2"));
@@ -776,7 +779,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenant)));
+        metricsService.createTenant(new Tenant().setId(tenant)).toBlocking().lastOrDefault(null);
 
         GaugeData d1 = new GaugeData(start.getMillis(), 101.1);
         GaugeData d2 = new GaugeData(start.plusMinutes(2).getMillis(), 101.2);
@@ -846,7 +849,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenant)));
+        metricsService.createTenant(new Tenant().setId(tenant)).toBlocking().lastOrDefault(null);
 
         Availability m1 = new Availability(tenant, new MetricId("m1"));
         Availability m2 = new Availability(tenant, new MetricId("m2"));
@@ -950,11 +953,6 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
     private <T> List<T> toList(Observable<T> observable) {
         return ImmutableList.copyOf(observable.toBlocking().toIterable());
-    }
-
-    private void assertMetricEquals(Metric actual, Metric expected) {
-        assertEquals(actual, expected, "The metric doe not match the expected value");
-        assertEquals(actual.getData(), expected.getData(), "The data does not match the expected values");
     }
 
     private void assertMetricIndexMatches(String tenantId, MetricType type, List<? extends Metric> expected)

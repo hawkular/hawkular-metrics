@@ -36,13 +36,11 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
-import org.hawkular.metrics.api.jaxrs.callback.TenantCreatedCallback;
+import org.hawkular.metrics.api.jaxrs.observer.TenantCreatedObserver;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.Tenant;
 
 import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
@@ -85,10 +83,8 @@ public class TenantsHandler {
             asyncResponse.resume(response);
             return;
         }
-        ListenableFuture<Void> insertFuture = metricsService.createTenant(params);
         URI created = uriInfo.getBaseUriBuilder().path("/tenants").build();
-        TenantCreatedCallback tenantCreatedCallback = new TenantCreatedCallback(asyncResponse, created);
-        Futures.addCallback(insertFuture, tenantCreatedCallback);
+        metricsService.createTenant(params).subscribe(new TenantCreatedObserver(asyncResponse, created));
     }
 
     @GET
