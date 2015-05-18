@@ -22,6 +22,7 @@ import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
+import static org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.clients.ptrans.util.ProcessUtil.kill;
 import static org.hawkular.metrics.clients.ptrans.util.TenantUtil.getRandomTenantId;
 import static org.junit.Assert.assertEquals;
@@ -73,7 +74,6 @@ public class CollectdITest extends ExecutableITestBase {
             "hawkular-metrics.base-uri",
             "127.0.0.1:8080/hawkular/metrics"
     );
-    private static final String HAWKULAR_TENANT_HEADER = "tenantId";
 
     private String tenant;
     private String findGaugeMetricsUrl;
@@ -243,7 +243,7 @@ public class CollectdITest extends ExecutableITestBase {
         ObjectMapper objectMapper = new ObjectMapper();
 
         HttpURLConnection urlConnection = (HttpURLConnection) new URL(findGaugeMetricsUrl).openConnection();
-        urlConnection.setRequestProperty(HAWKULAR_TENANT_HEADER, tenant);
+        urlConnection.setRequestProperty(TENANT_HEADER_NAME, tenant);
         urlConnection.connect();
         int responseCode = urlConnection.getResponseCode();
         if (responseCode != HttpURLConnection.HTTP_OK) {
@@ -265,7 +265,7 @@ public class CollectdITest extends ExecutableITestBase {
             String type = split[split.length - 1];
 
             urlConnection = (HttpURLConnection) new URL(findGaugeDataUrl(metricName)).openConnection();
-            urlConnection.setRequestProperty(HAWKULAR_TENANT_HEADER, tenant);
+            urlConnection.setRequestProperty(TENANT_HEADER_NAME, tenant);
             urlConnection.connect();
             responseCode = urlConnection.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {

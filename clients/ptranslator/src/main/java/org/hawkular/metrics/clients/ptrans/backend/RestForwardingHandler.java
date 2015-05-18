@@ -19,6 +19,20 @@ package org.hawkular.metrics.clients.ptrans.backend;
 import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
 import static io.netty.handler.codec.http.HttpMethod.POST;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
+
+import java.net.ConnectException;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.UnknownHostException;
+import java.util.List;
+
+import org.hawkular.metrics.client.common.Batcher;
+import org.hawkular.metrics.client.common.BoundMetricFifo;
+import org.hawkular.metrics.client.common.SingleMetric;
+import org.hawkular.metrics.clients.ptrans.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -44,19 +58,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
 
-import java.net.ConnectException;
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.UnknownHostException;
-import java.util.List;
-
-import org.hawkular.metrics.client.common.Batcher;
-import org.hawkular.metrics.client.common.BoundMetricFifo;
-import org.hawkular.metrics.client.common.SingleMetric;
-import org.hawkular.metrics.clients.ptrans.Configuration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Handler that takes incoming syslog metric messages (which are already parsed)
  * and forwards them to hawkular-metrics rest servlet.
@@ -67,7 +68,7 @@ import org.slf4j.LoggerFactory;
 public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
     private static final Logger LOG = LoggerFactory.getLogger(RestForwardingHandler.class);
 
-    private static final String TENANT_HEADER_NAME = "tenantId";
+    public static final String TENANT_HEADER_NAME = "Hawkular-Tenant";
 
     private final String restHost;
     private final int restPort;

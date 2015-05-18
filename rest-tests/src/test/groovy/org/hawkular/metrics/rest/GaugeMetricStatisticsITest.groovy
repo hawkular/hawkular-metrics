@@ -39,32 +39,32 @@ class GaugeMetricStatisticsITest extends RESTTest {
 
     def response = hawkularMetrics.post(path: "gauges/$metric/data", body: [
         [timestamp: new DateTimeService().currentHour().minusHours(1).millis, value: 1]
-    ], headers: ["tenantId": tenantId])
+    ], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
 
-    badGet(path: "gauges/$metric/data", query: [buckets: 0], headers: ["tenantId": tenantId]) { exception ->
+    badGet(path: "gauges/$metric/data", query: [buckets: 0], headers: [(tenantHeaderName): tenantId]) { exception ->
       // Bucket count = zero
       assertEquals(400, exception.response.status)
     }
 
-    badGet(path: "gauges/$metric/data", query: [buckets: Integer.MAX_VALUE], headers: ["tenantId": tenantId]) { exception ->
+    badGet(path: "gauges/$metric/data", query: [buckets: Integer.MAX_VALUE], headers: [(tenantHeaderName): tenantId]) { exception ->
       // Bucket size = zero
       assertEquals(400, exception.response.status)
     }
 
-    badGet(path: "gauges/$metric/data", query: [bucketDuration: "1w"], headers: ["tenantId": tenantId]) { exception ->
+    badGet(path: "gauges/$metric/data", query: [bucketDuration: "1w"], headers: [(tenantHeaderName): tenantId]) { exception ->
       // Illegal duration
       assertEquals(400, exception.response.status)
     }
 
     badGet(path: "gauges/$metric/data",
-        query: [start: 0, end: Long.MAX_VALUE, bucketDuration: "1ms"], headers: ["tenantId": tenantId]) {
+        query: [start: 0, end: Long.MAX_VALUE, bucketDuration: "1ms"], headers: [(tenantHeaderName): tenantId]) {
       exception ->
         // Number of buckets is too large
         assertEquals(400, exception.response.status)
     }
 
-    badGet(path: "gauges/$metric/data", query: [buckets: 1, bucketDuration: "1d"], headers: ["tenantId": tenantId]) { exception ->
+    badGet(path: "gauges/$metric/data", query: [buckets: 1, bucketDuration: "1d"], headers: [(tenantHeaderName): tenantId]) { exception ->
       // Both buckets and bucketDuration parameters provided
       assertEquals(400, exception.response.status)
     }
@@ -90,11 +90,11 @@ class GaugeMetricStatisticsITest extends RESTTest {
         [timestamp: buckets[4] + seconds(15).toStandardDuration().millis, value: 25],
         [timestamp: buckets[9], value: 18.367],
         [timestamp: buckets[9] + seconds(10).toStandardDuration().millis, value: 19.01]
-    ], headers: ["tenantId": tenantId])
+    ], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(path: "gauges/$metric/data",
-        query: [start: start.millis, end: end.millis, buckets: 10], headers: ["tenantId": tenantId])
+        query: [start: start.millis, end: end.millis, buckets: 10], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
 
     def avg0 = (12.22 + 12.37) / 2
@@ -157,13 +157,13 @@ class GaugeMetricStatisticsITest extends RESTTest {
         data.add([timestamp: hour.plusMillis(i).millis, value: values[i - 1]])
       }
 
-      def response = hawkularMetrics.post(path: "gauges/$metric/data", body: data, headers: ["tenantId": tenantId])
+      def response = hawkularMetrics.post(path: "gauges/$metric/data", body: data, headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
     }
 
     def response = hawkularMetrics.get(path: "gauges/$metric/data",
         query: [start: start.millis, end: start.plusHours(NUMBER_OF_BUCKETS).millis, bucketDuration: "1h"],
-            headers: ["tenantId": tenantId])
+        headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
 
     def percentileBase = percentile(createSample(1), 95.0);

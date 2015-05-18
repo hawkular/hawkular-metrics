@@ -25,6 +25,8 @@ import org.junit.BeforeClass;
  * @author Jeeva Kandasamy
  */
 public class RESTTest {
+    static final String TENANT_HEADER_NAME = "Hawkular-Tenant";
+
     static String baseURI = System.getProperty("hawkular-metrics.base-uri", "127.0.0.1:8080/hawkular/metrics");
     static ResteasyClient restClient = null;
     static ResteasyWebTarget target = null;
