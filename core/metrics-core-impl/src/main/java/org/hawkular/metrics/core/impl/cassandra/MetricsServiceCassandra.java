@@ -284,48 +284,60 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> createTenant(final Tenant tenant) {
-        ResultSetFuture future = dataAccess.insertTenant(tenant);
-        return Futures.transform(future, new AsyncFunction<ResultSet, Void>() {
-            @Override
-            public ListenableFuture<Void> apply(ResultSet resultSet) {
-                if (!resultSet.wasApplied()) {
-                    throw new TenantAlreadyExistsException(tenant.getId());
-                }
-                Map<MetricType, Set<Retention>> retentionsMap = new HashMap<>();
-                for (RetentionSettings.RetentionKey key : tenant.getRetentionSettings().keySet()) {
-                    Set<Retention> retentions = retentionsMap.get(key.metricType);
-                    if (retentions == null) {
-                        retentions = new HashSet<>();
+    public Observable<Void> createTenant(final Tenant tenant) {
+        return dataAccess.insertTenant(tenant).flatMap(
+                resultSet -> {
+                    if (!resultSet.wasApplied()) {
+                        throw new TenantAlreadyExistsException(tenant.getId());
                     }
-                    Interval interval = key.interval == null ? Interval.NONE : key.interval;
-                    Hours hours = hours(tenant.getRetentionSettings().get(key));
-                    retentions.add(new Retention(new MetricId("[" + key.metricType.getText() + "]", interval),
-                        hours.toStandardSeconds().getSeconds()));
-                    retentionsMap.put(key.metricType, retentions);
-                }
-                if (retentionsMap.isEmpty()) {
-                    return Futures.immediateFuture(null);
-                } else {
+                    Map<MetricType, Set<Retention>> retentionsMap = new HashMap<>();
+                    for (RetentionSettings.RetentionKey key : tenant.getRetentionSettings().keySet()) {
+                        Set<Retention> retentions = retentionsMap.get(key.metricType);
+                        if (retentions == null) {
+                            retentions = new HashSet<>();
+                        }
+                        Interval interval = key.interval == null ? Interval.NONE : key.interval;
+                        Hours hours = hours(tenant.getRetentionSettings().get(key));
+                        retentions.add(
+                                new Retention(
+                                        new MetricId("[" + key.metricType.getText() + "]", interval),
+                                        hours.toStandardSeconds().getSeconds()
+                                )
+                        );
+                        retentionsMap.put(key.metricType, retentions);
+                    }
+                    if (retentionsMap.isEmpty()) {
+                        return Observable.from(Collections.singleton(null));
+                    }
                     List<ResultSetFuture> updateRetentionFutures = new ArrayList<>();
 
                     for (Map.Entry<MetricType, Set<Retention>> metricTypeSetEntry : retentionsMap.entrySet()) {
-                        updateRetentionFutures.add(dataAccess.updateRetentionsIndex(tenant.getId(),
-                                metricTypeSetEntry.getKey(),
-                                metricTypeSetEntry.getValue()));
+                        updateRetentionFutures.add(
+                                dataAccess.updateRetentionsIndex(
+                                        tenant.getId(),
+                                        metricTypeSetEntry.getKey(),
+                                        metricTypeSetEntry.getValue()
+                                )
+                        );
 
                         for (Retention r : metricTypeSetEntry.getValue()) {
-                            dataRetentions.put(new DataRetentionKey(tenant.getId(), metricTypeSetEntry.getKey()),
-                                    r.getValue());
+                            dataRetentions.put(
+                                    new DataRetentionKey(tenant.getId(), metricTypeSetEntry.getKey()),
+                                    r.getValue()
+                            );
                         }
                     }
 
                     ListenableFuture<List<ResultSet>> updateRetentionsFuture = Futures
-                        .allAsList(updateRetentionFutures);
-                    return Futures.transform(updateRetentionsFuture, Functions.TO_VOID, metricsTasks);
+                            .allAsList(updateRetentionFutures);
+                    ListenableFuture<Void> transform = Futures.transform(
+                            updateRetentionsFuture,
+                            Functions.TO_VOID,
+                            metricsTasks
+                    );
+                    return RxUtil.from(transform, metricsTasks);
                 }
-            }
-        }, metricsTasks);
+        );
     }
 
     @Override

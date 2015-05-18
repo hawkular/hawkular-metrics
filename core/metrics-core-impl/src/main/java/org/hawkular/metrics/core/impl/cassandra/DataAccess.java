@@ -43,7 +43,7 @@ import rx.Observable;
  * @author John Sanda
  */
 public interface DataAccess {
-    ResultSetFuture insertTenant(Tenant tenant);
+    Observable<ResultSet> insertTenant(Tenant tenant);
 
     Observable<ResultSet> findAllTenantIds();
 

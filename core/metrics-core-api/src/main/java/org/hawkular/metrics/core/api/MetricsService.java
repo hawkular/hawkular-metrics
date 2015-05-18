@@ -67,11 +67,11 @@ public interface MetricsService {
      * importantly, data could be inserted with a tenant id that already exists.
      * </p>
      *
-     * @param tenant The {@link org.hawkular.metrics.core.api.Tenant tenant} to create
+     * @param tenant The {@link Tenant tenant} to create
      * @return
      * @throws org.hawkular.metrics.core.api.TenantAlreadyExistsException
      */
-    ListenableFuture<Void> createTenant(Tenant tenant);
+    Observable<Void> createTenant(Tenant tenant);
 
     Observable<Tenant> getTenants();
 

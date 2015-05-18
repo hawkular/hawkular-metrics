@@ -330,7 +330,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertTenant(Tenant tenant) {
+    public Observable<ResultSet> insertTenant(Tenant tenant) {
         UserType aggregationTemplateType = getKeyspace().getUserType("aggregation_template");
         List<UDTValue> templateValues = new ArrayList<>(tenant.getAggregationTemplates().size());
         for (AggregationTemplate template : tenant.getAggregationTemplates()) {
@@ -354,7 +354,7 @@ public class DataAccessImpl implements DataAccess {
             retentions.put(tuple, tenant.getRetentionSettings().get(key));
         }
 
-        return session.executeAsync(insertTenant.bind(tenant.getId(), retentions, templateValues));
+        return rxSession.execute(insertTenant.bind(tenant.getId(), retentions, templateValues));
     }
 
     @Override

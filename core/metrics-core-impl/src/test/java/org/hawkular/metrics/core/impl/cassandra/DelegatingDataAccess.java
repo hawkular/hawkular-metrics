@@ -51,7 +51,7 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertTenant(Tenant tenant) {
+    public Observable<ResultSet> insertTenant(Tenant tenant) {
         return delegate.insertTenant(tenant);
     }
 

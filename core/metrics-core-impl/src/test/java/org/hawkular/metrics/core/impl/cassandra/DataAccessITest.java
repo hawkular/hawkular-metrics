@@ -99,11 +99,9 @@ public class DataAccessITest extends MetricsITest {
                 .setFunctions(ImmutableSet.of("sum", "count")));
 
 
-        ResultSetFuture insertFuture = dataAccess.insertTenant(tenant1);
-        getUninterruptibly(insertFuture);
+        dataAccess.insertTenant(tenant1).toBlocking().lastOrDefault(null);
 
-        insertFuture = dataAccess.insertTenant(tenant2);
-        getUninterruptibly(insertFuture);
+        dataAccess.insertTenant(tenant2).toBlocking().lastOrDefault(null);
 
         Tenant actual = dataAccess.findTenant(tenant1.getId())
                                   .flatMap(Observable::from)
@@ -114,8 +112,10 @@ public class DataAccessITest extends MetricsITest {
 
     @Test
     public void doNotAllowDuplicateTenants() throws Exception {
-        getUninterruptibly(dataAccess.insertTenant(new Tenant().setId("tenant-1")));
-        ResultSet resultSet = getUninterruptibly(dataAccess.insertTenant(new Tenant().setId("tenant-1")));
+        dataAccess.insertTenant(new Tenant().setId("tenant-1")).toBlocking().lastOrDefault(null);
+        ResultSet resultSet = dataAccess.insertTenant(new Tenant().setId("tenant-1"))
+                                        .toBlocking()
+                                        .lastOrDefault(null);
         assertFalse(resultSet.wasApplied(), "Tenants should not be overwritten");
     }
 
