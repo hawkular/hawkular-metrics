@@ -19,6 +19,7 @@ package org.hawkular.metrics.api.jaxrs.handler;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.collectionToResponse;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 
 import java.net.URI;
 
@@ -39,7 +40,6 @@ import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.Tenant;
 
-import com.google.common.base.Throwables;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
@@ -97,11 +97,7 @@ public class TenantsHandler {
     public void findTenants(@Suspended AsyncResponse asyncResponse) {
         metricsService.getTenants().toList().subscribe(
                 tenants -> asyncResponse.resume(collectionToResponse(tenants)),
-                error -> {
-                    String msg = "Failed to perform operation due to an error: " + Throwables.getRootCause(error)
-                                                                                             .getMessage();
-                    asyncResponse.resume(Response.serverError().entity(new ApiError(msg)).build());
-                }
+                error -> asyncResponse.resume(serverError(error))
         );
     }
 }
