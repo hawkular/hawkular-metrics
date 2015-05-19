@@ -83,8 +83,8 @@ public class TenantsHandler {
             asyncResponse.resume(response);
             return;
         }
-        URI created = uriInfo.getBaseUriBuilder().path("/tenants").build();
-        metricsService.createTenant(params).subscribe(new TenantCreatedObserver(asyncResponse, created));
+        URI location = uriInfo.getBaseUriBuilder().path("/tenants").build();
+        metricsService.createTenant(params).subscribe(new TenantCreatedObserver(asyncResponse, location));
     }
 
     @GET
