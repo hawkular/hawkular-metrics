@@ -24,6 +24,8 @@ import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -37,11 +39,11 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
 
-import org.hawkular.metrics.api.jaxrs.callback.NoDataCallback;
-import org.hawkular.metrics.api.jaxrs.callback.SimpleDataCallback;
+import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.MetricsService;
 
+import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -150,5 +152,66 @@ public class CounterHandler {
                 asyncResponse.resume(t);
             }
         });
+    }
+
+    /**
+     * @author John Sanda
+     */
+    private static class NoDataCallback<T> implements FutureCallback<T> {
+
+        protected AsyncResponse asyncResponse;
+
+        public NoDataCallback(AsyncResponse asyncResponse) {
+            this.asyncResponse = asyncResponse;
+        }
+
+        @Override
+        public void onSuccess(Object result) {
+            asyncResponse.resume(Response.ok().build());
+        }
+
+        @Override
+        public void onFailure(Throwable t) {
+            String msg = "Failed to perform operation due to an error: " + Throwables.getRootCause(t).getMessage();
+            asyncResponse.resume(Response.serverError().entity(new ApiError(msg)).build());
+        }
+    }
+
+    private static class SimpleDataCallback<T> extends NoDataCallback<T> {
+
+        public SimpleDataCallback(AsyncResponse asyncResponse) {
+            super(asyncResponse);
+        }
+
+        @Override
+        public void onSuccess(Object responseData) {
+            if (responseData == null) {
+                asyncResponse.resume(Response.noContent().build());
+            } else if (responseData instanceof Optional) {
+                Optional optional = (Optional) responseData;
+                if (optional.isPresent()) {
+                    Object value = optional.get();
+                    asyncResponse.resume(Response.ok(value).build());
+                } else {
+                    asyncResponse.resume(Response.noContent().build());
+                }
+            } else if (responseData instanceof Collection) {
+                Collection collection = (Collection) responseData;
+                if (collection.isEmpty()) {
+                    asyncResponse.resume(Response.noContent().build());
+                } else {
+                    asyncResponse.resume(Response.ok(collection).build());
+                }
+            } else if (responseData instanceof Map) {
+                Map map = (Map) responseData;
+                if (map.isEmpty()) {
+                    asyncResponse.resume(Response.noContent().build());
+                } else {
+                    asyncResponse.resume(Response.ok(map).build());
+                }
+            } else {
+                asyncResponse.resume(Response.ok(responseData).build());
+            }
+        }
     }
 }
