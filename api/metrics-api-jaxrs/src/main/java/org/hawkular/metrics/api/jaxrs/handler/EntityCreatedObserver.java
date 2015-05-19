@@ -17,15 +17,13 @@
 
 package org.hawkular.metrics.api.jaxrs.handler;
 
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
+
 import java.net.URI;
 import java.util.function.Function;
 
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
-
-import org.hawkular.metrics.api.jaxrs.ApiError;
-
-import com.google.common.base.Throwables;
 
 import rx.Observer;
 
@@ -75,9 +73,7 @@ public abstract class EntityCreatedObserver<E> implements Observer<Void> {
         if (alreadyExistsException.isAssignableFrom(t.getClass())) {
             response = alreadyExistsResponseBuilder.apply(alreadyExistsException.cast(t));
         } else {
-            String message = "Failed to create tenant due to an unexpected error: "
-                             + Throwables.getRootCause(t).getMessage();
-            response = Response.serverError().entity(new ApiError(message)).build();
+            response = serverError(t, "Failed to create tenant due to an unexpected error");
         }
         asyncResponse.resume(response);
     }
