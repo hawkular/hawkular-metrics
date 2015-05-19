@@ -23,6 +23,7 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.executeAsync;
 
 import java.net.URI;
@@ -46,17 +47,8 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
-import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
@@ -68,11 +60,17 @@ import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
-import rx.Observable;
+
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
 
 /**
  * @author Stefan Negrea
@@ -107,29 +105,12 @@ public class AvailabilityHandler {
             @Context UriInfo uriInfo
     ) {
         if (metric == null) {
-            Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Payload is empty")).build();
-            asyncResponse.resume(response);
+            asyncResponse.resume(emptyPayload());
             return;
         }
         metric.setTenantId(tenantId);
-        Observable<Void> metricCreated = metricsService.createMetric(metric);
         URI location = uriInfo.getBaseUriBuilder().path("/availability/{id}").build(metric.getId().getName());
-        metricCreated.subscribe(
-                nullArg -> {},
-                t -> {
-                    if (t instanceof MetricAlreadyExistsException) {
-                        MetricAlreadyExistsException exception = (MetricAlreadyExistsException) t;
-                        String message = "A metric with name [" + exception.getMetric().getId().getName() + "] " +
-                                "already exists";
-                        asyncResponse.resume(Response.status(Status.CONFLICT).entity(new ApiError(message)).build());
-                    } else {
-                        String message = "Failed to create metric due to an unexpected error: "
-                                + Throwables.getRootCause(t).getMessage();
-                        asyncResponse.resume(Response.serverError().entity(new ApiError(message)).build());
-                    }
-                },
-                () -> asyncResponse.resume(Response.created(location).build())
-        );
+        metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
     }
 
     @GET
@@ -225,7 +206,7 @@ public class AvailabilityHandler {
     ) {
         executeAsync(asyncResponse, () -> {
             if (data == null) {
-                return ApiUtils.emptyPayload();
+                return Futures.immediateFuture(ApiUtils.emptyPayload());
             }
             Availability metric = new Availability(tenantId, new MetricId(id));
             metric.getData().addAll(data);
@@ -269,7 +250,7 @@ public class AvailabilityHandler {
     ) {
         executeAsync(asyncResponse, () -> {
             if (tags == null) {
-                return badRequest(new ApiError("Missing tags query"));
+                return Futures.immediateFuture(badRequest(new ApiError("Missing tags query")));
             }
             ListenableFuture<Map<MetricId, Set<AvailabilityData>>> future;
             future = metricsService.findAvailabilityByTags(tenantId, tags.getTags());
@@ -321,7 +302,13 @@ public class AvailabilityHandler {
                     }
 
                     if (bucketsCount != null && bucketDuration != null) {
-                        return badRequest(new ApiError("Both buckets and bucketDuration parameters are used"));
+                        return Futures.immediateFuture(
+                                badRequest(
+                                        new ApiError(
+                                                "Both buckets and bucketDuration parameters are used"
+                                        )
+                                )
+                        );
                     }
 
                     Buckets buckets;
@@ -332,7 +319,7 @@ public class AvailabilityHandler {
                             buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
                         }
                     } catch (IllegalArgumentException e) {
-                        return badRequest(new ApiError("Bucket: " + e.getMessage()));
+                        return Futures.immediateFuture(badRequest(new ApiError("Bucket: " + e.getMessage())));
                     }
                     ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> dataFuture;
                     dataFuture = metricsService.findAvailabilityStats(metric, startTime, endTime, buckets);

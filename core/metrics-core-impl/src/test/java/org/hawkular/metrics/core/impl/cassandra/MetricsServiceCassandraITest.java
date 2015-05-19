@@ -19,6 +19,7 @@ package org.hawkular.metrics.core.impl.cassandra;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
+
 import static org.hawkular.metrics.core.api.AvailabilityType.DOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UNKNOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UP;
@@ -35,7 +36,6 @@ import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -45,16 +45,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.Gauge;
@@ -72,6 +62,18 @@ import org.joda.time.Duration;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import com.datastax.driver.core.BatchStatement;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+
 import rx.Observable;
 
 /**
@@ -125,16 +127,14 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         Tenant t3 = new Tenant().setId("t3").setRetention(AVAILABILITY, 48);
         Tenant t4 = new Tenant().setId("t4");
 
-        List<ListenableFuture<Void>> insertFutures = new ArrayList<>();
-        insertFutures.add(metricsService.createTenant(t1));
-        insertFutures.add(metricsService.createTenant(t2));
-        insertFutures.add(metricsService.createTenant(t3));
-        insertFutures.add(metricsService.createTenant(t4));
-        ListenableFuture<List<Void>> insertsFuture = Futures.allAsList(insertFutures);
-        getUninterruptibly(insertsFuture);
+        Observable.concat(
+                metricsService.createTenant(t1),
+                metricsService.createTenant(t2),
+                metricsService.createTenant(t3),
+                metricsService.createTenant(t4)
+        ).toBlocking().lastOrDefault(null);
 
-        Collection<Tenant> tenants = getUninterruptibly(metricsService.getTenants());
-        Set<Tenant> actualTenants = ImmutableSet.copyOf(tenants);
+        Set<Tenant> actualTenants = ImmutableSet.copyOf(metricsService.getTenants().toBlocking().toIterable());
         Set<Tenant> expectedTenants = ImmutableSet.of(t1, t2, t3, t4);
 
         for (Tenant expected : expectedTenants) {
@@ -237,7 +237,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         DateTime start = now().minusMinutes(30);
         DateTime end = start.plusMinutes(20);
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId("t1")));
+        metricsService.createTenant(new Tenant().setId("t1")).toBlocking().lastOrDefault(null);
 
         Gauge m1 = new Gauge("t1", new MetricId("m1"));
         m1.addData(new GaugeData(start.getMillis(), 1.1));
@@ -265,9 +265,10 @@ public class MetricsServiceCassandraITest extends MetricsITest {
     public void verifyTTLsSetOnGaugeData() throws Exception {
         DateTime start = now().minusMinutes(10);
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId("t1")));
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId("t2")
-            .setRetention(GAUGE, days(14).toStandardHours().getHours())));
+        metricsService.createTenant(new Tenant().setId("t1")).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant().setId("t2").setRetention(GAUGE, days(14).toStandardHours().getHours()))
+                      .toBlocking()
+                      .lastOrDefault(null);
 
         VerifyTTLDataAccess verifyTTLDataAccess = new VerifyTTLDataAccess(dataAccess);
 
@@ -296,8 +297,9 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         verifyTTLDataAccess.gaugeTagTTLLessThanEqualTo(days(14).minus(3).toStandardSeconds().getSeconds());
         getUninterruptibly(metricsService.tagGaugeData(m2, tags, start.plusMinutes(5).getMillis()));
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId("t3")
-            .setRetention(GAUGE, 24)));
+        metricsService.createTenant(new Tenant().setId("t3").setRetention(GAUGE, 24))
+                      .toBlocking()
+                      .lastOrDefault(null);
         verifyTTLDataAccess.setGaugeTTL(hours(24).toStandardSeconds().getSeconds());
         Gauge m3 = new Gauge("t3", new MetricId("m3"));
         m3.addData(start.getMillis(), 3.03);
@@ -316,9 +318,10 @@ public class MetricsServiceCassandraITest extends MetricsITest {
     public void verifyTTLsSetOnAvailabilityData() throws Exception {
         DateTime start = now().minusMinutes(10);
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId("t1")));
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId("t2")
-                .setRetention(AVAILABILITY, days(14).toStandardHours().getHours())));
+        metricsService.createTenant(new Tenant().setId("t1")).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(
+                new Tenant().setId("t2").setRetention(AVAILABILITY, days(14).toStandardHours().getHours())
+        ).toBlocking().lastOrDefault(null);
 
         VerifyTTLDataAccess verifyTTLDataAccess = new VerifyTTLDataAccess(dataAccess);
 
@@ -347,8 +350,9 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         verifyTTLDataAccess.availabilityTagTLLLessThanEqualTo(days(14).minus(5).toStandardSeconds().getSeconds());
         getUninterruptibly(metricsService.tagAvailabilityData(m2, tags, start.plusMinutes(5).getMillis()));
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId("t3")
-                .setRetention(AVAILABILITY, 24)));
+        metricsService.createTenant(new Tenant().setId("t3").setRetention(AVAILABILITY, 24))
+                      .toBlocking()
+                      .lastOrDefault(null);
         verifyTTLDataAccess.setAvailabilityTTL(hours(24).toStandardSeconds().getSeconds());
         Availability m3 = new Availability("t3", new MetricId("m3"));
         m3.addData(new AvailabilityData(start.getMillis(), UP));
@@ -406,7 +410,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         DateTime end = now();
         DateTime start = end.minusMinutes(10);
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId("tenant1")));
+        metricsService.createTenant(new Tenant().setId("tenant1")).toBlocking().lastOrDefault(null);
 
         Gauge metric = new Gauge("tenant1", new MetricId("m1"));
         metric.addData(start.getMillis(), 100.0);
@@ -455,7 +459,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         DateTime end = start.plusMinutes(8);
         String tenantId = "test-tenant";
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenantId)));
+        metricsService.createTenant(new Tenant().setId(tenantId)).toBlocking().lastOrDefault(null);
 
         Gauge m1 = new Gauge(tenantId, new MetricId("m1"));
         m1.addData(new GaugeData(start.plusSeconds(30).getMillis(), 11.2));
@@ -502,7 +506,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         DateTime end = start.plusMinutes(8);
         String tenantId = "test-tenant";
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenantId)));
+        metricsService.createTenant(new Tenant().setId(tenantId)).toBlocking().lastOrDefault(null);
 
         Availability m1 = new Availability(tenantId, new MetricId("m1"));
         m1.addData(new AvailabilityData(start.plusSeconds(10).getMillis(), "up"));
@@ -552,7 +556,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         DateTime end = now();
         DateTime start = end.minusMinutes(10);
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId("tenant1")));
+        metricsService.createTenant(new Tenant().setId("tenant1")).toBlocking().lastOrDefault(null);
 
         Availability metric = new Availability("tenant1", new MetricId("A1"));
         metric.addData(new AvailabilityData(start.getMillis(), UP));
@@ -603,7 +607,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         String tenantId = "tenant1";
         MetricId metricId = new MetricId("A1");
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenantId)));
+        metricsService.createTenant(new Tenant().setId(tenantId)).toBlocking().lastOrDefault(null);
 
         Availability metric = new Availability("tenant1", metricId);
         metric.addData(new AvailabilityData(start.getMillis(), UP));
@@ -643,7 +647,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenant)));
+        metricsService.createTenant(new Tenant().setId(tenant)).toBlocking().lastOrDefault(null);
 
         GaugeData d1 = new GaugeData(start.getMillis(), 101.1);
         GaugeData d2 = new GaugeData(start.plusMinutes(2).getMillis(), 101.2);
@@ -708,7 +712,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenant)));
+        metricsService.createTenant(new Tenant().setId(tenant)).toBlocking().lastOrDefault(null);
 
         Availability m1 = new Availability(tenant, new MetricId("m1"));
         Availability m2 = new Availability(tenant, new MetricId("m2"));
@@ -775,7 +779,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenant)));
+        metricsService.createTenant(new Tenant().setId(tenant)).toBlocking().lastOrDefault(null);
 
         GaugeData d1 = new GaugeData(start.getMillis(), 101.1);
         GaugeData d2 = new GaugeData(start.plusMinutes(2).getMillis(), 101.2);
@@ -845,7 +849,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
-        getUninterruptibly(metricsService.createTenant(new Tenant().setId(tenant)));
+        metricsService.createTenant(new Tenant().setId(tenant)).toBlocking().lastOrDefault(null);
 
         Availability m1 = new Availability(tenant, new MetricId("m1"));
         Availability m2 = new Availability(tenant, new MetricId("m2"));
@@ -949,11 +953,6 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
     private <T> List<T> toList(Observable<T> observable) {
         return ImmutableList.copyOf(observable.toBlocking().toIterable());
-    }
-
-    private void assertMetricEquals(Metric actual, Metric expected) {
-        assertEquals(actual, expected, "The metric doe not match the expected value");
-        assertEquals(actual.getData(), expected.getData(), "The data does not match the expected values");
     }
 
     private void assertMetricIndexMatches(String tenantId, MetricType type, List<? extends Metric> expected)

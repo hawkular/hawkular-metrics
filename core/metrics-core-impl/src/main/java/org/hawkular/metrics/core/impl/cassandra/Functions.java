@@ -22,21 +22,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.StreamSupport;
 
+import org.hawkular.metrics.core.api.AggregationTemplate;
+import org.hawkular.metrics.core.api.AvailabilityData;
+import org.hawkular.metrics.core.api.GaugeData;
+import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.Tenant;
+
 import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.TupleValue;
 import com.datastax.driver.core.UDTValue;
 import com.google.common.base.Function;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-
-import org.hawkular.metrics.core.api.AggregationTemplate;
-import org.hawkular.metrics.core.api.AvailabilityData;
-import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.GaugeData;
-import org.hawkular.metrics.core.api.Tenant;
 
 /**
  * @author jsanda
@@ -110,15 +107,7 @@ public class Functions {
         );
     }
 
-    public static ListenableFuture<Tenant> getTenant(ResultSetFuture future) {
-        return Futures.transform(future, (ResultSet resultSet) ->
-                        StreamSupport.stream(resultSet.spliterator(), false)
-                                .findFirst().map(Functions::getTenant)
-                                .orElse(null)
-        );
-    }
-
-    private static Tenant getTenant(Row row) {
+    public static Tenant getTenant(Row row) {
         Tenant tenant = new Tenant().setId(row.getString(0));
         Map<TupleValue, Integer> retentions = row.getMap(1, TupleValue.class, Integer.class);
         for (Map.Entry<TupleValue, Integer> entry : retentions.entrySet()) {
