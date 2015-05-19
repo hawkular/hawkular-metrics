@@ -47,6 +47,8 @@ class TaskContainer implements Iterable<Task> {
 
     private DateTime timeSlice;
 
+    private int segment;
+
     private SortedSet<DateTime> failedTimeSlices = new TreeSet<>();
 
     /**
@@ -60,6 +62,7 @@ class TaskContainer implements Iterable<Task> {
         newContainer.sources = container.sources;
         newContainer.interval = container.interval;
         newContainer.window = container.window;
+        newContainer.segment = container.segment;
 
         return container;
     }
@@ -67,10 +70,11 @@ class TaskContainer implements Iterable<Task> {
     private TaskContainer() {
     }
 
-    public TaskContainer(TaskType taskType, DateTime timeSlice, String target, Set<String> sources, int interval,
-            int window, Set<DateTime> failedTimeSlices) {
+    public TaskContainer(TaskType taskType, DateTime timeSlice, int segment, String target, Set<String> sources, int
+            interval, int window, Set<DateTime> failedTimeSlices) {
         this.taskType = taskType;
         this.timeSlice = timeSlice;
+        this.segment = segment;
         this.target = target;
         this.sources = sources;
         this.interval = Duration.standardMinutes(interval);
@@ -104,6 +108,10 @@ class TaskContainer implements Iterable<Task> {
 
     public DateTime getTimeSlice() {
         return timeSlice;
+    }
+
+    public int getSegment() {
+        return segment;
     }
 
     @Override
@@ -176,6 +184,7 @@ class TaskContainer implements Iterable<Task> {
                 .add("window", window.toStandardMinutes())
                 .add("failedTimeSlices", failedTimeSlices)
                 .add("timeSlice", timeSlice)
+                .add("segment", segment)
                 .toString();
     }
 }
