@@ -21,13 +21,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.influxdb.dto.Serie;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * @author Jeeva Kandasamy
  */
-@Ignore
 public class InfluxDatabaseITest extends InfluxDBTest {
     private String dbName = nextTenantId();
 

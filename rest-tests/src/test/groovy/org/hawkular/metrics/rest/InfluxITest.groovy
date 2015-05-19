@@ -16,14 +16,15 @@
  */
 package org.hawkular.metrics.rest
 
+import static org.joda.time.DateTime.now
+import static org.junit.Assert.assertEquals
+
 import org.joda.time.DateTime
-import org.junit.Ignore
 import org.junit.Test
 
 /**
  * @author Thomas Segismont
  */
-@Ignore
 class InfluxITest extends RESTTest {
 
   @Test

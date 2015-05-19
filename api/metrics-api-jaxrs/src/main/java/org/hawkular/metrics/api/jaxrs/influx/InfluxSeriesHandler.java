@@ -16,11 +16,16 @@
  */
 package org.hawkular.metrics.api.jaxrs.influx;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.TEXT_PLAIN_TYPE;
 import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
 import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 import static javax.ws.rs.core.Response.Status.NOT_FOUND;
+
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,9 +47,11 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.influx.query.InfluxQueryParseTreeWalker;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.QueryContext;
@@ -52,20 +59,36 @@ import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.Selec
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParserFactory;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.QueryParseException;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.AggregatedColumnDefinition;
+import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.BooleanExpression;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.FunctionArgument;
+import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.GroupByClause;
+import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.InfluxTimeUnit;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.NumberFunctionArgument;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.SelectQueryDefinitions;
+import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.SelectQueryDefinitionsParser;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.type.QueryType;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.type.QueryTypeVisitor;
 import org.hawkular.metrics.api.jaxrs.influx.query.translate.ToIntervalTranslator;
 import org.hawkular.metrics.api.jaxrs.influx.query.validation.AggregationFunction;
+import org.hawkular.metrics.api.jaxrs.influx.query.validation.IllegalQueryException;
 import org.hawkular.metrics.api.jaxrs.influx.query.validation.QueryValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InfluxObjectValidator;
+import org.hawkular.metrics.api.jaxrs.influx.write.validation.InvalidObjectException;
 import org.hawkular.metrics.api.jaxrs.util.StringValue;
+import org.hawkular.metrics.core.api.Gauge;
 import org.hawkular.metrics.core.api.GaugeData;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
+import org.joda.time.Instant;
+import org.joda.time.Interval;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
+
+import rx.Observable;
 
 /**
  * Some support for InfluxDB clients like Grafana.
@@ -94,41 +117,52 @@ public class InfluxSeriesHandler {
 
     @POST
     @Consumes(APPLICATION_JSON)
-    public void write(@Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
-        List<InfluxObject> influxObjects) {
-//
-//        ApiUtils.executeAsync(asyncResponse, () -> {
-//            if (influxObjects == null) {
-//                return ApiUtils.badRequest(new ApiError("Null objects"));
-//            }
-//            try {
-//                objectValidator.validateInfluxObjects(influxObjects);
-//            } catch (InvalidObjectException e) {
-//                return ApiUtils.badRequest(new ApiError(e.getMessage()));
-//            }
-//            List<Gauge> gaugeMetrics = FluentIterable.from(influxObjects) //
-//                    .transform(influxObject -> {
-//                        List<String> influxObjectColumns = influxObject.getColumns();
-//                        int valueColumnIndex = influxObjectColumns.indexOf("value");
-//                        List<List<?>> influxObjectPoints = influxObject.getPoints();
-//                        Gauge gaugeMetric = new Gauge(tenantId, new MetricId(influxObject.getName()));
-//                        for (List<?> point : influxObjectPoints) {
-//                            double value;
-//                            long timestamp;
-//                            if (influxObjectColumns.size() == 1) {
-//                                timestamp = System.currentTimeMillis();
-//                                value = ((Number) point.get(0)).doubleValue();
-//                            } else {
-//                                timestamp = ((Number) point.get((valueColumnIndex + 1) % 2)).longValue();
-//                                value = ((Number) point.get(valueColumnIndex)).doubleValue();
-//                            }
-//                            gaugeMetric.addData(new GaugeData(timestamp, value));
-//                        }
-//                        return gaugeMetric;
-//                    }).toList();
-//            ListenableFuture<Void> future = metricsService.addGaugeData(gaugeMetrics);
-//            return Futures.transform(future, ApiUtils.MAP_VOID);
-//        });
+    public void write(
+            @Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
+            List<InfluxObject> influxObjects
+    ) {
+
+        if (influxObjects == null) {
+            asyncResponse.resume(badRequest(new ApiError("Null objects")));
+            return;
+        }
+
+        try {
+            objectValidator.validateInfluxObjects(influxObjects);
+        } catch (InvalidObjectException e) {
+            asyncResponse.resume(badRequest(new ApiError(e.getMessage())));
+            return;
+        }
+
+        Observable<Gauge> input = Observable.from(influxObjects)
+                                            .map(InfluxSeriesHandler::influxObjectToGauge)
+                                            .map(gauge -> (Gauge) gauge.setTenantId(tenantId));
+        metricsService.addGaugeData(input).subscribe(
+                (aVoid) -> {
+                },
+                t -> asyncResponse.resume(serverError(t)),
+                () -> asyncResponse.resume(Response.ok().build())
+        );
+    }
+
+    private static Gauge influxObjectToGauge(InfluxObject influxObject) {
+        List<String> influxObjectColumns = influxObject.getColumns();
+        int valueColumnIndex = influxObjectColumns.indexOf("value");
+        List<List<?>> influxObjectPoints = influxObject.getPoints();
+        Gauge gaugeMetric = new Gauge(new MetricId(influxObject.getName()));
+        for (List<?> point : influxObjectPoints) {
+            double value;
+            long timestamp;
+            if (influxObjectColumns.size() == 1) {
+                timestamp = System.currentTimeMillis();
+                value = ((Number) point.get(0)).doubleValue();
+            } else {
+                timestamp = ((Number) point.get((valueColumnIndex + 1) % 2)).longValue();
+                value = ((Number) point.get(valueColumnIndex)).doubleValue();
+            }
+            gaugeMetric.addData(new GaugeData(timestamp, value));
+        }
+        return gaugeMetric;
     }
 
     @GET
@@ -138,7 +172,7 @@ public class InfluxSeriesHandler {
     ) {
 
         if (queryString == null || queryString.isEmpty()) {
-            asyncResponse.resume(errorResponse(BAD_REQUEST, "Missing query"));
+            asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity("Missing query").build());
             return;
         }
 
@@ -170,44 +204,131 @@ public class InfluxSeriesHandler {
     }
 
     private void listSeries(AsyncResponse asyncResponse, String tenantId) {
-//        ListenableFuture<List<Metric<?>>> future = metricsService.findMetrics(tenantId, MetricType.GAUGE);
-//        Futures.addCallback(future, new FutureCallback<List<Metric<?>>>() {
-//            @Override
-//            public void onSuccess(List<Metric<?>> result) {
-//                List<InfluxObject> objects = new ArrayList<>(result.size());
-//
-//                for (Metric metric : result) {
-//                    List<String> columns = new ArrayList<>(2);
-//                    columns.add("time");
-//                    columns.add("sequence_number");
-//                    columns.add("val");
-//                    InfluxObject.Builder builder = new InfluxObject.Builder(metric.getId().getName(), columns)
-//                            .withForeseenPoints(0);
-//                    objects.add(builder.createInfluxObject());
-//                }
-//
-//                ResponseBuilder builder = Response.ok(objects);
-//
-//                asyncResponse.resume(builder.build());
-//            }
-//
-//            @Override
-//            public void onFailure(Throwable t) {
-//                asyncResponse.resume(t);
-//            }
-//        });
+        metricsService.findMetrics(tenantId, MetricType.GAUGE)
+                      .map(InfluxSeriesHandler::metricToInfluxObject)
+                      .toList()
+                      .subscribe(
+                              objects -> asyncResponse.resume(Response.ok(objects).build()),
+                              asyncResponse::resume
+                      );
     }
 
-                ResponseBuilder builder = Response.ok(objects);
+    private static InfluxObject metricToInfluxObject(Metric<?> metric) {
+        List<String> columns = new ArrayList<>(2);
+        columns.add("time");
+        columns.add("sequence_number");
+        columns.add("val");
+        return new InfluxObject.Builder(metric.getId().getName(), columns)
+                .withForeseenPoints(0)
+                .createInfluxObject();
+    }
 
-                asyncResponse.resume(builder.build());
-            }
+    private void select(AsyncResponse asyncResponse, String tenantId, SelectQueryContext selectQueryContext) {
 
-            @Override
-            public void onFailure(Throwable t) {
-                asyncResponse.resume(t);
-            }
-        });
+        SelectQueryDefinitionsParser definitionsParser = new SelectQueryDefinitionsParser();
+        parseTreeWalker.walk(definitionsParser, selectQueryContext);
+
+        SelectQueryDefinitions queryDefinitions = definitionsParser.getSelectQueryDefinitions();
+
+        try {
+            queryValidator.validateSelectQuery(queryDefinitions);
+        } catch (IllegalQueryException e) {
+            StringValue errMsg = new StringValue("Illegal query: " + e.getMessage());
+            asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity(errMsg).build());
+            return;
+        }
+
+        String metric = queryDefinitions.getFromClause().getName(); // metric to query from backend
+        BooleanExpression whereClause = queryDefinitions.getWhereClause();
+        Interval timeInterval;
+        if (whereClause == null) {
+            timeInterval = new Interval(new Instant(0), Instant.now());
+        } else {
+            timeInterval = toIntervalTranslator.toInterval(whereClause);
+        }
+        if (timeInterval == null) {
+            StringValue errMsg = new StringValue("Invalid time interval");
+            asyncResponse.resume(Response.status(Status.BAD_REQUEST).entity(errMsg).build());
+            return;
+        }
+        String columnName = getColumnName(queryDefinitions);
+
+        Observable.from(metricsService.idExists(metric))
+                  .flatMap(
+                          idExists -> {
+                              if (idExists != Boolean.TRUE) {
+                                  return Observable.just(null);
+                              }
+                              return metricsService.findGaugeData(
+                                      tenantId, new MetricId(metric),
+                                      timeInterval.getStartMillis(), timeInterval.getEndMillis()
+                              ).toList();
+                          }
+                  ).map(
+                metrics -> {
+                    if (metrics == null) {
+                        return null;
+                    }
+
+                    if (shouldApplyMapping(queryDefinitions)) {
+                        GroupByClause groupByClause = queryDefinitions.getGroupByClause();
+                        InfluxTimeUnit bucketSizeUnit = groupByClause.getBucketSizeUnit();
+                        long bucketSizeSec = bucketSizeUnit.convertTo(
+                                SECONDS,
+                                groupByClause.getBucketSize()
+                        );
+                        AggregatedColumnDefinition aggregatedColumnDefinition =
+                                (AggregatedColumnDefinition) queryDefinitions
+                                        .getColumnDefinitions().get(0);
+                        metrics = applyMapping(
+                                aggregatedColumnDefinition.getAggregationFunction(),
+                                aggregatedColumnDefinition.getAggregationFunctionArguments(),
+                                metrics,
+                                (int) bucketSizeSec,
+                                timeInterval.getStartMillis(),
+                                timeInterval.getEndMillis()
+                        );
+                    }
+
+                    if (!queryDefinitions.isOrderDesc()) {
+                        metrics = Lists.reverse(metrics);
+                    }
+
+                    if (queryDefinitions.getLimitClause() != null) {
+                        metrics = metrics.subList(0, queryDefinitions.getLimitClause().getLimit());
+                    }
+
+                    List<InfluxObject> objects = new ArrayList<>(1);
+
+                    List<String> columns = new ArrayList<>(2);
+                    columns.add("time");
+                    columns.add(columnName);
+
+                    InfluxObject.Builder builder = new InfluxObject.Builder(metric, columns)
+                            .withForeseenPoints(metrics.size());
+
+                    for (GaugeData m : metrics) {
+                        List<Object> data = new ArrayList<>();
+                        data.add(m.getTimestamp());
+                        data.add(m.getValue());
+                        builder.addPoint(data);
+                    }
+
+                    objects.add(builder.createInfluxObject());
+
+                    return objects;
+                }
+        ).subscribe(
+                objects -> {
+                    if (objects == null) {
+                        StringValue val = new StringValue("Metric with id [" + metric + "] not found. ");
+                        asyncResponse.resume(Response.status(404).entity(val).build());
+                    } else {
+                        ResponseBuilder builder = Response.ok(objects);
+                        asyncResponse.resume(builder.build());
+                    }
+                }, asyncResponse::resume
+        );
     }
 
     private boolean shouldApplyMapping(SelectQueryDefinitions queryDefinitions) {
