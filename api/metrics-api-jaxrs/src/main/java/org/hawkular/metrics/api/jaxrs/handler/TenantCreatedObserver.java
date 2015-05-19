@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.hawkular.metrics.api.jaxrs.observer;
+package org.hawkular.metrics.api.jaxrs.handler;
 
 import java.net.URI;
 
