@@ -23,6 +23,7 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.executeAsync;
 
 import java.net.URI;
@@ -48,7 +49,6 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
@@ -112,8 +112,7 @@ public class GaugeHandler {
             @Context UriInfo uriInfo
     ) {
         if (metric == null) {
-            Response response = Response.status(Status.BAD_REQUEST).entity(new ApiError("Payload is empty")).build();
-            asyncResponse.resume(response);
+            asyncResponse.resume(emptyPayload());
             return;
         }
         metric.setTenantId(tenantId);
@@ -214,7 +213,7 @@ public class GaugeHandler {
             List<GaugeData> data
     ) {
         if (data.isEmpty()) {
-            asyncResponse.resume(badRequest(new ApiError("Payload is empty")));
+            asyncResponse.resume(emptyPayload());
         } else {
             Gauge metric = new Gauge(tenantId, new MetricId(id));
             metric.getData().addAll(data);
@@ -237,7 +236,7 @@ public class GaugeHandler {
             @ApiParam(value = "List of metrics", required = true) List<Gauge> metrics) {
 
         if (metrics.isEmpty()) {
-            asyncResponse.resume(badRequest(new ApiError("Payload is empty")));
+            asyncResponse.resume(emptyPayload());
         } else {
             metrics.forEach(m -> m.setTenantId(tenantId));
             Observable<Void> observable = metricsService.addGaugeData(Observable.from(metrics));
