@@ -18,9 +18,7 @@ package org.hawkular.metrics.api.jaxrs.handler;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
@@ -51,7 +49,17 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import com.datastax.driver.core.ResultSet;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+
 import org.hawkular.metrics.api.jaxrs.ApiError;
+import org.hawkular.metrics.api.jaxrs.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.request.TagRequest;
@@ -65,15 +73,6 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
-
-import com.google.common.base.Function;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
 
 import rx.Observable;
 
@@ -150,13 +149,11 @@ public class GaugeHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id
     ) {
-        executeAsync(
-                asyncResponse,
-                () -> {
-                ListenableFuture<Map<String, String>> future = metricsService.getMetricTags(tenantId, MetricType.GAUGE,
-                    new MetricId(id));
-                    return Futures.transform(future, ApiUtils.MAP_MAP);
-                });
+        metricsService.getMetricTags(tenantId, MetricType.GAUGE, new MetricId(id))
+                .subscribe(
+                        optional -> asyncResponse.resume(ApiUtils.valueToResponse(optional)),
+                        t ->asyncResponse.resume(ApiUtils.serverError(t))
+                );
     }
 
     @PUT
@@ -171,11 +168,8 @@ public class GaugeHandler {
             @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags
     ) {
-        executeAsync(asyncResponse, () -> {
-            Gauge metric = new Gauge(tenantId, new MetricId(id));
-            ListenableFuture<Void> future = metricsService.addTags(metric, tags);
-            return Futures.transform(future, ApiUtils.MAP_VOID);
-        });
+        Gauge metric = new Gauge(tenantId, new MetricId(id));
+        metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @DELETE
@@ -191,11 +185,8 @@ public class GaugeHandler {
             @PathParam("id") String id,
             @ApiParam("Tag list") @PathParam("tags") Tags tags
     ) {
-        executeAsync(asyncResponse, () -> {
-            Gauge metric = new Gauge(tenantId, new MetricId(id));
-            ListenableFuture<Void> future = metricsService.deleteTags(metric, tags.getTags());
-            return Futures.transform(future, ApiUtils.MAP_VOID);
-        });
+        Gauge metric = new Gauge(tenantId, new MetricId(id));
+        metricsService.deleteTags(metric, tags.getTags()).subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @POST
@@ -258,14 +249,17 @@ public class GaugeHandler {
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "Tag list", required = true) @QueryParam("tags") Tags tags
     ) {
-        executeAsync(asyncResponse, () -> {
-            if (tags == null) {
-                return Futures.immediateFuture(badRequest(new ApiError("Missing tags query")));
-            }
-            ListenableFuture<Map<MetricId, Set<GaugeData>>> future;
-            future = metricsService.findGaugeDataByTags(tenantId, tags.getTags());
-            return Futures.transform(future, ApiUtils.MAP_MAP);
-        });
+        if (tags == null) {
+            asyncResponse.resume(badRequest(new ApiError("Missing tags query")));
+        } else {
+            metricsService.findGaugeDataByTags(tenantId, tags.getTags()).subscribe(m -> {
+                if (m.isEmpty()) {
+                    asyncResponse.resume(Response.noContent());
+                } else {
+                    asyncResponse.resume(Response.ok(m).build());
+                }
+            }, t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
+        }
     }
 
     @GET
@@ -422,43 +416,43 @@ public class GaugeHandler {
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam("Tag list") @PathParam("tags") Tags tags
     ) {
-        executeAsync(
-                asyncResponse,
-                () -> {
-                    ListenableFuture<Map<MetricId, Set<GaugeData>>> queryFuture;
-                    queryFuture = metricsService.findGaugeDataByTags(tenantId, tags.getTags());
-                    ListenableFuture<Map<String, Set<GaugeData>>> resultFuture = Futures.transform(queryFuture,
-                            new Function<Map<MetricId, Set<GaugeData>>, Map<String, Set<GaugeData>>>() {
-                                @Override
-                                public Map<String, Set<GaugeData>> apply(Map<MetricId, Set<GaugeData>> input) {
-                                    Map<String, Set<GaugeData>> result = new HashMap<>(input.size());
-                                    for (Map.Entry<MetricId, Set<GaugeData>> entry : input.entrySet()) {
-                                        result.put(entry.getKey().getName(), entry.getValue());
-                                    }
-                                    return result;
-                                }
-                            });
-                    return Futures.transform(resultFuture, ApiUtils.MAP_MAP);
-                });
+        Observable<Map<MetricId, Set<GaugeData>>> gaugeDataByTags = metricsService.findGaugeDataByTags(tenantId,
+            tags.getTags());
+
+        gaugeDataByTags.map(input -> {
+            Map<String, Set<GaugeData>> result = new HashMap<>(input.size());
+            for (Map.Entry<MetricId, Set<GaugeData>> entry : input.entrySet()) {
+                result.put(entry.getKey().getName(), entry.getValue());
+            }
+            return result;
+        }).subscribe(m -> { // @TODO Repeated code, refactor and use Optional?
+                if (m.isEmpty()) {
+                    asyncResponse.resume(Response.noContent());
+                } else {
+                    asyncResponse.resume(Response.ok(m).build());
+                }
+            }, t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
+
     }
 
     @POST
     @Path("/{id}/tag")
     @ApiOperation(value = "Add or update gauge metric's tags.")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Tags were modified successfully.") })
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Tags were modified successfully."),
+        @ApiResponse(code = 500, message = "Processing tags failed") })
     public void tagGaugeData(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") final String id, @ApiParam(required = true) TagRequest params
     ) {
-        executeAsync(asyncResponse, () -> {
-            ListenableFuture<List<GaugeData>> future;
-            Gauge metric = new Gauge(tenantId, new MetricId(id));
-            if (params.getTimestamp() != null) {
-                future = metricsService.tagGaugeData(metric, params.getTags(), params.getTimestamp());
-            } else {
-                future = metricsService.tagGaugeData(metric, params.getTags(), params.getStart(), params.getEnd());
-            }
-            return Futures.transform(future, (List<GaugeData> data) -> Response.ok().build());
-        });
+        Observable<ResultSet> resultSetObservable;
+        Gauge metric = new Gauge(tenantId, new MetricId(id));
+        if (params.getTimestamp() != null) {
+            resultSetObservable = metricsService.tagGaugeData(metric, params.getTags(), params.getTimestamp());
+        } else {
+            resultSetObservable = metricsService.tagGaugeData(metric, params.getTags(), params.getStart(), params
+                    .getEnd());
+        }
+
+        resultSetObservable.subscribe(new ResultSetObserver(asyncResponse));
     }
 }

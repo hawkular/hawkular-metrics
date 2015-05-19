@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -82,11 +83,11 @@ public interface MetricsService {
 
     Observable<Metric<?>> findMetrics(String tenantId, MetricType type);
 
-    ListenableFuture<Map<String, String>> getMetricTags(String tenantId, MetricType type, MetricId id);
+    Observable<Optional<Map<String, String>>> getMetricTags(String tenantId, MetricType type, MetricId id);
 
-    ListenableFuture<Void> addTags(Metric metric, Map<String, String> tags);
+    Observable<ResultSet> addTags(Metric metric, Map<String, String> tags);
 
-    ListenableFuture<Void> deleteTags(Metric metric, Map<String, String> tags);
+    Observable<ResultSet> deleteTags(Metric metric, Map<String, String> tags);
 
     Observable<Void> addGaugeData(Observable<Gauge> gaugeObservable);
 
@@ -118,22 +119,22 @@ public interface MetricsService {
     /** Check if a metric with the passed {id} has been stored in the system */
     ListenableFuture<Boolean> idExists(String id);
 
-    ListenableFuture<List<GaugeData>> tagGaugeData(Gauge metric, Map<String, String> tags,
-        long start, long end);
+    Observable<ResultSet> tagGaugeData(Gauge metric, Map<String, String> tags,
+                                       long start, long end);
 
-    ListenableFuture<List<AvailabilityData>> tagAvailabilityData(Availability metric, Map<String, String> tags,
-            long start, long end);
+    Observable<ResultSet> tagAvailabilityData(Availability metric, Map<String, String> tags,
+                                              long start, long end);
 
-    ListenableFuture<List<GaugeData>> tagGaugeData(Gauge metric, Map<String, String> tags,
-        long timestamp);
+    Observable<ResultSet> tagGaugeData(Gauge metric, Map<String, String> tags,
+                                       long timestamp);
 
-    ListenableFuture<List<AvailabilityData>> tagAvailabilityData(Availability metric, Map<String, String> tags,
-            long timestamp);
+    Observable<ResultSet> tagAvailabilityData(Availability metric, Map<String, String> tags,
+                                              long timestamp);
 
-    ListenableFuture<Map<MetricId, Set<GaugeData>>> findGaugeDataByTags(String tenantId, Map<String, String> tags);
+    Observable<Map<MetricId, Set<GaugeData>>> findGaugeDataByTags(String tenantId, Map<String, String> tags);
 
-    ListenableFuture<Map<MetricId, Set<AvailabilityData>>> findAvailabilityByTags(String tenantId,
-            Map<String, String> tags);
+    Observable<Map<MetricId, Set<AvailabilityData>>> findAvailabilityByTags(String tenantId,
+                                                                            Map<String, String> tags);
 
     /**
      * <p>

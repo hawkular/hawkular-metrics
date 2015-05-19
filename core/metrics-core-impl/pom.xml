@@ -88,6 +88,11 @@
       <artifactId>commons-math3</artifactId>
       <version>3.4.1</version>
     </dependency>
+    <dependency>
+      <groupId>com.github.stephenc.eaio-uuid</groupId>
+      <artifactId>uuid</artifactId>
+      <version>3.4.0</version>
+    </dependency>
 
     <!-- documentation -->
 

@@ -157,8 +157,7 @@ public class DataAccessITest extends MetricsITest {
         Gauge metric = new Gauge("tenant-1", new MetricId("metric-1"),
             ImmutableMap.of("units", "KB", "env", "test"));
 
-        ResultSetFuture insertFuture = dataAccess.addTagsAndDataRetention(metric);
-        getUninterruptibly(insertFuture);
+        dataAccess.addTagsAndDataRetention(metric).toBlocking();
 
         metric.addData(new GaugeData(start.getMillis(), 1.23));
         metric.addData(new GaugeData(start.plusMinutes(2).getMillis(), 1.234));

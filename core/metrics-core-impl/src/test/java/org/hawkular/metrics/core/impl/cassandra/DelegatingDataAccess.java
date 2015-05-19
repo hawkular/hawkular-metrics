@@ -76,28 +76,28 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture getMetricTags(String tenantId, MetricType type, MetricId id, long dpart) {
+    public Observable<ResultSet> getMetricTags(String tenantId, MetricType type, MetricId id, long dpart) {
         return delegate.getMetricTags(tenantId, type, id, dpart);
     }
 
     @Override
-    public ResultSetFuture addTagsAndDataRetention(Metric metric) {
+    public Observable<ResultSet> addTagsAndDataRetention(Metric metric) {
         return delegate.addTagsAndDataRetention(metric);
     }
 
     @Override
-    public ResultSetFuture addTags(Metric<?> metric, Map<String, String> tags) {
+    public Observable<ResultSet> addTags(Metric<?> metric, Map<String, String> tags) {
         return delegate.addTags(metric, tags);
     }
 
     @Override
-    public ResultSetFuture deleteTags(Metric<?> metric, Set<String> tags) {
+    public Observable<ResultSet> deleteTags(Metric<?> metric, Set<String> tags) {
         return delegate.deleteTags(metric, tags);
     }
 
     @Override
-    public ResultSetFuture updateTagsInMetricsIndex(Metric<?> metric, Map<String, String> additions,
-        Set<String> deletions) {
+    public Observable<ResultSet> updateTagsInMetricsIndex(Metric<?> metric, Map<String, String> additions,
+                                                          Set<String> deletions) {
         return delegate.updateTagsInMetricsIndex(metric, additions, deletions);
     }
 
@@ -133,22 +133,22 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findData(Gauge metric, long timestamp, boolean includeWriteTime) {
+    public Observable<ResultSet> findData(Gauge metric, long timestamp, boolean includeWriteTime) {
         return delegate.findData(metric, timestamp, includeWriteTime);
     }
 
     @Override
-    public ResultSetFuture findData(Availability metric, long startTime, long endTime) {
+    public Observable<ResultSet> findData(Availability metric, long startTime, long endTime) {
         return delegate.findData(metric, startTime, endTime);
     }
 
     @Override
-    public ResultSetFuture findData(Availability metric, long startTime, long endTime, boolean includeWriteTime) {
+    public Observable<ResultSet> findData(Availability metric, long startTime, long endTime, boolean includeWriteTime) {
         return delegate.findData(metric, startTime, endTime, includeWriteTime);
     }
 
     @Override
-    public ResultSetFuture findData(Availability metric, long timestamp) {
+    public Observable<ResultSet> findData(Availability metric, long timestamp) {
         return delegate.findData(metric, timestamp);
     }
 
@@ -163,29 +163,29 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertGuageTag(String tag, String tagValue, Gauge metric,
-            List<GaugeData> data) {
-        return delegate.insertGuageTag(tag, tagValue, metric, data);
+    public Observable<ResultSet> insertGaugeTag(String tag, String tagValue, Gauge metric,
+                                                Observable<GaugeData> data) {
+        return delegate.insertGaugeTag(tag, tagValue, metric, data);
     }
 
     @Override
-    public ResultSetFuture insertAvailabilityTag(String tag, String tagValue, Availability metric,
-            List<AvailabilityData> data) {
+    public Observable<ResultSet> insertAvailabilityTag(String tag, String tagValue, Availability metric,
+                                                       Observable<AvailabilityData> data) {
         return delegate.insertAvailabilityTag(tag, tagValue, metric, data);
     }
 
     @Override
-    public ResultSetFuture updateDataWithTag(Metric<?> metric, MetricData data, Map<String, String> tags) {
+    public Observable<ResultSet> updateDataWithTag(Metric<?> metric, MetricData data, Map<String, String> tags) {
         return delegate.updateDataWithTag(metric, data, tags);
     }
 
     @Override
-    public ResultSetFuture findGuageDataByTag(String tenantId, String tag, String tagValue) {
-        return delegate.findGuageDataByTag(tenantId, tag, tagValue);
+    public Observable<ResultSet> findGaugeDataByTag(String tenantId, String tag, String tagValue) {
+        return delegate.findGaugeDataByTag(tenantId, tag, tagValue);
     }
 
     @Override
-    public ResultSetFuture findAvailabilityByTag(String tenantId, String tag, String tagValue) {
+    public Observable<ResultSet> findAvailabilityByTag(String tenantId, String tag, String tagValue) {
         return delegate.findAvailabilityByTag(tenantId, tag, tagValue);
     }
 
@@ -225,17 +225,17 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertIntoMetricsTagsIndex(Metric<?> metric, Map<String, String> tags) {
+    public Observable<ResultSet> insertIntoMetricsTagsIndex(Metric<?> metric, Map<String, String> tags) {
         return delegate.insertIntoMetricsTagsIndex(metric, tags);
     }
 
     @Override
-    public ResultSetFuture deleteFromMetricsTagsIndex(Metric<?> metric, Map<String, String> tags) {
+    public Observable<ResultSet> deleteFromMetricsTagsIndex(Metric<?> metric, Map<String, String> tags) {
         return delegate.deleteFromMetricsTagsIndex(metric, tags);
     }
 
     @Override
-    public ResultSetFuture findMetricsByTag(String tenantId, String tag) {
+    public Observable<ResultSet> findMetricsByTag(String tenantId, String tag) {
         return delegate.findMetricsByTag(tenantId, tag);
     }
 }

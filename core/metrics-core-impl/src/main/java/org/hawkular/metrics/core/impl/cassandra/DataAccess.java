@@ -53,16 +53,16 @@ public interface DataAccess {
 
     Observable<ResultSet> findMetric(String tenantId, MetricType type, MetricId id, long dpart);
 
-    ResultSetFuture addTagsAndDataRetention(Metric<?> metric);
+    Observable<ResultSet> addTagsAndDataRetention(Metric<?> metric);
 
-    ResultSetFuture getMetricTags(String tenantId, MetricType type, MetricId id, long dpart);
+    Observable<ResultSet> getMetricTags(String tenantId, MetricType type, MetricId id, long dpart);
 
-    ResultSetFuture addTags(Metric<?> metric, Map<String, String> tags);
+    Observable<ResultSet> addTags(Metric<?> metric, Map<String, String> tags);
 
-    ResultSetFuture deleteTags(Metric<?> metric, Set<String> tags);
+    Observable<ResultSet> deleteTags(Metric<?> metric, Set<String> tags);
 
-    ResultSetFuture updateTagsInMetricsIndex(Metric<?> metric, Map<String, String> additions,
-        Set<String> deletions);
+    Observable<ResultSet> updateTagsInMetricsIndex(Metric<?> metric, Map<String, String> additions,
+                                                   Set<String> deletions);
 
     <T extends Metric<?>> ResultSetFuture updateMetricsIndex(List<T> metrics);
 
@@ -77,28 +77,28 @@ public interface DataAccess {
     Observable<ResultSet> findData(String tenantId, MetricId id, long startTime, long endTime,
             boolean includeWriteTime);
 
-    ResultSetFuture findData(Gauge metric, long timestamp, boolean includeWriteTime);
+    Observable<ResultSet> findData(Gauge metric, long timestamp, boolean includeWriteTime);
 
-    ResultSetFuture findData(Availability metric, long startTime, long endTime);
+    Observable<ResultSet> findData(Availability metric, long startTime, long endTime);
 
-    ResultSetFuture findData(Availability metric, long startTime, long endTime, boolean includeWriteTime);
+    Observable<ResultSet> findData(Availability metric, long startTime, long endTime, boolean includeWriteTime);
 
-    ResultSetFuture findData(Availability metric, long timestamp);
+    Observable<ResultSet> findData(Availability metric, long timestamp);
 
     ResultSetFuture deleteGuageMetric(String tenantId, String metric, Interval interval, long dpart);
 
     ResultSetFuture findAllGuageMetrics();
 
-    ResultSetFuture insertGuageTag(String tag, String tagValue, Gauge metric, List<GaugeData> data);
+    Observable<ResultSet> insertGaugeTag(String tag, String tagValue, Gauge metric, Observable<GaugeData> data);
 
-    ResultSetFuture insertAvailabilityTag(String tag, String tagValue, Availability metric,
-            List<AvailabilityData> data);
+    Observable<ResultSet> insertAvailabilityTag(String tag, String tagValue, Availability metric,
+                                                Observable<AvailabilityData> data);
 
-    ResultSetFuture updateDataWithTag(Metric<?> metric, MetricData data, Map<String, String> tags);
+    Observable<ResultSet> updateDataWithTag(Metric<?> metric, MetricData data, Map<String, String> tags);
 
-    ResultSetFuture findGuageDataByTag(String tenantId, String tag, String tagValue);
+    Observable<ResultSet> findGaugeDataByTag(String tenantId, String tag, String tagValue);
 
-    ResultSetFuture findAvailabilityByTag(String tenantId, String tag, String tagValue);
+    Observable<ResultSet> findAvailabilityByTag(String tenantId, String tag, String tagValue);
 
     ResultSetFuture insertData(Availability metric, int ttl);
 
@@ -114,9 +114,9 @@ public interface DataAccess {
 
     ResultSetFuture updateRetentionsIndex(Metric<?> metric);
 
-    ResultSetFuture insertIntoMetricsTagsIndex(Metric<?> metric, Map<String, String> tags);
+    Observable<ResultSet> insertIntoMetricsTagsIndex(Metric<?> metric, Map<String, String> tags);
 
-    ResultSetFuture deleteFromMetricsTagsIndex(Metric<?> metric, Map<String, String> tags);
+    Observable<ResultSet> deleteFromMetricsTagsIndex(Metric<?> metric, Map<String, String> tags);
 
-    ResultSetFuture findMetricsByTag(String tenantId, String tag);
+    Observable<ResultSet> findMetricsByTag(String tenantId, String tag);
 }

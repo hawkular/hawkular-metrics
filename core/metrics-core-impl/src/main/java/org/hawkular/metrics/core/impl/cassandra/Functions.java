@@ -98,7 +98,7 @@ public class Functions {
             StreamSupport.stream(resultSet.spliterator(), false).map(Functions::getAvailabilityAndWriteTime)
                     .collect(toList());
 
-    private static AvailabilityData getAvailabilityAndWriteTime(Row row) {
+    public static AvailabilityData getAvailabilityAndWriteTime(Row row) {
         return new AvailabilityData(
                 row.getUUID(AVAILABILITY_COLS.TIME.ordinal()),
                 row.getBytes(AVAILABILITY_COLS.AVAILABILITY.ordinal()),
