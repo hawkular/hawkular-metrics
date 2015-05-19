@@ -14,7 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.callback;
+
+package org.hawkular.metrics.api.jaxrs.observer;
 
 import java.net.URI;
 
@@ -26,22 +27,23 @@ import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 
 /**
- * An implementation of {@code EntityCreatedCallback} for metric entities.
+ * An implementation of {@code EntityCreatedObserver} for metric entities.
  *
  * @author Thomas Segismont
  */
-public class MetricCreatedCallback extends EntityCreatedCallback<MetricAlreadyExistsException> {
+public class MetricCreatedObserver extends EntityCreatedObserver<MetricAlreadyExistsException> {
 
-    public MetricCreatedCallback(
-            AsyncResponse asyncResponse,
-            URI location) {
-        super(asyncResponse, location, MetricAlreadyExistsException.class,
-                MetricCreatedCallback::getMetricAlreadyExistsResponse);
+    public MetricCreatedObserver(AsyncResponse asyncResponse, URI location) {
+        super(
+                asyncResponse,
+                location,
+                MetricAlreadyExistsException.class,
+                MetricCreatedObserver::getMetricAlreadyExistsResponse
+        );
     }
 
     private static Response getMetricAlreadyExistsResponse(MetricAlreadyExistsException e) {
         String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
         return Response.status(Status.CONFLICT).entity(new ApiError(message)).build();
     }
-
 }
