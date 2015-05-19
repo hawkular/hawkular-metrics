@@ -207,7 +207,7 @@ public class AvailabilityHandler {
     ) {
         executeAsync(asyncResponse, () -> {
             if (data == null) {
-                return ApiUtils.emptyPayload();
+                return Futures.immediateFuture(ApiUtils.emptyPayload());
             }
             Availability metric = new Availability(tenantId, new MetricId(id));
             metric.getData().addAll(data);
@@ -251,7 +251,7 @@ public class AvailabilityHandler {
     ) {
         executeAsync(asyncResponse, () -> {
             if (tags == null) {
-                return badRequest(new ApiError("Missing tags query"));
+                return Futures.immediateFuture(badRequest(new ApiError("Missing tags query")));
             }
             ListenableFuture<Map<MetricId, Set<AvailabilityData>>> future;
             future = metricsService.findAvailabilityByTags(tenantId, tags.getTags());
@@ -303,7 +303,13 @@ public class AvailabilityHandler {
                     }
 
                     if (bucketsCount != null && bucketDuration != null) {
-                        return badRequest(new ApiError("Both buckets and bucketDuration parameters are used"));
+                        return Futures.immediateFuture(
+                                badRequest(
+                                        new ApiError(
+                                                "Both buckets and bucketDuration parameters are used"
+                                        )
+                                )
+                        );
                     }
 
                     Buckets buckets;
@@ -314,7 +320,7 @@ public class AvailabilityHandler {
                             buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
                         }
                     } catch (IllegalArgumentException e) {
-                        return badRequest(new ApiError("Bucket: " + e.getMessage()));
+                        return Futures.immediateFuture(badRequest(new ApiError("Bucket: " + e.getMessage())));
                     }
                     ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> dataFuture;
                     dataFuture = metricsService.findAvailabilityStats(metric, startTime, endTime, buckets);

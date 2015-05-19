@@ -261,7 +261,7 @@ public class GaugeHandler {
     ) {
         executeAsync(asyncResponse, () -> {
             if (tags == null) {
-                return badRequest(new ApiError("Missing tags query"));
+                return Futures.immediateFuture(badRequest(new ApiError("Missing tags query")));
             }
             ListenableFuture<Map<MetricId, Set<GaugeData>>> future;
             future = metricsService.findGaugeDataByTags(tenantId, tags.getTags());
@@ -309,7 +309,13 @@ public class GaugeHandler {
                         Gauge metric = new Gauge(tenantId, new MetricId(id));
 
                         if (bucketsCount != null && bucketDuration != null) {
-                            return badRequest(new ApiError("Both buckets and bucketDuration parameters are used"));
+                            return Futures.immediateFuture(
+                                    badRequest(
+                                            new ApiError(
+                                                    "Both buckets and bucketDuration parameters are used"
+                                            )
+                                    )
+                            );
                         }
 
                         Buckets buckets;
@@ -320,7 +326,7 @@ public class GaugeHandler {
                                 buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
                             }
                         } catch (IllegalArgumentException e) {
-                            return badRequest(new ApiError("Bucket: " + e.getMessage()));
+                            return Futures.immediateFuture(badRequest(new ApiError("Bucket: " + e.getMessage())));
                         }
 
                         ListenableFuture<BucketedOutput<GaugeBucketDataPoint>> dataFuture;
@@ -390,8 +396,14 @@ public class GaugeHandler {
                     }
 
                     if (predicate == null) {
-                        return badRequest(new ApiError("Invalid value for op parameter. Supported values are lt, "
-                                + "lte, eq, gt, gte."));
+                        return Futures.immediateFuture(
+                                badRequest(
+                                        new ApiError(
+                                                "Invalid value for op parameter. Supported values are lt, "
+                                                + "lte, eq, gt, gte."
+                                        )
+                                )
+                        );
                     } else {
                         ListenableFuture<List<long[]>> future = metricsService.getPeriods(tenantId, new MetricId(id),
                                 predicate, startTime, endTime);
