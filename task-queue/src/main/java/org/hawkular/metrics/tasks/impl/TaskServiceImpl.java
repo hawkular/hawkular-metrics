@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.tasks.impl;
 
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Duration.standardMinutes;
@@ -25,7 +24,6 @@ import static org.joda.time.Duration.standardSeconds;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -37,7 +35,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.stream.StreamSupport;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
@@ -56,22 +53,26 @@ import org.hawkular.metrics.tasks.api.Task;
 import org.hawkular.metrics.tasks.api.TaskExecutionException;
 import org.hawkular.metrics.tasks.api.TaskService;
 import org.hawkular.metrics.tasks.api.TaskType;
+import org.hawkular.rx.cassandra.driver.RxSession;
+import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.hawkular.rx.cassandra.driver.RxUtil;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
+import rx.functions.Func1;
 
 /**
  * @author jsanda
  */
-public class
-        TaskServiceImpl implements TaskService {
+public class TaskServiceImpl implements TaskService {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskServiceImpl.class);
 
     private Session session;
+
+    private RxSession rxSession;
 
     private Queries queries;
 
@@ -123,6 +124,7 @@ public class
             this.taskTypes = taskTypes;
             dateTimeService = new DateTimeService();
             owner = InetAddress.getLocalHost().getHostName();
+            rxSession = new RxSessionImpl(session);
 
             SchemaManager schemaManager = new SchemaManager(session);
             String keyspace = System.getProperty("keyspace", "hawkular_metrics");
@@ -192,13 +194,19 @@ public class
 
     }
 
-    public ListenableFuture<List<TaskContainer>> findTasks(String type, DateTime timeSlice, int segment) {
-        ResultSetFuture future = session.executeAsync(queries.findTasks.bind(type, timeSlice.toDate(), segment));
+    public Observable<TaskContainer> findTasks(String type, DateTime timeSlice, int segment) {
         TaskType taskType = findTaskType(type);
-        return Futures.transform(future, (ResultSet resultSet) -> StreamSupport.stream(resultSet.spliterator(), false)
-                .map(row -> new TaskContainer(taskType, timeSlice, row.getString(0), row.getSet(1, String.class),
-                        row.getInt(2), row.getInt(3), row.getSet(4, Date.class).stream()
-                        .map(DateTime::new).collect(toSet()))).collect(toList()));
+        return rxSession.execute(queries.findTasks.bind(type, timeSlice.toDate(), segment))
+                .flatMap(Observable::from)
+                .map(row -> new TaskContainer(taskType, timeSlice, segment, row.getString(0),
+                        row.getSet(1, String.class), row.getInt(2), row.getInt(3), row.getSet(4, Date.class).stream()
+                        .map(DateTime::new).collect(toSet())));
+    }
+
+    public Observable<TaskContainer> findTasks(Lease lease, TaskType taskType) {
+        int start = lease.getSegmentOffset();
+        int end = start + taskType.getSegments();
+        return Observable.range(start, end).flatMap(i -> findTasks(lease.getTaskType(), lease.getTimeSlice(), i));
     }
 
     private TaskType findTaskType(String type) {
@@ -221,7 +229,7 @@ public class
                 task.getTarget(), task.getSources(), task.getInterval(), task.getWindow()));
     }
 
-    private ListenableFuture<DateTime> rescheduleTask(TaskContainer taskContainer) {
+    private Observable<TaskContainer> rescheduleTask(TaskContainer taskContainer) {
         TaskType taskType = taskContainer.getTaskType();
         DateTime nextTimeSlice = taskContainer.getTimeSlice().plus(taskContainer.getInterval());
         int segment = Math.abs(taskContainer.getTarget().hashCode() % taskType.getSegments());
@@ -244,8 +252,10 @@ public class
         ResultSetFuture leaseFuture = session.executeAsync(queries.createLease.bind(nextTimeSlice.toDate(),
                 taskType.getName(), segmentOffset));
         ListenableFuture<List<ResultSet>> futures = Futures.allAsList(queueFuture, leaseFuture);
+        ListenableFuture<TaskContainer> resultFuture = Futures.transform(futures, (List<ResultSet> resultSets) ->
+                taskContainer);
 
-        return Futures.transform(futures, (List<ResultSet> resultSets) -> nextTimeSlice);
+        return RxUtil.from(resultFuture, workers);
     }
 
     private Set<Date> toDates(Set<DateTime> times) {
@@ -319,34 +329,33 @@ public class
                                 acquired -> {
                                     latchRef.get().countDown();
                                     if (acquired) {
-                                        List<ListenableFuture<ResultSet>> deleteFutures = new ArrayList<>();
-                                        TaskType type = findTaskType(lease.getTaskType());
-                                        for (int i = lease.getSegmentOffset(); i < type.getSegments(); ++i) {
-                                            ListenableFuture<List<TaskContainer>> tasksFuture =
-                                                    findTasks(lease.getTaskType(), timeSlice, i);
-                                            ListenableFuture<List<TaskContainer>> resultsFuture =
-                                                    Futures.transform(tasksFuture, executeTasksSegment, workers);
-                                            ListenableFuture<List<DateTime>> nextExecutionsFuture = Futures.transform(
-                                                    resultsFuture, scheduleNextExecution, workers);
-                                            ListenableFuture<ResultSet> deleteFuture = Futures.transform(
-                                                    nextExecutionsFuture, deleteTaskSegment(timeSlice, type, i));
-                                            deleteFutures.add(deleteFuture);
-                                        }
-                                        ListenableFuture<List<ResultSet>> deletesFuture =
-                                                Futures.allAsList(deleteFutures);
-                                        RxUtil.from(deletesFuture, workers)
-                                                .flatMap(resultSets -> leaseService.finish(lease)).subscribe(
-                                                finished -> {
-                                                    if (!finished) {
-                                                        logger.warn("All tasks for {} have completed but unable to " +
-                                                                "set it to finished", lease);
-                                                    }
-                                                    permits.release();
-                                                },
-                                                t -> {
-                                                    logger.warn("Failed to process tasks for " + lease, t);
-                                                    permits.release();
-                                                });
+                                        findTasks(lease, taskType)
+                                                .map(executeTasksSegment)
+                                                .flatMap(this::rescheduleTask)
+                                                .flatMap(taskContainer -> rxSession.execute(queries.deleteTasks.bind(
+                                                        taskContainer.getTaskType().getName(), timeSlice.toDate(),
+                                                        taskContainer.getSegment())))
+                                                .subscribe(
+                                                        resultSet -> {},
+                                                        t -> {
+                                                            logger.warn("Failed to delete task segment", t);
+                                                            permits.release();
+                                                        },
+                                                        () -> {
+                                                            leaseService.finish(lease).subscribe(
+                                                                    finished -> {
+                                                                        if (!finished) {
+                                                                            logger.warn("All tasks for {} have " +
+                                                                                "completed but unable set it to " +
+                                                                                "finished", lease);
+                                                                        }
+                                                                        permits.release();
+                                                                    },
+                                                                    t -> {
+                                                                        logger.warn("Failed to finish lease", t);
+                                                                        permits.release();
+                                                                    });
+                                                        });
                                     } else {
                                         // someone else has the lease so return the permit and try to
                                         // acquire another lease
@@ -394,31 +403,50 @@ public class
      * occurs for a container with multiple tasks, execution is aborted immediately, and those tasks will have to be
      * rescheduled.
      */
-    private Function<List<TaskContainer>, List<TaskContainer>> executeTasksSegment = taskContainers -> {
-        List<TaskContainer> results = new ArrayList<>(taskContainers.size());
-        taskContainers.forEach(taskContainer -> {
-            if (Thread.currentThread().isInterrupted()) {
-                // An interrupt could be due to loss of lease ownership or something else like JVM shutdown. Either
-                // way, we need to respond to the interrupt which means cancelling task execution.
-                throw new RuntimeException(Thread.currentThread().getName() + " has been interrupted. Cancelling " +
+    private Func1<TaskContainer, TaskContainer> executeTasksSegment = taskContainer -> {
+        if (Thread.currentThread().isInterrupted()) {
+            // An interrupt could be due to loss of lease ownership or something else like JVM shutdown. Either
+            // way, we need to respond to the interrupt which means cancelling task execution.
+            throw new RuntimeException(Thread.currentThread().getName() + " has been interrupted. Cancelling " +
                     "task execution");
-            }
-            TaskContainer executedTasks = TaskContainer.copyWithoutFailures(taskContainer);
-            Consumer<Task> taskRunner = taskContainer.getTaskType().getFactory().get();
-            Consumer<Task> wrappedTaskedRunner = wrapTaskRunner.apply(taskRunner);
-            try {
-                taskContainer.forEach(wrappedTaskedRunner::accept);
-            } catch (TaskExecutionException e) {
-                logger.warn("Failed to execute " + e.getFailedTask());
-                executedTasks.getFailedTimeSlices().add(e.getFailedTask().getTimeSlice());
-            }
-            results.add(executedTasks);
-        });
-        return results;
+        }
+        TaskContainer executedTasks = TaskContainer.copyWithoutFailures(taskContainer);
+        Consumer<Task> taskRunner = taskContainer.getTaskType().getFactory().get();
+        Consumer<Task> wrappedTaskedRunner = wrapTaskRunner.apply(taskRunner);
+        try {
+            taskContainer.forEach(wrappedTaskedRunner::accept);
+        } catch (TaskExecutionException e) {
+            logger.warn("Failed to execute " + e.getFailedTask());
+            executedTasks.getFailedTimeSlices().add(e.getFailedTask().getTimeSlice());
+        }
+        return executedTasks;
     };
 
-    private AsyncFunction<List<TaskContainer>, List<DateTime>> scheduleNextExecution = results ->
-        Futures.allAsList(results.stream().map(this::rescheduleTask).collect(toList()));
+//    private Function<List<TaskContainer>, List<TaskContainer>> executeTasksSegment = taskContainers -> {
+//        List<TaskContainer> results = new ArrayList<>(taskContainers.size());
+//        taskContainers.forEach(taskContainer -> {
+//            if (Thread.currentThread().isInterrupted()) {
+//                // An interrupt could be due to loss of lease ownership or something else like JVM shutdown. Either
+//                // way, we need to respond to the interrupt which means cancelling task execution.
+//                throw new RuntimeException(Thread.currentThread().getName() + " has been interrupted. Cancelling " +
+//                    "task execution");
+//            }
+//            TaskContainer executedTasks = TaskContainer.copyWithoutFailures(taskContainer);
+//            Consumer<Task> taskRunner = taskContainer.getTaskType().getFactory().get();
+//            Consumer<Task> wrappedTaskedRunner = wrapTaskRunner.apply(taskRunner);
+//            try {
+//                taskContainer.forEach(wrappedTaskedRunner::accept);
+//            } catch (TaskExecutionException e) {
+//                logger.warn("Failed to execute " + e.getFailedTask());
+//                executedTasks.getFailedTimeSlices().add(e.getFailedTask().getTimeSlice());
+//            }
+//            results.add(executedTasks);
+//        });
+//        return results;
+//    };
+
+//    private AsyncFunction<List<TaskContainer>, List<DateTime>> scheduleNextExecution = results ->
+//        Futures.allAsList(results.stream().map(this::rescheduleTask).collect(toList()));
 
     private AsyncFunction<List<DateTime>, ResultSet> deleteTaskSegment(DateTime timeSlice, TaskType taskType,
             int segment) {

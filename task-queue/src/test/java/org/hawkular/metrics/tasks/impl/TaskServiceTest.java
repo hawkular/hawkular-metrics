@@ -411,7 +411,7 @@ public class TaskServiceTest extends BaseTest {
     private Set<Task> getTasks(TaskType type, DateTime timeSlice, int segment) {
         ResultSet resultSet = session.execute(queries.findTasks.bind(type.getName(), timeSlice.toDate(), segment));
         Set<TaskContainer> containers = StreamSupport.stream(resultSet.spliterator(), false)
-                .map(row -> new TaskContainer(type, timeSlice, row.getString(0), row.getSet(1, String.class),
+                .map(row -> new TaskContainer(type, timeSlice, segment, row.getString(0), row.getSet(1, String.class),
                         row.getInt(2), row.getInt(3),
                         row.getSet(4, Date.class).stream().map(DateTime::new).collect(toSet())))
                 .collect(toSet());
