@@ -18,6 +18,8 @@ package org.hawkular.metrics.api.jaxrs.influx.prettyprint;
 
 import static java.lang.Boolean.TRUE;
 
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
+
 import static org.hawkular.metrics.api.jaxrs.influx.prettyprint.PrettyFilter.PRETTY_PRINT;
 
 import java.io.ByteArrayOutputStream;
@@ -52,7 +54,7 @@ public class PrettyInterceptor implements WriterInterceptor {
 
     @Override
     public void aroundWriteTo(WriterInterceptorContext context) throws IOException, WebApplicationException {
-        if (context.getProperty(PRETTY_PRINT) != TRUE) {
+        if (context.getProperty(PRETTY_PRINT) != TRUE || !APPLICATION_JSON_TYPE.equals(context.getMediaType())) {
             context.proceed();
             return;
         }

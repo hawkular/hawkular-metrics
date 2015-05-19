@@ -17,6 +17,7 @@
 package org.hawkular.metrics.test;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
@@ -25,14 +26,18 @@ import org.junit.BeforeClass;
  * @author Jeeva Kandasamy
  */
 public class InfluxDBTest {
+    private static final String TENANT_PREFIX = UUID.randomUUID().toString();
+    private static final AtomicInteger TENANT_ID_COUNTER = new AtomicInteger(0);
+
     static String baseURI = System.getProperty("hawkular-metrics.base-uri", "127.0.0.1:8080/hawkular/metrics");
-    static final String DB_PREFIX = UUID.randomUUID().toString();
-    static InfluxDB influxDB = null;
+    static InfluxDB influxDB;
 
     @BeforeClass
     public static void initClient() {
-        if(influxDB == null){
             influxDB = InfluxDBFactory.connect("http://"+baseURI+"/", "hawkular", "hawkular");
-        }
+    }
+
+    static String nextTenantId() {
+        return "T" + TENANT_PREFIX + TENANT_ID_COUNTER.incrementAndGet();
     }
 }

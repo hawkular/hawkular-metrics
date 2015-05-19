@@ -54,6 +54,7 @@ booleanExpression: operand '=' operand #eqExpression
                  ;
 
 operand: prefix? name #nameOperand
+       | TIMESPAN #absoluteMomentOperand
        | ID '(' ')' DASH TIMESPAN #pastMomentOperand
        | ID '(' ')' PLUS TIMESPAN #futureMomentOperand
        | ID '(' ')' #presentMomentOperand

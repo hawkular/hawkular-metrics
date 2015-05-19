@@ -27,7 +27,7 @@ import org.junit.Test;
  * @author Jeeva Kandasamy
  */
 public class InfluxDatabaseITest extends InfluxDBTest {
-    private static String dbName = DB_PREFIX + "influxdbjavaclienttest";
+    private String dbName = nextTenantId();
 
     /**
      * Test that writing of a simple Serie works.
@@ -48,7 +48,6 @@ public class InfluxDatabaseITest extends InfluxDBTest {
         long startTime = System.currentTimeMillis();
         Serie generatedSerie = getSerie(timeSeries, startTime);
         influxDB.write(dbName, TimeUnit.MILLISECONDS, generatedSerie);
-        startTime = startTime - 9000L;
         List<Serie> series = influxDB.query(dbName,
                 "select value from " + timeSeries + " order asc",
                 TimeUnit.MILLISECONDS);
@@ -224,7 +223,7 @@ public class InfluxDatabaseITest extends InfluxDBTest {
 
     private static Serie getSerie(String timeSeries, long startTime) {
         startTime = startTime - 9000L;//Minus N milliseconds from 'start time' based on number of rows going to write.
-        Serie serie = new Serie.Builder(timeSeries)
+        return new Serie.Builder(timeSeries)
                 .columns("time", "value")
                 .values(startTime, 10.9)
                 .values(startTime + 1000L, 11.9)
@@ -236,6 +235,5 @@ public class InfluxDatabaseITest extends InfluxDBTest {
                 .values(startTime + 7000L, 17.9)
                 .values(startTime + 8000L, 18.9)
                 .build();
-        return serie;
     }
 }
