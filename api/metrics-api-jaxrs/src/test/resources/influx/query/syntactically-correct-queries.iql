@@ -41,5 +41,6 @@ select percentile("d", .95) from a
 SeleCt dup.time as now, _agjsqdha(clui) as p from z as bi group by time(15s)
 SeleCt dup.time as now, _agjsqdha(clui) as p from z as bi group by time(15s) where time > now() -15s
 SeleCt dup.time as now, _agjsqdha(clui, -5, -33.1) as p from z as bi group by time(15s) where time > now() -15s and a=-.33
+select * from test where time > 1501560s and time < 4560546h
 SeleCt dup.a fROm "z" as bi order desc
 SeleCt dup.b fROm "z" as bi order asc

@@ -29,3 +29,4 @@ select mean(a.value) from c as a where time < now() - 50w
 select a.value as b from c as a where time < '2011-07-28' and time > now() + 50w
 select a.value as b from c as a where '2011-07-28' < a.time and now() + 50w > a.time
 select a.value as b from c as a where '2011-07-28' > a.time and now() + 50w < a.time
+select * from test where time > 1501560s and time < 4560546h

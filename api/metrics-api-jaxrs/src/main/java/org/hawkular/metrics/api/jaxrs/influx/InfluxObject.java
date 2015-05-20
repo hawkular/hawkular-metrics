@@ -17,14 +17,17 @@
 package org.hawkular.metrics.api.jaxrs.influx;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Transfer object which is returned by Influx queries
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class InfluxObject {
     private final String name;
     private final List<String> columns;
@@ -35,7 +38,7 @@ public class InfluxObject {
         @JsonProperty("points") List<List<?>> points) {
         this.name = name;
         this.columns = columns;
-        this.points = points;
+        this.points = points == null ? Collections.emptyList() : points;
     }
 
     public String getName() {

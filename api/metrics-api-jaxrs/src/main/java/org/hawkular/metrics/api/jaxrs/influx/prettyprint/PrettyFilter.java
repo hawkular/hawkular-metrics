@@ -16,8 +16,6 @@
  */
 package org.hawkular.metrics.api.jaxrs.influx.prettyprint;
 
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
-
 import java.io.IOException;
 
 import javax.ws.rs.container.ContainerRequestContext;
@@ -39,8 +37,7 @@ public class PrettyFilter implements ContainerRequestFilter {
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
         UriInfo uriInfo = requestContext.getUriInfo();
-        if (!APPLICATION_JSON_TYPE.equals(requestContext.getMediaType())
-            || !uriInfo.getPath().startsWith("/db")) {
+        if (!uriInfo.getPath().startsWith("/db")) {
             return;
         }
         requestContext.setProperty(PRETTY_PRINT, Boolean.valueOf(uriInfo.getQueryParameters().getFirst("pretty")));
