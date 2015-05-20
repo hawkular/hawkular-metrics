@@ -26,10 +26,12 @@ import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.hawkular.metrics.tasks.BaseTest;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.joda.time.DateTime;
@@ -78,14 +80,16 @@ public class LeaseServiceTest extends BaseTest {
         session.execute(createdFinishedLease.bind(timeSlice.toDate(), taskType3, 0, true));
         session.execute(createdFinishedLease.bind(timeSlice.toDate(), taskType4, 0, true));
 
-        List<Lease> actual = ImmutableList.copyOf(leaseService.findUnfinishedLeases(timeSlice).toBlocking()
+//        List<Lease> actual = ImmutableList.copyOf(leaseService.findUnfinishedLeases(timeSlice).toBlocking()
+//                .toIterable());
+        Set<Lease> actual = ImmutableSet.copyOf(leaseService.findUnfinishedLeases(timeSlice).toBlocking()
                 .toIterable());
-        List<Lease> expected = ImmutableList.of(
+        Set<Lease> expected = ImmutableSet.of(
                 new Lease(timeSlice, taskType1, 0, null, false),
                 new Lease(timeSlice, taskType2, 0, null, false)
         );
 
-        assertEquals(actual, expected, "The leases do not match");
+        assertEquals(actual, expected, "The leases do not match. Found " + actual);
     }
 
     @Test
@@ -183,8 +187,10 @@ public class LeaseServiceTest extends BaseTest {
                     List<Lease> remainingLeases = ImmutableList.copyOf(leaseService.findUnfinishedLeases(timeSlice)
                             .toBlocking().toIterable());
                     logger.info("Remaining leases = {}", remainingLeases);
-                    assertEquals(remainingLeases, expectedLeases,
-                            "The unfinished leases do not match expected values");
+                    assertTrue(remainingLeases.isEmpty(), "There should not be any available leases but found " +
+                        remainingLeases);
+//                    assertEquals(remainingLeases, expectedLeases,
+//                            "The unfinished leases do not match expected values");
                 }
                 Boolean finished = leaseService.finish(lease).toBlocking().first();
                 assertTrue(finished, "Expected " + lease + " to be finished");

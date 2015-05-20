@@ -31,18 +31,13 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -95,12 +90,6 @@ public class TaskServiceImpl implements TaskService {
      * Thread pool for executing tasks.
      */
     private ListeningExecutorService workers = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(4));
-
-    /**
-     * Used to limit the amount of leases we try to acquire concurrently to the same number of worker threads available
-     * for processing tasks.
-     */
-    private Semaphore permits = new Semaphore(4);
 
     private String owner;
 
@@ -296,93 +285,39 @@ public class TaskServiceImpl implements TaskService {
      * @param taskType
      */
     private void executeTasks(DateTime timeSlice, TaskType taskType) {
+        // The CountDownLatch is a temporary hack while I focus on getting tests passing
+        // during some of this initial refactoring. It is being used to make sure tasks of
+        // one type finish executing before we start executing tasks of the next type.
+        CountDownLatch latch = new CountDownLatch(1);
+
+        // We need logic for error handling as there are a number of different failure
+        // scenarios that we have to support including lease renewal failure, failure to
+        // reschedule tasks, failure to delete task segments, and failure to mark leases
+        // finished.
+
+        leaseService.findUnfinishedLeases(timeSlice)
+                .filter(lease -> lease.getTaskType().equals(taskType.getName()))
+                .flatMap(lease -> findTasks(lease, taskType)
+                        .map(executeTasksSegment)
+                        .flatMap(this::rescheduleTask)
+                        .map(this::deleteTaskSegment)
+                        .flatMap(resultSet -> Observable.just(lease)))
+                .subscribe(
+                        lease -> leaseService.finish(lease).doOnError(t -> logger.warn("Failed to delete " + lease, t)),
+                        t -> logger.warn("Task execution failed", t),
+                        latch::countDown);
+
         try {
-            List<Lease> leases = ImmutableList.copyOf(leaseService.findUnfinishedLeases(timeSlice)
-                    .filter(lease -> lease.getTaskType().equals(taskType.getName()))
-                    .toBlocking()
-                    .toIterable());
-
-            // A CountDownLatch is used to let us know when to query again for leases. We do not want to query (again)
-            // for leases until we have gone through each one. If a lease already has an owner, then we just count
-            // down the latch and move on. If the lease does not have an owner, we attempt to acquire it. When the
-            // result from trying to acquire the lease are available, we count down the latch.
-            AtomicReference<CountDownLatch> latchRef = new AtomicReference<>(new CountDownLatch(leases.size()));
-
-
-            // Keep checking for and process leases as long as the query returns leases and there is at least one
-            // that is not finished. When these conditions do not hold, then the leases for the current time slice
-            // are finished.
-            while (!(leases.isEmpty() || leases.stream().allMatch(Lease::isFinished))) {
-                if (Thread.currentThread().isInterrupted()) {
-                    logger.info("Execution of {} tasks for time slice {} has been interrupted.", taskType.getName(),
-                            timeSlice);
-                    break;
-                }
-
-                for (final Lease lease : leases) {
-                    if (lease.getOwner() == null) {
-                        permits.acquire();
-                        lease.setOwner(owner);
-                        Observable<Boolean> acquiredObservable = leaseService.acquire(lease);
-
-                        acquiredObservable.subscribe(
-                                acquired -> {
-                                    latchRef.get().countDown();
-                                    if (acquired) {
-                                        findTasks(lease, taskType)
-                                                .map(executeTasksSegment)
-                                                .flatMap(this::rescheduleTask)
-                                                .flatMap(taskContainer -> rxSession.execute(queries.deleteTasks.bind(
-                                                        taskContainer.getTaskType().getName(), timeSlice.toDate(),
-                                                        taskContainer.getSegment())))
-                                                .subscribe(
-                                                        resultSet -> {},
-                                                        t -> {
-                                                            logger.warn("Failed to delete task segment", t);
-                                                            permits.release();
-                                                        },
-                                                        () -> {
-                                                            leaseService.finish(lease).subscribe(
-                                                                    finished -> {
-                                                                        if (!finished) {
-                                                                            logger.warn("All tasks for {} have " +
-                                                                                "completed but unable set it to " +
-                                                                                "finished", lease);
-                                                                        }
-                                                                        permits.release();
-                                                                    },
-                                                                    t -> {
-                                                                        logger.warn("Failed to finish lease", t);
-                                                                        permits.release();
-                                                                    });
-                                                        });
-                                    } else {
-                                        // someone else has the lease so return the permit and try to
-                                        // acquire another lease
-                                        permits.release();
-                                    }
-                                },
-                                t -> {
-                                    logger.warn("There was an error trying to acquire a lease", t);
-                                    latchRef.get().countDown();
-                                }
-                        );
-                    } else {
-                        latchRef.get().countDown();
-                    }
-                }
-                latchRef.get().await();
-                leases = ImmutableList.copyOf(leaseService.findUnfinishedLeases(timeSlice)
-                        .filter(lease -> lease.getTaskType().equals(taskType.getName()))
-                        .toBlocking()
-                        .toIterable());
-                latchRef.set(new CountDownLatch(leases.size()));
-            }
-
+            latch.await();
         } catch (InterruptedException e) {
-            logger.info("Execution of " + taskType.getName() + " tasks for time slice " + timeSlice +
-                    "was interrupted.", e);
+            logger.warn("There was an interrupt waiting for task execution of type " + taskType.getName() +
+                            "to complete for time slice " + timeSlice, e);
         }
+    }
+
+    private Observable<ResultSet> deleteTaskSegment(TaskContainer taskContainer) {
+        return rxSession.execute(queries.deleteTasks.bind(taskContainer.getTaskType()
+                .getName(), taskContainer.getTimeSlice().toDate(), taskContainer.getSegment()));
     }
 
     /**
@@ -421,60 +356,5 @@ public class TaskServiceImpl implements TaskService {
         }
         return executedTasks;
     };
-
-//    private Function<List<TaskContainer>, List<TaskContainer>> executeTasksSegment = taskContainers -> {
-//        List<TaskContainer> results = new ArrayList<>(taskContainers.size());
-//        taskContainers.forEach(taskContainer -> {
-//            if (Thread.currentThread().isInterrupted()) {
-//                // An interrupt could be due to loss of lease ownership or something else like JVM shutdown. Either
-//                // way, we need to respond to the interrupt which means cancelling task execution.
-//                throw new RuntimeException(Thread.currentThread().getName() + " has been interrupted. Cancelling " +
-//                    "task execution");
-//            }
-//            TaskContainer executedTasks = TaskContainer.copyWithoutFailures(taskContainer);
-//            Consumer<Task> taskRunner = taskContainer.getTaskType().getFactory().get();
-//            Consumer<Task> wrappedTaskedRunner = wrapTaskRunner.apply(taskRunner);
-//            try {
-//                taskContainer.forEach(wrappedTaskedRunner::accept);
-//            } catch (TaskExecutionException e) {
-//                logger.warn("Failed to execute " + e.getFailedTask());
-//                executedTasks.getFailedTimeSlices().add(e.getFailedTask().getTimeSlice());
-//            }
-//            results.add(executedTasks);
-//        });
-//        return results;
-//    };
-
-//    private AsyncFunction<List<TaskContainer>, List<DateTime>> scheduleNextExecution = results ->
-//        Futures.allAsList(results.stream().map(this::rescheduleTask).collect(toList()));
-
-    private AsyncFunction<List<DateTime>, ResultSet> deleteTaskSegment(DateTime timeSlice, TaskType taskType,
-            int segment) {
-        return nextExecutions -> session.executeAsync(queries.deleteTasks.bind(taskType.getName(), timeSlice.toDate(),
-                segment));
-    }
-
-    private FutureCallback<Boolean> leaseFinished(Lease lease) {
-        return new FutureCallback<Boolean>() {
-            @Override
-            public void onSuccess(Boolean finished) {
-                if (!finished) {
-                    logger.warn("All tasks for {} have completed but unable to set it to finished", lease);
-                }
-                permits.release();
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                // There are multiple failure paths including losing lease ownership, failure to delete task segment,
-                // or failure to mark lease finished. We do not have a good way of determining the exact cause without
-                // do something like registering additional callbacks with Futures.addCallback or Futures.withFallback.
-                // Neither is particular appealing as it makes the code more complicated. This is one of a growing
-                // number of reasons I want to prototype a solution using RxJava.
-                logger.warn("Failed to process tasks for " + lease, t);
-                permits.release();
-            }
-        };
-    }
 
 }

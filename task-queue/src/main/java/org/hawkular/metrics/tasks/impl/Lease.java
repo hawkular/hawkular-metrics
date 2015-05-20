@@ -29,6 +29,8 @@ import org.joda.time.DateTime;
  */
 class Lease {
 
+    public static final Lease NOT_ACQUIRED = new Lease(null, null, 0, null, false);
+
     private DateTime timeSlice;
 
     private String taskType;
@@ -79,8 +81,9 @@ class Lease {
         return owner;
     }
 
-    public void setOwner(String owner) {
+    public Lease setOwner(String owner) {
         this.owner = owner;
+        return this;
     }
 
     /**

@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.tasks.impl;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -66,12 +68,31 @@ public class LeaseService {
         this.renewalRate = renewalRate;
     }
 
-    public Observable<Lease> findUnfinishedLeases(DateTime timeSlice) {
+    public Observable<? extends List<Lease>> loadLeases(DateTime timeSlice) {
         return rxSession.execute(queries.findLeases.bind(timeSlice.toDate()))
                 .flatMap(Observable::from)
                 .map(row -> new Lease(timeSlice, row.getString(0), row.getInt(1), row.getString(2), row.getBool(3)))
-                .filter(lease -> !lease.isFinished());
+                .filter(lease -> !lease.isFinished())
+                .collect(ArrayList::new, ArrayList::add);
     }
+
+    public Observable<Lease> findUnfinishedLeases(DateTime timeSlice) {
+        // TODO Add logic to "refresh" the leases
+        // We need to keep polling for leases until either we get back an empty result set
+        // or all leases are marked finished. And to make things more interesting, we do
+        // not want to poll again until there is at least one worker thread (i.e., one of
+        // the threads executing tasks) free.
+        return Observable.create(subscriber ->
+            loadLeases(timeSlice)
+                    .flatMap(Observable::from)
+                    .filter(lease -> lease.getOwner() == null)
+                    .flatMap(lease ->
+                            acquire(lease).map(acquired ->
+                                    acquired ? lease : null))
+                    .subscribe(subscriber::onNext, subscriber::onError, subscriber::onCompleted)
+        );
+    }
+
 
     public Observable<Boolean> acquire(Lease lease) {
         return rxSession.execute(queries.acquireLease.bind(ttl, lease.getOwner(), lease.getTimeSlice().toDate(),

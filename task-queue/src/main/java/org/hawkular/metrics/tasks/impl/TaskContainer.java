@@ -114,6 +114,10 @@ class TaskContainer implements Iterable<Task> {
         return segment;
     }
 
+    public Lease getLease() {
+        return null;
+    }
+
     @Override
     public Iterator<Task> iterator() {
 
