@@ -38,7 +38,7 @@
   </appender>
 
   <root>
-    <level value="TRACE"/>
+    <level value="DEBUG"/>
     <appender-ref ref="CONSOLE"/>
     <appender-ref ref="FILE"/>
   </root>

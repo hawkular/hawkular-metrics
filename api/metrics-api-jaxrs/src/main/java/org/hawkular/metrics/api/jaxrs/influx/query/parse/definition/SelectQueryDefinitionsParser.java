@@ -53,9 +53,11 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.antlr.v4.runtime.misc.NotNull;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryBaseListener;
+import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser;
 import org.joda.time.Instant;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -254,6 +256,18 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
         operandQueue.addLast(new NameOperand(prefix, name));
         prefix = null;
         name = null;
+    }
+
+    @Override
+    public void exitAbsoluteMomentOperand(InfluxQueryParser.AbsoluteMomentOperandContext ctx) {
+        String timespan = ctx.TIMESPAN().getText();
+        int amount = Integer.parseInt(timespan.substring(0, timespan.length() - 1));
+        char unitId = timespan.charAt(timespan.length() - 1);
+        InfluxTimeUnit unit = InfluxTimeUnit.findById(unitId);
+        if (unit == null) {
+            throw new RuntimeException("Unknown time unit: " + unitId);
+        }
+        operandQueue.addLast(new DateOperand(new Instant(unit.convertTo(TimeUnit.MILLISECONDS, amount))));
     }
 
     @Override
