@@ -20,8 +20,6 @@ import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.joda.time.Hours.hours;
 
-import java.io.IOException;
-import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,10 +37,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
-import javax.management.MBeanInfo;
-import javax.management.MBeanServerConnection;
-import javax.management.ObjectName;
 
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
@@ -65,13 +59,11 @@ import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.RetentionSettings;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
-import org.hawkular.metrics.schema.SchemaManager;
 import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
@@ -90,8 +82,6 @@ import com.google.common.util.concurrent.RateLimiter;
  */
 public class MetricsServiceCassandra implements MetricsService {
     private static final Logger logger = LoggerFactory.getLogger(MetricsServiceCassandra.class);
-
-    private static final String CASSANDRA_STORAGE_SERVICE = "org.apache.cassandra.db:type=StorageService";
 
     public static final String REQUEST_LIMIT = "hawkular.metrics.request.limit";
 
@@ -145,12 +135,12 @@ public class MetricsServiceCassandra implements MetricsService {
     private final RateLimiter permits = RateLimiter.create(Double.parseDouble(
         System.getProperty(REQUEST_LIMIT, "30000")), 3, TimeUnit.MINUTES);
 
-    private Optional<Session> session;
-
     private DataAccess dataAccess;
 
     private final ListeningExecutorService metricsTasks = MoreExecutors
         .listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
+
+    private boolean started = false;
 
     /**
      * Note that while user specifies the durations in hours, we store them in seconds.
@@ -162,64 +152,14 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public void startUp(Session s) {
-        // the session is managed externally
-        this.session = Optional.empty();
         this.dataAccess = new DataAccessImpl(s);
         loadDataRetentions();
+        started = true;
     }
 
     @Override
-    public void startUp(Map<String, String> params) {
-
-        String tmp = params.get("cqlport");
-        int port = 9042;
-        try {
-            port = Integer.parseInt(tmp);
-        } catch (NumberFormatException nfe) {
-            logger.warn("Invalid context param 'cqlport', not a number. Will use a default of 9042");
-        }
-
-        String[] nodes;
-        if (params.containsKey("nodes")) {
-            nodes = params.get("nodes").split(",");
-        } else {
-            nodes = new String[] {"127.0.0.1"};
-        }
-
-        if (isEmbeddedCassandraServer()) {
-            verifyNodeIsUp(nodes[0], 9990, 10, 1000);
-        }
-
-        Cluster cluster = new Cluster.Builder()
-            .addContactPoints(nodes)
-            .withPort(port)
-            .build();
-
-        String keyspace = params.get("keyspace");
-        if (keyspace==null||keyspace.isEmpty()) {
-            logger.debug("No keyspace given in params, checking system properties ...");
-            keyspace = System.getProperty("cassandra.keyspace");
-        }
-
-        if (keyspace==null||keyspace.isEmpty()) {
-            logger.debug("No explicit keyspace given, will default to 'hawkular'");
-            keyspace = "hawkular_metrics";
-        }
-
-        logger.info("Using a key space of '" + keyspace + "'");
-
-        session = Optional.of(cluster.connect("system"));
-
-        if (System.getProperty("cassandra.resetdb")!=null) {
-            // We want a fresh DB -- mostly used for tests
-            dropKeyspace(keyspace);
-        }
-        // This creates/updates the keyspace + tables if needed
-        updateSchemaIfNecessary(keyspace);
-        session.get().execute("USE " + keyspace);
-
-        dataAccess = new DataAccessImpl(session.get());
-        loadDataRetentions();
+    public boolean isStarted() {
+        return started;
     }
 
     void loadDataRetentions() {
@@ -246,60 +186,6 @@ public class MetricsServiceCassandra implements MetricsService {
 
     void unloadDataRetentions() {
         dataRetentions.clear();
-    }
-
-    boolean verifyNodeIsUp(String address, int jmxPort, int retries, long timeout) {
-        Boolean nativeTransportRunning = false;
-        Boolean initialized = false;
-        for (int i = 0; i < retries; ++i) {
-            if (i > 0) {
-                try {
-                    // cycle between original and more wait time - avoid waiting huge amounts of time
-                    long sleepMillis = timeout * (1 + ((i - 1) % 4));
-                    logger.info("[" + i + "/" + (retries - 1) + "] Retrying storage node status check in ["
-                            + sleepMillis + "]ms...");
-                    Thread.sleep(sleepMillis);
-                } catch (InterruptedException e1) {
-                    logger.error("Failed to get storage node status.", e1);
-                    return false;
-                }
-            }
-            try {
-                MBeanServerConnection serverConnection = ManagementFactory.getPlatformMBeanServer();
-                ObjectName storageService = new ObjectName(CASSANDRA_STORAGE_SERVICE);
-                nativeTransportRunning = (Boolean) serverConnection.getAttribute(storageService,
-                        "NativeTransportRunning");
-                initialized = (Boolean) serverConnection.getAttribute(storageService,
-                        "Initialized");
-                if (nativeTransportRunning && initialized) {
-                    logger.info("Successfully verified that the storage node is initialized and running!");
-                    return true; // everything is up, get out of our wait loop and immediately return
-                }
-                logger.info("Storage node is still initializing. NativeTransportRunning=[" + nativeTransportRunning
-                        + "], Initialized=[" + initialized + "]");
-            } catch (Exception e) {
-                logger.warn("Cannot get storage node status - assuming it is not up yet. Cause: "
-                        + ((e.getCause() == null) ? e : e.getCause()));
-            }
-        }
-        logger.error("Cannot verify that the storage node is up.");
-        return false;
-    }
-
-    private boolean isEmbeddedCassandraServer() {
-        try {
-            MBeanServerConnection serverConnection = ManagementFactory.getPlatformMBeanServer();
-            ObjectName storageService = new ObjectName(CASSANDRA_STORAGE_SERVICE);
-            MBeanInfo storageServiceInfo = serverConnection.getMBeanInfo(storageService);
-
-            if (storageServiceInfo != null) {
-                return true;
-            }
-
-            return false;
-        } catch (Exception e) {
-            return false;
-        }
     }
 
     private static class MergeTagsFunction<T extends MetricData> implements
@@ -365,11 +251,6 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public void shutdown() {
-        if(session.isPresent()) {
-            Session s = session.get();
-            s.close();
-            s.getCluster().close();
-        }
     }
 
     /**
@@ -683,10 +564,6 @@ public class MetricsServiceCassandra implements MetricsService {
         }, metricsTasks);
     }
 
-    private void dropKeyspace(String keyspace) {
-        session.get().execute("DROP KEYSPACE IF EXISTS " + keyspace);
-    }
-
     @Override
     // TODO refactor to support multiple metrics
     // Data for different metrics and for the same tag are stored within the same partition
@@ -801,15 +678,6 @@ public class MetricsServiceCassandra implements MetricsService {
             }
         }
         return ttl;
-    }
-
-    private void updateSchemaIfNecessary(String schemaName) {
-        try {
-            SchemaManager schemaManager = new SchemaManager(session.get());
-            schemaManager.createSchema(schemaName);
-        } catch (IOException e) {
-            throw new RuntimeException("Schema creation failed", e);
-        }
     }
 
     private class TagAsyncFunction<T extends MetricData> implements AsyncFunction<List<T>, List<T>> {

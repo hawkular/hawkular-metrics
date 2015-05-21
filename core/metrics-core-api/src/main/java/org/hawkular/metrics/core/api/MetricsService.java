@@ -36,15 +36,13 @@ public interface MetricsService {
     // creating tenants.
     String DEFAULT_TENANT_ID = "test";
 
-    /** called to start the service up if needed
-     * @param params from e.g. servlet context */
-    void startUp(Map<String, String> params);
-
     /**
      * Startup with a given cassandra session
      * @param session
      */
     void startUp(Session session);
+
+    boolean isStarted();
 
     void shutdown();
 
