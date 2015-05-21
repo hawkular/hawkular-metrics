@@ -40,7 +40,7 @@ public class LeaseService {
 
     public static final int DEFAULT_RENEWAL_RATE = 60;
 
-    private RxSession rxSession;
+    private RxSession session;
 
     private Queries queries;
 
@@ -51,7 +51,7 @@ public class LeaseService {
     private int renewalRate = DEFAULT_RENEWAL_RATE;
 
     public LeaseService(RxSession session, Queries queries) {
-        this.rxSession = session;
+        this.session = session;
         this.queries = queries;
     }
 
@@ -69,7 +69,7 @@ public class LeaseService {
     }
 
     public Observable<? extends List<Lease>> loadLeases(DateTime timeSlice) {
-        return rxSession.execute(queries.findLeases.bind(timeSlice.toDate()))
+        return session.execute(queries.findLeases.bind(timeSlice.toDate()))
                 .flatMap(Observable::from)
                 .map(row -> new Lease(timeSlice, row.getString(0), row.getInt(1), row.getString(2), row.getBool(3)))
                 .filter(lease -> !lease.isFinished())
@@ -95,17 +95,17 @@ public class LeaseService {
 
 
     public Observable<Boolean> acquire(Lease lease) {
-        return rxSession.execute(queries.acquireLease.bind(ttl, lease.getOwner(), lease.getTimeSlice().toDate(),
+        return session.execute(queries.acquireLease.bind(ttl, lease.getOwner(), lease.getTimeSlice().toDate(),
                 lease.getTaskType(), lease.getSegmentOffset())).map(ResultSet::wasApplied);
     }
 
     public Observable<Boolean> acquire(Lease lease, int ttl) {
-        return rxSession.execute(queries.acquireLease.bind(ttl, lease.getOwner(), lease.getTimeSlice().toDate(),
+        return session.execute(queries.acquireLease.bind(ttl, lease.getOwner(), lease.getTimeSlice().toDate(),
                 lease.getTaskType(), lease.getSegmentOffset())).map(ResultSet::wasApplied);
     }
 
     public Observable<Boolean> renew(Lease lease) {
-        return rxSession.execute(queries.renewLease.bind(ttl, lease.getOwner(), lease.getTimeSlice().toDate(),
+        return session.execute(queries.renewLease.bind(ttl, lease.getOwner(), lease.getTimeSlice().toDate(),
                 lease.getTaskType(), lease.getSegmentOffset(), lease.getOwner())).map(ResultSet::wasApplied);
     }
 
@@ -145,16 +145,12 @@ public class LeaseService {
     }
 
     public Observable<Boolean> finish(Lease lease) {
-        return rxSession.execute(queries.finishLease.bind(lease.getTimeSlice().toDate(), lease.getTaskType(),
+        return session.execute(queries.finishLease.bind(lease.getTimeSlice().toDate(), lease.getTaskType(),
                 lease.getSegmentOffset(), lease.getOwner())).map(ResultSet::wasApplied);
     }
 
-//    public Observable<Void> deleteLeases(DateTime timeSlice) {
-//        return rxSession.execute(queries.deleteLeases.bind(timeSlice.toDate())).flatMap(resultSet -> null);
-//    }
-
-    public void deleteLeases(DateTime timeSlice) {
-        rxSession.getSession().execute(queries.deleteLeases.bind(timeSlice.toDate()));
+    public Observable<Void> deleteLeases(DateTime timeSlice) {
+        return session.execute(queries.deleteLeases.bind(timeSlice.toDate())).flatMap(resultSet -> null);
     }
 
 }

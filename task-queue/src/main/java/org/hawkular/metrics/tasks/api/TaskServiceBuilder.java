@@ -23,6 +23,7 @@ import com.datastax.driver.core.Session;
 import org.hawkular.metrics.tasks.impl.LeaseService;
 import org.hawkular.metrics.tasks.impl.Queries;
 import org.hawkular.metrics.tasks.impl.TaskServiceImpl;
+import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
 /**
@@ -69,8 +70,9 @@ public class TaskServiceBuilder {
 
     public TaskService build() {
         Queries queries = new Queries(session);
-        LeaseService leaseService = new LeaseService(new RxSessionImpl(session), queries);
-        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService, taskTypes);
+        RxSession rxSession = new RxSessionImpl(session);
+        LeaseService leaseService = new LeaseService(rxSession, queries);
+        TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, taskTypes);
         taskService.setTimeUnit(timeUnit);
 
         return taskService;

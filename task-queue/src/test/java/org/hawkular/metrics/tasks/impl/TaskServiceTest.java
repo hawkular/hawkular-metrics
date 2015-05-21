@@ -44,7 +44,6 @@ import com.google.common.collect.ImmutableSet;
 import org.hawkular.metrics.tasks.BaseTest;
 import org.hawkular.metrics.tasks.api.Task;
 import org.hawkular.metrics.tasks.api.TaskType;
-import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +61,7 @@ public class TaskServiceTest extends BaseTest {
 
     @BeforeMethod
     public void setup() {
-        leaseService = new LeaseService(new RxSessionImpl(session), queries);
+        leaseService = new LeaseService(rxSession, queries);
     }
 
     @Test
@@ -73,10 +72,10 @@ public class TaskServiceTest extends BaseTest {
         int window = 15;
         Task task = taskType.createTask("metric.5min", "metric", interval, window);
 
-        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService, asList(taskType));
+        TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType));
 
         DateTime expectedTimeSlice = dateTimeService.getTimeSlice(now(), standardMinutes(5)).plusMinutes(5);
-        getUninterruptibly(taskService.scheduleTask(now(), task));
+        taskService.scheduleTask(now(), task).toBlocking().first();
 
         int segment = Math.abs(task.getTarget().hashCode() % task.getTaskType().getSegments());
 
@@ -89,7 +88,7 @@ public class TaskServiceTest extends BaseTest {
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void doNotScheduleTaskHavingInvalidType() throws Exception {
 
-        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService,
+        TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService,
                 singletonList(new TaskType().setName("test").setSegments(1).setSegmentOffsets(1)));
         TaskType invalidType = new TaskType().setName("invalid").setSegments(1).setSegmentOffsets(1);
         Task task = invalidType.createTask("metric.5min", "metric", 5, 15);
@@ -129,8 +128,8 @@ public class TaskServiceTest extends BaseTest {
                 ImmutableSet.of("metric2"), interval, window));
         session.execute(queries.createLease.bind(timeSlice.toDate(), type, segmentOffset));
 
-        LeaseService leaseService = new LeaseService(new RxSessionImpl(session), queries);
-        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService, singletonList(taskType));
+        LeaseService leaseService = new LeaseService(rxSession, queries);
+        TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType));
         taskService.executeTasks(timeSlice);
 
         // verify that the tasks were executed
@@ -188,8 +187,9 @@ public class TaskServiceTest extends BaseTest {
                 ImmutableSet.of("test2.metric2"), interval, window));
         session.execute(queries.createLease.bind(timeSlice.toDate(), type2, segmentOffset));
 
-        LeaseService leaseService = new LeaseService(new RxSessionImpl(session), queries);
-        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService, asList(taskType1, taskType2));
+        LeaseService leaseService = new LeaseService(rxSession, queries);
+        TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, asList(taskType1,
+                taskType2));
         taskService.executeTasks(timeSlice);
 
         // We need to verify that tasks are executed. We also need to verify that they are
@@ -251,8 +251,8 @@ public class TaskServiceTest extends BaseTest {
         boolean acquired = leaseService.acquire(lease).toBlocking().first();
         assertTrue(acquired, "Should have acquired lease");
 
-        LeaseService leaseService = new LeaseService(new RxSessionImpl(session), queries);
-        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService, singletonList(taskType1));
+        LeaseService leaseService = new LeaseService(rxSession, queries);
+        TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType1));
 
         Thread t1 = new Thread(() -> taskService.executeTasks(timeSlice));
         t1.start();
@@ -306,8 +306,8 @@ public class TaskServiceTest extends BaseTest {
                 interval, window));
         session.execute(queries.createLease.bind(timeSlice.toDate(), type, segmentOffset));
 
-        LeaseService leaseService = new LeaseService(new RxSessionImpl(session), queries);
-        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService, asList(taskType));
+        LeaseService leaseService = new LeaseService(rxSession, queries);
+        TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType));
         taskService.executeTasks(timeSlice);
 
         assertTasksPartitionDeleted(type, timeSlice, segment);
@@ -339,8 +339,8 @@ public class TaskServiceTest extends BaseTest {
                 ImmutableSet.of("metric"), interval, window, ImmutableSet.of(previousTimeSlice.toDate())));
         session.execute(queries.createLease.bind(timeSlice.toDate(), type, segmentOffset));
 
-        LeaseService leaseService = new LeaseService(new RxSessionImpl(session), queries);
-        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService, singletonList(taskType));
+        LeaseService leaseService = new LeaseService(rxSession, queries);
+        TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType));
         taskService.executeTasks(timeSlice);
 
         List<Task> expectedExecutedTasks = asList(

@@ -17,6 +17,7 @@
 package org.hawkular.metrics.tasks.impl;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Duration.standardSeconds;
 import static org.testng.Assert.assertTrue;
@@ -46,7 +47,7 @@ public class TaskSchedulerTest extends BaseTest {
 
     @Test
     public void startScheduler() throws Exception {
-        List<TaskType> taskTypes = asList(new TaskType().setName("test").setSegments(1).setSegmentOffsets(1));
+        List<TaskType> taskTypes = singletonList(new TaskType().setName("test").setSegments(1).setSegmentOffsets(1));
 
         List<DateTime> actualTimeSlices = new ArrayList<>();
         List<DateTime> expectedTimeSlices = asList(
@@ -55,7 +56,7 @@ public class TaskSchedulerTest extends BaseTest {
                 dateTimeService.getTimeSlice(now().plusSeconds(4), standardSeconds(1))
         );
 
-        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService, taskTypes) {
+        TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, taskTypes) {
             @Override
             public void executeTasks(DateTime timeSlice) {
                 actualTimeSlices.add(timeSlice);

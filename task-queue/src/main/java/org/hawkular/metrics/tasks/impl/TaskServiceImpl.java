@@ -35,11 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Session;
 import com.google.common.base.Function;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.hawkular.metrics.schema.SchemaManager;
@@ -49,8 +45,6 @@ import org.hawkular.metrics.tasks.api.TaskExecutionException;
 import org.hawkular.metrics.tasks.api.TaskService;
 import org.hawkular.metrics.tasks.api.TaskType;
 import org.hawkular.rx.cassandra.driver.RxSession;
-import org.hawkular.rx.cassandra.driver.RxSessionImpl;
-import org.hawkular.rx.cassandra.driver.RxUtil;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.slf4j.Logger;
@@ -64,8 +58,6 @@ import rx.functions.Func1;
 public class TaskServiceImpl implements TaskService {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskServiceImpl.class);
-
-    private Session session;
 
     private RxSession rxSession;
 
@@ -105,17 +97,16 @@ public class TaskServiceImpl implements TaskService {
      */
     private TimeUnit timeUnit = TimeUnit.MINUTES;
 
-    public TaskServiceImpl(Session session, Queries queries, LeaseService leaseService, List<TaskType> taskTypes) {
+    public TaskServiceImpl(RxSession session, Queries queries, LeaseService leaseService, List<TaskType> taskTypes) {
         try {
-            this.session = session;
+            this.rxSession = session;
             this.queries = queries;
             this.leaseService = leaseService;
             this.taskTypes = taskTypes;
             dateTimeService = new DateTimeService();
             owner = InetAddress.getLocalHost().getHostName();
-            rxSession = new RxSessionImpl(session);
 
-            SchemaManager schemaManager = new SchemaManager(session);
+            SchemaManager schemaManager = new SchemaManager(session.getSession());
             String keyspace = System.getProperty("keyspace", "hawkular_metrics");
             schemaManager.createSchema(keyspace);
         } catch (UnknownHostException e) {
@@ -206,15 +197,13 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public ListenableFuture<Task> scheduleTask(DateTime time, Task task) {
+    public Observable<Task> scheduleTask(DateTime time, Task task) {
         TaskType taskType = findTaskType(task.getTaskType().getName());
 
         DateTime currentTimeSlice = dateTimeService.getTimeSlice(time, task.getInterval());
         DateTime timeSlice = currentTimeSlice.plus(task.getInterval());
 
-        ListenableFuture<DateTime> timeFuture = scheduleTaskAt(timeSlice, task);
-        return Futures.transform(timeFuture, (DateTime scheduledTime) -> new TaskImpl(task.getTaskType(),
-                scheduledTime,
+        return scheduleTaskAt(timeSlice, task).map(scheduledTime -> new TaskImpl(task.getTaskType(), scheduledTime,
                 task.getTarget(), task.getSources(), task.getInterval(), task.getWindow()));
     }
 
@@ -224,55 +213,74 @@ public class TaskServiceImpl implements TaskService {
         int segment = Math.abs(taskContainer.getTarget().hashCode() % taskType.getSegments());
         int segmentsPerOffset = taskType.getSegments() / taskType.getSegmentOffsets();
         int segmentOffset = (segment / segmentsPerOffset) * segmentsPerOffset;
-        ResultSetFuture queueFuture;
+        Observable<ResultSet> queueObservable;
 
         if (taskContainer.getFailedTimeSlices().isEmpty()) {
-            queueFuture = session.executeAsync(queries.createTask.bind(taskType.getName(), nextTimeSlice.toDate(),
+            queueObservable = rxSession.execute(queries.createTask.bind(taskType.getName(), nextTimeSlice.toDate(),
                     segment, taskContainer.getTarget(), taskContainer.getSources(),
                     taskContainer.getInterval().toStandardMinutes().getMinutes(),
                     taskContainer.getWindow().toStandardMinutes().getMinutes()));
         } else {
-            queueFuture = session.executeAsync(queries.createTaskWithFailures.bind(taskType.getName(),
+            queueObservable = rxSession.execute(queries.createTaskWithFailures.bind(taskType.getName(),
                     nextTimeSlice.toDate(), segment, taskContainer.getTarget(), taskContainer.getSources(),
                     taskContainer.getInterval().toStandardMinutes().getMinutes(),
                     taskContainer.getWindow().toStandardMinutes().getMinutes(), toDates(
                             taskContainer.getFailedTimeSlices())));
         }
-        ResultSetFuture leaseFuture = session.executeAsync(queries.createLease.bind(nextTimeSlice.toDate(),
+        Observable<ResultSet> leaseObservable = rxSession.execute(queries.createLease.bind(nextTimeSlice.toDate(),
                 taskType.getName(), segmentOffset));
-        ListenableFuture<List<ResultSet>> futures = Futures.allAsList(queueFuture, leaseFuture);
-        ListenableFuture<TaskContainer> resultFuture = Futures.transform(futures, (List<ResultSet> resultSets) ->
-                taskContainer);
 
-        return RxUtil.from(resultFuture, workers);
+        return Observable.create(subscriber ->
+            queueObservable.concatWith(leaseObservable).subscribe(
+                    resultSet -> {},
+                    subscriber::onError,
+                    () -> {
+                        subscriber.onNext(taskContainer);
+                        subscriber.onCompleted();
+                    })
+        );
     }
 
     private Set<Date> toDates(Set<DateTime> times) {
         return times.stream().map(DateTime::toDate).collect(toSet());
     }
 
-    private ListenableFuture<DateTime> scheduleTaskAt(DateTime time, Task task) {
+    private Observable<DateTime> scheduleTaskAt(DateTime time, Task task) {
         TaskType taskType = task.getTaskType();
         int segment = Math.abs(task.getTarget().hashCode() % taskType.getSegments());
         int segmentsPerOffset = taskType.getSegments() / taskType.getSegmentOffsets();
         int segmentOffset = (segment / segmentsPerOffset) * segmentsPerOffset;
 
-        ResultSetFuture queueFuture = session.executeAsync(queries.createTask.bind(taskType.getName(),
+        Observable<ResultSet> queueObservable = rxSession.execute(queries.createTask.bind(taskType.getName(),
                 time.toDate(), segment, task.getTarget(), task.getSources(), (int) task.getInterval()
                         .getStandardMinutes(), (int) task.getWindow().getStandardMinutes()));
-        ResultSetFuture leaseFuture = session.executeAsync(queries.createLease.bind(time.toDate(),
+        Observable<ResultSet> leaseObservable = rxSession.execute(queries.createLease.bind(time.toDate(),
                 taskType.getName(), segmentOffset));
-        ListenableFuture<List<ResultSet>> futures = Futures.allAsList(queueFuture, leaseFuture);
 
-        return Futures.transform(futures, (List<ResultSet> resultSets) -> time);
+        return Observable.create(subscriber -> queueObservable.concatWith(leaseObservable).subscribe(
+                        resultSet -> {
+                        },
+                        subscriber::onError,
+                        () -> {
+                            subscriber.onNext(time);
+                            subscriber.onCompleted();
+                        }
+                )
+        );
     }
 
-    public void executeTasks(DateTime timeSlice) {
+    /**
+     * This method is visible for testing. It is not part of the {@link TaskService} API. It runs on the scheduler
+     * thread and is blocking. Task execution is done in parallel in the workers thread pool, but the scheduler thread
+     * executing this method blocks until all tasks for the time slice are finished.
+     *
+     * @param timeSlice The time slice to process
+     */
+    void executeTasks(DateTime timeSlice) {
         try {
             // Execute tasks in order of task types. Once all of the tasks are executed, we delete the lease partition.
             taskTypes.forEach(taskType -> executeTasks(timeSlice, taskType));
-//            leaseService.deleteLeases(timeSlice).toBlocking().lastOrDefault(null);
-            leaseService.deleteLeases(timeSlice);
+            leaseService.deleteLeases(timeSlice).toBlocking().lastOrDefault(null);
         } catch (Exception e) {
             logger.warn("Failed to delete lease partition for time slice " + timeSlice, e);
         }
