@@ -93,6 +93,11 @@ class Lease {
         return finished;
     }
 
+    public Lease setFinished(boolean finished) {
+        this.finished = finished;
+        return this;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

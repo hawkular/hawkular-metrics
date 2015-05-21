@@ -271,10 +271,10 @@ public class TaskServiceImpl implements TaskService {
         try {
             // Execute tasks in order of task types. Once all of the tasks are executed, we delete the lease partition.
             taskTypes.forEach(taskType -> executeTasks(timeSlice, taskType));
-            leaseService.deleteLeases(timeSlice).toBlocking().last();
-//            Uninterruptibles.getUninterruptibly(leaseService.deleteLeases(timeSlice));
+//            leaseService.deleteLeases(timeSlice).toBlocking().lastOrDefault(null);
+            leaseService.deleteLeases(timeSlice);
         } catch (Exception e) {
-            logger.warn("Failed to delete lease partition for time slice " + timeSlice);
+            logger.warn("Failed to delete lease partition for time slice " + timeSlice, e);
         }
     }
 
@@ -302,10 +302,17 @@ public class TaskServiceImpl implements TaskService {
                         .flatMap(this::rescheduleTask)
                         .map(this::deleteTaskSegment)
                         .flatMap(resultSet -> Observable.just(lease)))
+                .flatMap(lease -> leaseService.finish(lease).map(lease::setFinished))
                 .subscribe(
-                        lease -> leaseService.finish(lease).doOnError(t -> logger.warn("Failed to delete " + lease, t)),
+                        lease -> {
+                            // TODO we eventually want to treat this as error scenario
+                            if (!lease.isFinished()) {
+                                logger.warn("Failed to mark " + lease + " finished");
+                            }
+                        },
                         t -> logger.warn("Task execution failed", t),
-                        latch::countDown);
+                        latch::countDown
+                );
 
         try {
             latch.await();

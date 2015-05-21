@@ -99,14 +99,14 @@ public class TaskServiceTest extends BaseTest {
     @Test
     public void executeTasksOfOneType() throws Exception {
         DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(1), standardMinutes(1));
-        String type = "test";
+        String type = "singleType-test";
         int interval = 5;
         int window = 15;
         int segment0 = 0;
         int segment1 = 1;
         int segmentOffset = 0;
 
-        TaskType taskType = new TaskType().setName("test").setSegments(5).setSegmentOffsets(1);
+        TaskType taskType = new TaskType().setName(type).setSegments(5).setSegmentOffsets(1);
 
         String metric1 = "metric1.5min";
         String metric2 = "metric2.5min";
@@ -121,9 +121,7 @@ public class TaskServiceTest extends BaseTest {
         executedTasks.put(task1, false);
         executedTasks.put(task2, false);
 
-        taskType.setFactory(() -> task -> {
-            executedTasks.put(task, true);
-        });
+        taskType.setFactory(() -> task -> executedTasks.put(task, true));
 
         session.execute(queries.createTask.bind(type, timeSlice.toDate(), metric1Segment, metric1,
                 ImmutableSet.of("metric1"), interval, window));
@@ -157,8 +155,8 @@ public class TaskServiceTest extends BaseTest {
     @Test
     public void executeTasksOfMultipleTypes() throws Exception {
         DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(1), standardMinutes(1));
-        String type1 = "test1";
-        String type2 = "test2";
+        String type1 = "multiType-test1";
+        String type2 = "multiType-test2";
         int interval = 5;
         int window = 15;
         int segmentOffset = 0;
@@ -238,7 +236,6 @@ public class TaskServiceTest extends BaseTest {
         int segmentOffset = 0;
 
         TaskExecutionHistory executionHistory = new TaskExecutionHistory();
-//        Supplier<Consumer<Task>> taskFactory = () -> task -> executionHistory.add(task.getTarget());
         Supplier<Consumer<Task>> taskFactory = () -> task -> executionHistory.add(task.getTarget());
 
         TaskType taskType1 = new TaskType().setName(type1).setSegments(5).setSegmentOffsets(1).setFactory(taskFactory);
@@ -293,7 +290,7 @@ public class TaskServiceTest extends BaseTest {
     @Test
     public void executeTaskThatFails() throws Exception {
         DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(1), standardMinutes(1));
-        String type = "test";
+        String type = "fails-test";
         TaskType taskType = new TaskType().setName(type).setSegments(1).setSegmentOffsets(1)
                 .setFactory(() -> task -> {
                     throw new RuntimeException();
@@ -326,7 +323,7 @@ public class TaskServiceTest extends BaseTest {
     @Test
     public void executeTaskThatPreviouslyFailed() throws Exception {
         DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(2), standardMinutes(1));
-        String type = "test";
+        String type = "previouslyFailed-test";
         TaskType taskType = new TaskType().setName(type).setSegments(1).setSegmentOffsets(1);
         String metric = "metric.5min";
         int interval = 5;
@@ -366,7 +363,9 @@ public class TaskServiceTest extends BaseTest {
     private void assertLeasePartitionDeleted(DateTime timeSlice) {
         ResultSet leasesResultSet = session.execute(queries.findLeases.bind(timeSlice.toDate()));
         assertTrue(leasesResultSet.isExhausted(), "Expected lease partition for time slice " + timeSlice +
-                " to be empty");
+                " to be empty but found " + StreamSupport.stream(leasesResultSet.spliterator(), false)
+                .map(row -> new Lease(timeSlice, row.getString(0), row.getInt(1), row.getString(2), row.getBool(3)))
+                .collect(toList()));
     }
 
     /**

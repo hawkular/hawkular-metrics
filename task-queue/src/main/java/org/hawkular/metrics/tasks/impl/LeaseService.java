@@ -83,13 +83,13 @@ public class LeaseService {
         // not want to poll again until there is at least one worker thread (i.e., one of
         // the threads executing tasks) free.
         return Observable.create(subscriber ->
-            loadLeases(timeSlice)
-                    .flatMap(Observable::from)
-                    .filter(lease -> lease.getOwner() == null)
-                    .flatMap(lease ->
-                            acquire(lease).map(acquired ->
-                                    acquired ? lease : null))
-                    .subscribe(subscriber::onNext, subscriber::onError, subscriber::onCompleted)
+                        loadLeases(timeSlice)
+                                .flatMap(Observable::from)
+                                .filter(lease -> lease.getOwner() == null)
+                                .flatMap(lease ->
+                                        acquire(lease).map(acquired ->
+                                                acquired ? lease : null))
+                                .subscribe(subscriber::onNext, subscriber::onError, subscriber::onCompleted)
         );
     }
 
@@ -149,8 +149,12 @@ public class LeaseService {
                 lease.getSegmentOffset(), lease.getOwner())).map(ResultSet::wasApplied);
     }
 
-    public Observable<Void> deleteLeases(DateTime timeSlice) {
-        return rxSession.execute(queries.deleteLeases.bind(timeSlice.toDate())).flatMap(resultSet -> null);
+//    public Observable<Void> deleteLeases(DateTime timeSlice) {
+//        return rxSession.execute(queries.deleteLeases.bind(timeSlice.toDate())).flatMap(resultSet -> null);
+//    }
+
+    public void deleteLeases(DateTime timeSlice) {
+        rxSession.getSession().execute(queries.deleteLeases.bind(timeSlice.toDate()));
     }
 
 }
