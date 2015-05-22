@@ -32,19 +32,24 @@ import com.google.common.util.concurrent.ListenableFuture;
  */
 public interface MetricsService {
 
+    public enum State {
+        STARTING, STARTED, STOPPING, STOPPED, FAILED
+    }
+
+
     // For now we will use a default or fake tenant id until we get APIs in place for
     // creating tenants.
     String DEFAULT_TENANT_ID = "test";
-
-    /** called to start the service up if needed
-     * @param params from e.g. servlet context */
-    void startUp(Map<String, String> params);
 
     /**
      * Startup with a given cassandra session
      * @param session
      */
     void startUp(Session session);
+
+    State getState();
+
+    void setState(State state);
 
     void shutdown();
 
