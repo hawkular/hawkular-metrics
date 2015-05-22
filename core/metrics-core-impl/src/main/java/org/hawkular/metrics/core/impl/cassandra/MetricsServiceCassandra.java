@@ -51,6 +51,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.RateLimiter;
+
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityData;
@@ -79,6 +80,7 @@ import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import rx.Observable;
 import rx.subjects.PublishSubject;
 
@@ -407,22 +409,6 @@ public class MetricsServiceCassandra implements MetricsService {
                     }
                 })
                 .defaultIfEmpty(Optional.empty());
-
-
-//        ResultSetFuture future = dataAccess.findMetric(tenantId, type, id, Metric.DPART);
-//        return Futures.transform(future, (ResultSet resultSet) -> {
-//            if (resultSet.isExhausted()) {
-//                return Optional.empty();
-//            }
-//            Row row = resultSet.one();
-//            if (type == MetricType.GAUGE) {
-//                return Optional.of(new Gauge(tenantId, id, row.getMap(5, String.class, String.class),
-//                        row.getInt(6)));
-//            } else {
-//                return Optional.of(new Availability(tenantId, id, row.getMap(5, String.class, String.class),
-//                        row.getInt(6)));
-//            }
-//        }, metricsTasks);
     }
 
     @Override
@@ -511,19 +497,11 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> addAvailabilityData(List<Availability> metrics) {
-        List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
-        for (Availability metric : metrics) {
-            if (metric.getData().isEmpty()) {
-                logger.warn("There is no data to insert for {}", metric);
-            } else {
-                int ttl = getTTL(metric);
-                insertFutures.add(dataAccess.insertData(metric, ttl));
-            }
-        }
-        insertFutures.add(dataAccess.updateMetricsIndex(metrics));
-        ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
-        return Futures.transform(insertsFuture, Functions.TO_VOID, metricsTasks);
+    public Observable<ResultSet> addAvailabilityData(List<Availability> metrics) {
+        return Observable.from(metrics)
+                .filter(a -> !a.getData().isEmpty())
+                .flatMap(a -> dataAccess.insertData(a, getTTL(a)))
+                .doOnCompleted(() -> dataAccess.updateMetricsIndex(metrics));
     }
 
     @Override
@@ -587,47 +565,33 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<AvailabilityData>> findAvailabilityData(String tenantId, MetricId id, long start,
-            long end) {
+    public Observable<AvailabilityData> findAvailabilityData(String tenantId, MetricId id, long start,
+                                                             long end) {
         return findAvailabilityData(tenantId, id, start, end, false);
     }
 
     @Override
-    public ListenableFuture<List<AvailabilityData>> findAvailabilityData(String tenantId, MetricId id, long start,
-            long end, boolean distinct) {
-        ResultSetFuture queryFuture = dataAccess.findAvailabilityData(tenantId, id, start, end);
-        ListenableFuture<List<AvailabilityData>> availabilityFuture =  Futures.transform(queryFuture,
-                Functions.MAP_AVAILABILITY_DATA, metricsTasks);
-        if (distinct) {
-            return Futures.transform(availabilityFuture, (List<AvailabilityData> availabilities) -> {
-                if (availabilities.isEmpty()) {
-                    return availabilities;
-                }
-                List<AvailabilityData> distinctAvailabilities = new ArrayList<>(availabilities.size());
-                AvailabilityData previous = availabilities.get(0);
-                distinctAvailabilities.add(previous);
-                for (AvailabilityData availability : availabilities){
-                    if (availability.getType() != previous.getType()) {
-                        distinctAvailabilities.add(availability);
-                    }
-                    previous = availability;
-                }
-                return distinctAvailabilities;
-            }, metricsTasks);
+    public Observable<AvailabilityData> findAvailabilityData(String tenantId, MetricId id, long start,
+                                                             long end, boolean distinct) {
+        Observable<AvailabilityData> availabilityData = dataAccess.findAvailabilityData(tenantId, id, start, end)
+                .flatMap(r -> Observable.from(r))
+                .map(Functions::getAvailability);
+        if(distinct) {
+            return availabilityData.distinctUntilChanged((a) -> a.getType());
         } else {
-            return availabilityFuture;
+            return availabilityData;
         }
     }
 
     @Override
-    public ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(
-            Availability metric, long start, long end, Buckets buckets
-    ) {
-        ResultSetFuture queryFuture = dataAccess.findAvailabilityData(metric.getTenantId(), metric.getId(), start, end);
-        ListenableFuture<List<AvailabilityData>> raw = Futures.transform(queryFuture, Functions.MAP_AVAILABILITY_DATA,
-                metricsTasks);
-        return Futures.transform(raw, new AvailabilityBucketedOutputMapper(metric.getTenantId(), metric.getId(),
-                buckets));
+    public Observable<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(Availability metric,
+        long start, long end, Buckets buckets) {
+        AvailabilityBucketedOutputMapper availabilityBucketedOutputMapper = new AvailabilityBucketedOutputMapper(
+            metric.getTenantId(), metric.getId(), buckets);
+        return dataAccess.findAvailabilityData(metric.getTenantId(), metric.getId(), start, end)
+            .flatMap(r -> Observable.from(r)).map(Functions::getAvailability)
+                .toList()
+                .map(l -> availabilityBucketedOutputMapper.apply(l));
     }
 
     @Override

@@ -254,7 +254,7 @@ public class GaugeHandler {
         } else {
             metricsService.findGaugeDataByTags(tenantId, tags.getTags()).subscribe(m -> {
                 if (m.isEmpty()) {
-                    asyncResponse.resume(Response.noContent());
+                    asyncResponse.resume(Response.noContent().build());
                 } else {
                     asyncResponse.resume(Response.ok(m).build());
                 }
@@ -427,7 +427,7 @@ public class GaugeHandler {
             return result;
         }).subscribe(m -> { // @TODO Repeated code, refactor and use Optional?
                 if (m.isEmpty()) {
-                    asyncResponse.resume(Response.noContent());
+                    asyncResponse.resume(Response.noContent().build());
                 } else {
                     asyncResponse.resume(Response.ok(m).build());
                 }

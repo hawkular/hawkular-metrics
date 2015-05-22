@@ -17,13 +17,20 @@
 package org.hawkular.metrics.core.impl.cassandra;
 
 import static java.util.Arrays.asList;
-
 import static org.hawkular.metrics.core.impl.cassandra.MetricsServiceCassandra.DEFAULT_TTL;
 import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
 import java.util.List;
+
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
 
 import org.hawkular.metrics.core.api.AggregationTemplate;
 import org.hawkular.metrics.core.api.Availability;
@@ -40,15 +47,6 @@ import org.joda.time.Days;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 
 import rx.Observable;
 
@@ -261,13 +259,11 @@ public class DataAccessITest extends MetricsITest {
         Availability metric = new Availability(tenantId, new MetricId("m1"));
         metric.addData(new AvailabilityData(start.getMillis(), "up"));
 
-        getUninterruptibly(dataAccess.insertData(metric, 360));
+        dataAccess.insertData(metric, 360).toBlocking().lastOrDefault(null);
 
-        ResultSetFuture future = dataAccess.findAvailabilityData(tenantId, new MetricId("m1"), start.getMillis(),
-                end.getMillis());
-        ListenableFuture<List<AvailabilityData>> dataFuture = Futures
-                .transform(future, Functions.MAP_AVAILABILITY_DATA);
-        List<AvailabilityData> actual = getUninterruptibly(dataFuture);
+        List<AvailabilityData> actual = dataAccess
+            .findAvailabilityData(tenantId, new MetricId("m1"), start.getMillis(), end.getMillis())
+            .flatMap(r -> Observable.from(r)).map(Functions::getAvailability).toList().toBlocking().lastOrDefault(null);
         List<AvailabilityData> expected = asList(new AvailabilityData(start.getMillis(), "up"));
 
         assertEquals(actual, expected, "The availability data does not match the expected values");

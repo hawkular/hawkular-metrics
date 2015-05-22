@@ -97,14 +97,14 @@ public interface MetricsService {
             Gauge metric, long start, long end, Buckets buckets
     );
 
-    ListenableFuture<Void> addAvailabilityData(List<Availability> metrics);
+    Observable<ResultSet> addAvailabilityData(List<Availability> metrics);
 
-    ListenableFuture<List<AvailabilityData>> findAvailabilityData(String tenantId, MetricId id, long start, long end);
+    Observable<AvailabilityData> findAvailabilityData(String tenantId, MetricId id, long start, long end);
 
-    ListenableFuture<List<AvailabilityData>> findAvailabilityData(String tenantId, MetricId id, long start, long end,
-            boolean distinct);
+    Observable<AvailabilityData> findAvailabilityData(String tenantId, MetricId id, long start, long end,
+                                                      boolean distinct);
 
-    ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(
+    Observable<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(
             Availability metric, long start, long end, Buckets buckets
     );
 

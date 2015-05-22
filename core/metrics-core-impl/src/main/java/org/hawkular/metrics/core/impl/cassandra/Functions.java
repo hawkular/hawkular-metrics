@@ -88,7 +88,7 @@ public class Functions {
     public static final Function<ResultSet, List<AvailabilityData>> MAP_AVAILABILITY_DATA = resultSet ->
             StreamSupport.stream(resultSet.spliterator(), false).map(Functions::getAvailability).collect(toList());
 
-    private static AvailabilityData getAvailability(Row row) {
+    public static AvailabilityData getAvailability(Row row) {
         return new AvailabilityData(
                 row.getUUID(AVAILABILITY_COLS.TIME.ordinal()), row.getBytes(AVAILABILITY_COLS.AVAILABILITY.ordinal()),
                 row.getMap(AVAILABILITY_COLS.TAGS.ordinal(), String.class, String.class));

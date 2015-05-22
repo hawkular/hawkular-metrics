@@ -42,6 +42,7 @@ import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
+
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.request.MixedMetricsRequest;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
@@ -114,16 +115,20 @@ public class MetricHandler {
 
             if (metricsRequest.getGaugeMetrics() != null && !metricsRequest.getGaugeMetrics().isEmpty()) {
                 metricsRequest.getGaugeMetrics().forEach(m -> m.setTenantId(tenantId));
-                // TODO This needs to be fix
+                // TODO This needs to be fix - this needs to refactored..
                 // Temporarily commented out to get it to compile as we midst of updating MetricsService
                 // to use rx.Observable instead of ListenableFuture
 
-//                simpleFuturesList.add(metricsService.addGaugeData(metricsRequest.getGaugeMetrics()));
+            //                Observable<Void> voidObservable = metricsService.addGaugeData(Observable.
+            // from(metricsRequest.getGaugeMetrics()));
+            //                simpleFuturesList.add(metricsService.addGaugeData(metricsRequest.getGaugeMetrics()));
             }
 
             if (metricsRequest.getAvailabilityMetrics() != null && !metricsRequest.getAvailabilityMetrics().isEmpty()) {
                 metricsRequest.getAvailabilityMetrics().forEach(m -> m.setTenantId(tenantId));
-                simpleFuturesList.add(metricsService.addAvailabilityData(metricsRequest.getAvailabilityMetrics()));
+                metricsService.addAvailabilityData(metricsRequest.getAvailabilityMetrics())
+                        .subscribe(r -> asyncResponse.resume(Response.ok().build()),
+                                   t -> asyncResponse.resume(ApiUtils.serverError(t)));
             }
 
             return Futures.transform(Futures.successfulAsList(simpleFuturesList), ApiUtils.MAP_LIST_VOID);

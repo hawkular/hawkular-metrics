@@ -100,9 +100,9 @@ public interface DataAccess {
 
     Observable<ResultSet> findAvailabilityByTag(String tenantId, String tag, String tagValue);
 
-    ResultSetFuture insertData(Availability metric, int ttl);
+    Observable<ResultSet> insertData(Availability metric, int ttl);
 
-    ResultSetFuture findAvailabilityData(String tenantId, MetricId id, long startTime, long endTime);
+    Observable<ResultSet> findAvailabilityData(String tenantId, MetricId id, long startTime, long endTime);
 
     ResultSetFuture updateCounter(Counter counter);
 

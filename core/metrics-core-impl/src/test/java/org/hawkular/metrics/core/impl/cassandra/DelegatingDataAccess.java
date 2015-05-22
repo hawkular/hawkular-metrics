@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.Counter;
@@ -33,9 +36,6 @@ import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
-
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
 
 import rx.Observable;
 
@@ -195,12 +195,12 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertData(Availability metric, int ttl) {
+    public Observable<ResultSet> insertData(Availability metric, int ttl) {
         return delegate.insertData(metric, ttl);
     }
 
     @Override
-    public ResultSetFuture findAvailabilityData(String tenantId, MetricId id, long startTime, long endTime) {
+    public Observable<ResultSet> findAvailabilityData(String tenantId, MetricId id, long startTime, long endTime) {
         return delegate.findAvailabilityData(tenantId, id, startTime, endTime);
     }
 

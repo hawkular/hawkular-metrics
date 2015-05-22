@@ -18,13 +18,10 @@ package org.hawkular.metrics.api.jaxrs.handler;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.executeAsync;
 
 import java.net.URI;
 import java.util.Collections;
@@ -34,6 +31,7 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
@@ -48,6 +46,13 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import com.datastax.driver.core.ResultSet;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
@@ -55,7 +60,6 @@ import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.request.TagRequest;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Availability;
-import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
@@ -63,15 +67,6 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
-
-import com.datastax.driver.core.ResultSet;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
 
 import rx.Observable;
 
@@ -198,15 +193,14 @@ public class AvailabilityHandler {
             @Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
             @ApiParam(value = "List of availability datapoints", required = true) List<AvailabilityData> data
     ) {
-        executeAsync(asyncResponse, () -> {
-            if (data == null) {
-                return Futures.immediateFuture(ApiUtils.emptyPayload());
-            }
+        if (data == null) {
+            asyncResponse.resume(ApiUtils.emptyPayload());
+        } else {
             Availability metric = new Availability(tenantId, new MetricId(id));
             metric.getData().addAll(data);
-            ListenableFuture<Void> future = metricsService.addAvailabilityData(Collections.singletonList(metric));
-            return Futures.transform(future, ApiUtils.MAP_VOID);
-        });
+            metricsService.addAvailabilityData(Collections.singletonList(metric)).subscribe(
+                    new ResultSetObserver(asyncResponse));
+        }
     }
 
     @POST
@@ -220,14 +214,12 @@ public class AvailabilityHandler {
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of availability metrics", required = true) List<Availability> metrics
     ) {
-        executeAsync(asyncResponse, () -> {
-            if (metrics.isEmpty()) {
-                return Futures.immediateFuture(Response.ok().build());
-            }
+        if (metrics.isEmpty()) {
+            asyncResponse.resume(Response.ok().build());
+        } else {
             metrics.forEach(m -> m.setTenantId(tenantId));
-            ListenableFuture<Void> future = metricsService.addAvailabilityData(metrics);
-            return Futures.transform(future, ApiUtils.MAP_VOID);
-        });
+            metricsService.addAvailabilityData(metrics).subscribe(new ResultSetObserver(asyncResponse));
+        }
     }
 
     @GET
@@ -248,7 +240,7 @@ public class AvailabilityHandler {
             // @TODO Repeated code, refactor (in GaugeHandler also)
             metricsService.findAvailabilityByTags(tenantId, tags.getTags()).subscribe(m -> {
                 if (m.isEmpty()) {
-                    asyncResponse.resume(Response.noContent());
+                    asyncResponse.resume(Response.noContent().build());
                 } else {
                     asyncResponse.resume(Response.ok(m).build());
                 }
@@ -277,56 +269,47 @@ public class AvailabilityHandler {
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Set to true to return only distinct, contiguous values")
-            @QueryParam("distinct") Boolean distinct
+            @QueryParam("distinct") @DefaultValue("false") Boolean distinct
     ) {
-        executeAsync(
-                asyncResponse,
-                () -> {
-                    long now = System.currentTimeMillis();
-                    Long startTime = start == null ? now - EIGHT_HOURS : start;
-                    Long endTime = end == null ? now : end;
+        long now = System.currentTimeMillis();
+        Long startTime = start == null ? now - EIGHT_HOURS : start;
+        Long endTime = end == null ? now : end;
 
-                    Availability metric = new Availability(tenantId, new MetricId(id));
-                    ListenableFuture<List<AvailabilityData>> queryFuture;
-
-                    if (distinct != null && distinct.equals(Boolean.TRUE)) {
-                        queryFuture = metricsService.findAvailabilityData(tenantId, metric.getId(), startTime, endTime,
-                                distinct);
-                        return Futures.transform(queryFuture, ApiUtils.MAP_COLLECTION);
-                    }
-
-                    if (bucketsCount == null && bucketDuration == null) {
-                        queryFuture = metricsService.findAvailabilityData(tenantId, metric.getId(), startTime, endTime);
-                        return Futures.transform(queryFuture, ApiUtils.MAP_COLLECTION);
-                    }
-
-                    if (bucketsCount != null && bucketDuration != null) {
-                        return Futures.immediateFuture(
-                                badRequest(
-                                        new ApiError(
-                                                "Both buckets and bucketDuration parameters are used"
-                                        )
-                                )
-                        );
-                    }
-
-                    Buckets buckets;
-                    try {
-                        if (bucketsCount != null) {
-                            buckets = Buckets.fromCount(startTime, endTime, bucketsCount);
+        Availability metric = new Availability(tenantId, new MetricId(id));
+        if (bucketsCount == null && bucketDuration == null) {
+            metricsService.findAvailabilityData(tenantId, metric.getId(), startTime, endTime, distinct).toList()
+                    // @TODO Refactor this subscriber.. repeated code
+                    .subscribe(l -> {
+                        if (l.isEmpty()) {
+                            asyncResponse.resume(Response.noContent().build());
                         } else {
-                            buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
+                            asyncResponse.resume(Response.ok(l).build());
                         }
-                    } catch (IllegalArgumentException e) {
-                        return Futures.immediateFuture(badRequest(new ApiError("Bucket: " + e.getMessage())));
-                    }
-                    ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> dataFuture;
-                    dataFuture = metricsService.findAvailabilityStats(metric, startTime, endTime, buckets);
+                    }, t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
+        } else if (bucketsCount != null && bucketDuration != null) {
+            asyncResponse.resume(badRequest(new ApiError("Both buckets and bucketDuration parameters are used")));
+        } else {
+            Buckets buckets;
+            try {
+                if (bucketsCount != null) {
+                    buckets = Buckets.fromCount(startTime, endTime, bucketsCount);
+                } else {
+                    buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
+                }
+            } catch (IllegalArgumentException e) {
+                asyncResponse.resume(badRequest(new ApiError("Bucket: " + e.getMessage())));
+                return;
+            }
 
-                    ListenableFuture<List<AvailabilityBucketDataPoint>> outputFuture;
-                    outputFuture = Futures.transform(dataFuture, BucketedOutput<AvailabilityBucketDataPoint>::getData);
-                    return Futures.transform(outputFuture, ApiUtils.MAP_COLLECTION);
-                });
+            metricsService.findAvailabilityStats(metric, startTime, endTime, buckets).map(
+                    BucketedOutput::getData).subscribe(m -> {
+                if (m.isEmpty()) {
+                    asyncResponse.resume(Response.noContent().build());
+                } else {
+                    asyncResponse.resume(Response.ok(m).build());
+                }
+            }, t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
+        }
     }
 
     @POST
@@ -364,7 +347,7 @@ public class AvailabilityHandler {
         metricsService.findAvailabilityByTags(tenantId, tags.getTags())
         .subscribe(m -> { // @TODO Repeated code, refactor and use Optional?
             if (m.isEmpty()) {
-                asyncResponse.resume(Response.noContent());
+                asyncResponse.resume(Response.noContent().build());
             } else {
                 asyncResponse.resume(Response.ok(m).build());
             }
