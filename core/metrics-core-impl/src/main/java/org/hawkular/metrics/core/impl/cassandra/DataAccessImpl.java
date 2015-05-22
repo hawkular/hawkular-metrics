@@ -368,8 +368,8 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public ResultSetFuture insertMetricInMetricsIndex(Metric<?> metric) {
         return session.executeAsync(insertIntoMetricsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
-            metric.getId().getInterval().toString(), metric.getId().getName(), metric.getDataRetention(),
-            getTags(metric)));
+                metric.getId().getInterval().toString(), metric.getId().getName(), metric.getDataRetention(),
+                getTags(metric)));
     }
 
     private Map<String, String> getTags(Metric<? extends MetricData> metric) {
@@ -442,19 +442,33 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
+    public Observable<ResultSet> updateMetricsIndexRx(Observable<? extends Metric> metrics) {
+        return metrics.reduce(new BatchStatement(BatchStatement.Type.UNLOGGED), (batch, metric) -> {
+            batch.add(updateMetricsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
+                    metric.getId().getInterval().toString(), metric.getId().getName()));
+            return batch;
+        }).flatMap(rxSession::execute);
+    }
+
+    @Override
     public Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType type) {
         return rxSession.execute(readMetricsIndex.bind(tenantId, type.getCode()));
     }
 
     @Override
-    public ResultSetFuture insertData(Gauge metric, int ttl) {
-        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
-        for (GaugeData d : metric.getData()) {
-            batchStatement.add(insertGaugeData.bind(ttl, getTags(metric), d.getValue(), metric.getTenantId(),
-                metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
-                metric.getDpart(), d.getTimeUUID()));
-        }
-        return session.executeAsync(batchStatement);
+    public Observable<ResultSet> insertData(Observable<GaugeAndTTL> observable) {
+        return observable.flatMap(pair ->
+                        Observable.from(pair.gauge.getData())
+                                .map(dataPoint -> bindDataPoint(pair.gauge, dataPoint, pair.ttl))
+                                .reduce(new BatchStatement(BatchStatement.Type.UNLOGGED), BatchStatement::add)
+                                .flatMap(rxSession::execute)
+        );
+    }
+
+    private BoundStatement bindDataPoint(Gauge gauge, GaugeData dataPoint, int ttl) {
+        return insertGaugeData.bind(ttl, getTags(gauge), dataPoint.getValue(), gauge.getTenantId(),
+                gauge.getType().getCode(), gauge.getId().getName(), gauge.getId().getInterval().toString(),
+                gauge.getDpart(), dataPoint.getTimeUUID());
     }
 
     @Override
@@ -511,12 +525,13 @@ public class DataAccessImpl implements DataAccess {
     public Observable<ResultSet> findData(Availability metric, long startTime, long endTime, boolean includeWriteTime) {
         if (includeWriteTime) {
             return rxSession.execute(findAvailabilitiesWithWriteTime.bind(metric.getTenantId(),
-                MetricType.AVAILABILITY.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
-                metric.getDpart(), TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
+                    MetricType.AVAILABILITY.getCode(), metric.getId().getName(),
+                    metric.getId().getInterval().toString(), metric.getDpart(), TimeUUIDUtils.getTimeUUID(startTime),
+                    TimeUUIDUtils.getTimeUUID(endTime)));
         } else {
             return rxSession.execute(findAvailabilities.bind(metric.getTenantId(), MetricType.AVAILABILITY.getCode(),
-                metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart(),
-                TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
+                    metric.getId().getName(), metric.getId().getInterval().toString(), metric.getDpart(),
+                    TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
         }
     }
 

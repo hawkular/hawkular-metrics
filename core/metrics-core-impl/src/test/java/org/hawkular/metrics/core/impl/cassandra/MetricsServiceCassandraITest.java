@@ -200,11 +200,11 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         assertMetricIndexMatches("t1", AVAILABILITY, singletonList(m2));
 
         assertDataRetentionsIndexMatches("t1", GAUGE, ImmutableSet.of(new Retention(m3.getId(), 24),
-            new Retention(m1.getId(), 24)));
+                new Retention(m1.getId(), 24)));
 
         assertMetricsTagsIndexMatches("t1", "a1", asList(
-            new MetricsTagsIndexEntry("1", GAUGE, m1.getId()),
-            new MetricsTagsIndexEntry("A", GAUGE, m4.getId())
+                new MetricsTagsIndexEntry("1", GAUGE, m1.getId()),
+                new MetricsTagsIndexEntry("A", GAUGE, m4.getId())
         ));
     }
 
@@ -238,6 +238,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         metricsService.createTenant(new Tenant().setId("t1")).toBlocking().lastOrDefault(null);
 
         Gauge m1 = new Gauge("t1", new MetricId("m1"));
+//        m1.setDataRetention(DEFAULT_TTL);
         m1.addData(new GaugeData(start.getMillis(), 1.1));
         m1.addData(new GaugeData(start.plusMinutes(2).getMillis(), 2.2));
         m1.addData(new GaugeData(start.plusMinutes(4).getMillis(), 3.3));
@@ -293,7 +294,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         addDataInThePast(m2, days(3).toStandardDuration());
 
         verifyTTLDataAccess.gaugeTagTTLLessThanEqualTo(days(14).minus(3).toStandardSeconds().getSeconds());
-        metricsService.tagGaugeData(m2, tags, start.plusMinutes(5).getMillis()).toBlocking();
+        metricsService.tagGaugeData(m2, tags, start.plusMinutes(5).getMillis()).toBlocking().last();
 
         metricsService.createTenant(new Tenant().setId("t3").setRetention(GAUGE, 24))
                       .toBlocking()
@@ -360,7 +361,16 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         DataAccess originalDataAccess = metricsService.getDataAccess();
         try {
             metricsService.setDataAccess(new DelegatingDataAccess(dataAccess) {
+
                 @Override
+                public Observable<ResultSet> insertData(Observable<GaugeAndTTL> observable) {
+                    List<ResultSetFuture> futures = new ArrayList<>();
+                    for (GaugeAndTTL pair : observable.toBlocking().toIterable()) {
+                        futures.add(insertData(pair.gauge, pair.ttl));
+                    }
+                    return Observable.from(futures).flatMap(Observable::from);
+                }
+
                 public ResultSetFuture insertData(Gauge m, int ttl) {
                     int actualTTL = ttl - duration.toStandardSeconds().getSeconds();
                     long writeTime = now().minus(duration).getMillis() * 1000;
@@ -995,7 +1005,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         for (Row row : resultSet) {
             actual.add(new MetricsTagsIndexEntry(row.getString(0), MetricType.fromCode(row.getInt(1)),
-                new MetricId(row.getString(2), Interval.parse(row.getString(3)))));
+                    new MetricId(row.getString(2), Interval.parse(row.getString(3)))));
         }
 
         assertEquals(actual, expected, "The metrics tags index entries do not match");
@@ -1045,10 +1055,10 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         }
 
         @Override
-        public ResultSetFuture insertData(Gauge metric, int ttl) {
-            assertEquals(ttl, gaugeTTL, "The gauge data TTL does not match the expected value when " +
-                "inserting data");
-            return super.insertData(metric, ttl);
+        public Observable<ResultSet> insertData(Observable<GaugeAndTTL> observable) {
+            observable.forEach(pair -> assertEquals(pair.ttl, gaugeTTL,
+                    "The gauge TTL does not match the expected value when inserting data"));
+            return super.insertData(observable);
         }
 
         @Override

@@ -107,13 +107,18 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
+    public Observable<ResultSet> updateMetricsIndexRx(Observable<? extends Metric> metrics) {
+        return delegate.updateMetricsIndexRx(metrics);
+    }
+
+    @Override
     public Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType type) {
         return delegate.findMetricsInMetricsIndex(tenantId, type);
     }
 
     @Override
-    public ResultSetFuture insertData(Gauge metric, int ttl) {
-        return delegate.insertData(metric, ttl);
+    public Observable<ResultSet> insertData(Observable<GaugeAndTTL> gaugeObservable) {
+        return delegate.insertData(gaugeObservable);
     }
 
     @Override

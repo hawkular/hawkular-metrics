@@ -45,7 +45,6 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -81,6 +80,7 @@ import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
+import rx.subjects.PublishSubject;
 
 /**
  * @author John Sanda
@@ -478,27 +478,36 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public Observable<Void> addGaugeData(Observable<Gauge> gaugeObservable) {
-        // This is a first, rough cut at an RxJava implementation for storing metric data. This code will change but
-        // for now the goal is 1) replace ListenableFuture in the API with Observable and 2) make sure tests still
-        // pass. This means that the behavior basically remains the same as before. The idea here is to implement a
-        // pub/sub workflow.
+        // We write to both the data and the metrics_idx tables. Each Gauge can have one or more data points. We
+        // currently write a separate batch statement for each gauge.
+        //
+        // TODO Is there additional overhead of using batch statement when there is only a single insert?
+        //      If there is overhead, then we should avoid using batch statements when the metric has only a single
+        //      data point which could be quite often.
+        //
+        // The metrics_idx table stores the metric id along with any tags, and data retention. The update we perform
+        // here though only inserts the metric id (i.e., name and interval). We need to revisit this logic. The original
+        // intent for updating metrics_idx here is that even if the client does not explicitly create the metric, we
+        // still have it in metrics_idx. In reality, I think clients will be explicitly creating metrics. This will
+        // certainly be the case with the full, integrated hawkular server.
+        //
+        // TODO Determine how much overhead is caused by updating metrics_idx on every write
+        //      If there much overhead, then we might not want to update the index every time we insert data. Maybe
+        //      we periodically update it in the background, so we will still be aware of metrics that have not been
+        //      explicitly created, just not necessarily right away.
 
-        return Observable.create(subscriber -> gaugeObservable
-                        .reduce(new HashMap<>(), (HashMap<Gauge, ResultSetFuture> map, Gauge gauge) -> {
-                            int ttl = getTTL(gauge);
-                            ResultSetFuture future = dataAccess.insertData(gauge, ttl);
-                            map.put(gauge, future);
-                            return map;
-                        })
-                        .map(insertsMap -> {
-                            List<ResultSetFuture> inserts = Lists.newArrayList(insertsMap.values());
-                            inserts.add(dataAccess.updateMetricsIndex(ImmutableList.copyOf(insertsMap.keySet())));
-                            return inserts;
-                        })
-                        .map(Futures::allAsList)
-                        .map(insertsFuture -> RxUtil.from(insertsFuture, metricsTasks))
-                        .subscribe(new VoidSubscriber<>(subscriber))
-        );
+        PublishSubject<Void> results = PublishSubject.create();
+        Observable<ResultSet> dataInserted = dataAccess.insertData(
+                gaugeObservable.map(gauge -> new GaugeAndTTL(gauge, getTTL(gauge))));
+        Observable<ResultSet> indexUpdated = dataAccess.updateMetricsIndexRx(gaugeObservable);
+        dataInserted.concatWith(indexUpdated).subscribe(
+                resultSet -> {},
+                results::onError,
+                () -> {
+                    results.onNext(null);
+                    results.onCompleted();
+                });
+        return results;
     }
 
     @Override
