@@ -109,8 +109,9 @@ public class CassandraSession {
             return this;
         }
 
-        public void build() {
+        public CassandraSession build() {
             CassandraSession cassandraSession = new CassandraSession(options, callback);
+            return cassandraSession;
         }
     }
 

@@ -32,9 +32,11 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
  * Created by mwringe on 20/05/15.
  */
 @Provider
-public class CassandraAvailabilityFilter implements ContainerRequestFilter {
+public class MetricsServiceStateFilter implements ContainerRequestFilter {
 
-    private static final String NO_CASSANDRA_SESSION_MSG = "Service unavailable while initializing.";
+    private static final String STARTING = "Service unavailable while initializing.";
+    private static final String FAILED = "Internal server error.";
+    private static final String STOPPED = "The service is no longer running.";
 
     @Inject
     private MetricsService metricsService;
@@ -42,14 +44,27 @@ public class CassandraAvailabilityFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext containerRequestContext) throws IOException {
-        if (!metricsService.isStarted()) {
+        if (metricsService.getState() == MetricsService.State.STARTING) {
             // Fail since the Cassandra cluster is not yet up yet.
             Response response = Response.status(Response.Status.SERVICE_UNAVAILABLE)
                     .type(APPLICATION_JSON_TYPE)
-                    .entity(new ApiError(NO_CASSANDRA_SESSION_MSG))
+                    .entity(new ApiError(STARTING))
+                    .build();
+            containerRequestContext.abortWith(response);
+        } else if (metricsService.getState() == MetricsService.State.FAILED) {
+            // Fail since an error has occured trying to start the Metrics service
+            Response response = Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .type(APPLICATION_JSON_TYPE)
+                    .entity(new ApiError(FAILED))
+                    .build();
+            containerRequestContext.abortWith(response);
+        } else if (metricsService.getState() == MetricsService.State.STOPPED ||
+                metricsService.getState() == MetricsService.State.STOPPING ) {
+            Response response = Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                    .type(APPLICATION_JSON_TYPE)
+                    .entity(new ApiError(STOPPED))
                     .build();
             containerRequestContext.abortWith(response);
         }
-
     }
 }

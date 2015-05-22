@@ -16,11 +16,9 @@
  */
 package org.hawkular.metrics.api.jaxrs;
 
-import javax.inject.Inject;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 
-import org.hawkular.metrics.core.api.MetricsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,13 +31,8 @@ public class HawkularMetricsRestApp extends Application {
 
     private static final Logger logger = LoggerFactory.getLogger(HawkularMetricsRestApp.class);
 
-    @Inject
-    private MetricsService metricsService;
-
     public HawkularMetricsRestApp() {
-
         logger.info("Hawkular Metrics starting ..");
-
     }
 
 }

@@ -32,6 +32,11 @@ import com.google.common.util.concurrent.ListenableFuture;
  */
 public interface MetricsService {
 
+    public enum State {
+        STARTING, STARTED, STOPPING, STOPPED, FAILED
+    }
+
+
     // For now we will use a default or fake tenant id until we get APIs in place for
     // creating tenants.
     String DEFAULT_TENANT_ID = "test";
@@ -42,7 +47,9 @@ public interface MetricsService {
      */
     void startUp(Session session);
 
-    boolean isStarted();
+    State getState();
+
+    void setState(State state);
 
     void shutdown();
 

@@ -87,6 +87,8 @@ public class MetricsServiceCassandra implements MetricsService {
 
     public static final int DEFAULT_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
+    public volatile State state;
+
     private static class DataRetentionKey {
         private final String tenantId;
         private final MetricId metricId;
@@ -140,26 +142,30 @@ public class MetricsServiceCassandra implements MetricsService {
     private final ListeningExecutorService metricsTasks = MoreExecutors
         .listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
 
-    private boolean started = false;
-
     /**
      * Note that while user specifies the durations in hours, we store them in seconds.
      */
     private final Map<DataRetentionKey, Integer> dataRetentions = new ConcurrentHashMap<>();
 
     public MetricsServiceCassandra() {
+        this.state = State.STARTING;
     }
 
     @Override
     public void startUp(Session s) {
         this.dataAccess = new DataAccessImpl(s);
         loadDataRetentions();
-        started = true;
+        state = State.STARTED;
     }
 
     @Override
-    public boolean isStarted() {
-        return started;
+    public State getState() {
+        return state;
+    }
+
+    @Override
+    public void setState(State state) {
+        this.state = state;
     }
 
     void loadDataRetentions() {
@@ -251,6 +257,7 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public void shutdown() {
+        state = State.STOPPED;
     }
 
     /**
