@@ -30,9 +30,16 @@
     <fileSet>
       <directory>./src/main/docker</directory>
       <outputDirectory></outputDirectory>
-      <filtered>true</filtered>
+      <filtered>false</filtered>
     </fileSet>
   </fileSets>
+  <files>
+    <file>
+      <source>./src/main/docker/Dockerfile</source>
+      <outputDirectory></outputDirectory>
+      <filtered>true</filtered>
+    </file>
+  </files>
   <dependencySets>
     <dependencySet>
       <includes>

@@ -1,0 +1,51 @@
+/**
+ * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * and other contributors as indicated by the @author tags.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+@import url(http://fonts.googleapis.com/css?family=Exo+2);
+
+html {
+  width: 100%;
+}
+
+body {
+  font-family: 'Exo 2', sans-serif;
+}
+
+.content {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 100%;
+  width: 50em
+  padding: 1em;
+  text-align: center;
+}
+
+.logo {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.logo img {
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+h1, h3 {
+  text-align: center;
+  word-wrap:break-word;
+}
