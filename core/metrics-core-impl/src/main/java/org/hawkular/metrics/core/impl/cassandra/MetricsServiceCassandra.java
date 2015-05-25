@@ -82,6 +82,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import rx.Observable;
+import rx.functions.Func1;
 import rx.subjects.PublishSubject;
 
 /**
@@ -202,10 +203,10 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     private static class MergeTagsFunction<T extends MetricData> implements
-        Function<List<Map<MetricId, Set<T>>>, Map<MetricId, Set<T>>> {
+        Func1<List<Map<MetricId, Set<T>>>, Map<MetricId, Set<T>>> {
 
         @Override
-        public Map<MetricId, Set<T>> apply(List<Map<MetricId, Set<T>>> taggedDataMaps) {
+        public Map<MetricId, Set<T>> call(List<Map<MetricId, Set<T>>> taggedDataMaps) {
             if (taggedDataMaps.isEmpty()) {
                 return Collections.emptyMap();
             }
@@ -687,25 +688,22 @@ public class MetricsServiceCassandra implements MetricsService {
 
     @Override
     public Observable<Map<MetricId, Set<GaugeData>>> findGaugeDataByTags(String tenantId, Map<String, String> tags) {
-        MergeTagsFunction f = new MergeTagsFunction();
-
         return Observable.from(tags.entrySet())
                 .flatMap(e -> dataAccess.findGaugeDataByTag(tenantId, e.getKey(), e.getValue()))
                 .map(TaggedGaugeDataMapper::apply)
                 .toList()
-                .map(r -> f.apply(r));
+                .map(new MergeTagsFunction<>());
     }
 
     @Override
     public Observable<Map<MetricId, Set<AvailabilityData>>> findAvailabilityByTags(String tenantId,
         Map<String, String> tags) {
-        MergeTagsFunction f = new MergeTagsFunction();
 
         return Observable.from(tags.entrySet())
                 .flatMap(e -> dataAccess.findAvailabilityByTag(tenantId, e.getKey(), e.getValue()))
                 .map(TaggedAvailabilityMapper::apply)
                 .toList()
-                .map(r -> f.apply(r));
+                .map(new MergeTagsFunction<>());
     }
 
     @Override
