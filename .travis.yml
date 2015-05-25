@@ -39,4 +39,7 @@ after_success:
   then
     mvn -s .travis.maven.settings.xml deploy -DskipTests ;
     ./.travis.swagger.sh ;
+    # Trigger the docker image builds (hawkular-metrics & hawkular-cassandra)
+    curl -H "Content-Type: application/json" --data '{"build": true}' -X POST https://registry.hub.docker.com/u/hawkular/hawkular-metrics/trigger/5e78d947-bbc3-403d-804d-1b9f92d78ed8/ ;
+    curl -H "Content-Type: application/json" --data '{"build": true}' -X POST https://registry.hub.docker.com/u/hawkular/hawkular-cassandra/trigger/4c78fb4a-acad-4801-83a7-0794347bbe90/ ;
   fi
