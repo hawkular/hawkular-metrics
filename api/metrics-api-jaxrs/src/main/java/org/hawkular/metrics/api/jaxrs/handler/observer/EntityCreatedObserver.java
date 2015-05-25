@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.hawkular.metrics.api.jaxrs.handler;
+package org.hawkular.metrics.api.jaxrs.handler.observer;
 
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 

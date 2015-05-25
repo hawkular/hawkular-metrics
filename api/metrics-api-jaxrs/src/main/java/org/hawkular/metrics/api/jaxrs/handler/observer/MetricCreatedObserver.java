@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.hawkular.metrics.api.jaxrs.handler;
+package org.hawkular.metrics.api.jaxrs.handler.observer;
 
 import java.net.URI;
 
@@ -24,26 +24,26 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
-import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
+import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 
 /**
- * An implementation of {@code EntityCreatedObserver} for tenant entities.
+ * An implementation of {@code EntityCreatedObserver} for metric entities.
  *
  * @author Thomas Segismont
  */
-public class TenantCreatedObserver extends EntityCreatedObserver<TenantAlreadyExistsException> {
+public class MetricCreatedObserver extends EntityCreatedObserver<MetricAlreadyExistsException> {
 
-    public TenantCreatedObserver(AsyncResponse asyncResponse, URI location) {
+    public MetricCreatedObserver(AsyncResponse asyncResponse, URI location) {
         super(
                 asyncResponse,
                 location,
-                TenantAlreadyExistsException.class,
-                TenantCreatedObserver::getTenantAlreadyExistsResponse
+                MetricAlreadyExistsException.class,
+                MetricCreatedObserver::getMetricAlreadyExistsResponse
         );
     }
 
-    private static Response getTenantAlreadyExistsResponse(TenantAlreadyExistsException e) {
-        String message = "A tenant with id [" + e.getTenantId() + "] already exists";
+    private static Response getMetricAlreadyExistsResponse(MetricAlreadyExistsException e) {
+        String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
         return Response.status(Status.CONFLICT).entity(new ApiError(message)).build();
     }
 }
