@@ -16,12 +16,12 @@
  */
 package org.hawkular.metrics.api.jaxrs.handler.observer;
 
-import org.hawkular.metrics.api.jaxrs.ApiError;
+import javax.ws.rs.container.AsyncResponse;
+import javax.ws.rs.core.Response;
 
 import com.datastax.driver.core.ResultSet;
 
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.core.Response;
+import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 
 import rx.Observer;
 
@@ -45,7 +45,7 @@ public class ResultSetObserver implements Observer<ResultSet> {
 
     @Override
     public void onError(Throwable t) {
-        asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build());
+        asyncResponse.resume(ApiUtils.serverError(t));
     }
 
     @Override

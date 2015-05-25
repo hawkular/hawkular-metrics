@@ -83,7 +83,7 @@ public class MetricHandler {
 
         try {
             metricsService.findMetrics(tenantId, MetricType.fromTextCode(type))
-                    .reduce(new ArrayList<>(), ApiUtils::addToCollection)
+                    .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
 

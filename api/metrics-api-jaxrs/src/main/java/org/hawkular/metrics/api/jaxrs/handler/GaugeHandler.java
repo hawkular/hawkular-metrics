@@ -25,11 +25,8 @@ import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.executeAsync;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Predicate;
 
 import javax.inject.Inject;
@@ -289,7 +286,7 @@ public class GaugeHandler {
             long endTime = end == null ? now : end;
 
             metricsService.findGaugeData(tenantId, new MetricId(id), startTime, endTime)
-                    .reduce(new ArrayList<>(), ApiUtils::addToCollection)
+                    .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         } else {
@@ -417,23 +414,15 @@ public class GaugeHandler {
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam("Tag list") @PathParam("tags") Tags tags
     ) {
-        Observable<Map<MetricId, Set<GaugeData>>> gaugeDataByTags = metricsService.findGaugeDataByTags(tenantId,
-            tags.getTags());
-
-        gaugeDataByTags.map(input -> {
-            Map<String, Set<GaugeData>> result = new HashMap<>(input.size());
-            for (Map.Entry<MetricId, Set<GaugeData>> entry : input.entrySet()) {
-                result.put(entry.getKey().getName(), entry.getValue());
-            }
-            return result;
-        }).subscribe(m -> { // @TODO Repeated code, refactor and use Optional?
-                if (m.isEmpty()) {
-                    asyncResponse.resume(Response.noContent().build());
-                } else {
-                    asyncResponse.resume(Response.ok(m).build());
-                }
-            }, t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
-
+        metricsService.findGaugeDataByTags(tenantId, tags.getTags())
+            .flatMap(input -> Observable.from(input.entrySet())).toMap(e -> e.getKey().getName(), e2 -> e2.getValue())
+            .subscribe(m -> { // @TODO Repeated code
+                    if (m.isEmpty()) {
+                        asyncResponse.resume(Response.noContent().build());
+                    } else {
+                        asyncResponse.resume(Response.ok(m).build());
+                    }
+                }, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
 
     @POST

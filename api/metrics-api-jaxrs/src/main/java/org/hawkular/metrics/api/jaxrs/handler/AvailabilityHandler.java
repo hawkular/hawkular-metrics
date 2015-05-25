@@ -146,7 +146,6 @@ public class AvailabilityHandler {
         metricsService.getMetricTags(tenantId, MetricType.AVAILABILITY, new MetricId(id)).subscribe(
                 optional -> asyncResponse.resume(ApiUtils.valueToResponse(optional)),
                 t -> asyncResponse.resume(ApiUtils.serverError(t)));
-        // @TODO Above is repeated code, refactor (GaugeHandler has it also)
     }
 
     @PUT
@@ -279,14 +278,8 @@ public class AvailabilityHandler {
         Availability metric = new Availability(tenantId, new MetricId(id));
         if (bucketsCount == null && bucketDuration == null) {
             metricsService.findAvailabilityData(tenantId, metric.getId(), startTime, endTime, distinct).toList()
-                    // @TODO Refactor this subscriber.. repeated code
-                    .subscribe(l -> {
-                        if (l.isEmpty()) {
-                            asyncResponse.resume(Response.noContent().build());
-                        } else {
-                            asyncResponse.resume(Response.ok(l).build());
-                        }
-                    }, t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
+                .map(ApiUtils::collectionToResponse)
+                .subscribe(r -> asyncResponse.resume(r), t -> ApiUtils.serverError(t));
         } else if (bucketsCount != null && bucketDuration != null) {
             asyncResponse.resume(badRequest(new ApiError("Both buckets and bucketDuration parameters are used")));
         } else {
@@ -303,13 +296,9 @@ public class AvailabilityHandler {
             }
 
             metricsService.findAvailabilityStats(metric, startTime, endTime, buckets).map(
-                    BucketedOutput::getData).subscribe(m -> {
-                if (m.isEmpty()) {
-                    asyncResponse.resume(Response.noContent().build());
-                } else {
-                    asyncResponse.resume(Response.ok(m).build());
-                }
-            }, t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
+                    BucketedOutput::getData)
+                .map(ApiUtils::collectionToResponse)
+                .subscribe(r -> asyncResponse.resume(r), t -> ApiUtils.serverError(t));
         }
     }
 

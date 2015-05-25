@@ -24,25 +24,24 @@ import java.util.Optional;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 
-import org.hawkular.metrics.api.jaxrs.ApiError;
-
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.hawkular.metrics.api.jaxrs.ApiError;
+
 /**
  * @author jsanda
  */
 public class ApiUtils {
 
-    public static <E, C extends Collection<E>> C addToCollection(C collection, E element) {
-        collection.add(element);
-        return collection;
+    public static Response collectionToResponse(Collection<?> collection) {
+        return collection.isEmpty() ? noContent() : Response.ok(collection).build();
     }
 
-    public static Response collectionToResponse(Collection<?> collection) {
+    public static Response mapToResponse(Map<?, ?> collection) {
         return collection.isEmpty() ? noContent() : Response.ok(collection).build();
     }
 
@@ -59,18 +58,12 @@ public class ApiUtils {
         return optional.map(value -> Response.ok(value).build()).orElse(noContent());
     }
 
-    public static final Function<Void, Response> MAP_VOID = v -> Response.ok().build();
-
+    @Deprecated
     public static final Function<List<Void>, Response> MAP_LIST_VOID = v -> Response.ok().build();
 
-    public static final Function<Optional<?>, Response> MAP_VALUE = optional ->
-            optional.map(value -> Response.ok(value).build()).orElse(noContent());
-
+    @Deprecated
     public static final Function<Collection<?>, Response> MAP_COLLECTION = collection ->
             collection.isEmpty() ? noContent() : Response.ok(collection).build();
-
-    public static final Function<Map<?, ?>, Response> MAP_MAP = map ->
-            map.isEmpty() ? noContent() : Response.ok(map).build();
 
     public static Response noContent() {
         return Response.noContent().build();
