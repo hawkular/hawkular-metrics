@@ -16,6 +16,8 @@
 # limitations under the License.
 #
 
+set -x
+
 # generate the docs
 mvn clean compile -Pdocgen -DskipTests -Dcheckstyle.skip -Dlicense.skip
 
@@ -23,7 +25,9 @@ FILE_NAME="rest-metrics.adoc"
 FILE_PATH="api/metrics-api-jaxrs/target/generated/$FILE_NAME"
 
 # don't push the empty docs
-[[ -s $FILE_PATH ]] || echo "$FILE_PATH is empty" && exit 1
+[[ -s $FILE_PATH ]] || {
+  echo "$FILE_PATH is empty" && exit 1
+}
 
 REPO="hawkular/hawkular.github.io"
 BRANCH="swagger"
