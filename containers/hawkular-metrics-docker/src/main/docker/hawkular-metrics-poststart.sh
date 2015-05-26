@@ -16,6 +16,11 @@
 # limitations under the License.
 #
 
-nodetool decommission
-nodetool stopdaemon
-exit 0
+PING_URL=http://$HOSTNAME:$HAWKULAR_METRICS_ENDPOINT_PORT/hawkular/metrics/ping?tenantId=status
+
+STATUS_CODE=`curl -L -s -o /dev/null -w "%{http_code}" $PING_URL`
+
+until [ $STATUS_CODE -eq 200 ]; do
+  sleep 1;
+  STATUS_CODE=`curl -L -s -o /dev/null -w "%{http_code}" $PING_URL`
+done

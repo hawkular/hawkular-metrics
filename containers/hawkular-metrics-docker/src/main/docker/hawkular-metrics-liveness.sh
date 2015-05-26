@@ -16,6 +16,10 @@
 # limitations under the License.
 #
 
-nodetool decommission
-nodetool stopdaemon
-exit 0
+STATUS_CODE=`curl -L -s -o /dev/null -w "%{http_code}" http://$HOSTNAME:$HAWKULAR_METRICS_ENDPOINT_PORT/hawkular/metrics/ping?tenantId=status`
+
+if [ $STATUS_CODE -eq 200 ]; then
+  exit 0 # We can ping the endpoint without error, exit without error to specify that it is ready to be consumed by the service
+else
+  exit 1 # We can't ping the endpoint, exit to specify that it is not yet ready for the service
+fi
