@@ -127,7 +127,7 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findData(Gauge metric, long startTime, long endTime, Order order) {
+    public Observable<ResultSet> findData(Gauge metric, long startTime, long endTime, Order order) {
         return delegate.findData(metric, startTime, endTime, order);
     }
 
@@ -158,13 +158,13 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture deleteGuageMetric(String tenantId, String metric, Interval interval, long dpart) {
-        return delegate.deleteGuageMetric(tenantId, metric, interval, dpart);
+    public Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart) {
+        return delegate.deleteGaugeMetric(tenantId, metric, interval, dpart);
     }
 
     @Override
-    public ResultSetFuture findAllGuageMetrics() {
-        return delegate.findAllGuageMetrics();
+    public Observable<ResultSet> findAllGaugeMetrics() {
+        return delegate.findAllGaugeMetrics();
     }
 
     @Override

@@ -43,7 +43,6 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -596,19 +595,11 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Boolean> idExists(final String id) {
-        ResultSetFuture future = dataAccess.findAllGuageMetrics();
-        return Futures.transform(future, new Function<ResultSet, Boolean>() {
-            @Override
-            public Boolean apply(ResultSet resultSet) {
-                for (Row row : resultSet) {
-                    if (id.equals(row.getString(2))) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-        }, metricsTasks);
+    public Observable<Boolean> idExists(final String id) {
+        return dataAccess.findAllGaugeMetrics().flatMap(Observable::from)
+                .filter(row -> id.equals(row.getString(2)))
+                .map(r -> Boolean.TRUE)
+                .defaultIfEmpty(Boolean.FALSE);
     }
 
     @Override
@@ -707,13 +698,11 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<long[]>> getPeriods(String tenantId, MetricId id, Predicate<Double> predicate,
-        long start, long end) {
-        ResultSetFuture resultSetFuture = dataAccess.findData(new Gauge(tenantId, id), start, end, Order.ASC);
-        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(resultSetFuture,
-                Functions.MAP_GAUGE_DATA, metricsTasks);
-
-        return Futures.transform(dataFuture, (List<GaugeData> data) -> {
+    public Observable<List<long[]>> getPeriods(String tenantId, MetricId id, Predicate<Double> predicate,
+                                               long start, long end) {
+        return dataAccess.findData(new Gauge(tenantId, id), start, end, Order.ASC).flatMap(Observable::from).map
+                (Functions::getGaugeData)
+        .toList().map(data -> {
             List<long[]> periods = new ArrayList<>(data.size());
             long[] period = null;
             GaugeData previous = null;
@@ -735,9 +724,8 @@ public class MetricsServiceCassandra implements MetricsService {
                 period[1] = previous.getTimestamp();
                 periods.add(period);
             }
-
             return periods;
-        }, metricsTasks);
+        });
     }
 
     private int getTTL(Metric<?> metric) {

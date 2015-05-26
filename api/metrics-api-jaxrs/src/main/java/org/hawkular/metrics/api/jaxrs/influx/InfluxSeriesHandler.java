@@ -241,7 +241,7 @@ public class InfluxSeriesHandler {
         }
         String columnName = getColumnName(queryDefinitions);
 
-        Observable.from(metricsService.idExists(metric))
+        metricsService.idExists(metric)
                   .flatMap(
                           idExists -> {
                               if (idExists != Boolean.TRUE) {

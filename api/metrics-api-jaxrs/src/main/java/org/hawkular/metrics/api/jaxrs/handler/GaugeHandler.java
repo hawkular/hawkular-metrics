@@ -346,61 +346,56 @@ public class GaugeHandler {
             @ApiParam(value = "A threshold against which values are compared", required = true)
             @QueryParam("threshold") double threshold,
             @ApiParam(value = "A comparison operation to perform between values and the threshold."
-                              + " Supported operations include ge, gte, lt, lte, and eq", required = true)
+                              + " Supported operations include ge, gte, lt, lte, and eq", required = true,
+                      allowableValues = "[ge, gte, lt, lte, eq]")
             @QueryParam("op") String operator
     ) {
-        executeAsync(
-                asyncResponse,
-                () -> {
-                    long now = System.currentTimeMillis();
-                    Long startTime = start;
-                    Long endTime = end;
-                    if (start == null) {
-                        startTime = now - EIGHT_HOURS;
-                    }
-                    if (end == null) {
-                        endTime = now;
-                    }
+        long now = System.currentTimeMillis();
+        Long startTime = start;
+        Long endTime = end;
+        if (start == null) {
+            startTime = now - EIGHT_HOURS;
+        }
+        if (end == null) {
+            endTime = now;
+        }
 
-                    Predicate<Double> predicate;
-                    switch (operator) {
-                    case "lt":
-                        predicate = d -> d < threshold;
-                        break;
-                    case "lte":
-                        predicate = d -> d <= threshold;
-                        break;
-                    case "eq":
-                        predicate = d -> d == threshold;
-                        break;
-                    case "neq":
-                        predicate = d -> d != threshold;
-                        break;
-                    case "gt":
-                        predicate = d -> d > threshold;
-                        break;
-                    case "gte":
-                        predicate = d -> d >= threshold;
-                        break;
-                    default:
-                        predicate = null;
-                    }
+        Predicate<Double> predicate;
+        switch (operator) { // Why not enum?
+            case "lt":
+                predicate = d -> d < threshold;
+                break;
+            case "lte":
+                predicate = d -> d <= threshold;
+                break;
+            case "eq":
+                predicate = d -> d == threshold;
+                break;
+            case "neq":
+                predicate = d -> d != threshold;
+                break;
+            case "gt":
+                predicate = d -> d > threshold;
+                break;
+            case "gte":
+                predicate = d -> d >= threshold;
+                break;
+            default:
+                predicate = null;
+        }
 
-                    if (predicate == null) {
-                        return Futures.immediateFuture(
-                                badRequest(
-                                        new ApiError(
-                                                "Invalid value for op parameter. Supported values are lt, "
-                                                + "lte, eq, gt, gte."
-                                        )
-                                )
-                        );
-                    } else {
-                        ListenableFuture<List<long[]>> future = metricsService.getPeriods(tenantId, new MetricId(id),
-                                predicate, startTime, endTime);
-                        return Futures.transform(future, ApiUtils.MAP_COLLECTION);
-                    }
-                });
+        if (predicate == null) {
+            asyncResponse.resume(badRequest(
+                    new ApiError(
+                            "Invalid value for op parameter. Supported values are lt, "
+                                    + "lte, eq, gt, gte."
+                    )
+            ));
+        } else {
+            metricsService.getPeriods(tenantId, new MetricId(id), predicate, startTime, endTime)
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+        }
     }
 
     @GET

@@ -910,8 +910,8 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
         metricsService.addGaugeData(Observable.just(m1)).toBlocking().lastOrDefault(null);
 
-        List<long[]> actual = getUninterruptibly(metricsService.getPeriods(tenantId, m1.getId(),
-            value -> value > threshold, start.getMillis(), now().getMillis()));
+        List<long[]> actual = metricsService.getPeriods(tenantId, m1.getId(),
+            value -> value > threshold, start.getMillis(), now().getMillis()).toBlocking().lastOrDefault(null);
         List<long[]> expected = asList(
             new long[] {start.plusMinutes(2).getMillis(), start.plusMinutes(3).getMillis()},
             new long[] {start.plusMinutes(6).getMillis(), start.plusMinutes(6).getMillis()},

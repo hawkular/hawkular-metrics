@@ -117,7 +117,7 @@ public interface MetricsService {
     ListenableFuture<List<Counter>> findCounters(String group, List<String> counterNames);
 
     /** Check if a metric with the passed {id} has been stored in the system */
-    ListenableFuture<Boolean> idExists(String id);
+    Observable<Boolean> idExists(String id);
 
     Observable<ResultSet> tagGaugeData(Gauge metric, Map<String, String> tags,
                                        long start, long end);
@@ -160,6 +160,6 @@ public interface MetricsService {
      * @return Each element in the list is a two element array. The first element is the start time inclusive for which
      * the predicate matches, and the second element is the end time inclusive for which the predicate matches.
      */
-    ListenableFuture<List<long[]>> getPeriods(String tenantId, MetricId id, Predicate<Double> predicate, long start,
-        long end);
+    Observable<List<long[]>> getPeriods(String tenantId, MetricId id, Predicate<Double> predicate, long start,
+                                        long end);
 }

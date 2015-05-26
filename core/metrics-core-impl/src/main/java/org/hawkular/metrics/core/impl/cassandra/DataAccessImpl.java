@@ -479,15 +479,15 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture findData(Gauge metric, long startTime, long endTime, Order order) {
+    public Observable<ResultSet> findData(Gauge metric, long startTime, long endTime, Order order) {
         if (order == Order.ASC) {
-            return session.executeAsync(findGaugeDataByDateRangeExclusiveASC.bind(metric.getTenantId(),
-                MetricType.GAUGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
-                metric.getDpart(), TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
+            return rxSession.execute(findGaugeDataByDateRangeExclusiveASC.bind(metric.getTenantId(),
+                    MetricType.GAUGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+                    metric.getDpart(), TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
         } else {
-            return session.executeAsync(findGaugeDataByDateRangeExclusive.bind(metric.getTenantId(),
-                MetricType.GAUGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
-                metric.getDpart(), TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
+            return rxSession.execute(findGaugeDataByDateRangeExclusive.bind(metric.getTenantId(),
+                    MetricType.GAUGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+                    metric.getDpart(), TimeUUIDUtils.getTimeUUID(startTime), TimeUUIDUtils.getTimeUUID(endTime)));
         }
     }
 
@@ -545,14 +545,14 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture deleteGuageMetric(String tenantId, String metric, Interval interval, long dpart) {
-        return session.executeAsync(deleteGaugeMetric.bind(tenantId, MetricType.GAUGE.getCode(), metric,
-            interval.toString(), dpart));
+    public Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart) {
+        return rxSession.execute(deleteGaugeMetric.bind(tenantId, MetricType.GAUGE.getCode(), metric,
+                                                        interval.toString(), dpart));
     }
 
     @Override
-    public ResultSetFuture findAllGuageMetrics() {
-        return session.executeAsync(findGaugeMetrics.bind());
+    public Observable<ResultSet> findAllGaugeMetrics() {
+        return rxSession.execute(findGaugeMetrics.bind());
     }
 
     @Override

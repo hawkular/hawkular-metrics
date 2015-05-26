@@ -72,7 +72,7 @@ public interface DataAccess {
 
     Observable<ResultSet> findData(String tenantId, MetricId id, long startTime, long endTime);
 
-    ResultSetFuture findData(Gauge metric, long startTime, long endTime, Order order);
+    Observable<ResultSet> findData(Gauge metric, long startTime, long endTime, Order order);
 
     Observable<ResultSet> findData(String tenantId, MetricId id, long startTime, long endTime,
             boolean includeWriteTime);
@@ -85,9 +85,9 @@ public interface DataAccess {
 
     Observable<ResultSet> findData(Availability metric, long timestamp);
 
-    ResultSetFuture deleteGuageMetric(String tenantId, String metric, Interval interval, long dpart);
+    Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart);
 
-    ResultSetFuture findAllGuageMetrics();
+    Observable<ResultSet> findAllGaugeMetrics();
 
     Observable<ResultSet> insertGaugeTag(String tag, String tagValue, Gauge metric, Observable<GaugeData> data);
 
