@@ -598,6 +598,7 @@ public class MetricsServiceCassandra implements MetricsService {
     public Observable<Boolean> idExists(final String id) {
         return dataAccess.findAllGaugeMetrics().flatMap(Observable::from)
                 .filter(row -> id.equals(row.getString(2)))
+                .take(1)
                 .map(r -> Boolean.TRUE)
                 .defaultIfEmpty(Boolean.FALSE);
     }
