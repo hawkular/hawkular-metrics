@@ -22,7 +22,6 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.executeAsync;
 
 import java.net.URI;
 import java.util.List;
@@ -46,8 +45,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import com.datastax.driver.core.ResultSet;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
@@ -207,10 +204,7 @@ public class GaugeHandler {
             Gauge metric = new Gauge(tenantId, new MetricId(id));
             metric.getData().addAll(data);
             Observable<Void> observable = metricsService.addGaugeData(Observable.just(metric));
-            observable.subscribe(
-                    noArg -> {},
-                    t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()),
-                    () -> asyncResponse.resume(Response.ok().build()));
+            observable.subscribe(new ResultSetObserver(asyncResponse));
         }
     }
 
@@ -229,10 +223,7 @@ public class GaugeHandler {
         } else {
             metrics.forEach(m -> m.setTenantId(tenantId));
             Observable<Void> observable = metricsService.addGaugeData(Observable.from(metrics));
-            observable.subscribe(
-                    noArg -> {},
-                    t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()),
-                    () -> asyncResponse.resume(Response.ok().build()));
+            observable.subscribe(new ResultSetObserver(asyncResponse));
         }
     }
 
@@ -289,45 +280,38 @@ public class GaugeHandler {
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+        } else if (bucketsCount != null && bucketDuration != null) {
+                asyncResponse.resume(
+                        badRequest(
+                                new ApiError(
+                                        "Both buckets and bucketDuration parameters are used"
+                                )
+                        )
+                );
         } else {
-            executeAsync(
-                    asyncResponse,
-                    () -> {
-                        long now = System.currentTimeMillis();
-                        long startTime = start == null ? now - EIGHT_HOURS : start;
-                        long endTime = end == null ? now : end;
+            long now = System.currentTimeMillis();
+            long startTime = start == null ? now - EIGHT_HOURS : start;
+            long endTime = end == null ? now : end;
 
-                        Gauge metric = new Gauge(tenantId, new MetricId(id));
+            Gauge metric = new Gauge(tenantId, new MetricId(id));
 
-                        if (bucketsCount != null && bucketDuration != null) {
-                            return Futures.immediateFuture(
-                                    badRequest(
-                                            new ApiError(
-                                                    "Both buckets and bucketDuration parameters are used"
-                                            )
-                                    )
-                            );
-                        }
+            Buckets buckets;
+            try {
+                if (bucketsCount != null) {
+                    buckets = Buckets.fromCount(startTime, endTime, bucketsCount);
+                } else {
+                    buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
+                }
+            } catch (IllegalArgumentException e) {
+                asyncResponse.resume(badRequest(new ApiError("Bucket: " + e.getMessage())));
+                return;
+            }
 
-                        Buckets buckets;
-                        try {
-                            if (bucketsCount != null) {
-                                buckets = Buckets.fromCount(startTime, endTime, bucketsCount);
-                            } else {
-                                buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
-                            }
-                        } catch (IllegalArgumentException e) {
-                            return Futures.immediateFuture(badRequest(new ApiError("Bucket: " + e.getMessage())));
-                        }
-
-                        ListenableFuture<BucketedOutput<GaugeBucketDataPoint>> dataFuture;
-                        dataFuture = metricsService.findGaugeStats(metric, startTime, endTime, buckets);
-
-                        ListenableFuture<List<GaugeBucketDataPoint>> outputFuture;
-                        outputFuture = Futures.transform(dataFuture, BucketedOutput<GaugeBucketDataPoint>::getData);
-
-                        return Futures.transform(outputFuture, ApiUtils.MAP_COLLECTION);
-                    });
+            ListenableFuture<BucketedOutput<GaugeBucketDataPoint>> dataFuture;
+            metricsService.findGaugeStats(metric, startTime, endTime, buckets)
+                    .map(BucketedOutput<GaugeBucketDataPoint>::getData)
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         }
     }
 
@@ -429,7 +413,7 @@ public class GaugeHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") final String id, @ApiParam(required = true) TagRequest params
     ) {
-        Observable<ResultSet> resultSetObservable;
+        Observable<Void> resultSetObservable;
         Gauge metric = new Gauge(tenantId, new MetricId(id));
         if (params.getTimestamp() != null) {
             resultSetObservable = metricsService.tagGaugeData(metric, params.getTags(), params.getTimestamp());

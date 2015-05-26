@@ -793,12 +793,11 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         metricsService.addGaugeData(Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
 
         Map<String, String> tags1 = ImmutableMap.of("t1", "");
-        ResultSet tagFuture = metricsService.tagGaugeData(m1, tags1, d1.getTimestamp())
-                .toBlocking().lastOrDefault(null);
+        metricsService.tagGaugeData(m1, tags1, d1.getTimestamp()).toBlocking().lastOrDefault(null);
 //        assertTrue(tagFuture.wasApplied(), "Tagging " + d1 + " returned unexpected results");
 
         Map<String, String> tags2 = ImmutableMap.of("t1", "", "t2", "", "t3", "");
-        tagFuture = metricsService.tagGaugeData(m1, tags2, d2.getTimestamp()).toBlocking().lastOrDefault(null);
+        metricsService.tagGaugeData(m1, tags2, d2.getTimestamp()).toBlocking().lastOrDefault(null);
 //        assertTrue(tagFuture.wasApplied(), "Tagging " + d2 + " returned unexpected results");
 
 //        tagFuture = metricsService.tagGaugeData(m1, tags1, start.minusMinutes(10).getMillis());
@@ -806,11 +805,11 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 //                "No data should be returned since there is no data for this time");
 
         Map<String, String> tags3 = ImmutableMap.of("t1", "", "t2", "");
-        tagFuture = metricsService.tagGaugeData(m2, tags3, d3.getTimestamp()).toBlocking().lastOrDefault(null);
+        metricsService.tagGaugeData(m2, tags3, d3.getTimestamp()).toBlocking().lastOrDefault(null);
 //        assertTrue(tagFuture.wasApplied(), "Tagging " + d3 + " returned unexpected results");
 
         Map<String, String> tags4 = ImmutableMap.of("t3", "", "t4", "");
-        tagFuture = metricsService.tagGaugeData(m2, tags4, d4.getTimestamp()).toBlocking().lastOrDefault(null);
+        metricsService.tagGaugeData(m2, tags4, d4.getTimestamp()).toBlocking().lastOrDefault(null);
 //        assertTrue(tagFuture.wasApplied(), "Tagging " + d4 + " returned unexpected results");
 
         Map<MetricId, Set<GaugeData>> actual = metricsService.findGaugeDataByTags(tenant,
@@ -860,11 +859,11 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         metricsService.addAvailabilityData(asList(m1, m2, m3)).toBlocking().lastOrDefault(null);
 
         Map<String, String> tags1 = ImmutableMap.of("t1", "");
-        ResultSet tagFuture = metricsService.tagAvailabilityData(m1, tags1, a1.getTimestamp()).toBlocking().last();
+        metricsService.tagAvailabilityData(m1, tags1, a1.getTimestamp()).toBlocking().lastOrDefault(null);
 //        assertTrue(tagFuture.wasApplied(), "Tagging " + a1 + " returned unexpected results");
 
         Map<String, String> tags2 = ImmutableMap.of("t1", "", "t2", "", "t3", "");
-        tagFuture = metricsService.tagAvailabilityData(m1, tags2, a2.getTimestamp()).toBlocking().last();
+        metricsService.tagAvailabilityData(m1, tags2, a2.getTimestamp()).toBlocking().lastOrDefault(null);
 //        assertTrue(tagFuture.wasApplied(), "Tagging " + a2 + " returned unexpected results");
 
 //        tagFuture = metricsService.tagAvailabilityData(m1, tags1, start.minusMinutes(10).getMillis());
@@ -872,11 +871,11 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 //            "No data should be returned since there is no data for this time");
 
         Map<String, String> tags3 = ImmutableMap.of("t2", "", "t3", "");
-        tagFuture = metricsService.tagAvailabilityData(m2, tags3, a3.getTimestamp()).toBlocking().last();
+        metricsService.tagAvailabilityData(m2, tags3, a3.getTimestamp()).toBlocking().lastOrDefault(null);
 //        assertTrue(tagFuture.wasApplied(), "Tagging " + a3 + " returned unexpected results");
 
         Map<String, String> tags4 = ImmutableMap.of("t3", "", "t4", "");
-        metricsService.tagAvailabilityData(m2, tags4, a4.getTimestamp()).toBlocking().last();
+        metricsService.tagAvailabilityData(m2, tags4, a4.getTimestamp()).toBlocking().lastOrDefault(null);
 //        assertTrue(tagFuture.wasApplied(), "Tagging " + a4 + " returned unexpected results");
 
         Map<MetricId, Set<AvailabilityData>> actual = metricsService.findAvailabilityByTags(

@@ -46,7 +46,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import com.datastax.driver.core.ResultSet;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
@@ -311,7 +310,7 @@ public class AvailabilityHandler {
             @PathParam("id") final String id,
             @ApiParam(required = true) TagRequest params
     ) {
-        Observable<ResultSet> resultSetObservable;
+        Observable<Void> resultSetObservable;
         Availability metric = new Availability(tenantId, new MetricId(id));
         if (params.getTimestamp() != null) {
             resultSetObservable = metricsService.tagAvailabilityData(metric, params.getTags(), params.getTimestamp());

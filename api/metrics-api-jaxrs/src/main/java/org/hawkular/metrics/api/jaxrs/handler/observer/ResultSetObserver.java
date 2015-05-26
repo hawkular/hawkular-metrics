@@ -19,8 +19,6 @@ package org.hawkular.metrics.api.jaxrs.handler.observer;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 
-import com.datastax.driver.core.ResultSet;
-
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 
 import rx.Observer;
@@ -30,7 +28,7 @@ import rx.Observer;
  *
  * @author miburman
  */
-public class ResultSetObserver implements Observer<ResultSet> {
+public class ResultSetObserver implements Observer<Void> {
 
     private AsyncResponse asyncResponse;
 
@@ -49,7 +47,7 @@ public class ResultSetObserver implements Observer<ResultSet> {
     }
 
     @Override
-    public void onNext(ResultSet rows) {
+    public void onNext(Void aVoid) {
 
     }
 }
