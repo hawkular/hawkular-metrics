@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-STATUS_CODE=`curl -L -s -o /dev/null -w "%{http_code}" http://$HOSTNAME:$HAWKULAR_METRICS_ENDPOINT_PORT/hawkular/metrics/ping?tenantId=status`
+STATUS_CODE=`curl -H "Hawkular-Tenant: status" -L -s -o /dev/null -w "%{http_code}" http://$HOSTNAME:$HAWKULAR_METRICS_ENDPOINT_PORT/hawkular/metrics/ping`
 
 if [ $STATUS_CODE -eq 200 ]; then
   exit 0 # We can ping the endpoint without error, exit without error to specify that it is ready to be consumed by the service

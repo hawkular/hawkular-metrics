@@ -16,11 +16,24 @@
 # limitations under the License.
 #
 
-PING_URL=http://$HOSTNAME:$HAWKULAR_METRICS_ENDPOINT_PORT/hawkular/metrics/ping?tenantId=status
+# The ping endpoint to test
+PING_URL=http://$HOSTNAME:$HAWKULAR_METRICS_ENDPOINT_PORT/hawkular/metrics/ping
 
-STATUS_CODE=`curl -L -s -o /dev/null -w "%{http_code}" $PING_URL`
+# The command to get the HTTP status code
+STATUS_COMMAND='curl -H "Hawkular-Tenant: status" -L -s -o /dev/null -w "%{http_code}" $PING_URL'
 
+STATUS_CODE=`eval $STATUS_COMMAND`
+
+echo $STATUS_CODE
+
+# Exit the loop when the status code is 200
 until [ $STATUS_CODE -eq 200 ]; do
-  sleep 1;
-  STATUS_CODE=`curl -L -s -o /dev/null -w "%{http_code}" $PING_URL`
+  # If the status code is a 404 or a 503 then try again
+  if [[ $STATUS_CODE -eq 404 || $STATUS_CODE -eq 503 ]]; then
+    sleep 1;
+    STATUS_CODE=`eval $STATUS_COMMAND`
+    echo $STATUS_CODE
+  else
+    exit 1;
+  fi
 done
