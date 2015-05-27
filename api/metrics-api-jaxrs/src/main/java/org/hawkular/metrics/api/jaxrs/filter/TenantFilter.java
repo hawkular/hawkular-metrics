@@ -63,14 +63,6 @@ public class TenantFilter implements ContainerRequestFilter {
             return;
         }
 
-        tenant = uriInfo.getQueryParameters().getFirst(TENANT_QUERY_PARAM_NAME);
-        if (tenant != null && !tenant.trim().isEmpty()) {
-            // Move tenant info from query param to header
-            // This makes the handler implementation easier
-            requestContext.getHeaders().add(TENANT_HEADER_NAME, tenant);
-            return;
-        }
-
         // Fail on missing tenant info
         Response response = Response.status(Status.BAD_REQUEST)
                                     .type(APPLICATION_JSON_TYPE)
