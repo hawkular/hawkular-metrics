@@ -36,15 +36,12 @@ import org.hawkular.metrics.api.jaxrs.ApiError;
 public class TenantFilter implements ContainerRequestFilter {
     public static final String TENANT_HEADER_NAME = "Hawkular-Tenant";
 
-    private static final String TENANT_QUERY_PARAM_NAME = "tenantId";
     private static final String MISSING_TENANT_MSG;
 
     static {
         MISSING_TENANT_MSG = "Tenant is not specified. Use '"
                              + TENANT_HEADER_NAME
-                             + "' header or '"
-                             + TENANT_QUERY_PARAM_NAME
-                             + "' query parameter";
+                             + "' header.";
     }
 
     @Override
@@ -60,14 +57,6 @@ public class TenantFilter implements ContainerRequestFilter {
         String tenant = requestContext.getHeaders().getFirst(TENANT_HEADER_NAME);
         if (tenant != null && !tenant.trim().isEmpty()) {
             // We're good already
-            return;
-        }
-
-        tenant = uriInfo.getQueryParameters().getFirst(TENANT_QUERY_PARAM_NAME);
-        if (tenant != null && !tenant.trim().isEmpty()) {
-            // Move tenant info from query param to header
-            // This makes the handler implementation easier
-            requestContext.getHeaders().add(TENANT_HEADER_NAME, tenant);
             return;
         }
 
