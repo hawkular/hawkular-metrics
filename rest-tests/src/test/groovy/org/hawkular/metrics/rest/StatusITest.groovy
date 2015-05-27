@@ -29,8 +29,6 @@ class StatusITest extends RESTTest {
 
         assertEquals(200, response.status);
 
-        println("response: " + response.data);
-
         def expectedData = ["MetricsService" : "STARTED"];
 
         assertEquals(expectedData, response.data);
