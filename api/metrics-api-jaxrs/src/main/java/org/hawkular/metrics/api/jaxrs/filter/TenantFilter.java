@@ -36,15 +36,12 @@ import org.hawkular.metrics.api.jaxrs.ApiError;
 public class TenantFilter implements ContainerRequestFilter {
     public static final String TENANT_HEADER_NAME = "Hawkular-Tenant";
 
-    private static final String TENANT_QUERY_PARAM_NAME = "tenantId";
     private static final String MISSING_TENANT_MSG;
 
     static {
         MISSING_TENANT_MSG = "Tenant is not specified. Use '"
                              + TENANT_HEADER_NAME
-                             + "' header or '"
-                             + TENANT_QUERY_PARAM_NAME
-                             + "' query parameter";
+                             + "' header.";
     }
 
     @Override
