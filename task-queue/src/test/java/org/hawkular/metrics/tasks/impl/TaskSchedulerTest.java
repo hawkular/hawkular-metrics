@@ -17,6 +17,7 @@
 package org.hawkular.metrics.tasks.impl;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Duration.standardSeconds;
 import static org.testng.Assert.assertTrue;
@@ -27,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.tasks.BaseTest;
 import org.hawkular.metrics.tasks.api.TaskType;
+import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.joda.time.DateTime;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -40,12 +42,12 @@ public class TaskSchedulerTest extends BaseTest {
 
     @BeforeClass
     public void initClass() {
-        leaseService = new LeaseService(session, queries);
+        leaseService = new LeaseService(new RxSessionImpl(session), queries);
     }
 
     @Test
     public void startScheduler() throws Exception {
-        List<TaskType> taskTypes = asList(new TaskType().setName("test").setSegments(1).setSegmentOffsets(1));
+        List<TaskType> taskTypes = singletonList(new TaskType().setName("test").setSegments(1).setSegmentOffsets(1));
 
         List<DateTime> actualTimeSlices = new ArrayList<>();
         List<DateTime> expectedTimeSlices = asList(
@@ -54,7 +56,7 @@ public class TaskSchedulerTest extends BaseTest {
                 dateTimeService.getTimeSlice(now().plusSeconds(4), standardSeconds(1))
         );
 
-        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService, taskTypes) {
+        TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, taskTypes) {
             @Override
             public void executeTasks(DateTime timeSlice) {
                 actualTimeSlices.add(timeSlice);

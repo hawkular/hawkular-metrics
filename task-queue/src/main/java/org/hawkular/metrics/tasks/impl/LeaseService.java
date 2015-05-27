@@ -16,24 +16,18 @@
  */
 package org.hawkular.metrics.tasks.impl;
 
-import static java.util.stream.Collectors.toList;
-
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.StreamSupport;
 
 import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Session;
-import com.google.common.base.Function;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import org.hawkular.rx.cassandra.driver.RxSession;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.Observable;
 
 /**
  * @author jsanda
@@ -46,9 +40,7 @@ public class LeaseService {
 
     public static final int DEFAULT_RENEWAL_RATE = 60;
 
-    public static final Function<ResultSet, Void> TO_VOID = resultSet -> null;
-
-    private Session session;
+    private RxSession session;
 
     private Queries queries;
 
@@ -58,7 +50,7 @@ public class LeaseService {
 
     private int renewalRate = DEFAULT_RENEWAL_RATE;
 
-    public LeaseService(Session session, Queries queries) {
+    public LeaseService(RxSession session, Queries queries) {
         this.session = session;
         this.queries = queries;
     }
@@ -76,31 +68,45 @@ public class LeaseService {
         this.renewalRate = renewalRate;
     }
 
-    public ListenableFuture<List<Lease>> findUnfinishedLeases(DateTime timeSlice) {
-        ResultSetFuture future = session.executeAsync(queries.findLeases.bind(timeSlice.toDate()));
-        return Futures.transform(future, (ResultSet resultSet) -> StreamSupport.stream(resultSet.spliterator(), false)
-                .map(row->new Lease(timeSlice, row.getString(0), row.getInt(1), row.getString(2), row.getBool(3)))
+    public Observable<? extends List<Lease>> loadLeases(DateTime timeSlice) {
+        return session.execute(queries.findLeases.bind(timeSlice.toDate()))
+                .flatMap(Observable::from)
+                .map(row -> new Lease(timeSlice, row.getString(0), row.getInt(1), row.getString(2), row.getBool(3)))
                 .filter(lease -> !lease.isFinished())
-                .collect(toList()));
+                .collect(ArrayList::new, ArrayList::add);
     }
 
-    public ListenableFuture<Boolean> acquire(Lease lease) {
-        ResultSetFuture future = session.executeAsync(queries.acquireLease.bind(ttl, lease.getOwner(),
-                lease.getTimeSlice().toDate(), lease.getTaskType(), lease.getSegmentOffset()));
-        return Futures.transform(future, ResultSet::wasApplied);
+    public Observable<Lease> findUnfinishedLeases(DateTime timeSlice) {
+        // TODO Add logic to "refresh" the leases
+        // We need to keep polling for leases until either we get back an empty result set
+        // or all leases are marked finished. And to make things more interesting, we do
+        // not want to poll again until there is at least one worker thread (i.e., one of
+        // the threads executing tasks) free.
+        return Observable.create(subscriber ->
+                        loadLeases(timeSlice)
+                                .flatMap(Observable::from)
+                                .filter(lease -> lease.getOwner() == null)
+                                .flatMap(lease ->
+                                        acquire(lease).map(acquired ->
+                                                acquired ? lease : null))
+                                .subscribe(subscriber::onNext, subscriber::onError, subscriber::onCompleted)
+        );
     }
 
-    public ListenableFuture<Boolean> acquire(Lease lease, int ttl) {
-        ResultSetFuture future = session.executeAsync(queries.acquireLease.bind(ttl, lease.getOwner(),
-                lease.getTimeSlice().toDate(), lease.getTaskType(), lease.getSegmentOffset()));
-        return Futures.transform(future, ResultSet::wasApplied);
+
+    public Observable<Boolean> acquire(Lease lease) {
+        return session.execute(queries.acquireLease.bind(ttl, lease.getOwner(), lease.getTimeSlice().toDate(),
+                lease.getTaskType(), lease.getSegmentOffset())).map(ResultSet::wasApplied);
     }
 
-    public ListenableFuture<Boolean> renew(Lease lease) {
-        ResultSetFuture future = session.executeAsync(queries.renewLease.bind(ttl, lease.getOwner(),
-                lease.getTimeSlice().toDate(), lease.getTaskType(), lease.getSegmentOffset(),
-                lease.getOwner()));
-        return Futures.transform(future, ResultSet::wasApplied);
+    public Observable<Boolean> acquire(Lease lease, int ttl) {
+        return session.execute(queries.acquireLease.bind(ttl, lease.getOwner(), lease.getTimeSlice().toDate(),
+                lease.getTaskType(), lease.getSegmentOffset())).map(ResultSet::wasApplied);
+    }
+
+    public Observable<Boolean> renew(Lease lease) {
+        return session.execute(queries.renewLease.bind(ttl, lease.getOwner(), lease.getTimeSlice().toDate(),
+                lease.getTaskType(), lease.getSegmentOffset(), lease.getOwner())).map(ResultSet::wasApplied);
     }
 
     /**
@@ -122,36 +128,29 @@ public class LeaseService {
             if (lease.isFinished()) {
                 return;
             }
-            ListenableFuture<Boolean> renewedFuture = renew(lease);
-            Futures.addCallback(renewedFuture, new FutureCallback<Boolean>() {
-                @Override
-                public void onSuccess(Boolean renewed) {
-                    if (renewed) {
-                        autoRenew(lease, leaseOwner);
-                    } else {
-                        logger.info("Failed to renew " + lease + " for " + leaseOwner);
-                        leaseOwner.interrupt();
-                    }
-                }
-
-                @Override
-                public void onFailure(Throwable t) {
-                    logger.warn("Failed to renew " + lease + " for " + leaseOwner);
-                    // TODO figure out what to do in this scenario
-                }
-            });
+            renew(lease).subscribe(
+                    renewed -> {
+                        if (renewed) {
+                            autoRenew(lease, leaseOwner);
+                        } else {
+                            logger.info("Failed to renew " + lease + " for " + leaseOwner);
+                            leaseOwner.interrupt();
+                        }
+                    },
+                    t -> {
+                        logger.warn("Failed to renew " + lease + " for " + leaseOwner);
+                        // TODO figure out what to do in this scenario
+                    });
         };
     }
 
-    public ListenableFuture<Boolean> finish(Lease lease) {
-        ResultSetFuture future = session.executeAsync(queries.finishLease.bind(lease.getTimeSlice().toDate(),
-                lease.getTaskType(), lease.getSegmentOffset(), lease.getOwner()));
-        return Futures.transform(future, ResultSet::wasApplied);
+    public Observable<Boolean> finish(Lease lease) {
+        return session.execute(queries.finishLease.bind(lease.getTimeSlice().toDate(), lease.getTaskType(),
+                lease.getSegmentOffset(), lease.getOwner())).map(ResultSet::wasApplied);
     }
 
-    public ListenableFuture<Void> deleteLeases(DateTime timeSlice) {
-        ResultSetFuture future = session.executeAsync(queries.deleteLeases.bind(timeSlice.toDate()));
-        return Futures.transform(future, TO_VOID);
+    public Observable<Void> deleteLeases(DateTime timeSlice) {
+        return session.execute(queries.deleteLeases.bind(timeSlice.toDate())).flatMap(resultSet -> null);
     }
 
 }

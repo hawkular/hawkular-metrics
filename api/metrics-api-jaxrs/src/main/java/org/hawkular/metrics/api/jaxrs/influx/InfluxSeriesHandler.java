@@ -82,13 +82,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+
+import rx.Observable;
+import rx.Observer;
 
 /**
  * Some support for InfluxDB clients like Grafana.
@@ -134,11 +132,10 @@ public class InfluxSeriesHandler {
             return;
         }
 
-        List<Gauge> gaugeMetrics = FluentIterable.from(influxObjects)
-                .transform(InfluxSeriesHandler::influxObjectToGauge)
-                .transform(gauge -> (Gauge) gauge.setTenantId(tenantId))
-                .toList();
-        Futures.addCallback(metricsService.addGaugeData(gaugeMetrics), new WriteCallback(asyncResponse));
+        Observable<Gauge> input = Observable.from(influxObjects)
+                                            .map(InfluxSeriesHandler::influxObjectToGauge)
+                                            .map(gauge -> (Gauge) gauge.setTenantId(tenantId));
+        metricsService.addGaugeData(input).subscribe(new WriteObserver(asyncResponse));
     }
 
     private static Gauge influxObjectToGauge(InfluxObject influxObject) {
@@ -200,12 +197,10 @@ public class InfluxSeriesHandler {
     }
 
     private void listSeries(AsyncResponse asyncResponse, String tenantId) {
-        ListenableFuture<List<Metric<?>>> future = metricsService.findMetrics(tenantId, MetricType.GAUGE);
-        ListenableFuture<List<InfluxObject>> resultFuture = Futures.transform(
-                future,
-                InfluxSeriesHandler::metricsListToListSeries
-        );
-        Futures.addCallback(resultFuture, new ReadCallback(asyncResponse));
+        metricsService.findMetrics(tenantId, MetricType.GAUGE)
+                      .toList()
+                      .map(InfluxSeriesHandler::metricsListToListSeries)
+                      .subscribe(new ReadObserver(asyncResponse));
     }
 
     private static List<InfluxObject> metricsListToListSeries(List<Metric<?>> metrics) {
@@ -246,22 +241,19 @@ public class InfluxSeriesHandler {
         }
         String columnName = getColumnName(queryDefinitions);
 
-        ListenableFuture<Boolean> idExistsFuture = metricsService.idExists(metric);
-        ListenableFuture<List<GaugeData>> loadMetricsFuture = Futures.transform(
-                idExistsFuture,
-                (AsyncFunction<Boolean, List<GaugeData>>) idExists -> {
-                    if (idExists != Boolean.TRUE) {
-                        return Futures.immediateFuture(null);
-                    }
-                    return metricsService.findGaugeData(
-                            tenantId, new MetricId(metric),
-                            timeInterval.getStartMillis(), timeInterval.getEndMillis()
-                    );
-                }
-        );
-        ListenableFuture<List<InfluxObject>> influxObjectTranslatorFuture = Futures.transform(
-                loadMetricsFuture,
-                (List<GaugeData> metrics) -> {
+        metricsService.idExists(metric)
+                  .flatMap(
+                          idExists -> {
+                              if (idExists != Boolean.TRUE) {
+                                  return Observable.just(null);
+                              }
+                              return metricsService.findGaugeData(
+                                      tenantId, new MetricId(metric),
+                                      timeInterval.getStartMillis(), timeInterval.getEndMillis()
+                              ).toList();
+                          }
+                  ).map(
+                metrics -> {
                     if (metrics == null) {
                         return null;
                     }
@@ -314,25 +306,16 @@ public class InfluxSeriesHandler {
 
                     return objects;
                 }
-        );
-        Futures.addCallback(
-                influxObjectTranslatorFuture, new FutureCallback<List<InfluxObject>>() {
-                    @Override
-                    public void onSuccess(List<InfluxObject> objects) {
-                        if (objects == null) {
-                            String msg = "Metric with id [" + metric + "] not found. ";
-                            asyncResponse.resume(errorResponse(NOT_FOUND, msg));
-                        } else {
-                            ResponseBuilder builder = Response.ok(objects);
-                            asyncResponse.resume(builder.build());
-                        }
+        ).subscribe(
+                objects -> {
+                    if (objects == null) {
+                        String msg = "Metric with id [" + metric + "] not found. ";
+                        asyncResponse.resume(errorResponse(NOT_FOUND, msg));
+                    } else {
+                        ResponseBuilder builder = Response.ok(objects);
+                        asyncResponse.resume(builder.build());
                     }
-
-                    @Override
-                    public void onFailure(Throwable t) {
-                        asyncResponse.resume(t);
-                    }
-                }
+                }, asyncResponse::resume
         );
     }
 
@@ -540,39 +523,48 @@ public class InfluxSeriesHandler {
         return Response.status(status).entity(message).type(TEXT_PLAIN_TYPE).build();
     }
 
-    private class WriteCallback implements FutureCallback<Void> {
+    private class WriteObserver implements Observer<Void> {
         private final AsyncResponse asyncResponse;
 
-        public WriteCallback(AsyncResponse asyncResponse) {
+        public WriteObserver(AsyncResponse asyncResponse) {
             this.asyncResponse = asyncResponse;
         }
 
         @Override
-        public void onSuccess(Void result) {
+        public void onCompleted() {
             asyncResponse.resume(Response.ok().build());
         }
 
         @Override
-        public void onFailure(Throwable t) {
+        public void onError(Throwable t) {
             asyncResponse.resume(errorResponse(INTERNAL_SERVER_ERROR, Throwables.getRootCause(t).getMessage()));
+        }
+
+        @Override
+        public void onNext(Void aVoid) {
         }
     }
 
-    private class ReadCallback implements FutureCallback<List<InfluxObject>> {
+    private class ReadObserver implements Observer<List<InfluxObject>> {
         private final AsyncResponse asyncResponse;
 
-        public ReadCallback(AsyncResponse asyncResponse) {
+        public ReadObserver(AsyncResponse asyncResponse) {
             this.asyncResponse = asyncResponse;
         }
 
         @Override
-        public void onSuccess(List<InfluxObject> result) {
-            asyncResponse.resume(Response.ok(result).build());
+        public void onCompleted() {
+
         }
 
         @Override
-        public void onFailure(Throwable t) {
+        public void onError(Throwable t) {
             asyncResponse.resume(errorResponse(INTERNAL_SERVER_ERROR, Throwables.getRootCause(t).getMessage()));
+        }
+
+        @Override
+        public void onNext(List<InfluxObject> influxObjects) {
+            asyncResponse.resume(Response.ok(influxObjects).build());
         }
     }
 }

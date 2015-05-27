@@ -17,6 +17,7 @@
 package org.hawkular.metrics.tasks.impl;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.joda.time.DateTime.now;
@@ -44,7 +45,9 @@ import org.hawkular.metrics.tasks.BaseTest;
 import org.hawkular.metrics.tasks.api.Task;
 import org.hawkular.metrics.tasks.api.TaskType;
 import org.joda.time.DateTime;
-import org.testng.annotations.BeforeClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 /**
@@ -52,11 +55,13 @@ import org.testng.annotations.Test;
  */
 public class TaskServiceTest extends BaseTest {
 
+    private static final Logger logger = LoggerFactory.getLogger(TaskServiceTest.class);
+
     protected LeaseService leaseService;
 
-    @BeforeClass
-    public void initClass() {
-        leaseService = new LeaseService(session, queries);
+    @BeforeMethod
+    public void setup() {
+        leaseService = new LeaseService(rxSession, queries);
     }
 
     @Test
@@ -67,10 +72,10 @@ public class TaskServiceTest extends BaseTest {
         int window = 15;
         Task task = taskType.createTask("metric.5min", "metric", interval, window);
 
-        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService, asList(taskType));
+        TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType));
 
         DateTime expectedTimeSlice = dateTimeService.getTimeSlice(now(), standardMinutes(5)).plusMinutes(5);
-        getUninterruptibly(taskService.scheduleTask(now(), task));
+        taskService.scheduleTask(now(), task).toBlocking().first();
 
         int segment = Math.abs(task.getTarget().hashCode() % task.getTaskType().getSegments());
 
@@ -83,8 +88,8 @@ public class TaskServiceTest extends BaseTest {
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void doNotScheduleTaskHavingInvalidType() throws Exception {
 
-        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService,
-                asList(new TaskType().setName("test").setSegments(1).setSegmentOffsets(1)));
+        TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService,
+                singletonList(new TaskType().setName("test").setSegments(1).setSegmentOffsets(1)));
         TaskType invalidType = new TaskType().setName("invalid").setSegments(1).setSegmentOffsets(1);
         Task task = invalidType.createTask("metric.5min", "metric", 5, 15);
         taskService.scheduleTask(now(), task);
@@ -93,14 +98,14 @@ public class TaskServiceTest extends BaseTest {
     @Test
     public void executeTasksOfOneType() throws Exception {
         DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(1), standardMinutes(1));
-        String type = "test";
+        String type = "singleType-test";
         int interval = 5;
         int window = 15;
         int segment0 = 0;
         int segment1 = 1;
         int segmentOffset = 0;
 
-        TaskType taskType = new TaskType().setName("test").setSegments(5).setSegmentOffsets(1);
+        TaskType taskType = new TaskType().setName(type).setSegments(5).setSegmentOffsets(1);
 
         String metric1 = "metric1.5min";
         String metric2 = "metric2.5min";
@@ -115,9 +120,7 @@ public class TaskServiceTest extends BaseTest {
         executedTasks.put(task1, false);
         executedTasks.put(task2, false);
 
-        taskType.setFactory(() -> task -> {
-            executedTasks.put(task, true);
-        });
+        taskType.setFactory(() -> task -> executedTasks.put(task, true));
 
         session.execute(queries.createTask.bind(type, timeSlice.toDate(), metric1Segment, metric1,
                 ImmutableSet.of("metric1"), interval, window));
@@ -125,7 +128,8 @@ public class TaskServiceTest extends BaseTest {
                 ImmutableSet.of("metric2"), interval, window));
         session.execute(queries.createLease.bind(timeSlice.toDate(), type, segmentOffset));
 
-        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService, asList(taskType));
+        LeaseService leaseService = new LeaseService(rxSession, queries);
+        TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType));
         taskService.executeTasks(timeSlice);
 
         // verify that the tasks were executed
@@ -150,8 +154,8 @@ public class TaskServiceTest extends BaseTest {
     @Test
     public void executeTasksOfMultipleTypes() throws Exception {
         DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(1), standardMinutes(1));
-        String type1 = "test1";
-        String type2 = "test2";
+        String type1 = "multiType-test1";
+        String type2 = "multiType-test2";
         int interval = 5;
         int window = 15;
         int segmentOffset = 0;
@@ -183,7 +187,9 @@ public class TaskServiceTest extends BaseTest {
                 ImmutableSet.of("test2.metric2"), interval, window));
         session.execute(queries.createLease.bind(timeSlice.toDate(), type2, segmentOffset));
 
-        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService, asList(taskType1, taskType2));
+        LeaseService leaseService = new LeaseService(rxSession, queries);
+        TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, asList(taskType1,
+                taskType2));
         taskService.executeTasks(timeSlice);
 
         // We need to verify that tasks are executed. We also need to verify that they are
@@ -242,10 +248,11 @@ public class TaskServiceTest extends BaseTest {
 
         String owner = "host2";
         Lease lease = new Lease(timeSlice, type1, segmentOffset, owner, false);
-        boolean acquired = getUninterruptibly(leaseService.acquire(lease));
+        boolean acquired = leaseService.acquire(lease).toBlocking().first();
         assertTrue(acquired, "Should have acquired lease");
 
-        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService, asList(taskType1));
+        LeaseService leaseService = new LeaseService(rxSession, queries);
+        TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType1));
 
         Thread t1 = new Thread(() -> taskService.executeTasks(timeSlice));
         t1.start();
@@ -256,7 +263,7 @@ public class TaskServiceTest extends BaseTest {
                 Thread.sleep(1000);
                 session.execute(queries.deleteTasks.bind(lease.getTaskType(), lease.getTimeSlice().toDate(), segment0));
                 session.execute(queries.deleteTasks.bind(lease.getTaskType(), lease.getTimeSlice().toDate(), segment1));
-                getUninterruptibly(leaseService.finish(lease));
+                leaseService.finish(lease).toBlocking().first();
             } catch (Exception e) {
                 executionErrorRef.set(e);
             }
@@ -283,7 +290,7 @@ public class TaskServiceTest extends BaseTest {
     @Test
     public void executeTaskThatFails() throws Exception {
         DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(1), standardMinutes(1));
-        String type = "test";
+        String type = "fails-test";
         TaskType taskType = new TaskType().setName(type).setSegments(1).setSegmentOffsets(1)
                 .setFactory(() -> task -> {
                     throw new RuntimeException();
@@ -299,7 +306,8 @@ public class TaskServiceTest extends BaseTest {
                 interval, window));
         session.execute(queries.createLease.bind(timeSlice.toDate(), type, segmentOffset));
 
-        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService, asList(taskType));
+        LeaseService leaseService = new LeaseService(rxSession, queries);
+        TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType));
         taskService.executeTasks(timeSlice);
 
         assertTasksPartitionDeleted(type, timeSlice, segment);
@@ -315,7 +323,7 @@ public class TaskServiceTest extends BaseTest {
     @Test
     public void executeTaskThatPreviouslyFailed() throws Exception {
         DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(2), standardMinutes(1));
-        String type = "test";
+        String type = "previouslyFailed-test";
         TaskType taskType = new TaskType().setName(type).setSegments(1).setSegmentOffsets(1);
         String metric = "metric.5min";
         int interval = 5;
@@ -331,7 +339,8 @@ public class TaskServiceTest extends BaseTest {
                 ImmutableSet.of("metric"), interval, window, ImmutableSet.of(previousTimeSlice.toDate())));
         session.execute(queries.createLease.bind(timeSlice.toDate(), type, segmentOffset));
 
-        TaskServiceImpl taskService = new TaskServiceImpl(session, queries, leaseService, asList(taskType));
+        LeaseService leaseService = new LeaseService(rxSession, queries);
+        TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType));
         taskService.executeTasks(timeSlice);
 
         List<Task> expectedExecutedTasks = asList(
@@ -354,7 +363,9 @@ public class TaskServiceTest extends BaseTest {
     private void assertLeasePartitionDeleted(DateTime timeSlice) {
         ResultSet leasesResultSet = session.execute(queries.findLeases.bind(timeSlice.toDate()));
         assertTrue(leasesResultSet.isExhausted(), "Expected lease partition for time slice " + timeSlice +
-                " to be empty");
+                " to be empty but found " + StreamSupport.stream(leasesResultSet.spliterator(), false)
+                .map(row -> new Lease(timeSlice, row.getString(0), row.getInt(1), row.getString(2), row.getBool(3)))
+                .collect(toList()));
     }
 
     /**
@@ -368,7 +379,8 @@ public class TaskServiceTest extends BaseTest {
     /**
      * The compiler requires that a method with @SafeVarargs be either static or final.
      * checkstyle fails when making a private method final, so this method is protected to
-     * avoid any more wasted time with checkstyle/
+     * avoid any more wasted time with checkstyle
+     *
      * @param timeSlice
      * @param leaseFns
      * @throws Exception
@@ -410,7 +422,7 @@ public class TaskServiceTest extends BaseTest {
     private Set<Task> getTasks(TaskType type, DateTime timeSlice, int segment) {
         ResultSet resultSet = session.execute(queries.findTasks.bind(type.getName(), timeSlice.toDate(), segment));
         Set<TaskContainer> containers = StreamSupport.stream(resultSet.spliterator(), false)
-                .map(row -> new TaskContainer(type, timeSlice, row.getString(0), row.getSet(1, String.class),
+                .map(row -> new TaskContainer(type, timeSlice, segment, row.getString(0), row.getSet(1, String.class),
                         row.getInt(2), row.getInt(3),
                         row.getSet(4, Date.class).stream().map(DateTime::new).collect(toSet())))
                 .collect(toSet());

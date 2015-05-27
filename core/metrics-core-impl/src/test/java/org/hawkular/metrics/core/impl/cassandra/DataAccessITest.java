@@ -17,11 +17,20 @@
 package org.hawkular.metrics.core.impl.cassandra;
 
 import static java.util.Arrays.asList;
+import static org.hawkular.metrics.core.impl.cassandra.MetricsServiceCassandra.DEFAULT_TTL;
 import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
 import java.util.List;
+
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
 
 import org.hawkular.metrics.core.api.AggregationTemplate;
 import org.hawkular.metrics.core.api.Availability;
@@ -39,14 +48,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import rx.Observable;
 
 /**
  * @author John Sanda
@@ -96,24 +98,23 @@ public class DataAccessITest extends MetricsITest {
                 .setFunctions(ImmutableSet.of("sum", "count")));
 
 
-        ResultSetFuture insertFuture = dataAccess.insertTenant(tenant1);
-        getUninterruptibly(insertFuture);
+        dataAccess.insertTenant(tenant1).toBlocking().lastOrDefault(null);
 
-        insertFuture = dataAccess.insertTenant(tenant2);
-        getUninterruptibly(insertFuture);
+        dataAccess.insertTenant(tenant2).toBlocking().lastOrDefault(null);
 
-        ResultSetFuture queryFuture = dataAccess.findTenant(tenant1.getId());
-        ListenableFuture<Tenant> tenantFuture = Functions.getTenant(queryFuture);
-        Tenant actual = getUninterruptibly(tenantFuture);
-        Tenant expected = tenant1;
-
-        assertEquals(actual, expected, "The tenants do not match");
+        Tenant actual = dataAccess.findTenant(tenant1.getId())
+                                  .flatMap(Observable::from)
+                                  .map(Functions::getTenant)
+                                  .toBlocking().single();
+        assertEquals(actual, tenant1, "The tenants do not match");
     }
 
     @Test
     public void doNotAllowDuplicateTenants() throws Exception {
-        getUninterruptibly(dataAccess.insertTenant(new Tenant().setId("tenant-1")));
-        ResultSet resultSet = getUninterruptibly(dataAccess.insertTenant(new Tenant().setId("tenant-1")));
+        dataAccess.insertTenant(new Tenant().setId("tenant-1")).toBlocking().lastOrDefault(null);
+        ResultSet resultSet = dataAccess.insertTenant(new Tenant().setId("tenant-1"))
+                                        .toBlocking()
+                                        .lastOrDefault(null);
         assertFalse(resultSet.wasApplied(), "Tenants should not be overwritten");
     }
 
@@ -123,17 +124,22 @@ public class DataAccessITest extends MetricsITest {
         DateTime end = start.plusMinutes(6);
 
         Gauge metric = new Gauge("tenant-1", new MetricId("metric-1"));
+        metric.setDataRetention(DEFAULT_TTL);
         metric.addData(new GaugeData(start.getMillis(), 1.23));
         metric.addData(new GaugeData(start.plusMinutes(1).getMillis(), 1.234));
         metric.addData(new GaugeData(start.plusMinutes(2).getMillis(), 1.234));
         metric.addData(new GaugeData(end.getMillis(), 1.234));
 
-        getUninterruptibly(dataAccess.insertData(metric, MetricsServiceCassandra.DEFAULT_TTL));
+        dataAccess.insertData(Observable.just(new GaugeAndTTL(metric, DEFAULT_TTL))).toBlocking().last();
 
-        ResultSetFuture queryFuture = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
+        Observable<ResultSet> observable = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
                 end.getMillis());
-        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture, Functions.MAP_GAUGE_DATA);
-        List<GaugeData> actual = getUninterruptibly(dataFuture);
+        List<GaugeData> actual = ImmutableList.copyOf(observable
+                .flatMap(Observable::from)
+                .map(Functions::getGaugeData)
+                .toBlocking()
+                .toIterable());
+
         List<GaugeData> expected = asList(
             new GaugeData(start.plusMinutes(2).getMillis(), 1.234),
             new GaugeData(start.plusMinutes(1).getMillis(), 1.234),
@@ -149,21 +155,24 @@ public class DataAccessITest extends MetricsITest {
         DateTime end = start.plusMinutes(6);
 
         Gauge metric = new Gauge("tenant-1", new MetricId("metric-1"),
-            ImmutableMap.of("units", "KB", "env", "test"));
+            ImmutableMap.of("units", "KB", "env", "test"), DEFAULT_TTL);
 
-        ResultSetFuture insertFuture = dataAccess.addTagsAndDataRetention(metric);
-        getUninterruptibly(insertFuture);
+        dataAccess.addTagsAndDataRetention(metric).toBlocking().last();
 
         metric.addData(new GaugeData(start.getMillis(), 1.23));
         metric.addData(new GaugeData(start.plusMinutes(2).getMillis(), 1.234));
         metric.addData(new GaugeData(start.plusMinutes(4).getMillis(), 1.234));
         metric.addData(new GaugeData(end.getMillis(), 1.234));
-        getUninterruptibly(dataAccess.insertData(metric, MetricsServiceCassandra.DEFAULT_TTL));
+        dataAccess.insertData(Observable.just(new GaugeAndTTL(metric, DEFAULT_TTL))).toBlocking().last();
 
-        ResultSetFuture queryFuture = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
+        Observable<ResultSet> observable = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
                 end.getMillis());
-        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture, Functions.MAP_GAUGE_DATA);
-        List<GaugeData> actual = getUninterruptibly(dataFuture);
+        List<GaugeData> actual = ImmutableList.copyOf(observable
+                .flatMap(Observable::from)
+                .map(Functions::getGaugeData)
+                .toBlocking()
+                .toIterable());
+
         List<GaugeData> expected = asList(
             new GaugeData(start.plusMinutes(4).getMillis(), 1.234),
             new GaugeData(start.plusMinutes(2).getMillis(), 1.234),
@@ -172,58 +181,6 @@ public class DataAccessITest extends MetricsITest {
 
         assertEquals(actual, expected, "The data does not match the expected values");
     }
-
-//    @Test
-//    public void insertAndFindAggregatedGaugeData() throws Exception {
-//        DateTime start = now().minusMinutes(10);
-//        DateTime end = start.plusMinutes(6);
-//
-//        Metric metric = new Metric()
-//            .setTenantId("tenant-1")
-//            .setId(new MetricId("m1", Interval.parse("5min")));
-//        List<GaugeData> data = asList(
-//
-//        );
-//
-//        GaugeData d1 = new GaugeData()
-//            .setTenantId("tenant-1")
-//            .setId(new MetricId("m1", Interval.parse("5min")))
-//            .setTimestamp(start.getMillis())
-//            .addAggregatedValue(new AggregatedValue("sum", 100.1))
-//            .addAggregatedValue(new AggregatedValue("max", 51.5, null, null, getTimeUUID(now().minusMinutes(3))));
-//
-//        GaugeData d2 = new GaugeData()
-//            .setTenantId("tenant-1")
-//            .setId(new MetricId("m1", Interval.parse("5min")))
-//            .setTimestamp(start.plusMinutes(2).getMillis())
-//            .addAggregatedValue(new AggregatedValue("sum", 110.1))
-//            .addAggregatedValue(new AggregatedValue("max", 54.7, null, null, getTimeUUID(now().minusMinutes(3))));
-//
-//        GaugeData d3 = new GaugeData()
-//            .setTenantId("tenant-1")
-//            .setId(new MetricId("m1", Interval.parse("5min")))
-//            .setTimestamp(start.plusMinutes(4).getMillis())
-//            .setValue(22.2);
-//
-//        GaugeData d4 = new GaugeData()
-//            .setTenantId("tenant-1")
-//            .setId(new MetricId("m1", Interval.parse("5min")))
-//            .setTimestamp(end.getMillis())
-//            .setValue(22.2);
-//
-//        getUninterruptibly(dataAccess.insertGaugeData(d1));
-//        getUninterruptibly(dataAccess.insertGaugeData(d2));
-//        getUninterruptibly(dataAccess.insertGaugeData(d3));
-//        getUninterruptibly(dataAccess.insertGaugeData(d4));
-//
-//        ResultSetFuture queryFuture = dataAccess.findGaugeData(d1.getTenantId(), d1.getId(), 0L, start.getMillis(),
-//            end.getMillis());
-//        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture, new GaugeDataMapper());
-//        List<GaugeData> actual = getUninterruptibly(dataFuture);
-//        List<GaugeData> expected = asList(d3, d2, d1);
-//
-//        assertEquals(actual, expected, "The aggregated gauge data does not match");
-//    }
 
     @Test
     public void updateCounterAndFindCounter() throws Exception {
@@ -302,13 +259,11 @@ public class DataAccessITest extends MetricsITest {
         Availability metric = new Availability(tenantId, new MetricId("m1"));
         metric.addData(new AvailabilityData(start.getMillis(), "up"));
 
-        getUninterruptibly(dataAccess.insertData(metric, 360));
+        dataAccess.insertData(metric, 360).toBlocking().lastOrDefault(null);
 
-        ResultSetFuture future = dataAccess.findAvailabilityData(tenantId, new MetricId("m1"), start.getMillis(),
-                end.getMillis());
-        ListenableFuture<List<AvailabilityData>> dataFuture = Futures
-                .transform(future, Functions.MAP_AVAILABILITY_DATA);
-        List<AvailabilityData> actual = getUninterruptibly(dataFuture);
+        List<AvailabilityData> actual = dataAccess
+            .findAvailabilityData(tenantId, new MetricId("m1"), start.getMillis(), end.getMillis())
+            .flatMap(r -> Observable.from(r)).map(Functions::getAvailability).toList().toBlocking().lastOrDefault(null);
         List<AvailabilityData> expected = asList(new AvailabilityData(start.getMillis(), "up"));
 
         assertEquals(actual, expected, "The availability data does not match the expected values");

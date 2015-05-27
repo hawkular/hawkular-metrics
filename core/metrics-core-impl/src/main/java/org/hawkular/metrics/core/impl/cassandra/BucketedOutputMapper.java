@@ -26,8 +26,8 @@ import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.MetricData;
 import org.hawkular.metrics.core.api.MetricId;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import rx.functions.Func1;
 
 /**
  * Transform a {@link org.hawkular.metrics.core.api.Metric} with its {@link org.hawkular.metrics.core.api.MetricData}
@@ -38,8 +38,8 @@ import com.google.common.collect.Lists;
  *
  * @author Thomas Segismont
  */
-public abstract class BucketedOutputMapper<DATA extends MetricData, POINT>
-        implements Function<List<DATA>, BucketedOutput<POINT>> {
+public abstract class BucketedOutputMapper<DATA extends MetricData, POINT> implements Func1<List<DATA>,
+        BucketedOutput<POINT>> {
 
     protected final Buckets buckets;
 
@@ -68,7 +68,7 @@ public abstract class BucketedOutputMapper<DATA extends MetricData, POINT>
     }
 
     @Override
-    public BucketedOutput<POINT> apply(List<DATA> dataList) {
+    public BucketedOutput<POINT> call(List<DATA> dataList) {
         BucketedOutput<POINT> output = new BucketedOutput<>(tenantId, id.getName(), Collections.emptyMap());
         output.setData(new ArrayList<>(buckets.getCount()));
 

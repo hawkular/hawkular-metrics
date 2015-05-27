@@ -16,8 +16,8 @@
  */
 package org.hawkular.metrics.tasks.api;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import org.joda.time.DateTime;
+import rx.Observable;
 
 /**
  * The primary API for task scheduling and execution. See {@link TaskServiceBuilder} for details on creating and
@@ -64,5 +64,5 @@ public interface TaskService {
      * @param task The task to schedule for execution
      * @return The task with its {@link Task#getTimeSlice() scheduled execution time} set
      */
-    ListenableFuture<Task> scheduleTask(DateTime time, Task task);
+    Observable<Task> scheduleTask(DateTime time, Task task);
 }

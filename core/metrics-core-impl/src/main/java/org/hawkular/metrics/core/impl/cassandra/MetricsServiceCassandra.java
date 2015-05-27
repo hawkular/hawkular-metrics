@@ -16,8 +16,6 @@
  */
 package org.hawkular.metrics.core.impl.cassandra;
 
-import static java.util.Arrays.asList;
-import static java.util.stream.Collectors.toList;
 import static org.joda.time.Hours.hours;
 
 import java.util.ArrayList;
@@ -35,9 +33,18 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.RateLimiter;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityData;
@@ -59,23 +66,15 @@ import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.RetentionSettings;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
+import org.hawkular.rx.cassandra.driver.RxUtil;
+import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.google.common.base.Function;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.RateLimiter;
+import rx.Observable;
+import rx.functions.Func1;
+import rx.subjects.PublishSubject;
 
 /**
  * @author John Sanda
@@ -195,10 +194,10 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     private static class MergeTagsFunction<T extends MetricData> implements
-        Function<List<Map<MetricId, Set<T>>>, Map<MetricId, Set<T>>> {
+        Func1<List<Map<MetricId, Set<T>>>, Map<MetricId, Set<T>>> {
 
         @Override
-        public Map<MetricId, Set<T>> apply(List<Map<MetricId, Set<T>>> taggedDataMaps) {
+        public Map<MetricId, Set<T>> call(List<Map<MetricId, Set<T>>> taggedDataMaps) {
             if (taggedDataMaps.isEmpty()) {
                 return Collections.emptyMap();
             }
@@ -275,191 +274,228 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<Void> createTenant(final Tenant tenant) {
-        ResultSetFuture future = dataAccess.insertTenant(tenant);
-        return Futures.transform(future, new AsyncFunction<ResultSet, Void>() {
-            @Override
-            public ListenableFuture<Void> apply(ResultSet resultSet) {
-                if (!resultSet.wasApplied()) {
-                    throw new TenantAlreadyExistsException(tenant.getId());
-                }
-                Map<MetricType, Set<Retention>> retentionsMap = new HashMap<>();
-                for (RetentionSettings.RetentionKey key : tenant.getRetentionSettings().keySet()) {
-                    Set<Retention> retentions = retentionsMap.get(key.metricType);
-                    if (retentions == null) {
-                        retentions = new HashSet<>();
+    public Observable<Void> createTenant(final Tenant tenant) {
+        return dataAccess.insertTenant(tenant).flatMap(
+                resultSet -> {
+                    if (!resultSet.wasApplied()) {
+                        throw new TenantAlreadyExistsException(tenant.getId());
                     }
-                    Interval interval = key.interval == null ? Interval.NONE : key.interval;
-                    Hours hours = hours(tenant.getRetentionSettings().get(key));
-                    retentions.add(new Retention(new MetricId("[" + key.metricType.getText() + "]", interval),
-                        hours.toStandardSeconds().getSeconds()));
-                    retentionsMap.put(key.metricType, retentions);
-                }
-                if (retentionsMap.isEmpty()) {
-                    return Futures.immediateFuture(null);
-                } else {
+                    Map<MetricType, Set<Retention>> retentionsMap = new HashMap<>();
+                    for (RetentionSettings.RetentionKey key : tenant.getRetentionSettings().keySet()) {
+                        Set<Retention> retentions = retentionsMap.get(key.metricType);
+                        if (retentions == null) {
+                            retentions = new HashSet<>();
+                        }
+                        Interval interval = key.interval == null ? Interval.NONE : key.interval;
+                        Hours hours = hours(tenant.getRetentionSettings().get(key));
+                        retentions.add(
+                                new Retention(
+                                        new MetricId("[" + key.metricType.getText() + "]", interval),
+                                        hours.toStandardSeconds().getSeconds()
+                                )
+                        );
+                        retentionsMap.put(key.metricType, retentions);
+                    }
+                    if (retentionsMap.isEmpty()) {
+                        return Observable.from(Collections.singleton(null));
+                    }
                     List<ResultSetFuture> updateRetentionFutures = new ArrayList<>();
 
                     for (Map.Entry<MetricType, Set<Retention>> metricTypeSetEntry : retentionsMap.entrySet()) {
-                        updateRetentionFutures.add(dataAccess.updateRetentionsIndex(tenant.getId(),
-                                metricTypeSetEntry.getKey(),
-                                metricTypeSetEntry.getValue()));
+                        updateRetentionFutures.add(
+                                dataAccess.updateRetentionsIndex(
+                                        tenant.getId(),
+                                        metricTypeSetEntry.getKey(),
+                                        metricTypeSetEntry.getValue()
+                                )
+                        );
 
                         for (Retention r : metricTypeSetEntry.getValue()) {
-                            dataRetentions.put(new DataRetentionKey(tenant.getId(), metricTypeSetEntry.getKey()),
-                                    r.getValue());
+                            dataRetentions.put(
+                                    new DataRetentionKey(tenant.getId(), metricTypeSetEntry.getKey()),
+                                    r.getValue()
+                            );
                         }
                     }
 
                     ListenableFuture<List<ResultSet>> updateRetentionsFuture = Futures
-                        .allAsList(updateRetentionFutures);
-                    return Futures.transform(updateRetentionsFuture, Functions.TO_VOID, metricsTasks);
+                            .allAsList(updateRetentionFutures);
+                    ListenableFuture<Void> transform = Futures.transform(
+                            updateRetentionsFuture,
+                            Functions.TO_VOID,
+                            metricsTasks
+                    );
+                    return RxUtil.from(transform, metricsTasks);
                 }
-            }
-        }, metricsTasks);
+        );
     }
 
     @Override
-    public ListenableFuture<List<Tenant>> getTenants() {
-        ListenableFuture<Stream<String>> tenantIdsFuture = Futures.transform(
-                dataAccess.findAllTenantIds(), (ResultSet input) ->
-                    StreamSupport.stream(input.spliterator(), false).map(row -> row.getString(0)), metricsTasks);
-
-        return Futures.transform(tenantIdsFuture, (Stream<String> input) ->
-                Futures.allAsList(input.map(dataAccess::findTenant).map(Functions::getTenant).collect(toList())));
+    public Observable<Tenant> getTenants() {
+        return dataAccess.findAllTenantIds()
+                         .flatMap(Observable::from)
+                         .map(row -> row.getString(0))
+                         .flatMap(dataAccess::findTenant)
+                         .flatMap(Observable::from)
+                         .map(Functions::getTenant);
     }
 
     private List<String> loadTenantIds() {
-        ResultSet resultSet = dataAccess.findAllTenantIds().getUninterruptibly();
-        List<String> ids = new ArrayList<>();
-        for (Row row : resultSet) {
-            ids.add(row.getString(0));
-        }
-        return ids;
+        Iterable<String> tenantIds = dataAccess.findAllTenantIds()
+                                               .flatMap(Observable::from)
+                                               .map(row -> row.getString(0))
+                                               .toBlocking()
+                                               .toIterable();
+        return ImmutableList.copyOf(tenantIds);
     }
 
     @Override
-    public ListenableFuture<Void> createMetric(final Metric<?> metric) {
+    public Observable<Void> createMetric(final Metric<?> metric) {
         ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric);
-        return Futures.transform(future, new AsyncFunction<ResultSet, Void>() {
-            @Override
-            public ListenableFuture<Void> apply(ResultSet resultSet) {
-                if (!resultSet.wasApplied()) {
-                    throw new MetricAlreadyExistsException(metric);
-                }
+        Observable<ResultSet> indexUpdated = RxUtil.from(future, metricsTasks);
+        return Observable.create(subscriber -> indexUpdated.subscribe(resultSet -> {
+            if (!resultSet.wasApplied()) {
+                subscriber.onError(new MetricAlreadyExistsException(metric));
+
+            } else {
                 // TODO Need error handling if either of the following updates fail
                 // If adding tags/retention fails, then we want to report the error to the
                 // client. Updating the retentions_idx table could also fail. We need to
                 // report that failure as well.
-                ResultSetFuture metadataFuture = dataAccess.addTagsAndDataRetention(metric);
-                ResultSetFuture tagsFuture = dataAccess.insertIntoMetricsTagsIndex(metric, metric.getTags());
+                //
+                // The error handling is the same as it was with Guava futures. That is, if any
+                // future fails, we treat the entire client request as a failure. We probably
+                // eventually want to implement more fine-grained error handling where we can
+                // notify the subscriber of what exactly fails.
+            Observable<ResultSet> metadataUpdated = dataAccess.addTagsAndDataRetention(metric);
+            Observable<ResultSet> tagsUpdated = dataAccess.insertIntoMetricsTagsIndex(metric, metric.getTags());
+            Observable<ResultSet> metricUpdates;
 
-                List<ResultSetFuture> futures = new ArrayList<>();
-                futures.add(metadataFuture);
-                futures.add(tagsFuture);
-
-                if (metric.getDataRetention() != null) {
-                    ResultSetFuture dataRetentionFuture = dataAccess.updateRetentionsIndex(metric);
-                    dataRetentions.put(new DataRetentionKey(metric), metric.getDataRetention());
-                    futures.add(dataRetentionFuture);
-                }
-
-                ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(futures);
-
-                return Futures.transform(insertsFuture, Functions.TO_VOID);
-            }
-        }, metricsTasks);
-    }
-
-    @Override
-    public ListenableFuture<Optional<Metric<?>>> findMetric(final String tenantId, final MetricType type,
-            final MetricId id) {
-        ResultSetFuture future = dataAccess.findMetric(tenantId, type, id, Metric.DPART);
-        return Futures.transform(future, (ResultSet resultSet) -> {
-            if (resultSet.isExhausted()) {
-                return Optional.empty();
-            }
-            Row row = resultSet.one();
-            if (type == MetricType.GAUGE) {
-                return Optional.of(new Gauge(tenantId, id, row.getMap(5, String.class, String.class),
-                        row.getInt(6)));
+            if (metric.getDataRetention() != null) {
+                ResultSetFuture dataRetentionFuture = dataAccess.updateRetentionsIndex(metric);
+                Observable<ResultSet> dataRetentionUpdated = RxUtil.from(dataRetentionFuture, metricsTasks);
+                dataRetentions.put(new DataRetentionKey(metric), metric.getDataRetention());
+                metricUpdates = Observable.merge(metadataUpdated, tagsUpdated, dataRetentionUpdated);
             } else {
-                return Optional.of(new Availability(tenantId, id, row.getMap(5, String.class, String.class),
-                        row.getInt(6)));
+                metricUpdates = Observable.merge(metadataUpdated, tagsUpdated);
             }
-        }, metricsTasks);
+
+            metricUpdates.subscribe(new VoidSubscriber<>(subscriber));
+        }
+    })  );
     }
 
     @Override
-    public ListenableFuture<List<Metric<?>>> findMetrics(String tenantId, MetricType type) {
-        ResultSetFuture future = dataAccess.findMetricsInMetricsIndex(tenantId, type);
-        return Futures.transform(future, new MetricsIndexMapper(tenantId, type), metricsTasks);
+    public Observable<Optional<? extends Metric<? extends MetricData>>> findMetric(final String tenantId,
+            final MetricType type, final MetricId id) {
+
+        return dataAccess.findMetric(tenantId, type, id, Metric.DPART)
+                .flatMap(Observable::from)
+                .map(row -> {
+                    if (type == MetricType.GAUGE) {
+                        return Optional.of(new Gauge(tenantId, id, row.getMap(5, String.class, String.class),
+                                row.getInt(6)));
+                    } else {
+                        return Optional.of(new Availability(tenantId, id, row.getMap(5, String.class, String.class),
+                                row.getInt(6)));
+                    }
+                })
+                .defaultIfEmpty(Optional.empty());
     }
 
     @Override
-    public ListenableFuture<Map<String, String>> getMetricTags(String tenantId, MetricType type, MetricId id) {
-        ResultSetFuture metricTags = dataAccess.getMetricTags(tenantId, type, id, Metric.DPART);
-        return Futures.transform(metricTags, (ResultSet input) -> {
-            if (input.isExhausted()) {
-                return Collections.EMPTY_MAP;
-            }
-            return input.one().getMap(0, String.class, String.class);
-        }, metricsTasks);
+    public Observable<Metric<?>> findMetrics(String tenantId, MetricType type) {
+        Observable<ResultSet> observable = dataAccess.findMetricsInMetricsIndex(tenantId, type);
+        if (type == MetricType.GAUGE) {
+            return observable.flatMap(Observable::from).map(row -> toGauge(tenantId, row));
+        } else {
+            return observable.flatMap(Observable::from).map(row -> toAvailability(tenantId, row));
+        }
+    }
+
+    private Gauge toGauge(String tenantId, Row row) {
+        return new Gauge(
+                tenantId,
+                new MetricId(row.getString(0), Interval.parse(row.getString(1))),
+                row.getMap(2, String.class, String.class),
+                row.getInt(3)
+        );
+    }
+
+    private Availability toAvailability(String tenantId, Row row) {
+        return new Availability(
+                tenantId,
+                new MetricId(row.getString(0), Interval.parse(row.getString(1))),
+                row.getMap(2, String.class, String.class),
+                row.getInt(3)
+        );
+    }
+
+    @Override
+    public Observable<Optional<Map<String, String>>> getMetricTags(String tenantId, MetricType type, MetricId id) {
+        Observable<ResultSet> metricTags = dataAccess.getMetricTags(tenantId, type, id, Metric.DPART);
+
+        return metricTags.flatMap(Observable::from).take(1).map(row -> Optional.of(row.getMap(0, String.class, String
+                .class)))
+            .defaultIfEmpty(Optional.empty());
     }
 
     // Adding/deleting metric tags currently involves writing to three tables - data,
     // metrics_idx, and metrics_tags_idx. It might make sense to refactor tag related
     // functionality into a separate class.
     @Override
-    public ListenableFuture<Void> addTags(Metric metric, Map<String, String> tags) {
-        List<ResultSetFuture> insertFutures = asList(
-            dataAccess.addTags(metric, tags),
-            dataAccess.insertIntoMetricsTagsIndex(metric, tags)
-        );
-        ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
-        return Futures.transform(insertsFuture, Functions.TO_VOID, metricsTasks);
+    public Observable<Void> addTags(Metric metric, Map<String, String> tags) {
+        return dataAccess.addTags(metric, tags).mergeWith(dataAccess.insertIntoMetricsTagsIndex(metric, tags))
+                .toList().map(l -> null);
     }
 
     @Override
-    public ListenableFuture<Void> deleteTags(Metric metric, Map<String, String> tags) {
-        List<ResultSetFuture> deleteFutures = asList(
-            dataAccess.deleteTags(metric, tags.keySet()),
-            dataAccess.deleteFromMetricsTagsIndex(metric, tags)
-        );
-        ListenableFuture<List<ResultSet>> deletesFuture = Futures.allAsList(deleteFutures);
-        return Futures.transform(deletesFuture, Functions.TO_VOID, metricsTasks);
+    public Observable<Void> deleteTags(Metric metric, Map<String, String> tags) {
+        return dataAccess.deleteTags(metric, tags.keySet()).mergeWith(
+                dataAccess.deleteFromMetricsTagsIndex(metric, tags)).toList().map(r -> null);
     }
 
     @Override
-    public ListenableFuture<Void> addGaugeData(List<Gauge> metrics) {
-        List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
-        for (Gauge metric : metrics) {
-            if (metric.getData().isEmpty()) {
-                logger.warn("There is no data to insert for {}", metric);
-            } else {
-                int ttl = getTTL(metric);
-                insertFutures.add(dataAccess.insertData(metric, ttl));
-            }
-        }
-        insertFutures.add(dataAccess.updateMetricsIndex(metrics));
-        ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
-        return Futures.transform(insertsFuture, Functions.TO_VOID, metricsTasks);
+    public Observable<Void> addGaugeData(Observable<Gauge> gaugeObservable) {
+        // We write to both the data and the metrics_idx tables. Each Gauge can have one or more data points. We
+        // currently write a separate batch statement for each gauge.
+        //
+        // TODO Is there additional overhead of using batch statement when there is only a single insert?
+        //      If there is overhead, then we should avoid using batch statements when the metric has only a single
+        //      data point which could be quite often.
+        //
+        // The metrics_idx table stores the metric id along with any tags, and data retention. The update we perform
+        // here though only inserts the metric id (i.e., name and interval). We need to revisit this logic. The original
+        // intent for updating metrics_idx here is that even if the client does not explicitly create the metric, we
+        // still have it in metrics_idx. In reality, I think clients will be explicitly creating metrics. This will
+        // certainly be the case with the full, integrated hawkular server.
+        //
+        // TODO Determine how much overhead is caused by updating metrics_idx on every write
+        //      If there much overhead, then we might not want to update the index every time we insert data. Maybe
+        //      we periodically update it in the background, so we will still be aware of metrics that have not been
+        //      explicitly created, just not necessarily right away.
+
+        PublishSubject<Void> results = PublishSubject.create();
+        Observable<ResultSet> dataInserted = dataAccess.insertData(
+                gaugeObservable.map(gauge -> new GaugeAndTTL(gauge, getTTL(gauge))));
+        Observable<ResultSet> indexUpdated = dataAccess.updateMetricsIndexRx(gaugeObservable);
+        dataInserted.concatWith(indexUpdated).subscribe(
+                resultSet -> {},
+                results::onError,
+                () -> {
+                    results.onNext(null);
+                    results.onCompleted();
+                });
+        return results;
     }
 
     @Override
-    public ListenableFuture<Void> addAvailabilityData(List<Availability> metrics) {
-        List<ResultSetFuture> insertFutures = new ArrayList<>(metrics.size());
-        for (Availability metric : metrics) {
-            if (metric.getData().isEmpty()) {
-                logger.warn("There is no data to insert for {}", metric);
-            } else {
-                int ttl = getTTL(metric);
-                insertFutures.add(dataAccess.insertData(metric, ttl));
-            }
-        }
-        insertFutures.add(dataAccess.updateMetricsIndex(metrics));
-        ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
-        return Futures.transform(insertsFuture, Functions.TO_VOID, metricsTasks);
+    public Observable<Void> addAvailabilityData(List<Availability> metrics) {
+        return Observable.from(metrics)
+                .filter(a -> !a.getData().isEmpty())
+                .flatMap(a -> dataAccess.insertData(a, getTTL(a)))
+                .doOnCompleted(() -> dataAccess.updateMetricsIndex(metrics))
+                .map(r -> null);
     }
 
     @Override
@@ -490,85 +526,62 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public ListenableFuture<List<GaugeData>> findGaugeData(String tenantId, MetricId id, Long start, Long end) {
+    public Observable<GaugeData> findGaugeData(String tenantId, MetricId id, Long start, Long end) {
         // When we implement date partitioning, dpart will have to be determined based on
         // the start and end params. And it is possible the the date range spans multiple
         // date partitions.
-        ResultSetFuture future = dataAccess.findData(tenantId, id, start, end);
-        return Futures.transform(future, Functions.MAP_GAUGE_DATA, metricsTasks);
+        return dataAccess.findData(tenantId, id, start, end).flatMap(Observable::from).map(Functions::getGaugeData);
     }
 
     @Override
-    public ListenableFuture<BucketedOutput<GaugeBucketDataPoint>> findGaugeStats(
+    public Observable<BucketedOutput<GaugeBucketDataPoint>> findGaugeStats(
             Gauge metric, long start, long end, Buckets buckets
     ) {
         // When we implement date partitioning, dpart will have to be determined based on
         // the start and end params. And it is possible the the date range spans multiple
         // date partitions.
-        ResultSetFuture queryFuture = dataAccess.findData(metric.getTenantId(), metric.getId(), start, end);
-        ListenableFuture<List<GaugeData>> raw = Futures.transform(queryFuture, Functions.MAP_GAUGE_DATA,
-                metricsTasks);
-        return Futures.transform(raw, new GaugeBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets));
+        return dataAccess.findData(metric.getTenantId(), metric.getId(), start, end)
+                .flatMap(Observable::from)
+                .map(Functions::getGaugeData)
+                .toList()
+                .map(new GaugeBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets));
     }
 
     @Override
-    public ListenableFuture<List<AvailabilityData>> findAvailabilityData(String tenantId, MetricId id, long start,
-            long end) {
+    public Observable<AvailabilityData> findAvailabilityData(String tenantId, MetricId id, long start,
+                                                             long end) {
         return findAvailabilityData(tenantId, id, start, end, false);
     }
 
     @Override
-    public ListenableFuture<List<AvailabilityData>> findAvailabilityData(String tenantId, MetricId id, long start,
-            long end, boolean distinct) {
-        ResultSetFuture queryFuture = dataAccess.findAvailabilityData(tenantId, id, start, end);
-        ListenableFuture<List<AvailabilityData>> availabilityFuture =  Futures.transform(queryFuture,
-                Functions.MAP_AVAILABILITY_DATA, metricsTasks);
-        if (distinct) {
-            return Futures.transform(availabilityFuture, (List<AvailabilityData> availabilities) -> {
-                if (availabilities.isEmpty()) {
-                    return availabilities;
-                }
-                List<AvailabilityData> distinctAvailabilities = new ArrayList<>(availabilities.size());
-                AvailabilityData previous = availabilities.get(0);
-                distinctAvailabilities.add(previous);
-                for (AvailabilityData availability : availabilities){
-                    if (availability.getType() != previous.getType()) {
-                        distinctAvailabilities.add(availability);
-                    }
-                    previous = availability;
-                }
-                return distinctAvailabilities;
-            }, metricsTasks);
+    public Observable<AvailabilityData> findAvailabilityData(String tenantId, MetricId id, long start,
+                                                             long end, boolean distinct) {
+        Observable<AvailabilityData> availabilityData = dataAccess.findAvailabilityData(tenantId, id, start, end)
+                .flatMap(r -> Observable.from(r))
+                .map(Functions::getAvailability);
+        if(distinct) {
+            return availabilityData.distinctUntilChanged((a) -> a.getType());
         } else {
-            return availabilityFuture;
+            return availabilityData;
         }
     }
 
     @Override
-    public ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(
-            Availability metric, long start, long end, Buckets buckets
-    ) {
-        ResultSetFuture queryFuture = dataAccess.findAvailabilityData(metric.getTenantId(), metric.getId(), start, end);
-        ListenableFuture<List<AvailabilityData>> raw = Futures.transform(queryFuture, Functions.MAP_AVAILABILITY_DATA,
-                metricsTasks);
-        return Futures.transform(raw, new AvailabilityBucketedOutputMapper(metric.getTenantId(), metric.getId(),
-                buckets));
+    public Observable<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(Availability metric,
+        long start, long end, Buckets buckets) {
+        return dataAccess.findAvailabilityData(metric.getTenantId(), metric.getId(), start, end)
+                .flatMap(r -> Observable.from(r)).map(Functions::getAvailability)
+                .toList()
+                .map(new AvailabilityBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets));
     }
 
     @Override
-    public ListenableFuture<Boolean> idExists(final String id) {
-        ResultSetFuture future = dataAccess.findAllGuageMetrics();
-        return Futures.transform(future, new Function<ResultSet, Boolean>() {
-            @Override
-            public Boolean apply(ResultSet resultSet) {
-                for (Row row : resultSet) {
-                    if (id.equals(row.getString(2))) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-        }, metricsTasks);
+    public Observable<Boolean> idExists(final String id) {
+        return dataAccess.findAllGaugeMetrics().flatMap(Observable::from)
+                .filter(row -> id.equals(row.getString(2)))
+                .take(1)
+                .map(r -> Boolean.TRUE)
+                .defaultIfEmpty(Boolean.FALSE);
     }
 
     @Override
@@ -576,80 +589,102 @@ public class MetricsServiceCassandra implements MetricsService {
     // Data for different metrics and for the same tag are stored within the same partition
     // in the tags table; therefore, it makes sense for the API to support tagging multiple
     // metrics since they could efficiently be inserted in a single batch statement.
-    public ListenableFuture<List<GaugeData>> tagGaugeData(Gauge metric, final Map<String, String> tags,
-            long start, long end) {
-        ResultSetFuture queryFuture = dataAccess.findData(metric.getTenantId(), metric.getId(), start, end, true);
-        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture,
-                Functions.MAP_GAUGE_DATA_WITH_WRITE_TIME, metricsTasks);
+    public Observable<Void> tagGaugeData(Gauge metric, final Map<String, String> tags,
+                                         long start, long end) {
+        Observable<ResultSet> findDataObservable = dataAccess.findData(metric.getTenantId(), metric.getId(), start, end,
+                true);
+        return tagGaugeData(findDataObservable, tags, metric);
+    }
+
+    private Observable<Void> tagGaugeData(Observable<ResultSet> findDataObservable, Map<String, String> tags,
+                                               Gauge metric) {
         int ttl = getTTL(metric);
-        ListenableFuture<List<GaugeData>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
-        return Futures.transform(updatedDataFuture, new TagAsyncFunction(tags, metric));
+        Observable<Map.Entry<String, String>> tagsObservable = Observable.from(tags.entrySet()).cache();
+        Observable<GaugeData> gauges = findDataObservable.flatMap(Observable::from)
+                .map(Functions::getGaugeDataAndWriteTime)
+                .map(g -> (GaugeData) computeTTL(g, ttl))
+                .cache();
+
+        Observable<ResultSet> tagInsert = tagsObservable
+                .flatMap(t -> dataAccess.insertGaugeTag(t.getKey(), t.getValue(), metric, gauges));
+
+        Observable<ResultSet> tagsInsert = gauges
+                .flatMap(g -> dataAccess.updateDataWithTag(metric, g, tags));
+
+        return tagInsert.concatWith(tagsInsert).map(r -> null);
     }
 
-    @Override
-    public ListenableFuture<List<AvailabilityData>> tagAvailabilityData(Availability metric,
-            Map<String, String> tags, long start, long end) {
-        ResultSetFuture queryFuture = dataAccess.findData(metric, start, end, true);
-        ListenableFuture<List<AvailabilityData>> dataFuture = Futures.transform(queryFuture,
-            Functions.MAP_AVAILABILITY_WITH_WRITE_TIME, metricsTasks);
+    private Observable<Void> tagAvailabilityData(Observable<ResultSet> findDataObservable,
+                                                      Map<String, String> tags, Availability metric) {
         int ttl = getTTL(metric);
-        ListenableFuture<List<AvailabilityData>> updatedDataFuture = Futures.transform(dataFuture,
-                new ComputeTTL<>(ttl));
-        return Futures.transform(updatedDataFuture, new TagAsyncFunction(tags, metric));
+        Observable<Map.Entry<String, String>> tagsObservable = Observable.from(tags.entrySet()).cache();
+        Observable<AvailabilityData> availabilities = findDataObservable.flatMap(Observable::from)
+                .map(Functions::getAvailabilityAndWriteTime)
+                .map(a -> (AvailabilityData) computeTTL(a, ttl))
+                .cache();
+
+        Observable<ResultSet> tagInsert = tagsObservable
+                .flatMap(t -> dataAccess.insertAvailabilityTag(t.getKey(), t.getValue(), metric, availabilities));
+
+        Observable<ResultSet> tagsInsert = availabilities
+                .flatMap(a -> dataAccess.updateDataWithTag(metric, a, tags));
+
+        return tagInsert.concatWith(tagsInsert).map(r -> null);
     }
 
     @Override
-    public ListenableFuture<List<GaugeData>> tagGaugeData(Gauge metric, final Map<String, String> tags,
-            long timestamp) {
-        ListenableFuture<ResultSet> queryFuture = dataAccess.findData(metric, timestamp, true);
-        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(queryFuture,
-                Functions.MAP_GAUGE_DATA_WITH_WRITE_TIME, metricsTasks);
-        int ttl = getTTL(metric);
-        ListenableFuture<List<GaugeData>> updatedDataFuture = Futures.transform(dataFuture, new ComputeTTL<>(ttl));
-        return Futures.transform(updatedDataFuture, new TagAsyncFunction(tags, metric));
+    public Observable<Void> tagAvailabilityData(Availability metric,
+                                                Map<String, String> tags, long start, long end) {
+        Observable<ResultSet> findDataObservable = dataAccess.findData(metric, start, end, true);
+        return tagAvailabilityData(findDataObservable, tags, metric);
+    }
+
+    private MetricData computeTTL(MetricData d, int originalTTL) {
+        Duration duration = new Duration(DateTime.now().minus(d.getWriteTime()).getMillis());
+        d.setTTL(originalTTL - duration.toStandardSeconds().getSeconds());
+        return d;
     }
 
     @Override
-    public ListenableFuture<List<AvailabilityData>> tagAvailabilityData(Availability metric,
-            final Map<String, String> tags, long timestamp) {
-        ListenableFuture<ResultSet> queryFuture = dataAccess.findData(metric, timestamp);
-        ListenableFuture<List<AvailabilityData>> dataFuture = Futures.transform(queryFuture,
-            Functions.MAP_AVAILABILITY_WITH_WRITE_TIME, metricsTasks);
-        int ttl = getTTL(metric);
-        ListenableFuture<List<AvailabilityData>> updatedDataFuture = Futures.transform(dataFuture,
-                new ComputeTTL<>(ttl));
-        return Futures.transform(updatedDataFuture, new TagAsyncFunction(tags, metric));
+    public Observable<Void> tagGaugeData(Gauge metric, final Map<String, String> tags,
+                                         long timestamp) {
+        Observable<ResultSet> findDataObservable = dataAccess.findData(metric, timestamp, true);
+        return tagGaugeData(findDataObservable, tags, metric);
     }
 
     @Override
-    public ListenableFuture<Map<MetricId, Set<GaugeData>>> findGaugeDataByTags(String tenantId,
-            Map<String, String> tags) {
-        List<ListenableFuture<Map<MetricId, Set<GaugeData>>>> queryFutures = new ArrayList<>(tags.size());
-        tags.forEach((k, v) -> queryFutures.add(Futures.transform(dataAccess.findGuageDataByTag(tenantId, k, v),
-                new TaggedGaugeDataMapper(), metricsTasks)));
-        ListenableFuture<List<Map<MetricId, Set<GaugeData>>>> queriesFuture = Futures.allAsList(queryFutures);
-        return Futures.transform(queriesFuture, new MergeTagsFunction());
-
+    public Observable<Void> tagAvailabilityData(Availability metric,
+                                                final Map<String, String> tags, long timestamp) {
+        Observable<ResultSet> findDataObservable = dataAccess.findData(metric, timestamp);
+        return tagAvailabilityData(findDataObservable, tags, metric);
     }
 
     @Override
-    public ListenableFuture<Map<MetricId, Set<AvailabilityData>>> findAvailabilityByTags(String tenantId,
-            Map<String, String> tags) {
-        List<ListenableFuture<Map<MetricId, Set<AvailabilityData>>>> queryFutures = new ArrayList<>(tags.size());
-        tags.forEach((k, v) -> queryFutures.add(Futures.transform(dataAccess.findAvailabilityByTag(tenantId, k, v),
-                new TaggedAvailabilityMappper(), metricsTasks)));
-        ListenableFuture<List<Map<MetricId, Set<AvailabilityData>>>> queriesFuture = Futures.allAsList(queryFutures);
-        return Futures.transform(queriesFuture, new MergeTagsFunction());
+    public Observable<Map<MetricId, Set<GaugeData>>> findGaugeDataByTags(String tenantId, Map<String, String> tags) {
+        return Observable.from(tags.entrySet())
+                .flatMap(e -> dataAccess.findGaugeDataByTag(tenantId, e.getKey(), e.getValue()))
+                .map(TaggedGaugeDataMapper::apply)
+                .toList()
+                .map(new MergeTagsFunction<>());
     }
 
     @Override
-    public ListenableFuture<List<long[]>> getPeriods(String tenantId, MetricId id, Predicate<Double> predicate,
-        long start, long end) {
-        ResultSetFuture resultSetFuture = dataAccess.findData(new Gauge(tenantId, id), start, end, Order.ASC);
-        ListenableFuture<List<GaugeData>> dataFuture = Futures.transform(resultSetFuture,
-                Functions.MAP_GAUGE_DATA, metricsTasks);
+    public Observable<Map<MetricId, Set<AvailabilityData>>> findAvailabilityByTags(String tenantId,
+        Map<String, String> tags) {
 
-        return Futures.transform(dataFuture, (List<GaugeData> data) -> {
+        return Observable.from(tags.entrySet())
+                .flatMap(e -> dataAccess.findAvailabilityByTag(tenantId, e.getKey(), e.getValue()))
+                .map(TaggedAvailabilityMapper::apply)
+                .toList()
+                .map(new MergeTagsFunction<>());
+    }
+
+    @Override
+    public Observable<List<long[]>> getPeriods(String tenantId, MetricId id, Predicate<Double> predicate,
+                                               long start, long end) {
+        return dataAccess.findData(new Gauge(tenantId, id), start, end, Order.ASC).flatMap(Observable::from).map
+                (Functions::getGaugeData)
+        .toList().map(data -> {
             List<long[]> periods = new ArrayList<>(data.size());
             long[] period = null;
             GaugeData previous = null;
@@ -671,9 +706,8 @@ public class MetricsServiceCassandra implements MetricsService {
                 period[1] = previous.getTimestamp();
                 periods.add(period);
             }
-
             return periods;
-        }, metricsTasks);
+        });
     }
 
     private int getTTL(Metric<?> metric) {
@@ -687,34 +721,4 @@ public class MetricsServiceCassandra implements MetricsService {
         return ttl;
     }
 
-    private class TagAsyncFunction<T extends MetricData> implements AsyncFunction<List<T>, List<T>> {
-        private final Map<String, String> tags;
-        private final Metric<?> metric;
-
-        public TagAsyncFunction(Map<String, String> tags, Metric<?> metric) {
-            this.tags = tags;
-            this.metric = metric;
-        }
-
-        @Override
-        public ListenableFuture<List<T>> apply(List<T> data) throws Exception {
-            if (data.isEmpty()) {
-                List<T> results = Collections.emptyList();
-                return Futures.immediateFuture(results);
-            }
-            List<ResultSetFuture> insertFutures = new ArrayList<>(tags.size());
-            tags.forEach((k, v) -> {
-                if(metric instanceof Gauge) {
-                    insertFutures.add(dataAccess.insertGuageTag(k, v, (Gauge) metric,
-                                                                  (List<GaugeData>) data));
-                } else if(metric instanceof Availability) {
-                    insertFutures.add(dataAccess.insertAvailabilityTag(k, v, (Availability) metric,
-                                                                       (List<AvailabilityData>) data));
-                }
-            });
-            data.forEach(t -> insertFutures.add(dataAccess.updateDataWithTag(metric, t, tags)));
-            ListenableFuture<List<ResultSet>> insertsFuture = Futures.allAsList(insertFutures);
-            return Futures.transform(insertsFuture, (List<ResultSet> resultSets) -> data);
-        }
-    }
 }

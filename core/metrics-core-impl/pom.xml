@@ -49,9 +49,20 @@
     </dependency>
 
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>hawkular-rx-java-driver</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
       <groupId>com.datastax.cassandra</groupId>
       <artifactId>cassandra-driver-core</artifactId>
       <version>${datastax.driver.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.reactivex</groupId>
+      <artifactId>rxjava</artifactId>
     </dependency>
 
     <dependency>
@@ -76,6 +87,11 @@
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-math3</artifactId>
       <version>3.4.1</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.stephenc.eaio-uuid</groupId>
+      <artifactId>uuid</artifactId>
+      <version>3.4.0</version>
     </dependency>
 
     <!-- documentation -->

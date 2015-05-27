@@ -26,12 +26,14 @@ import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.collect.ImmutableSet;
 import org.hawkular.metrics.tasks.BaseTest;
+import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.joda.time.DateTime;
 import org.joda.time.Minutes;
 import org.slf4j.Logger;
@@ -43,9 +45,9 @@ import org.testng.annotations.Test;
 /**
  * @author jsanda
  */
-public class LeaseManagerTest extends BaseTest {
+public class LeaseServiceTest extends BaseTest {
 
-    private static Logger logger = LoggerFactory.getLogger(LeaseManagerTest.class);
+    private static Logger logger = LoggerFactory.getLogger(LeaseServiceTest.class);
 
     private LeaseService leaseService;
 
@@ -59,7 +61,7 @@ public class LeaseManagerTest extends BaseTest {
 
     @BeforeMethod
     public void init() {
-        leaseService = new LeaseService(session, queries);
+        leaseService = new LeaseService(new RxSessionImpl(session), queries);
     }
 
     @Test
@@ -78,14 +80,16 @@ public class LeaseManagerTest extends BaseTest {
         session.execute(createdFinishedLease.bind(timeSlice.toDate(), taskType3, 0, true));
         session.execute(createdFinishedLease.bind(timeSlice.toDate(), taskType4, 0, true));
 
-        ListenableFuture<List<Lease>> future = leaseService.findUnfinishedLeases(timeSlice);
-        List<Lease> actual = getUninterruptibly(future);
-        List<Lease> expected = ImmutableList.of(
+//        List<Lease> actual = ImmutableList.copyOf(leaseService.findUnfinishedLeases(timeSlice).toBlocking()
+//                .toIterable());
+        Set<Lease> actual = ImmutableSet.copyOf(leaseService.findUnfinishedLeases(timeSlice).toBlocking()
+                .toIterable());
+        Set<Lease> expected = ImmutableSet.of(
                 new Lease(timeSlice, taskType1, 0, null, false),
                 new Lease(timeSlice, taskType2, 0, null, false)
         );
 
-        assertEquals(actual, expected, "The leases do not match");
+        assertEquals(actual, expected, "The leases do not match. Found " + actual);
     }
 
     @Test
@@ -94,11 +98,12 @@ public class LeaseManagerTest extends BaseTest {
 
         session.execute(queries.createLease.bind(timeSlice.toDate(), "test", 0));
 
-        List<Lease> leases = getUninterruptibly(leaseService.findUnfinishedLeases(timeSlice));
+        List<Lease> leases = ImmutableList.copyOf(leaseService.findUnfinishedLeases(timeSlice).toBlocking()
+                .toIterable());
         assertEquals(leases.size(), 1, "Expected to find one lease");
 
         leases.get(0).setOwner("server1");
-        Boolean acquired = getUninterruptibly(leaseService.acquire(leases.get(0)));
+        Boolean acquired = leaseService.acquire(leases.get(0)).toBlocking().first();
         assertTrue(acquired, "Failed to acquire " + leases.get(0));
     }
 
@@ -110,12 +115,12 @@ public class LeaseManagerTest extends BaseTest {
         session.execute(queries.createLease.bind(timeSlice.toDate(), "test", 0));
 
         lease.setOwner("server1");
-        Boolean acquired = getUninterruptibly(leaseService.acquire(lease));
+        Boolean acquired = leaseService.acquire(lease).toBlocking().first();
         assertTrue(acquired, "Expected to acquire " + lease);
 
         // now try to acquire with a different owner
         lease.setOwner("server2");
-        acquired = getUninterruptibly(leaseService.acquire(lease));
+        acquired = leaseService.acquire(lease).toBlocking().first();
         assertFalse(acquired, "Should have failed to acquire lease since it already has a different owner");
     }
 
@@ -129,14 +134,14 @@ public class LeaseManagerTest extends BaseTest {
         session.execute(queries.createLease.bind(timeSlice.toDate(), "test", 0));
 
         lease.setOwner("server1");
-        Boolean acquired = getUninterruptibly(leaseService.acquire(lease, 1));
+        Boolean acquired = leaseService.acquire(lease, 1).toBlocking().first();
         assertTrue(acquired, "Expected to acquire " + lease);
 
         Thread.sleep(1000);
 
         // now try to acquire with a different owner
         lease.setOwner("server2");
-        acquired = getUninterruptibly(leaseService.acquire(lease));
+        acquired = leaseService.acquire(lease).toBlocking().first();
         assertTrue(acquired, "Should have acquired the lease since it expired");
     }
 
@@ -148,10 +153,10 @@ public class LeaseManagerTest extends BaseTest {
         session.execute(queries.createLease.bind(timeSlice.toDate(), "test", 0));
 
         lease.setOwner("server1");
-        Boolean acquired = getUninterruptibly(leaseService.acquire(lease));
+        Boolean acquired = leaseService.acquire(lease).toBlocking().first();
         assertTrue(acquired, "Expected to acquire " + lease);
 
-        Boolean renewed = getUninterruptibly(leaseService.renew(lease));
+        Boolean renewed = leaseService.renew(lease).toBlocking().first();
         assertTrue(renewed, "Expected lease to be renewed");
     }
 
@@ -170,7 +175,7 @@ public class LeaseManagerTest extends BaseTest {
         leaseService.setRenewalRate(renewalRate);
 
         lease.setOwner("server1");
-        Boolean acquired = getUninterruptibly(leaseService.acquire(lease));
+        Boolean acquired = leaseService.acquire(lease).toBlocking().first();
         assertTrue(acquired, "Expected to acquire " + lease);
 
         executeInNewThread(() -> {
@@ -179,19 +184,23 @@ public class LeaseManagerTest extends BaseTest {
             try {
                 for (int i = 0; i < 5; ++i) {
                     Thread.sleep(ttl * 1000);
-                    List<Lease> remainingLeases = getUninterruptibly(leaseService.findUnfinishedLeases(timeSlice));
+                    List<Lease> remainingLeases = ImmutableList.copyOf(leaseService.findUnfinishedLeases(timeSlice)
+                            .toBlocking().toIterable());
                     logger.info("Remaining leases = {}", remainingLeases);
-                    assertEquals(remainingLeases, expectedLeases,
-                            "The unfinished leases do not match expected values");
+                    assertTrue(remainingLeases.isEmpty(), "There should not be any available leases but found " +
+                        remainingLeases);
+//                    assertEquals(remainingLeases, expectedLeases,
+//                            "The unfinished leases do not match expected values");
                 }
-                Boolean finished = getUninterruptibly(leaseService.finish(lease));
+                Boolean finished = leaseService.finish(lease).toBlocking().first();
                 assertTrue(finished, "Expected " + lease + " to be finished");
             } catch (Exception e) {
                 fail("There was an unexpected error", e);
             }
         }, 20000);
 
-        List<Lease> unfinishedLeases = getUninterruptibly(leaseService.findUnfinishedLeases(timeSlice));
+        List<Lease> unfinishedLeases = ImmutableList.copyOf(leaseService.findUnfinishedLeases(timeSlice).toBlocking()
+                .toIterable());
         assertTrue(unfinishedLeases.isEmpty(), "There should not be any unfinished leases but found " +
                 unfinishedLeases);
     }
@@ -210,7 +219,7 @@ public class LeaseManagerTest extends BaseTest {
         leaseService.setRenewalRate(renewalRate);
 
         lease.setOwner("server1");
-        Boolean acquired = getUninterruptibly(leaseService.acquire(lease));
+        Boolean acquired = leaseService.acquire(lease).toBlocking().first();
         assertTrue(acquired, "Expected to acquire " + lease);
 
         executeInNewThread(() -> {
@@ -219,7 +228,7 @@ public class LeaseManagerTest extends BaseTest {
             try {
                 lease.setOwner("server2");
                 Thread.sleep(2000);
-                Boolean acquiredByNewOwner =  getUninterruptibly(leaseService.acquire(lease));
+                Boolean acquiredByNewOwner =  leaseService.acquire(lease).toBlocking().first();
                 assertTrue(acquiredByNewOwner, "Expected " + lease + " to be acquired by new owner");
             } catch (Exception e) {
                 fail("There was an unexpected error trying to acquire " + lease, e);

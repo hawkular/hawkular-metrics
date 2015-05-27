@@ -14,35 +14,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.callback;
+package org.hawkular.metrics.api.jaxrs.handler.observer;
 
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 
-import org.hawkular.metrics.api.jaxrs.ApiError;
+import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 
-import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.FutureCallback;
+import rx.Observer;
 
 /**
- * @author John Sanda
+ * Observer that returns empty 200 if everything went alright and ApiError if there was an exception.
+ *
+ * @author miburman
  */
-public class NoDataCallback<T> implements FutureCallback<T> {
+public class ResultSetObserver implements Observer<Void> {
 
-    protected AsyncResponse asyncResponse;
+    private AsyncResponse asyncResponse;
 
-    public NoDataCallback(AsyncResponse asyncResponse) {
+    public ResultSetObserver(AsyncResponse asyncResponse) {
         this.asyncResponse = asyncResponse;
     }
 
     @Override
-    public void onSuccess(Object result) {
+    public void onCompleted() {
         asyncResponse.resume(Response.ok().build());
     }
 
     @Override
-    public void onFailure(Throwable t) {
-        String msg = "Failed to perform operation due to an error: " + Throwables.getRootCause(t).getMessage();
-        asyncResponse.resume(Response.serverError().entity(new ApiError(msg)).build());
+    public void onError(Throwable t) {
+        asyncResponse.resume(ApiUtils.serverError(t));
+    }
+
+    @Override
+    public void onNext(Void aVoid) {
+
     }
 }

@@ -22,21 +22,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.StreamSupport;
 
+import org.hawkular.metrics.core.api.AggregationTemplate;
+import org.hawkular.metrics.core.api.AvailabilityData;
+import org.hawkular.metrics.core.api.GaugeData;
+import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.Tenant;
+
 import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.TupleValue;
 import com.datastax.driver.core.UDTValue;
 import com.google.common.base.Function;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-
-import org.hawkular.metrics.core.api.AggregationTemplate;
-import org.hawkular.metrics.core.api.AvailabilityData;
-import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.GaugeData;
-import org.hawkular.metrics.core.api.Tenant;
 
 /**
  * @author jsanda
@@ -69,7 +66,7 @@ public class Functions {
     public static final Function<ResultSet, List<GaugeData>> MAP_GAUGE_DATA = resultSet ->
             StreamSupport.stream(resultSet.spliterator(), false).map(Functions::getGaugeData).collect(toList());
 
-    private static GaugeData getGaugeData(Row row) {
+    public static GaugeData getGaugeData(Row row) {
         return new GaugeData(
                 row.getUUID(GAUGE_COLS.TIME.ordinal()), row.getDouble(GAUGE_COLS.VALUE.ordinal()),
                 row.getMap(GAUGE_COLS.TAGS.ordinal(), String.class, String.class)
@@ -80,7 +77,7 @@ public class Functions {
         StreamSupport.stream(resultSet.spliterator(), false).map(Functions::getGaugeDataAndWriteTime)
                 .collect(toList());
 
-    private static GaugeData getGaugeDataAndWriteTime(Row row) {
+    public static GaugeData getGaugeDataAndWriteTime(Row row) {
         return new GaugeData(
                 row.getUUID(GAUGE_COLS.TIME.ordinal()),
                 row.getDouble(GAUGE_COLS.VALUE.ordinal()),
@@ -91,7 +88,7 @@ public class Functions {
     public static final Function<ResultSet, List<AvailabilityData>> MAP_AVAILABILITY_DATA = resultSet ->
             StreamSupport.stream(resultSet.spliterator(), false).map(Functions::getAvailability).collect(toList());
 
-    private static AvailabilityData getAvailability(Row row) {
+    public static AvailabilityData getAvailability(Row row) {
         return new AvailabilityData(
                 row.getUUID(AVAILABILITY_COLS.TIME.ordinal()), row.getBytes(AVAILABILITY_COLS.AVAILABILITY.ordinal()),
                 row.getMap(AVAILABILITY_COLS.TAGS.ordinal(), String.class, String.class));
@@ -101,7 +98,7 @@ public class Functions {
             StreamSupport.stream(resultSet.spliterator(), false).map(Functions::getAvailabilityAndWriteTime)
                     .collect(toList());
 
-    private static AvailabilityData getAvailabilityAndWriteTime(Row row) {
+    public static AvailabilityData getAvailabilityAndWriteTime(Row row) {
         return new AvailabilityData(
                 row.getUUID(AVAILABILITY_COLS.TIME.ordinal()),
                 row.getBytes(AVAILABILITY_COLS.AVAILABILITY.ordinal()),
@@ -110,15 +107,7 @@ public class Functions {
         );
     }
 
-    public static ListenableFuture<Tenant> getTenant(ResultSetFuture future) {
-        return Futures.transform(future, (ResultSet resultSet) ->
-                        StreamSupport.stream(resultSet.spliterator(), false)
-                                .findFirst().map(Functions::getTenant)
-                                .orElse(null)
-        );
-    }
-
-    private static Tenant getTenant(Row row) {
+    public static Tenant getTenant(Row row) {
         Tenant tenant = new Tenant().setId(row.getString(0));
         Map<TupleValue, Integer> retentions = row.getMap(1, TupleValue.class, Integer.class);
         for (Map.Entry<TupleValue, Integer> entry : retentions.entrySet()) {

@@ -26,6 +26,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
 import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.metrics.tasks.impl.Queries;
+import org.hawkular.rx.cassandra.driver.RxSession;
+import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
 
@@ -38,6 +40,8 @@ public class BaseTest {
 
     protected static Session session;
 
+    protected static RxSession rxSession;
+
     protected static DateTimeService dateTimeService;
 
     protected static Queries queries;
@@ -47,6 +51,7 @@ public class BaseTest {
         Cluster cluster = Cluster.builder().addContactPoints("127.0.0.01").build();
         String keyspace = System.getProperty("keyspace", "hawkulartest");
         session = cluster.connect("system");
+        rxSession = new RxSessionImpl(session);
 
         SchemaManager schemaManager = new SchemaManager(session);
         schemaManager.createSchema(keyspace);

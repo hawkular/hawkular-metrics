@@ -22,14 +22,16 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.joda.time.DateTime;
-
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
+
+import org.hawkular.rx.cassandra.driver.RxSession;
+import org.hawkular.rx.cassandra.driver.RxSessionImpl;
+import org.joda.time.DateTime;
 
 /**
  * @author John Sanda
@@ -39,6 +41,8 @@ public class MetricsITest {
     private static final long FUTURE_TIMEOUT = 3;
 
     protected Session session;
+
+    protected RxSession rxSession;
 
     private PreparedStatement truncateMetrics;
 
@@ -53,6 +57,7 @@ public class MetricsITest {
             .withProtocolVersion(ProtocolVersion.V3)
             .build();
         session = cluster.connect(getKeyspace());
+        rxSession = new RxSessionImpl(session);
 
 //        truncateMetrics = session.prepare("TRUNCATE metrics");
 //        truncateCounters = session.prepare("TRUNCATE counters");

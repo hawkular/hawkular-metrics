@@ -17,9 +17,7 @@
 package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.executeAsync;
 
 import java.util.ArrayList;
@@ -37,13 +35,6 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
 
-import org.hawkular.metrics.api.jaxrs.ApiError;
-import org.hawkular.metrics.api.jaxrs.request.MixedMetricsRequest;
-import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
-
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.wordnik.swagger.annotations.Api;
@@ -51,6 +42,12 @@ import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
+
+import org.hawkular.metrics.api.jaxrs.ApiError;
+import org.hawkular.metrics.api.jaxrs.request.MixedMetricsRequest;
+import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.MetricsService;
 
 
 /**
@@ -82,22 +79,18 @@ public class MetricHandler {
     public void findMetrics(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "Queried metric type", required = true, allowableValues = "[gauge, availability]")
-            @QueryParam("type") String type
-    ) {
-        executeAsync(
-                asyncResponse, () -> {
-                    MetricType metricType = null;
-                    try {
-                        metricType = MetricType.fromTextCode(type);
-                    } catch (IllegalArgumentException e) {
-                        return badRequest(
-                                new ApiError("[" + type + "] is not a valid type. Accepted values are gauge|avail|log")
-                        );
-                    }
-                    ListenableFuture<List<Metric<?>>> future = metricsService.findMetrics(tenantId, metricType);
-                    return Futures.transform(future, ApiUtils.MAP_COLLECTION);
-                }
-        );
+        @QueryParam("type") String type) {
+
+        try {
+            metricsService.findMetrics(tenantId, MetricType.fromTextCode(type))
+                    .toList()
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+
+        } catch (IllegalArgumentException e) {
+            ApiError error = new ApiError("[" + type + "] is not a valid type. Accepted values are gauge|avail|log");
+            asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity(error).build());
+        }
     }
 
     @POST
@@ -114,7 +107,7 @@ public class MetricHandler {
         executeAsync(asyncResponse, () -> {
             if ((metricsRequest.getGaugeMetrics() == null || !metricsRequest.getGaugeMetrics().isEmpty())
                     && (metricsRequest.getAvailabilityMetrics() == null || metricsRequest.getAvailabilityMetrics()
-                            .isEmpty())) {
+                    .isEmpty())) {
                 return Futures.immediateFuture(Response.ok().build());
             }
 
@@ -122,16 +115,23 @@ public class MetricHandler {
 
             if (metricsRequest.getGaugeMetrics() != null && !metricsRequest.getGaugeMetrics().isEmpty()) {
                 metricsRequest.getGaugeMetrics().forEach(m -> m.setTenantId(tenantId));
-                simpleFuturesList.add(metricsService.addGaugeData(metricsRequest.getGaugeMetrics()));
+                // TODO This needs to be fix - this needs to refactored..
+                // Temporarily commented out to get it to compile as we midst of updating MetricsService
+                // to use rx.Observable instead of ListenableFuture
+
+            //                Observable<Void> voidObservable = metricsService.addGaugeData(Observable.
+            // from(metricsRequest.getGaugeMetrics()));
+            //                simpleFuturesList.add(metricsService.addGaugeData(metricsRequest.getGaugeMetrics()));
             }
 
             if (metricsRequest.getAvailabilityMetrics() != null && !metricsRequest.getAvailabilityMetrics().isEmpty()) {
                 metricsRequest.getAvailabilityMetrics().forEach(m -> m.setTenantId(tenantId));
-                simpleFuturesList.add(metricsService.addAvailabilityData(metricsRequest.getAvailabilityMetrics()));
+                metricsService.addAvailabilityData(metricsRequest.getAvailabilityMetrics())
+                        .subscribe(r -> asyncResponse.resume(Response.ok().build()),
+                                   t -> asyncResponse.resume(ApiUtils.serverError(t)));
             }
 
             return Futures.transform(Futures.successfulAsList(simpleFuturesList), ApiUtils.MAP_LIST_VOID);
         });
     }
-
 }

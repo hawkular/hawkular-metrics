@@ -26,6 +26,8 @@ import java.util.function.Predicate;
 import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import rx.Observable;
+
 /**
  * Interface that defines the functionality of the Metrics Service.
  * @author Heiko W. Rupp
@@ -65,42 +67,43 @@ public interface MetricsService {
      * importantly, data could be inserted with a tenant id that already exists.
      * </p>
      *
-     * @param tenant The {@link org.hawkular.metrics.core.api.Tenant tenant} to create
+     * @param tenant The {@link Tenant tenant} to create
      * @return
      * @throws org.hawkular.metrics.core.api.TenantAlreadyExistsException
      */
-    ListenableFuture<Void> createTenant(Tenant tenant);
+    Observable<Void> createTenant(Tenant tenant);
 
-    ListenableFuture<List<Tenant>> getTenants();
+    Observable<Tenant> getTenants();
 
-    ListenableFuture<Void> createMetric(Metric<?> metric);
+    Observable<Void> createMetric(Metric<?> metric);
 
-    ListenableFuture<Optional<Metric<?>>> findMetric(String tenantId, MetricType type, MetricId id);
+    Observable<Optional<? extends Metric<? extends MetricData>>> findMetric(String tenantId, MetricType type,
+            MetricId id);
 
-    ListenableFuture<List<Metric<?>>> findMetrics(String tenantId, MetricType type);
+    Observable<Metric<?>> findMetrics(String tenantId, MetricType type);
 
-    ListenableFuture<Map<String, String>> getMetricTags(String tenantId, MetricType type, MetricId id);
+    Observable<Optional<Map<String, String>>> getMetricTags(String tenantId, MetricType type, MetricId id);
 
-    ListenableFuture<Void> addTags(Metric metric, Map<String, String> tags);
+    Observable<Void> addTags(Metric metric, Map<String, String> tags);
 
-    ListenableFuture<Void> deleteTags(Metric metric, Map<String, String> tags);
+    Observable<Void> deleteTags(Metric metric, Map<String, String> tags);
 
-    ListenableFuture<Void> addGaugeData(List<Gauge> metrics);
+    Observable<Void> addGaugeData(Observable<Gauge> gaugeObservable);
 
-    ListenableFuture<List<GaugeData>> findGaugeData(String tenantId, MetricId id, Long start, Long end);
+    Observable<GaugeData> findGaugeData(String tenantId, MetricId id, Long start, Long end);
 
-    ListenableFuture<BucketedOutput<GaugeBucketDataPoint>> findGaugeStats(
+    Observable<BucketedOutput<GaugeBucketDataPoint>> findGaugeStats(
             Gauge metric, long start, long end, Buckets buckets
     );
 
-    ListenableFuture<Void> addAvailabilityData(List<Availability> metrics);
+    Observable<Void> addAvailabilityData(List<Availability> metrics);
 
-    ListenableFuture<List<AvailabilityData>> findAvailabilityData(String tenantId, MetricId id, long start, long end);
+    Observable<AvailabilityData> findAvailabilityData(String tenantId, MetricId id, long start, long end);
 
-    ListenableFuture<List<AvailabilityData>> findAvailabilityData(String tenantId, MetricId id, long start, long end,
-            boolean distinct);
+    Observable<AvailabilityData> findAvailabilityData(String tenantId, MetricId id, long start, long end,
+                                                      boolean distinct);
 
-    ListenableFuture<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(
+    Observable<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(
             Availability metric, long start, long end, Buckets buckets
     );
 
@@ -113,24 +116,24 @@ public interface MetricsService {
     ListenableFuture<List<Counter>> findCounters(String group, List<String> counterNames);
 
     /** Check if a metric with the passed {id} has been stored in the system */
-    ListenableFuture<Boolean> idExists(String id);
+    Observable<Boolean> idExists(String id);
 
-    ListenableFuture<List<GaugeData>> tagGaugeData(Gauge metric, Map<String, String> tags,
-        long start, long end);
+    Observable<Void> tagGaugeData(Gauge metric, Map<String, String> tags,
+                                  long start, long end);
 
-    ListenableFuture<List<AvailabilityData>> tagAvailabilityData(Availability metric, Map<String, String> tags,
-            long start, long end);
+    Observable<Void> tagAvailabilityData(Availability metric, Map<String, String> tags,
+                                         long start, long end);
 
-    ListenableFuture<List<GaugeData>> tagGaugeData(Gauge metric, Map<String, String> tags,
-        long timestamp);
+    Observable<Void> tagGaugeData(Gauge metric, Map<String, String> tags,
+                                  long timestamp);
 
-    ListenableFuture<List<AvailabilityData>> tagAvailabilityData(Availability metric, Map<String, String> tags,
-            long timestamp);
+    Observable<Void> tagAvailabilityData(Availability metric, Map<String, String> tags,
+                                         long timestamp);
 
-    ListenableFuture<Map<MetricId, Set<GaugeData>>> findGaugeDataByTags(String tenantId, Map<String, String> tags);
+    Observable<Map<MetricId, Set<GaugeData>>> findGaugeDataByTags(String tenantId, Map<String, String> tags);
 
-    ListenableFuture<Map<MetricId, Set<AvailabilityData>>> findAvailabilityByTags(String tenantId,
-            Map<String, String> tags);
+    Observable<Map<MetricId, Set<AvailabilityData>>> findAvailabilityByTags(String tenantId,
+                                                                            Map<String, String> tags);
 
     /**
      * <p>
@@ -156,6 +159,6 @@ public interface MetricsService {
      * @return Each element in the list is a two element array. The first element is the start time inclusive for which
      * the predicate matches, and the second element is the end time inclusive for which the predicate matches.
      */
-    ListenableFuture<List<long[]>> getPeriods(String tenantId, MetricId id, Predicate<Double> predicate, long start,
-        long end);
+    Observable<List<long[]>> getPeriods(String tenantId, MetricId id, Predicate<Double> predicate, long start,
+                                        long end);
 }
