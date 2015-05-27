@@ -127,7 +127,6 @@
     <antlr.version>4.5</antlr.version>
     <rxjava.version>1.0.10</rxjava.version>
 
-    <version.wildfly>8.2.0.Final</version.wildfly>
     <findbugs.version>3.0.0</findbugs.version>
 
   </properties>
@@ -150,11 +149,6 @@
         <version>${antlr.version}</version>
       </dependency>
       <!-- Tests dependencies -->
-      <dependency>
-        <groupId>org.mockito</groupId>
-        <artifactId>mockito-core</artifactId>
-        <version>1.10.19</version>
-      </dependency>
       <!-- TestNG is not Hawkular default testing tool -->
       <!-- While needed to run legacy tests, new tests should be based upon jUnit -->
       <!-- It can still be used when there's a good reason (compatibility with a testing framework for example) -->
@@ -192,9 +186,8 @@
         <plugin>
           <groupId>org.wildfly.plugins</groupId>
           <artifactId>wildfly-maven-plugin</artifactId>
-          <version>1.1.0.Alpha2</version>
           <configuration>
-            <version>${version.wildfly}</version>
+            <version>${version.org.wildfly}</version>
           </configuration>
         </plugin>
 
@@ -312,7 +305,7 @@
         <dependency>
           <groupId>org.wildfly</groupId>
           <artifactId>wildfly-dist</artifactId>
-          <version>${version.wildfly}</version>
+          <version>${version.org.wildfly}</version>
           <type>zip</type>
         </dependency>
       </dependencies>
