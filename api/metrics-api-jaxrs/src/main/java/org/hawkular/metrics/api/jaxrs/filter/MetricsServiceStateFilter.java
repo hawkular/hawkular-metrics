@@ -16,7 +16,9 @@
  */
 package org.hawkular.metrics.api.jaxrs.filter;
 
+import javax.ws.rs.core.UriInfo;
 import org.hawkular.metrics.api.jaxrs.ApiError;
+import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
 import org.hawkular.metrics.core.api.MetricsService;
 
 import javax.inject.Inject;
@@ -44,6 +46,14 @@ public class MetricsServiceStateFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext containerRequestContext) throws IOException {
+        UriInfo uriInfo = containerRequestContext.getUriInfo();
+        String path = uriInfo.getPath();
+
+        if (path.startsWith(StatusHandler.PATH)) {
+            // The status page does not require the MetricsService to be up and running.
+            return;
+        }
+
         if (metricsService.getState() == MetricsService.State.STARTING) {
             // Fail since the Cassandra cluster is not yet up yet.
             Response response = Response.status(Response.Status.SERVICE_UNAVAILABLE)
