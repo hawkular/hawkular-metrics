@@ -16,10 +16,15 @@
 # limitations under the License.
 #
 
-STATUS_CODE=`curl -H "Hawkular-Tenant: status" -L -s -o /dev/null -w "%{http_code}" http://$HOSTNAME:$HAWKULAR_METRICS_ENDPOINT_PORT/hawkular/metrics/ping`
+STATUS_URL=http://$HOSTNAME:$HAWKULAR_METRICS_ENDPOINT_PORT/hawkular/metrics/status
+STATUS_CODE=`curl -L -s -o /dev/null -w "%{http_code}" $STATUS_URL`
 
 if [ $STATUS_CODE -eq 200 ]; then
-  exit 0 # We can ping the endpoint without error, exit without error to specify that it is ready to be consumed by the service
-else
-  exit 1 # We can't ping the endpoint, exit to specify that it is not yet ready for the service
+  STATUS_JSON=`curl -L -s -X GET $STATUS_URL`
+  # if the status is STARTED, then its up and running
+  if [ $STATUS_JSON = '{"MetricsService":"STARTED"}' ]; then
+        exit 0
+  fi
 fi
+
+exit 1 # conditions were not passed, exit with an error code
