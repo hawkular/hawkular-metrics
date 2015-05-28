@@ -30,14 +30,13 @@ import static org.joda.time.DateTime.now;
 import static org.joda.time.Days.days;
 import static org.joda.time.Hours.hours;
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -154,25 +153,34 @@ public class MetricsServiceCassandraITest extends MetricsITest {
 
     @Test
     public void createAndFindMetrics() throws Exception {
-        Optional<? extends Metric<? extends MetricData>> result = metricsService.findMetric("t1", GAUGE,
-                new MetricId("does-not-exist")).toBlocking().last();
-        assertNotNull(result, "null should not be returned when metric is not found");
-        assertFalse(result.isPresent(), "Did not expect a value when the metric is not found");
+//        Optional<? extends Metric<? extends MetricData>> result =
+        Metric<? extends MetricData> t1 = metricsService.findMetric("t1", GAUGE,
+                                                                    new MetricId("does-not-exist")).toBlocking()
+                .lastOrDefault(null);
+        assertNull(t1, "Nothing was present, lastOrDefault is called");
+//        assertNotNull(result, "null should not be returned when metric is not found");
+//        assertFalse(result.isPresent(), "Did not expect a value when the metric is not found");
 
+        Gauge e1 = new Gauge("t1", new MetricId("em1"));
+        metricsService.createMetric(e1).toBlocking().lastOrDefault(null);
+        Metric<? extends MetricData> metric = metricsService.findMetric("t1", GAUGE, new MetricId("em1")).toBlocking()
+                .lastOrDefault(null);
+        assertNotNull(metric);
+        assertEquals(metric, e1, "The metric does not match the expected value");
 
         Gauge m1 = new Gauge("t1", new MetricId("m1"), ImmutableMap.of("a1", "1", "a2", "2"),
             24);
         metricsService.createMetric(m1).toBlocking().lastOrDefault(null);
 
         Gauge actual = (Gauge) metricsService.findMetric(m1.getTenantId(), m1.getType(), m1.getId())
-                .toBlocking().last().get();
+                .toBlocking().lastOrDefault(null);
         assertEquals(actual, m1, "The metric does not match the expected value");
 
         Availability m2 = new Availability("t1", new MetricId("m2"), ImmutableMap.of("a3", "3", "a4", "3"));
         metricsService.createMetric(m2).toBlocking().lastOrDefault(null);
 
         Availability actualAvail = (Availability) metricsService.findMetric(m2.getTenantId(), m2.getType(), m2.getId())
-                .toBlocking().last().get();
+                .toBlocking().lastOrDefault(null);
         assertEquals(actualAvail, m2, "The metric does not match the expected value");
 
         final CountDownLatch latch = new CountDownLatch(1);
@@ -196,7 +204,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
         Gauge m4 = new Gauge("t1", new MetricId("m4"), ImmutableMap.of("a1", "A", "a2", ""));
         metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
 
-        assertMetricIndexMatches("t1", GAUGE, asList(m1, m3, m4));
+        assertMetricIndexMatches("t1", GAUGE, asList(e1, m1, m3, m4));
         assertMetricIndexMatches("t1", AVAILABILITY, singletonList(m2));
 
         assertDataRetentionsIndexMatches("t1", GAUGE, ImmutableSet.of(new Retention(m3.getId(), 24),
@@ -222,7 +230,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
                 .lastOrDefault(null);
 
         Metric<? extends MetricData> updatedMetric = metricsService.findMetric(metric.getTenantId(), GAUGE,
-            metric.getId()).toBlocking().last().get();
+            metric.getId()).toBlocking().lastOrDefault(null);
 
         assertEquals(updatedMetric.getTags(), ImmutableMap.of("a2", "two", "a3", "3"),
             "The updated meta data does not match the expected values");

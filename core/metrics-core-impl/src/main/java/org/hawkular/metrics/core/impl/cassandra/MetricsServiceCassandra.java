@@ -386,31 +386,28 @@ public class MetricsServiceCassandra implements MetricsService {
     }
 
     @Override
-    public Observable<Optional<? extends Metric<? extends MetricData>>> findMetric(final String tenantId,
-            final MetricType type, final MetricId id) {
+    public Observable<? extends Metric<? extends MetricData>> findMetric(final String tenantId,
+                                                                         final MetricType type, final MetricId id) {
 
-        return dataAccess.findMetric(tenantId, type, id, Metric.DPART)
-                .flatMap(Observable::from)
-                .map(row -> {
-                    if (type == MetricType.GAUGE) {
-                        return Optional.of(new Gauge(tenantId, id, row.getMap(5, String.class, String.class),
-                                row.getInt(6)));
-                    } else {
-                        return Optional.of(new Availability(tenantId, id, row.getMap(5, String.class, String.class),
-                                row.getInt(6)));
-                    }
-                })
-                .defaultIfEmpty(Optional.empty());
+        Observable<ResultSet> resultSetObservable = dataAccess.findMetric(tenantId, type, id, Metric.DPART);
+        return this.metrics(resultSetObservable, tenantId, type);
+    }
+
+    private Observable<Metric<?>> metrics(Observable<ResultSet> resultSetObservable, final String tenantId, final
+                                          MetricType type) {
+        Observable<Row> rows = resultSetObservable.flatMap(Observable::from);
+        if (type == MetricType.GAUGE) {
+            return rows.map(row -> toGauge(tenantId, row));
+        } else {
+            return rows.map(row -> toAvailability(tenantId, row));
+        }
+
     }
 
     @Override
     public Observable<Metric<?>> findMetrics(String tenantId, MetricType type) {
         Observable<ResultSet> observable = dataAccess.findMetricsInMetricsIndex(tenantId, type);
-        if (type == MetricType.GAUGE) {
-            return observable.flatMap(Observable::from).map(row -> toGauge(tenantId, row));
-        } else {
-            return observable.flatMap(Observable::from).map(row -> toAvailability(tenantId, row));
-        }
+        return this.metrics(observable, tenantId, type);
     }
 
     private Gauge toGauge(String tenantId, Row row) {
@@ -592,7 +589,7 @@ public class MetricsServiceCassandra implements MetricsService {
     public Observable<Void> tagGaugeData(Gauge metric, final Map<String, String> tags,
                                          long start, long end) {
         Observable<ResultSet> findDataObservable = dataAccess.findData(metric.getTenantId(), metric.getId(), start, end,
-                true);
+                                                                       true);
         return tagGaugeData(findDataObservable, tags, metric);
     }
 
@@ -682,32 +679,32 @@ public class MetricsServiceCassandra implements MetricsService {
     @Override
     public Observable<List<long[]>> getPeriods(String tenantId, MetricId id, Predicate<Double> predicate,
                                                long start, long end) {
-        return dataAccess.findData(new Gauge(tenantId, id), start, end, Order.ASC).flatMap(Observable::from).map
-                (Functions::getGaugeData)
-        .toList().map(data -> {
-            List<long[]> periods = new ArrayList<>(data.size());
-            long[] period = null;
-            GaugeData previous = null;
-            for (GaugeData d : data) {
-                if (predicate.test(d.getValue())) {
-                    if (period == null) {
-                        period = new long[2];
-                        period[0] = d.getTimestamp();
+        return dataAccess.findData(new Gauge(tenantId, id), start, end, Order.ASC).flatMap(Observable::from)
+                .map(Functions::getGaugeData)
+                .toList().map(data -> {
+                    List<long[]> periods = new ArrayList<>(data.size());
+                    long[] period = null;
+                    GaugeData previous = null;
+                    for (GaugeData d : data) {
+                        if (predicate.test(d.getValue())) {
+                            if (period == null) {
+                                period = new long[2];
+                                period[0] = d.getTimestamp();
+                            }
+                            previous = d;
+                        } else if (period != null) {
+                            period[1] = previous.getTimestamp();
+                            periods.add(period);
+                            period = null;
+                            previous = null;
+                        }
                     }
-                    previous = d;
-                } else if (period != null) {
-                    period[1] = previous.getTimestamp();
-                    periods.add(period);
-                    period = null;
-                    previous = null;
-                }
-            }
-            if (period != null) {
-                period[1] = previous.getTimestamp();
-                periods.add(period);
-            }
-            return periods;
-        });
+                    if (period != null) {
+                        period[1] = previous.getTimestamp();
+                        periods.add(period);
+                    }
+                    return periods;
+                });
     }
 
     private int getTTL(Metric<?> metric) {

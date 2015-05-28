@@ -123,8 +123,10 @@ public class AvailabilityHandler {
             @HeaderParam("tenantId") String tenantId, @PathParam("id") String id) {
 
         metricsService.findMetric(tenantId, MetricType.AVAILABILITY, new MetricId(id))
+                .map(m -> Response.ok(m).build())
+                .defaultIfEmpty(Response.noContent().build())
                 .subscribe(
-                        optional -> asyncResponse.resume(ApiUtils.valueToResponse(optional)),
+                        v -> asyncResponse.resume(v),
                         t -> asyncResponse.resume(ApiUtils.serverError(t))
                 );
     }

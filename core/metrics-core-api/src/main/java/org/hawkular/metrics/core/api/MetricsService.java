@@ -77,8 +77,8 @@ public interface MetricsService {
 
     Observable<Void> createMetric(Metric<?> metric);
 
-    Observable<Optional<? extends Metric<? extends MetricData>>> findMetric(String tenantId, MetricType type,
-            MetricId id);
+    Observable<? extends Metric<? extends MetricData>> findMetric(String tenantId, MetricType type,
+                                                                  MetricId id);
 
     Observable<Metric<?>> findMetrics(String tenantId, MetricType type);
 
