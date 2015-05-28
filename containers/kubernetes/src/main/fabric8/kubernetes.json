@@ -1,132 +1,167 @@
 {
   "id": "hawkular-metrics",
   "kind": "List",
-  "apiVersion": "v1beta2",
+  "apiVersion": "v1beta3",
   "name": "Hawkular Metrics",
   "description": "Hawkular Metrics Kuberenetes Application. Starts up the Hawkular Metrics web application and a cassandra cluster.",
   "items": [
     {
-      "id": "hawkular-cassandra-nodes",
-      "apiVersion": "v1beta1",
+      "apiVersion" : "v1beta3",
       "kind": "Service",
-      "selector": {
-        "name": "hawkular-cassandra"
+      "metadata" : {
+        "name": "hawkular-cassandra-nodes",
+        "labels": {
+          "name": "hawkular-cassandra"
+        }
       },
-      "portalIp": "None",
-      "port": 9042,
-      "containerPort": "cassandra-cql-port",
-      "labels": {
-        "name": "hawkular-cassandra"
+      "spec" : {
+        "selector" : {
+          "name": "hawkular-cassandra"
+        },
+        "portalIp": "None",
+        "ports": [
+          { "name": "cassandra-cql-port", "port": 9042, "targetPort": "cassandra-cql-port" },
+          { "name": "cassandra-thift-port", "port": 9160, "targetPort": "cassandra-thift-port" },
+          { "name": "cassandra-tcp-port", "port": 7000, "targetPort": "cassandra-tcp-port" },
+          { "name": "cassandra-ssl-port", "port": 7001, "targetPort": "cassandra-ssl-port" }
+        ]
       }
     },
     {
-      "id": "hawkular-cassandra",
-      "apiVersion": "v1beta1",
+      "apiVersion" : "v1beta3",
       "kind": "Service",
-      "selector": {
-        "name": "hawkular-cassandra"
+      "metadata" : {
+        "name": "hawkular-cassandra",
+        "labels": {
+          "name": "hawkular-cassandra"
+        }
       },
-      "port": 9042,
-      "containerPort": "cassandra-cql-port",
-      "labels": {
-        "name": "hawkular-cassandra"
+      "spec" : {
+        "selector" : {
+          "name": "hawkular-cassandra"
+        },
+        "ports": [
+          { "name": "cassandra-cql-port", "port": 9042, "targetPort": "cassandra-cql-port" },
+          { "name": "cassandra-thift-port", "port": 9160, "targetPort": "cassandra-thift-port" },
+          { "name": "cassandra-tcp-port", "port": 7000, "targetPort": "cassandra-tcp-port" },
+          { "name": "cassandra-ssl-port", "port": 7001, "targetPort": "cassandra-ssl-port" }
+        ]
       }
     },
     {
-      "id": "hawkular-cassandra",
+      "apiVersion": "v1beta3",
       "kind": "ReplicationController",
-      "apiVersion": "v1beta1",
-      "desiredState": {
-        "replicaSelector": {
+      "metadata": {
+        "name": "hawkular-cassandra",
+        "labels" : {
+          "name": "hawkular-cassandra"
+        }
+      },
+      "spec": {
+        "selector" : {
           "name": "hawkular-cassandra"
         },
         "replicas": 1,
-        "podTemplate": {
-          "desiredState": {
-            "manifest": {
-              "id": "hawkular-cassandra",
-              "version": "v1beta1",
-               "containers" : [{
-                 "name" : "hawkular-cassandra",
-                 "image": "${cassandra.image}",
-                 "command" : ["/opt/apache-cassandra/bin/cassandra-docker.sh",
-                              "--seed_provider_classname=org.hawkular.openshift.cassandra.OpenshiftSeedProvider",
-                              "--cluster_name=hawkular-metrics",
-                              "--data_volume=/cassandra_data"],
-                 "ports": [
-                   { "name": "cassandra-cql-port", "containerPort": 9042},
-                   { "name": "cassandra-thift-port", "containerPort": 9160},
-                   { "name": "cassandra-tcp-port", "containerPort": 7000},
-                   { "name": "cassandra-ssl-port", "containerPort": 7001}
-                 ],
-                 "volumeMounts": [
-                   { "name": "cassandra-data", "mountPath": "/cassandra_data" }
-                 ],
-                 "lifecycle": {
-                   "preStop": {
-                     "exec": {
-                       "command": ["/opt/apache-cassandra/bin/cassandra-docker-pre-stop.sh"]
-                     }
-                   }
-                 }
-               }],
-               "volumes": [
-                 { "name": "cassandra-data", "emptyDir":"" }
-               ]
+        "template": {
+          "version": "v1beta3",
+          "metadata": {
+            "labels" : {
+              "name": "hawkular-cassandra"
             }
           },
-          "labels": {
-            "name": "hawkular-cassandra"
+          "spec": {
+            "containers": [{
+              "image": "${cassandra.image}",
+              "name" : "hawkular-metrics",
+              "ports": [
+                { "name": "cassandra-cql-port", "containerPort": 9042},
+                { "name": "cassandra-thift-port", "containerPort": 9160},
+                { "name": "cassandra-tcp-port", "containerPort": 7000},
+                { "name": "cassandra-ssl-port", "containerPort": 7001}
+              ],
+              "command" : ["/opt/apache-cassandra/bin/cassandra-docker.sh",
+                "--seed_provider_classname=org.hawkular.openshift.cassandra.OpenshiftSeedProvider",
+                "--cluster_name=hawkular-metrics",
+                "--data_volume=/cassandra_data"],
+              "volumeMounts": [
+                { "name": "cassandra-data", "mountPath": "/cassandra_data" }
+              ],
+              "lifecycle": {
+                "preStop": {
+                  "exec": {
+                    "command": ["/opt/apache-cassandra/bin/cassandra-docker-pre-stop.sh"]
+                  }
+                }
+              }
+            }],
+            "volumes": [
+              { "name": "cassandra-data", "emptyDir":{} }
+            ]
           }
         }
-      },
-      "labels": {
-        "name" : "hawkular-cassandra"
       }
     },
     {
-      "id": "hawkular-metrics",
-      "apiVersion": "v1beta1",
+      "apiVersion": "v1beta3",
       "kind": "Service",
-      "selector": {
-        "name": "hawkular-metrics"
+      "metadata": {
+        "name": "hawkular-metrics",
+        "labels": {
+          "name": "hawkular-metrics"
+        }
       },
-      "port": 8080,
-      "containerPort": "hawkular-metrics-endpoint",
-      "labels": {
-        "name": "hawkular-metrics"
+      "spec": {
+        "selector": {
+          "name": "hawkular-metrics"
+        },
+        "ports": [
+          { "name": "hawkular-metrics-endpoint", "port": 80, "targetPort": "hawkular-metrics-endpoint" }
+        ]
       }
     },
     {
-      "id": "hawkular-metrics",
+      "apiVersion": "v1beta3",
       "kind": "ReplicationController",
-      "apiVersion": "v1beta1",
-      "desiredState": {
-        "replicaSelector": {
+      "metadata": {
+        "name": "hawkular-metrics",
+        "labels" : {
+          "name": "hawkular-metrics"
+        }
+      },
+      "spec": {
+        "selector" : {
           "name": "hawkular-metrics"
         },
         "replicas": 1,
-        "podTemplate": {
-          "desiredState": {
-            "manifest": {
-              "id": "hawkular-metrics",
-              "version": "v1beta1",
-              "containers" : [{
-                "image": "${hawkular-metrics.image}",
-                "name" : "hawkular-metrics",
-                "ports": [
-                  { "name": "hawkular-metrics-endpoint", "containerPort": 8080}
-                ]
-              }]
+        "template": {
+          "version": "v1beta3",
+          "metadata": {
+            "labels" : {
+              "name": "hawkular-metrics"
             }
           },
-          "labels": {
-            "name": "hawkular-metrics"
+          "spec": {
+            "containers": [{
+              "image": "${hawkular-metrics.image}",
+              "name" : "hawkular-metrics",
+              "ports": [
+                { "name": "hawkular-metrics-endpoint", "containerPort": 8080}
+              ],
+              "lifecycle": {
+                "postStart": {
+                  "exec": {
+                    "command": ["/opt/hawkular/scripts/hawkular-metrics-poststart.sh"]
+                  }
+                }
+              },
+              "livenessProbe": {
+                "exec": {
+                  "command": ["/opt/hawkular/scripts/hawkular-metrics-liveness.sh"]
+                }
+              }
+            }]
           }
         }
-      },
-      "labels": {
-        "name" : "hawkular-metrics"
       }
     }
   ]

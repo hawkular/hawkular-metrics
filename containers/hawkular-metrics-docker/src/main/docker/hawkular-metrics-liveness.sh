@@ -16,6 +16,15 @@
 # limitations under the License.
 #
 
-nodetool decommission
-nodetool stopdaemon
-exit 0
+STATUS_URL=http://$HOSTNAME:$HAWKULAR_METRICS_ENDPOINT_PORT/hawkular/metrics/status
+STATUS_CODE=`curl -L -s -o /dev/null -w "%{http_code}" $STATUS_URL`
+
+if [ $STATUS_CODE -eq 200 ]; then
+  STATUS_JSON=`curl -L -s -X GET $STATUS_URL`
+  # if the status is STARTED, then its up and running
+  if [ $STATUS_JSON = '{"MetricsService":"STARTED"}' ]; then
+        exit 0
+  fi
+fi
+
+exit 1 # conditions were not passed, exit with an error code
