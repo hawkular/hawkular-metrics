@@ -125,8 +125,10 @@ public class GaugeHandler {
     public void getGaugeMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
 
         metricsService.findMetric(tenantId, MetricType.GAUGE, new MetricId(id))
+                .map(m -> Response.ok(m).build())
+                .defaultIfEmpty(Response.noContent().build())
                 .subscribe(
-                        optional -> asyncResponse.resume(ApiUtils.valueToResponse(optional)),
+                        v -> asyncResponse.resume(v),
                         t -> asyncResponse.resume(ApiUtils.serverError(t))
                 );
     }
