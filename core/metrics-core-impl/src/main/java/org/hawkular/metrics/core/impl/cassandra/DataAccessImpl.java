@@ -78,8 +78,6 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement insertIntoMetricsIndex;
 
-    private PreparedStatement findMetric;
-
     private PreparedStatement getMetricTags;
 
     private PreparedStatement addMetricTagsToDataTable;
@@ -163,11 +161,6 @@ public class DataAccessImpl implements DataAccess {
         findAllTenantIds = session.prepare("SELECT DISTINCT id FROM tenants");
 
         findTenant = session.prepare("SELECT id, retentions, aggregation_templates FROM tenants WHERE id = ?");
-
-        findMetric = session.prepare(
-            "SELECT tenant_id, type, metric, interval, dpart, m_tags, data_retention " +
-            "FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
 
         getMetricTags = session.prepare(
                 "SELECT m_tags " +
