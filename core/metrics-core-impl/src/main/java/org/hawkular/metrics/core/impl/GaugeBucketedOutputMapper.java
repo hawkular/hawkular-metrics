@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.impl.cassandra;
+package org.hawkular.metrics.core.impl;
 
 import java.util.List;
 import java.util.ListIterator;
@@ -29,7 +29,7 @@ import org.hawkular.metrics.core.api.GaugeBucketDataPoint;
 import org.hawkular.metrics.core.api.GaugeData;
 
 /**
- * A {@link org.hawkular.metrics.core.impl.cassandra.BucketedOutputMapper} for {@link org.hawkular.metrics.core.api
+ * A {@link BucketedOutputMapper} for {@link org.hawkular.metrics.core.api
  * .Gauge}.
  *
  * @author Thomas Segismont

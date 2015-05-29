@@ -14,31 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.impl.cassandra;
+package org.hawkular.metrics.core.impl;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import com.google.common.base.Function;
 
-import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.Retention;
+import org.hawkular.metrics.core.api.MetricData;
+import org.joda.time.DateTime;
+import org.joda.time.Duration;
 
 /**
  * @author John Sanda
  */
-public class DataRetentionsMapper implements Function<ResultSet, Set<Retention>> {
+public class ComputeTTL<T extends MetricData> implements Function<List<T>, List<T>> {
+
+    private int originalTTL;
+
+    public ComputeTTL(int originalTTL) {
+        this.originalTTL = originalTTL;
+    }
 
     @Override
-    public Set<Retention> apply(ResultSet resultSet) {
-        Set<Retention> dataRetentions = new HashSet<>();
-        for (Row row : resultSet) {
-            dataRetentions.add(new Retention(new MetricId(row.getString(3), Interval.parse(row.getString(2))),
-                row.getInt(4)));
+    public List<T> apply(List<T> data) {
+        for (T d : data) {
+            Duration duration = new Duration(DateTime.now().minus(d.getWriteTime()).getMillis());
+            d.setTTL(originalTTL - duration.toStandardSeconds().getSeconds());
         }
-        return dataRetentions;
+        return data;
     }
+
 }

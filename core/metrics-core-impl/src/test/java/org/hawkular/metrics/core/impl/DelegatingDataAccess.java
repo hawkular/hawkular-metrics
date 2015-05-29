@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.impl.cassandra;
+package org.hawkular.metrics.core.impl;
 
 import java.util.Collection;
 import java.util.List;
@@ -23,7 +23,6 @@ import java.util.Set;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
-
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.Counter;
@@ -36,7 +35,6 @@ import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
-
 import rx.Observable;
 
 /**

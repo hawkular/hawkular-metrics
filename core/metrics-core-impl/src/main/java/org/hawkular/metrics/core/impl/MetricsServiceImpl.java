@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.impl.cassandra;
+package org.hawkular.metrics.core.impl;
 
 import static org.joda.time.Hours.hours;
 
@@ -79,8 +79,8 @@ import rx.subjects.PublishSubject;
 /**
  * @author John Sanda
  */
-public class MetricsServiceCassandra implements MetricsService {
-    private static final Logger logger = LoggerFactory.getLogger(MetricsServiceCassandra.class);
+public class MetricsServiceImpl implements MetricsService {
+    private static final Logger logger = LoggerFactory.getLogger(MetricsServiceImpl.class);
 
     public static final String REQUEST_LIMIT = "hawkular.metrics.request.limit";
 
@@ -146,7 +146,7 @@ public class MetricsServiceCassandra implements MetricsService {
      */
     private final Map<DataRetentionKey, Integer> dataRetentions = new ConcurrentHashMap<>();
 
-    public MetricsServiceCassandra() {
+    public MetricsServiceImpl() {
         this.state = State.STARTING;
     }
 

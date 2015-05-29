@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.impl.cassandra;
+package org.hawkular.metrics.core.impl;
 
 import static java.util.Arrays.asList;
-import static org.hawkular.metrics.core.impl.cassandra.MetricsServiceCassandra.DEFAULT_TTL;
+import static org.hawkular.metrics.core.impl.MetricsServiceImpl.DEFAULT_TTL;
 import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;

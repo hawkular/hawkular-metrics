@@ -33,8 +33,8 @@ import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.core.api.MetricsService;
-import org.hawkular.metrics.core.impl.cassandra.CassandraSession;
-import org.hawkular.metrics.core.impl.cassandra.MetricsServiceCassandra;
+import org.hawkular.metrics.core.impl.CassandraSession;
+import org.hawkular.metrics.core.impl.MetricsServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +69,7 @@ public class MetricsServiceProducer {
     @PostConstruct
     void init() {
         LOG.info("Initializing metrics service");
-        metricsService = new MetricsServiceCassandra();
+        metricsService = new MetricsServiceImpl();
         Map<String, String> options = new HashMap<>();
         options.put("cqlport", cqlPort);
         options.put("nodes", nodes);
