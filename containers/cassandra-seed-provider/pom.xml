@@ -24,13 +24,13 @@
   <parent>
     <groupId>org.hawkular.metrics</groupId>
     <artifactId>hawkular-metrics-containers</artifactId>
-    <version>0.3.4</version>
+    <version>0.3.5-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>cassandra-seed-provider</artifactId>
   <name>Cassandra Seed Provider</name>
-  <version>0.3.4</version>
+  <version>0.3.5-SNAPSHOT</version>
 
   <dependencies>
     <dependency>
