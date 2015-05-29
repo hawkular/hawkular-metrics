@@ -82,7 +82,7 @@ public class TaskType {
      * with the lease. This property specifies how many tasks in terms of segments are associated with a lease. Let's
      * say that we have 100 segments and 10 segment offsets. This means that there are 10 task segments per lease.
      * When a client acquires a lease, the client will then execute the tasks in each of those segments.
-     * <br/><br/>
+     * <br><br>
      * TODO Come up with a more descriptive name
      */
     public int getSegmentOffsets() {

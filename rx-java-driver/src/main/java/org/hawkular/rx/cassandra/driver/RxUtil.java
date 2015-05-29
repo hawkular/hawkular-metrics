@@ -28,7 +28,7 @@ import rx.functions.Action0;
 /**
  * The functions in this class are copied directly from https://github.com/ReactiveX/RxJavaGuava at least for the time
  * being since the artifact(s) are not available in maven central.
- * <br/><br/>
+ * <br><br>
  * This should be an internal, help class only. For now though it is exposed as we transition away from
  * ListenableFuture.
  *
