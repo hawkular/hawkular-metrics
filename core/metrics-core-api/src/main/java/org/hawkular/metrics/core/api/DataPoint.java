@@ -27,10 +27,14 @@ public interface DataPoint<T> {
     Comparator<DataPoint> TIMESTAMP_COMPARATOR = Comparator.comparing(DataPoint::getTimestamp);
 
     /**
-     * The UNIX timestamp of the {@link #getTimeUUID() timeUUID}
+     * The UNIX timestamp at which the data point was collected
      */
     long getTimestamp();
 
+    /**
+     *
+     * The collected value
+     */
     T getValue();
 
     Map<String, String> getTags();

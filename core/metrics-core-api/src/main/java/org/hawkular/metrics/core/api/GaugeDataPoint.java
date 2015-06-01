@@ -83,7 +83,7 @@ public class GaugeDataPoint implements DataPoint<Double> {
         return com.google.common.base.Objects.toStringHelper("GaugeDataPoint")
                 .add("timestamp", timestamp)
                 .add("value", value)
-                .add("taga", tags)
+                .add("tags", tags)
                 .toString();
     }
 }
