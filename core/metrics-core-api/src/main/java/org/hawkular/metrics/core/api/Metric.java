@@ -25,6 +25,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
  * @author jsanda
  */
 public interface Metric<T extends DataPoint> {
+
     @JsonIgnore
     MetricType getType();
 

@@ -25,7 +25,7 @@ import static org.hawkular.metrics.core.api.AvailabilityType.UP;
 import static org.hawkular.metrics.core.impl.DataAccessImpl.DPART;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
-import static org.hawkular.metrics.core.api.TimeUUIDUtils.getTimeUUID;
+import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
 import static org.hawkular.metrics.core.impl.MetricsServiceImpl.DEFAULT_TTL;
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Days.days;

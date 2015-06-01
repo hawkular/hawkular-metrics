@@ -51,6 +51,11 @@ public class GaugeMetric implements Metric<GaugeDataPoint> {
         this.dataPoints = dataPoints;
     }
 
+    public GaugeMetric(String tenantId, MetricId id) {
+        this.tenantId = tenantId;
+        this.id = id;
+    }
+
     public GaugeMetric(MetricId id) {
         this.id = id;
     }

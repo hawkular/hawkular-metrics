@@ -160,8 +160,7 @@ public class GaugeHandler {
             @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags
     ) {
-        GaugeMetric metric = new GaugeMetric(new MetricId(id));
-        metric.setTenantId(tenantId);
+        GaugeMetric metric = new GaugeMetric(tenantId, new MetricId(id));
         metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -178,8 +177,7 @@ public class GaugeHandler {
             @PathParam("id") String id,
             @ApiParam("Tag list") @PathParam("tags") Tags tags
     ) {
-        GaugeMetric metric = new GaugeMetric(new MetricId(id));
-        metric.setTenantId(tenantId);
+        GaugeMetric metric = new GaugeMetric(tenantId, new MetricId(id));
         metricsService.deleteTags(metric, tags.getTags()).subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -292,8 +290,7 @@ public class GaugeHandler {
             long startTime = start == null ? now - EIGHT_HOURS : start;
             long endTime = end == null ? now : end;
 
-            GaugeMetric metric = new GaugeMetric(new MetricId(id));
-            metric.setTenantId(tenantId);
+            GaugeMetric metric = new GaugeMetric(tenantId, new MetricId(id));
 
             Buckets buckets;
             try {
@@ -413,8 +410,7 @@ public class GaugeHandler {
             @PathParam("id") final String id, @ApiParam(required = true) TagRequest params
     ) {
         Observable<Void> resultSetObservable;
-        GaugeMetric metric = new GaugeMetric(new MetricId(id));
-        metric.setTenantId(tenantId);
+        GaugeMetric metric = new GaugeMetric(tenantId, new MetricId(id));
         if (params.getTimestamp() != null) {
             resultSetObservable = metricsService.tagGaugeData(metric, params.getTags(), params.getTimestamp());
         } else {

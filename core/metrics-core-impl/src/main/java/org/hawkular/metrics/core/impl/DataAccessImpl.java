@@ -16,7 +16,7 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import static org.hawkular.metrics.core.api.TimeUUIDUtils.getTimeUUID;
+import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;

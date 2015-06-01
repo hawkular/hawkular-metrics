@@ -27,7 +27,6 @@ import com.google.common.collect.Lists;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.MetricData;
 import org.hawkular.metrics.core.api.MetricId;
 import rx.functions.Func1;
 
@@ -142,7 +141,7 @@ public abstract class BucketedOutputMapper<DATA extends DataPoint, POINT> implem
      *
      * @param from        start timestamp of the bucket
      * @param to          end timestamp of the bucket
-     * @param metricDatas metric data in this bucket, ordered by {@link MetricData#TIME_UUID_COMPARATOR}
+     * @param metricDatas metric data in this bucket, ordered by {@link DataPoint#TIMESTAMP_COMPARATOR}
      *
      * @return a bucket data point summurazing the metric data
      */

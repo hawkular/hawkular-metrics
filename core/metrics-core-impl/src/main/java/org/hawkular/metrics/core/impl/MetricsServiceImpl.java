@@ -20,7 +20,6 @@ import static java.util.Comparator.comparingLong;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.Functions.getTTLAvailabilityDataPoint;
 import static org.hawkular.metrics.core.impl.Functions.getTTLGaugeDataPoint;
-import static org.joda.time.DateTime.now;
 import static org.joda.time.Hours.hours;
 
 import java.util.ArrayList;
@@ -60,7 +59,6 @@ import org.hawkular.metrics.core.api.GaugeDataPoint;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
-import org.hawkular.metrics.core.api.MetricData;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
@@ -193,36 +191,6 @@ public class MetricsServiceImpl implements MetricsService {
 
     void unloadDataRetentions() {
         dataRetentions.clear();
-    }
-
-    private static class MergeTagsFunction<T extends MetricData> implements
-        Func1<List<Map<MetricId, Set<T>>>, Map<MetricId, Set<T>>> {
-
-        @Override
-        public Map<MetricId, Set<T>> call(List<Map<MetricId, Set<T>>> taggedDataMaps) {
-            if (taggedDataMaps.isEmpty()) {
-                return Collections.emptyMap();
-            }
-            if (taggedDataMaps.size() == 1) {
-                return taggedDataMaps.get(0);
-            }
-
-            Set<MetricId> ids = new HashSet<>(taggedDataMaps.get(0).keySet());
-            for (int i = 1; i < taggedDataMaps.size(); ++i) {
-                ids.retainAll(taggedDataMaps.get(i).keySet());
-            }
-
-            Map<MetricId, Set<T>> mergedDataMap = new HashMap<>();
-            for (MetricId id : ids) {
-                TreeSet<T> set = new TreeSet<>(MetricData.TIME_UUID_COMPARATOR);
-                for (Map<MetricId, Set<T>> taggedDataMap : taggedDataMaps) {
-                    set.addAll(taggedDataMap.get(id));
-                }
-                mergedDataMap.put(id, set);
-            }
-
-            return mergedDataMap;
-        }
     }
 
     private static class MergeDataPointTagsFunction<T extends DataPoint> implements
@@ -641,12 +609,6 @@ public class MetricsServiceImpl implements MetricsService {
             long start, long end) {
         Observable<ResultSet> findDataObservable = dataAccess.findAvailabilityData(metric, start, end, true);
         return tagAvailabilityData(findDataObservable, tags, metric);
-    }
-
-    private MetricData computeTTL(MetricData d, int originalTTL) {
-        Duration duration = new Duration(now().minus(d.getWriteTime()).getMillis());
-        d.setTTL(originalTTL - duration.toStandardSeconds().getSeconds());
-        return d;
     }
 
     @Override
