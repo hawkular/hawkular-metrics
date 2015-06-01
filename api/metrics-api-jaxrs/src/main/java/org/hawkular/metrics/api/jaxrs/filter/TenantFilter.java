@@ -28,6 +28,7 @@ import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.ext.Provider;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
+import org.hawkular.metrics.api.jaxrs.handler.BaseHandler;
 import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
 
 /**
@@ -50,7 +51,8 @@ public class TenantFilter implements ContainerRequestFilter {
         UriInfo uriInfo = requestContext.getUriInfo();
         String path = uriInfo.getPath();
 
-        if (path.startsWith("/tenants") || path.startsWith("/db") || path.startsWith(StatusHandler.PATH)) {
+        if (path.startsWith("/tenants") || path.startsWith("/db") || path.startsWith(StatusHandler.PATH)
+            || path.equals(BaseHandler.PATH)) {
             // Tenants, Influx and status handlers do not check the tenant header
             return;
         }

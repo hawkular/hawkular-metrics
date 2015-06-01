@@ -92,6 +92,7 @@
           <systemPropertyVariables>
             <keyspace>${cassandra.keyspace}</keyspace>
             <hawkular-metrics.base-uri>${base-uri}</hawkular-metrics.base-uri>
+            <project.version>${project.version}</project.version>
           </systemPropertyVariables>
         </configuration>
         <executions>
