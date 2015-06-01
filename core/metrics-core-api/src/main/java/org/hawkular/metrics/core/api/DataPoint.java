@@ -16,25 +16,22 @@
  */
 package org.hawkular.metrics.core.api;
 
-import java.util.List;
+import java.util.Comparator;
 import java.util.Map;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * @author jsanda
  */
-public interface Metric<T extends DataPoint> {
-    @JsonIgnore
-    MetricType getType();
+public interface DataPoint<T> {
 
-    String getTenantId();
+    Comparator<DataPoint> TIMESTAMP_COMPARATOR = Comparator.comparing(DataPoint::getTimestamp);
 
-    MetricId getId();
+    /**
+     * The UNIX timestamp of the {@link #getTimeUUID() timeUUID}
+     */
+    long getTimestamp();
+
+    T getValue();
 
     Map<String, String> getTags();
-
-    Integer getDataRetention();
-
-    List<T> getDataPoints();
 }

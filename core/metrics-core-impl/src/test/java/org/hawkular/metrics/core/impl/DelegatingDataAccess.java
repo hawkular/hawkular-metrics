@@ -23,14 +23,12 @@ import java.util.Set;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
-import org.hawkular.metrics.core.api.Availability;
-import org.hawkular.metrics.core.api.AvailabilityData;
+import org.hawkular.metrics.core.api.AvailabilityDataPoint;
 import org.hawkular.metrics.core.api.Counter;
-import org.hawkular.metrics.core.api.Gauge;
-import org.hawkular.metrics.core.api.GaugeData;
+import org.hawkular.metrics.core.api.DataPoint;
+import org.hawkular.metrics.core.api.GaugeDataPoint;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricData;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Retention;
@@ -84,23 +82,23 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> addTags(Metric<?> metric, Map<String, String> tags) {
+    public Observable<ResultSet> addTags(Metric metric, Map<String, String> tags) {
         return delegate.addTags(metric, tags);
     }
 
     @Override
-    public Observable<ResultSet> deleteTags(Metric<?> metric, Set<String> tags) {
+    public Observable<ResultSet> deleteTags(Metric metric, Set<String> tags) {
         return delegate.deleteTags(metric, tags);
     }
 
     @Override
-    public Observable<ResultSet> updateTagsInMetricsIndex(Metric<?> metric, Map<String, String> additions,
-                                                          Set<String> deletions) {
+    public Observable<ResultSet> updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
+            Set<String> deletions) {
         return delegate.updateTagsInMetricsIndex(metric, additions, deletions);
     }
 
     @Override
-    public <T extends Metric<?>> ResultSetFuture updateMetricsIndex(List<T> metrics) {
+    public <T extends DataPoint> ResultSetFuture updateMetricsIndex(List<? extends Metric<T>> metrics) {
         return delegate.updateMetricsIndex(metrics);
     }
 
@@ -125,7 +123,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findData(Gauge metric, long startTime, long endTime, Order order) {
+    public Observable<ResultSet> findData(Metric<GaugeDataPoint> metric, long startTime, long endTime, Order
+            order) {
         return delegate.findData(metric, startTime, endTime, order);
     }
 
@@ -136,23 +135,26 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findData(Gauge metric, long timestamp, boolean includeWriteTime) {
+    public Observable<ResultSet> findData(Metric<GaugeDataPoint> metric, long timestamp, boolean includeWriteTime) {
         return delegate.findData(metric, timestamp, includeWriteTime);
     }
 
     @Override
-    public Observable<ResultSet> findData(Availability metric, long startTime, long endTime) {
-        return delegate.findData(metric, startTime, endTime);
+    public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityDataPoint> metric, long startTime, long
+            endTime) {
+        return delegate.findAvailabilityData(metric, startTime, endTime);
     }
 
     @Override
-    public Observable<ResultSet> findData(Availability metric, long startTime, long endTime, boolean includeWriteTime) {
-        return delegate.findData(metric, startTime, endTime, includeWriteTime);
+    public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityDataPoint> metric, long startTime, long
+            endTime, boolean
+            includeWriteTime) {
+        return delegate.findAvailabilityData(metric, startTime, endTime, includeWriteTime);
     }
 
     @Override
-    public Observable<ResultSet> findData(Availability metric, long timestamp) {
-        return delegate.findData(metric, timestamp);
+    public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityDataPoint> metric, long timestamp) {
+        return delegate.findAvailabilityData(metric, timestamp);
     }
 
     @Override
@@ -166,20 +168,20 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> insertGaugeTag(String tag, String tagValue, Gauge metric,
-                                                Observable<GaugeData> data) {
+    public Observable<ResultSet> insertGaugeTag(String tag, String tagValue, Metric<GaugeDataPoint> metric,
+            Observable<TTLDataPoint<GaugeDataPoint>> data) {
         return delegate.insertGaugeTag(tag, tagValue, metric, data);
     }
 
     @Override
-    public Observable<ResultSet> insertAvailabilityTag(String tag, String tagValue, Availability metric,
-                                                       Observable<AvailabilityData> data) {
+    public Observable<ResultSet> insertAvailabilityTag(String tag, String tagValue,
+            Metric<AvailabilityDataPoint> metric, Observable<TTLDataPoint<AvailabilityDataPoint>> data) {
         return delegate.insertAvailabilityTag(tag, tagValue, metric, data);
     }
 
     @Override
-    public Observable<ResultSet> updateDataWithTag(Metric<?> metric, MetricData data, Map<String, String> tags) {
-        return delegate.updateDataWithTag(metric, data, tags);
+    public Observable<ResultSet> updateDataWithTag(Metric metric, DataPoint dataPoint, Map<String, String> tags) {
+        return delegate.updateDataWithTag(metric, dataPoint, tags);
     }
 
     @Override
@@ -193,8 +195,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> insertData(Availability metric, int ttl) {
-        return delegate.insertData(metric, ttl);
+    public Observable<ResultSet> insertAvailabilityData(Metric<AvailabilityDataPoint> metric, int ttl) {
+        return delegate.insertAvailabilityData(metric, ttl);
     }
 
     @Override
@@ -228,12 +230,12 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> insertIntoMetricsTagsIndex(Metric<?> metric, Map<String, String> tags) {
+    public Observable<ResultSet> insertIntoMetricsTagsIndex(Metric metric, Map<String, String> tags) {
         return delegate.insertIntoMetricsTagsIndex(metric, tags);
     }
 
     @Override
-    public Observable<ResultSet> deleteFromMetricsTagsIndex(Metric<?> metric, Map<String, String> tags) {
+    public Observable<ResultSet> deleteFromMetricsTagsIndex(Metric metric, Map<String, String> tags) {
         return delegate.deleteFromMetricsTagsIndex(metric, tags);
     }
 

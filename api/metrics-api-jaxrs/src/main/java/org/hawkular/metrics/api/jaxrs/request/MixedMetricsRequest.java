@@ -19,11 +19,10 @@ package org.hawkular.metrics.api.jaxrs.request;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.hawkular.metrics.core.api.Availability;
-import org.hawkular.metrics.core.api.Gauge;
-
 import com.google.common.base.Objects;
 import com.wordnik.swagger.annotations.ApiModel;
+import org.hawkular.metrics.api.jaxrs.param.AvailabilityMetric;
+import org.hawkular.metrics.api.jaxrs.param.GaugeMetric;
 
 /**
  * @author Stefan Negrea
@@ -31,23 +30,23 @@ import com.wordnik.swagger.annotations.ApiModel;
 @ApiModel
 public class MixedMetricsRequest {
 
-    private List<Gauge> gaugeMetrics = new ArrayList<>();
-    private List<Availability> availabilityMetrics = new ArrayList<>();
+    private List<GaugeMetric> gaugeMetrics = new ArrayList<>();
+    private List<AvailabilityMetric> availabilityMetrics = new ArrayList<>();
 
 
-    public List<Gauge> getGaugeMetrics() {
+    public List<GaugeMetric> getGaugeMetrics() {
         return gaugeMetrics;
     }
 
-    public void setGaugeMetric(List<Gauge> gaugeMetrics) {
+    public void setGaugeMetric(List<GaugeMetric> gaugeMetrics) {
         this.gaugeMetrics = gaugeMetrics;
     }
 
-    public List<Availability> getAvailabilityMetrics() {
+    public List<AvailabilityMetric> getAvailabilityMetrics() {
         return availabilityMetrics;
     }
 
-    public void setAvailabilityMetrics(List<Availability> availabilityMetrics) {
+    public void setAvailabilityMetrics(List<AvailabilityMetric> availabilityMetrics) {
         this.availabilityMetrics = availabilityMetrics;
     }
 

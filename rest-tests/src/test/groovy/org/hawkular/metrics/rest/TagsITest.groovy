@@ -16,13 +16,10 @@
  */
 package org.hawkular.metrics.rest
 
-import groovy.json.JsonOutput
+import org.junit.Test
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
-
-import org.junit.Test
-
 /**
  * @author Thomas Segismont
  */

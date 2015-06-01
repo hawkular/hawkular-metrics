@@ -27,7 +27,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 /**
  * @author John Sanda
  */
-public abstract class MetricData {
+public abstract class MetricData implements DataPoint {
 
 
     public static final Comparator<MetricData> TIME_UUID_COMPARATOR = new Comparator<MetricData>() {
@@ -75,9 +75,7 @@ public abstract class MetricData {
         return timeUUID;
     }
 
-    /**
-     * The UNIX timestamp of the {@link #getTimeUUID() timeUUID}
-     */
+    @Override
     public long getTimestamp() {
         return UUIDs.unixTimestamp(timeUUID);
     }

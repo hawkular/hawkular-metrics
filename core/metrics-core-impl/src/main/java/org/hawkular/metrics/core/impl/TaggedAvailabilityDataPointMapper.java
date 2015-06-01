@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.core.impl;
 
+import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
+
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -23,34 +25,35 @@ import java.util.Set;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
-
-import org.hawkular.metrics.core.api.Gauge;
-import org.hawkular.metrics.core.api.GaugeData;
+import com.datastax.driver.core.utils.UUIDs;
+import org.hawkular.metrics.core.api.AvailabilityDataPoint;
+import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 
 /**
- * @author John Sanda
+ * @author jsanda
  */
-public class TaggedGaugeDataMapper {
+public class TaggedAvailabilityDataPointMapper {
 
-    public static Map<MetricId, Set<GaugeData>> apply(ResultSet resultSet) {
-        Map<MetricId, Set<GaugeData>> taggedData = new HashMap<>();
-        Gauge metric = null;
-        LinkedHashSet<GaugeData> set = new LinkedHashSet<>();
+    public static Map<MetricId, Set<AvailabilityDataPoint>> apply(ResultSet resultSet) {
+        Map<MetricId, Set<AvailabilityDataPoint>> taggedData = new HashMap<>();
+        Metric<AvailabilityDataPoint> metric = null;
+        LinkedHashSet<AvailabilityDataPoint> set = new LinkedHashSet<>();
         for (Row row : resultSet) {
             if (metric == null) {
                 metric = createMetric(row);
-                set.add(createGaugeData(row));
+                set.add(createAvailability(row));
             } else {
-                Gauge nextMetric = createMetric(row);
+                Metric<AvailabilityDataPoint> nextMetric = createMetric(row);
                 if (metric.equals(nextMetric)) {
-                    set.add(createGaugeData(row));
+                    set.add(createAvailability(row));
                 } else {
                     taggedData.put(metric.getId(), set);
                     metric = nextMetric;
                     set = new LinkedHashSet<>();
-                    set.add(createGaugeData(row));
+                    set.add(createAvailability(row));
                 }
             }
         }
@@ -60,12 +63,14 @@ public class TaggedGaugeDataMapper {
         return taggedData;
     }
 
-    private static Gauge createMetric(Row row) {
-        return new Gauge(row.getString(0), new MetricId(row.getString(4), Interval.parse(row.getString(5))));
+    private static Metric<AvailabilityDataPoint> createMetric(Row row) {
+        return new MetricImpl<>(row.getString(0), AVAILABILITY, new MetricId(row.getString(4),
+                Interval.parse(row.getString(5))));
     }
 
-    private static GaugeData createGaugeData(Row row) {
-        return new GaugeData(row.getUUID(6), row.getDouble(7));
+    private static AvailabilityDataPoint createAvailability(Row row) {
+        return new AvailabilityDataPoint(UUIDs.unixTimestamp(row.getUUID(6)), AvailabilityType.fromBytes(
+                row.getBytes(7)));
     }
 
 }

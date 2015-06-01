@@ -17,7 +17,6 @@
 package org.hawkular.metrics.api.jaxrs.influx;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.TEXT_PLAIN_TYPE;
 import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
@@ -47,6 +46,9 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.hawkular.metrics.api.jaxrs.influx.query.InfluxQueryParseTreeWalker;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser;
@@ -70,8 +72,8 @@ import org.hawkular.metrics.api.jaxrs.influx.query.validation.IllegalQueryExcept
 import org.hawkular.metrics.api.jaxrs.influx.query.validation.QueryValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InfluxObjectValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InvalidObjectException;
-import org.hawkular.metrics.core.api.Gauge;
-import org.hawkular.metrics.core.api.GaugeData;
+import org.hawkular.metrics.api.jaxrs.param.GaugeMetric;
+import org.hawkular.metrics.core.api.GaugeDataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
@@ -80,11 +82,6 @@ import org.joda.time.Instant;
 import org.joda.time.Interval;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-
 import rx.Observable;
 import rx.Observer;
 
@@ -119,7 +116,7 @@ public class InfluxSeriesHandler {
             @Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
             List<InfluxObject> influxObjects
     ) {
-
+        LOG.info("WRITE REQUEST");
         if (influxObjects == null) {
             asyncResponse.resume(errorResponse(BAD_REQUEST, "Null objects"));
             return;
@@ -132,17 +129,17 @@ public class InfluxSeriesHandler {
             return;
         }
 
-        Observable<Gauge> input = Observable.from(influxObjects)
-                                            .map(InfluxSeriesHandler::influxObjectToGauge)
-                                            .map(gauge -> (Gauge) gauge.setTenantId(tenantId));
+        Observable<GaugeMetric> input = Observable.from(influxObjects)
+                .map(InfluxSeriesHandler::influxToGauge)
+                .map(gauge -> gauge.setTenantId(tenantId));
         metricsService.addGaugeData(input).subscribe(new WriteObserver(asyncResponse));
     }
 
-    private static Gauge influxObjectToGauge(InfluxObject influxObject) {
+    private static GaugeMetric influxToGauge(InfluxObject influxObject) {
         List<String> influxObjectColumns = influxObject.getColumns();
         int valueColumnIndex = influxObjectColumns.indexOf("value");
         List<List<?>> influxObjectPoints = influxObject.getPoints();
-        Gauge gaugeMetric = new Gauge(new MetricId(influxObject.getName()));
+        GaugeMetric gaugeMetric = new GaugeMetric(new MetricId(influxObject.getName()));
         for (List<?> point : influxObjectPoints) {
             double value;
             long timestamp;
@@ -153,7 +150,7 @@ public class InfluxSeriesHandler {
                 timestamp = ((Number) point.get((valueColumnIndex + 1) % 2)).longValue();
                 value = ((Number) point.get(valueColumnIndex)).doubleValue();
             }
-            gaugeMetric.addData(new GaugeData(timestamp, value));
+            gaugeMetric.addDataPoint(new GaugeDataPoint(timestamp, value));
         }
         return gaugeMetric;
     }
@@ -203,7 +200,7 @@ public class InfluxSeriesHandler {
                       .subscribe(new ReadObserver(asyncResponse));
     }
 
-    private static List<InfluxObject> metricsListToListSeries(List<Metric<?>> metrics) {
+    private static List<InfluxObject> metricsListToListSeries(List<Metric> metrics) {
         List<String> columns = ImmutableList.of("time", "name");
         InfluxObject.Builder builder = new InfluxObject.Builder("list_series_result", columns)
                 .withForeseenPoints(metrics.size());
@@ -295,7 +292,7 @@ public class InfluxSeriesHandler {
                     InfluxObject.Builder builder = new InfluxObject.Builder(metric, columns)
                             .withForeseenPoints(metrics.size());
 
-                    for (GaugeData m : metrics) {
+                    for (GaugeDataPoint m : metrics) {
                         List<Object> data = new ArrayList<>();
                         data.add(m.getTimestamp());
                         data.add(m.getValue());
@@ -344,21 +341,21 @@ public class InfluxSeriesHandler {
      *
      * @return The mapped list of values, which could be the input or a longer or shorter list
      */
-    private List<GaugeData> applyMapping(
+    private List<GaugeDataPoint> applyMapping(
             String aggregationFunction,
-            List<FunctionArgument> aggregationFunctionArguments, List<GaugeData> in, int bucketLengthSec,
+            List<FunctionArgument> aggregationFunctionArguments, List<GaugeDataPoint> in, int bucketLengthSec,
             long startTime,
             long endTime
     ) {
 
         long timeDiff = endTime - startTime; // Millis
         int numBuckets = (int) ((timeDiff / 1000) / bucketLengthSec);
-        Map<Integer, List<GaugeData>> tmpMap = new HashMap<>(numBuckets);
+        Map<Integer, List<GaugeDataPoint>> tmpMap = new HashMap<>(numBuckets);
 
         // Bucketize
-        for (GaugeData rnm : in) {
+        for (GaugeDataPoint rnm : in) {
             int pos = (int) ((rnm.getTimestamp() - startTime) / 1000) / bucketLengthSec;
-            List<GaugeData> bucket = tmpMap.get(pos);
+            List<GaugeDataPoint> bucket = tmpMap.get(pos);
             if (bucket == null) {
                 bucket = new ArrayList<>();
                 tmpMap.put(pos, bucket);
@@ -366,21 +363,21 @@ public class InfluxSeriesHandler {
             bucket.add(rnm);
         }
 
-        List<GaugeData> out = new ArrayList<>(numBuckets);
+        List<GaugeDataPoint> out = new ArrayList<>(numBuckets);
         // Apply mapping to buckets to create final value
         SortedSet<Integer> keySet = new TreeSet<>(tmpMap.keySet());
         for (Integer pos : keySet) {
-            List<GaugeData> list = tmpMap.get(pos);
+            List<GaugeDataPoint> list = tmpMap.get(pos);
             double retVal = 0.0;
             boolean isSingleValue = true;
             if (list != null) {
                 int size = list.size();
-                GaugeData lastElementInList = list.get(size - 1);
-                GaugeData firstElementInList = list.get(0);
+                GaugeDataPoint lastElementInList = list.get(size - 1);
+                GaugeDataPoint firstElementInList = list.get(0);
                 AggregationFunction function = AggregationFunction.findByName(aggregationFunction);
                 switch (function) {
                 case MEAN:
-                    for (GaugeData rnm : list) {
+                    for (GaugeDataPoint rnm : list) {
                         retVal += rnm.getValue();
                     }
                     if (LOG.isDebugEnabled()) {
@@ -390,7 +387,7 @@ public class InfluxSeriesHandler {
                     break;
                 case MAX:
                     retVal = Double.MIN_VALUE;
-                    for (GaugeData rnm : list) {
+                    for (GaugeDataPoint rnm : list) {
                         if (rnm.getValue() > retVal) {
                             retVal = rnm.getValue();
                         }
@@ -398,14 +395,14 @@ public class InfluxSeriesHandler {
                     break;
                 case MIN:
                     retVal = Double.MAX_VALUE;
-                    for (GaugeData rnm : list) {
+                    for (GaugeDataPoint rnm : list) {
                         if (rnm.getValue() < retVal) {
                             retVal = rnm.getValue();
                         }
                     }
                     break;
                 case SUM:
-                    for (GaugeData rnm : list) {
+                    for (GaugeDataPoint rnm : list) {
                         retVal += rnm.getValue();
                     }
                     break;
@@ -462,9 +459,9 @@ public class InfluxSeriesHandler {
                 case HISTOGRAM:
                 case MODE:
                     int maxCount = 0;
-                    for (GaugeData rnm : list) {
+                    for (GaugeDataPoint rnm : list) {
                         int count = 0;
-                        for (GaugeData rnm2 : list) {
+                        for (GaugeDataPoint rnm2 : list) {
                             if (rnm.getValue() == rnm2.getValue()) {
                                 ++count;
                             }
@@ -478,11 +475,11 @@ public class InfluxSeriesHandler {
                 case STDDEV:
                     double meanValue = 0.0;
                     double sd = 0.0;
-                    for (GaugeData rnm : list) {
+                    for (GaugeDataPoint rnm : list) {
                         meanValue += rnm.getValue();
                     }
                     meanValue /= size;
-                    for (GaugeData rnm : list) {
+                    for (GaugeDataPoint rnm : list) {
                         sd += Math.pow(rnm.getValue() - meanValue, 2) / (size - 1);
                     }
                     retVal = Math.sqrt(sd);
@@ -491,7 +488,7 @@ public class InfluxSeriesHandler {
                     LOG.warn("Mapping of '{}' function not yet supported", function);
                 }
                 if (isSingleValue) {
-                    out.add(new GaugeData(firstElementInList.getTimestamp(), retVal));
+                    out.add(new GaugeDataPoint(firstElementInList.getTimestamp(), retVal));
                 }
             }
         }
@@ -507,10 +504,10 @@ public class InfluxSeriesHandler {
      *
      * @return quantil from data
      */
-    private double quantil(List<GaugeData> in, double val) {
+    private double quantil(List<GaugeDataPoint> in, double val) {
         int n = in.size();
         List<Double> bla = new ArrayList<>(n);
-        bla.addAll(in.stream().map(GaugeData::getValue).sorted().collect(Collectors.toList()));
+        bla.addAll(in.stream().map(GaugeDataPoint::getValue).sorted().collect(Collectors.toList()));
         float x = (float) (n * (val / 100));
         if (Math.floor(x) == x) {
             return 0.5 * (bla.get((int) x - 1) + bla.get((int) (x)));

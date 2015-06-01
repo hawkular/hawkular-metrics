@@ -16,29 +16,31 @@
  */
 package org.hawkular.metrics.core.impl;
 
+import static org.hawkular.metrics.core.api.DataPoint.TIMESTAMP_COMPARATOR;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.RandomAccess;
 
+import com.google.common.collect.Lists;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.MetricData;
 import org.hawkular.metrics.core.api.MetricId;
-
-import com.google.common.collect.Lists;
 import rx.functions.Func1;
 
 /**
- * Transform a {@link org.hawkular.metrics.core.api.Metric} with its {@link org.hawkular.metrics.core.api.MetricData}
+ * Transform a {@link org.hawkular.metrics.core.api.Metric} with its {@link org.hawkular.metrics.core.api.DataPoint}
  * into a {@link org.hawkular.metrics.core.api.BucketedOutput}.
  *
- * @param <DATA>   type of metric data, like {@link org.hawkular.metrics.core.api.GaugeData}
+ * @param <DATA>   type of metric data, like {@link org.hawkular.metrics.core.api.GaugeDataPoint}
  * @param <POINT>  type of bucket points, like {@link org.hawkular.metrics.core.api.GaugeBucketDataPoint}
  *
  * @author Thomas Segismont
  */
-public abstract class BucketedOutputMapper<DATA extends MetricData, POINT> implements Func1<List<DATA>,
+public abstract class BucketedOutputMapper<DATA extends DataPoint, POINT> implements Func1<List<DATA>,
         BucketedOutput<POINT>> {
 
     protected final Buckets buckets;
@@ -120,7 +122,7 @@ public abstract class BucketedOutputMapper<DATA extends MetricData, POINT> imple
     }
 
     private void checkOrder(DATA previous, DATA current) {
-        if (previous != null && current != null && MetricData.TIME_UUID_COMPARATOR.compare(previous, current) > 0) {
+        if (previous != null && current != null && TIMESTAMP_COMPARATOR.compare(previous, current) > 0) {
             throw new IllegalArgumentException("Expected to iterate over data sorted by time ascending");
         }
     }
