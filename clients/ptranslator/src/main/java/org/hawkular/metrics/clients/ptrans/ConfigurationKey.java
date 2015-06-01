@@ -46,6 +46,10 @@ public enum ConfigurationKey {
     BATCH_DELAY("batch.delay"),
     /** REST endpoint **/
     REST_URL("rest.url"),
+    /**
+     * If present the HTTP proxy to use
+     **/
+    HTTP_PROXY("http.proxy"),
     /** Tenant **/
     TENANT("tenant"),
     /** Close connection to rest-server after this many requests **/

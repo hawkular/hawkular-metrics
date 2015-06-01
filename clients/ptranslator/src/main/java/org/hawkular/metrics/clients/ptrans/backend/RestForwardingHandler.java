@@ -70,9 +70,10 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
 
     public static final String TENANT_HEADER_NAME = "Hawkular-Tenant";
 
-    private final String restHost;
-    private final int restPort;
-    private final String restUri;
+    private final String host;
+    private final int port;
+    private final String postUri;
+    private final String hostHeader;
     private final String tenant;
     private final int restCloseAfterRequests;
 
@@ -93,9 +94,17 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
         LOG.debug("RestForwardingHandler init");
 
         URI restUrl = configuration.getRestUrl();
-        restHost = restUrl.getHost();
-        restPort = restUrl.getPort();
-        restUri = restUrl.getPath();
+        URI httpProxy = configuration.getHttpProxy();
+        if (httpProxy == null) {
+            host = restUrl.getHost();
+            port = restUrl.getPort();
+            postUri = restUrl.getPath();
+        } else {
+            host = httpProxy.getHost();
+            port = httpProxy.getPort();
+            postUri = restUrl.toString();
+        }
+        hostHeader = restUrl.getHost();
 
         tenant = configuration.getTenant();
 
@@ -162,10 +171,11 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
 
         String payload = Batcher.metricListToJson(metricsToSend);
         ByteBuf content = Unpooled.copiedBuffer(payload, CharsetUtil.UTF_8);
-        FullHttpRequest request = new DefaultFullHttpRequest(HTTP_1_1, POST, restUri, content);
+        FullHttpRequest request = new DefaultFullHttpRequest(HTTP_1_1, POST, postUri, content);
         HttpHeaders.setHeader(request, CONTENT_TYPE, "application/json;charset=utf-8");
         HttpHeaders.setContentLength(request, content.readableBytes());
         HttpHeaders.setKeepAlive(request, true);
+        HttpHeaders.setHost(request, hostHeader);
         HttpHeaders.setHeader(request, TENANT_HEADER_NAME, tenant);
         // We need to send the list of metrics we are sending down the pipeline, so the status watcher
         // can later clean them out of the fifo
@@ -209,7 +219,7 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
         }
 
         Bootstrap clientBootstrap = new Bootstrap();
-        clientBootstrap.group(group).channel(NioSocketChannel.class).remoteAddress(restHost, restPort)
+        clientBootstrap.group(group).channel(NioSocketChannel.class).remoteAddress(host, port)
             .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 protected void initChannel(SocketChannel ch) throws Exception {
