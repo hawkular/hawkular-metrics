@@ -14,28 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.impl.cassandra;
+package org.hawkular.metrics.core.impl;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.google.common.base.Function;
 
-import org.hawkular.metrics.core.api.Counter;
+import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.Retention;
 
 /**
  * @author John Sanda
  */
-public class CountersMapper implements Function<ResultSet, List<Counter>> {
+public class DataRetentionsMapper implements Function<ResultSet, Set<Retention>> {
 
     @Override
-    public List<Counter> apply(ResultSet resultSet) {
-        List<Counter> counters = new ArrayList<>();
+    public Set<Retention> apply(ResultSet resultSet) {
+        Set<Retention> dataRetentions = new HashSet<>();
         for (Row row : resultSet) {
-            counters.add(new Counter(row.getString(0), row.getString(1), row.getString(2), row.getLong(3)));
+            dataRetentions.add(new Retention(new MetricId(row.getString(3), Interval.parse(row.getString(2))),
+                row.getInt(4)));
         }
-        return counters;
+        return dataRetentions;
     }
 }

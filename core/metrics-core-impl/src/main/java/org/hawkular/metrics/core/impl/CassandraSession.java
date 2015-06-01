@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.impl.cassandra;
+package org.hawkular.metrics.core.impl;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
@@ -44,7 +44,7 @@ import java.util.concurrent.Executors;
  */
 public class CassandraSession {
 
-    private static final Logger logger = LoggerFactory.getLogger(MetricsServiceCassandra.class);
+    private static final Logger logger = LoggerFactory.getLogger(MetricsServiceImpl.class);
 
     private static final String CASSANDRA_STORAGE_SERVICE = "org.apache.cassandra.db:type=StorageService";
 

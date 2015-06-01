@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.impl.cassandra;
+package org.hawkular.metrics.core.impl;
 
 import static org.hawkular.metrics.core.api.AvailabilityType.DOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UP;
-import static org.hawkular.metrics.core.impl.cassandra.AvailabilityBucketDataPointMatcher
+import static org.hawkular.metrics.core.impl.AvailabilityBucketDataPointMatcher
         .matchesAvailabilityBucketDataPoint;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;

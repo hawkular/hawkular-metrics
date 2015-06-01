@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.impl.cassandra;
+package org.hawkular.metrics.core.impl;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
@@ -25,7 +25,7 @@ import static org.hawkular.metrics.core.api.AvailabilityType.UP;
 import static org.hawkular.metrics.core.api.Metric.DPART;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
-import static org.hawkular.metrics.core.impl.cassandra.MetricsServiceCassandra.DEFAULT_TTL;
+import static org.hawkular.metrics.core.impl.MetricsServiceImpl.DEFAULT_TTL;
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Days.days;
 import static org.joda.time.Hours.hours;
@@ -77,9 +77,9 @@ import rx.Observable;
 /**
  * @author John Sanda
  */
-public class MetricsServiceCassandraITest extends MetricsITest {
+public class MetricsServiceITest extends MetricsITest {
 
-    private MetricsServiceCassandra metricsService;
+    private MetricsServiceImpl metricsService;
 
     private DataAccess dataAccess;
 
@@ -90,7 +90,7 @@ public class MetricsServiceCassandraITest extends MetricsITest {
     @BeforeClass
     public void initClass() {
         initSession();
-        metricsService = new MetricsServiceCassandra();
+        metricsService = new MetricsServiceImpl();
         metricsService.startUp(session);
         dataAccess = metricsService.getDataAccess();
 
