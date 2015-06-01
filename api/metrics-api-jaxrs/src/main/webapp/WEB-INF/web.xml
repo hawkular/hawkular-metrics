@@ -25,6 +25,11 @@
   <display-name>Hawkular Metrics Rest interface</display-name>
 
   <context-param>
+    <param-name>hawkular.metrics.version</param-name>
+    <param-value>${project.version}</param-value>
+  </context-param>
+
+  <context-param>
     <param-name>resteasy.media.type.mappings</param-name>
     <param-value>html : text/html, json : application/json, xml : application/xml, csv : text/csv, txt: text/plain,
       yaml: application/yaml, jsonw: application/vnd.hawkular.wrapped+json

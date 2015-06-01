@@ -27,6 +27,8 @@ import com.google.common.base.Charsets
 import groovyx.net.http.ContentType
 import groovyx.net.http.RESTClient
 
+import static org.junit.Assert.fail
+
 class RESTTest {
 
   static baseURI = System.getProperty('hawkular-metrics.base-uri') ?: '127.0.0.1:8080/hawkular/metrics'
@@ -49,6 +51,24 @@ class RESTTest {
         println new String(baos.toByteArray(), Charsets.UTF_8)
       }
       defaultFailureHandler(resp)
+    }
+      waitAvailable();
+  }
+
+  static void waitAvailable() {
+    def available = false;
+    def startTime = System.currentTimeMillis();
+    while (available != true || (System.currentTimeMillis() - startTime) > 5000) {
+      def response = hawkularMetrics.get(path: "")
+      if (response.status != 200) {
+        wait(500);
+      } else {
+        available = true;
+      }
+    }
+
+    if (available == false) {
+      fail("Could not connect to the server");
     }
   }
 
