@@ -34,14 +34,9 @@ import rx.Observable;
  */
 public interface MetricsService {
 
-    public enum State {
+    enum State {
         STARTING, STARTED, STOPPING, STOPPED, FAILED
     }
-
-
-    // For now we will use a default or fake tenant id until we get APIs in place for
-    // creating tenants.
-    String DEFAULT_TENANT_ID = "test";
 
     /**
      * Startup with a given cassandra session
