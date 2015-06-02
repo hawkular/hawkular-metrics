@@ -434,7 +434,7 @@ class CassandraBackendITest extends RESTTest {
     )
   }
 
-//  @Test
+  @Test
   void findGaugeDataByTags() {
     DateTime start = now().minusMinutes(30)
     def tenantId = nextTenantId()

@@ -28,10 +28,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class AvailabilityDataPoint implements DataPoint<AvailabilityType> {
 
-    private long timestamp;
+    private final long timestamp;
 
     @JsonProperty("value")
-    private AvailabilityType value;
+    private final AvailabilityType value;
 
     private Map<String, String> tags = Collections.emptyMap();
 

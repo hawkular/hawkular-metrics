@@ -116,7 +116,6 @@ public class InfluxSeriesHandler {
             @Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
             List<InfluxObject> influxObjects
     ) {
-        LOG.info("WRITE REQUEST");
         if (influxObjects == null) {
             asyncResponse.resume(errorResponse(BAD_REQUEST, "Null objects"));
             return;

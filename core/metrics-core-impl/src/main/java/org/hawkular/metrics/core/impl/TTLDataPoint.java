@@ -21,23 +21,36 @@ import java.util.Objects;
 import org.hawkular.metrics.core.api.DataPoint;
 
 /**
+ * Data points are purged using Cassandra's Time To Live, i.e., TTL, feature. There are scenarios such as tagging
+ * data points in which we want to apply the current TTL and not the original TTL. For example, suppose a metric is
+ * configured with data retention of one month. A couple tags are applied to a few of the metric's data points when
+ * those data points will expire in two weeks. The tags should then expire in two weeks when the corresponding data
+ * points expire.
+ *
  * @author jsanda
  */
 public class TTLDataPoint<T extends DataPoint> {
 
-    private T dataPoint;
+    private final T dataPoint;
 
-    private int ttl;
+    private final int ttl;
 
     public TTLDataPoint(T dataPoint, int ttl) {
         this.dataPoint = dataPoint;
         this.ttl = ttl;
     }
 
+    /**
+     * The {@link DataPoint data point}
+     */
     public T getDataPoint() {
         return dataPoint;
     }
 
+    /**
+     * The current TTL or remaining time before the data point expires. Note that this is not exact as the actual
+     * TTL is a function of time and therefore constantly changing.
+     */
     public int getTTL() {
         return ttl;
     }

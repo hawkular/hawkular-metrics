@@ -927,11 +927,6 @@ public class MetricsServiceITest extends MetricsITest {
         return ImmutableList.copyOf(observable.toBlocking().toIterable());
     }
 
-//    private void assertMetricEquals(Metric actual, Metric expected) {
-//        assertEquals(actual, expected, "The metric doe not match the expected value");
-//        assertEquals(actual.getData(), expected.getData(), "The data does not match the expected values");
-//    }
-
     private void assertMetricIndexMatches(String tenantId, MetricType type, List<Metric> expected)
         throws Exception {
         List<Metric> actualIndex = ImmutableList.copyOf(metricsService.findMetrics(tenantId, type).toBlocking()

@@ -130,11 +130,6 @@ public class AvailabilityHandler {
                         asyncResponse::resume,
                         t -> asyncResponse.resume(ApiUtils.serverError(t))
                 );
-//
-//                .subscribe(
-//                metric -> asyncResponse.resume(Response.ok(metric).build()),
-//                t -> asyncResponse.resume(ApiUtils.serverError(t))
-//        );
     }
 
     @GET

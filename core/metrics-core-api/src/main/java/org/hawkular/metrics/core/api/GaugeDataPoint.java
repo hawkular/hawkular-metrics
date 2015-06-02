@@ -27,9 +27,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class GaugeDataPoint implements DataPoint<Double> {
 
-    private long timestamp;
+    private final long timestamp;
 
-    private Double value;
+    private final Double value;
 
     private Map<String, String> tags = Collections.emptyMap();
 
