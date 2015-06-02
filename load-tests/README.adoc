@@ -21,3 +21,6 @@ See the scenario file for the list of options.
  mvn gatling:execute -Dxxx=y ...
 
 Each scenario option can be set with a system property.
+
+The scenario assumes a Metrics server is running somewhere and does not start one.
+By default, it tries to connect to `http://localhost:8080`.
