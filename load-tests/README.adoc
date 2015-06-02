@@ -1,0 +1,26 @@
+= Hawkular Metrics Load Tests
+:type: article
+
+A simple load testing tool for Hawkular Metrics
+
+== Why a Maven project?
+
+Because it makes it easier for developers to fire a load test:
+there's no need to download, extract and configure PATH.
+
+== The scenario
+
+The simulation consists in sending metrics reports from a configurable number of clients (like a collector sending
+reports periodically). On top of the number of clients, many aspects of the simulation are configurable:
+number of loops, interval, number of metrics per report, ... etc.
+
+See the scenario file for the list of options.
+
+== Running
+
+ mvn gatling:execute -Dxxx=y ...
+
+Each scenario option can be set with a system property.
+
+The scenario assumes a Metrics server is running somewhere and does not start one.
+By default, it tries to connect to `http://localhost:8080`.

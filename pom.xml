@@ -88,6 +88,7 @@
     <module>rest-tests</module>
     <module>clients</module>
     <module>containers</module>
+    <module>load-tests</module>
   </modules>
 
   <scm>
