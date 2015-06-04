@@ -80,18 +80,6 @@
         </configuration>
       </plugin>
 
-      <plugin>
-        <groupId>org.wildfly.plugins</groupId>
-        <artifactId>wildfly-maven-plugin</artifactId>
-        <configuration>
-          <javaOpts>
-            <javaOpt>-Dhawkular-metrics.backend=em_cass</javaOpt>
-            <javaOpt>-Xdebug</javaOpt>
-            <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
-          </javaOpts>
-        </configuration>
-      </plugin>
-
     </plugins>
   </build>
 
