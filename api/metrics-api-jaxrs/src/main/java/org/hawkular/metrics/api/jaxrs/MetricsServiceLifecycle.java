@@ -130,7 +130,13 @@ public class MetricsServiceLifecycle {
     @PostConstruct
     void init() {
         lifecycleExecutor.submit(this::startMetricsService);
-        if (Boolean.parseBoolean(waitForService)) {
+        if (Boolean.parseBoolean(waitForService)
+            // "hawkular-metrics.backend" is not a real Metrics configuration parameter (there's a single
+            // MetricsService implementation, which is backed by Cassandra).
+            // But it's been used historically to wait for the service to be available before completing the deployment.
+            // Therefore, we still use it here for backward compatibililty.
+            // TODO remove when Hawkular build has been updated to use the eager startup flag
+            || "embedded_cass".equals(System.getProperty("hawkular-metrics.backend"))) {
             long start = System.nanoTime();
             while (state == State.STARTING
                    // Give up after a minute. The deployment won't be failed and we'll continue to try to start the
