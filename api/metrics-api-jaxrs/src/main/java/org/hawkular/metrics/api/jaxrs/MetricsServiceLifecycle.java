@@ -17,12 +17,14 @@
 package org.hawkular.metrics.api.jaxrs;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_CQL_PORT;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_KEYSPACE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_NODES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_RESETDB;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -51,6 +53,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.Uninterruptibles;
 
 /**
  * Bean created on startup to manage the lifecycle of the {@link MetricsService} instance shared in application scope.
@@ -93,6 +96,11 @@ public class MetricsServiceLifecycle {
     @ConfigurationProperty(CASSANDRA_RESETDB)
     private String resetDb;
 
+    @Inject
+    @Configurable
+    @ConfigurationProperty(WAIT_FOR_SERVICE)
+    private String waitForService;
+
     private volatile State state;
     private int connectionAttempts;
     private Session session;
@@ -122,7 +130,15 @@ public class MetricsServiceLifecycle {
     @PostConstruct
     void init() {
         lifecycleExecutor.submit(this::startMetricsService);
-        // TODO wait for state started if eager flag is ON
+        if (Boolean.parseBoolean(waitForService)) {
+            long start = System.nanoTime();
+            while (state == State.STARTING
+                   // Give up after a minute. The deployment won't be failed and we'll continue to try to start the
+                   // service in the background.
+                   && NANOSECONDS.convert(1, MINUTES) > System.nanoTime() - start) {
+                Uninterruptibles.sleepUninterruptibly(1, SECONDS);
+            }
+        }
     }
 
     private void startMetricsService() {

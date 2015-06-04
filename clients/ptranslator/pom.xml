@@ -231,6 +231,7 @@
                 <javaOpt>-Dhawkular-metrics.backend=${hawkular-metrics.backend}</javaOpt>
                 <javaOpt>-Dcassandra.keyspace=${cassandra.keyspace}</javaOpt>
                 <javaOpt>-Dcassandra.resetdb=true</javaOpt>
+                <javaOpt>-Dhawkular.metrics.waitForService</javaOpt>
                 <javaOpt>-Xdebug</javaOpt>
                 <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
               </javaOpts>

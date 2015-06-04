@@ -29,7 +29,8 @@ public enum ConfigurationKey {
     CASSANDRA_NODES("hawkular-metrics.cassandra-nodes", "127.0.0.1", "CASSANDRA_NODES", false),
     CASSANDRA_CQL_PORT("hawkular-metrics.cassandra-cql-port", "9042", "CASSANDRA_CQL_PORT", false),
     CASSANDRA_KEYSPACE("cassandra.keyspace", "hawkular_metrics", null, false),
-    CASSANDRA_RESETDB("cassandra.resetdb", null, null, true);
+    CASSANDRA_RESETDB("cassandra.resetdb", null, null, true),
+    WAIT_FOR_SERVICE("hawkular.metrics.waitForService", null, null, true);
 
     private final String name;
     private final String env;
