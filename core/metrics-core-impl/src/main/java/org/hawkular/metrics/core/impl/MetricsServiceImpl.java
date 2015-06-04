@@ -34,17 +34,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.RateLimiter;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityData;
@@ -72,6 +61,19 @@ import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.RateLimiter;
+
 import rx.Observable;
 import rx.functions.Func1;
 import rx.subjects.PublishSubject;
@@ -85,8 +87,6 @@ public class MetricsServiceImpl implements MetricsService {
     public static final String REQUEST_LIMIT = "hawkular.metrics.request.limit";
 
     public static final int DEFAULT_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
-
-    public volatile State state;
 
     private static class DataRetentionKey {
         private final String tenantId;
@@ -146,25 +146,9 @@ public class MetricsServiceImpl implements MetricsService {
      */
     private final Map<DataRetentionKey, Integer> dataRetentions = new ConcurrentHashMap<>();
 
-    public MetricsServiceImpl() {
-        this.state = State.STARTING;
-    }
-
-    @Override
     public void startUp(Session s) {
         this.dataAccess = new DataAccessImpl(s);
         loadDataRetentions();
-        state = State.STARTED;
-    }
-
-    @Override
-    public State getState() {
-        return state;
-    }
-
-    @Override
-    public void setState(State state) {
-        this.state = state;
     }
 
     void loadDataRetentions() {
@@ -252,11 +236,6 @@ public class MetricsServiceImpl implements MetricsService {
             latch.countDown();
             // TODO We probably should not let initialization proceed on this error
         }
-    }
-
-    @Override
-    public void shutdown() {
-        state = State.STOPPED;
     }
 
     /**
