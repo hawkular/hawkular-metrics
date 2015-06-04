@@ -14,30 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.param;
+package org.hawkular.metrics.api.jaxrs.request;
 
 import java.util.List;
 import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.hawkular.metrics.core.api.GaugeDataPoint;
+import com.wordnik.swagger.annotations.ApiModel;
+import org.hawkular.metrics.core.api.AvailabilityDataPoint;
 
 /**
+ * A container for availability data points to be persisted. Note that the tenant id is not included because it is
+ * obtained from the tenant header in the HTTP request.
+ *
  * @author jsanda
  */
-public class Gauge {
+@ApiModel(description = "Data points of an Availability metric that are to be persisted")
+public class Availability {
 
     @JsonProperty
     private String id;
 
     @JsonProperty
-    private List<GaugeDataPoint> data;
+    private List<AvailabilityDataPoint> data;
 
     public String getId() {
         return id;
     }
 
-    public List<GaugeDataPoint> getData() {
+    public List<AvailabilityDataPoint> getData() {
         return data;
     }
 
@@ -45,21 +50,19 @@ public class Gauge {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Gauge gauge = (Gauge) o;
-        return Objects.equals(id, gauge.id) &&
-                Objects.equals(data, gauge.data);
+        Availability that = (Availability) o;
+        return Objects.equals(id, that.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, data);
+        return Objects.hash(id);
     }
 
     @Override
     public String toString() {
-        return "Gauge{" +
+        return "Availability{" +
                 "id='" + id + '\'' +
-                ", data=" + data +
                 '}';
     }
 }

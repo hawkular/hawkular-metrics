@@ -14,20 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.param;
+package org.hawkular.metrics.api.jaxrs.request;
 
 import java.util.Map;
 import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.wordnik.swagger.annotations.ApiModel;
 import org.hawkular.metrics.core.api.Metric;
 
 /**
  * @author jsanda
  */
+@ApiModel(description = "The definition of a metric to create")
 public class MetricDefinition {
 
+    // TODO Do we need this? 
     @JsonProperty
     private String tenantId;
 
