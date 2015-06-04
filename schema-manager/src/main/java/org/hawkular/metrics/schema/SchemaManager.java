@@ -68,7 +68,7 @@ public class SchemaManager {
             for (String cql : content.split("(?m)^-- #.*$")) {
                 if (!cql.startsWith("--")) {
                     String updatedCQL = substituteVars(cql.trim(), schemaVars);
-                    logger.info("Executing CQL:\n" + updatedCQL + "\n");
+                    logger.debug("Executing CQL:\n" + updatedCQL + "\n");
                     session.execute(updatedCQL);
                 }
             }
