@@ -211,6 +211,7 @@ public class GaugeHandler {
     @ApiOperation(value = "Add data for multiple gauge metrics in a single call.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
+            @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
                 response = ApiError.class) })
     public void addGaugeData(@Suspended final AsyncResponse asyncResponse,
