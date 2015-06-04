@@ -31,7 +31,6 @@
   <name>Hawkular Metrics Rest Tests</name>
 
   <properties>
-    <hawkular-metrics.backend>cass</hawkular-metrics.backend>
     <cassandra.keyspace>hawkular_metrics_rest_tests</cassandra.keyspace>
   </properties>
 
@@ -167,7 +166,6 @@
                     <javaOpt>-Dsun.rmi.dgc.server.gcInterval=3600000</javaOpt>
                     <javaOpt>-Djboss.socket.binding.port-offset=${wildfly.port.offset}</javaOpt>
                     <javaOpt>-Djboss.server.config.dir=${project.build.directory}/wildfly-configuration</javaOpt>
-                    <javaOpt>-Dhawkular-metrics.backend=${hawkular-metrics.backend}</javaOpt>
                     <javaOpt>-Dcassandra.keyspace=${cassandra.keyspace}</javaOpt>
                     <javaOpt>-Dcassandra.resetdb</javaOpt>
                     <javaOpt>-Dhawkular.metrics.waitForService</javaOpt>
