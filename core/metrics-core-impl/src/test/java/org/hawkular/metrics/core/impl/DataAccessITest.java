@@ -41,6 +41,7 @@ import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.GaugeDataPoint;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.Tenant;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
@@ -122,7 +123,7 @@ public class DataAccessITest extends MetricsITest {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);
 
-        MetricImpl<GaugeDataPoint> metric = new MetricImpl<>("tenant-1", GAUGE, new MetricId("metric-1"),
+        Metric<GaugeDataPoint> metric = new Metric<>("tenant-1", GAUGE, new MetricId("metric-1"),
                 Collections.emptyMap(), DEFAULT_TTL);
         metric.addDataPoint(new GaugeDataPoint(start.getMillis(), 1.23));
         metric.addDataPoint(new GaugeDataPoint(start.plusMinutes(1).getMillis(), 1.234));
@@ -154,7 +155,7 @@ public class DataAccessITest extends MetricsITest {
         DateTime end = start.plusMinutes(6);
         String tenantId = "tenant-1";
 
-        MetricImpl<GaugeDataPoint> metric = new MetricImpl<>(tenantId, GAUGE, new MetricId("metric-1"),
+        Metric<GaugeDataPoint> metric = new Metric<>(tenantId, GAUGE, new MetricId("metric-1"),
                 ImmutableMap.of("units", "KB", "env", "test"), DEFAULT_TTL);
 
         dataAccess.addTagsAndDataRetention(metric).toBlocking().last();
@@ -256,7 +257,7 @@ public class DataAccessITest extends MetricsITest {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);
         String tenantId = "avail-test";
-        MetricImpl<AvailabilityDataPoint> metric = new MetricImpl<>(tenantId, AVAILABILITY, new MetricId("m1"));
+        Metric<AvailabilityDataPoint> metric = new Metric<>(tenantId, AVAILABILITY, new MetricId("m1"));
         metric.addDataPoint(new AvailabilityDataPoint(start.getMillis(), "up"));
 
         dataAccess.insertAvailabilityData(metric, 360).toBlocking().lastOrDefault(null);

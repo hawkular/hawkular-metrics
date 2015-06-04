@@ -57,9 +57,9 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.GaugeBucketDataPoint;
 import org.hawkular.metrics.core.api.GaugeDataPoint;
 import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.MetricsThreadFactory;
@@ -389,7 +389,7 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<Metric> findMetric(final String tenantId, final MetricType type, final MetricId id) {
         return dataAccess.findMetric(tenantId, type, id, DataAccessImpl.DPART)
                 .flatMap(Observable::from)
-                .map(row -> new MetricImpl(tenantId, type, id, row.getMap(5, String.class, String.class),
+                .map(row -> new Metric(tenantId, type, id, row.getMap(5, String.class, String.class),
                         row.getInt(6)));
     }
 
@@ -397,7 +397,7 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<Metric> findMetrics(String tenantId, MetricType type) {
         return dataAccess.findMetricsInMetricsIndex(tenantId, type)
                 .flatMap(Observable::from)
-                .map(row -> new MetricImpl(tenantId, type, new MetricId(row.getString(0),
+                .map(row -> new Metric(tenantId, type, new MetricId(row.getString(0),
                         Interval.parse(row.getString(1))), row.getMap(2, String.class, String.class), row.getInt(3)));
     }
 
@@ -426,7 +426,7 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<Void> addGaugeData(Observable<? extends Metric<GaugeDataPoint>> gaugeObservable) {
+    public Observable<Void> addGaugeData(Observable<Metric<GaugeDataPoint>> gaugeObservable) {
         // We write to both the data and the metrics_idx tables. Each Gauge can have one or more data points. We
         // currently write a separate batch statement for each gauge.
         //
@@ -460,7 +460,7 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<Void> addAvailabilityData(List<? extends Metric<AvailabilityDataPoint>> metrics) {
+    public Observable<Void> addAvailabilityData(List<Metric<AvailabilityDataPoint>> metrics) {
         return Observable.from(metrics)
                 .filter(a -> !a.getDataPoints().isEmpty())
                 .flatMap(a -> dataAccess.insertAvailabilityData(a, getTTL(a)))
@@ -649,7 +649,7 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public Observable<List<long[]>> getPeriods(String tenantId, MetricId id, Predicate<Double> predicate,
                                                long start, long end) {
-        return dataAccess.findData(new MetricImpl<>(tenantId, GAUGE, id), start, end,
+        return dataAccess.findData(new Metric<>(tenantId, GAUGE, id), start, end,
                 Order.ASC)
                 .flatMap(Observable::from)
                 .map(Functions::getGaugeDataPoint)

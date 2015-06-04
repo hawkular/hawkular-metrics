@@ -22,6 +22,7 @@ import static javax.ws.rs.core.MediaType.TEXT_PLAIN_TYPE;
 import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
 import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 import static javax.ws.rs.core.Response.Status.NOT_FOUND;
+import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -72,11 +73,9 @@ import org.hawkular.metrics.api.jaxrs.influx.query.validation.IllegalQueryExcept
 import org.hawkular.metrics.api.jaxrs.influx.query.validation.QueryValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InfluxObjectValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InvalidObjectException;
-import org.hawkular.metrics.api.jaxrs.param.GaugeMetric;
 import org.hawkular.metrics.core.api.GaugeDataPoint;
-import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.joda.time.Instant;
 import org.joda.time.Interval;
@@ -128,17 +127,16 @@ public class InfluxSeriesHandler {
             return;
         }
 
-        Observable<GaugeMetric> input = Observable.from(influxObjects)
-                .map(InfluxSeriesHandler::influxToGauge)
-                .map(gauge -> gauge.setTenantId(tenantId));
+        Observable<Metric<GaugeDataPoint>> input = Observable.from(influxObjects)
+                .map(influxObject -> influxToGauge(tenantId, influxObject));
         metricsService.addGaugeData(input).subscribe(new WriteObserver(asyncResponse));
     }
 
-    private static GaugeMetric influxToGauge(InfluxObject influxObject) {
+    private static Metric<GaugeDataPoint> influxToGauge(String tenantId, InfluxObject influxObject) {
         List<String> influxObjectColumns = influxObject.getColumns();
         int valueColumnIndex = influxObjectColumns.indexOf("value");
         List<List<?>> influxObjectPoints = influxObject.getPoints();
-        GaugeMetric gaugeMetric = new GaugeMetric(new MetricId(influxObject.getName()));
+        List<GaugeDataPoint> dataPoints = new ArrayList<>();
         for (List<?> point : influxObjectPoints) {
             double value;
             long timestamp;
@@ -149,9 +147,9 @@ public class InfluxSeriesHandler {
                 timestamp = ((Number) point.get((valueColumnIndex + 1) % 2)).longValue();
                 value = ((Number) point.get(valueColumnIndex)).doubleValue();
             }
-            gaugeMetric.addDataPoint(new GaugeDataPoint(timestamp, value));
+            dataPoints.add(new GaugeDataPoint(timestamp, value));
         }
-        return gaugeMetric;
+        return new Metric<>(tenantId, GAUGE, new MetricId(influxObject.getName()), dataPoints);
     }
 
     @GET
@@ -193,7 +191,7 @@ public class InfluxSeriesHandler {
     }
 
     private void listSeries(AsyncResponse asyncResponse, String tenantId) {
-        metricsService.findMetrics(tenantId, MetricType.GAUGE)
+        metricsService.findMetrics(tenantId, GAUGE)
                       .toList()
                       .map(InfluxSeriesHandler::metricsListToListSeries)
                       .subscribe(new ReadObserver(asyncResponse));

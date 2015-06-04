@@ -20,9 +20,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 /**
  * @author jsanda
  */
@@ -30,14 +27,11 @@ public class AvailabilityDataPoint implements DataPoint<AvailabilityType> {
 
     private final long timestamp;
 
-    @JsonProperty("value")
     private final AvailabilityType value;
 
     private Map<String, String> tags = Collections.emptyMap();
 
-    @JsonCreator
-    public AvailabilityDataPoint(@JsonProperty("timestamp") long timestamp,
-            @JsonProperty("value") AvailabilityType value) {
+    public AvailabilityDataPoint(long timestamp, AvailabilityType value) {
         this.timestamp = timestamp;
         this.value = value;
     }

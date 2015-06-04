@@ -29,8 +29,8 @@ import com.datastax.driver.core.utils.UUIDs;
 import org.hawkular.metrics.core.api.AvailabilityDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.Metric;
 
 /**
  * @author jsanda
@@ -64,7 +64,7 @@ public class TaggedAvailabilityDataPointMapper {
     }
 
     private static Metric<AvailabilityDataPoint> createMetric(Row row) {
-        return new MetricImpl<>(row.getString(0), AVAILABILITY, new MetricId(row.getString(4),
+        return new Metric<>(row.getString(0), AVAILABILITY, new MetricId(row.getString(4),
                 Interval.parse(row.getString(5))));
     }
 

@@ -16,26 +16,106 @@
  */
 package org.hawkular.metrics.core.api;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.util.Objects;
 
 /**
  * @author jsanda
  */
-public interface Metric<T extends DataPoint> {
+public class Metric<T extends DataPoint> {
 
-    @JsonIgnore
-    MetricType getType();
+    private String tenantId;
+    private MetricType type;
+    private MetricId id;
+    private Map<String, String> tags = Collections.emptyMap();
+    private Integer dataRetention;
+    private List<T> dataPoints = new ArrayList<>();
 
-    String getTenantId();
+    public Metric(String tenantId, MetricType type, MetricId id) {
+        this.tenantId = tenantId;
+        this.type = type;
+        this.id = id;
+    }
 
-    MetricId getId();
+    public Metric(String tenantId, MetricType type, MetricId id, Map<String, String> tags, Integer dataRetention) {
+        this.tenantId = tenantId;
+        this.type = type;
+        this.id = id;
+        this.tags = tags;
+        // If the data_retention column is not set, the driver returns zero instead of null.
+        // We are (at least for now) using null to indicate that the metric does not have
+        // the data retention set.
+        if (dataRetention == null || dataRetention == 0) {
+            this.dataRetention = null;
+        } else {
+            this.dataRetention = dataRetention;
+        }
+    }
 
-    Map<String, String> getTags();
+    public Metric(String tenantId, MetricType type, MetricId id, List<T> dataPoints) {
+        this.tenantId = tenantId;
+        this.type = type;
+        this.id = id;
+        this.dataPoints = dataPoints;
+    }
 
-    Integer getDataRetention();
+    public MetricType getType() {
+        return type;
+    }
 
-    List<T> getDataPoints();
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public MetricId getId() {
+        return id;
+    }
+
+    public Map<String, String> getTags() {
+        return tags;
+    }
+
+    public Integer getDataRetention() {
+        return dataRetention;
+    }
+
+    public List<T> getDataPoints() {
+        return dataPoints;
+    }
+
+    // TODO Remove this - we want the class to be immutable
+    public Metric<T> addDataPoint(T dataPoint) {
+        dataPoints.add(dataPoint);
+        return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Metric<?> metric = (Metric<?>) o;
+        return Objects.equals(tenantId, metric.tenantId) &&
+                Objects.equals(type, metric.type) &&
+                Objects.equals(id, metric.id) &&
+                Objects.equals(tags, metric.tags) &&
+                Objects.equals(dataRetention, metric.dataRetention);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(tenantId, type, id, tags, dataRetention);
+    }
+
+    @Override
+    public String toString() {
+        return com.google.common.base.Objects.toStringHelper("MetricImpl")
+                .add("tenantId", tenantId)
+                .add("id", id)
+                .add("tags", tags)
+                .add("dataRetention", dataRetention)
+                .toString();
+    }
 }

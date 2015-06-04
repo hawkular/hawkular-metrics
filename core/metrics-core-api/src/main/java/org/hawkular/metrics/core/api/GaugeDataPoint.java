@@ -20,8 +20,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 /**
  * @author jsanda
  */
@@ -33,7 +31,7 @@ public class GaugeDataPoint implements DataPoint<Double> {
 
     private Map<String, String> tags = Collections.emptyMap();
 
-    public GaugeDataPoint(@JsonProperty("timestamp") long timestamp, @JsonProperty("value") Double value) {
+    public GaugeDataPoint(long timestamp, Double value) {
         this.timestamp = timestamp;
         this.value = value;
     }

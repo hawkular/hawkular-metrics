@@ -27,11 +27,12 @@ import com.google.common.collect.Lists;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.DataPoint;
+import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import rx.functions.Func1;
 
 /**
- * Transform a {@link org.hawkular.metrics.core.api.Metric} with its {@link org.hawkular.metrics.core.api.DataPoint}
+ * Transform a {@link Metric} with its {@link org.hawkular.metrics.core.api.DataPoint}
  * into a {@link org.hawkular.metrics.core.api.BucketedOutput}.
  *
  * @param <DATA>   type of metric data, like {@link org.hawkular.metrics.core.api.GaugeDataPoint}

@@ -28,8 +28,8 @@ import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.GaugeDataPoint;
 import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
@@ -57,11 +57,12 @@ public interface DataAccess {
 
     Observable<ResultSet> deleteTags(Metric metric, Set<String> tags);
 
-    Observable<ResultSet> updateTagsInMetricsIndex(Metric metric, Map<String, String> additions, Set<String> deletions);
+    Observable<ResultSet> updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
+            Set<String> deletions);
 
-    <T extends DataPoint> ResultSetFuture updateMetricsIndex(List<? extends Metric<T>> metrics);
+    <T extends DataPoint> ResultSetFuture updateMetricsIndex(List<Metric<T>> metrics);
 
-    Observable<ResultSet> updateMetricsIndexRx(Observable<? extends Metric> metrics);
+    <T extends DataPoint> Observable<ResultSet> updateMetricsIndexRx(Observable<Metric<T>> metrics);
 
     Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType type);
 

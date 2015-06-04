@@ -43,6 +43,7 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import org.hawkular.metrics.api.jaxrs.ApiError;
+import org.hawkular.metrics.api.jaxrs.param.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.request.MixedMetricsRequest;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.MetricType;
@@ -82,6 +83,7 @@ public class MetricHandler {
 
         try {
             metricsService.findMetrics(tenantId, MetricType.fromTextCode(type))
+                    .map(MetricDefinition::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
@@ -112,23 +114,23 @@ public class MetricHandler {
 
             List<ListenableFuture<Void>> simpleFuturesList = new ArrayList<>();
 
-            if (metricsRequest.getGaugeMetrics() != null && !metricsRequest.getGaugeMetrics().isEmpty()) {
-                metricsRequest.getGaugeMetrics().forEach(m -> m.setTenantId(tenantId));
-                // TODO This needs to be fix - this needs to refactored..
-                // Temporarily commented out to get it to compile as we midst of updating MetricsService
-                // to use rx.Observable instead of ListenableFuture
-
-            //                Observable<Void> voidObservable = metricsService.addGaugeData(Observable.
-            // from(metricsRequest.getGaugeMetrics()));
-            //                simpleFuturesList.add(metricsService.addGaugeData(metricsRequest.getGaugeMetrics()));
-            }
-
-            if (metricsRequest.getAvailabilityMetrics() != null && !metricsRequest.getAvailabilityMetrics().isEmpty()) {
-                metricsRequest.getAvailabilityMetrics().forEach(m -> m.setTenantId(tenantId));
-                metricsService.addAvailabilityData(metricsRequest.getAvailabilityMetrics())
-                        .subscribe(r -> asyncResponse.resume(Response.ok().build()),
-                                   t -> asyncResponse.resume(ApiUtils.serverError(t)));
-            }
+//            if (metricsRequest.getGaugeMetrics() != null && !metricsRequest.getGaugeMetrics().isEmpty()) {
+//                metricsRequest.getGaugeMetrics().forEach(m -> m.setTenantId(tenantId));
+//                // TODO This needs to be fix - this needs to refactored..
+//                // Temporarily commented out to get it to compile as we midst of updating MetricsService
+//                // to use rx.Observable instead of ListenableFuture
+//
+//            //                Observable<Void> voidObservable = metricsService.addGaugeData(Observable.
+//            // from(metricsRequest.getGaugeMetrics()));
+//            //                simpleFuturesList.add(metricsService.addGaugeData(metricsRequest.getGaugeMetrics()));
+//            }
+//
+//            if (metricsRequest.getAvailabilityMetrics() != null && !metricsRequest.getAvailabilityMetrics().isEmpty()) {
+//                metricsRequest.getAvailabilityMetrics().forEach(m -> m.setTenantId(tenantId));
+//                metricsService.addAvailabilityData(metricsRequest.getAvailabilityMetrics())
+//                        .subscribe(r -> asyncResponse.resume(Response.ok().build()),
+//                                   t -> asyncResponse.resume(ApiUtils.serverError(t)));
+//            }
 
             return Futures.transform(Futures.successfulAsList(simpleFuturesList), ApiUtils.MAP_LIST_VOID);
         });

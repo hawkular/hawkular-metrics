@@ -23,10 +23,11 @@ import java.util.List;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityDataPoint;
 import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 
 /**
- * A {@link BucketedOutputMapper} for {@link org.hawkular.metrics.core.api.Metric<AvailabilityDataPoint>}.
+ * A {@link BucketedOutputMapper} for {@link Metric <AvailabilityDataPoint>}.
  *
  * @author Thomas Segismont
  */

@@ -46,8 +46,8 @@ import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.GaugeDataPoint;
 import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.RetentionSettings;
@@ -427,7 +427,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public <T extends DataPoint> ResultSetFuture updateMetricsIndex(List<? extends Metric<T>> metrics) {
+    public <T extends DataPoint> ResultSetFuture updateMetricsIndex(List<Metric<T>> metrics) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (Metric metric : metrics) {
             batchStatement.add(updateMetricsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
@@ -437,7 +437,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> updateMetricsIndexRx(Observable<? extends Metric> metrics) {
+    public <T extends DataPoint> Observable<ResultSet> updateMetricsIndexRx(Observable<Metric<T>> metrics) {
         return metrics.reduce(new BatchStatement(BatchStatement.Type.UNLOGGED), (batch, metric) -> {
             batch.add(updateMetricsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
                     metric.getId().getInterval().toString(), metric.getId().getName()));
@@ -499,7 +499,8 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findData(Metric<GaugeDataPoint> metric, long timestamp, boolean includeWriteTime) {
+    public Observable<ResultSet> findData(Metric<GaugeDataPoint> metric, long timestamp,
+            boolean includeWriteTime) {
         if (includeWriteTime) {
             return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeInclusive.bind(metric.getTenantId(),
                     MetricType.GAUGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),

@@ -16,14 +16,14 @@
  */
 package org.hawkular.metrics.rest
 
+import org.hawkular.metrics.core.impl.DateTimeService
+import org.joda.time.DateTime
+import org.junit.Test
+
 import static org.joda.time.DateTime.now
 import static org.joda.time.Seconds.seconds
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
-
-import org.hawkular.metrics.core.impl.DateTimeService
-import org.joda.time.DateTime
-import org.junit.Test
 
 class CassandraBackendITest extends RESTTest {
 
@@ -350,7 +350,7 @@ class CassandraBackendITest extends RESTTest {
     )
   }
 
-//  @Test
+  @Test
   void findMetrics() {
     DateTime start = now().minusMinutes(20)
     def tenantId = nextTenantId()
@@ -384,6 +384,7 @@ class CassandraBackendITest extends RESTTest {
 
     // Now query for the gauge metrics
     response = hawkularMetrics.get(path: "metrics", query: [type: 'gauge'], headers: [(tenantHeaderName): tenantId])
+
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -423,6 +424,7 @@ class CassandraBackendITest extends RESTTest {
 
     // Query for the availability metrics
     response = hawkularMetrics.get(path: "metrics", query: [type: 'availability'], headers: [(tenantHeaderName): tenantId])
+
     assertEquals(200, response.status)
     assertEquals(
         [

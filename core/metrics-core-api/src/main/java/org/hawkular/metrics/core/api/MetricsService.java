@@ -87,7 +87,7 @@ public interface MetricsService {
 
     Observable<Void> deleteTags(Metric metric, Map<String, String> tags);
 
-    Observable<Void> addGaugeData(Observable<? extends Metric<GaugeDataPoint>> gaugeObservable);
+    Observable<Void> addGaugeData(Observable<Metric<GaugeDataPoint>> gaugeObservable);
 
     Observable<GaugeDataPoint> findGaugeData(String tenantId, MetricId id, Long start, Long end);
 
@@ -95,7 +95,7 @@ public interface MetricsService {
             Metric<GaugeDataPoint> metric, long start, long end, Buckets buckets
     );
 
-    Observable<Void> addAvailabilityData(List<? extends Metric<AvailabilityDataPoint>> metrics);
+    Observable<Void> addAvailabilityData(List<Metric<AvailabilityDataPoint>> metrics);
 
     Observable<AvailabilityDataPoint> findAvailabilityData(String tenantId, MetricId id, long start, long end);
 

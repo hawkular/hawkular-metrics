@@ -28,8 +28,8 @@ import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.GaugeDataPoint;
 import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
@@ -98,12 +98,12 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public <T extends DataPoint> ResultSetFuture updateMetricsIndex(List<? extends Metric<T>> metrics) {
+    public <T extends DataPoint> ResultSetFuture updateMetricsIndex(List<Metric<T>> metrics) {
         return delegate.updateMetricsIndex(metrics);
     }
 
     @Override
-    public Observable<ResultSet> updateMetricsIndexRx(Observable<? extends Metric> metrics) {
+    public <T extends DataPoint> Observable<ResultSet> updateMetricsIndexRx(Observable<Metric<T>> metrics) {
         return delegate.updateMetricsIndexRx(metrics);
     }
 

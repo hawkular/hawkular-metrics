@@ -14,59 +14,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.api;
+package org.hawkular.metrics.api.jaxrs.param;
 
-import com.google.common.base.Objects;
+import java.util.List;
+import java.util.Objects;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.hawkular.metrics.core.api.AvailabilityDataPoint;
 
 /**
- * @author John Sanda
+ * @author jsanda
  */
-public class MetricId {
+public class Availability {
 
-    private String name;
+    @JsonProperty
+    private String id;
 
-    private Interval interval;
+    @JsonProperty
+    private List<AvailabilityDataPoint> data;
 
-    public MetricId(String name) {
-        this(name, Interval.NONE);
+    public String getId() {
+        return id;
     }
 
-    public MetricId(String name, Interval interval) {
-        this.name = name;
-        this.interval = interval;
-    }
-
-//    @JsonValue
-    public String getName() {
-        return name;
-    }
-
-    public Interval getInterval() {
-        return interval;
+    public List<AvailabilityDataPoint> getData() {
+        return data;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-
-        MetricId metricId = (MetricId) o;
-
-        if (!interval.equals(metricId.interval)) return false;
-        if (!name.equals(metricId.name)) return false;
-
-        return true;
+        Availability that = (Availability) o;
+        return Objects.equals(id, that.id);
     }
 
     @Override
     public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + interval.hashCode();
-        return result;
+        return Objects.hash(id);
     }
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this).add("name", name).add("interval", interval).toString();
+        return "Availability{" +
+                "id='" + id + '\'' +
+                '}';
     }
 }

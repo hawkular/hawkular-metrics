@@ -18,10 +18,12 @@ package org.hawkular.metrics.api.jaxrs.handler;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.stream.Collectors.toList;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
+import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 
 import java.net.URI;
 import java.util.Collections;
@@ -54,8 +56,9 @@ import com.wordnik.swagger.annotations.ApiResponses;
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
-import org.hawkular.metrics.api.jaxrs.param.AvailabilityMetric;
+import org.hawkular.metrics.api.jaxrs.param.Availability;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
+import org.hawkular.metrics.api.jaxrs.param.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.request.TagRequest;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
@@ -63,7 +66,7 @@ import org.hawkular.metrics.core.api.AvailabilityDataPoint;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,21 +103,23 @@ public class AvailabilityHandler {
                 response = ApiError.class) })
     public void createAvailabilityMetric(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(required = true) AvailabilityMetric metric,
+            @ApiParam(required = true) MetricDefinition metricDefinition,
             @Context UriInfo uriInfo
     ) {
-        if (metric == null) {
+        if (metricDefinition == null) {
             asyncResponse.resume(emptyPayload());
             return;
         }
-        metric.setTenantId(tenantId);
-        URI location = uriInfo.getBaseUriBuilder().path("/availability/{id}").build(metric.getId().getName());
+
+        URI location = uriInfo.getBaseUriBuilder().path("/availability/{id}").build(metricDefinition.getId());
+        Metric metric = new Metric(tenantId, AVAILABILITY, new MetricId(metricDefinition.getId()),
+                metricDefinition.getTags(), metricDefinition.getDataRetention());
         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
     }
 
     @GET
     @Path("/{id}")
-    @ApiOperation(value = "Retrieve single metric definition.", response = AvailabilityMetric.class)
+    @ApiOperation(value = "Retrieve single metric definition.", response = MetricDefinition.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's definition was successfully retrieved."),
             @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
@@ -123,12 +128,11 @@ public class AvailabilityHandler {
     public void getAvailabilityMetric(@Suspended final AsyncResponse asyncResponse,
             @HeaderParam("tenantId") String tenantId, @PathParam("id") String id) {
 
-        metricsService.findMetric(tenantId, MetricType.AVAILABILITY, new MetricId(id))
-                .map(metric -> Response.ok(metric).build())
+        metricsService.findMetric(tenantId, AVAILABILITY, new MetricId(id))
+                .map(MetricDefinition::new)
+                .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(ApiUtils.noContent()))
-                .subscribe(
-                        asyncResponse::resume,
-                        t -> asyncResponse.resume(ApiUtils.serverError(t))
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t))
                 );
     }
 
@@ -145,7 +149,7 @@ public class AvailabilityHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id
     ) {
-        metricsService.getMetricTags(tenantId, MetricType.AVAILABILITY, new MetricId(id)).subscribe(
+        metricsService.getMetricTags(tenantId, AVAILABILITY, new MetricId(id)).subscribe(
                 optional -> asyncResponse.resume(ApiUtils.valueToResponse(optional)),
                 t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
@@ -162,7 +166,7 @@ public class AvailabilityHandler {
             @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags
     ) {
-        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
+        Metric<AvailabilityDataPoint> metric = new Metric<>(tenantId, AVAILABILITY, new MetricId(id));
         metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -179,7 +183,7 @@ public class AvailabilityHandler {
             @PathParam("id") String id,
             @ApiParam("Tag list") @PathParam("tags") Tags tags
     ) {
-        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
+        Metric<AvailabilityDataPoint> metric = new Metric<>(tenantId, AVAILABILITY, new MetricId(id));
         metricsService.deleteTags(metric, tags.getTags()).subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -198,8 +202,8 @@ public class AvailabilityHandler {
         if (data == null) {
             asyncResponse.resume(ApiUtils.emptyPayload());
         } else {
-            AvailabilityMetric metric = new AvailabilityMetric(new MetricId(id), data);
-            metric.setTenantId(tenantId);
+            Metric<AvailabilityDataPoint> metric = new Metric<>(tenantId,
+                    AVAILABILITY, new MetricId(id), data);
             metricsService.addAvailabilityData(Collections.singletonList(metric)).subscribe(
                     new ResultSetObserver(asyncResponse));
         }
@@ -215,12 +219,15 @@ public class AvailabilityHandler {
     public void addAvailabilityData(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of availability metrics", required = true)
-            List<AvailabilityMetric> metrics
+            List<Availability> availabilities
     ) {
-        if (metrics.isEmpty()) {
+        if (availabilities.isEmpty()) {
             asyncResponse.resume(Response.ok().build());
         } else {
-            metrics.forEach(m -> m.setTenantId(tenantId));
+            List<Metric<AvailabilityDataPoint>> metrics = availabilities.stream().map(availability ->
+                    new Metric<>(tenantId, AVAILABILITY, new MetricId(availability.getId()),
+                            availability.getData()))
+                    .collect(toList());
             metricsService.addAvailabilityData(metrics).subscribe(new ResultSetObserver(asyncResponse));
         }
     }
@@ -278,7 +285,7 @@ public class AvailabilityHandler {
         Long startTime = start == null ? now - EIGHT_HOURS : start;
         Long endTime = end == null ? now : end;
 
-        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
+        Metric<AvailabilityDataPoint> metric = new Metric<>(tenantId, AVAILABILITY, new MetricId(id));
         if (bucketsCount == null && bucketDuration == null) {
             metricsService.findAvailabilityData(tenantId, metric.getId(), startTime, endTime, distinct).toList()
                 .map(ApiUtils::collectionToResponse)
@@ -306,7 +313,7 @@ public class AvailabilityHandler {
             metricsService.findAvailabilityStats(metric, startTime, endTime, buckets).map(
                     BucketedOutput::getData)
                 .map(ApiUtils::collectionToResponse)
-                .subscribe(r -> asyncResponse.resume(r), t -> ApiUtils.serverError(t));
+                .subscribe(asyncResponse::resume, ApiUtils::serverError);
         }
     }
 
@@ -320,7 +327,7 @@ public class AvailabilityHandler {
             @ApiParam(required = true) TagRequest params
     ) {
         Observable<Void> resultSetObservable;
-        AvailabilityMetric metric = new AvailabilityMetric(tenantId, new MetricId(id));
+        Metric<AvailabilityDataPoint> metric = new Metric<>(tenantId, AVAILABILITY, new MetricId(id));
         if (params.getTimestamp() != null) {
             resultSetObservable = metricsService.tagAvailabilityData(metric, params.getTags(), params.getTimestamp());
         } else {

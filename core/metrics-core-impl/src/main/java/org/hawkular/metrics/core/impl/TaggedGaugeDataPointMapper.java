@@ -26,8 +26,8 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.utils.UUIDs;
 import org.hawkular.metrics.core.api.GaugeDataPoint;
 import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricType;
 
 /**
@@ -61,8 +61,8 @@ public class TaggedGaugeDataPointMapper {
         return taggedData;
     }
 
-    private static MetricImpl<GaugeDataPoint> createMetric(Row row) {
-        return new MetricImpl<>(row.getString(0), MetricType.GAUGE, new MetricId(row.getString(4),
+    private static Metric<GaugeDataPoint> createMetric(Row row) {
+        return new Metric<>(row.getString(0), MetricType.GAUGE, new MetricId(row.getString(4),
                 Interval.parse(row.getString(5))));
     }
 
