@@ -222,7 +222,7 @@ public class AvailabilityHandler {
             List<Availability> availabilities
     ) {
         if (availabilities.isEmpty()) {
-            asyncResponse.resume(Response.ok().build());
+            asyncResponse.resume(ApiUtils.emptyPayload());
         } else {
             List<Metric<AvailabilityDataPoint>> metrics = availabilities.stream().map(availability ->
                     new Metric<>(tenantId, AVAILABILITY, new MetricId(availability.getId()),

@@ -125,7 +125,8 @@ public class MetricHandler {
 //            //                simpleFuturesList.add(metricsService.addGaugeData(metricsRequest.getGaugeMetrics()));
 //            }
 //
-//            if (metricsRequest.getAvailabilityMetrics() != null && !metricsRequest.getAvailabilityMetrics().isEmpty()) {
+//            if (metricsRequest.getAvailabilityMetrics() != null
+//                    && !metricsRequest.getAvailabilityMetrics().isEmpty()) {
 //                metricsRequest.getAvailabilityMetrics().forEach(m -> m.setTenantId(tenantId));
 //                metricsService.addAvailabilityData(metricsRequest.getAvailabilityMetrics())
 //                        .subscribe(r -> asyncResponse.resume(Response.ok().build()),
