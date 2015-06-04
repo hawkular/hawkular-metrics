@@ -20,10 +20,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Optional;
+import java.util.EnumMap;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
@@ -38,26 +36,35 @@ import javax.enterprise.inject.spi.InjectionPoint;
 public class ConfigurableProducer {
     static final String METRICS_CONF = "metrics.conf";
 
-    // Values need to be Optional as ConcurrentHashMap does not accept null values
-    private ConcurrentMap<String, Optional<String>> effectiveConfiguration;
+    private EnumMap<ConfigurationKey, String> effectiveConfig;
 
     @PostConstruct
     void init() {
-        effectiveConfiguration = new ConcurrentHashMap<>(ConfigurationKey.values().length);
+        effectiveConfig = new EnumMap<>(ConfigurationKey.class);
 
-        Properties defaultProperties = defaultProperties();
-        Properties fileProperties = configurationFile().map(this::configurationFileProperties).orElse(new Properties());
+        Properties configFileProperties = new Properties();
+        File configurationFile = findConfigurationFile();
+        if (configurationFile != null) {
+            load(configFileProperties, configurationFile);
+        }
 
-        for (ConfigurationKey configurationKey : ConfigurationKey.values()) {
-            String k = configurationKey.getExternalForm();
-            String v = System.getProperty(k);
-            if (v == null) {
-                v = fileProperties.getProperty(k);
-                if (v == null) {
-                    v = defaultProperties.getProperty(k);
-                }
+        for (ConfigurationKey configKey : ConfigurationKey.values()) {
+            String name = configKey.toString();
+            String envName = configKey.toEnvString();
+
+            String value = System.getProperty(name);
+            if (value == null && envName != null) {
+                value = System.getenv(envName);
             }
-            effectiveConfiguration.put(k, Optional.ofNullable(v));
+            if (value == null) {
+                value = configFileProperties.getProperty(name);
+            }
+
+            if (configKey.isFlag()) {
+                effectiveConfig.put(configKey, String.valueOf(value != null));
+            } else {
+                effectiveConfig.put(configKey, value != null ? value : configKey.defaultValue());
+            }
         }
     }
 
@@ -66,31 +73,26 @@ public class ConfigurableProducer {
     String getConfigurationPropertyAsString(InjectionPoint injectionPoint) {
         ConfigurationProperty configProp = injectionPoint.getAnnotated().getAnnotation(ConfigurationProperty.class);
         if (configProp == null) {
-            String message = "Any field or parameter annotated with @Configurable "
-                + "must also be annotated with @ConfigurationProperty";
+            String message = "Any field or parameter annotated with @" + Configurable.class.getSimpleName()
+                             + " must also be annotated with @" + ConfigurationProperty.class.getSimpleName();
             throw new IllegalArgumentException(message);
         }
-        String propertyName = configProp.value().getExternalForm();
-        return lookupConfigurationProperty(propertyName);
+        return effectiveConfig.get(configProp.value());
     }
 
-    private String lookupConfigurationProperty(String propertyName) {
-        return effectiveConfiguration.get(propertyName).orElse(null);
-    }
-
-    private Optional<File> configurationFile() {
+    private File findConfigurationFile() {
         String configurationFilePath = System.getProperty(METRICS_CONF);
         if (configurationFilePath != null) {
             File file = new File(configurationFilePath);
             checkExplicitConfigurationFile(file);
-            return Optional.of(file);
+            return file;
         }
         File file = new File(System.getProperty("user.home"), ".metrics.conf");
         if (!file.exists()) {
-            return Optional.empty();
+            return null;
         }
         checkConfigurationFile(file);
-        return Optional.of(file);
+        return file;
     }
 
     private void checkExplicitConfigurationFile(File file) {
@@ -109,21 +111,9 @@ public class ConfigurableProducer {
         }
     }
 
-    private Properties defaultProperties() {
-        try (InputStream input = getClass().getClassLoader().getResourceAsStream("META-INF/metrics.conf")) {
-            Properties properties = new Properties();
+    private void load(Properties properties, File file) {
+        try (InputStream input = new FileInputStream(file)) {
             properties.load(input);
-            return properties;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private Properties configurationFileProperties(File file) {
-        try (FileInputStream input = new FileInputStream(file)) {
-            Properties properties = new Properties();
-            properties.load(input);
-            return properties;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

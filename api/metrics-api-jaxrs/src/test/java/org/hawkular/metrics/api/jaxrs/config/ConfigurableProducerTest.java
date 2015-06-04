@@ -17,6 +17,8 @@
 package org.hawkular.metrics.api.jaxrs.config;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -24,8 +26,8 @@ import static org.mockito.Mockito.when;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URL;
 import java.util.Properties;
+
 import javax.enterprise.inject.spi.Annotated;
 import javax.enterprise.inject.spi.InjectionPoint;
 
@@ -39,8 +41,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import com.google.common.io.Resources;
-
 /**
  * @author Thomas Segismont
  */
@@ -53,54 +53,58 @@ public class ConfigurableProducerTest {
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
     @Mock
-    private InjectionPoint injectionPoint;
+    private InjectionPoint parameterInjectionPoint;
+    @Mock
+    private InjectionPoint flagInjectionPoint;
 
     private final ConfigurableProducer configurableProducer = new ConfigurableProducer();
 
     @Before
     public void before() throws IOException {
+        parameterInjectionPoint = configureInjectionPoint(ConfigurationKey.CASSANDRA_KEYSPACE);
+        flagInjectionPoint = configureInjectionPoint(ConfigurationKey.CASSANDRA_RESETDB);
+    }
+
+    private InjectionPoint configureInjectionPoint(ConfigurationKey configurationKey) {
         Annotated annotated = mock(Annotated.class);
         ConfigurationProperty configurationProperty = mock(ConfigurationProperty.class);
-        when(configurationProperty.value()).thenReturn(ConfigurationKey.CASSANDRA_KEYSPACE);
+        when(configurationProperty.value()).thenReturn(configurationKey);
         when(annotated.getAnnotation(eq(ConfigurationProperty.class))).thenReturn(configurationProperty);
-        injectionPoint = mock(InjectionPoint.class);
+        InjectionPoint injectionPoint = mock(InjectionPoint.class);
         when(injectionPoint.getAnnotated()).thenReturn(annotated);
+        return injectionPoint;
     }
 
     @After
     public void after() {
         System.clearProperty(ConfigurableProducer.METRICS_CONF);
-        System.clearProperty(ConfigurationKey.CASSANDRA_KEYSPACE.getExternalForm());
+        System.clearProperty(ConfigurationKey.CASSANDRA_KEYSPACE.toString());
+        System.clearProperty(ConfigurationKey.CASSANDRA_RESETDB.toString());
     }
 
     @Test
     public void shouldFetchDefaultValue() throws Exception {
         // Create an empty config file in case the user running tests has a config file in <user.home>
-        Properties emptyProperties = new Properties();
         File configFile = tempFolder.newFile();
-        emptyProperties.store(new FileOutputStream(configFile), null);
+        new Properties().store(new FileOutputStream(configFile), null);
         System.setProperty(ConfigurableProducer.METRICS_CONF, configFile.getAbsolutePath());
 
         configurableProducer.init();
-        String value = configurableProducer.getConfigurationPropertyAsString(injectionPoint);
+        String value = configurableProducer.getConfigurationPropertyAsString(parameterInjectionPoint);
 
-        Properties properties = new Properties();
-        URL resource = Resources.getResource("META-INF/metrics.conf");
-        properties.load(Resources.asByteSource(resource).openStream());
-
-        assertEquals(properties.getProperty(ConfigurationKey.CASSANDRA_KEYSPACE.getExternalForm()), value);
+        assertEquals(ConfigurationKey.CASSANDRA_KEYSPACE.defaultValue(), value);
     }
 
     @Test
     public void shouldFetchValueFromConfigFile() throws Exception {
         Properties properties = new Properties();
-        properties.setProperty(ConfigurationKey.CASSANDRA_KEYSPACE.getExternalForm(), "marseille");
+        properties.setProperty(ConfigurationKey.CASSANDRA_KEYSPACE.toString(), "marseille");
         File configFile = tempFolder.newFile();
         properties.store(new FileOutputStream(configFile), null);
         System.setProperty(ConfigurableProducer.METRICS_CONF, configFile.getAbsolutePath());
 
         configurableProducer.init();
-        String value = configurableProducer.getConfigurationPropertyAsString(injectionPoint);
+        String value = configurableProducer.getConfigurationPropertyAsString(parameterInjectionPoint);
 
         assertEquals("marseille", value);
     }
@@ -108,21 +112,21 @@ public class ConfigurableProducerTest {
     @Test
     public void shouldFetchValueFromSystemProperty() throws Exception {
         Properties properties = new Properties();
-        properties.setProperty(ConfigurationKey.CASSANDRA_KEYSPACE.getExternalForm(), "marseille");
+        properties.setProperty(ConfigurationKey.CASSANDRA_KEYSPACE.toString(), "marseille");
         File configFile = tempFolder.newFile();
         properties.store(new FileOutputStream(configFile), null);
         System.setProperty(ConfigurableProducer.METRICS_CONF, configFile.getAbsolutePath());
 
-        System.setProperty(ConfigurationKey.CASSANDRA_KEYSPACE.getExternalForm(), "mare nostrum");
+        System.setProperty(ConfigurationKey.CASSANDRA_KEYSPACE.toString(), "mare nostrum");
 
         configurableProducer.init();
-        String value = configurableProducer.getConfigurationPropertyAsString(injectionPoint);
+        String value = configurableProducer.getConfigurationPropertyAsString(parameterInjectionPoint);
 
         assertEquals("mare nostrum", value);
     }
 
     @Test
-    public void shouldThrowsIllegalArgumentExceptionIfAnnotationIsMissing() throws Exception {
+    public void shouldThrowIllegalArgumentExceptionIfAnnotationIsMissing() throws Exception {
         // Override default: simulate a missing config property annotation
         Annotated annotated = mock(Annotated.class);
         when(annotated.getAnnotation(eq(ConfigurationProperty.class))).thenReturn(null);
@@ -134,5 +138,23 @@ public class ConfigurableProducerTest {
                          + "must also be annotated with @ConfigurationProperty";
         expectedException.expectMessage(message);
         configurableProducer.getConfigurationPropertyAsString(injectionPoint);
+    }
+
+    @Test
+    public void shouldInjectTrueWhenFlagIsPresent() throws Exception {
+        System.setProperty(ConfigurationKey.CASSANDRA_RESETDB.toString(), "");
+
+        configurableProducer.init();
+        String value = configurableProducer.getConfigurationPropertyAsString(flagInjectionPoint);
+
+        assertTrue(Boolean.parseBoolean(value));
+    }
+
+    @Test
+    public void shouldInjectFalseWhenFlagIsAbsent() throws Exception {
+        configurableProducer.init();
+        String value = configurableProducer.getConfigurationPropertyAsString(flagInjectionPoint);
+
+        assertFalse(Boolean.parseBoolean(value));
     }
 }
