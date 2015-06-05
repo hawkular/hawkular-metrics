@@ -73,6 +73,10 @@ rpc_address: 127.0.0.1
 rpc_keepalive: true
 rpc_port: 9160
 rpc_server_type: sync
+# these 2 are important for hsha - with the max threads unset, there is a likelihood of OOMs because the
+# thrift server tries to start an ungodly number of threads (MAX_INT / number of cores)
+rpc_min_threads: 16
+rpc_max_threads: 1024
 seed_provider:
 - class_name: org.apache.cassandra.locator.SimpleSeedProvider
   parameters:

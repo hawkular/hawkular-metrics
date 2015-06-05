@@ -56,12 +56,6 @@
       <groupId>org.apache.cassandra</groupId>
       <artifactId>cassandra-all</artifactId>
       <version>2.1.1</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.thinkaurelius.thrift</groupId>
-          <artifactId>thrift-server</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
 
     <!-- Wildfly provided -->

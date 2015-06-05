@@ -16,13 +16,8 @@
  */
 package org.hawkular.metrics.embedded;
 
-import static java.util.Arrays.asList;
-import static org.hawkular.metrics.embedded.EmbeddedConstants.CASSANDRA_CONFIG;
-import static org.hawkular.metrics.embedded.EmbeddedConstants.CASSANDRA_LISTEN_ADDRESS_DEFAULT;
-import static org.hawkular.metrics.embedded.EmbeddedConstants.CASSANDRA_NATIVE_PORT_DEFAULT;
-import static org.hawkular.metrics.embedded.EmbeddedConstants.CASSANDRA_YAML;
-import static org.hawkular.metrics.embedded.EmbeddedConstants.JBOSS_DATA_DIR;
-import static org.hawkular.metrics.embedded.EmbeddedConstants.HAWKULAR_METRICS;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -32,8 +27,13 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
-import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.Yaml;
+import static java.util.Arrays.asList;
+import static org.hawkular.metrics.embedded.EmbeddedConstants.CASSANDRA_CONFIG;
+import static org.hawkular.metrics.embedded.EmbeddedConstants.CASSANDRA_LISTEN_ADDRESS_DEFAULT;
+import static org.hawkular.metrics.embedded.EmbeddedConstants.CASSANDRA_NATIVE_PORT_DEFAULT;
+import static org.hawkular.metrics.embedded.EmbeddedConstants.CASSANDRA_YAML;
+import static org.hawkular.metrics.embedded.EmbeddedConstants.HAWKULAR_METRICS;
+import static org.hawkular.metrics.embedded.EmbeddedConstants.JBOSS_DATA_DIR;
 
 /**
  * @author Stefan Negrea
@@ -101,7 +101,7 @@ public class ConfigEditor {
             this.setKeyCacheSizeMb(getDefaultKeyCacheSize());
             this.setNativeTransportMaxThreads(4);
             this.setCompactionThroughputMbPerSec(0);
-            this.setStartRpc(false);
+            this.setStartRpc(true);
             this.setHintedHandoffEnabled(false);
             this.setNumTokens(1);
             this.setRpcServerType("hsha");
@@ -136,7 +136,7 @@ public class ConfigEditor {
         // set system properties
         System.setProperty(CASSANDRA_CONFIG, yamlFile.toURI().toURL().toString());
         System.setProperty("cassandra.skip_wait_for_gossip_to_settle", "0");
-        System.setProperty("cassandra.start_rpc", "false");
+        System.setProperty("cassandra.start_rpc", "true");
     }
 
     public void save() throws IOException {
