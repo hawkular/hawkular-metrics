@@ -16,6 +16,9 @@
  */
 package org.hawkular.metrics.api.jaxrs.request;
 
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableMap;
+
 import java.util.Map;
 import java.util.Objects;
 
@@ -30,7 +33,7 @@ import org.hawkular.metrics.core.api.Metric;
 @ApiModel(description = "The definition of a metric to create")
 public class MetricDefinition {
 
-    // TODO Do we need this? 
+    // TODO Do we need this?
     @JsonProperty
     private String tenantId;
 
@@ -46,10 +49,10 @@ public class MetricDefinition {
     @JsonCreator
     public MetricDefinition(
             @JsonProperty("id") String id,
-            @JsonProperty("tags") Map<String, String> tags,
+            @JsonProperty(value = "tags") Map<String, String> tags,
             @JsonProperty("dataRetention") Integer dataRetention) {
         this.id = id;
-        this.tags = tags;
+        this.tags = tags == null ? emptyMap() : unmodifiableMap(tags);
         this.dataRetention = dataRetention;
     }
 

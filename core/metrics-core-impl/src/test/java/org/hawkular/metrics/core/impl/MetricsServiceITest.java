@@ -36,7 +36,6 @@ import static org.testng.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -57,9 +56,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 import org.hawkular.metrics.core.api.AvailabilityDataPoint;
 import org.hawkular.metrics.core.api.GaugeDataPoint;
 import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
@@ -229,11 +228,12 @@ public class MetricsServiceITest extends MetricsITest {
 
         metricsService.createTenant(new Tenant().setId(tenantId)).toBlocking().lastOrDefault(null);
 
-        Metric<GaugeDataPoint> m1 = new Metric<GaugeDataPoint>(tenantId, GAUGE, new MetricId("m1"))
-                .addDataPoint(new GaugeDataPoint(start.getMillis(), 1.1))
-                .addDataPoint(new GaugeDataPoint(start.plusMinutes(2).getMillis(), 2.2))
-                .addDataPoint(new GaugeDataPoint(start.plusMinutes(4).getMillis(), 3.3))
-                .addDataPoint(new GaugeDataPoint(end.getMillis(), 4.4));
+        Metric<GaugeDataPoint> m1 = new Metric<>(tenantId, GAUGE, new MetricId("m1"), asList(
+                new GaugeDataPoint(start.getMillis(), 1.1),
+                new GaugeDataPoint(start.plusMinutes(2).getMillis(), 2.2),
+                new GaugeDataPoint(start.plusMinutes(4).getMillis(), 3.3),
+                new GaugeDataPoint(end.getMillis(), 4.4)
+        ));
 
         Observable<Void> insertObservable = metricsService.addGaugeData(Observable.just(m1));
         insertObservable.toBlocking().lastOrDefault(null);
@@ -266,10 +266,11 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.loadDataRetentions();
         metricsService.setDataAccess(verifyTTLDataAccess);
 
-        Metric<GaugeDataPoint> m1 = new Metric<GaugeDataPoint>("t1", GAUGE, new MetricId("m1"))
-                .addDataPoint(new GaugeDataPoint(start.getMillis(), 1.01))
-                .addDataPoint(new GaugeDataPoint(start.plusMinutes(1).getMillis(), 1.02))
-                .addDataPoint(new GaugeDataPoint(start.plusMinutes(2).getMillis(), 1.03));
+        Metric<GaugeDataPoint> m1 = new Metric<>("t1", GAUGE, new MetricId("m1"), asList(
+                new GaugeDataPoint(start.getMillis(), 1.01),
+                new GaugeDataPoint(start.plusMinutes(1).getMillis(), 1.02),
+                new GaugeDataPoint(start.plusMinutes(2).getMillis(), 1.03)
+        ));
 
         addGaugeDataInThePast(m1, days(2).toStandardDuration());
 
@@ -280,8 +281,8 @@ public class MetricsServiceITest extends MetricsITest {
             start.plusMinutes(2).getMillis()).toBlocking();
 
         verifyTTLDataAccess.setGaugeTTL(days(14).toStandardSeconds().getSeconds());
-        Metric<GaugeDataPoint> m2 = new Metric<>("t2", GAUGE, new MetricId("m2"));
-        m2.addDataPoint(new GaugeDataPoint(start.plusMinutes(5).getMillis(), 2.02));
+        Metric<GaugeDataPoint> m2 = new Metric<>("t2", GAUGE, new MetricId("m2"),
+                singletonList(new GaugeDataPoint(start.plusMinutes(5).getMillis(), 2.02)));
         addGaugeDataInThePast(m2, days(3).toStandardDuration());
 
         verifyTTLDataAccess.gaugeTagTTLLessThanEqualTo(days(14).minus(3).toStandardSeconds().getSeconds());
@@ -291,16 +292,17 @@ public class MetricsServiceITest extends MetricsITest {
                       .toBlocking()
                       .lastOrDefault(null);
         verifyTTLDataAccess.setGaugeTTL(hours(24).toStandardSeconds().getSeconds());
-        Metric<GaugeDataPoint> m3 = new Metric<>("t3", GAUGE, new MetricId("m3"));
-        m3.addDataPoint(new GaugeDataPoint(start.getMillis(), 3.03));
+        Metric<GaugeDataPoint> m3 = new Metric<>("t3", GAUGE, new MetricId("m3"),
+                singletonList(new GaugeDataPoint(start.getMillis(), 3.03)));
         metricsService.addGaugeData(Observable.just(m3)).toBlocking().lastOrDefault(null);
 
-        Metric<GaugeDataPoint> m4 = new Metric<>("t2", GAUGE, new MetricId("m4"), emptyMap(), 28);
+        Metric<GaugeDataPoint> m4 = new Metric<>("t2", GAUGE, new MetricId("m4"), emptyMap(), 28, asList(
+                new GaugeDataPoint(start.plusMinutes(3).getMillis(), 4.1),
+                new GaugeDataPoint(start.plusMinutes(4).getMillis(), 4.2)
+        ));
         metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
 
         verifyTTLDataAccess.setGaugeTTL(28);
-        m4.addDataPoint(new GaugeDataPoint(start.plusMinutes(3).getMillis(), 4.1));
-        m4.addDataPoint(new GaugeDataPoint(start.plusMinutes(4).getMillis(), 4.2));
         metricsService.addGaugeData(Observable.just(m4)).toBlocking().lastOrDefault(null);
     }
 
@@ -320,11 +322,12 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.setDataAccess(verifyTTLDataAccess);
         metricsService.setDataAccess(verifyTTLDataAccess);
 
-        Metric<AvailabilityDataPoint> m1 = new Metric<AvailabilityDataPoint>("t1", AVAILABILITY,
-                new MetricId("m1"))
-            .addDataPoint(new AvailabilityDataPoint(start.getMillis(), UP))
-            .addDataPoint(new AvailabilityDataPoint(start.plusMinutes(1).getMillis(), DOWN))
-            .addDataPoint(new AvailabilityDataPoint(start.plusMinutes(2).getMillis(), DOWN));
+        List<AvailabilityDataPoint> dataPoints = asList(
+                new AvailabilityDataPoint(start.getMillis(), UP),
+                new AvailabilityDataPoint(start.plusMinutes(1).getMillis(), DOWN),
+                new AvailabilityDataPoint(start.plusMinutes(2).getMillis(), DOWN)
+        );
+        Metric<AvailabilityDataPoint> m1 = new Metric<>("t1", AVAILABILITY, new MetricId("m1"), dataPoints);
 
         addAvailabilityDataInThePast(m1, days(2).toStandardDuration());
 
@@ -334,8 +337,8 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.tagAvailabilityData(m1, tags, start.getMillis(), start.plusMinutes(2).getMillis()).toBlocking();
 
         verifyTTLDataAccess.setAvailabilityTTL(days(14).toStandardSeconds().getSeconds());
-        Metric<AvailabilityDataPoint> m2 = new Metric<AvailabilityDataPoint>("t2", AVAILABILITY,
-                new MetricId("m2")).addDataPoint(new AvailabilityDataPoint(start.plusMinutes(5).getMillis(), UP));
+        Metric<AvailabilityDataPoint> m2 = new Metric<>("t2", AVAILABILITY, new MetricId("m2"),
+                singletonList(new AvailabilityDataPoint(start.plusMinutes(5).getMillis(), UP)));
 
         addAvailabilityDataInThePast(m2, days(5).toStandardDuration());
 
@@ -346,8 +349,8 @@ public class MetricsServiceITest extends MetricsITest {
                       .toBlocking()
                       .lastOrDefault(null);
         verifyTTLDataAccess.setAvailabilityTTL(hours(24).toStandardSeconds().getSeconds());
-        Metric<AvailabilityDataPoint> m3 = new Metric<AvailabilityDataPoint>("t3", AVAILABILITY,
-                new MetricId("m3")).addDataPoint(new AvailabilityDataPoint(start.getMillis(), UP));
+        Metric<AvailabilityDataPoint> m3 = new Metric<>("t3", AVAILABILITY, new MetricId("m3"),
+                singletonList(new AvailabilityDataPoint(start.getMillis(), UP)));
 
         metricsService.addAvailabilityData(singletonList(m3)).toBlocking();
     }
@@ -419,14 +422,16 @@ public class MetricsServiceITest extends MetricsITest {
 
         metricsService.createTenant(new Tenant().setId("tenant1")).toBlocking().lastOrDefault(null);
 
-        Metric<GaugeDataPoint> metric = new Metric<GaugeDataPoint>("tenant1", GAUGE, new MetricId("m1"))
-            .addDataPoint(new GaugeDataPoint(start.getMillis(), 100.0))
-            .addDataPoint(new GaugeDataPoint(start.plusMinutes(1).getMillis(), 101.1))
-            .addDataPoint(new GaugeDataPoint(start.plusMinutes(2).getMillis(), 102.2))
-            .addDataPoint(new GaugeDataPoint(start.plusMinutes(3).getMillis(), 103.3))
-            .addDataPoint(new GaugeDataPoint(start.plusMinutes(4).getMillis(), 104.4))
-            .addDataPoint(new GaugeDataPoint(start.plusMinutes(5).getMillis(), 105.5))
-            .addDataPoint(new GaugeDataPoint(start.plusMinutes(6).getMillis(), 106.6));
+        List<GaugeDataPoint> dataPoints = asList(
+                new GaugeDataPoint(start.getMillis(), 100.0),
+                new GaugeDataPoint(start.plusMinutes(1).getMillis(), 101.1),
+                new GaugeDataPoint(start.plusMinutes(2).getMillis(), 102.2),
+                new GaugeDataPoint(start.plusMinutes(3).getMillis(), 103.3),
+                new GaugeDataPoint(start.plusMinutes(4).getMillis(), 104.4),
+                new GaugeDataPoint(start.plusMinutes(5).getMillis(), 105.5),
+                new GaugeDataPoint(start.plusMinutes(6).getMillis(), 106.6)
+        );
+        Metric<GaugeDataPoint> metric = new Metric<>("tenant1", GAUGE, new MetricId("m1"), dataPoints);
 
         metricsService.addGaugeData(Observable.just(metric)).toBlocking().lastOrDefault(null);
 
@@ -465,21 +470,23 @@ public class MetricsServiceITest extends MetricsITest {
 
         metricsService.createTenant(new Tenant().setId(tenantId)).toBlocking().lastOrDefault(null);
 
-        Metric<GaugeDataPoint> m1 = new Metric<GaugeDataPoint>(tenantId, GAUGE, new MetricId("m1"))
-                .addDataPoint(new GaugeDataPoint(start.plusSeconds(30).getMillis(), 11.2))
-                .addDataPoint(new GaugeDataPoint(start.getMillis(), 11.1));
+        Metric<GaugeDataPoint> m1 = new Metric<>(tenantId, GAUGE, new MetricId("m1"), asList(
+                new GaugeDataPoint(start.plusSeconds(30).getMillis(), 11.2),
+                new GaugeDataPoint(start.getMillis(), 11.1)
+        ));
 
-        Metric<GaugeDataPoint> m2 = new Metric<GaugeDataPoint>(tenantId, GAUGE, new MetricId("m2"))
-                .addDataPoint(new GaugeDataPoint(start.plusSeconds(30).getMillis(), 12.2))
-                .addDataPoint(new GaugeDataPoint(start.getMillis(), 12.1));
-
+        Metric<GaugeDataPoint> m2 = new Metric<>(tenantId, GAUGE, new MetricId("m2"), asList(
+                new GaugeDataPoint(start.plusSeconds(30).getMillis(), 12.2),
+                new GaugeDataPoint(start.getMillis(), 12.1)
+        ));
 
         Metric<GaugeDataPoint> m3 = new Metric<>(tenantId, GAUGE, new MetricId("m3"));
 
-        Metric<GaugeDataPoint> m4 = new Metric<>(tenantId, GAUGE, new MetricId("m4"), emptyMap(), 24);
+        Metric<GaugeDataPoint> m4 = new Metric<>(tenantId, GAUGE, new MetricId("m4"), emptyMap(), 24, asList(
+                new GaugeDataPoint(start.plusSeconds(30).getMillis(), 55.5),
+                new GaugeDataPoint(end.getMillis(), 66.6)
+        ));
         metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
-        m4.addDataPoint(new GaugeDataPoint(start.plusSeconds(30).getMillis(), 55.5));
-        m4.addDataPoint(new GaugeDataPoint(end.getMillis(), 66.6));
 
         metricsService.addGaugeData(Observable.just(m1, m2, m3, m4)).toBlocking().lastOrDefault(null);
 
@@ -497,9 +504,8 @@ public class MetricsServiceITest extends MetricsITest {
 
         Observable<GaugeDataPoint> observable4 = metricsService.findGaugeData(tenantId, m4.getId(), start.getMillis(),
                 end.getMillis());
-        Metric<GaugeDataPoint> expected = new Metric<>(tenantId, GAUGE, new MetricId("m4"),
-                Collections.emptyMap(), 24);
-        expected.addDataPoint(new GaugeDataPoint(start.plusSeconds(30).getMillis(), 55.5));
+        Metric<GaugeDataPoint> expected = new Metric<>(tenantId, GAUGE, new MetricId("m4"), emptyMap(), 24,
+                singletonList(new GaugeDataPoint(start.plusSeconds(30).getMillis(), 55.5)));
         assertEquals(toList(observable4), expected.getDataPoints(),
                 "The gauge data for " + m4.getId() + " does not match");
 
@@ -514,16 +520,14 @@ public class MetricsServiceITest extends MetricsITest {
 
         metricsService.createTenant(new Tenant().setId(tenantId)).toBlocking().lastOrDefault(null);
 
-        Metric<AvailabilityDataPoint> m1 = new Metric<AvailabilityDataPoint>(tenantId, AVAILABILITY,
-                new MetricId("m1"))
-            .addDataPoint(new AvailabilityDataPoint(start.plusSeconds(10).getMillis(), "up"))
-            .addDataPoint(new AvailabilityDataPoint(start.plusSeconds(20).getMillis(), "down"));
-
-        Metric<AvailabilityDataPoint> m2 = new Metric<AvailabilityDataPoint>(tenantId, AVAILABILITY,
-                new MetricId("m2"))
-            .addDataPoint(new AvailabilityDataPoint(start.plusSeconds(15).getMillis(), "down"))
-            .addDataPoint(new AvailabilityDataPoint(start.plusSeconds(30).getMillis(), "up"));
-
+        Metric<AvailabilityDataPoint> m1 = new Metric<>(tenantId, AVAILABILITY, new MetricId("m1"), asList(
+                new AvailabilityDataPoint(start.plusSeconds(10).getMillis(), "up"),
+                new AvailabilityDataPoint(start.plusSeconds(20).getMillis(), "down")
+        ));
+        Metric<AvailabilityDataPoint> m2 = new Metric<>(tenantId, AVAILABILITY, new MetricId("m2"), asList(
+                new AvailabilityDataPoint(start.plusSeconds(15).getMillis(), "down"),
+                new AvailabilityDataPoint(start.plusSeconds(30).getMillis(), "up")
+        ));
         Metric<AvailabilityDataPoint> m3 = new Metric<>(tenantId, AVAILABILITY, new MetricId("m3"));
 
         metricsService.addAvailabilityData(asList(m1, m2, m3)).toBlocking().lastOrDefault(null);
@@ -540,19 +544,17 @@ public class MetricsServiceITest extends MetricsITest {
             .toBlocking().last();
         assertEquals(actual.size(), 0, "Did not expect to get back results since there is no data for " + m3);
 
-        Metric<AvailabilityDataPoint> m4 = new Metric<>(tenantId, AVAILABILITY, new MetricId("m4"), emptyMap(),
-                24);
+        Metric<AvailabilityDataPoint> m4 = new Metric<>(tenantId, AVAILABILITY, new MetricId("m4"), emptyMap(), 24,
+                asList(new AvailabilityDataPoint(start.plusMinutes(2).getMillis(), UP),
+                        new AvailabilityDataPoint(end.plusMinutes(2).getMillis(), UP)));
         metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
-        m4.addDataPoint(new AvailabilityDataPoint(start.plusMinutes(2).getMillis(), UP));
-        m4.addDataPoint(new AvailabilityDataPoint(end.plusMinutes(2).getMillis(), UP));
 
         metricsService.addAvailabilityData(singletonList(m4)).toBlocking().lastOrDefault(null);
 
         actual = metricsService.findAvailabilityData(tenantId, m4.getId(), start.getMillis(), end.getMillis()).toList()
             .toBlocking().last();
-        Metric<AvailabilityDataPoint> expected = new Metric<>(tenantId, AVAILABILITY, m4.getId(), emptyMap(),
-                24);
-        expected.addDataPoint(new AvailabilityDataPoint(start.plusMinutes(2).getMillis(), UP));
+        Metric<AvailabilityDataPoint> expected = new Metric<>(tenantId, AVAILABILITY, m4.getId(), emptyMap(), 24,
+                singletonList(new AvailabilityDataPoint(start.plusMinutes(2).getMillis(), UP)));
         assertEquals(actual, expected.getDataPoints(), "The availability data does not match expected values");
 
         assertMetricIndexMatches(tenantId, AVAILABILITY, asList(m1, m2, m3, m4));
@@ -565,15 +567,17 @@ public class MetricsServiceITest extends MetricsITest {
 
         metricsService.createTenant(new Tenant().setId("tenant1")).toBlocking().lastOrDefault(null);
 
-        Metric<AvailabilityDataPoint> metric = new Metric<AvailabilityDataPoint>("tenant1", AVAILABILITY,
-                new MetricId("A1"))
-            .addDataPoint(new AvailabilityDataPoint(start.getMillis(), UP))
-            .addDataPoint(new AvailabilityDataPoint(start.plusMinutes(1).getMillis(), DOWN))
-            .addDataPoint(new AvailabilityDataPoint(start.plusMinutes(2).getMillis(), DOWN))
-            .addDataPoint(new AvailabilityDataPoint(start.plusMinutes(3).getMillis(), UP))
-            .addDataPoint(new AvailabilityDataPoint(start.plusMinutes(4).getMillis(), DOWN))
-            .addDataPoint(new AvailabilityDataPoint(start.plusMinutes(5).getMillis(), UP))
-            .addDataPoint(new AvailabilityDataPoint(start.plusMinutes(6).getMillis(), UP));
+        List<AvailabilityDataPoint> dataPoints = asList(
+                new AvailabilityDataPoint(start.getMillis(), UP),
+                new AvailabilityDataPoint(start.plusMinutes(1).getMillis(), DOWN),
+                new AvailabilityDataPoint(start.plusMinutes(2).getMillis(), DOWN),
+                new AvailabilityDataPoint(start.plusMinutes(3).getMillis(), UP),
+                new AvailabilityDataPoint(start.plusMinutes(4).getMillis(), DOWN),
+                new AvailabilityDataPoint(start.plusMinutes(4).getMillis(), DOWN),
+                new AvailabilityDataPoint(start.plusMinutes(5).getMillis(), UP),
+                new AvailabilityDataPoint(start.plusMinutes(6).getMillis(), UP)
+        );
+        Metric<AvailabilityDataPoint> metric = new Metric<>("tenant1", AVAILABILITY, new MetricId("A1"), dataPoints);
 
         metricsService.addAvailabilityData(singletonList(metric)).toBlocking().lastOrDefault(null);
 
@@ -613,19 +617,19 @@ public class MetricsServiceITest extends MetricsITest {
 
         metricsService.createTenant(new Tenant().setId(tenantId)).toBlocking().lastOrDefault(null);
 
-        Metric<AvailabilityDataPoint> metric = new Metric<AvailabilityDataPoint>("tenant1", AVAILABILITY,
-                metricId)
-            .addDataPoint(new AvailabilityDataPoint(start.getMillis(), UP))
-            .addDataPoint(new AvailabilityDataPoint(start.plusMinutes(1).getMillis(), DOWN))
-            .addDataPoint(new AvailabilityDataPoint(start.plusMinutes(2).getMillis(), DOWN))
-            .addDataPoint(new AvailabilityDataPoint(start.plusMinutes(3).getMillis(), UP))
-            .addDataPoint(new AvailabilityDataPoint(start.plusMinutes(4).getMillis(), DOWN))
-            .addDataPoint(new AvailabilityDataPoint(start.plusMinutes(5).getMillis(), UP))
-            .addDataPoint(new AvailabilityDataPoint(start.plusMinutes(6).getMillis(), UP))
-            .addDataPoint(new AvailabilityDataPoint(start.plusMinutes(7).getMillis(), UNKNOWN))
-            .addDataPoint(new AvailabilityDataPoint(start.plusMinutes(8).getMillis(), UNKNOWN))
-            .addDataPoint(new AvailabilityDataPoint(start.plusMinutes(9).getMillis(), DOWN))
-            .addDataPoint(new AvailabilityDataPoint(start.plusMinutes(10).getMillis(), UP));
+        Metric<AvailabilityDataPoint> metric = new Metric<>("tenant1", AVAILABILITY, metricId, asList(
+                new AvailabilityDataPoint(start.getMillis(), UP),
+                new AvailabilityDataPoint(start.plusMinutes(1).getMillis(), DOWN),
+                new AvailabilityDataPoint(start.plusMinutes(2).getMillis(), DOWN),
+                new AvailabilityDataPoint(start.plusMinutes(3).getMillis(), UP),
+                new AvailabilityDataPoint(start.plusMinutes(4).getMillis(), DOWN),
+                new AvailabilityDataPoint(start.plusMinutes(5).getMillis(), UP),
+                new AvailabilityDataPoint(start.plusMinutes(6).getMillis(), UP),
+                new AvailabilityDataPoint(start.plusMinutes(7).getMillis(), UNKNOWN),
+                new AvailabilityDataPoint(start.plusMinutes(8).getMillis(), UNKNOWN),
+                new AvailabilityDataPoint(start.plusMinutes(9).getMillis(), DOWN),
+                new AvailabilityDataPoint(start.plusMinutes(10).getMillis(), UP)
+        ));
 
         metricsService.addAvailabilityData(singletonList(metric)).toBlocking().lastOrDefault(null);
 
@@ -663,20 +667,11 @@ public class MetricsServiceITest extends MetricsITest {
         GaugeDataPoint d8 = new GaugeDataPoint(start.plusMinutes(6).getMillis(), 103.1);
         GaugeDataPoint d9 = new GaugeDataPoint(start.plusMinutes(7).getMillis(), 103.1);
 
-        Metric<GaugeDataPoint> m1 = new Metric<>(tenant, GAUGE, new MetricId("m1"));
-        m1.addDataPoint(d1);
-        m1.addDataPoint(d2);
-        m1.addDataPoint(d6);
+        Metric<GaugeDataPoint> m1 = new Metric<>(tenant, GAUGE, new MetricId("m1"), asList(d1, d2, d6));
 
-        Metric<GaugeDataPoint> m2 = new Metric<>(tenant, GAUGE, new MetricId("m2"));
-        m2.addDataPoint(d3);
-        m2.addDataPoint(d4);
-        m2.addDataPoint(d5);
-        m2.addDataPoint(d7);
+        Metric<GaugeDataPoint> m2 = new Metric<>(tenant, GAUGE, new MetricId("m2"), asList(d3, d4, d5, d7));
 
-        Metric<GaugeDataPoint> m3 = new Metric<>(tenant, GAUGE, new MetricId("m3"));
-        m3.addDataPoint(d8);
-        m3.addDataPoint(d9);
+        Metric<GaugeDataPoint> m3 = new Metric<>(tenant, GAUGE, new MetricId("m3"), asList(d8, d9));
 
         metricsService.addGaugeData(Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
 
@@ -712,10 +707,6 @@ public class MetricsServiceITest extends MetricsITest {
 
         metricsService.createTenant(new Tenant().setId(tenant)).toBlocking().lastOrDefault(null);
 
-        Metric<AvailabilityDataPoint> m1 = new Metric<>(tenant, AVAILABILITY, new MetricId("m1"));
-        Metric<AvailabilityDataPoint> m2 = new Metric<>(tenant, AVAILABILITY, new MetricId("m2"));
-        Metric<AvailabilityDataPoint> m3 = new Metric<>(tenant, AVAILABILITY, new MetricId("m3"));
-
         AvailabilityDataPoint a1 = new AvailabilityDataPoint(start.getMillis(), UP);
         AvailabilityDataPoint a2 = new AvailabilityDataPoint(start.plusMinutes(2).getMillis(), UP);
         AvailabilityDataPoint a3 = new AvailabilityDataPoint(start.plusMinutes(6).getMillis(), DOWN);
@@ -726,9 +717,10 @@ public class MetricsServiceITest extends MetricsITest {
         AvailabilityDataPoint a8 = new AvailabilityDataPoint(start.plusMinutes(6).getMillis(), DOWN);
         AvailabilityDataPoint a9 = new AvailabilityDataPoint(start.plusMinutes(7).getMillis(), UP);
 
-        m1.addDataPoint(a1).addDataPoint(a2).addDataPoint(a6);
-        m2.addDataPoint(a3).addDataPoint(a4).addDataPoint(a5).addDataPoint(a7);
-        m3.addDataPoint(a8).addDataPoint(a9);
+        Metric<AvailabilityDataPoint> m1 = new Metric<>(tenant, AVAILABILITY, new MetricId("m1"), asList(a1, a2, a6));
+        Metric<AvailabilityDataPoint> m2 = new Metric<>(tenant, AVAILABILITY, new MetricId("m2"),
+                asList(a3, a4, a5, a7));
+        Metric<AvailabilityDataPoint> m3 = new Metric<>(tenant, AVAILABILITY, new MetricId("m3"), asList(a8, a9));
 
         metricsService.addAvailabilityData(asList(m1, m2, m3)).toBlocking().lastOrDefault(null);
 
@@ -774,21 +766,11 @@ public class MetricsServiceITest extends MetricsITest {
         GaugeDataPoint d8 = new GaugeDataPoint(start.plusMinutes(6).getMillis(), 103.1);
         GaugeDataPoint d9 = new GaugeDataPoint(start.plusMinutes(7).getMillis(), 103.1);
 
-        Metric<GaugeDataPoint> m1 = new Metric<GaugeDataPoint>(tenant, GAUGE, new MetricId("m1"))
-            .addDataPoint(d1)
-            .addDataPoint(d2)
-            .addDataPoint(d6);
+        Metric<GaugeDataPoint> m1 = new Metric<>(tenant, GAUGE, new MetricId("m1"), asList(d1, d2, d6));
 
-        Metric<GaugeDataPoint> m2 = new Metric<GaugeDataPoint>(tenant, GAUGE, new MetricId("m2"))
-            .addDataPoint(d3)
-            .addDataPoint(d4)
-            .addDataPoint(d5)
-            .addDataPoint(d7);
+        Metric<GaugeDataPoint> m2 = new Metric<>(tenant, GAUGE, new MetricId("m2"), asList(d3, d4, d5, d7));
 
-        Metric<GaugeDataPoint> m3 = new Metric<GaugeDataPoint>(tenant, GAUGE, new MetricId("m3"))
-            .addDataPoint(d8)
-            .addDataPoint(d9);
-
+        Metric<GaugeDataPoint> m3 = new Metric<GaugeDataPoint>(tenant, GAUGE, new MetricId("m3"), asList(d8, d9));
 
         metricsService.addGaugeData(Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
 
@@ -830,10 +812,6 @@ public class MetricsServiceITest extends MetricsITest {
 
         metricsService.createTenant(new Tenant().setId(tenant)).toBlocking().lastOrDefault(null);
 
-        Metric<AvailabilityDataPoint> m1 = new Metric<>(tenant, AVAILABILITY, new MetricId("m1"));
-        Metric<AvailabilityDataPoint> m2 = new Metric<>(tenant, AVAILABILITY, new MetricId("m2"));
-        Metric<AvailabilityDataPoint> m3 = new Metric<>(tenant, AVAILABILITY, new MetricId("m3"));
-
         AvailabilityDataPoint a1 = new AvailabilityDataPoint(start.getMillis(), UP);
         AvailabilityDataPoint a2 = new AvailabilityDataPoint(start.plusMinutes(2).getMillis(), UP);
         AvailabilityDataPoint a3 = new AvailabilityDataPoint(start.plusMinutes(6).getMillis(), DOWN);
@@ -844,17 +822,10 @@ public class MetricsServiceITest extends MetricsITest {
         AvailabilityDataPoint a8 = new AvailabilityDataPoint(start.plusMinutes(6).getMillis(), DOWN);
         AvailabilityDataPoint a9 = new AvailabilityDataPoint(start.plusMinutes(7).getMillis(), UP);
 
-        m1.addDataPoint(a1);
-        m1.addDataPoint(a2);
-        m1.addDataPoint(a6);
-
-        m2.addDataPoint(a3);
-        m2.addDataPoint(a4);
-        m2.addDataPoint(a5);
-        m2.addDataPoint(a7);
-
-        m3.addDataPoint(a8);
-        m3.addDataPoint(a9);
+        Metric<AvailabilityDataPoint> m1 = new Metric<>(tenant, AVAILABILITY, new MetricId("m1"), asList(a1, a2, a6));
+        Metric<AvailabilityDataPoint> m2 = new Metric<>(tenant, AVAILABILITY, new MetricId("m2"),
+                asList(a3, a4, a5, a7));
+        Metric<AvailabilityDataPoint> m3 = new Metric<>(tenant, AVAILABILITY, new MetricId("m3"), asList(a8, a9));
 
         metricsService.addAvailabilityData(asList(m1, m2, m3)).toBlocking().lastOrDefault(null);
 
@@ -894,19 +865,23 @@ public class MetricsServiceITest extends MetricsITest {
         DateTime start = now().minusMinutes(20);
         double threshold = 20.0;
 
-        Metric<GaugeDataPoint> m1 = new Metric<GaugeDataPoint>(tenantId, GAUGE, new MetricId("m1"))
-                .addDataPoint(new GaugeDataPoint(start.getMillis(), 14.0))
-                .addDataPoint(new GaugeDataPoint(start.plusMinutes(1).getMillis(), 18.0))
-                .addDataPoint(new GaugeDataPoint(start.plusMinutes(2).getMillis(), 21.0))
-                .addDataPoint(new GaugeDataPoint(start.plusMinutes(3).getMillis(), 23.0))
-                .addDataPoint(new GaugeDataPoint(start.plusMinutes(3).getMillis(), 23.0))
-                .addDataPoint(new GaugeDataPoint(start.plusMinutes(4).getMillis(), 20.0))
-                .addDataPoint(new GaugeDataPoint(start.plusMinutes(5).getMillis(), 19.0))
-                .addDataPoint(new GaugeDataPoint(start.plusMinutes(6).getMillis(), 22.0))
-                .addDataPoint(new GaugeDataPoint(start.plusMinutes(7).getMillis(), 15.0))
-                .addDataPoint(new GaugeDataPoint(start.plusMinutes(8).getMillis(), 31.0))
-                .addDataPoint(new GaugeDataPoint(start.plusMinutes(9).getMillis(), 30.0))
-                .addDataPoint(new GaugeDataPoint(start.plusMinutes(10).getMillis(), 31.0));
+        List<GaugeDataPoint> dataPoints = asList(
+                new GaugeDataPoint(start.getMillis(), 14.0),
+                new GaugeDataPoint(start.plusMinutes(1).getMillis(), 18.0),
+                new GaugeDataPoint(start.plusMinutes(2).getMillis(), 21.0),
+                new GaugeDataPoint(start.plusMinutes(3).getMillis(), 23.0),
+                new GaugeDataPoint(start.plusMinutes(3).getMillis(), 23.0),
+                new GaugeDataPoint(start.plusMinutes(4).getMillis(), 20.0),
+                new GaugeDataPoint(start.plusMinutes(5).getMillis(), 19.0),
+                new GaugeDataPoint(start.plusMinutes(6).getMillis(), 22.0),
+                new GaugeDataPoint(start.plusMinutes(6).getMillis(), 22.0),
+                new GaugeDataPoint(start.plusMinutes(6).getMillis(), 22.0),
+                new GaugeDataPoint(start.plusMinutes(7).getMillis(), 15.0),
+                new GaugeDataPoint(start.plusMinutes(8).getMillis(), 31.0),
+                new GaugeDataPoint(start.plusMinutes(9).getMillis(), 30.0),
+                new GaugeDataPoint(start.plusMinutes(10).getMillis(), 31.0)
+        );
+        Metric<GaugeDataPoint> m1 = new Metric<>(tenantId, GAUGE, new MetricId("m1"), dataPoints);
 
         metricsService.addGaugeData(Observable.just(m1)).toBlocking().lastOrDefault(null);
 

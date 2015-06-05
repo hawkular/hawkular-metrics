@@ -36,7 +36,6 @@ public class MetricId {
         this.interval = interval;
     }
 
-//    @JsonValue
     public String getName() {
         return name;
     }

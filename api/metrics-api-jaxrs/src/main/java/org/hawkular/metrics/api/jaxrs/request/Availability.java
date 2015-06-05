@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.api.jaxrs.request;
 
+import static java.util.Collections.unmodifiableList;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -43,7 +45,7 @@ public class Availability {
     }
 
     public List<AvailabilityDataPoint> getData() {
-        return data;
+        return unmodifiableList(data);
     }
 
     @Override

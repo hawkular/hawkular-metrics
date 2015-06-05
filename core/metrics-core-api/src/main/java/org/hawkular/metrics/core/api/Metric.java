@@ -16,6 +16,9 @@
  */
 package org.hawkular.metrics.core.api;
 
+import static java.util.Collections.unmodifiableList;
+import static java.util.Collections.unmodifiableMap;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -44,7 +47,7 @@ public class Metric<T extends DataPoint> {
         this.tenantId = tenantId;
         this.type = type;
         this.id = id;
-        this.tags = tags;
+        this.tags = unmodifiableMap(tags);
         // If the data_retention column is not set, the driver returns zero instead of null.
         // We are (at least for now) using null to indicate that the metric does not have
         // the data retention set.
@@ -59,7 +62,24 @@ public class Metric<T extends DataPoint> {
         this.tenantId = tenantId;
         this.type = type;
         this.id = id;
-        this.dataPoints = dataPoints;
+        this.dataPoints = unmodifiableList(dataPoints);
+    }
+
+    public Metric(String tenantId, MetricType type, MetricId id, Map<String, String> tags, Integer dataRetention,
+            List<T> dataPoints) {
+        this.tenantId = tenantId;
+        this.type = type;
+        this.id = id;
+        this.tags = unmodifiableMap(tags);
+        // If the data_retention column is not set, the driver returns zero instead of null.
+        // We are (at least for now) using null to indicate that the metric does not have
+        // the data retention set.
+        if (dataRetention == null || dataRetention == 0) {
+            this.dataRetention = null;
+        } else {
+            this.dataRetention = dataRetention;
+        }
+        this.dataPoints = unmodifiableList(dataPoints);
     }
 
     public MetricType getType() {
@@ -84,12 +104,6 @@ public class Metric<T extends DataPoint> {
 
     public List<T> getDataPoints() {
         return dataPoints;
-    }
-
-    // TODO Remove this - we want the class to be immutable
-    public Metric<T> addDataPoint(T dataPoint) {
-        dataPoints.add(dataPoint);
-        return this;
     }
 
     @Override
