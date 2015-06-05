@@ -241,6 +241,7 @@ public class MetricsServiceLifecycle {
 
     private void stopMetricsService() {
         state = State.STOPPING;
+        metricsService.shutdown();
         if (session != null) {
             try {
                 session.close();

@@ -700,4 +700,7 @@ public class MetricsServiceImpl implements MetricsService {
         return ttl;
     }
 
+    public void shutdown() {
+        metricsTasks.shutdown();
+    }
 }
