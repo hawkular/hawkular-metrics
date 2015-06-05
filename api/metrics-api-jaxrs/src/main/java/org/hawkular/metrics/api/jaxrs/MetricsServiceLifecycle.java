@@ -26,7 +26,6 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_N
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_RESETDB;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.concurrent.Executors;
@@ -164,12 +163,13 @@ public class MetricsServiceLifecycle {
             lifecycleExecutor.schedule(this::startMetricsService, delay, SECONDS);
             return;
         }
+        SchemaManager schemaManager = new SchemaManager(session);
         try {
             if (Boolean.parseBoolean(resetDb)) {
-                dropKeyspace(session, keyspace);
+                schemaManager.dropKeyspace(keyspace);
             }
             // This creates/updates the keyspace + tables if needed
-            updateSchemaIfNecessary(session, keyspace);
+            schemaManager.createSchema(keyspace);
             session.execute("USE " + keyspace);
             LOG.info("Using a key space of '{}'", keyspace);
             metricsService.startUp(session);
@@ -204,19 +204,6 @@ public class MetricsServiceLifecycle {
             if (session == null && cluster != null) {
                 cluster.close();
             }
-        }
-    }
-
-    private void dropKeyspace(Session session, String keyspace) {
-        session.execute("DROP KEYSPACE IF EXISTS " + keyspace);
-    }
-
-    private void updateSchemaIfNecessary(Session session, String schemaName) {
-        try {
-            SchemaManager schemaManager = new SchemaManager(session);
-            schemaManager.createSchema(schemaName);
-        } catch (IOException e) {
-            throw new RuntimeException("Schema creation failed", e);
         }
     }
 
