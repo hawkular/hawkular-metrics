@@ -22,6 +22,7 @@ import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.COLLECTD_PORT
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GANGLIA_GROUP;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GANGLIA_MULTICAST_INTERFACE;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GANGLIA_PORT;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.HTTP_PROXY;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.REST_CLOSE_AFTER_REQUESTS;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.REST_URL;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES;
@@ -60,6 +61,7 @@ public class Configuration {
     private final int minimumBatchSize;
     private final int maximumBatchDelay;
     private final URI restUrl;
+    private final URI httpProxy;
     private final String tenant;
     private final int restCloseAfterRequests;
     private final int spoolSize;
@@ -77,6 +79,7 @@ public class Configuration {
             int minimumBatchSize,
             int maximumBatchDelay,
             URI restUrl,
+            URI httpProxy,
             String tenant,
             int restCloseAfterRequests,
             int spoolSize,
@@ -93,6 +96,7 @@ public class Configuration {
         this.minimumBatchSize = minimumBatchSize;
         this.maximumBatchDelay = maximumBatchDelay;
         this.restUrl = restUrl;
+        this.httpProxy = httpProxy;
         this.tenant = tenant;
         this.restCloseAfterRequests = restCloseAfterRequests;
         this.spoolSize = spoolSize;
@@ -113,6 +117,11 @@ public class Configuration {
         int maximumBatchDelay = getIntProperty(properties, BATCH_DELAY, 1);
         URI restUrl = URI.create(properties.getProperty(REST_URL.toString(),
             "http://localhost:8080/hawkular/metrics/gauges/data"));
+        String proxyString = properties.getProperty(HTTP_PROXY.toString());
+        URI httpProxy = null;
+        if (proxyString != null && !proxyString.trim().isEmpty()) {
+            httpProxy = URI.create(proxyString);
+        }
         String tenant = properties.getProperty(TENANT.toString(), "default");
         int restCloseAfterRequests = getIntProperty(properties, REST_CLOSE_AFTER_REQUESTS, 200);
         int spoolSize = getIntProperty(properties, SPOOL_SIZE, 10000);
@@ -128,6 +137,7 @@ public class Configuration {
                 minimumBatchSize,
                 maximumBatchDelay,
                 restUrl,
+                httpProxy,
                 tenant,
                 restCloseAfterRequests,
                 spoolSize,
@@ -225,6 +235,10 @@ public class Configuration {
 
     public URI getRestUrl() {
         return restUrl;
+    }
+
+    public URI getHttpProxy() {
+        return httpProxy;
     }
 
     public String getTenant() {
