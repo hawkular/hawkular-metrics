@@ -19,7 +19,6 @@ package org.hawkular.metrics.api.jaxrs.handler;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
-import static org.hawkular.metrics.core.api.MetricsService.DEFAULT_TENANT_ID;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -98,8 +97,7 @@ public class CounterHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("group") String group, @PathParam("counter") String counter
     ) {
-        ListenableFuture<Void> future = metricsService
-                .updateCounter(new Counter(DEFAULT_TENANT_ID, group, counter, 1L));
+        ListenableFuture<Void> future = metricsService.updateCounter(new Counter(tenantId, group, counter, 1L));
         Futures.addCallback(future, new NoDataCallback<>(asyncResponse));
     }
 
@@ -110,8 +108,7 @@ public class CounterHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("group") String group, @PathParam("counter") String counter, @PathParam("value") Long value
     ) {
-        ListenableFuture<Void> future = metricsService.updateCounter(new Counter(DEFAULT_TENANT_ID, group, counter,
-                value));
+        ListenableFuture<Void> future = metricsService.updateCounter(new Counter(tenantId, group, counter, value));
         Futures.addCallback(future, new NoDataCallback<>(asyncResponse));
     }
 
