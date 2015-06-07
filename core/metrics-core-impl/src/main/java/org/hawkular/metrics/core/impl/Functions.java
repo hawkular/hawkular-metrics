@@ -97,7 +97,7 @@ public class Functions {
     }
 
     public static Tenant getTenant(Row row) {
-        Tenant tenant = new Tenant().setId(row.getString(0));
+        Tenant tenant = new Tenant(row.getString(0));
         Map<TupleValue, Integer> retentions = row.getMap(1, TupleValue.class, Integer.class);
         for (Map.Entry<TupleValue, Integer> entry : retentions.entrySet()) {
             MetricType metricType = MetricType.fromCode(entry.getKey().getInt(0));

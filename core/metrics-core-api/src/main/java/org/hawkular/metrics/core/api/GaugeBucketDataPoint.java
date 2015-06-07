@@ -19,15 +19,11 @@ package org.hawkular.metrics.core.api;
 import static java.lang.Double.NaN;
 import static java.lang.Double.isNaN;
 
-import com.wordnik.swagger.annotations.ApiModel;
-import com.wordnik.swagger.annotations.ApiModelProperty;
-
 /**
  * Statistics for gauge data in a time range.
  *
  * @author Heiko W. Rupp
  */
-@ApiModel(value = "Statistics for gauge data in a time range.")
 public class GaugeBucketDataPoint {
     private long start;
     private long end;
@@ -58,77 +54,69 @@ public class GaugeBucketDataPoint {
         this.percentile95th = percentile95th;
     }
 
-    @ApiModelProperty(value = "Start timestamp of this bucket in milliseconds since epoch")
     public long getStart() {
         return start;
     }
 
-    public void setStart(long start) {
-        this.start = start;
-    }
+//    public void setStart(long start) {
+//        this.start = start;
+//    }
 
-    @ApiModelProperty(value = "End timestamp of this bucket in milliseconds since epoch")
     public long getEnd() {
         return end;
     }
 
-    public void setEnd(long end) {
-        this.end = end;
-    }
+//    public void setEnd(long end) {
+//        this.end = end;
+//    }
 
-    @ApiModelProperty(value = "The value of this data point")
     public double getValue() {
         return value;
     }
 
-    public void setValue(double value) {
-        this.value = value;
-    }
+//    public void setValue(double value) {
+//        this.value = value;
+//    }
 
-    @ApiModelProperty(value = "Minimum value during the time span of the bucket.")
     public double getMin() {
         return min;
     }
 
-    public void setMin(double min) {
-        this.min = min;
-    }
+//    public void setMin(double min) {
+//        this.min = min;
+//    }
 
-    @ApiModelProperty(value = "Maximum value during the time span of the bucket.")
     public double getMax() {
         return max;
     }
 
-    public void setMax(double max) {
-        this.max = max;
-    }
+//    public void setMax(double max) {
+//        this.max = max;
+//    }
 
-    @ApiModelProperty(value = "Average value during the time span of the bucket.")
     public double getAvg() {
         return avg;
     }
 
-    public void setAvg(double avg) {
-        this.avg = avg;
-    }
+//    public void setAvg(double avg) {
+//        this.avg = avg;
+//    }
 
-    @ApiModelProperty(value = "Median value during the time span of the bucket.")
     public double getMedian() {
         return median;
     }
 
-    public void setMedian(double median) {
-        this.median = median;
-    }
+//    public void setMedian(double median) {
+//        this.median = median;
+//    }
 
-    @ApiModelProperty(value = "95th percentile value during the time span of the bucket.")
     public double getPercentile95th() {
         return percentile95th;
     }
 
-    public void setPercentile95th(double percentile95th) {
-        this.percentile95th = percentile95th;
-    }
+//    public void setPercentile95th(double percentile95th) {
+//        this.percentile95th = percentile95th;
+//    }
 
     public boolean isEmpty() {
         return isNaN(min) || isNaN(avg) || isNaN(median) || isNaN(max) || isNaN(percentile95th);

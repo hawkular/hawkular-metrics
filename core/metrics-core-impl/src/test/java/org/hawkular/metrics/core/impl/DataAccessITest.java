@@ -80,7 +80,7 @@ public class DataAccessITest extends MetricsITest {
 
     @Test
     public void insertAndFindTenant() throws Exception {
-        Tenant tenant1 = new Tenant().setId("tenant-1")
+        Tenant tenant1 = new Tenant("tenant-1")
             .addAggregationTemplate(new AggregationTemplate()
                 .setType(GAUGE)
                 .setInterval(new Interval(5, Interval.Units.MINUTES))
@@ -89,7 +89,7 @@ public class DataAccessITest extends MetricsITest {
             .setRetention(GAUGE, new Interval(5, Interval.Units.MINUTES),
                 Days.days(100).toStandardHours().getHours());
 
-        Tenant tenant2 = new Tenant().setId("tenant-2")
+        Tenant tenant2 = new Tenant("tenant-2")
             .setRetention(GAUGE, Days.days(14).toStandardHours().getHours())
             .addAggregationTemplate(new AggregationTemplate()
                 .setType(GAUGE)
@@ -110,8 +110,8 @@ public class DataAccessITest extends MetricsITest {
 
     @Test
     public void doNotAllowDuplicateTenants() throws Exception {
-        dataAccess.insertTenant(new Tenant().setId("tenant-1")).toBlocking().lastOrDefault(null);
-        ResultSet resultSet = dataAccess.insertTenant(new Tenant().setId("tenant-1"))
+        dataAccess.insertTenant(new Tenant("tenant-1")).toBlocking().lastOrDefault(null);
+        ResultSet resultSet = dataAccess.insertTenant(new Tenant("tenant-1"))
                                         .toBlocking()
                                         .lastOrDefault(null);
         assertFalse(resultSet.wasApplied(), "Tenants should not be overwritten");

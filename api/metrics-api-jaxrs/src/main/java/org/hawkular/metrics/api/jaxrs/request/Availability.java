@@ -21,6 +21,7 @@ import static java.util.Collections.unmodifiableList;
 import java.util.List;
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.wordnik.swagger.annotations.ApiModel;
 import org.hawkular.metrics.core.api.AvailabilityDataPoint;
@@ -34,17 +35,64 @@ import org.hawkular.metrics.core.api.AvailabilityDataPoint;
 @ApiModel(description = "Data points of an Availability metric that are to be persisted")
 public class Availability {
 
+    public static class DataPoint {
+        private final long timestamp;
+
+        private final String value;
+
+        @JsonCreator
+        public DataPoint(@JsonProperty("timestamp") long timestamp, @JsonProperty("value") String value) {
+            this.timestamp = timestamp;
+            this.value = value.toLowerCase();
+        }
+
+        public DataPoint(AvailabilityDataPoint dataPoint) {
+            this.timestamp = dataPoint.getTimestamp();
+            this.value = dataPoint.getValue().getText().toLowerCase();
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            DataPoint dataPoint = (DataPoint) o;
+            return Objects.equals(timestamp, dataPoint.timestamp) &&
+                    Objects.equals(value, dataPoint.value);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(timestamp, value);
+        }
+
+        @Override
+        public String toString() {
+            return "DataPoint{" +
+                    "timestamp=" + timestamp +
+                    ", value='" + value + '\'' +
+                    '}';
+        }
+    }
+
     @JsonProperty
     private String id;
 
     @JsonProperty
-    private List<AvailabilityDataPoint> data;
+    private List<DataPoint> data;
 
     public String getId() {
         return id;
     }
 
-    public List<AvailabilityDataPoint> getData() {
+    public List<DataPoint> getData() {
         return unmodifiableList(data);
     }
 

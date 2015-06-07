@@ -197,13 +197,13 @@ public class AvailabilityHandler {
                 response = ApiError.class) })
     public void addAvailabilityForMetric(
             @Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
-            @ApiParam(value = "List of availability datapoints", required = true) List<AvailabilityDataPoint> data
+            @ApiParam(value = "List of availability datapoints", required = true) List<Availability.DataPoint> data
     ) {
         if (data == null) {
             asyncResponse.resume(ApiUtils.emptyPayload());
         } else {
             Metric<AvailabilityDataPoint> metric = new Metric<>(tenantId,
-                    AVAILABILITY, new MetricId(id), data);
+                    AVAILABILITY, new MetricId(id), mapDataPoints(data));
             metricsService.addAvailabilityData(Collections.singletonList(metric)).subscribe(
                     new ResultSetObserver(asyncResponse));
         }
@@ -227,10 +227,14 @@ public class AvailabilityHandler {
         } else {
             List<Metric<AvailabilityDataPoint>> metrics = availabilities.stream().map(availability ->
                     new Metric<>(tenantId, AVAILABILITY, new MetricId(availability.getId()),
-                            availability.getData()))
-                    .collect(toList());
+                            mapDataPoints(availability.getData()))).collect(toList());
             metricsService.addAvailabilityData(metrics).subscribe(new ResultSetObserver(asyncResponse));
         }
+    }
+
+    private List<AvailabilityDataPoint> mapDataPoints(List<Availability.DataPoint> dataPoints) {
+        return dataPoints.stream().map(p -> new AvailabilityDataPoint(p.getTimestamp(), p.getValue()))
+                .collect(toList());
     }
 
     @GET
@@ -288,14 +292,16 @@ public class AvailabilityHandler {
 
         Metric<AvailabilityDataPoint> metric = new Metric<>(tenantId, AVAILABILITY, new MetricId(id));
         if (bucketsCount == null && bucketDuration == null) {
-            metricsService.findAvailabilityData(tenantId, metric.getId(), startTime, endTime, distinct).toList()
-                .map(ApiUtils::collectionToResponse)
-                .subscribe(
-                        asyncResponse::resume,
-                        t -> {
-                            logger.warn("Failed to fetch availability data", t);
-                            ApiUtils.serverError(t);
-                        });
+            metricsService.findAvailabilityData(tenantId, metric.getId(), startTime, endTime, distinct)
+                    .map(Availability.DataPoint::new)
+                    .toList()
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(
+                            asyncResponse::resume,
+                            t -> {
+                                logger.warn("Failed to fetch availability data", t);
+                                ApiUtils.serverError(t);
+                            });
         } else if (bucketsCount != null && bucketDuration != null) {
             asyncResponse.resume(badRequest(new ApiError("Both buckets and bucketDuration parameters are used")));
         } else {

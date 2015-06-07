@@ -115,10 +115,10 @@ public class MetricsServiceITest extends MetricsITest {
 
     @Test
     public void createTenants() throws Exception {
-        Tenant t1 = new Tenant().setId("t1").setRetention(GAUGE, 24).setRetention(AVAILABILITY, 24);
-        Tenant t2 = new Tenant().setId("t2").setRetention(GAUGE, 72);
-        Tenant t3 = new Tenant().setId("t3").setRetention(AVAILABILITY, 48);
-        Tenant t4 = new Tenant().setId("t4");
+        Tenant t1 = new Tenant("t1").setRetention(GAUGE, 24).setRetention(AVAILABILITY, 24);
+        Tenant t2 = new Tenant("t2").setRetention(GAUGE, 72);
+        Tenant t3 = new Tenant("t3").setRetention(AVAILABILITY, 48);
+        Tenant t4 = new Tenant("t4");
 
         Observable.concat(
                 metricsService.createTenant(t1),
@@ -226,7 +226,7 @@ public class MetricsServiceITest extends MetricsITest {
         DateTime end = start.plusMinutes(20);
         String tenantId = "t1";
 
-        metricsService.createTenant(new Tenant().setId(tenantId)).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant(tenantId)).toBlocking().lastOrDefault(null);
 
         Metric<GaugeDataPoint> m1 = new Metric<>(tenantId, GAUGE, new MetricId("m1"), asList(
                 new GaugeDataPoint(start.getMillis(), 1.1),
@@ -255,8 +255,9 @@ public class MetricsServiceITest extends MetricsITest {
     public void verifyTTLsSetOnGaugeData() throws Exception {
         DateTime start = now().minusMinutes(10);
 
-        metricsService.createTenant(new Tenant().setId("t1")).toBlocking().lastOrDefault(null);
-        metricsService.createTenant(new Tenant().setId("t2").setRetention(GAUGE, days(14).toStandardHours().getHours()))
+        metricsService.createTenant(new Tenant("t1")).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant("t2").setRetention(GAUGE, days(14).toStandardHours()
+                .getHours()))
                       .toBlocking()
                       .lastOrDefault(null);
 
@@ -288,7 +289,7 @@ public class MetricsServiceITest extends MetricsITest {
         verifyTTLDataAccess.gaugeTagTTLLessThanEqualTo(days(14).minus(3).toStandardSeconds().getSeconds());
         metricsService.tagGaugeData(m2, tags, start.plusMinutes(5).getMillis()).toBlocking().last();
 
-        metricsService.createTenant(new Tenant().setId("t3").setRetention(GAUGE, 24))
+        metricsService.createTenant(new Tenant("t3").setRetention(GAUGE, 24))
                       .toBlocking()
                       .lastOrDefault(null);
         verifyTTLDataAccess.setGaugeTTL(hours(24).toStandardSeconds().getSeconds());
@@ -310,9 +311,9 @@ public class MetricsServiceITest extends MetricsITest {
     public void verifyTTLsSetOnAvailabilityData() throws Exception {
         DateTime start = now().minusMinutes(10);
 
-        metricsService.createTenant(new Tenant().setId("t1")).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant("t1")).toBlocking().lastOrDefault(null);
         metricsService.createTenant(
-                new Tenant().setId("t2").setRetention(AVAILABILITY, days(14).toStandardHours().getHours())
+                new Tenant("t2").setRetention(AVAILABILITY, days(14).toStandardHours().getHours())
         ).toBlocking().lastOrDefault(null);
 
         VerifyTTLDataAccess verifyTTLDataAccess = new VerifyTTLDataAccess(dataAccess);
@@ -345,7 +346,7 @@ public class MetricsServiceITest extends MetricsITest {
         verifyTTLDataAccess.availabilityTagTLLLessThanEqualTo(days(14).minus(5).toStandardSeconds().getSeconds());
         metricsService.tagAvailabilityData(m2, tags, start.plusMinutes(5).getMillis()).toBlocking();
 
-        metricsService.createTenant(new Tenant().setId("t3").setRetention(AVAILABILITY, 24))
+        metricsService.createTenant(new Tenant("t3").setRetention(AVAILABILITY, 24))
                       .toBlocking()
                       .lastOrDefault(null);
         verifyTTLDataAccess.setAvailabilityTTL(hours(24).toStandardSeconds().getSeconds());
@@ -420,7 +421,7 @@ public class MetricsServiceITest extends MetricsITest {
         DateTime end = now();
         DateTime start = end.minusMinutes(10);
 
-        metricsService.createTenant(new Tenant().setId("tenant1")).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant("tenant1")).toBlocking().lastOrDefault(null);
 
         List<GaugeDataPoint> dataPoints = asList(
                 new GaugeDataPoint(start.getMillis(), 100.0),
@@ -468,7 +469,7 @@ public class MetricsServiceITest extends MetricsITest {
         DateTime end = start.plusMinutes(8);
         String tenantId = "test-tenant";
 
-        metricsService.createTenant(new Tenant().setId(tenantId)).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant(tenantId)).toBlocking().lastOrDefault(null);
 
         Metric<GaugeDataPoint> m1 = new Metric<>(tenantId, GAUGE, new MetricId("m1"), asList(
                 new GaugeDataPoint(start.plusSeconds(30).getMillis(), 11.2),
@@ -518,7 +519,7 @@ public class MetricsServiceITest extends MetricsITest {
         DateTime end = start.plusMinutes(8);
         String tenantId = "test-tenant";
 
-        metricsService.createTenant(new Tenant().setId(tenantId)).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant(tenantId)).toBlocking().lastOrDefault(null);
 
         Metric<AvailabilityDataPoint> m1 = new Metric<>(tenantId, AVAILABILITY, new MetricId("m1"), asList(
                 new AvailabilityDataPoint(start.plusSeconds(10).getMillis(), "up"),
@@ -565,7 +566,7 @@ public class MetricsServiceITest extends MetricsITest {
         DateTime end = now();
         DateTime start = end.minusMinutes(10);
 
-        metricsService.createTenant(new Tenant().setId("tenant1")).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant("tenant1")).toBlocking().lastOrDefault(null);
 
         List<AvailabilityDataPoint> dataPoints = asList(
                 new AvailabilityDataPoint(start.getMillis(), UP),
@@ -615,7 +616,7 @@ public class MetricsServiceITest extends MetricsITest {
         String tenantId = "tenant1";
         MetricId metricId = new MetricId("A1");
 
-        metricsService.createTenant(new Tenant().setId(tenantId)).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant(tenantId)).toBlocking().lastOrDefault(null);
 
         Metric<AvailabilityDataPoint> metric = new Metric<>("tenant1", AVAILABILITY, metricId, asList(
                 new AvailabilityDataPoint(start.getMillis(), UP),
@@ -655,7 +656,7 @@ public class MetricsServiceITest extends MetricsITest {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
-        metricsService.createTenant(new Tenant().setId(tenant)).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant(tenant)).toBlocking().lastOrDefault(null);
 
         GaugeDataPoint d1 = new GaugeDataPoint(start.getMillis(), 101.1);
         GaugeDataPoint d2 = new GaugeDataPoint(start.plusMinutes(2).getMillis(), 101.2);
@@ -705,7 +706,7 @@ public class MetricsServiceITest extends MetricsITest {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
-        metricsService.createTenant(new Tenant().setId(tenant)).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant(tenant)).toBlocking().lastOrDefault(null);
 
         AvailabilityDataPoint a1 = new AvailabilityDataPoint(start.getMillis(), UP);
         AvailabilityDataPoint a2 = new AvailabilityDataPoint(start.plusMinutes(2).getMillis(), UP);
@@ -754,7 +755,7 @@ public class MetricsServiceITest extends MetricsITest {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
-        metricsService.createTenant(new Tenant().setId(tenant)).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant(tenant)).toBlocking().lastOrDefault(null);
 
         GaugeDataPoint d1 = new GaugeDataPoint(start.getMillis(), 101.1);
         GaugeDataPoint d2 = new GaugeDataPoint(start.plusMinutes(2).getMillis(), 101.2);
@@ -810,7 +811,7 @@ public class MetricsServiceITest extends MetricsITest {
         String tenant = "tag-test";
         DateTime start = now().minusMinutes(20);
 
-        metricsService.createTenant(new Tenant().setId(tenant)).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant(tenant)).toBlocking().lastOrDefault(null);
 
         AvailabilityDataPoint a1 = new AvailabilityDataPoint(start.getMillis(), UP);
         AvailabilityDataPoint a2 = new AvailabilityDataPoint(start.plusMinutes(2).getMillis(), UP);
