@@ -24,10 +24,10 @@ import java.util.Set;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.utils.UUIDs;
-import org.hawkular.metrics.core.api.GaugeDataPoint;
+import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 
 /**
@@ -35,16 +35,16 @@ import org.hawkular.metrics.core.api.MetricType;
  */
 public class TaggedGaugeDataPointMapper {
 
-    public static Map<MetricId, Set<GaugeDataPoint>> apply(ResultSet resultSet) {
-        Map<MetricId, Set<GaugeDataPoint>> taggedData = new HashMap<>();
-        Metric<GaugeDataPoint> metric = null;
-        LinkedHashSet<GaugeDataPoint> set = new LinkedHashSet<>();
+    public static Map<MetricId, Set<DataPoint<Double>>> apply(ResultSet resultSet) {
+        Map<MetricId, Set<DataPoint<Double>>> taggedData = new HashMap<>();
+        Metric<Double> metric = null;
+        LinkedHashSet<DataPoint<Double>> set = new LinkedHashSet<>();
         for (Row row : resultSet) {
             if (metric == null) {
                 metric = createMetric(row);
                 set.add(createGaugeData(row));
             } else {
-                Metric<GaugeDataPoint> nextMetric = createMetric(row);
+                Metric<Double> nextMetric = createMetric(row);
                 if (metric.equals(nextMetric)) {
                     set.add(createGaugeData(row));
                 } else {
@@ -61,13 +61,13 @@ public class TaggedGaugeDataPointMapper {
         return taggedData;
     }
 
-    private static Metric<GaugeDataPoint> createMetric(Row row) {
+    private static Metric<Double> createMetric(Row row) {
         return new Metric<>(row.getString(0), MetricType.GAUGE, new MetricId(row.getString(4),
                 Interval.parse(row.getString(5))));
     }
 
-    private static GaugeDataPoint createGaugeData(Row row) {
-        return new GaugeDataPoint(UUIDs.unixTimestamp(row.getUUID(6)), row.getDouble(7));
+    private static DataPoint<Double> createGaugeData(Row row) {
+        return new DataPoint<>(UUIDs.unixTimestamp(row.getUUID(6)), row.getDouble(7));
     }
 
 }

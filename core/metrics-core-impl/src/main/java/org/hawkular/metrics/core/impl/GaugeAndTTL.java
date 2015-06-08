@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import org.hawkular.metrics.core.api.GaugeDataPoint;
 import org.hawkular.metrics.core.api.Metric;
 
 /**
@@ -30,11 +29,11 @@ import org.hawkular.metrics.core.api.Metric;
  */
 public class GaugeAndTTL {
 
-    public Metric<GaugeDataPoint> gauge;
+    public Metric<Double> gauge;
 
     public int ttl;
 
-    public GaugeAndTTL(Metric<GaugeDataPoint> gauge, int ttl) {
+    public GaugeAndTTL(Metric<Double> gauge, int ttl) {
         this.gauge = gauge;
         this.ttl = ttl;
     }

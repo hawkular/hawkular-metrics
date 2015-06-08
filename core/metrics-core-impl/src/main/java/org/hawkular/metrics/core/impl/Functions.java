@@ -28,9 +28,8 @@ import com.datastax.driver.core.UDTValue;
 import com.datastax.driver.core.utils.UUIDs;
 import com.google.common.base.Function;
 import org.hawkular.metrics.core.api.AggregationTemplate;
-import org.hawkular.metrics.core.api.AvailabilityDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.GaugeDataPoint;
+import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Tenant;
@@ -64,32 +63,32 @@ public class Functions {
 
     public static final Function<List<ResultSet>, Void> TO_VOID = resultSets -> null;
 
-    public static GaugeDataPoint getGaugeDataPoint(Row row) {
-        return new GaugeDataPoint(
+    public static DataPoint<Double> getGaugeDataPoint(Row row) {
+        return new DataPoint<>(
                 UUIDs.unixTimestamp(row.getUUID(GAUGE_COLS.TIME.ordinal())),
                 row.getDouble(GAUGE_COLS.VALUE.ordinal()),
                 row.getMap(GAUGE_COLS.TAGS.ordinal(), String.class, String.class)
         );
     }
 
-    public static TTLDataPoint<GaugeDataPoint> getTTLGaugeDataPoint(Row row, int originalTTL) {
+    public static TTLDataPoint<Double> getTTLGaugeDataPoint(Row row, int originalTTL) {
         long writeTime = row.getLong(GAUGE_COLS.WRITE_TIME.ordinal()) / 1000;
-        GaugeDataPoint dataPoint = getGaugeDataPoint(row);
+        DataPoint<Double> dataPoint = getGaugeDataPoint(row);
         Duration duration = new Duration(now().minus(writeTime).getMillis());
         int newTTL = originalTTL - duration.toStandardSeconds().getSeconds();
         return new TTLDataPoint<>(dataPoint, newTTL);
     }
 
-    public static TTLDataPoint<AvailabilityDataPoint> getTTLAvailabilityDataPoint(Row row, int originalTTL) {
+    public static TTLDataPoint<AvailabilityType> getTTLAvailabilityDataPoint(Row row, int originalTTL) {
         long writeTime = row.getLong(GAUGE_COLS.WRITE_TIME.ordinal()) / 1000;
-        AvailabilityDataPoint dataPoint = getAvailabilityDataPoint(row);
+        DataPoint<AvailabilityType> dataPoint = getAvailabilityDataPoint(row);
         Duration duration = new Duration(now().minus(writeTime).getMillis());
         int newTTL = originalTTL - duration.toStandardSeconds().getSeconds();
         return new TTLDataPoint<>(dataPoint, newTTL);
     }
 
-    public static AvailabilityDataPoint getAvailabilityDataPoint(Row row) {
-        return new AvailabilityDataPoint(
+    public static DataPoint<AvailabilityType> getAvailabilityDataPoint(Row row) {
+        return new DataPoint<>(
                 UUIDs.unixTimestamp(row.getUUID(AVAILABILITY_COLS.TIME.ordinal())),
                 AvailabilityType.fromBytes(row.getBytes(AVAILABILITY_COLS.AVAILABILITY.ordinal())),
                 row.getMap(AVAILABILITY_COLS.TAGS.ordinal(), String.class, String.class)

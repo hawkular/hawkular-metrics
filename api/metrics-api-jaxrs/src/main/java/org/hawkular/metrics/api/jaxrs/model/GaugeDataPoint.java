@@ -14,47 +14,59 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.api;
+package org.hawkular.metrics.api.jaxrs.model;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
+import com.wordnik.swagger.annotations.ApiModel;
+import org.hawkular.metrics.core.api.DataPoint;
+
 /**
  * @author jsanda
  */
-public class GaugeDataPoint implements DataPoint<Double> {
+@ApiModel(description = "A timestamp and a value where the value is interpreted as a floating point number")
+public class GaugeDataPoint {
 
-    private final long timestamp;
+    @JsonProperty
+    private long timestamp;
 
-    private final Double value;
+    @JsonProperty
+    private Double value;
 
+    @JsonProperty
     private Map<String, String> tags = Collections.emptyMap();
 
-    public GaugeDataPoint(long timestamp, Double value) {
-        this.timestamp = timestamp;
-        this.value = value;
+    /**
+     * Used by JAX-RS/Jackson to deserialize HTTP request data
+     */
+    private GaugeDataPoint() {
     }
 
-    public GaugeDataPoint(long timestamp, Double value, Map<String, String> tags) {
-        this.timestamp = timestamp;
-        this.value = value;
-        this.tags = tags;
+    /**
+     * Used to prepared data for serialization into the HTTP response
+     *
+     * @param dataPoint
+     */
+    public GaugeDataPoint(DataPoint<Double> dataPoint) {
+        timestamp = dataPoint.getTimestamp();
+        value = dataPoint.getValue();
+        tags = dataPoint.getTags();
     }
 
-    @Override
     public Double getValue() {
         return value;
     }
 
-    @Override
     public long getTimestamp() {
         return timestamp;
     }
 
-    @Override
     public Map<String, String> getTags() {
-        return tags;
+        return ImmutableMap.copyOf(tags);
     }
 
     @Override

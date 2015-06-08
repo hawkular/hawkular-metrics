@@ -14,61 +14,70 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.api;
+package org.hawkular.metrics.api.jaxrs.model;
 
-import java.util.Collections;
+import static java.util.Collections.emptyMap;
+
 import java.util.Map;
 import java.util.Objects;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
+import com.wordnik.swagger.annotations.ApiModel;
+import org.hawkular.metrics.core.api.AvailabilityType;
+import org.hawkular.metrics.core.api.DataPoint;
 
 /**
  * @author jsanda
  */
-public class AvailabilityDataPoint implements DataPoint<AvailabilityType> {
+@ApiModel(description = "Consists of a timestamp and a value where supported values are \"up\" and \"down\"")
+public class AvailabilityDataPoint {
 
-    private final long timestamp;
+    @JsonProperty
+    private long timestamp;
 
-    private final AvailabilityType value;
+    @JsonProperty
+    private String value;
 
-    private Map<String, String> tags = Collections.emptyMap();
+    @JsonProperty
+    private Map<String, String> tags = emptyMap();
 
-    public AvailabilityDataPoint(long timestamp, AvailabilityType value) {
-        this.timestamp = timestamp;
-        this.value = value;
+    /**
+     * Used by JAX-RS/Jackson to deserialize HTTP request data
+     */
+    private AvailabilityDataPoint() {
     }
 
-    public AvailabilityDataPoint(long timestamp, String value) {
-        this.timestamp = timestamp;
-        this.value = AvailabilityType.fromString(value);
+    /**
+     * Used to prepared data for serialization into the HTTP response
+     *
+     * @param dataPoint
+     */
+    public AvailabilityDataPoint(DataPoint<AvailabilityType> dataPoint) {
+        timestamp = dataPoint.getTimestamp();
+        value = dataPoint.getValue().getText().toLowerCase();
+        tags = dataPoint.getTags();
     }
 
-    public AvailabilityDataPoint(long timestamp, AvailabilityType value, Map<String, String> tags) {
-        this.timestamp = timestamp;
-        this.value = value;
-        this.tags = tags;
-    }
-
-    @Override
     public long getTimestamp() {
         return timestamp;
     }
 
-    @Override
-    public AvailabilityType getValue() {
-        return value;
+    public String getValue() {
+        return value.toLowerCase();
     }
 
-    @Override
     public Map<String, String> getTags() {
-        return tags;
+        return ImmutableMap.copyOf(tags);
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        AvailabilityDataPoint that = (AvailabilityDataPoint) o;
-        return Objects.equals(timestamp, that.timestamp) &&
-                Objects.equals(value, that.value);
+        AvailabilityDataPoint dataPoint = (AvailabilityDataPoint) o;
+        return Objects.equals(timestamp, dataPoint.timestamp) &&
+                Objects.equals(value, dataPoint.value);
     }
 
     @Override

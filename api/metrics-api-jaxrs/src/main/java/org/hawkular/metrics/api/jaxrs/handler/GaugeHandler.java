@@ -18,11 +18,12 @@ package org.hawkular.metrics.api.jaxrs.handler;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.stream.Collectors.toList;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGaugeDataPoints;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGauges;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 import java.net.URI;
@@ -56,16 +57,16 @@ import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
-import org.hawkular.metrics.api.jaxrs.request.Gauge;
-import org.hawkular.metrics.api.jaxrs.request.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
+import org.hawkular.metrics.api.jaxrs.model.Gauge;
+import org.hawkular.metrics.api.jaxrs.request.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.request.TagRequest;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
-import org.hawkular.metrics.core.api.GaugeDataPoint;
-import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricsService;
 import rx.Observable;
 
@@ -107,7 +108,7 @@ public class GaugeHandler {
             asyncResponse.resume(emptyPayload());
             return;
         }
-        Metric<GaugeDataPoint> metric = new Metric<>(tenantId, GAUGE, new MetricId(metricDefinition.getId()),
+        Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId(metricDefinition.getId()),
                 metricDefinition.getTags(), metricDefinition.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getId().getName());
         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
@@ -162,7 +163,7 @@ public class GaugeHandler {
             @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags
     ) {
-        Metric<GaugeDataPoint> metric = new Metric<>(tenantId, GAUGE, new MetricId(id));
+        Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId(id));
         metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -179,7 +180,7 @@ public class GaugeHandler {
             @PathParam("id") String id,
             @ApiParam("Tag list") @PathParam("tags") Tags tags
     ) {
-        Metric<GaugeDataPoint> metric = new Metric<>(tenantId, GAUGE, new MetricId(id));
+        Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId(id));
         metricsService.deleteTags(metric, tags.getTags()).subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -200,7 +201,7 @@ public class GaugeHandler {
         if (data.isEmpty()) {
             asyncResponse.resume(emptyPayload());
         } else {
-            Metric<GaugeDataPoint> metric = new Metric<>(tenantId, GAUGE, new MetricId(id), data);
+            Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId(id), requestToGaugeDataPoints(data));
             Observable<Void> observable = metricsService.addGaugeData(Observable.just(metric));
             observable.subscribe(new ResultSetObserver(asyncResponse));
         }
@@ -220,10 +221,8 @@ public class GaugeHandler {
         if (gauges.isEmpty()) {
             asyncResponse.resume(emptyPayload());
         } else {
-            List<Metric<GaugeDataPoint>> metrics = gauges.stream().map(gauge ->
-                    new Metric<>(tenantId, GAUGE, new MetricId(gauge.getId()), gauge.getData()))
-                    .collect(toList());
-            Observable<Void> observable = metricsService.addGaugeData(Observable.from(metrics));
+            Observable<Metric<Double>> metrics = requestToGauges(tenantId, gauges);
+            Observable<Void> observable = metricsService.addGaugeData((metrics));
             observable.subscribe(new ResultSetObserver(asyncResponse));
         }
     }
@@ -294,7 +293,7 @@ public class GaugeHandler {
             long startTime = start == null ? now - EIGHT_HOURS : start;
             long endTime = end == null ? now : end;
 
-            Metric<GaugeDataPoint> metric = new Metric<>(tenantId, GAUGE, new MetricId(id));
+            Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId(id));
 
             Buckets buckets;
             try {
@@ -414,7 +413,7 @@ public class GaugeHandler {
             @PathParam("id") final String id, @ApiParam(required = true) TagRequest params
     ) {
         Observable<Void> resultSetObservable;
-        Metric<GaugeDataPoint> metric = new Metric<>(tenantId, GAUGE, new MetricId(id));
+        Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId(id));
         if (params.getTimestamp() != null) {
             resultSetObservable = metricsService.tagGaugeData(metric, params.getTags(), params.getTimestamp());
         } else {

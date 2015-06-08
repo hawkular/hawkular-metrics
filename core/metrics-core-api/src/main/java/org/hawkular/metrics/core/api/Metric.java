@@ -28,14 +28,14 @@ import java.util.Objects;
 /**
  * @author jsanda
  */
-public class Metric<T extends DataPoint> {
+public class Metric<T> {
 
     private String tenantId;
     private MetricType type;
     private MetricId id;
     private Map<String, String> tags = Collections.emptyMap();
     private Integer dataRetention;
-    private List<T> dataPoints = new ArrayList<>();
+    private List<DataPoint<T>> dataPoints = new ArrayList<>();
 
     public Metric(String tenantId, MetricType type, MetricId id) {
         this.tenantId = tenantId;
@@ -58,7 +58,7 @@ public class Metric<T extends DataPoint> {
         }
     }
 
-    public Metric(String tenantId, MetricType type, MetricId id, List<T> dataPoints) {
+    public Metric(String tenantId, MetricType type, MetricId id, List<DataPoint<T>> dataPoints) {
         this.tenantId = tenantId;
         this.type = type;
         this.id = id;
@@ -66,7 +66,7 @@ public class Metric<T extends DataPoint> {
     }
 
     public Metric(String tenantId, MetricType type, MetricId id, Map<String, String> tags, Integer dataRetention,
-            List<T> dataPoints) {
+            List<DataPoint<T>> dataPoints) {
         this.tenantId = tenantId;
         this.type = type;
         this.id = id;
@@ -102,7 +102,7 @@ public class Metric<T extends DataPoint> {
         return dataRetention;
     }
 
-    public List<T> getDataPoints() {
+    public List<DataPoint<T>> getDataPoints() {
         return dataPoints;
     }
 
@@ -125,7 +125,7 @@ public class Metric<T extends DataPoint> {
 
     @Override
     public String toString() {
-        return com.google.common.base.Objects.toStringHelper("MetricImpl")
+        return com.google.common.base.Objects.toStringHelper(this)
                 .add("tenantId", tenantId)
                 .add("id", id)
                 .add("tags", tags)

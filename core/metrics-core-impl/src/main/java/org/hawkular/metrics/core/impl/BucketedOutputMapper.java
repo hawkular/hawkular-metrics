@@ -35,12 +35,12 @@ import rx.functions.Func1;
  * Transform a {@link Metric} with its {@link org.hawkular.metrics.core.api.DataPoint}
  * into a {@link org.hawkular.metrics.core.api.BucketedOutput}.
  *
- * @param <DATA>   type of metric data, like {@link org.hawkular.metrics.core.api.GaugeDataPoint}
+ * @param <DATA>   type of metric data, like {@link org.hawkular.metrics.core.api.DataPoint&lt;Double&gt;}
  * @param <POINT>  type of bucket points, like {@link org.hawkular.metrics.core.api.GaugeBucketDataPoint}
  *
  * @author Thomas Segismont
  */
-public abstract class BucketedOutputMapper<DATA extends DataPoint, POINT> implements Func1<List<DATA>,
+public abstract class BucketedOutputMapper<DATA, POINT> implements Func1<List<DataPoint<DATA>>,
         BucketedOutput<POINT>> {
 
     protected final Buckets buckets;
@@ -70,7 +70,7 @@ public abstract class BucketedOutputMapper<DATA extends DataPoint, POINT> implem
     }
 
     @Override
-    public BucketedOutput<POINT> call(List<DATA> dataList) {
+    public BucketedOutput<POINT> call(List<DataPoint<DATA>> dataList) {
         BucketedOutput<POINT> output = new BucketedOutput<>(tenantId, id.getName(), Collections.emptyMap());
         output.setData(new ArrayList<>(buckets.getCount()));
 
@@ -82,7 +82,7 @@ public abstract class BucketedOutputMapper<DATA extends DataPoint, POINT> implem
         }
 
         int dataIndex = 0;
-        DATA previous;
+        DataPoint<DATA> previous;
         for (int bucketIndex = 0; bucketIndex < buckets.getCount(); bucketIndex++) {
             long from = buckets.getStart() + bucketIndex * buckets.getStep();
             long to = buckets.getStart() + (bucketIndex + 1) * buckets.getStep();
@@ -93,14 +93,14 @@ public abstract class BucketedOutputMapper<DATA extends DataPoint, POINT> implem
                 continue;
             }
 
-            DATA current = dataList.get(dataIndex);
+            DataPoint<DATA> current = dataList.get(dataIndex);
             if (current.getTimestamp() >= to) {
                 // Current data point does not belong to this bucket
                 output.getData().add(newEmptyPointInstance(from, to));
                 continue;
             }
 
-            List<DATA> metricDatas = new ArrayList<>();
+            List<DataPoint<DATA>> metricDatas = new ArrayList<>();
             do {
                 // Add current value to this bucket's summary
                 metricDatas.add(current);
@@ -121,7 +121,7 @@ public abstract class BucketedOutputMapper<DATA extends DataPoint, POINT> implem
         return output;
     }
 
-    private void checkOrder(DATA previous, DATA current) {
+    private void checkOrder(DataPoint<DATA> previous, DataPoint<DATA> current) {
         if (previous != null && current != null && TIMESTAMP_COMPARATOR.compare(previous, current) > 0) {
             throw new IllegalArgumentException("Expected to iterate over data sorted by time ascending");
         }
@@ -146,5 +146,5 @@ public abstract class BucketedOutputMapper<DATA extends DataPoint, POINT> implem
      *
      * @return a bucket data point summurazing the metric data
      */
-    protected abstract POINT newPointInstance(long from, long to, List<DATA> metricDatas);
+    protected abstract POINT newPointInstance(long from, long to, List<DataPoint<DATA>> metricDatas);
 }

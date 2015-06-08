@@ -41,13 +41,12 @@ import com.datastax.driver.core.UDTValue;
 import com.datastax.driver.core.UserType;
 import com.datastax.driver.core.utils.UUIDs;
 import org.hawkular.metrics.core.api.AggregationTemplate;
-import org.hawkular.metrics.core.api.AvailabilityDataPoint;
+import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.GaugeDataPoint;
 import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.RetentionSettings;
@@ -427,7 +426,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public <T extends DataPoint> ResultSetFuture updateMetricsIndex(List<Metric<T>> metrics) {
+    public <T> ResultSetFuture updateMetricsIndex(List<Metric<T>> metrics) {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (Metric metric : metrics) {
             batchStatement.add(updateMetricsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
@@ -437,7 +436,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public <T extends DataPoint> Observable<ResultSet> updateMetricsIndexRx(Observable<Metric<T>> metrics) {
+    public <T> Observable<ResultSet> updateMetricsIndexRx(Observable<Metric<T>> metrics) {
         return metrics.reduce(new BatchStatement(BatchStatement.Type.UNLOGGED), (batch, metric) -> {
             batch.add(updateMetricsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
                     metric.getId().getInterval().toString(), metric.getId().getName()));
@@ -459,7 +458,7 @@ public class DataAccessImpl implements DataAccess {
         );
     }
 
-    private BoundStatement bindDataPoint(Metric gauge, GaugeDataPoint dataPoint, int ttl) {
+    private BoundStatement bindDataPoint(Metric gauge, DataPoint<Double> dataPoint, int ttl) {
         return insertGaugeData.bind(ttl, gauge.getTags(), dataPoint.getValue(), gauge.getTenantId(),
                 gauge.getType().getCode(), gauge.getId().getName(), gauge.getId().getInterval().toString(), DPART,
                 getTimeUUID(dataPoint.getTimestamp()));
@@ -471,7 +470,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findData(Metric<GaugeDataPoint> metric, long startTime, long endTime, Order
+    public Observable<ResultSet> findData(Metric<Double> metric, long startTime, long endTime, Order
             order) {
         if (order == Order.ASC) {
             return rxSession.execute(findGaugeDataByDateRangeExclusiveASC.bind(metric.getTenantId(),
@@ -499,7 +498,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findData(Metric<GaugeDataPoint> metric, long timestamp,
+    public Observable<ResultSet> findData(Metric<Double> metric, long timestamp,
             boolean includeWriteTime) {
         if (includeWriteTime) {
             return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeInclusive.bind(metric.getTenantId(),
@@ -513,13 +512,13 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityDataPoint> metric, long startTime, long
+    public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long startTime, long
             endTime) {
         return findAvailabilityData(metric, startTime, endTime, false);
     }
 
     @Override
-    public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityDataPoint> metric, long startTime, long
+    public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long startTime, long
             endTime, boolean
             includeWriteTime) {
         if (includeWriteTime) {
@@ -534,7 +533,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityDataPoint> metric, long timestamp) {
+    public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long timestamp) {
         return rxSession.execute(findAvailabilityByDateRangeInclusive.bind(metric.getTenantId(),
                 MetricType.AVAILABILITY.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                 DPART, UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
@@ -552,8 +551,8 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> insertGaugeTag(String tag, String tagValue, Metric<GaugeDataPoint> metric,
-            Observable<TTLDataPoint<GaugeDataPoint>> data) {
+    public Observable<ResultSet> insertGaugeTag(String tag, String tagValue, Metric<Double> metric,
+            Observable<TTLDataPoint<Double>> data) {
         return data.reduce(
             new BatchStatement(BatchStatement.Type.UNLOGGED),
             (batch, d) -> {
@@ -566,7 +565,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<ResultSet> insertAvailabilityTag(String tag, String tagValue,
-            Metric<AvailabilityDataPoint> metric, Observable<TTLDataPoint<AvailabilityDataPoint>> data) {
+            Metric<AvailabilityType> metric, Observable<TTLDataPoint<AvailabilityType>> data) {
         return data.reduce(
             new BatchStatement(BatchStatement.Type.UNLOGGED),
             (batch, a) -> {
@@ -596,7 +595,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> insertAvailabilityData(Metric<AvailabilityDataPoint> metric, int ttl) {
+    public Observable<ResultSet> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
         return Observable
             .from(metric.getDataPoints())
             .reduce(
@@ -609,7 +608,7 @@ public class DataAccessImpl implements DataAccess {
                 }).flatMap(rxSession::execute);
     }
 
-    private ByteBuffer getBytes(AvailabilityDataPoint dataPoint) {
+    private ByteBuffer getBytes(DataPoint<AvailabilityType> dataPoint) {
         return ByteBuffer.wrap(new byte[]{dataPoint.getValue().getCode()});
     }
 

@@ -23,13 +23,12 @@ import java.util.Set;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
-import org.hawkular.metrics.core.api.AvailabilityDataPoint;
+import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.GaugeDataPoint;
 import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
@@ -60,9 +59,9 @@ public interface DataAccess {
     Observable<ResultSet> updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
             Set<String> deletions);
 
-    <T extends DataPoint> ResultSetFuture updateMetricsIndex(List<Metric<T>> metrics);
+    <T> ResultSetFuture updateMetricsIndex(List<Metric<T>> metrics);
 
-    <T extends DataPoint> Observable<ResultSet> updateMetricsIndexRx(Observable<Metric<T>> metrics);
+    <T> Observable<ResultSet> updateMetricsIndexRx(Observable<Metric<T>> metrics);
 
     Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType type);
 
@@ -70,29 +69,29 @@ public interface DataAccess {
 
     Observable<ResultSet> findData(String tenantId, MetricId id, long startTime, long endTime);
 
-    Observable<ResultSet> findData(Metric<GaugeDataPoint> metric, long startTime, long endTime, Order order);
+    Observable<ResultSet> findData(Metric<Double> metric, long startTime, long endTime, Order order);
 
     Observable<ResultSet> findData(String tenantId, MetricId id, long startTime, long endTime,
             boolean includeWriteTime);
 
-    Observable<ResultSet> findData(Metric<GaugeDataPoint> metric, long timestamp, boolean includeWriteTime);
+    Observable<ResultSet> findData(Metric<Double> metric, long timestamp, boolean includeWriteTime);
 
-    Observable<ResultSet> findAvailabilityData(Metric<AvailabilityDataPoint> metric, long startTime, long endTime);
+    Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long startTime, long endTime);
 
-    Observable<ResultSet> findAvailabilityData(Metric<AvailabilityDataPoint> metric, long startTime, long endTime,
+    Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long startTime, long endTime,
             boolean includeWriteTime);
 
-    Observable<ResultSet> findAvailabilityData(Metric<AvailabilityDataPoint> metric, long timestamp);
+    Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long timestamp);
 
     Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart);
 
     Observable<ResultSet> findAllGaugeMetrics();
 
-    Observable<ResultSet> insertGaugeTag(String tag, String tagValue, Metric<GaugeDataPoint> metric,
-            Observable<TTLDataPoint<GaugeDataPoint>> data);
+    Observable<ResultSet> insertGaugeTag(String tag, String tagValue, Metric<Double> metric,
+            Observable<TTLDataPoint<Double>> data);
 
-    Observable<ResultSet> insertAvailabilityTag(String tag, String tagValue, Metric<AvailabilityDataPoint> metric,
-            Observable<TTLDataPoint<AvailabilityDataPoint>> data);
+    Observable<ResultSet> insertAvailabilityTag(String tag, String tagValue,
+            Metric<AvailabilityType> metric, Observable<TTLDataPoint<AvailabilityType>> data);
 
     Observable<ResultSet> updateDataWithTag(Metric metric, DataPoint dataPoint, Map<String, String> tags);
 
@@ -100,7 +99,7 @@ public interface DataAccess {
 
     Observable<ResultSet> findAvailabilityByTag(String tenantId, String tag, String tagValue);
 
-    Observable<ResultSet> insertAvailabilityData(Metric<AvailabilityDataPoint> metric, int ttl);
+    Observable<ResultSet> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl);
 
     Observable<ResultSet> findAvailabilityData(String tenantId, MetricId id, long startTime, long endTime);
 

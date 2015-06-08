@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.request;
+package org.hawkular.metrics.api.jaxrs.model;
 
 import static java.util.Collections.unmodifiableList;
 
@@ -23,7 +23,6 @@ import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.wordnik.swagger.annotations.ApiModel;
-import org.hawkular.metrics.core.api.GaugeDataPoint;
 
 /**
  * A container for gauge data points to be persisted. Note that the tenant id is not included because it is obtained
@@ -31,7 +30,7 @@ import org.hawkular.metrics.core.api.GaugeDataPoint;
  *
  * @author jsanda
  */
-@ApiModel(description = "Data points for a gauge metric that are to be persisted.")
+@ApiModel(description = "A gauge metric with one or more data points")
 public class Gauge {
 
     @JsonProperty
@@ -64,9 +63,9 @@ public class Gauge {
 
     @Override
     public String toString() {
-        return "Gauge{" +
-                "id='" + id + '\'' +
-                ", data=" + data +
-                '}';
+        return com.google.common.base.Objects.toStringHelper(this)
+                .add("id", id)
+                .add("data", data)
+                .toString();
     }
 }

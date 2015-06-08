@@ -21,6 +21,8 @@ import java.util.List;
 
 import com.google.common.base.Objects;
 import com.wordnik.swagger.annotations.ApiModel;
+import org.hawkular.metrics.api.jaxrs.model.Availability;
+import org.hawkular.metrics.api.jaxrs.model.Gauge;
 
 /**
  * @author Stefan Negrea

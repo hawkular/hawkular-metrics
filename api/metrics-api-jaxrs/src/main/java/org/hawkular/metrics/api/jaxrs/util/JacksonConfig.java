@@ -22,8 +22,6 @@ import javax.ws.rs.ext.Provider;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.hawkular.metrics.core.api.AvailabilityDataPoint;
-import org.hawkular.metrics.core.api.GaugeDataPoint;
 
 /**
  * @author Stefan Negrea
@@ -37,8 +35,6 @@ public class JacksonConfig implements ContextResolver<ObjectMapper> {
         mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
         mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        mapper.addMixInAnnotations(GaugeDataPoint.class, GaugeDataPointMixin.class);
-        mapper.addMixInAnnotations(AvailabilityDataPoint.class, AvailabilityDataPointMixin.class);
     }
 
     @Override

@@ -87,23 +87,23 @@ public interface MetricsService {
 
     Observable<Void> deleteTags(Metric metric, Map<String, String> tags);
 
-    Observable<Void> addGaugeData(Observable<Metric<GaugeDataPoint>> gaugeObservable);
+    Observable<Void> addGaugeData(Observable<Metric<Double>> gaugeObservable);
 
-    Observable<GaugeDataPoint> findGaugeData(String tenantId, MetricId id, Long start, Long end);
+    Observable<DataPoint<Double>> findGaugeData(String tenantId, MetricId id, Long start, Long end);
 
-    Observable<BucketedOutput<GaugeBucketDataPoint>> findGaugeStats(
-            Metric<GaugeDataPoint> metric, long start, long end, Buckets buckets
+    Observable<BucketedOutput<GaugeBucketDataPoint>> findGaugeStats(Metric<Double> metric, long start, long end,
+            Buckets buckets
     );
 
-    Observable<Void> addAvailabilityData(List<Metric<AvailabilityDataPoint>> metrics);
+    Observable<Void> addAvailabilityData(List<Metric<AvailabilityType>> metrics);
 
-    Observable<AvailabilityDataPoint> findAvailabilityData(String tenantId, MetricId id, long start, long end);
+    Observable<DataPoint<AvailabilityType>> findAvailabilityData(String tenantId, MetricId id, long start, long end);
 
-    Observable<AvailabilityDataPoint> findAvailabilityData(String tenantId, MetricId id, long start, long end,
+    Observable<DataPoint<AvailabilityType>> findAvailabilityData(String tenantId, MetricId id, long start, long end,
             boolean distinct);
 
-    Observable<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(
-            Metric<AvailabilityDataPoint> metric, long start, long end, Buckets buckets
+    Observable<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(Metric<AvailabilityType> metric,
+            long start, long end, Buckets buckets
     );
 
     ListenableFuture<Void> updateCounter(Counter counter);
@@ -117,19 +117,18 @@ public interface MetricsService {
     /** Check if a metric with the passed {id} has been stored in the system */
     Observable<Boolean> idExists(String id);
 
-    Observable<Void> tagGaugeData(Metric<GaugeDataPoint> metric, Map<String, String> tags, long start, long end);
+    Observable<Void> tagGaugeData(Metric<Double> metric, Map<String, String> tags, long start, long end);
 
-    Observable<Void> tagAvailabilityData(Metric<AvailabilityDataPoint> metric, Map<String, String> tags, long start,
+    Observable<Void> tagAvailabilityData(Metric<AvailabilityType> metric, Map<String, String> tags, long start,
             long end);
 
-    Observable<Void> tagGaugeData(Metric<GaugeDataPoint> metric, Map<String, String> tags, long timestamp);
+    Observable<Void> tagGaugeData(Metric<Double> metric, Map<String, String> tags, long timestamp);
 
-    Observable<Void> tagAvailabilityData(Metric<AvailabilityDataPoint> metric, Map<String, String> tags,
-            long timestamp);
+    Observable<Void> tagAvailabilityData(Metric<AvailabilityType> metric, Map<String, String> tags, long timestamp);
 
-    Observable<Map<MetricId, Set<GaugeDataPoint>>> findGaugeDataByTags(String tenantId, Map<String, String> tags);
+    Observable<Map<MetricId, Set<DataPoint<Double>>>> findGaugeDataByTags(String tenantId, Map<String, String> tags);
 
-    Observable<Map<MetricId, Set<AvailabilityDataPoint>>> findAvailabilityByTags(String tenantId,
+    Observable<Map<MetricId, Set<DataPoint<AvailabilityType>>>> findAvailabilityByTags(String tenantId,
             Map<String, String> tags);
 
     /**

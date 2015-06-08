@@ -26,27 +26,27 @@ import java.util.Set;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.utils.UUIDs;
-import org.hawkular.metrics.core.api.AvailabilityDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
+import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
 
 /**
  * @author jsanda
  */
 public class TaggedAvailabilityDataPointMapper {
 
-    public static Map<MetricId, Set<AvailabilityDataPoint>> apply(ResultSet resultSet) {
-        Map<MetricId, Set<AvailabilityDataPoint>> taggedData = new HashMap<>();
-        Metric<AvailabilityDataPoint> metric = null;
-        LinkedHashSet<AvailabilityDataPoint> set = new LinkedHashSet<>();
+    public static Map<MetricId, Set<DataPoint<AvailabilityType>>> apply(ResultSet resultSet) {
+        Map<MetricId, Set<DataPoint<AvailabilityType>>> taggedData = new HashMap<>();
+        Metric<AvailabilityType> metric = null;
+        LinkedHashSet<DataPoint<AvailabilityType>> set = new LinkedHashSet<>();
         for (Row row : resultSet) {
             if (metric == null) {
                 metric = createMetric(row);
                 set.add(createAvailability(row));
             } else {
-                Metric<AvailabilityDataPoint> nextMetric = createMetric(row);
+                Metric<AvailabilityType> nextMetric = createMetric(row);
                 if (metric.equals(nextMetric)) {
                     set.add(createAvailability(row));
                 } else {
@@ -63,13 +63,13 @@ public class TaggedAvailabilityDataPointMapper {
         return taggedData;
     }
 
-    private static Metric<AvailabilityDataPoint> createMetric(Row row) {
+    private static Metric<AvailabilityType> createMetric(Row row) {
         return new Metric<>(row.getString(0), AVAILABILITY, new MetricId(row.getString(4),
                 Interval.parse(row.getString(5))));
     }
 
-    private static AvailabilityDataPoint createAvailability(Row row) {
-        return new AvailabilityDataPoint(UUIDs.unixTimestamp(row.getUUID(6)), AvailabilityType.fromBytes(
+    private static DataPoint<AvailabilityType> createAvailability(Row row) {
+        return new DataPoint<>(UUIDs.unixTimestamp(row.getUUID(6)), AvailabilityType.fromBytes(
                 row.getBytes(7)));
     }
 

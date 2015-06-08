@@ -29,13 +29,13 @@ import org.hawkular.metrics.core.api.DataPoint;
  *
  * @author jsanda
  */
-public class TTLDataPoint<T extends DataPoint> {
+public class TTLDataPoint<T> {
 
-    private final T dataPoint;
+    private final DataPoint<T> dataPoint;
 
     private final int ttl;
 
-    public TTLDataPoint(T dataPoint, int ttl) {
+    public TTLDataPoint(DataPoint<T> dataPoint, int ttl) {
         this.dataPoint = dataPoint;
         this.ttl = ttl;
     }
@@ -43,7 +43,7 @@ public class TTLDataPoint<T extends DataPoint> {
     /**
      * The {@link DataPoint data point}
      */
-    public T getDataPoint() {
+    public DataPoint<T> getDataPoint() {
         return dataPoint;
     }
 

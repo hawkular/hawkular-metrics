@@ -24,8 +24,8 @@ import org.apache.commons.math3.stat.descriptive.rank.Max;
 import org.apache.commons.math3.stat.descriptive.rank.Min;
 import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.GaugeBucketDataPoint;
-import org.hawkular.metrics.core.api.GaugeDataPoint;
 import org.hawkular.metrics.core.api.MetricId;
 
 /**
@@ -35,7 +35,7 @@ import org.hawkular.metrics.core.api.MetricId;
  * @author Thomas Segismont
  */
 public class GaugeBucketedOutputMapper
-        extends BucketedOutputMapper<GaugeDataPoint, GaugeBucketDataPoint> {
+        extends BucketedOutputMapper<Double, GaugeBucketDataPoint> {
 
     /**
      * @param buckets the bucket configuration
@@ -50,10 +50,10 @@ public class GaugeBucketedOutputMapper
     }
 
     @Override
-    protected GaugeBucketDataPoint newPointInstance(long from, long to, List<GaugeDataPoint> dataPoints) {
+    protected GaugeBucketDataPoint newPointInstance(long from, long to, List<DataPoint<Double>> dataPoints) {
         double[] values = new double[dataPoints.size()];
-        for (ListIterator<GaugeDataPoint> iterator = dataPoints.listIterator(); iterator.hasNext(); ) {
-            GaugeDataPoint gaugeData = iterator.next();
+        for (ListIterator<DataPoint<Double>> iterator = dataPoints.listIterator(); iterator.hasNext(); ) {
+            DataPoint<Double> gaugeData = iterator.next();
             values[iterator.previousIndex()] = gaugeData.getValue();
         }
 
