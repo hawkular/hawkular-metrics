@@ -20,6 +20,10 @@
 -- Empty lines and lines starting with double dash are ignored
 --
 
+-- Invalid regexp flag 'a'
+lIst    seRIes /kjd sqkljdlkqs j_è_çè-- ^$§/a
+-- Invalid regexp (contains slash)
+lIst    seRIes /kjd sqkljdlkq/ j_è_çè-- ^$§/
 -- Missing from clause
 select 1
 -- Name staring with digit

@@ -20,7 +20,7 @@ query: listSeries EOF
      | selectQuery EOF
      ;
 
-listSeries: LIST SERIES;
+listSeries: LIST SERIES REGEXP?;
 
 selectQuery: SELECT selectColumns fromClause (groupByClause? whereClause | whereClause? groupByClause)? limitClause?
            orderClause?
@@ -114,6 +114,8 @@ fragment SINGLE_QUOTED_STRING_ESC: '\\\'' | '\\\\';
 
 DOUBLE_QUOTED_STRING: '"' (DOUBLE_QUOTED_STRING_ESC|.)*? '"';
 fragment DOUBLE_QUOTED_STRING_ESC: '\\"' | '\\\\';
+
+REGEXP: '/' .+? '/' ('i'|'I')?;
 
 INT: DIGIT+;
 FLOAT: DIGIT+ '.' DIGIT*
