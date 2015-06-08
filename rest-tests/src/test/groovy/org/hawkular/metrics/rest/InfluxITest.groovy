@@ -53,6 +53,45 @@ class InfluxITest extends RESTTest {
   }
 
   @Test
+  void testListSeriesWithRegularExpression() {
+    def tenantId = nextTenantId()
+
+    postData(tenantId, "serie1", now())
+    postData(tenantId, "serie2", now())
+
+    def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: "list series /rIe\\d/i"])
+    assertEquals(200, response.status)
+
+    assertEquals(
+        [
+            [
+                name   : "list_series_result",
+                columns: ["time", "name"],
+                points : [
+                    [0, "serie1"],
+                    [0, "serie2"],
+                ]
+            ]
+        ],
+        response.data
+    )
+
+    response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: "list series /^rIe\\d/i"])
+    assertEquals(200, response.status)
+
+    assertEquals(
+        [
+            [
+                name   : "list_series_result",
+                columns: ["time", "name"],
+                points : []
+            ]
+        ],
+        response.data
+    )
+  }
+
+  @Test
   void testInfluxDataOrderedAsc() {
     def tenantId = nextTenantId()
     def timeseriesName = "influx.dataasc"

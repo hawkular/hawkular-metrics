@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -50,6 +51,7 @@ import javax.ws.rs.core.Response.Status;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.hawkular.metrics.api.jaxrs.influx.query.InfluxQueryParseTreeWalker;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser;
+import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.ListSeriesContext;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.QueryContext;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.SelectQueryContext;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParserFactory;
@@ -59,7 +61,9 @@ import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.BooleanExpre
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.FunctionArgument;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.GroupByClause;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.InfluxTimeUnit;
+import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.ListSeriesDefinitionsParser;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.NumberFunctionArgument;
+import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.RegularExpression;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.SelectQueryDefinitions;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.SelectQueryDefinitionsParser;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.type.QueryType;
@@ -72,7 +76,6 @@ import org.hawkular.metrics.api.jaxrs.influx.write.validation.InfluxObjectValida
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InvalidObjectException;
 import org.hawkular.metrics.core.api.Gauge;
 import org.hawkular.metrics.core.api.GaugeData;
-import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
@@ -179,14 +182,11 @@ public class InfluxSeriesHandler {
         } catch (QueryParseException e) {
             asyncResponse.resume(errorResponse(BAD_REQUEST, "Syntactically incorrect query: " + e.getMessage()));
             return;
-        } catch (Exception e) {
-            asyncResponse.resume(e);
-            return;
         }
 
         switch (queryType) {
         case LIST_SERIES:
-            listSeries(asyncResponse, tenantId);
+            listSeries(asyncResponse, tenantId, queryContext.listSeries());
             break;
         case SELECT:
             select(asyncResponse, tenantId, queryContext.selectQuery());
@@ -196,19 +196,38 @@ public class InfluxSeriesHandler {
         }
     }
 
-    private void listSeries(AsyncResponse asyncResponse, String tenantId) {
+    private void listSeries(AsyncResponse asyncResponse, String tenantId, ListSeriesContext listSeriesContext) {
+        ListSeriesDefinitionsParser definitionsParser = new ListSeriesDefinitionsParser();
+        parseTreeWalker.walk(definitionsParser, listSeriesContext);
+
+        RegularExpression regularExpression = definitionsParser.getRegularExpression();
+        final Pattern pattern;
+        if (regularExpression != null) {
+            int flag = regularExpression.isCaseSensitive() ? 0 : Pattern.CASE_INSENSITIVE;
+            try {
+                pattern = Pattern.compile(regularExpression.getExpression(), flag);
+            } catch (Exception e) {
+                asyncResponse.resume(errorResponse(BAD_REQUEST, Throwables.getRootCause(e).getMessage()));
+                return;
+            }
+        } else {
+            pattern = null;
+        }
+
         metricsService.findMetrics(tenantId, MetricType.GAUGE)
+                      .map(metric -> metric.getId().getName())
+                      .filter(name -> pattern == null || pattern.matcher(name).find())
                       .toList()
                       .map(InfluxSeriesHandler::metricsListToListSeries)
                       .subscribe(new ReadObserver(asyncResponse));
     }
 
-    private static List<InfluxObject> metricsListToListSeries(List<Metric<?>> metrics) {
+    private static List<InfluxObject> metricsListToListSeries(List<String> metrics) {
         List<String> columns = ImmutableList.of("time", "name");
         InfluxObject.Builder builder = new InfluxObject.Builder("list_series_result", columns)
                 .withForeseenPoints(metrics.size());
-        for (Metric metric : metrics) {
-            builder.addPoint(ImmutableList.of(0, metric.getId().getName()));
+        for (String metric : metrics) {
+            builder.addPoint(ImmutableList.of(0, metric));
         }
         return ImmutableList.of(builder.createInfluxObject());
     }
