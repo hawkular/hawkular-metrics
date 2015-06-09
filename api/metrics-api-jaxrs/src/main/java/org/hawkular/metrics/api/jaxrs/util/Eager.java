@@ -21,8 +21,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import javax.inject.Qualifier;
-
 /**
  * This class was taken from http://www.javacodegeeks.com/2013/02/jsf-eager-cdi-beans.html
  * <br><br>
@@ -31,7 +29,6 @@ import javax.inject.Qualifier;
  *
  * @author John Sanda
  */
-@Qualifier
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface Eager {

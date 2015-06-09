@@ -23,7 +23,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import rx.Observable;
@@ -33,22 +32,6 @@ import rx.Observable;
  * @author Heiko W. Rupp
  */
 public interface MetricsService {
-
-    enum State {
-        STARTING, STARTED, STOPPING, STOPPED, FAILED
-    }
-
-    /**
-     * Startup with a given cassandra session
-     * @param session
-     */
-    void startUp(Session session);
-
-    State getState();
-
-    void setState(State state);
-
-    void shutdown();
 
     /**
      * <p>

@@ -31,20 +31,8 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.RateLimiter;
 import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityData;
@@ -66,12 +54,25 @@ import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.RetentionSettings;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
+import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.rx.cassandra.driver.RxUtil;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+
 import rx.Observable;
 import rx.functions.Func1;
 import rx.subjects.PublishSubject;
@@ -82,11 +83,10 @@ import rx.subjects.PublishSubject;
 public class MetricsServiceImpl implements MetricsService {
     private static final Logger logger = LoggerFactory.getLogger(MetricsServiceImpl.class);
 
-    public static final String REQUEST_LIMIT = "hawkular.metrics.request.limit";
-
+    /**
+     * In seconds.
+     */
     public static final int DEFAULT_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
-
-    public volatile State state;
 
     private static class DataRetentionKey {
         private final String tenantId;
@@ -133,38 +133,26 @@ public class MetricsServiceImpl implements MetricsService {
         }
     }
 
-    private final RateLimiter permits = RateLimiter.create(Double.parseDouble(
-        System.getProperty(REQUEST_LIMIT, "30000")), 3, TimeUnit.MINUTES);
-
-    private DataAccess dataAccess;
-
-    private final ListeningExecutorService metricsTasks = MoreExecutors
-        .listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
-
     /**
      * Note that while user specifies the durations in hours, we store them in seconds.
      */
     private final Map<DataRetentionKey, Integer> dataRetentions = new ConcurrentHashMap<>();
 
-    public MetricsServiceImpl() {
-        this.state = State.STARTING;
-    }
+    private ListeningExecutorService metricsTasks;
+    private DataAccess dataAccess;
 
-    @Override
-    public void startUp(Session s) {
-        this.dataAccess = new DataAccessImpl(s);
+    public void startUp(Session session, String keyspace, boolean resetDb) {
+        SchemaManager schemaManager = new SchemaManager(session);
+        if (resetDb) {
+            schemaManager.dropKeyspace(keyspace);
+        }
+        // This creates/updates the keyspace + tables if needed
+        schemaManager.createSchema(keyspace);
+        session.execute("USE " + keyspace);
+        logger.info("Using a key space of '{}'", keyspace);
+        metricsTasks = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
+        dataAccess = new DataAccessImpl(session);
         loadDataRetentions();
-        state = State.STARTED;
-    }
-
-    @Override
-    public State getState() {
-        return state;
-    }
-
-    @Override
-    public void setState(State state) {
-        this.state = state;
     }
 
     void loadDataRetentions() {
@@ -252,11 +240,6 @@ public class MetricsServiceImpl implements MetricsService {
             latch.countDown();
             // TODO We probably should not let initialization proceed on this error
         }
-    }
-
-    @Override
-    public void shutdown() {
-        state = State.STOPPED;
     }
 
     /**
@@ -557,10 +540,10 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<AvailabilityData> findAvailabilityData(String tenantId, MetricId id, long start,
                                                              long end, boolean distinct) {
         Observable<AvailabilityData> availabilityData = dataAccess.findAvailabilityData(tenantId, id, start, end)
-                .flatMap(r -> Observable.from(r))
+                                                                  .flatMap(Observable::from)
                 .map(Functions::getAvailability);
         if(distinct) {
-            return availabilityData.distinctUntilChanged((a) -> a.getType());
+            return availabilityData.distinctUntilChanged(AvailabilityData::getType);
         } else {
             return availabilityData;
         }
@@ -570,7 +553,7 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(Availability metric,
         long start, long end, Buckets buckets) {
         return dataAccess.findAvailabilityData(metric.getTenantId(), metric.getId(), start, end)
-                .flatMap(r -> Observable.from(r)).map(Functions::getAvailability)
+                         .flatMap(Observable::from).map(Functions::getAvailability)
                 .toList()
                 .map(new AvailabilityBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets));
     }
@@ -721,4 +704,8 @@ public class MetricsServiceImpl implements MetricsService {
         return ttl;
     }
 
+    public void shutdown() {
+        metricsTasks.shutdown();
+        unloadDataRetentions();
+    }
 }

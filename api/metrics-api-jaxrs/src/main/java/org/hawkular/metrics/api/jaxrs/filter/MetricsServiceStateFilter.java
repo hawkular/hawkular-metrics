@@ -16,22 +16,25 @@
  */
 package org.hawkular.metrics.api.jaxrs.filter;
 
-import javax.ws.rs.core.UriInfo;
-import org.hawkular.metrics.api.jaxrs.ApiError;
-import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
-import org.hawkular.metrics.core.api.MetricsService;
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
+
+import java.io.IOException;
 
 import javax.inject.Inject;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.ext.Provider;
-import java.io.IOException;
 
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
+import org.hawkular.metrics.api.jaxrs.ApiError;
+import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle;
+import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle.State;
+import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
 
 /**
- * Created by mwringe on 20/05/15.
+ * @author Matt Wringe
  */
 @Provider
 public class MetricsServiceStateFilter implements ContainerRequestFilter {
@@ -41,8 +44,7 @@ public class MetricsServiceStateFilter implements ContainerRequestFilter {
     private static final String STOPPED = "The service is no longer running.";
 
     @Inject
-    private MetricsService metricsService;
-
+    private MetricsServiceLifecycle metricsServiceLifecycle;
 
     @Override
     public void filter(ContainerRequestContext containerRequestContext) throws IOException {
@@ -54,23 +56,23 @@ public class MetricsServiceStateFilter implements ContainerRequestFilter {
             return;
         }
 
-        if (metricsService.getState() == MetricsService.State.STARTING) {
+        if (metricsServiceLifecycle.getState() == State.STARTING) {
             // Fail since the Cassandra cluster is not yet up yet.
-            Response response = Response.status(Response.Status.SERVICE_UNAVAILABLE)
+            Response response = Response.status(Status.SERVICE_UNAVAILABLE)
                     .type(APPLICATION_JSON_TYPE)
                     .entity(new ApiError(STARTING))
                     .build();
             containerRequestContext.abortWith(response);
-        } else if (metricsService.getState() == MetricsService.State.FAILED) {
+        } else if (metricsServiceLifecycle.getState() == State.FAILED) {
             // Fail since an error has occured trying to start the Metrics service
-            Response response = Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+            Response response = Response.status(Status.INTERNAL_SERVER_ERROR)
                     .type(APPLICATION_JSON_TYPE)
                     .entity(new ApiError(FAILED))
                     .build();
             containerRequestContext.abortWith(response);
-        } else if (metricsService.getState() == MetricsService.State.STOPPED ||
-                metricsService.getState() == MetricsService.State.STOPPING ) {
-            Response response = Response.status(Response.Status.SERVICE_UNAVAILABLE)
+        } else if (metricsServiceLifecycle.getState() == State.STOPPED ||
+                   metricsServiceLifecycle.getState() == State.STOPPING) {
+            Response response = Response.status(Status.SERVICE_UNAVAILABLE)
                     .type(APPLICATION_JSON_TYPE)
                     .entity(new ApiError(STOPPED))
                     .build();

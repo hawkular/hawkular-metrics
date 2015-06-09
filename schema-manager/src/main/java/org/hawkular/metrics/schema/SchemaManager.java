@@ -22,23 +22,22 @@ import java.io.InputStreamReader;
 import java.io.StringWriter;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharStreams;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author John Sanda
  * @author Heiko W. Rupp
  */
 public class SchemaManager {
-
     private static final Logger logger = LoggerFactory.getLogger(SchemaManager.class);
 
-    private Session session;
+    private final Session session;
 
     public SchemaManager(Session session) {
         this.session = session;
@@ -46,10 +45,10 @@ public class SchemaManager {
 
     public void dropKeyspace(String keyspace) {
         logger.info("Dropping keyspace " + keyspace);
-        session.execute("DROP KEYSPACE " + keyspace);
+        session.execute("DROP KEYSPACE IF EXISTS " + keyspace);
     }
 
-    public void createSchema(String keyspace) throws IOException {
+    public void createSchema(String keyspace) {
         logger.info("Creating schema for keyspace " + keyspace);
 
         ResultSet resultSet = session.execute("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = '" +
@@ -72,10 +71,12 @@ public class SchemaManager {
                     session.execute(updatedCQL);
                 }
             }
+        } catch (IOException e) {
+            throw new RuntimeException("Schema creation failed", e);
         }
     }
 
-    private String substituteVars(String cql, Map<String, String> vars) {
+    private String substituteVars(String cql, Map<String, String> vars) throws IOException {
         try (TokenReplacingReader reader = new TokenReplacingReader(cql, vars);
             StringWriter writer = new StringWriter()) {
             char[] buffer = new char[32768];
@@ -84,10 +85,7 @@ public class SchemaManager {
                 writer.write(buffer, 0, cnt);
             }
             return writer.toString();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to perform variable substition on CQL", e);
         }
     }
-
 }
 
