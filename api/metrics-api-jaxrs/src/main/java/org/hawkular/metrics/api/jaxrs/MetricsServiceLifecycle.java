@@ -19,7 +19,6 @@ package org.hawkular.metrics.api.jaxrs;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_CQL_PORT;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_KEYSPACE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_NODES;
@@ -134,7 +133,7 @@ public class MetricsServiceLifecycle {
             // But it's been used historically to wait for the service to be available before completing the deployment.
             // Therefore, we still use it here for backward compatibililty.
             // TODO remove when Hawkular build has been updated to use the eager startup flag
-            || "embedded_cass".equals(System.getProperty("hawkular-metrics.backend"))) {
+            || "embedded_cassandra".equals(System.getProperty("hawkular.backend"))) {
             long start = System.nanoTime();
             while (state == State.STARTING
                    // Give up after a minute. The deployment won't be failed and we'll continue to try to start the
