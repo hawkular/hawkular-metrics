@@ -26,9 +26,10 @@ This is for advanced users only, if you want to embed the core functionnality in
 
 === REST/HTTP interface
 
-Most users will work with the web application. It exposes a REST/HTTP interface based on the core library.
-It is implemented with the JAX-RS 2 asynchronous API and runs on a http://www.wildfly.org/[Wildfly] server.
-The data format is JSON.
+Most users will work with the
+https://github.com/hawkular/hawkular-metrics/tree/master/api/metrics-api-jaxrs[web application].
+It exposes a REST/HTTP interface based on the core library. It is implemented with the JAX-RS 2 asynchronous API and
+runs on a http://www.wildfly.org/[Wildfly] server. The data format is JSON.
 
 == Goals
 
