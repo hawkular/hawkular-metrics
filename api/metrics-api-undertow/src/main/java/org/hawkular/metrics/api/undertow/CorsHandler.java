@@ -24,7 +24,7 @@ import io.undertow.util.Methods;
 
 class CorsHandler implements HttpHandler {
     public static final String DEFAULT_ALLOWED_METHODS = "GET, POST, PUT, DELETE, OPTIONS, HEAD";
-    public static final String DEFAULT_ALLOWED_HEADERS = "origin,accept,content-type";
+    public static final String DEFAULT_ALLOWED_HEADERS = "origin,accept,content-type,hawkular-tenant";
 
     private final HttpHandler next;
 

@@ -32,7 +32,7 @@ import javax.ws.rs.ext.Provider;
 public class CorsFilter implements ContainerResponseFilter {
 
     public static final String DEFAULT_ALLOWED_METHODS = "GET, POST, PUT, DELETE, OPTIONS, HEAD";
-    public static final String DEFAULT_ALLOWED_HEADERS = "origin,accept,content-type";
+    public static final String DEFAULT_ALLOWED_HEADERS = "origin,accept,content-type,hawkular-tenant";
 
     @Override
     public void filter(ContainerRequestContext requestContext,
