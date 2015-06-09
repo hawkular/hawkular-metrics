@@ -82,8 +82,6 @@
     <module>task-queue</module>
     <module>core/metrics-core-api</module>
     <module>core/metrics-core-impl</module>
-    <module>embedded-cassandra/embedded-cassandra-service</module>
-    <module>embedded-cassandra/embedded-cassandra-ear</module>
     <module>api/metrics-api-jaxrs</module>
     <module>rest-tests</module>
     <module>clients</module>
