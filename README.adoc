@@ -1,4 +1,4 @@
-= hawkular-metrics
+= Hawkular Metrics, a storage engine for metric data
 :source-language: java
 
 ifdef::env-github[]
@@ -8,66 +8,97 @@ image::https://travis-ci.org/hawkular/hawkular-metrics.svg?branch=master[Build S
 image::https://scan.coverity.com/projects/4581/badge.svg[Coverity Scan Build Status (coverity_scan branch)]
 endif::[]
 
-= Project to implement a MaaS and ChaaS
+== About
 
-* MaaS: Metrics as a Service
-* ChaaS: Charts as a Service
+Hawkular Metrics is the metric data store for the http://www.hawkular.org/[Hawkular] project.
+It can also be used independently.
 
-== Quickstart
+It uses https://cassandra.apache.org/[Apache Cassandra] as a backend and is comprised of:
 
-To get a first impression you can also run the quickstart via
+- a core library
+- a REST/HTTP interface
 
-  ./start.sh
+=== The core library
 
-in the root directory. This will build and start Hawkular-metrics with the in-memory backend. After starting you can
- navigate to http://localhost:8080/[http://localhost:8080/] to a UI Dashboard that displays a list of metrics and the ability to graph multiple charts.
- [NOTE: it will initially be empty if you don't have anything in your database.]
+A Java library, built with https://github.com/ReactiveX/RxJava[RxJava] on top of the Cassandra Java driver.
 
-Or, if you want to just play around with creating your own metric data and visually see the results in graphs then the Explorer web application is what you want.
-  Available at: http://localhost:8080/explorer/[http://localhost:8080/explorer]
+This is for advanced users only, if you want to embed the core functionnality in another product.
 
-https://vimeo.com/101576357[RHQ Metrics Explorer UI Video]   _Length - 8:33_
+=== REST/HTTP interface
 
-By modifying the start parameter in the script you can also use the (already running) Cassandra backend - see below.
+Most users will work with the web application. It exposes a REST/HTTP interface based on the core library.
+It is implemented with the JAX-RS 2 asynchronous API and runs on a http://www.wildfly.org/[Wildfly] server.
+The data format is JSON.
 
+== Goals
+
+=== Simple, easy to use REST interface
+
+The http://www.hawkular.org/docs/rest/rest-metrics.html[REST API] should be easy to use. Users should be able to send
+data with the simplest tools: shell scripts and `curl`.
+
+=== Speed
+
+Design choices are driven with throughput in mind: we want Metrics to be able to ingest as many data points per minute
+as possible.
+
+== Getting started with a release build
+
+http://wildfly.org/downloads/[Download a Wildfly 8.2.0.Final] archive and expand it somewhere on your disk.
+
+Check out the https://github.com/hawkular/hawkular-metrics/releases[Metrics releases] page and download the latest
+version of the web application archive: `hawkular-metrics-api-jaxrs-X.Y.Z.war`
+
+Copy this file to the `standalone/deployments` directory of the Wildfly server.
+
+Start the server with `bin/standalone.sh`.
+
+By default, Metrics will try to connect to a Cassandra on localhost. If you want to start a Cassandra server
+embedded into Wildfly for testing, add the `hawkular-metrics-embedded-cassandra-ear-X.Y.Z.ear` archive to the
+`standalone/deployments` directory.
 
 == Build Instructions
 
-This project has a dependency on Cassandra 2.1.1 or later. A running Cassandra cluster, which can be a single node, is required
-for unit and integration tests.
+This project has a dependency on Cassandra 2.1.1 or later. It is recommended to use the latest 2.1.x release if
+possible. A running Cassandra cluster, which can be a single node, is required for unit and integration tests.
+
+[source,bash]
+----
+git clone git@github.com:hawkular/hawkular-metrics.git
+cd hawkular-metrics
+mvn install
+----
 
 TIP: If you only want to build the sources without a running C* cluster, you can run `mvn install -DskipTests`.
-Building without C* also means that no schema updates are applied.
 
+== Setting up Cassandra for development or testing
 
-== Setting up Cassandra
+For development or testing, the easiest way to setup Cassandra is to use the
+https://github.com/pcmanus/ccm[Cassandra Cluster Manager, CCM].
 
-1. Install https://github.com/pcmanus/ccm[ccm].
-  a. Review its build/install instructions for python package dependencies that need to be installed, namely six and pyYaml.
-2. `ccm create -v 2.1.2 hawkular`
-3. `ccm populate -n 1`
-4. `ccm start`
-5. `mvn install`
+[source,bash]
+----
+ccm create -v 2.1.2 hawkular
+ccm populate -n 1
+ccm start
+----
 
-These steps build and install a single node cluster of Cassandra 2.1.2. Note that while it is recommended to use ccm, it
+These steps build and start a single node cluster of Cassandra 2.1.2. Note that while it is recommended to use ccm, it
 is not necessary. You just need to make sure you have a running 2.1.x cluster.
 
-=== Installing ccm
+== Working with monitoring tools
 
-ccm is a python module that has a dependencies on several other python modules.
+You can send data collected with your usual monitoring tools to Hawkular Metrics:
 
-= Import data from Ganglia
+- collectd
+- ganglia
+- jmxtrans
+- statsd
 
-If you have Ganglia `gmond` running, you can import its data by running the pTrans client:
+In order to do so, you must start our network protocol adapter,
+https://github.com/hawkular/hawkular-metrics/tree/master/clients/ptranslator[ptrans].
 
-----
-cd clients/ptranslator
-sh start.sh
-----
-
-For this to work, the packets from Ganglia need to have a large enough TTL to be seen on the host where you run pTrans.
-
-# Forums, hacking, irc
+=== Forums, hacking, irc
 
 If you are a user of Hawkular Metrics please ask your question in the https://developer.jboss.org/discussion/create.jspa?containerType=14&containerID=2351[Hawkular user forum],
 if you are willing to contribute or participate in design discussion, please use the
