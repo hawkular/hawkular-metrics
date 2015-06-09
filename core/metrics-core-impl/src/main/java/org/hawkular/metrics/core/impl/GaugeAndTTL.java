@@ -16,7 +16,7 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import org.hawkular.metrics.core.api.Gauge;
+import org.hawkular.metrics.core.api.Metric;
 
 /**
  * This class has been introduced (temporarily) as part of the RxJava refactoring. When we are persisting data I think
@@ -29,11 +29,11 @@ import org.hawkular.metrics.core.api.Gauge;
  */
 public class GaugeAndTTL {
 
-    public Gauge gauge;
+    public Metric<Double> gauge;
 
     public int ttl;
 
-    public GaugeAndTTL(Gauge gauge, int ttl) {
+    public GaugeAndTTL(Metric<Double> gauge, int ttl) {
         this.gauge = gauge;
         this.ttl = ttl;
     }

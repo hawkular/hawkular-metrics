@@ -19,8 +19,8 @@ package org.hawkular.metrics.api.jaxrs.request;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.hawkular.metrics.core.api.Availability;
-import org.hawkular.metrics.core.api.Gauge;
+import org.hawkular.metrics.api.jaxrs.model.Availability;
+import org.hawkular.metrics.api.jaxrs.model.Gauge;
 
 import com.google.common.base.Objects;
 import com.wordnik.swagger.annotations.ApiModel;
@@ -55,8 +55,8 @@ public class MixedMetricsRequest {
     @Override
     public String toString() {
         return Objects.toStringHelper(this)
-.add("guageMetrics", gaugeMetrics)
-            .add("availibilityMetrics", availabilityMetrics)
-            .toString();
+                .add("guageMetrics", gaugeMetrics)
+                .add("availibilityMetrics", availabilityMetrics)
+                .toString();
     }
 }

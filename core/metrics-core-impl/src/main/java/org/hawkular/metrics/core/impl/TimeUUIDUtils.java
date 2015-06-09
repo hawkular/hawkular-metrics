@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.api;
+package org.hawkular.metrics.core.impl;
 
 import java.util.Date;
 import java.util.UUID;
 
+import org.joda.time.DateTime;
+
 import com.datastax.driver.core.utils.UUIDs;
 import com.eaio.uuid.UUIDGen;
-
-import org.joda.time.DateTime;
 
 /**
  * @author John Sanda

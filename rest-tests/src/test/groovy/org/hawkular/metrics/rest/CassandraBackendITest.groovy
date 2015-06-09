@@ -384,6 +384,7 @@ class CassandraBackendITest extends RESTTest {
 
     // Now query for the gauge metrics
     response = hawkularMetrics.get(path: "metrics", query: [type: 'gauge'], headers: [(tenantHeaderName): tenantId])
+
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -423,6 +424,7 @@ class CassandraBackendITest extends RESTTest {
 
     // Query for the availability metrics
     response = hawkularMetrics.get(path: "metrics", query: [type: 'availability'], headers: [(tenantHeaderName): tenantId])
+
     assertEquals(200, response.status)
     assertEquals(
         [

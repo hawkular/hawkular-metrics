@@ -19,9 +19,6 @@ package org.hawkular.metrics.core.api;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.google.common.base.Objects;
 
 /**
@@ -35,19 +32,18 @@ public class Tenant {
 
     private String id;
 
-    @JsonInclude(Include.NON_EMPTY)
+//    @JsonInclude(Include.NON_EMPTY)
     private List<AggregationTemplate> aggregationTemplates = new ArrayList<>();
 
-    @JsonIgnore
+//    @JsonIgnore
     private RetentionSettings retentionSettings = new RetentionSettings();
+
+    public Tenant(String id) {
+        this.id = id;
+    }
 
     public String getId() {
         return id;
-    }
-
-    public Tenant setId(String id) {
-        this.id = id;
-        return this;
     }
 
     /**

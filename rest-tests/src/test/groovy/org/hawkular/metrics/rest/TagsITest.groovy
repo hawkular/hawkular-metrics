@@ -16,8 +16,6 @@
  */
 package org.hawkular.metrics.rest
 
-import groovy.json.JsonOutput
-
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
 

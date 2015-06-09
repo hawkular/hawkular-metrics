@@ -18,7 +18,6 @@ package org.hawkular.metrics.core.api;
 
 import java.nio.ByteBuffer;
 
-import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.base.Objects;
 
 /**
@@ -45,7 +44,7 @@ public enum AvailabilityType {
         return code;
     }
 
-    @JsonValue
+//    @JsonValue
     public String getText() {
         return text;
     }

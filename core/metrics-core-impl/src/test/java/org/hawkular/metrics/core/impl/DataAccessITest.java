@@ -17,12 +17,31 @@
 package org.hawkular.metrics.core.impl;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+
+import static org.hawkular.metrics.core.api.AvailabilityType.UP;
+import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
+import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.MetricsServiceImpl.DEFAULT_TTL;
 import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
 import java.util.List;
+
+import org.hawkular.metrics.core.api.AggregationTemplate;
+import org.hawkular.metrics.core.api.AvailabilityType;
+import org.hawkular.metrics.core.api.Counter;
+import org.hawkular.metrics.core.api.DataPoint;
+import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.Tenant;
+import org.joda.time.DateTime;
+import org.joda.time.Days;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
@@ -31,22 +50,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
-
-import org.hawkular.metrics.core.api.AggregationTemplate;
-import org.hawkular.metrics.core.api.Availability;
-import org.hawkular.metrics.core.api.AvailabilityData;
-import org.hawkular.metrics.core.api.Counter;
-import org.hawkular.metrics.core.api.Gauge;
-import org.hawkular.metrics.core.api.GaugeData;
-import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.Tenant;
-import org.joda.time.DateTime;
-import org.joda.time.Days;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
 
 import rx.Observable;
 
@@ -81,19 +84,19 @@ public class DataAccessITest extends MetricsITest {
 
     @Test
     public void insertAndFindTenant() throws Exception {
-        Tenant tenant1 = new Tenant().setId("tenant-1")
+        Tenant tenant1 = new Tenant("tenant-1")
             .addAggregationTemplate(new AggregationTemplate()
-                .setType(MetricType.GAUGE)
-                .setInterval(new Interval(5, Interval.Units.MINUTES))
-                .setFunctions(ImmutableSet.of("max", "min", "avg")))
-            .setRetention(MetricType.GAUGE, Days.days(31).toStandardHours().getHours())
-            .setRetention(MetricType.GAUGE, new Interval(5, Interval.Units.MINUTES),
+                    .setType(GAUGE)
+                    .setInterval(new Interval(5, Interval.Units.MINUTES))
+                    .setFunctions(ImmutableSet.of("max", "min", "avg")))
+            .setRetention(GAUGE, Days.days(31).toStandardHours().getHours())
+            .setRetention(GAUGE, new Interval(5, Interval.Units.MINUTES),
                 Days.days(100).toStandardHours().getHours());
 
-        Tenant tenant2 = new Tenant().setId("tenant-2")
-            .setRetention(MetricType.GAUGE, Days.days(14).toStandardHours().getHours())
+        Tenant tenant2 = new Tenant("tenant-2")
+            .setRetention(GAUGE, Days.days(14).toStandardHours().getHours())
             .addAggregationTemplate(new AggregationTemplate()
-                .setType(MetricType.GAUGE)
+                .setType(GAUGE)
                 .setInterval(new Interval(5, Interval.Units.HOURS))
                 .setFunctions(ImmutableSet.of("sum", "count")));
 
@@ -111,8 +114,8 @@ public class DataAccessITest extends MetricsITest {
 
     @Test
     public void doNotAllowDuplicateTenants() throws Exception {
-        dataAccess.insertTenant(new Tenant().setId("tenant-1")).toBlocking().lastOrDefault(null);
-        ResultSet resultSet = dataAccess.insertTenant(new Tenant().setId("tenant-1"))
+        dataAccess.insertTenant(new Tenant("tenant-1")).toBlocking().lastOrDefault(null);
+        ResultSet resultSet = dataAccess.insertTenant(new Tenant("tenant-1"))
                                         .toBlocking()
                                         .lastOrDefault(null);
         assertFalse(resultSet.wasApplied(), "Tenants should not be overwritten");
@@ -123,27 +126,27 @@ public class DataAccessITest extends MetricsITest {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);
 
-        Gauge metric = new Gauge("tenant-1", new MetricId("metric-1"));
-        metric.setDataRetention(DEFAULT_TTL);
-        metric.addData(new GaugeData(start.getMillis(), 1.23));
-        metric.addData(new GaugeData(start.plusMinutes(1).getMillis(), 1.234));
-        metric.addData(new GaugeData(start.plusMinutes(2).getMillis(), 1.234));
-        metric.addData(new GaugeData(end.getMillis(), 1.234));
+        Metric<Double> metric = new Metric<>("tenant-1", GAUGE, new MetricId("metric-1"), asList(
+                new DataPoint<>(start.getMillis(), 1.23),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 1.234),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 1.234),
+                new DataPoint<>(end.getMillis(), 1.234)
+        ));
 
         dataAccess.insertData(Observable.just(new GaugeAndTTL(metric, DEFAULT_TTL))).toBlocking().last();
 
         Observable<ResultSet> observable = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
                 end.getMillis());
-        List<GaugeData> actual = ImmutableList.copyOf(observable
+        List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
                 .flatMap(Observable::from)
-                .map(Functions::getGaugeData)
+                .map(Functions::getGaugeDataPoint)
                 .toBlocking()
                 .toIterable());
 
-        List<GaugeData> expected = asList(
-            new GaugeData(start.plusMinutes(2).getMillis(), 1.234),
-            new GaugeData(start.plusMinutes(1).getMillis(), 1.234),
-            new GaugeData(start.getMillis(), 1.23)
+        List<DataPoint<Double>> expected = asList(
+            new DataPoint<>(start.plusMinutes(2).getMillis(), 1.234),
+            new DataPoint<>(start.plusMinutes(1).getMillis(), 1.234),
+            new DataPoint<>(start.getMillis(), 1.23)
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
@@ -153,30 +156,34 @@ public class DataAccessITest extends MetricsITest {
     public void addMetadataToGaugeRawData() throws Exception {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);
+        String tenantId = "tenant-1";
 
-        Gauge metric = new Gauge("tenant-1", new MetricId("metric-1"),
-            ImmutableMap.of("units", "KB", "env", "test"), DEFAULT_TTL);
+        Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId("metric-1"),
+                ImmutableMap.of("units", "KB", "env", "test"), DEFAULT_TTL);
 
         dataAccess.addTagsAndDataRetention(metric).toBlocking().last();
 
-        metric.addData(new GaugeData(start.getMillis(), 1.23));
-        metric.addData(new GaugeData(start.plusMinutes(2).getMillis(), 1.234));
-        metric.addData(new GaugeData(start.plusMinutes(4).getMillis(), 1.234));
-        metric.addData(new GaugeData(end.getMillis(), 1.234));
+        metric = new Metric<>(tenantId, GAUGE, new MetricId("metric-1"), asList(
+                new DataPoint<>(start.getMillis(), 1.23),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 1.234),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 1.234),
+                new DataPoint<>(end.getMillis(), 1.234)
+        ));
+
         dataAccess.insertData(Observable.just(new GaugeAndTTL(metric, DEFAULT_TTL))).toBlocking().last();
 
         Observable<ResultSet> observable = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
                 end.getMillis());
-        List<GaugeData> actual = ImmutableList.copyOf(observable
+        List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
                 .flatMap(Observable::from)
-                .map(Functions::getGaugeData)
+                .map(Functions::getGaugeDataPoint)
                 .toBlocking()
                 .toIterable());
 
-        List<GaugeData> expected = asList(
-            new GaugeData(start.plusMinutes(4).getMillis(), 1.234),
-            new GaugeData(start.plusMinutes(2).getMillis(), 1.234),
-            new GaugeData(start.getMillis(), 1.23)
+        List<DataPoint<Double>> expected = asList(
+            new DataPoint<>(start.plusMinutes(4).getMillis(), 1.234),
+            new DataPoint<>(start.plusMinutes(2).getMillis(), 1.234),
+            new DataPoint<>(start.getMillis(), 1.23)
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
@@ -256,15 +263,18 @@ public class DataAccessITest extends MetricsITest {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);
         String tenantId = "avail-test";
-        Availability metric = new Availability(tenantId, new MetricId("m1"));
-        metric.addData(new AvailabilityData(start.getMillis(), "up"));
+        Metric<AvailabilityType> metric = new Metric<>(tenantId, AVAILABILITY, new MetricId("m1"),
+                singletonList(new DataPoint<>(start.getMillis(), UP)));
 
-        dataAccess.insertData(metric, 360).toBlocking().lastOrDefault(null);
+        dataAccess.insertAvailabilityData(metric, 360).toBlocking().lastOrDefault(null);
 
-        List<AvailabilityData> actual = dataAccess
+        List<DataPoint<AvailabilityType>> actual = dataAccess
             .findAvailabilityData(tenantId, new MetricId("m1"), start.getMillis(), end.getMillis())
-            .flatMap(r -> Observable.from(r)).map(Functions::getAvailability).toList().toBlocking().lastOrDefault(null);
-        List<AvailabilityData> expected = asList(new AvailabilityData(start.getMillis(), "up"));
+                .flatMap(Observable::from)
+                .map(Functions::getAvailabilityDataPoint)
+                .toList().toBlocking().lastOrDefault(null);
+        List<DataPoint<AvailabilityType>> expected = singletonList(new DataPoint<AvailabilityType>(start.getMillis(),
+                UP));
 
         assertEquals(actual, expected, "The availability data does not match the expected values");
     }

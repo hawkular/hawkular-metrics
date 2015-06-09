@@ -37,6 +37,7 @@ import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.observer.TenantCreatedObserver;
+import org.hawkular.metrics.api.jaxrs.request.TenantParam;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.Tenant;
 
@@ -74,7 +75,7 @@ public class TenantsHandler {
                          response = ApiError.class)
     })
     public void createTenant(
-            @Suspended AsyncResponse asyncResponse, @ApiParam(required = true) Tenant params,
+            @Suspended AsyncResponse asyncResponse, @ApiParam(required = true) TenantParam params,
             @Context UriInfo uriInfo
     ) {
         if (params == null) {
@@ -82,7 +83,8 @@ public class TenantsHandler {
             return;
         }
         URI location = uriInfo.getBaseUriBuilder().path("/tenants").build();
-        metricsService.createTenant(params).subscribe(new TenantCreatedObserver(asyncResponse, location));
+        metricsService.createTenant(new Tenant(params.getId())).subscribe(new TenantCreatedObserver(asyncResponse,
+                location));
     }
 
     @GET
@@ -94,7 +96,9 @@ public class TenantsHandler {
                          response = ApiError.class)
     })
     public void findTenants(@Suspended AsyncResponse asyncResponse) {
-        metricsService.getTenants().toList().subscribe(
+        metricsService.getTenants()
+                .map(TenantParam::new)
+                .toList().subscribe(
                 tenants -> asyncResponse.resume(collectionToResponse(tenants)),
                 error -> asyncResponse.resume(serverError(error))
         );

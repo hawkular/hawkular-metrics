@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.core.impl;
 
+import static org.hawkular.metrics.core.api.DataPoint.TIMESTAMP_COMPARATOR;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -23,22 +25,24 @@ import java.util.RandomAccess;
 
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
-import org.hawkular.metrics.core.api.MetricData;
+import org.hawkular.metrics.core.api.DataPoint;
+import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 
 import com.google.common.collect.Lists;
+
 import rx.functions.Func1;
 
 /**
- * Transform a {@link org.hawkular.metrics.core.api.Metric} with its {@link org.hawkular.metrics.core.api.MetricData}
+ * Transform a {@link Metric} with its {@link org.hawkular.metrics.core.api.DataPoint}
  * into a {@link org.hawkular.metrics.core.api.BucketedOutput}.
  *
- * @param <DATA>   type of metric data, like {@link org.hawkular.metrics.core.api.GaugeData}
+ * @param <DATA>   type of metric data, like {@link org.hawkular.metrics.core.api.DataPoint&lt;Double&gt;}
  * @param <POINT>  type of bucket points, like {@link org.hawkular.metrics.core.api.GaugeBucketDataPoint}
  *
  * @author Thomas Segismont
  */
-public abstract class BucketedOutputMapper<DATA extends MetricData, POINT> implements Func1<List<DATA>,
+public abstract class BucketedOutputMapper<DATA, POINT> implements Func1<List<DataPoint<DATA>>,
         BucketedOutput<POINT>> {
 
     protected final Buckets buckets;
@@ -68,7 +72,7 @@ public abstract class BucketedOutputMapper<DATA extends MetricData, POINT> imple
     }
 
     @Override
-    public BucketedOutput<POINT> call(List<DATA> dataList) {
+    public BucketedOutput<POINT> call(List<DataPoint<DATA>> dataList) {
         BucketedOutput<POINT> output = new BucketedOutput<>(tenantId, id.getName(), Collections.emptyMap());
         output.setData(new ArrayList<>(buckets.getCount()));
 
@@ -80,7 +84,7 @@ public abstract class BucketedOutputMapper<DATA extends MetricData, POINT> imple
         }
 
         int dataIndex = 0;
-        DATA previous;
+        DataPoint<DATA> previous;
         for (int bucketIndex = 0; bucketIndex < buckets.getCount(); bucketIndex++) {
             long from = buckets.getStart() + bucketIndex * buckets.getStep();
             long to = buckets.getStart() + (bucketIndex + 1) * buckets.getStep();
@@ -91,14 +95,14 @@ public abstract class BucketedOutputMapper<DATA extends MetricData, POINT> imple
                 continue;
             }
 
-            DATA current = dataList.get(dataIndex);
+            DataPoint<DATA> current = dataList.get(dataIndex);
             if (current.getTimestamp() >= to) {
                 // Current data point does not belong to this bucket
                 output.getData().add(newEmptyPointInstance(from, to));
                 continue;
             }
 
-            List<DATA> metricDatas = new ArrayList<>();
+            List<DataPoint<DATA>> metricDatas = new ArrayList<>();
             do {
                 // Add current value to this bucket's summary
                 metricDatas.add(current);
@@ -119,8 +123,8 @@ public abstract class BucketedOutputMapper<DATA extends MetricData, POINT> imple
         return output;
     }
 
-    private void checkOrder(DATA previous, DATA current) {
-        if (previous != null && current != null && MetricData.TIME_UUID_COMPARATOR.compare(previous, current) > 0) {
+    private void checkOrder(DataPoint<DATA> previous, DataPoint<DATA> current) {
+        if (previous != null && current != null && TIMESTAMP_COMPARATOR.compare(previous, current) > 0) {
             throw new IllegalArgumentException("Expected to iterate over data sorted by time ascending");
         }
     }
@@ -140,9 +144,9 @@ public abstract class BucketedOutputMapper<DATA extends MetricData, POINT> imple
      *
      * @param from        start timestamp of the bucket
      * @param to          end timestamp of the bucket
-     * @param metricDatas metric data in this bucket, ordered by {@link MetricData#TIME_UUID_COMPARATOR}
+     * @param metricDatas metric data in this bucket, ordered by {@link DataPoint#TIMESTAMP_COMPARATOR}
      *
      * @return a bucket data point summurazing the metric data
      */
-    protected abstract POINT newPointInstance(long from, long to, List<DATA> metricDatas);
+    protected abstract POINT newPointInstance(long from, long to, List<DataPoint<DATA>> metricDatas);
 }
