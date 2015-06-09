@@ -19,15 +19,11 @@ package org.hawkular.metrics.core.api;
 import static java.lang.Double.NaN;
 import static java.lang.Double.isNaN;
 
-import com.wordnik.swagger.annotations.ApiModel;
-import com.wordnik.swagger.annotations.ApiModelProperty;
-
 /**
  * Statistics for availability data in a time range.
  *
  * @author Thomas Segismont
  */
-@ApiModel(value = "Statistics for availability data in a time range.")
 public class AvailabilityBucketDataPoint {
     private long start;
     private long end;
@@ -52,7 +48,6 @@ public class AvailabilityBucketDataPoint {
         this.downtimeCount = downtimeCount;
     }
 
-    @ApiModelProperty(value = "Start timestamp of this bucket in milliseconds since epoch")
     public long getStart() {
         return start;
     }
@@ -61,7 +56,6 @@ public class AvailabilityBucketDataPoint {
         this.start = start;
     }
 
-    @ApiModelProperty(value = "End timestamp of this bucket in milliseconds since epoch")
     public long getEnd() {
         return end;
     }
@@ -70,7 +64,6 @@ public class AvailabilityBucketDataPoint {
         this.end = end;
     }
 
-    @ApiModelProperty(value = "Total downtime duration in milliseconds")
     public long getDowntimeDuration() {
         return downtimeDuration;
     }
@@ -79,7 +72,6 @@ public class AvailabilityBucketDataPoint {
         this.downtimeDuration = downtimeDuration;
     }
 
-    @ApiModelProperty(value = "Time of the last downtime in milliseconds since epoch")
     public long getLastDowntime() {
         return lastDowntime;
     }
@@ -88,7 +80,6 @@ public class AvailabilityBucketDataPoint {
         this.lastDowntime = lastDowntime;
     }
 
-    @ApiModelProperty(value = "Ratio of uptime to the length of the bucket")
     public double getUptimeRatio() {
         return uptimeRatio;
     }
@@ -97,7 +88,6 @@ public class AvailabilityBucketDataPoint {
         this.uptimeRatio = uptimeRatio;
     }
 
-    @ApiModelProperty(value = "Number of downtime periods in the bucket")
     public long getDowntimeCount() {
         return downtimeCount;
     }

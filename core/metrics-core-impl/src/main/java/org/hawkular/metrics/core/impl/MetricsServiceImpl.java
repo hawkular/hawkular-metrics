@@ -16,6 +16,11 @@
  */
 package org.hawkular.metrics.core.impl;
 
+import static java.util.Comparator.comparingLong;
+
+import static org.hawkular.metrics.core.api.MetricType.GAUGE;
+import static org.hawkular.metrics.core.impl.Functions.getTTLAvailabilityDataPoint;
+import static org.hawkular.metrics.core.impl.Functions.getTTLGaugeDataPoint;
 import static org.joda.time.Hours.hours;
 
 import java.util.ArrayList;
@@ -33,19 +38,16 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 
-import org.hawkular.metrics.core.api.Availability;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
-import org.hawkular.metrics.core.api.AvailabilityData;
+import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.Counter;
-import org.hawkular.metrics.core.api.Gauge;
+import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.GaugeBucketDataPoint;
-import org.hawkular.metrics.core.api.GaugeData;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
-import org.hawkular.metrics.core.api.MetricData;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
@@ -56,7 +58,6 @@ import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
 import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.rx.cassandra.driver.RxUtil;
-import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
@@ -64,7 +65,6 @@ import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureCallback;
@@ -160,13 +160,13 @@ public class MetricsServiceImpl implements MetricsService {
         List<String> tenantIds = loadTenantIds();
         CountDownLatch latch = new CountDownLatch(tenantIds.size() * 2);
         for (String tenantId : tenantIds) {
-            ResultSetFuture gaugeFuture = dataAccess.findDataRetentions(tenantId, MetricType.GAUGE);
+            ResultSetFuture gaugeFuture = dataAccess.findDataRetentions(tenantId, GAUGE);
             ResultSetFuture availabilityFuture = dataAccess.findDataRetentions(tenantId, MetricType.AVAILABILITY);
             ListenableFuture<Set<Retention>> gaugeRetentions = Futures.transform(gaugeFuture, mapper, metricsTasks);
             ListenableFuture<Set<Retention>> availabilityRetentions = Futures.transform(availabilityFuture, mapper,
                     metricsTasks);
             Futures.addCallback(gaugeRetentions,
-                    new DataRetentionsLoadedCallback(tenantId, MetricType.GAUGE, latch));
+                    new DataRetentionsLoadedCallback(tenantId, GAUGE, latch));
             Futures.addCallback(availabilityRetentions, new DataRetentionsLoadedCallback(tenantId,
                     MetricType.AVAILABILITY, latch));
         }
@@ -181,8 +181,8 @@ public class MetricsServiceImpl implements MetricsService {
         dataRetentions.clear();
     }
 
-    private static class MergeTagsFunction<T extends MetricData> implements
-        Func1<List<Map<MetricId, Set<T>>>, Map<MetricId, Set<T>>> {
+    private static class MergeDataPointTagsFunction<T extends DataPoint> implements
+            Func1<List<Map<MetricId, Set<T>>>, Map<MetricId, Set<T>>> {
 
         @Override
         public Map<MetricId, Set<T>> call(List<Map<MetricId, Set<T>>> taggedDataMaps) {
@@ -200,7 +200,7 @@ public class MetricsServiceImpl implements MetricsService {
 
             Map<MetricId, Set<T>> mergedDataMap = new HashMap<>();
             for (MetricId id : ids) {
-                TreeSet<T> set = new TreeSet<>(MetricData.TIME_UUID_COMPARATOR);
+                TreeSet<T> set = new TreeSet<>(comparingLong(DataPoint::getTimestamp));
                 for (Map<MetricId, Set<T>> taggedDataMap : taggedDataMaps) {
                     set.addAll(taggedDataMap.get(id));
                 }
@@ -333,7 +333,7 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<Void> createMetric(final Metric<?> metric) {
+    public Observable<Void> createMetric(final Metric metric) {
         ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric);
         Observable<ResultSet> indexUpdated = RxUtil.from(future, metricsTasks);
         return Observable.create(subscriber -> indexUpdated.subscribe(resultSet -> {
@@ -350,73 +350,43 @@ public class MetricsServiceImpl implements MetricsService {
                 // future fails, we treat the entire client request as a failure. We probably
                 // eventually want to implement more fine-grained error handling where we can
                 // notify the subscriber of what exactly fails.
-            Observable<ResultSet> metadataUpdated = dataAccess.addTagsAndDataRetention(metric);
-            Observable<ResultSet> tagsUpdated = dataAccess.insertIntoMetricsTagsIndex(metric, metric.getTags());
-            Observable<ResultSet> metricUpdates;
+                Observable<ResultSet> metadataUpdated = dataAccess.addTagsAndDataRetention(metric);
+                Observable<ResultSet> tagsUpdated = dataAccess.insertIntoMetricsTagsIndex(metric, metric.getTags());
+                Observable<ResultSet> metricUpdates;
 
-            if (metric.getDataRetention() != null) {
-                ResultSetFuture dataRetentionFuture = dataAccess.updateRetentionsIndex(metric);
-                Observable<ResultSet> dataRetentionUpdated = RxUtil.from(dataRetentionFuture, metricsTasks);
-                dataRetentions.put(new DataRetentionKey(metric), metric.getDataRetention());
-                metricUpdates = Observable.merge(metadataUpdated, tagsUpdated, dataRetentionUpdated);
-            } else {
-                metricUpdates = Observable.merge(metadataUpdated, tagsUpdated);
+                if (metric.getDataRetention() != null) {
+                    ResultSetFuture dataRetentionFuture = dataAccess.updateRetentionsIndex(metric);
+                    Observable<ResultSet> dataRetentionUpdated = RxUtil.from(dataRetentionFuture, metricsTasks);
+                    dataRetentions.put(new DataRetentionKey(metric), metric.getDataRetention());
+                    metricUpdates = Observable.merge(metadataUpdated, tagsUpdated, dataRetentionUpdated);
+                } else {
+                    metricUpdates = Observable.merge(metadataUpdated, tagsUpdated);
+                }
+
+                metricUpdates.subscribe(new VoidSubscriber<>(subscriber));
             }
-
-            metricUpdates.subscribe(new VoidSubscriber<>(subscriber));
-        }
-    })  );
+        }));
     }
 
     @Override
-    public Observable<Optional<? extends Metric<? extends MetricData>>> findMetric(final String tenantId,
-            final MetricType type, final MetricId id) {
-
-        return dataAccess.findMetric(tenantId, type, id, Metric.DPART)
+    public Observable<Metric> findMetric(final String tenantId, final MetricType type, final MetricId id) {
+        return dataAccess.findMetric(tenantId, type, id, DataAccessImpl.DPART)
                 .flatMap(Observable::from)
-                .map(row -> {
-                    if (type == MetricType.GAUGE) {
-                        return Optional.of(new Gauge(tenantId, id, row.getMap(5, String.class, String.class),
-                                row.getInt(6)));
-                    } else {
-                        return Optional.of(new Availability(tenantId, id, row.getMap(5, String.class, String.class),
-                                row.getInt(6)));
-                    }
-                })
-                .defaultIfEmpty(Optional.empty());
+                .map(row -> new Metric(tenantId, type, id, row.getMap(5, String.class, String.class),
+                        row.getInt(6)));
     }
 
     @Override
-    public Observable<Metric<?>> findMetrics(String tenantId, MetricType type) {
-        Observable<ResultSet> observable = dataAccess.findMetricsInMetricsIndex(tenantId, type);
-        if (type == MetricType.GAUGE) {
-            return observable.flatMap(Observable::from).map(row -> toGauge(tenantId, row));
-        } else {
-            return observable.flatMap(Observable::from).map(row -> toAvailability(tenantId, row));
-        }
-    }
-
-    private Gauge toGauge(String tenantId, Row row) {
-        return new Gauge(
-                tenantId,
-                new MetricId(row.getString(0), Interval.parse(row.getString(1))),
-                row.getMap(2, String.class, String.class),
-                row.getInt(3)
-        );
-    }
-
-    private Availability toAvailability(String tenantId, Row row) {
-        return new Availability(
-                tenantId,
-                new MetricId(row.getString(0), Interval.parse(row.getString(1))),
-                row.getMap(2, String.class, String.class),
-                row.getInt(3)
-        );
+    public Observable<Metric> findMetrics(String tenantId, MetricType type) {
+        return dataAccess.findMetricsInMetricsIndex(tenantId, type)
+                .flatMap(Observable::from)
+                .map(row -> new Metric(tenantId, type, new MetricId(row.getString(0),
+                        Interval.parse(row.getString(1))), row.getMap(2, String.class, String.class), row.getInt(3)));
     }
 
     @Override
     public Observable<Optional<Map<String, String>>> getMetricTags(String tenantId, MetricType type, MetricId id) {
-        Observable<ResultSet> metricTags = dataAccess.getMetricTags(tenantId, type, id, Metric.DPART);
+        Observable<ResultSet> metricTags = dataAccess.getMetricTags(tenantId, type, id, DataAccessImpl.DPART);
 
         return metricTags.flatMap(Observable::from).take(1).map(row -> Optional.of(row.getMap(0, String.class, String
                 .class)))
@@ -439,7 +409,7 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<Void> addGaugeData(Observable<Gauge> gaugeObservable) {
+    public Observable<Void> addGaugeData(Observable<Metric<Double>> gaugeObservable) {
         // We write to both the data and the metrics_idx tables. Each Gauge can have one or more data points. We
         // currently write a separate batch statement for each gauge.
         //
@@ -473,11 +443,12 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<Void> addAvailabilityData(List<Availability> metrics) {
+    public Observable<Void> addAvailabilityData(List<Metric<AvailabilityType>> metrics) {
         return Observable.from(metrics)
-                .filter(a -> !a.getData().isEmpty())
-                .flatMap(a -> dataAccess.insertData(a, getTTL(a)))
+                .filter(a -> !a.getDataPoints().isEmpty())
+                .flatMap(a -> dataAccess.insertAvailabilityData(a, getTTL(a)))
                 .doOnCompleted(() -> dataAccess.updateMetricsIndex(metrics))
+                .doOnError(t -> logger.warn("Failed to add availability data", t))
                 .map(r -> null);
     }
 
@@ -509,51 +480,55 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<GaugeData> findGaugeData(String tenantId, MetricId id, Long start, Long end) {
+    public Observable<DataPoint<Double>> findGaugeData(String tenantId, MetricId id, Long start, Long end) {
         // When we implement date partitioning, dpart will have to be determined based on
         // the start and end params. And it is possible the the date range spans multiple
         // date partitions.
-        return dataAccess.findData(tenantId, id, start, end).flatMap(Observable::from).map(Functions::getGaugeData);
+        return dataAccess.findData(tenantId, id, start, end)
+                .flatMap(Observable::from)
+                .map(Functions::getGaugeDataPoint);
     }
 
     @Override
     public Observable<BucketedOutput<GaugeBucketDataPoint>> findGaugeStats(
-            Gauge metric, long start, long end, Buckets buckets
+            Metric<Double> metric, long start, long end, Buckets buckets
     ) {
         // When we implement date partitioning, dpart will have to be determined based on
         // the start and end params. And it is possible the the date range spans multiple
         // date partitions.
         return dataAccess.findData(metric.getTenantId(), metric.getId(), start, end)
                 .flatMap(Observable::from)
-                .map(Functions::getGaugeData)
+                .map(Functions::getGaugeDataPoint)
                 .toList()
                 .map(new GaugeBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets));
     }
 
     @Override
-    public Observable<AvailabilityData> findAvailabilityData(String tenantId, MetricId id, long start,
-                                                             long end) {
+    public Observable<DataPoint<AvailabilityType>> findAvailabilityData(String tenantId, MetricId id, long start,
+            long end) {
         return findAvailabilityData(tenantId, id, start, end, false);
     }
 
     @Override
-    public Observable<AvailabilityData> findAvailabilityData(String tenantId, MetricId id, long start,
-                                                             long end, boolean distinct) {
-        Observable<AvailabilityData> availabilityData = dataAccess.findAvailabilityData(tenantId, id, start, end)
-                                                                  .flatMap(Observable::from)
-                .map(Functions::getAvailability);
-        if(distinct) {
-            return availabilityData.distinctUntilChanged(AvailabilityData::getType);
+    public Observable<DataPoint<AvailabilityType>> findAvailabilityData(String tenantId, MetricId id, long start,
+            long end, boolean distinct) {
+        Observable<DataPoint<AvailabilityType>> availabilityData = dataAccess.findAvailabilityData(tenantId, id, start,
+                end)
+                .flatMap(Observable::from)
+                .map(Functions::getAvailabilityDataPoint);
+        if (distinct) {
+            return availabilityData.distinctUntilChanged(DataPoint::getValue);
         } else {
             return availabilityData;
         }
     }
 
     @Override
-    public Observable<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(Availability metric,
-        long start, long end, Buckets buckets) {
+    public Observable<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(
+            Metric<AvailabilityType> metric, long start, long end, Buckets buckets) {
         return dataAccess.findAvailabilityData(metric.getTenantId(), metric.getId(), start, end)
-                         .flatMap(Observable::from).map(Functions::getAvailability)
+                .flatMap(Observable::from)
+                .map(Functions::getAvailabilityDataPoint)
                 .toList()
                 .map(new AvailabilityBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets));
     }
@@ -572,128 +547,123 @@ public class MetricsServiceImpl implements MetricsService {
     // Data for different metrics and for the same tag are stored within the same partition
     // in the tags table; therefore, it makes sense for the API to support tagging multiple
     // metrics since they could efficiently be inserted in a single batch statement.
-    public Observable<Void> tagGaugeData(Gauge metric, final Map<String, String> tags,
-                                         long start, long end) {
+    public Observable<Void> tagGaugeData(Metric<Double> metric, final Map<String, String> tags, long start,
+            long end) {
         Observable<ResultSet> findDataObservable = dataAccess.findData(metric.getTenantId(), metric.getId(), start, end,
                 true);
         return tagGaugeData(findDataObservable, tags, metric);
     }
 
     private Observable<Void> tagGaugeData(Observable<ResultSet> findDataObservable, Map<String, String> tags,
-                                               Gauge metric) {
+            Metric<Double> metric) {
         int ttl = getTTL(metric);
         Observable<Map.Entry<String, String>> tagsObservable = Observable.from(tags.entrySet()).cache();
-        Observable<GaugeData> gauges = findDataObservable.flatMap(Observable::from)
-                .map(Functions::getGaugeDataAndWriteTime)
-                .map(g -> (GaugeData) computeTTL(g, ttl))
+        Observable<TTLDataPoint<Double>> dataPoints = findDataObservable.flatMap(Observable::from)
+                .map(row -> getTTLGaugeDataPoint(row, ttl))
                 .cache();
 
         Observable<ResultSet> tagInsert = tagsObservable
-                .flatMap(t -> dataAccess.insertGaugeTag(t.getKey(), t.getValue(), metric, gauges));
+                .flatMap(t -> dataAccess.insertGaugeTag(t.getKey(), t.getValue(), metric, dataPoints));
 
-        Observable<ResultSet> tagsInsert = gauges
-                .flatMap(g -> dataAccess.updateDataWithTag(metric, g, tags));
+        Observable<ResultSet> tagsInsert = dataPoints
+                .flatMap(g -> dataAccess.updateDataWithTag(metric, g.getDataPoint(), tags));
 
         return tagInsert.concatWith(tagsInsert).map(r -> null);
     }
 
-    private Observable<Void> tagAvailabilityData(Observable<ResultSet> findDataObservable,
-                                                      Map<String, String> tags, Availability metric) {
+    private Observable<Void> tagAvailabilityData(Observable<ResultSet> findDataObservable, Map<String, String> tags,
+            Metric<AvailabilityType> metric) {
         int ttl = getTTL(metric);
         Observable<Map.Entry<String, String>> tagsObservable = Observable.from(tags.entrySet()).cache();
-        Observable<AvailabilityData> availabilities = findDataObservable.flatMap(Observable::from)
-                .map(Functions::getAvailabilityAndWriteTime)
-                .map(a -> (AvailabilityData) computeTTL(a, ttl))
+        Observable<TTLDataPoint<AvailabilityType>> dataPoints = findDataObservable.flatMap(Observable::from)
+                .map(row -> getTTLAvailabilityDataPoint(row, ttl))
                 .cache();
 
         Observable<ResultSet> tagInsert = tagsObservable
-                .flatMap(t -> dataAccess.insertAvailabilityTag(t.getKey(), t.getValue(), metric, availabilities));
+                .flatMap(t -> dataAccess.insertAvailabilityTag(t.getKey(), t.getValue(), metric, dataPoints));
 
-        Observable<ResultSet> tagsInsert = availabilities
-                .flatMap(a -> dataAccess.updateDataWithTag(metric, a, tags));
+        Observable<ResultSet> tagsInsert = dataPoints
+                .flatMap(a -> dataAccess.updateDataWithTag(metric, a.getDataPoint(), tags));
 
         return tagInsert.concatWith(tagsInsert).map(r -> null);
     }
 
     @Override
-    public Observable<Void> tagAvailabilityData(Availability metric,
-                                                Map<String, String> tags, long start, long end) {
-        Observable<ResultSet> findDataObservable = dataAccess.findData(metric, start, end, true);
+    public Observable<Void> tagAvailabilityData(Metric<AvailabilityType> metric, Map<String, String> tags,
+            long start, long end) {
+        Observable<ResultSet> findDataObservable = dataAccess.findAvailabilityData(metric, start, end, true);
         return tagAvailabilityData(findDataObservable, tags, metric);
     }
 
-    private MetricData computeTTL(MetricData d, int originalTTL) {
-        Duration duration = new Duration(DateTime.now().minus(d.getWriteTime()).getMillis());
-        d.setTTL(originalTTL - duration.toStandardSeconds().getSeconds());
-        return d;
-    }
-
     @Override
-    public Observable<Void> tagGaugeData(Gauge metric, final Map<String, String> tags,
-                                         long timestamp) {
+    public Observable<Void> tagGaugeData(Metric<Double> metric, final Map<String, String> tags,
+            long timestamp) {
         Observable<ResultSet> findDataObservable = dataAccess.findData(metric, timestamp, true);
         return tagGaugeData(findDataObservable, tags, metric);
     }
 
     @Override
-    public Observable<Void> tagAvailabilityData(Availability metric,
-                                                final Map<String, String> tags, long timestamp) {
-        Observable<ResultSet> findDataObservable = dataAccess.findData(metric, timestamp);
+    public Observable<Void> tagAvailabilityData(Metric<AvailabilityType> metric, Map<String, String> tags,
+            long timestamp) {
+        Observable<ResultSet> findDataObservable = dataAccess.findAvailabilityData(metric, timestamp);
         return tagAvailabilityData(findDataObservable, tags, metric);
     }
 
     @Override
-    public Observable<Map<MetricId, Set<GaugeData>>> findGaugeDataByTags(String tenantId, Map<String, String> tags) {
+    public Observable<Map<MetricId, Set<DataPoint<Double>>>> findGaugeDataByTags(String tenantId,
+            Map<String, String> tags) {
         return Observable.from(tags.entrySet())
                 .flatMap(e -> dataAccess.findGaugeDataByTag(tenantId, e.getKey(), e.getValue()))
-                .map(TaggedGaugeDataMapper::apply)
+                .map(TaggedGaugeDataPointMapper::apply)
                 .toList()
-                .map(new MergeTagsFunction<>());
+                .map(new MergeDataPointTagsFunction<>());
     }
 
     @Override
-    public Observable<Map<MetricId, Set<AvailabilityData>>> findAvailabilityByTags(String tenantId,
-        Map<String, String> tags) {
+    public Observable<Map<MetricId, Set<DataPoint<AvailabilityType>>>> findAvailabilityByTags(String tenantId,
+            Map<String, String> tags) {
 
         return Observable.from(tags.entrySet())
                 .flatMap(e -> dataAccess.findAvailabilityByTag(tenantId, e.getKey(), e.getValue()))
-                .map(TaggedAvailabilityMapper::apply)
+                .map(TaggedAvailabilityDataPointMapper::apply)
                 .toList()
-                .map(new MergeTagsFunction<>());
+                .map(new MergeDataPointTagsFunction<>());
     }
 
     @Override
     public Observable<List<long[]>> getPeriods(String tenantId, MetricId id, Predicate<Double> predicate,
                                                long start, long end) {
-        return dataAccess.findData(new Gauge(tenantId, id), start, end, Order.ASC).flatMap(Observable::from).map
-                (Functions::getGaugeData)
-        .toList().map(data -> {
-            List<long[]> periods = new ArrayList<>(data.size());
-            long[] period = null;
-            GaugeData previous = null;
-            for (GaugeData d : data) {
-                if (predicate.test(d.getValue())) {
-                    if (period == null) {
-                        period = new long[2];
-                        period[0] = d.getTimestamp();
+        return dataAccess.findData(new Metric<>(tenantId, GAUGE, id), start, end,
+                Order.ASC)
+                .flatMap(Observable::from)
+                .map(Functions::getGaugeDataPoint)
+                .toList().map(data -> {
+                    List<long[]> periods = new ArrayList<>(data.size());
+                    long[] period = null;
+                    DataPoint<Double> previous = null;
+                    for (DataPoint<Double> d : data) {
+                        if (predicate.test(d.getValue())) {
+                            if (period == null) {
+                                period = new long[2];
+                                period[0] = d.getTimestamp();
+                            }
+                            previous = d;
+                        } else if (period != null) {
+                            period[1] = previous.getTimestamp();
+                            periods.add(period);
+                            period = null;
+                            previous = null;
+                        }
                     }
-                    previous = d;
-                } else if (period != null) {
-                    period[1] = previous.getTimestamp();
-                    periods.add(period);
-                    period = null;
-                    previous = null;
-                }
-            }
-            if (period != null) {
-                period[1] = previous.getTimestamp();
-                periods.add(period);
-            }
-            return periods;
-        });
+                    if (period != null) {
+                        period[1] = previous.getTimestamp();
+                        periods.add(period);
+                    }
+                    return periods;
+                });
     }
 
-    private int getTTL(Metric<?> metric) {
+    private int getTTL(Metric metric) {
         Integer ttl = dataRetentions.get(new DataRetentionKey(metric.getTenantId(), metric.getId(), metric.getType()));
         if (ttl == null) {
             ttl = dataRetentions.get(new DataRetentionKey(metric.getTenantId(), metric.getType()));

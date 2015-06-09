@@ -20,18 +20,20 @@ import static org.hawkular.metrics.core.api.AvailabilityType.DOWN;
 
 import java.util.List;
 
-import org.hawkular.metrics.core.api.AvailabilityData;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
+import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.DataPoint;
+import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 
 /**
- * A {@link BucketedOutputMapper} for {@link org.hawkular.metrics.core.api.Availability}.
+ * A {@link BucketedOutputMapper} for {@link Metric <AvailabilityDataPoint>}.
  *
  * @author Thomas Segismont
  */
 public class AvailabilityBucketedOutputMapper
-        extends BucketedOutputMapper<AvailabilityData, AvailabilityBucketDataPoint> {
+        extends BucketedOutputMapper<AvailabilityType, AvailabilityBucketDataPoint> {
 
     /**
      * @param buckets the bucket configuration
@@ -46,15 +48,16 @@ public class AvailabilityBucketedOutputMapper
     }
 
     @Override
-    protected AvailabilityBucketDataPoint newPointInstance(long from, long to, List<AvailabilityData> availabilities) {
+    protected AvailabilityBucketDataPoint newPointInstance(long from, long to,
+            List<DataPoint<AvailabilityType>> availabilities) {
         long downtimeDuration = 0, lastDowntime = 0, downtimeCount = 0;
 
         for (int i = 0; i < availabilities.size(); i++) {
-            AvailabilityData availability = availabilities.get(i);
+            DataPoint<AvailabilityType> availability = availabilities.get(i);
             long leftTimestamp = i == 0 ? from : availability.getTimestamp();
             long rightTimestamp = i == availabilities.size() - 1 ? to : availabilities.get(i + 1).getTimestamp();
 
-            if (availability.getType() == DOWN) {
+            if (availability.getValue() == DOWN) {
                 downtimeDuration += rightTimestamp - leftTimestamp;
                 lastDowntime = rightTimestamp;
                 downtimeCount++;

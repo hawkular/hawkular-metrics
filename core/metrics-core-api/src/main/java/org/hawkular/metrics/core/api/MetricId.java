@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.core.api;
 
-import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.base.Objects;
 
 /**
@@ -37,7 +36,6 @@ public class MetricId {
         this.interval = interval;
     }
 
-    @JsonValue
     public String getName() {
         return name;
     }

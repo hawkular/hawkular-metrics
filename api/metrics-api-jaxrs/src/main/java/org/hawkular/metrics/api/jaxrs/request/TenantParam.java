@@ -14,54 +14,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.api;
+package org.hawkular.metrics.api.jaxrs.request;
 
-import com.google.common.base.Objects;
+import java.util.Objects;
+
+import org.hawkular.metrics.core.api.Tenant;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * @author John Sanda
+ * @author jsanda
  */
-public class Tag {
+public class TenantParam {
 
-    private final String name;
+    @JsonProperty
+    private String id;
 
-    private final String value;
-
-    public Tag(String tag, String value) {
-        name = tag;
-        this.value = value;
+    public TenantParam() {
     }
 
-    public String getName() {
-        return name;
+    public TenantParam(Tenant tenant) {
+        this.id = tenant.getId();
     }
 
-    public String getValue() {
-        return value;
+    public String getId() {
+        return id;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-
-        Tag tag = (Tag) o;
-
-        if (!name.equals(tag.name)) return false;
-        if (!value.equals(tag.value)) return false;
-
-        return true;
+        TenantParam that = (TenantParam) o;
+        return Objects.equals(id, that.id);
     }
 
     @Override
     public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + value.hashCode();
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return Objects.toStringHelper(this).add("value", name).add("value", value).toString();
+        return Objects.hash(id);
     }
 }
