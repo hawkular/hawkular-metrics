@@ -1,20 +1,31 @@
-= Running
+= Hawkular Metrics REST API
+:source-language: java
 
-== Method 1 (easy)
-`mvm clean install`
+This is the Java web application providing the REST interface of Hawkular Metrics.
 
-`mvn wildfly:run`
+== Starting a development container
 
-== Method 2
-run `mvn install` to create the servlet and then drop it into a WildFly 8
-instance into `standalone/deployments/` and start the server with `bin/standalone.sh`
+Assuming you have a Cassandra node running on localhost,
+you can simply run the following command in the module directory:
 
+[source,bash]
+----
+mvn wildfly:run
+----
 
-= JAX-RS Endpoints
+You can also setup your IDE for starting a Wildfly container and deploying the WAR file. It's very easy and well
+documented for both Eclipse and IntelliJ.
 
-== Tenants
+== Documentation
 
-=== Create Tenant
+The documentation is auto-generated and published on the
+http://www.hawkular.org/docs/rest/rest-metrics.html[Metrics REST API page].
+
+== Sample requests
+
+=== Tenants
+
+==== Create Tenant
 
 *Request URI*
 
@@ -58,7 +69,7 @@ starting to store metric data. It is recommended to do so
 however to ensure that there are no tenant id naming collisions and to provide
 default data retention settings.
 
-=== Find Tenants
+==== Find Tenants
 
 *Request URI*
 
@@ -94,9 +105,9 @@ curl http://localhost:8080/hawkular/metrics/tenants
 Returns a list of tenants. Notice that the second object does not include a
 `retentions` property, which is optional.
 
-== Metrics
+=== Metrics
 
-=== Create Gauge Metric
+==== Create Gauge Metric
 
 *Request URI*
 
@@ -134,7 +145,7 @@ NOTE: Clients are not required to explicitly create a metric before storing
 data. Doing so however allows clients to prevent naming collisions and to specify
 meta data and data retention.
 
-=== Create Availability Metric
+==== Create Availability Metric
 
 *Request URI*
 
@@ -151,7 +162,7 @@ curl http://localhost:8080/hawkular/metrics/{tenantId}/availability -d@request.j
 The request body is the same as creating a gauge metric.
 
 
-=== Find Metrics
+==== Find Metrics
 
 *Request URI*
 
@@ -197,7 +208,7 @@ curl http://localhost:8080/hawkular/metrics/{tenantId}/metric?type=gauge
 Returns a list of metrics. The results do *not* include metric data points. The
 `metadata` and `dataRetention` properties are optional.
 
-=== Update Metric Meta Data
+==== Update Metric Meta Data
 
 *Request URI*
 
@@ -224,9 +235,9 @@ curl -X PUT http://localhost:8080/hawkular/metrics/{tenantId}/gauges -d@request.
 The `attr1` and `attr2` keys are _upserted_. That is, the keys are created are
 either created or overwritten.
 
-== Metric Data
+=== Metric Data
 
-=== Add Gauge Data for a Single Metric
+==== Add Gauge Data for a Single Metric
 
 *Request URI*
 
@@ -254,7 +265,7 @@ curl -X POST http://localhost:8080/hawkular/metrics/{tenantId}/gauges/{id}/data 
 Inserts data for a single gauge metric. The request body is an array of data
 points where each one consists of `timestamp` and `value` properties.
 
-=== Add Availability Data for a Single Metric
+==== Add Availability Data for a Single Metric
 
 *Request URI*
 
@@ -281,7 +292,7 @@ curl -X POST http://localhost:8080/hawkular/metrics/{tenantId}/availability/{id}
 Inserts data for a single availablity metric. Accepted values are the strings
 `up` and `down`.
 
-=== Insert Data for Multiple Gauge Metrics
+==== Insert Data for Multiple Gauge Metrics
 
 *Request URI*
 
@@ -319,7 +330,7 @@ curl -X POST http://localhost:8080/hawkular/metrics/{tenantId}/gauges/data -d@re
 
 Insert data for multiple gauge metrics.
 
-=== Insert Data for Multiple Availability Metrics
+==== Insert Data for Multiple Availability Metrics
 
 *Request URI*
 
@@ -357,7 +368,7 @@ curl -X POST http://localhost:8080/hawkular/metrics/{tenantId}/availability/data
 
 Insert data for multiple availability metrics.
 
-=== Retrieve Gauge data
+==== Retrieve Gauge data
 
 *Request URI*
 
