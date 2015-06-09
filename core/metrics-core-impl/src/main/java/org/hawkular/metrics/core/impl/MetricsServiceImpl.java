@@ -31,7 +31,6 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import org.hawkular.metrics.core.api.Availability;
@@ -73,7 +72,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.RateLimiter;
 
 import rx.Observable;
 import rx.functions.Func1;
@@ -84,8 +82,6 @@ import rx.subjects.PublishSubject;
  */
 public class MetricsServiceImpl implements MetricsService {
     private static final Logger logger = LoggerFactory.getLogger(MetricsServiceImpl.class);
-
-    public static final String REQUEST_LIMIT = "hawkular.metrics.request.limit";
 
     /**
      * In seconds.
@@ -137,8 +133,6 @@ public class MetricsServiceImpl implements MetricsService {
         }
     }
 
-    private final RateLimiter permits = RateLimiter.create(Double.parseDouble(
-        System.getProperty(REQUEST_LIMIT, "30000")), 3, TimeUnit.MINUTES);
     /**
      * Note that while user specifies the durations in hours, we store them in seconds.
      */
