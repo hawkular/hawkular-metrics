@@ -44,7 +44,6 @@ import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.impl.MetricsServiceImpl;
-import org.hawkular.metrics.schema.SchemaManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -163,21 +162,20 @@ public class MetricsServiceLifecycle {
             lifecycleExecutor.schedule(this::startMetricsService, delay, SECONDS);
             return;
         }
-        SchemaManager schemaManager = new SchemaManager(session);
         try {
-            if (Boolean.parseBoolean(resetDb)) {
-                schemaManager.dropKeyspace(keyspace);
-            }
-            // This creates/updates the keyspace + tables if needed
-            schemaManager.createSchema(keyspace);
-            session.execute("USE " + keyspace);
-            LOG.info("Using a key space of '{}'", keyspace);
-            metricsService.startUp(session);
+            metricsService.startUp(session, keyspace, Boolean.parseBoolean(resetDb));
             LOG.info("Metrics service started");
             state = State.STARTED;
         } catch (Throwable t) {
             LOG.error("An error occurred trying to connect to the Cassandra cluster", t);
             state = State.FAILED;
+        } finally {
+            if (state != State.STARTED) {
+                try {
+                    metricsService.shutdown();
+                } catch (Throwable ignore) {
+                }
+            }
         }
     }
 

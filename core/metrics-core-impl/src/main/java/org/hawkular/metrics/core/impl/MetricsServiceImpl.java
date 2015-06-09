@@ -55,6 +55,7 @@ import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.RetentionSettings;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
+import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.rx.cassandra.driver.RxUtil;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
@@ -86,6 +87,9 @@ public class MetricsServiceImpl implements MetricsService {
 
     public static final String REQUEST_LIMIT = "hawkular.metrics.request.limit";
 
+    /**
+     * In seconds.
+     */
     public static final int DEFAULT_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
     private static class DataRetentionKey {
@@ -135,19 +139,25 @@ public class MetricsServiceImpl implements MetricsService {
 
     private final RateLimiter permits = RateLimiter.create(Double.parseDouble(
         System.getProperty(REQUEST_LIMIT, "30000")), 3, TimeUnit.MINUTES);
-
-    private DataAccess dataAccess;
-
-    private final ListeningExecutorService metricsTasks = MoreExecutors
-        .listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
-
     /**
      * Note that while user specifies the durations in hours, we store them in seconds.
      */
     private final Map<DataRetentionKey, Integer> dataRetentions = new ConcurrentHashMap<>();
 
-    public void startUp(Session s) {
-        this.dataAccess = new DataAccessImpl(s);
+    private ListeningExecutorService metricsTasks;
+    private DataAccess dataAccess;
+
+    public void startUp(Session session, String keyspace, boolean resetDb) {
+        SchemaManager schemaManager = new SchemaManager(session);
+        if (resetDb) {
+            schemaManager.dropKeyspace(keyspace);
+        }
+        // This creates/updates the keyspace + tables if needed
+        schemaManager.createSchema(keyspace);
+        session.execute("USE " + keyspace);
+        logger.info("Using a key space of '{}'", keyspace);
+        metricsTasks = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
+        dataAccess = new DataAccessImpl(session);
         loadDataRetentions();
     }
 
@@ -536,10 +546,10 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<AvailabilityData> findAvailabilityData(String tenantId, MetricId id, long start,
                                                              long end, boolean distinct) {
         Observable<AvailabilityData> availabilityData = dataAccess.findAvailabilityData(tenantId, id, start, end)
-                .flatMap(r -> Observable.from(r))
+                                                                  .flatMap(Observable::from)
                 .map(Functions::getAvailability);
         if(distinct) {
-            return availabilityData.distinctUntilChanged((a) -> a.getType());
+            return availabilityData.distinctUntilChanged(AvailabilityData::getType);
         } else {
             return availabilityData;
         }
@@ -549,7 +559,7 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(Availability metric,
         long start, long end, Buckets buckets) {
         return dataAccess.findAvailabilityData(metric.getTenantId(), metric.getId(), start, end)
-                .flatMap(r -> Observable.from(r)).map(Functions::getAvailability)
+                         .flatMap(Observable::from).map(Functions::getAvailability)
                 .toList()
                 .map(new AvailabilityBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets));
     }
@@ -702,5 +712,6 @@ public class MetricsServiceImpl implements MetricsService {
 
     public void shutdown() {
         metricsTasks.shutdown();
+        unloadDataRetentions();
     }
 }
