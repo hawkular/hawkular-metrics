@@ -45,6 +45,9 @@
     <ptrans.wildfly.management.port>57898</ptrans.wildfly.management.port>
     <wildfly.logging.console.level>ERROR</wildfly.logging.console.level>
     <wildfly.logging.file.level>DEBUG</wildfly.logging.file.level>
+    <!-- Configuration files used when starting a development ptrans instance with mvn exec:java -->
+    <dev.log4j.configuration>${project.basedir}/log4j-dev.xml</dev.log4j.configuration>
+    <dev.ptrans.conf>${project.basedir}/ptrans.conf</dev.ptrans.conf>
   </properties>
 
   <dependencies>
@@ -265,12 +268,12 @@
           <systemProperties>
             <systemProperty>
               <key>log4j.configuration</key>
-              <value>file:${project.basedir}/log4j-dev.xml</value>
+              <value>file:${dev.log4j.configuration}</value>
             </systemProperty>
           </systemProperties>
           <arguments>
             <argument>-c</argument>
-            <argument>${project.basedir}/ptrans.conf</argument>
+            <argument>${dev.ptrans.conf}</argument>
           </arguments>
         </configuration>
       </plugin>
