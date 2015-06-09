@@ -33,7 +33,7 @@ public class QueryTypeVisitorTest {
 
     @Test
     public void shouldDetectListSeriesQuery() {
-        ParseTree parseTree = parserFactory.newInstanceForQuery("list series").query();
+        ParseTree parseTree = parserFactory.newInstanceForQuery("list series /a.dsfqsd/I").query();
         QueryType queryType = queryTypeVisitor.visit(parseTree);
         assertEquals(LIST_SERIES, queryType);
     }
