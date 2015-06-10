@@ -145,9 +145,24 @@ public class MetricsServiceImpl implements MetricsService {
 
     private MetricRegistry metricRegistry;
 
+    /**
+     * Measures the throughput of inserting gauge data points.
+     */
     private Meter gaugeInserts;
+
+    /**
+     * Measures the throughput of inserting availability data points.
+     */
     private Meter availabilityInserts;
+
+    /**
+     * Measures the latency of queries for gauge (raw) data.
+     */
     private Timer gaugeReadLatency;
+
+    /**
+     * Measures the latency of queries for availability (raw) data.
+     */
     private Timer availabilityReadLatency;
 
     public void startUp(Session session, String keyspace, boolean resetDb, MetricRegistry metricRegistry) {
