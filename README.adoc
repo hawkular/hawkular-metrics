@@ -100,7 +100,7 @@ You can send data collected with your usual monitoring tools to Hawkular Metrics
 In order to do so, you must start our network protocol adapter,
 https://github.com/hawkular/hawkular-metrics/tree/master/clients/ptranslator[ptrans].
 
-=== Forums, hacking, irc
+== Forums, hacking, irc
 
 If you are a user of Hawkular Metrics please ask your question in the
 https://developer.jboss.org/discussion/create.jspa?containerType=14&containerID=2351[Hawkular user forum],
