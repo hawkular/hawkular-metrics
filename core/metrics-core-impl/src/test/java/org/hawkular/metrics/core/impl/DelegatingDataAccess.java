@@ -104,7 +104,7 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public <T> Observable<ResultSet> updateMetricsIndexRx(Observable<Metric<T>> metrics) {
+    public <T> Observable<Integer> updateMetricsIndexRx(Observable<Metric<T>> metrics) {
         return delegate.updateMetricsIndexRx(metrics);
     }
 
@@ -114,7 +114,7 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> insertData(Observable<GaugeAndTTL> gaugeObservable) {
+    public Observable<Integer> insertData(Observable<GaugeAndTTL> gaugeObservable) {
         return delegate.insertData(gaugeObservable);
     }
 
@@ -196,7 +196,7 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
+    public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
         return delegate.insertAvailabilityData(metric, ttl);
     }
 

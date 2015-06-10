@@ -39,6 +39,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 
+import com.codahale.metrics.MetricRegistry;
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
@@ -163,7 +164,11 @@ public class MetricsServiceLifecycle {
             return;
         }
         try {
-            metricsService.startUp(session, keyspace, Boolean.parseBoolean(resetDb));
+            // TODO Set up a managed metric registry
+            // We want a managed registry that can be shared by the JAX-RS endpoint and the core. Then we can expose
+            // the registered metrics in various ways such as new REST endpoints, JMX, or via different
+            // com.codahale.metrics.Reporter instances.
+            metricsService.startUp(session, keyspace, Boolean.parseBoolean(resetDb), new MetricRegistry());
             LOG.info("Metrics service started");
             state = State.STARTED;
         } catch (Throwable t) {

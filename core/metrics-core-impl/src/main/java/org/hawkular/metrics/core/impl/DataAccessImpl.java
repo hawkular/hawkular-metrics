@@ -438,12 +438,12 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public <T> Observable<ResultSet> updateMetricsIndexRx(Observable<Metric<T>> metrics) {
+    public <T> Observable<Integer> updateMetricsIndexRx(Observable<Metric<T>> metrics) {
         return metrics.reduce(new BatchStatement(BatchStatement.Type.UNLOGGED), (batch, metric) -> {
             batch.add(updateMetricsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
                     metric.getId().getInterval().toString(), metric.getId().getName()));
             return batch;
-        }).flatMap(rxSession::execute);
+        }).flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
 
     @Override
@@ -452,11 +452,11 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> insertData(Observable<GaugeAndTTL> observable) {
+    public Observable<Integer> insertData(Observable<GaugeAndTTL> observable) {
         return observable.flatMap(pair -> Observable.from(pair.gauge.getDataPoints())
                         .map(dataPoint -> bindDataPoint(pair.gauge, dataPoint, pair.ttl))
                         .reduce(new BatchStatement(BatchStatement.Type.UNLOGGED), BatchStatement::add)
-                        .flatMap(rxSession::execute)
+                        .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()))
         );
     }
 
@@ -597,17 +597,15 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
-        return Observable
-            .from(metric.getDataPoints())
-            .reduce(
-                new BatchStatement(BatchStatement.Type.UNLOGGED),
-                (batchStatement, a) -> {
+    public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
+        return Observable.from(metric.getDataPoints())
+                .reduce(new BatchStatement(BatchStatement.Type.UNLOGGED), (batchStatement, a) -> {
                     batchStatement.add(insertAvailability.bind(ttl, metric.getTags(), getBytes(a),
-                        metric.getTenantId(), metric.getType().getCode(), metric.getId().getName(), metric.getId()
-                            .getInterval().toString(), DPART, getTimeUUID(a.getTimestamp())));
+                            metric.getTenantId(), metric.getType().getCode(), metric.getId().getName(),
+                            metric.getId().getInterval().toString(), DPART, getTimeUUID(a.getTimestamp())));
                     return batchStatement;
-                }).flatMap(rxSession::execute);
+                })
+                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
 
     private ByteBuffer getBytes(DataPoint<AvailabilityType> dataPoint) {

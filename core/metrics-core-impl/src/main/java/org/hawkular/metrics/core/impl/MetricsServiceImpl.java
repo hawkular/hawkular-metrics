@@ -17,7 +17,6 @@
 package org.hawkular.metrics.core.impl;
 
 import static java.util.Comparator.comparingLong;
-
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.Functions.getTTLAvailabilityDataPoint;
 import static org.hawkular.metrics.core.impl.Functions.getTTLGaugeDataPoint;
@@ -33,11 +32,24 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Session;
+import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.BucketedOutput;
@@ -62,17 +74,6 @@ import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Session;
-import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-
 import rx.Observable;
 import rx.functions.Func1;
 import rx.subjects.PublishSubject;
@@ -81,6 +82,7 @@ import rx.subjects.PublishSubject;
  * @author John Sanda
  */
 public class MetricsServiceImpl implements MetricsService {
+
     private static final Logger logger = LoggerFactory.getLogger(MetricsServiceImpl.class);
 
     /**
@@ -141,7 +143,14 @@ public class MetricsServiceImpl implements MetricsService {
     private ListeningExecutorService metricsTasks;
     private DataAccess dataAccess;
 
-    public void startUp(Session session, String keyspace, boolean resetDb) {
+    private MetricRegistry metricRegistry;
+
+    private Meter gaugeInserts;
+    private Meter availabilityInserts;
+    private Timer gaugeReadLatency;
+    private Timer availabilityReadLatency;
+
+    public void startUp(Session session, String keyspace, boolean resetDb, MetricRegistry metricRegistry) {
         SchemaManager schemaManager = new SchemaManager(session);
         if (resetDb) {
             schemaManager.dropKeyspace(keyspace);
@@ -153,6 +162,9 @@ public class MetricsServiceImpl implements MetricsService {
         metricsTasks = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
         dataAccess = new DataAccessImpl(session);
         loadDataRetentions();
+
+        this.metricRegistry = metricRegistry;
+        initMetrics();
     }
 
     void loadDataRetentions() {
@@ -175,6 +187,13 @@ public class MetricsServiceImpl implements MetricsService {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void initMetrics() {
+        gaugeInserts = metricRegistry.meter("gauge-inserts");
+        availabilityInserts = metricRegistry.meter("availability-inserts");
+        gaugeReadLatency = metricRegistry.timer("gauge-read-latency");
+        availabilityReadLatency = metricRegistry.timer("availability-write-latency");
     }
 
     void unloadDataRetentions() {
@@ -429,11 +448,14 @@ public class MetricsServiceImpl implements MetricsService {
         //      explicitly created, just not necessarily right away.
 
         PublishSubject<Void> results = PublishSubject.create();
-        Observable<ResultSet> dataInserted = dataAccess.insertData(
+        Observable<Integer> updates = dataAccess.insertData(
                 gaugeObservable.map(gauge -> new GaugeAndTTL(gauge, getTTL(gauge))));
-        Observable<ResultSet> indexUpdated = dataAccess.updateMetricsIndexRx(gaugeObservable);
-        dataInserted.concatWith(indexUpdated).subscribe(
-                resultSet -> {},
+        // I am intentionally return zero for the number index updates because I want to measure and compare the
+        // throughput inserting data with and without the index updates. This will give us a better idea of how much
+        // over there is with the index updates.
+        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndexRx(gaugeObservable).map(count -> 0);
+        updates.concatWith(indexUpdates).subscribe(
+                gaugeInserts::mark,
                 results::onError,
                 () -> {
                     results.onNext(null);
@@ -444,12 +466,23 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<Void> addAvailabilityData(List<Metric<AvailabilityType>> metrics) {
-        return Observable.from(metrics)
+        PublishSubject<Void> results = PublishSubject.create();
+        Observable<Metric<AvailabilityType>> availabilities = Observable.from(metrics);
+        Observable<Integer> updates = availabilities
                 .filter(a -> !a.getDataPoints().isEmpty())
-                .flatMap(a -> dataAccess.insertAvailabilityData(a, getTTL(a)))
-                .doOnCompleted(() -> dataAccess.updateMetricsIndex(metrics))
-                .doOnError(t -> logger.warn("Failed to add availability data", t))
-                .map(r -> null);
+                .flatMap(a -> dataAccess.insertAvailabilityData(a, getTTL(a)));
+        // I am intentionally return zero for the number index updates because I want to measure and compare the
+        // throughput inserting data with and without the index updates. This will give us a better idea of how much
+        // over there is with the index updates.
+        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndexRx(availabilities).map(count -> 0);
+        updates.concatWith(indexUpdates).subscribe(
+                availabilityInserts::mark,
+                results::onError,
+                () -> {
+                    results.onNext(null);
+                    results.onCompleted();
+                });
+        return results;
     }
 
     @Override
@@ -484,9 +517,11 @@ public class MetricsServiceImpl implements MetricsService {
         // When we implement date partitioning, dpart will have to be determined based on
         // the start and end params. And it is possible the the date range spans multiple
         // date partitions.
-        return dataAccess.findData(tenantId, id, start, end)
-                .flatMap(Observable::from)
-                .map(Functions::getGaugeDataPoint);
+        return time(gaugeReadLatency, () ->
+            dataAccess.findData(tenantId, id, start, end)
+                    .flatMap(Observable::from)
+                    .map(Functions::getGaugeDataPoint)
+        );
     }
 
     @Override
@@ -512,15 +547,17 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public Observable<DataPoint<AvailabilityType>> findAvailabilityData(String tenantId, MetricId id, long start,
             long end, boolean distinct) {
-        Observable<DataPoint<AvailabilityType>> availabilityData = dataAccess.findAvailabilityData(tenantId, id, start,
-                end)
-                .flatMap(Observable::from)
-                .map(Functions::getAvailabilityDataPoint);
-        if (distinct) {
-            return availabilityData.distinctUntilChanged(DataPoint::getValue);
-        } else {
-            return availabilityData;
-        }
+        return time(availabilityReadLatency, () -> {
+            Observable<DataPoint<AvailabilityType>> availabilityData = dataAccess.findAvailabilityData(tenantId, id,
+                    start, end)
+                    .flatMap(Observable::from)
+                    .map(Functions::getAvailabilityDataPoint);
+            if (distinct) {
+                return availabilityData.distinctUntilChanged(DataPoint::getValue);
+            } else {
+                return availabilityData;
+            }
+        });
     }
 
     @Override
@@ -677,5 +714,15 @@ public class MetricsServiceImpl implements MetricsService {
     public void shutdown() {
         metricsTasks.shutdown();
         unloadDataRetentions();
+    }
+
+    private <T> T time(Timer timer, Callable<T> callable) {
+        try {
+            // TODO Should this method always return an observable?
+            // If so, than we should return Observable.error(e) in the catch block
+            return timer.time(callable);
+        } catch (Exception e) {
+            throw new RuntimeException("There was an error during a timed event", e);
+        }
     }
 }

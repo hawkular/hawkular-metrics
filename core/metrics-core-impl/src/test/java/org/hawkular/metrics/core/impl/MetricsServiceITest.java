@@ -19,7 +19,6 @@ package org.hawkular.metrics.core.impl;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
-
 import static org.hawkular.metrics.core.api.AvailabilityType.DOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UNKNOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UP;
@@ -42,8 +41,20 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.codahale.metrics.MetricRegistry;
+import com.datastax.driver.core.BatchStatement;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Interval;
@@ -58,18 +69,6 @@ import org.joda.time.Duration;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-
 import rx.Observable;
 
 /**
@@ -89,7 +88,7 @@ public class MetricsServiceITest extends MetricsITest {
     public void initClass() {
         initSession();
         metricsService = new MetricsServiceImpl();
-        metricsService.startUp(session, getKeyspace(), false);
+        metricsService.startUp(session, getKeyspace(), false, new MetricRegistry());
         dataAccess = metricsService.getDataAccess();
 
         insertGaugeDataWithTimestamp = session
@@ -365,12 +364,15 @@ public class MetricsServiceITest extends MetricsITest {
             metricsService.setDataAccess(new DelegatingDataAccess(dataAccess) {
 
                 @Override
-                public Observable<ResultSet> insertData(Observable<GaugeAndTTL> observable) {
+                public Observable<Integer> insertData(Observable<GaugeAndTTL> observable) {
                     List<ResultSetFuture> futures = new ArrayList<>();
+                    final AtomicInteger totalInserts = new AtomicInteger();
                     for (GaugeAndTTL pair : observable.toBlocking().toIterable()) {
+                        totalInserts.addAndGet(pair.gauge.getDataPoints().size());
                         futures.add(insertData(pair.gauge, pair.ttl));
                     }
-                    return Observable.from(futures).flatMap(Observable::from);
+                    return Observable.from(futures)
+                            .flatMap(future -> Observable.from(future).map(resultSet -> totalInserts.get()));
                 }
 
                 public ResultSetFuture insertData(Metric<Double> m, int ttl) {
@@ -397,7 +399,7 @@ public class MetricsServiceITest extends MetricsITest {
         try {
             metricsService.setDataAccess(new DelegatingDataAccess(dataAccess) {
                 @Override
-                public Observable<ResultSet> insertAvailabilityData(Metric<AvailabilityType> m, int ttl) {
+                public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> m, int ttl) {
                     int actualTTL = ttl - duration.toStandardSeconds().getSeconds();
                     long writeTime = now().minus(duration).getMillis() * 1000;
                     BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
@@ -406,7 +408,7 @@ public class MetricsServiceITest extends MetricsITest {
                             AVAILABILITY.getCode(), m.getId().getName(), m.getId().getInterval().toString(), DPART,
                             getTimeUUID(a.getTimestamp()), getBytes(a), actualTTL, writeTime));
                     }
-                    return rxSession.execute(batchStatement);
+                    return rxSession.execute(batchStatement).map(resultSet -> batchStatement.size());
                 }
             });
             metricsService.addAvailabilityData(singletonList(metric));
@@ -1020,14 +1022,14 @@ public class MetricsServiceITest extends MetricsITest {
         }
 
         @Override
-        public Observable<ResultSet> insertData(Observable<GaugeAndTTL> observable) {
+        public Observable<Integer> insertData(Observable<GaugeAndTTL> observable) {
             observable.forEach(pair -> assertEquals(pair.ttl, gaugeTTL,
                     "The gauge TTL does not match the expected value when inserting data"));
             return super.insertData(observable);
         }
 
         @Override
-        public Observable<ResultSet> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
+        public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
             assertEquals(ttl, availabilityTTL, "The availability data TTL does not match the expected value when " +
                 "inserting data");
             return super.insertAvailabilityData(metric, ttl);
