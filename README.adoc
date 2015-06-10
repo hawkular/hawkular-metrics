@@ -13,10 +13,12 @@ endif::[]
 Hawkular Metrics is the metric data store for the http://www.hawkular.org/[Hawkular] project.
 It can also be used independently.
 
-It uses https://cassandra.apache.org/[Apache Cassandra] as a backend and is comprised of:
+It relies on https://cassandra.apache.org/[Apache Cassandra] as a backend and is comprised of:
 
 - a core library
 - a REST/HTTP interface
+
+IMPORTANT: Cassandra 2.1.1 or later is required. It is recommended to use the latest 2.1.x release if possible.
 
 === The core library
 
@@ -60,8 +62,7 @@ embedded into Wildfly for testing, add the `hawkular-metrics-embedded-cassandra-
 
 == Build Instructions
 
-This project has a dependency on Cassandra 2.1.1 or later. It is recommended to use the latest 2.1.x release if
-possible. A running Cassandra cluster, which can be a single node, is required for unit and integration tests.
+IMPORTANT: A running Cassandra cluster, which can be a single node, is required for unit and integration tests.
 
 [source,bash]
 ----
@@ -101,7 +102,8 @@ https://github.com/hawkular/hawkular-metrics/tree/master/clients/ptranslator[ptr
 
 === Forums, hacking, irc
 
-If you are a user of Hawkular Metrics please ask your question in the https://developer.jboss.org/discussion/create.jspa?containerType=14&containerID=2351[Hawkular user forum],
+If you are a user of Hawkular Metrics please ask your question in the
+https://developer.jboss.org/discussion/create.jspa?containerType=14&containerID=2351[Hawkular user forum],
 if you are willing to contribute or participate in design discussion, please use the
 https://lists.jboss.org/mailman/listinfo/hawkular-dev[Hawkular developer mailing list]
 
