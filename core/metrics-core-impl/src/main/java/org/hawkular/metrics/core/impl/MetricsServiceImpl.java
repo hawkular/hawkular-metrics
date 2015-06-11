@@ -17,7 +17,6 @@
 package org.hawkular.metrics.core.impl;
 
 import static java.util.Comparator.comparingLong;
-
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.Functions.getTTLAvailabilityDataPoint;
@@ -393,21 +392,8 @@ public class MetricsServiceImpl implements MetricsService {
                 updates.add(dataAccess.addTagsAndDataRetention(denormalizedMetric));
                 updates.add(dataAccess.insertIntoMetricsTagsIndex(denormalizedMetric, denormalizedMetric.getTags()));
 
-                Metric<?> rateMetric = null;
-                if (denormalizedMetric.getType() == COUNTER) {
-                    rateMetric = new Metric(denormalizedMetric.getTenantId(), COUNTER_RATE,
-                            new MetricId(denormalizedMetric.getId().getName()), denormalizedMetric.getTags(),
-                            denormalizedMetric.getDataRetention());
-                    updates.add(RxUtil.from(dataAccess.insertMetricInMetricsIndex(rateMetric), metricsTasks));
-
-                }
-
                 if (denormalizedMetric.getDataRetention() != null) {
-                    if (denormalizedMetric.getType() == COUNTER) {
-                        updates.add(updateRetentionsIndex(rateMetric));
-                    } else {
-                        updates.add(updateRetentionsIndex(denormalizedMetric));
-                    }
+                    updates.add(updateRetentionsIndex(denormalizedMetric));
                 }
 
                 Observable.merge(updates).subscribe(new VoidSubscriber<>(subscriber));

@@ -24,7 +24,6 @@ import static org.hawkular.metrics.core.api.AvailabilityType.UNKNOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UP;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
-import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.DataAccessImpl.DPART;
 import static org.hawkular.metrics.core.impl.MetricsServiceImpl.DEFAULT_TTL;
@@ -212,11 +211,9 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.createMetric(counter).toBlocking().lastOrDefault(null);
 
         Metric<?> actual = metricsService.findMetric(tenantId, COUNTER, id).toBlocking().lastOrDefault(null);
-        assertEquals(actual, counter, "The counter metric does not match");
 
+        assertEquals(actual, counter, "The counter metric does not match");
         assertMetricIndexMatches(tenantId, COUNTER, singletonList(counter));
-        assertMetricIndexMatches(tenantId, COUNTER_RATE, singletonList(new Metric<>(tenantId, COUNTER_RATE, new
-                MetricId(group + "$" + name))));
     }
 
     @Test
@@ -234,8 +231,6 @@ public class MetricsServiceITest extends MetricsITest {
         assertEquals(actual, counter, "The counter metric does not match");
 
         assertMetricIndexMatches(tenantId, COUNTER, singletonList(counter));
-        assertMetricIndexMatches(tenantId, COUNTER_RATE, singletonList(new Metric<>(tenantId, COUNTER_RATE, new
-                MetricId(group + "$" + name), tags, null)));
         assertMetricsTagsIndexMatches(tenantId, "x", singletonList(new MetricsTagsIndexEntry("1", COUNTER, id)));
     }
 
@@ -254,7 +249,7 @@ public class MetricsServiceITest extends MetricsITest {
         assertEquals(actual, counter, "The counter metric does not match");
 
         assertMetricIndexMatches(tenantId, COUNTER, singletonList(counter));
-        assertDataRetentionsIndexMatches(tenantId, COUNTER_RATE, ImmutableSet.of(
+        assertDataRetentionsIndexMatches(tenantId, COUNTER, ImmutableSet.of(
                 new Retention(metricsService.denormalizeId(COUNTER, id), retention)));
     }
 

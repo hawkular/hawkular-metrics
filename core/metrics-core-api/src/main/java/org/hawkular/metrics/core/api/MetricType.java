@@ -33,19 +33,13 @@ public enum MetricType {
 
     AVAILABILITY(1, "availability"),
 
-    COUNTER(2, "counter"),
-
-    /**
-     * This is an internal, generated type. We could treat the rates as gauges, but this will help to further partition
-     * metrics.
-     */
-    COUNTER_RATE(3, "counter_rate");
+    COUNTER(2, "counter");
 
     private int code;
 
     private String text;
 
-    private MetricType(int code, String text) {
+    MetricType(int code, String text) {
         this.code = code;
         this.text = text;
     }
@@ -68,18 +62,16 @@ public enum MetricType {
             case 0 : return GAUGE;
             case 1 : return AVAILABILITY;
             case 2 : return COUNTER;
-            case 3 : return COUNTER_RATE;
             default: throw new IllegalArgumentException(code + " is not a recognized metric type");
         }
     }
 
     public static MetricType fromTextCode(String textCode) {
         switch (textCode) {
-        case "gauge": return GAUGE;
-        case "availability": return AVAILABILITY;
-        case "counter": return COUNTER;
-        case "counter_rate": return COUNTER_RATE;
-        default: throw new IllegalArgumentException(textCode + " is not a recognized metric type code");
+            case "gauge": return GAUGE;
+            case "availability": return AVAILABILITY;
+            case "counter": return COUNTER;
+            default: throw new IllegalArgumentException(textCode + " is not a recognized metric type code");
         }
     }
 
