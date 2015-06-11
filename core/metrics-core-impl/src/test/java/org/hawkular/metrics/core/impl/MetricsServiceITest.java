@@ -240,6 +240,25 @@ public class MetricsServiceITest extends MetricsITest {
     }
 
     @Test
+    public void createCounterWithDataRetention() throws Exception {
+        String tenantId = "counter-tenant";
+        String group = "counter-retention";
+        String name = "retention-counter";
+        MetricId id = new MetricId(group, name);
+        Integer retention = 100;
+
+        Metric<?> counter = new Metric<>(tenantId, COUNTER, id, emptyMap(), retention);
+        metricsService.createMetric(counter).toBlocking().lastOrDefault(null);
+
+        Metric<?> actual = metricsService.findMetric(tenantId, COUNTER, id).toBlocking().lastOrDefault(null);
+        assertEquals(actual, counter, "The counter metric does not match");
+
+        assertMetricIndexMatches(tenantId, COUNTER, singletonList(counter));
+        assertDataRetentionsIndexMatches(tenantId, COUNTER_RATE, ImmutableSet.of(
+                new Retention(metricsService.denormalizeId(COUNTER, id), retention)));
+    }
+
+    @Test
     public void updateMetricTags() throws Exception {
         Metric<Double> metric = new Metric<>("t1", GAUGE, new MetricId("m1"),
                 ImmutableMap.of("a1", "1", "a2", "2"), DEFAULT_TTL);
