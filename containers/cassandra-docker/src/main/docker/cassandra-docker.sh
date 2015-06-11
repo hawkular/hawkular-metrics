@@ -98,8 +98,8 @@ else
 fi
 
 if [ -n "$CASSANDRA_HOME" ]; then
-  ${CASSANDRA_HOME}/bin/cassandra -f
+  exec ${CASSANDRA_HOME}/bin/cassandra -f
 else
-  /opt/apache-cassandra/bin/cassandra -f
+  exec /opt/apache-cassandra/bin/cassandra -f
 fi
 

@@ -49,9 +49,9 @@ USER root
 
 # Copy the Cassandra binary to the /opt directory
 RUN cd /opt; \
-    curl -LO http://apache.mirrors.ionfish.org/cassandra/$CASSANDRA_VERSION/apache-cassandra-$CASSANDRA_VERSION-bin.tar.gz; \
-    tar xzf apache-cassandra-$CASSANDRA_VERSION-bin.tar.gz; \
-    rm apache-cassandra-$CASSANDRA_VERSION-bin.tar.gz; \
+    curl -LO https://archive.apache.org/dist/cassandra/$CASSANDRA_VERSION/apache-cassandra-$CASSANDRA_VERSION-bin.tar.gz && \
+    tar xzf apache-cassandra-$CASSANDRA_VERSION-bin.tar.gz && \
+    rm apache-cassandra-$CASSANDRA_VERSION-bin.tar.gz && \
     ln -s apache-cassandra-$CASSANDRA_VERSION apache-cassandra
 
 # Copy our version of the cassandra configuration file over to the filesystem
@@ -63,8 +63,11 @@ COPY cassandra-seed-provider.jar /opt/apache-cassandra/lib/
 # Copy our customized run script over to the cassandra bin directory
 COPY cassandra-docker.sh /opt/apache-cassandra/bin/
 
-# Copy the preStop scriptover to the cassandra bin directory
+# Copy the preStop script over to the cassandra bin directory
 COPY cassandra-docker-pre-stop.sh /opt/apache-cassandra/bin/
+
+# Copy the Readiness script over to the cassandra bin directory
+COPY cassandra-docker-ready.sh /opt/apache-cassandra/bin/
 
 # TODO: remove this line once https://bugzilla.redhat.com/show_bug.cgi?id=1201848 has been fixed
 ENV PATH /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin

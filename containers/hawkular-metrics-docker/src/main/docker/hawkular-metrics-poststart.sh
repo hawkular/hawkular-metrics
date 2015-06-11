@@ -17,7 +17,7 @@
 #
 
 # The status endpoint to test
-STATUS_URL=http://$HOSTNAME:$HAWKULAR_METRICS_ENDPOINT_PORT/hawkular/metrics/status
+STATUS_URL=http://localhost:$HAWKULAR_METRICS_ENDPOINT_PORT/hawkular/metrics/status
 
 # The command to get the HTTP status code
 STATUS_COMMAND='curl -L -s -o /dev/null -w "%{http_code}" $STATUS_URL'

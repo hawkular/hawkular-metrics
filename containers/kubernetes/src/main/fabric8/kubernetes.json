@@ -72,7 +72,7 @@
           "spec": {
             "containers": [{
               "image": "${cassandra.image}",
-              "name" : "hawkular-metrics",
+              "name" : "hawkular-cassandra",
               "ports": [
                 { "name": "cassandra-cql-port", "containerPort": 9042},
                 { "name": "cassandra-thift-port", "containerPort": 9160},
