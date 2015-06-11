@@ -63,11 +63,11 @@ public interface DataAccess {
 
     <T> ResultSetFuture updateMetricsIndex(List<Metric<T>> metrics);
 
-    <T> Observable<ResultSet> updateMetricsIndexRx(Observable<Metric<T>> metrics);
+    <T> Observable<Integer> updateMetricsIndexRx(Observable<Metric<T>> metrics);
 
     Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType type);
 
-    Observable<ResultSet> insertData(Observable<GaugeAndTTL> gaugeObservable);
+    Observable<Integer> insertData(Observable<GaugeAndTTL> gaugeObservable);
 
     Observable<ResultSet> findData(String tenantId, MetricId id, long startTime, long endTime);
 
@@ -101,7 +101,7 @@ public interface DataAccess {
 
     Observable<ResultSet> findAvailabilityByTag(String tenantId, String tag, String tagValue);
 
-    Observable<ResultSet> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl);
+    Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl);
 
     Observable<ResultSet> findAvailabilityData(String tenantId, MetricId id, long startTime, long endTime);
 
