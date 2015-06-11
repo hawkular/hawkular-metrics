@@ -17,6 +17,8 @@
 package org.hawkular.metrics.core.impl;
 
 import static java.util.Comparator.comparingLong;
+
+import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.Functions.getTTLAvailabilityDataPoint;
 import static org.hawkular.metrics.core.impl.Functions.getTTLGaugeDataPoint;
@@ -367,8 +369,11 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<Void> createMetric(final Metric metric) {
-        ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric);
+    public Observable<Void> createMetric(Metric<?> metric) {
+        Metric<?> denormalizedMetric = new Metric<>(metric.getTenantId(), metric.getType(),
+                denormalizeId(metric.getType(), metric.getId()), metric.getTags(), metric.getDataRetention());
+
+        ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(denormalizedMetric);
         Observable<ResultSet> indexUpdated = RxUtil.from(future, metricsTasks);
         return Observable.create(subscriber -> indexUpdated.subscribe(resultSet -> {
             if (!resultSet.wasApplied()) {
@@ -384,38 +389,71 @@ public class MetricsServiceImpl implements MetricsService {
                 // future fails, we treat the entire client request as a failure. We probably
                 // eventually want to implement more fine-grained error handling where we can
                 // notify the subscriber of what exactly fails.
-                Observable<ResultSet> metadataUpdated = dataAccess.addTagsAndDataRetention(metric);
-                Observable<ResultSet> tagsUpdated = dataAccess.insertIntoMetricsTagsIndex(metric, metric.getTags());
-                Observable<ResultSet> metricUpdates;
+                List<Observable<ResultSet>> updates = new ArrayList<>();
+                updates.add(dataAccess.addTagsAndDataRetention(denormalizedMetric));
+                updates.add(dataAccess.insertIntoMetricsTagsIndex(denormalizedMetric, denormalizedMetric.getTags()));
 
-                if (metric.getDataRetention() != null) {
-                    ResultSetFuture dataRetentionFuture = dataAccess.updateRetentionsIndex(metric);
-                    Observable<ResultSet> dataRetentionUpdated = RxUtil.from(dataRetentionFuture, metricsTasks);
-                    dataRetentions.put(new DataRetentionKey(metric), metric.getDataRetention());
-                    metricUpdates = Observable.merge(metadataUpdated, tagsUpdated, dataRetentionUpdated);
-                } else {
-                    metricUpdates = Observable.merge(metadataUpdated, tagsUpdated);
+                Metric<?> rateMetric = null;
+                if (denormalizedMetric.getType() == COUNTER) {
+                    rateMetric = new Metric(denormalizedMetric.getTenantId(), COUNTER_RATE,
+                            new MetricId(denormalizedMetric.getId().getName()), denormalizedMetric.getTags(),
+                            denormalizedMetric.getDataRetention());
+                    updates.add(RxUtil.from(dataAccess.insertMetricInMetricsIndex(rateMetric), metricsTasks));
+
                 }
 
-                metricUpdates.subscribe(new VoidSubscriber<>(subscriber));
+                if (denormalizedMetric.getDataRetention() != null) {
+                    if (denormalizedMetric.getType() == COUNTER) {
+                        updates.add(updateRetentionsIndex(rateMetric));
+                    } else {
+                        updates.add(updateRetentionsIndex(denormalizedMetric));
+                    }
+                }
+
+                Observable.merge(updates).subscribe(new VoidSubscriber<>(subscriber));
             }
         }));
     }
 
+    MetricId denormalizeId(MetricType type, MetricId id) {
+        if (type == COUNTER) {
+            return new MetricId(id.getGroup() + "$" + id.getName());
+        }
+        return id;
+    }
+
+    MetricId normalizeId(MetricType type, MetricId id) {
+        if (type == COUNTER) {
+            String[] parts = id.getName().split("\\$");
+            return new MetricId(parts[0], parts[1]);
+        } else {
+            return id;
+        }
+    }
+
+    private Observable<ResultSet> updateRetentionsIndex(Metric metric) {
+        ResultSetFuture dataRetentionFuture = dataAccess.updateRetentionsIndex(metric);
+        Observable<ResultSet> dataRetentionUpdated = RxUtil.from(dataRetentionFuture, metricsTasks);
+        // TODO Shouldn't we only update dataRetentions map when the retentions index update succeeds?
+        dataRetentions.put(new DataRetentionKey(metric), metric.getDataRetention());
+
+        return dataRetentionUpdated;
+    }
+
     @Override
     public Observable<Metric> findMetric(final String tenantId, final MetricType type, final MetricId id) {
-        return dataAccess.findMetric(tenantId, type, id, DataAccessImpl.DPART)
+        return dataAccess.findMetric(tenantId, type, denormalizeId(type, id))
                 .flatMap(Observable::from)
-                .map(row -> new Metric(tenantId, type, id, row.getMap(5, String.class, String.class),
-                        row.getInt(6)));
+                .map(row -> new Metric(tenantId, type, id, row.getMap(2, String.class, String.class),
+                        row.getInt(3)));
     }
 
     @Override
     public Observable<Metric> findMetrics(String tenantId, MetricType type) {
         return dataAccess.findMetricsInMetricsIndex(tenantId, type)
                 .flatMap(Observable::from)
-                .map(row -> new Metric(tenantId, type, new MetricId(row.getString(0),
-                        Interval.parse(row.getString(1))), row.getMap(2, String.class, String.class), row.getInt(3)));
+                .map(row -> new Metric(tenantId, type, normalizeId(type, new MetricId(row.getString(0),
+                        Interval.parse(row.getString(1)))), row.getMap(2, String.class, String.class), row.getInt(3)));
     }
 
     @Override
@@ -424,7 +462,7 @@ public class MetricsServiceImpl implements MetricsService {
 
         return metricTags.flatMap(Observable::from).take(1).map(row -> Optional.of(row.getMap(0, String.class, String
                 .class)))
-            .defaultIfEmpty(Optional.empty());
+                .defaultIfEmpty(Optional.empty());
     }
 
     // Adding/deleting metric tags currently involves writing to three tables - data,

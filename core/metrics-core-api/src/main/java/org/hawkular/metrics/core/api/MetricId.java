@@ -23,6 +23,8 @@ import com.google.common.base.Objects;
  */
 public class MetricId {
 
+    private String group;
+
     private String name;
 
     private Interval interval;
@@ -31,9 +33,18 @@ public class MetricId {
         this(name, Interval.NONE);
     }
 
+    public MetricId(String group, String name) {
+        this.group = group;
+        this.name = name;
+    }
+
     public MetricId(String name, Interval interval) {
         this.name = name;
         this.interval = interval;
+    }
+
+    public String getGroup() {
+        return group;
     }
 
     public String getName() {
@@ -48,24 +59,23 @@ public class MetricId {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-
         MetricId metricId = (MetricId) o;
-
-        if (!interval.equals(metricId.interval)) return false;
-        if (!name.equals(metricId.name)) return false;
-
-        return true;
+        return java.util.Objects.equals(group, metricId.group) &&
+                java.util.Objects.equals(name, metricId.name) &&
+                java.util.Objects.equals(interval, metricId.interval);
     }
 
     @Override
     public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + interval.hashCode();
-        return result;
+        return java.util.Objects.hash(group, name, interval);
     }
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this).add("name", name).add("interval", interval).toString();
+        return Objects.toStringHelper(this)
+                .add("name", name)
+                .add("interval", interval)
+                .omitNullValues()
+                .toString();
     }
 }

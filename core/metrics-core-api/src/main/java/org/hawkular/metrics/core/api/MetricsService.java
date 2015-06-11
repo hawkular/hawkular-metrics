@@ -53,7 +53,7 @@ public interface MetricsService {
 
     Observable<Tenant> getTenants();
 
-    Observable<Void> createMetric(Metric metric);
+    Observable<Void> createMetric(Metric<?> metric);
 
     Observable<Metric> findMetric(String tenantId, MetricType type, MetricId id);
 

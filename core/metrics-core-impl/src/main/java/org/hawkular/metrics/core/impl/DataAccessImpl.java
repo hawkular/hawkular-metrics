@@ -161,9 +161,9 @@ public class DataAccessImpl implements DataAccess {
         findTenant = session.prepare("SELECT id, retentions, aggregation_templates FROM tenants WHERE id = ?");
 
         findMetric = session.prepare(
-            "SELECT tenant_id, type, metric, interval, dpart, m_tags, data_retention " +
-            "FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
+            "SELECT metric, interval, tags, data_retention " +
+            "FROM metrics_idx " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ?");
 
         getMetricTags = session.prepare(
                 "SELECT m_tags " +
@@ -175,6 +175,9 @@ public class DataAccessImpl implements DataAccess {
             "SET m_tags = m_tags + ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
 
+        // TODO I am not sure if we want the m_tags and data_retention columns in the data table
+        // Everything else in a partition will have a TTL set on it, so I fear that these columns
+        // might cause problems with compaction.
         addMetadataAndDataRetention = session.prepare(
             "UPDATE data " +
             "SET m_tags = m_tags + ?, data_retention = ? " +
@@ -373,9 +376,8 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findMetric(String tenantId, MetricType type, MetricId id, long dpart) {
-        return rxSession.execute(findMetric.bind(tenantId, type.getCode(), id.getName(), id.getInterval().toString(),
-                dpart));
+    public Observable<ResultSet> findMetric(String tenantId, MetricType type, MetricId id) {
+        return rxSession.execute(findMetric.bind(tenantId, type.getCode(), id.getName(), id.getInterval().toString()));
     }
 
     @Override
@@ -423,7 +425,7 @@ public class DataAccessImpl implements DataAccess {
             .add(addTagsToMetricsIndex.bind(additions, metric.getTenantId(),
                 metric.getType().getCode(), metric.getId().getInterval().toString(), metric.getId().getName()))
             .add(deleteTagsFromMetricsIndex.bind(deletions, metric.getTenantId(), metric.getType().getCode(),
-                metric.getId().getInterval().toString(), metric.getId().getName()));
+                    metric.getId().getInterval().toString(), metric.getId().getName()));
         return rxSession.execute(batchStatement);
     }
 
@@ -432,7 +434,7 @@ public class DataAccessImpl implements DataAccess {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (Metric metric : metrics) {
             batchStatement.add(updateMetricsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
-                metric.getId().getInterval().toString(), metric.getId().getName()));
+                    metric.getId().getInterval().toString(), metric.getId().getName()));
         }
         return session.executeAsync(batchStatement);
     }
@@ -601,8 +603,8 @@ public class DataAccessImpl implements DataAccess {
         return Observable.from(metric.getDataPoints())
                 .reduce(new BatchStatement(BatchStatement.Type.UNLOGGED), (batchStatement, a) -> {
                     batchStatement.add(insertAvailability.bind(ttl, metric.getTags(), getBytes(a),
-                            metric.getTenantId(), metric.getType().getCode(), metric.getId().getName(),
-                            metric.getId().getInterval().toString(), DPART, getTimeUUID(a.getTimestamp())));
+                        metric.getTenantId(), metric.getType().getCode(), metric.getId().getName(), metric.getId()
+                            .getInterval().toString(), DPART, getTimeUUID(a.getTimestamp())));
                     return batchStatement;
                 })
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
