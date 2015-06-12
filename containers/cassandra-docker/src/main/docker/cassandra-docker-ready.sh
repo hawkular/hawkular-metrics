@@ -16,15 +16,21 @@
 # limitations under the License.
 #
 
-STATUS_URL=http://localhost:$HAWKULAR_METRICS_ENDPOINT_PORT/hawkular/metrics/status
-STATUS_CODE=`curl -L -s -o /dev/null -w "%{http_code}" $STATUS_URL`
+# Get the machines IP address from hosts
+# TODO: find a better way to retrieve the IP address (without
+# relying on the normal tools which are not installed in docker images by default)
+HOSTIP=`cat /etc/hosts | grep $HOSTNAME | awk '{print $1}'`
 
-if [ $STATUS_CODE -eq 200 ]; then
-  STATUS_JSON=`curl -L -s -X GET $STATUS_URL`
-  # if the status is STARTED, then its up and running
-  if [ $STATUS_JSON = '{"MetricsService":"STARTED"}' ]; then
-        exit 0
+while : ;do
+
+  # Get the status of this machine from the Cassandra nodetool
+  STATUS=`nodetool status | grep $HOSTIP | awk '{print $1}'`
+
+  # Once the status is Up and Normal, then we are ready
+  if [ $STATUS = "UN" ]; then
+    exit 0
   fi
-fi
 
-exit 1 # conditions were not passed, exit with an error code
+  sleep 1;
+
+done

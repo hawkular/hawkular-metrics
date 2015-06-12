@@ -46,6 +46,7 @@
     <module>cassandra-seed-provider</module>
     <module>cassandra-docker</module>
     <module>hawkular-metrics-docker</module>
+    <module>container-tests</module>
   </modules>
 
 </project>
