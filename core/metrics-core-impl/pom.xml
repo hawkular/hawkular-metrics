@@ -95,37 +95,16 @@
     </dependency>
 
     <dependency>
-      <groupId>net.sf.trove4j</groupId>
-      <artifactId>trove4j</artifactId>
-      <version>${trove4j.version}</version>
-    </dependency>
-
-    <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-math3</artifactId>
       <version>3.4.1</version>
     </dependency>
     <dependency>
+
       <groupId>com.github.stephenc.eaio-uuid</groupId>
       <artifactId>uuid</artifactId>
       <version>3.4.0</version>
     </dependency>
-
-    <!-- documentation -->
-
-    <dependency>
-      <groupId>com.wordnik</groupId>
-      <artifactId>swagger-annotations</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>com.wordnik</groupId>
-      <artifactId>swagger-core_2.10</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
-    <!-- test -->
 
     <dependency>
       <groupId>junit</groupId>
