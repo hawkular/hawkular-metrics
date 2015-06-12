@@ -63,7 +63,9 @@ public interface DataAccess {
 
     Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType type);
 
-    Observable<Integer> insertData(Observable<GaugeAndTTL> gaugeObservable);
+    Observable<Integer> insertData(Metric<Double> metric, int ttl);
+
+//    Observable<Integer> insertCounterData(Observable)
 
     Observable<ResultSet> findData(String tenantId, MetricId id, long startTime, long endTime);
 

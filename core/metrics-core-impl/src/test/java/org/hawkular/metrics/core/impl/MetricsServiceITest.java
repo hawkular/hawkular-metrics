@@ -43,7 +43,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.codahale.metrics.MetricRegistry;
@@ -421,18 +420,12 @@ public class MetricsServiceITest extends MetricsITest {
             metricsService.setDataAccess(new DelegatingDataAccess(dataAccess) {
 
                 @Override
-                public Observable<Integer> insertData(Observable<GaugeAndTTL> observable) {
-                    List<ResultSetFuture> futures = new ArrayList<>();
-                    final AtomicInteger totalInserts = new AtomicInteger();
-                    for (GaugeAndTTL pair : observable.toBlocking().toIterable()) {
-                        totalInserts.addAndGet(pair.gauge.getDataPoints().size());
-                        futures.add(insertData(pair.gauge, pair.ttl));
-                    }
-                    return Observable.from(futures)
-                            .flatMap(future -> Observable.from(future).map(resultSet -> totalInserts.get()));
+                public Observable<Integer> insertData(Metric<Double> gauge, int ttl) {
+                    return Observable.from(insertDataWithNewWriteTime(gauge, ttl))
+                            .map(resultSet -> gauge.getDataPoints().size());
                 }
 
-                public ResultSetFuture insertData(Metric<Double> m, int ttl) {
+                public ResultSetFuture insertDataWithNewWriteTime(Metric<Double> m, int ttl) {
                     int actualTTL = ttl - duration.toStandardSeconds().getSeconds();
                     long writeTime = now().minus(duration).getMillis() * 1000;
                     BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
@@ -1080,10 +1073,9 @@ public class MetricsServiceITest extends MetricsITest {
         }
 
         @Override
-        public Observable<Integer> insertData(Observable<GaugeAndTTL> observable) {
-            observable.forEach(pair -> assertEquals(pair.ttl, gaugeTTL,
-                    "The gauge TTL does not match the expected value when inserting data"));
-            return super.insertData(observable);
+        public Observable<Integer> insertData(Metric<Double> gauge, int ttl) {
+            assertEquals(ttl, gaugeTTL, "The gauge TTL does not match the expected value when inserting data");
+            return super.insertData(gauge, ttl);
         }
 
         @Override

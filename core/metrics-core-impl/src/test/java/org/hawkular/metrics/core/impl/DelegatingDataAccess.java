@@ -110,8 +110,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<Integer> insertData(Observable<GaugeAndTTL> gaugeObservable) {
-        return delegate.insertData(gaugeObservable);
+    public Observable<Integer> insertData(Metric<Double> gauge, int ttl) {
+        return delegate.insertData(gauge, ttl);
     }
 
     @Override
