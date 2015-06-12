@@ -20,26 +20,11 @@ import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
-
-import org.hawkular.metrics.core.api.AggregationTemplate;
-import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.Counter;
-import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.Retention;
-import org.hawkular.metrics.core.api.RetentionSettings;
-import org.hawkular.metrics.core.api.Tenant;
-import org.hawkular.rx.cassandra.driver.RxSession;
-import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
@@ -54,7 +39,18 @@ import com.datastax.driver.core.TupleValue;
 import com.datastax.driver.core.UDTValue;
 import com.datastax.driver.core.UserType;
 import com.datastax.driver.core.utils.UUIDs;
-
+import org.hawkular.metrics.core.api.AggregationTemplate;
+import org.hawkular.metrics.core.api.AvailabilityType;
+import org.hawkular.metrics.core.api.DataPoint;
+import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.Retention;
+import org.hawkular.metrics.core.api.RetentionSettings;
+import org.hawkular.metrics.core.api.Tenant;
+import org.hawkular.rx.cassandra.driver.RxSession;
+import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import rx.Observable;
 
 /**
@@ -161,9 +157,9 @@ public class DataAccessImpl implements DataAccess {
         findTenant = session.prepare("SELECT id, retentions, aggregation_templates FROM tenants WHERE id = ?");
 
         findMetric = session.prepare(
-            "SELECT tenant_id, type, metric, interval, dpart, m_tags, data_retention " +
-            "FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
+            "SELECT metric, interval, tags, data_retention " +
+            "FROM metrics_idx " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ?");
 
         getMetricTags = session.prepare(
                 "SELECT m_tags " +
@@ -175,6 +171,9 @@ public class DataAccessImpl implements DataAccess {
             "SET m_tags = m_tags + ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
 
+        // TODO I am not sure if we want the m_tags and data_retention columns in the data table
+        // Everything else in a partition will have a TTL set on it, so I fear that these columns
+        // might cause problems with compaction.
         addMetadataAndDataRetention = session.prepare(
             "UPDATE data " +
             "SET m_tags = m_tags + ?, data_retention = ? " +
@@ -251,17 +250,6 @@ public class DataAccessImpl implements DataAccess {
 
         findGaugeMetrics = session.prepare(
             "SELECT DISTINCT tenant_id, type, metric, interval, dpart FROM data;");
-
-        updateCounter = session.prepare(
-            "UPDATE counters " +
-            "SET c_value = c_value + ? " +
-            "WHERE tenant_id = ? AND group = ? AND c_name = ?");
-
-        findCountersByGroup = session.prepare(
-            "SELECT tenant_id, group, c_name, c_value FROM counters WHERE tenant_id = ? AND group = ?");
-
-        findCountersByGroupAndName = session.prepare(
-            "SELECT tenant_id, group, c_name, c_value FROM counters WHERE tenant_id = ? AND group = ? AND c_name IN ?");
 
         insertGaugeTags = session.prepare(
             "INSERT INTO tags (tenant_id, tname, tvalue, type, metric, interval, time, n_value) " +
@@ -373,9 +361,8 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findMetric(String tenantId, MetricType type, MetricId id, long dpart) {
-        return rxSession.execute(findMetric.bind(tenantId, type.getCode(), id.getName(), id.getInterval().toString(),
-                dpart));
+    public Observable<ResultSet> findMetric(String tenantId, MetricType type, MetricId id) {
+        return rxSession.execute(findMetric.bind(tenantId, type.getCode(), id.getName(), id.getInterval().toString()));
     }
 
     @Override
@@ -423,7 +410,7 @@ public class DataAccessImpl implements DataAccess {
             .add(addTagsToMetricsIndex.bind(additions, metric.getTenantId(),
                 metric.getType().getCode(), metric.getId().getInterval().toString(), metric.getId().getName()))
             .add(deleteTagsFromMetricsIndex.bind(deletions, metric.getTenantId(), metric.getType().getCode(),
-                metric.getId().getInterval().toString(), metric.getId().getName()));
+                    metric.getId().getInterval().toString(), metric.getId().getName()));
         return rxSession.execute(batchStatement);
     }
 
@@ -432,7 +419,7 @@ public class DataAccessImpl implements DataAccess {
         BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
         for (Metric metric : metrics) {
             batchStatement.add(updateMetricsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
-                metric.getId().getInterval().toString(), metric.getId().getName()));
+                    metric.getId().getInterval().toString(), metric.getId().getName()));
         }
         return session.executeAsync(batchStatement);
     }
@@ -601,8 +588,8 @@ public class DataAccessImpl implements DataAccess {
         return Observable.from(metric.getDataPoints())
                 .reduce(new BatchStatement(BatchStatement.Type.UNLOGGED), (batchStatement, a) -> {
                     batchStatement.add(insertAvailability.bind(ttl, metric.getTags(), getBytes(a),
-                            metric.getTenantId(), metric.getType().getCode(), metric.getId().getName(),
-                            metric.getId().getInterval().toString(), DPART, getTimeUUID(a.getTimestamp())));
+                        metric.getTenantId(), metric.getType().getCode(), metric.getId().getName(), metric.getId()
+                            .getInterval().toString(), DPART, getTimeUUID(a.getTimestamp())));
                     return batchStatement;
                 })
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
@@ -616,23 +603,6 @@ public class DataAccessImpl implements DataAccess {
     public Observable<ResultSet> findAvailabilityData(String tenantId, MetricId id, long startTime, long endTime) {
         return rxSession.execute(findAvailabilities.bind(tenantId, MetricType.AVAILABILITY.getCode(), id.getName(), id
                 .getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
-    }
-
-    @Override
-    public ResultSetFuture updateCounter(Counter counter) {
-        BoundStatement statement = updateCounter.bind(counter.getValue(), counter.getTenantId(), counter.getGroup(),
-            counter.getName());
-        return session.executeAsync(statement);
-    }
-
-    @Override
-    public ResultSetFuture updateCounters(Collection<Counter> counters) {
-        BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.COUNTER);
-        for (Counter counter : counters) {
-            batchStatement.add(updateCounter.bind(counter.getValue(), counter.getTenantId(), counter.getGroup(),
-                counter.getName()));
-        }
-        return session.executeAsync(batchStatement);
     }
 
     @Override
@@ -678,16 +648,6 @@ public class DataAccessImpl implements DataAccess {
     public ResultSetFuture updateRetentionsIndex(Metric metric) {
         return session.executeAsync(updateRetentionsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
                 metric.getId().getInterval().toString(), metric.getId().getName(), metric.getDataRetention()));
-    }
-
-    public ResultSetFuture findCounters(String tenantId, String group) {
-        BoundStatement statement = findCountersByGroup.bind(tenantId, group);
-        return session.executeAsync(statement);
-    }
-
-    public ResultSetFuture findCounters(String tenantId, String group, List<String> names) {
-        BoundStatement statement = findCountersByGroupAndName.bind(tenantId, group, names);
-        return session.executeAsync(statement);
     }
 
     private KeyspaceMetadata getKeyspace() {

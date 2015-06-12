@@ -16,13 +16,13 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
 import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
@@ -30,10 +30,6 @@ import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
-
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-
 import rx.Observable;
 
 /**
@@ -48,7 +44,7 @@ public interface DataAccess {
 
     ResultSetFuture insertMetricInMetricsIndex(Metric metric);
 
-    Observable<ResultSet> findMetric(String tenantId, MetricType type, MetricId id, long dpart);
+    Observable<ResultSet> findMetric(String tenantId, MetricType type, MetricId id);
 
     Observable<ResultSet> addTagsAndDataRetention(Metric metric);
 
@@ -104,10 +100,6 @@ public interface DataAccess {
     Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl);
 
     Observable<ResultSet> findAvailabilityData(String tenantId, MetricId id, long startTime, long endTime);
-
-    ResultSetFuture updateCounter(Counter counter);
-
-    ResultSetFuture updateCounters(Collection<Counter> counters);
 
     ResultSetFuture findDataRetentions(String tenantId, MetricType type);
 

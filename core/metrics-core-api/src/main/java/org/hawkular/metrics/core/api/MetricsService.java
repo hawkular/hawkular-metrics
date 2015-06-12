@@ -16,14 +16,11 @@
  */
 package org.hawkular.metrics.core.api;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
-
-import com.google.common.util.concurrent.ListenableFuture;
 
 import rx.Observable;
 
@@ -53,7 +50,7 @@ public interface MetricsService {
 
     Observable<Tenant> getTenants();
 
-    Observable<Void> createMetric(Metric metric);
+    Observable<Void> createMetric(Metric<?> metric);
 
     Observable<Metric> findMetric(String tenantId, MetricType type, MetricId id);
 
@@ -83,14 +80,6 @@ public interface MetricsService {
     Observable<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(Metric<AvailabilityType> metric,
             long start, long end, Buckets buckets
     );
-
-    ListenableFuture<Void> updateCounter(Counter counter);
-
-    ListenableFuture<Void> updateCounters(Collection<Counter> counters);
-
-    ListenableFuture<List<Counter>> findCounters(String group);
-
-    ListenableFuture<List<Counter>> findCounters(String group, List<String> counterNames);
 
     /** Check if a metric with the passed {id} has been stored in the system */
     Observable<Boolean> idExists(String id);

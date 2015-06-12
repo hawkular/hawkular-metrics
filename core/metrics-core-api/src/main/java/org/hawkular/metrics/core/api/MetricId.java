@@ -48,24 +48,22 @@ public class MetricId {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-
         MetricId metricId = (MetricId) o;
-
-        if (!interval.equals(metricId.interval)) return false;
-        if (!name.equals(metricId.name)) return false;
-
-        return true;
+        return java.util.Objects.equals(name, metricId.name) &&
+                java.util.Objects.equals(interval, metricId.interval);
     }
 
     @Override
     public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + interval.hashCode();
-        return result;
+        return java.util.Objects.hash(name, interval);
     }
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this).add("name", name).add("interval", interval).toString();
+        return Objects.toStringHelper(this)
+                .add("name", name)
+                .add("interval", interval)
+                .omitNullValues()
+                .toString();
     }
 }

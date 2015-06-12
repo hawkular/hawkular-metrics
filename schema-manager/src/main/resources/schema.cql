@@ -152,16 +152,6 @@ CREATE TABLE ${keyspace}.retentions_idx (
 
 -- #
 
-CREATE TABLE ${keyspace}.counters (
-    tenant_id text,
-    group text,
-    c_name text,
-    c_value counter,
-    PRIMARY KEY ((tenant_id, group), c_name)
-);
-
--- #
-
 CREATE TABLE ${keyspace}.task_queue (
     task_type text,
     time_slice timestamp,

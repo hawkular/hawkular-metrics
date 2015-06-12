@@ -31,13 +31,17 @@ public enum MetricType {
 
     GAUGE(0, "gauge"),
 
-    AVAILABILITY(1, "availability");
+    AVAILABILITY(1, "availability"),
+
+    COUNTER(2, "counter"),
+
+    COUNTER_RATE(3, "counter_rate");
 
     private int code;
 
     private String text;
 
-    private MetricType(int code, String text) {
+    MetricType(int code, String text) {
         this.code = code;
         this.text = text;
     }
@@ -59,15 +63,19 @@ public enum MetricType {
         switch (code) {
             case 0 : return GAUGE;
             case 1 : return AVAILABILITY;
+            case 2 : return COUNTER;
+            case 3 : return COUNTER_RATE;
             default: throw new IllegalArgumentException(code + " is not a recognized metric type");
         }
     }
 
     public static MetricType fromTextCode(String textCode) {
         switch (textCode) {
-        case "gauge": return GAUGE;
-        case "availability": return AVAILABILITY;
-        default: throw new IllegalArgumentException(textCode + " is not a recognized metric type code");
+            case "gauge": return GAUGE;
+            case "availability": return AVAILABILITY;
+            case "counter": return COUNTER;
+            case "counter_rate": return COUNTER_RATE;
+            default: throw new IllegalArgumentException(textCode + " is not a recognized metric type code");
         }
     }
 
