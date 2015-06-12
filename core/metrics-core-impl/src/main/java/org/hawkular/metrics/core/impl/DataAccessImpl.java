@@ -251,17 +251,6 @@ public class DataAccessImpl implements DataAccess {
         findGaugeMetrics = session.prepare(
             "SELECT DISTINCT tenant_id, type, metric, interval, dpart FROM data;");
 
-        updateCounter = session.prepare(
-            "UPDATE counters " +
-            "SET c_value = c_value + ? " +
-            "WHERE tenant_id = ? AND group = ? AND c_name = ?");
-
-        findCountersByGroup = session.prepare(
-            "SELECT tenant_id, group, c_name, c_value FROM counters WHERE tenant_id = ? AND group = ?");
-
-        findCountersByGroupAndName = session.prepare(
-            "SELECT tenant_id, group, c_name, c_value FROM counters WHERE tenant_id = ? AND group = ? AND c_name IN ?");
-
         insertGaugeTags = session.prepare(
             "INSERT INTO tags (tenant_id, tname, tvalue, type, metric, interval, time, n_value) " +
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
