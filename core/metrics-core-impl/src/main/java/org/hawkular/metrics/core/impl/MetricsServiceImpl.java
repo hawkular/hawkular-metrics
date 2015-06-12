@@ -17,14 +17,13 @@
 package org.hawkular.metrics.core.impl;
 
 import static java.util.Comparator.comparingLong;
-import static org.hawkular.metrics.core.api.MetricType.COUNTER;
+import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.Functions.getTTLAvailabilityDataPoint;
 import static org.hawkular.metrics.core.impl.Functions.getTTLGaugeDataPoint;
 import static org.joda.time.Hours.hours;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -55,7 +54,6 @@ import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
-import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.GaugeBucketDataPoint;
 import org.hawkular.metrics.core.api.Interval;
@@ -369,10 +367,12 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<Void> createMetric(Metric<?> metric) {
-        Metric<?> denormalizedMetric = new Metric<>(metric.getTenantId(), metric.getType(),
-                denormalizeId(metric.getType(), metric.getId()), metric.getTags(), metric.getDataRetention());
+        if (metric.getType() == COUNTER_RATE) {
+            throw new IllegalArgumentException(metric + " cannot be created. " + COUNTER_RATE + " metrics are " +
+                "internally generated metrics and cannot be created by clients.");
+        }
 
-        ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(denormalizedMetric);
+        ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric);
         Observable<ResultSet> indexUpdated = RxUtil.from(future, metricsTasks);
         return Observable.create(subscriber -> indexUpdated.subscribe(resultSet -> {
             if (!resultSet.wasApplied()) {
@@ -389,32 +389,16 @@ public class MetricsServiceImpl implements MetricsService {
                 // eventually want to implement more fine-grained error handling where we can
                 // notify the subscriber of what exactly fails.
                 List<Observable<ResultSet>> updates = new ArrayList<>();
-                updates.add(dataAccess.addTagsAndDataRetention(denormalizedMetric));
-                updates.add(dataAccess.insertIntoMetricsTagsIndex(denormalizedMetric, denormalizedMetric.getTags()));
+                updates.add(dataAccess.addTagsAndDataRetention(metric));
+                updates.add(dataAccess.insertIntoMetricsTagsIndex(metric, metric.getTags()));
 
-                if (denormalizedMetric.getDataRetention() != null) {
-                    updates.add(updateRetentionsIndex(denormalizedMetric));
+                if (metric.getDataRetention() != null) {
+                    updates.add(updateRetentionsIndex(metric));
                 }
 
                 Observable.merge(updates).subscribe(new VoidSubscriber<>(subscriber));
             }
         }));
-    }
-
-    MetricId denormalizeId(MetricType type, MetricId id) {
-        if (type == COUNTER) {
-            return new MetricId(id.getGroup() + "$" + id.getName());
-        }
-        return id;
-    }
-
-    MetricId normalizeId(MetricType type, MetricId id) {
-        if (type == COUNTER) {
-            String[] parts = id.getName().split("\\$");
-            return new MetricId(parts[0], parts[1]);
-        } else {
-            return id;
-        }
     }
 
     private Observable<ResultSet> updateRetentionsIndex(Metric metric) {
@@ -428,7 +412,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<Metric> findMetric(final String tenantId, final MetricType type, final MetricId id) {
-        return dataAccess.findMetric(tenantId, type, denormalizeId(type, id))
+        return dataAccess.findMetric(tenantId, type, id)
                 .flatMap(Observable::from)
                 .map(row -> new Metric(tenantId, type, id, row.getMap(2, String.class, String.class),
                         row.getInt(3)));
@@ -438,8 +422,8 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<Metric> findMetrics(String tenantId, MetricType type) {
         return dataAccess.findMetricsInMetricsIndex(tenantId, type)
                 .flatMap(Observable::from)
-                .map(row -> new Metric(tenantId, type, normalizeId(type, new MetricId(row.getString(0),
-                        Interval.parse(row.getString(1)))), row.getMap(2, String.class, String.class), row.getInt(3)));
+                .map(row -> new Metric(tenantId, type, new MetricId(row.getString(0), Interval.parse(row.getString(1))),
+                        row.getMap(2, String.class, String.class), row.getInt(3)));
     }
 
     @Override
@@ -522,33 +506,6 @@ public class MetricsServiceImpl implements MetricsService {
                     results.onCompleted();
                 });
         return results;
-    }
-
-    @Override
-    public ListenableFuture<Void> updateCounter(Counter counter) {
-//        return Futures.transform(dataAccess.updateCounter(counter), TO_VOID);
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public ListenableFuture<Void> updateCounters(Collection<Counter> counters) {
-//        ResultSetFuture future = dataAccess.updateCounters(counters);
-//        return Futures.transform(future, TO_VOID);
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public ListenableFuture<List<Counter>> findCounters(String group) {
-//        ResultSetFuture future = dataAccess.findCounters(group);
-//        return Futures.transform(future, mapCounters, metricsTasks);
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public ListenableFuture<List<Counter>> findCounters(String group, List<String> counterNames) {
-//        ResultSetFuture future = dataAccess.findCounters(group, counterNames);
-//        return Futures.transform(future, mapCounters, metricsTasks);
-        throw new UnsupportedOperationException();
     }
 
     @Override

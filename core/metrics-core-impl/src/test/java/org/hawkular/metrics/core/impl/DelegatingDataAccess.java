@@ -16,13 +16,13 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
 import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
@@ -30,10 +30,6 @@ import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
-
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-
 import rx.Observable;
 
 /**
@@ -203,16 +199,6 @@ public class DelegatingDataAccess implements DataAccess {
     @Override
     public Observable<ResultSet> findAvailabilityData(String tenantId, MetricId id, long startTime, long endTime) {
         return delegate.findAvailabilityData(tenantId, id, startTime, endTime);
-    }
-
-    @Override
-    public ResultSetFuture updateCounter(Counter counter) {
-        return delegate.updateCounter(counter);
-    }
-
-    @Override
-    public ResultSetFuture updateCounters(Collection<Counter> counters) {
-        return delegate.updateCounters(counters);
     }
 
     @Override

@@ -33,7 +33,9 @@ public enum MetricType {
 
     AVAILABILITY(1, "availability"),
 
-    COUNTER(2, "counter");
+    COUNTER(2, "counter"),
+
+    COUNTER_RATE(3, "counter_rate");
 
     private int code;
 
@@ -62,6 +64,7 @@ public enum MetricType {
             case 0 : return GAUGE;
             case 1 : return AVAILABILITY;
             case 2 : return COUNTER;
+            case 3 : return COUNTER_RATE;
             default: throw new IllegalArgumentException(code + " is not a recognized metric type");
         }
     }
@@ -71,6 +74,7 @@ public enum MetricType {
             case "gauge": return GAUGE;
             case "availability": return AVAILABILITY;
             case "counter": return COUNTER;
+            case "counter_rate": return COUNTER_RATE;
             default: throw new IllegalArgumentException(textCode + " is not a recognized metric type code");
         }
     }

@@ -18,7 +18,6 @@ package org.hawkular.metrics.core.impl;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-
 import static org.hawkular.metrics.core.api.AvailabilityType.UP;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
@@ -29,9 +28,13 @@ import static org.testng.Assert.assertFalse;
 
 import java.util.List;
 
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.hawkular.metrics.core.api.AggregationTemplate;
 import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.Counter;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
@@ -42,15 +45,6 @@ import org.joda.time.Days;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
-
 import rx.Observable;
 
 /**
@@ -187,75 +181,6 @@ public class DataAccessITest extends MetricsITest {
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
-    }
-
-    @Test
-    public void updateCounterAndFindCounter() throws Exception {
-        Counter counter = new Counter("t1", "simple-test", "c1", 1);
-
-        ResultSetFuture future = dataAccess.updateCounter(counter);
-        getUninterruptibly(future);
-
-        ResultSetFuture queryFuture = dataAccess.findCounters("t1", "simple-test", asList("c1"));
-        List<Counter> actual = getUninterruptibly(Futures.transform(queryFuture, new CountersMapper()));
-        List<Counter> expected = asList(counter);
-
-        assertEquals(actual, expected, "The counters do not match");
-    }
-
-    @Test
-    public void updateCounters() throws Exception {
-        String tenantId = "t1";
-        String group = "batch-test";
-        List<Counter> expected = ImmutableList.of(
-            new Counter(tenantId, group, "c1", 1),
-            new Counter(tenantId, group, "c2", 2),
-            new Counter(tenantId, group, "c3", 3)
-        );
-
-        ResultSetFuture future = dataAccess.updateCounters(expected);
-        getUninterruptibly(future);
-
-        ResultSetFuture queryFuture = dataAccess.findCounters(tenantId, group);
-        List<Counter> actual = getUninterruptibly(Futures.transform(queryFuture, new CountersMapper()));
-
-        assertEquals(actual, expected, "The counters do not match the expected values");
-    }
-
-    @Test
-    public void findCountersByGroup() throws Exception {
-        Counter c1 = new Counter("t1", "group1", "c1", 1);
-        Counter c2 = new Counter("t1", "group1", "c2", 2);
-        Counter c3 = new Counter("t2", "group2", "c1", 1);
-        Counter c4 = new Counter("t2", "group2", "c2", 2);
-
-        ResultSetFuture future = dataAccess.updateCounters(asList(c1, c2, c3, c4));
-        getUninterruptibly(future);
-
-        ResultSetFuture queryFuture = dataAccess.findCounters("t1", c1.getGroup());
-        List<Counter> actual = getUninterruptibly(Futures.transform(queryFuture, new CountersMapper()));
-        List<Counter> expected = asList(c1, c2);
-
-        assertEquals(actual, expected, "The counters do not match the expected values when filtering by group");
-    }
-
-    @Test
-    public void findCountersByGroupAndName() throws Exception {
-        String tenantId = "t1";
-        String group = "batch-test";
-        Counter c1 = new Counter(tenantId, group, "c1", 1);
-        Counter c2 = new Counter(tenantId, group, "c2", 2);
-        Counter c3 = new Counter(tenantId, group, "c3", 3);
-
-        ResultSetFuture future = dataAccess.updateCounters(asList(c1, c2, c3));
-        getUninterruptibly(future);
-
-        ResultSetFuture queryFuture = dataAccess.findCounters(tenantId, group, asList("c1", "c3"));
-        List<Counter> actual = getUninterruptibly(Futures.transform(queryFuture, new CountersMapper()));
-        List<Counter> expected = asList(c1, c3);
-
-        assertEquals(actual, expected,
-            "The counters do not match the expected values when filtering by group and by counter names");
     }
 
     @Test

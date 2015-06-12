@@ -23,8 +23,6 @@ import com.google.common.base.Objects;
  */
 public class MetricId {
 
-    private String group;
-
     private String name;
 
     private Interval interval;
@@ -33,18 +31,9 @@ public class MetricId {
         this(name, Interval.NONE);
     }
 
-    public MetricId(String group, String name) {
-        this.group = group;
-        this.name = name;
-    }
-
     public MetricId(String name, Interval interval) {
         this.name = name;
         this.interval = interval;
-    }
-
-    public String getGroup() {
-        return group;
     }
 
     public String getName() {
@@ -60,14 +49,13 @@ public class MetricId {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         MetricId metricId = (MetricId) o;
-        return java.util.Objects.equals(group, metricId.group) &&
-                java.util.Objects.equals(name, metricId.name) &&
+        return java.util.Objects.equals(name, metricId.name) &&
                 java.util.Objects.equals(interval, metricId.interval);
     }
 
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(group, name, interval);
+        return java.util.Objects.hash(name, interval);
     }
 
     @Override

@@ -24,6 +24,7 @@ import static org.hawkular.metrics.core.api.AvailabilityType.UNKNOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UP;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
+import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.DataAccessImpl.DPART;
 import static org.hawkular.metrics.core.impl.MetricsServiceImpl.DEFAULT_TTL;
@@ -202,10 +203,9 @@ public class MetricsServiceITest extends MetricsITest {
 
     @Test
     public void createBasicCounterMetric() throws Exception {
-        String tenantId = "basic-counter";
-        String group = "g1";
-        String name = "c1";
-        MetricId id = new MetricId(group, name);
+        String tenantId = "counter-tenant";
+        String name = "basic-counter";
+        MetricId id = new MetricId(name);
 
         Metric<?> counter = new Metric<>(tenantId, COUNTER, id);
         metricsService.createMetric(counter).toBlocking().lastOrDefault(null);
@@ -219,9 +219,8 @@ public class MetricsServiceITest extends MetricsITest {
     @Test
     public void createCounterWithTags() throws Exception {
         String tenantId = "counter-tenant";
-        String group = "counter-tags";
         String name = "tags-counter";
-        MetricId id = new MetricId(group, name);
+        MetricId id = new MetricId(name);
         Map<String, String> tags = ImmutableMap.of("x", "1", "y", "2");
 
         Metric<?> counter = new Metric<>(tenantId, COUNTER, id, tags, null);
@@ -237,9 +236,8 @@ public class MetricsServiceITest extends MetricsITest {
     @Test
     public void createCounterWithDataRetention() throws Exception {
         String tenantId = "counter-tenant";
-        String group = "counter-retention";
         String name = "retention-counter";
-        MetricId id = new MetricId(group, name);
+        MetricId id = new MetricId(name);
         Integer retention = 100;
 
         Metric<?> counter = new Metric<>(tenantId, COUNTER, id, emptyMap(), retention);
@@ -249,8 +247,13 @@ public class MetricsServiceITest extends MetricsITest {
         assertEquals(actual, counter, "The counter metric does not match");
 
         assertMetricIndexMatches(tenantId, COUNTER, singletonList(counter));
-        assertDataRetentionsIndexMatches(tenantId, COUNTER, ImmutableSet.of(
-                new Retention(metricsService.denormalizeId(COUNTER, id), retention)));
+        assertDataRetentionsIndexMatches(tenantId, COUNTER, ImmutableSet.of(new Retention(id, retention)));
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void doNotAllowCreationOfCounterRateMetric() {
+        metricsService.createMetric(new Metric<>("test", COUNTER_RATE, new MetricId("counter-rate"))).toBlocking()
+                .lastOrDefault(null);
     }
 
     @Test
@@ -1027,7 +1030,7 @@ public class MetricsServiceITest extends MetricsITest {
         for (Row row : resultSet) {
             MetricType type = MetricType.fromCode(row.getInt(1));
             MetricId id = new MetricId(row.getString(2), Interval.parse(row.getString(3)));
-            actual.add(new MetricsTagsIndexEntry(row.getString(0), type, metricsService.normalizeId(type, id)));
+            actual.add(new MetricsTagsIndexEntry(row.getString(0), type, id));
         }
 
         assertEquals(actual, expected, "The metrics tags index entries do not match");
