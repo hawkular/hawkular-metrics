@@ -65,7 +65,9 @@ public interface DataAccess {
 
     Observable<Integer> insertData(Metric<Double> metric, int ttl);
 
-//    Observable<Integer> insertCounterData(Observable)
+    Observable<Integer> insertCounterData(Metric<Long> counter, int ttl);
+
+    Observable<ResultSet> findCounterData(String tenantId, MetricId id, long startTime, long endTime);
 
     Observable<ResultSet> findData(String tenantId, MetricId id, long startTime, long endTime);
 

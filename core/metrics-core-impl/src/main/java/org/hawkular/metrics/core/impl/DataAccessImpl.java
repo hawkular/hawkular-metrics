@@ -17,6 +17,7 @@
 package org.hawkular.metrics.core.impl;
 
 import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
+import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
 
 import java.nio.ByteBuffer;
@@ -85,6 +86,10 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement insertGaugeData;
 
+    private PreparedStatement insertCounterData;
+
+    private PreparedStatement findCounterDataExclusive;
+
     private PreparedStatement findGaugeDataByDateRangeExclusive;
 
     private PreparedStatement findGaugeDataByDateRangeExclusiveASC;
@@ -100,12 +105,6 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement deleteGaugeMetric;
 
     private PreparedStatement findGaugeMetrics;
-
-    private PreparedStatement updateCounter;
-
-    private PreparedStatement findCountersByGroup;
-
-    private PreparedStatement findCountersByGroupAndName;
 
     private PreparedStatement insertGaugeTags;
 
@@ -214,6 +213,12 @@ public class DataAccessImpl implements DataAccess {
             "SET m_tags = m_tags + ?, n_value = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ? ");
 
+        insertCounterData = session.prepare(
+            "UPDATE data " +
+            "USING TTL ?" +
+            "SET m_tags = m_tags + ?, l_value = ? " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ? ");
+
         findGaugeDataByDateRangeExclusive = session.prepare(
             "SELECT time, m_tags, data_retention, n_value, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
@@ -223,6 +228,11 @@ public class DataAccessImpl implements DataAccess {
             "SELECT time, m_tags, data_retention, n_value, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?" +
             " AND time < ? ORDER BY time ASC");
+
+        findCounterDataExclusive = session.prepare(
+            "SELECT time, m_tags, data_retention, l_value, tags FROM data " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? " +
+            "AND time < ? ORDER BY time ASC");
 
         findGaugeDataWithWriteTimeByDateRangeExclusive = session.prepare(
             "SELECT time, m_tags, data_retention, n_value, tags, WRITETIME(n_value) FROM data " +
@@ -442,20 +452,35 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<Integer> insertData(Metric<Double> gauge, int ttl) {
         return Observable.from(gauge.getDataPoints())
-                .map(dataPoint -> bindDataPoint(gauge, dataPoint, ttl))
+                .map(dataPoint -> bindDataPoint(insertGaugeData, gauge, dataPoint, ttl))
                 .reduce(new BatchStatement(UNLOGGED), BatchStatement::add)
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
 
-    private BoundStatement bindDataPoint(Metric gauge, DataPoint<Double> dataPoint, int ttl) {
-        return insertGaugeData.bind(ttl, gauge.getTags(), dataPoint.getValue(), gauge.getTenantId(),
-                gauge.getType().getCode(), gauge.getId().getName(), gauge.getId().getInterval().toString(), DPART,
+    @Override
+    public Observable<Integer> insertCounterData(Metric<Long> counter, int ttl) {
+        return Observable.from(counter.getDataPoints())
+                .map(dataPoint -> bindDataPoint(insertCounterData, counter, dataPoint, ttl))
+                .reduce(new BatchStatement(UNLOGGED), BatchStatement::add)
+                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+    }
+
+    private BoundStatement bindDataPoint(PreparedStatement statement, Metric<?> metric, DataPoint<?> dataPoint,
+            int ttl) {
+        return statement.bind(ttl, metric.getTags(), dataPoint.getValue(), metric.getTenantId(),
+                metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(), DPART,
                 getTimeUUID(dataPoint.getTimestamp()));
     }
 
     @Override
     public Observable<ResultSet> findData(String tenantId, MetricId id, long startTime, long endTime) {
         return findData(tenantId, id, startTime, endTime, false);
+    }
+
+    @Override
+    public Observable<ResultSet> findCounterData(String tenantId, MetricId id, long startTime, long endTime) {
+        return rxSession.execute(findCounterDataExclusive.bind(tenantId, COUNTER.getCode(), id.getName(),
+                id.getInterval().toString(), DPART, UUIDs.startOf(startTime), UUIDs.endOf(endTime)));
     }
 
     @Override

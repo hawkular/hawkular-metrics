@@ -155,9 +155,19 @@ public class MetricsServiceImpl implements MetricsService {
     private Meter availabilityInserts;
 
     /**
+     * Measures the throughput of inserting counter data points.
+     */
+    private Meter counterInserts;
+
+    /**
      * Measures the latency of queries for gauge (raw) data.
      */
     private Timer gaugeReadLatency;
+
+    /**
+     * Measures the latency of queries for raw counter data.
+     */
+    private Timer counterReadLatency;
 
     /**
      * Measures the latency of queries for availability (raw) data.
@@ -206,8 +216,10 @@ public class MetricsServiceImpl implements MetricsService {
     private void initMetrics() {
         gaugeInserts = metricRegistry.meter("gauge-inserts");
         availabilityInserts = metricRegistry.meter("availability-inserts");
+        counterInserts = metricRegistry.meter("counter-inserts");
         gaugeReadLatency = metricRegistry.timer("gauge-read-latency");
-        availabilityReadLatency = metricRegistry.timer("availability-write-latency");
+        availabilityReadLatency = metricRegistry.timer("availability-read-latency");
+        counterReadLatency = metricRegistry.timer("counter-read-latency");
     }
 
     void unloadDataRetentions() {
@@ -508,13 +520,29 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<Void> addCounterData(List<Metric<Long>> metrics) {
-        return null;
+    public Observable<Void> addCounterData(Observable<Metric<Long>> counters) {
+        PublishSubject<Void> results = PublishSubject.create();
+        Observable<Integer> updates = counters.flatMap(c -> dataAccess.insertCounterData(c, getTTL(c)));
+        // I am intentionally return zero for the number index updates because I want to measure and compare the
+        // throughput inserting data with and without the index updates. This will give us a better idea of how much
+        // over there is with the index updates.
+        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndexRx(counters).map(count -> 0);
+        updates.concatWith(indexUpdates).subscribe(
+                counterInserts::mark,
+                results::onError,
+                () -> {
+                    results.onNext(null);
+                    results.onCompleted();
+                });
+        return results;
     }
 
     @Override
     public Observable<DataPoint<Long>> findCounterData(String tenantId, MetricId id, long start, long end) {
-        return null;
+        return time(counterReadLatency, () ->
+                dataAccess.findCounterData(tenantId, id, start, end)
+                        .flatMap(Observable::from)
+                        .map(Functions::getCounterDataPoint));
     }
 
     @Override
