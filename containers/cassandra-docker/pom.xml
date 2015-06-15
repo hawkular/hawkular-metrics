@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
@@ -18,7 +19,6 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -29,9 +29,14 @@
   </parent>
 
   <artifactId>cassandra-docker</artifactId>
-  <name>Cassandra Docker Image</name>
   <version>0.3.5-SNAPSHOT</version>
   <packaging>pom</packaging>
+
+  <name>Cassandra Docker Image</name>
+
+  <properties>
+    <docker.baseimage>jboss/base-jdk:8</docker.baseimage>
+  </properties>
 
   <dependencies>
     <dependency>
@@ -40,10 +45,6 @@
       <version>${project.version}</version>
     </dependency>
   </dependencies>
-
-  <properties>
-    <docker.baseimage>jboss/base-jdk:8</docker.baseimage>
-  </properties>
 
   <build>
     <plugins>
@@ -115,5 +116,4 @@
       </build>
     </profile>
   </profiles>
-
 </project>

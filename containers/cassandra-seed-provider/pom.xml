@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
@@ -18,7 +19,6 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -29,8 +29,9 @@
   </parent>
 
   <artifactId>cassandra-seed-provider</artifactId>
-  <name>Cassandra Seed Provider</name>
   <version>0.3.5-SNAPSHOT</version>
+
+  <name>Cassandra Seed Provider</name>
 
   <dependencies>
     <dependency>
@@ -43,5 +44,4 @@
   <build>
     <finalName>cassandra-seed-provider</finalName>
   </build>
-
 </project>

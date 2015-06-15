@@ -45,7 +45,6 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-
   <dependencies>
 
     <dependency>
@@ -229,4 +228,3 @@
     </profile>
   </profiles>
 </project>
-

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
@@ -18,7 +19,6 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -28,18 +28,10 @@
   </parent>
 
   <artifactId>hawkular-metrics-containers</artifactId>
-  <name>Hawkular Metric Containers</name>
   <version>0.3.5-SNAPSHOT</version>
   <packaging>pom</packaging>
 
-  <properties>
-    <cassandra.version>2.1.3</cassandra.version>
-    <fabric8.version>2.0.39</fabric8.version>
-    <docker.user>hawkular</docker.user>
-    <hawkular-metrics.image>${docker.user}/hawkular-metrics:${project.version}</hawkular-metrics.image>
-    <cassandra.build>devel</cassandra.build>
-    <cassandra.image>${docker.user}/cassandra:${cassandra.version}-${cassandra.build}</cassandra.image>
-  </properties>
+  <name>Hawkular Metric Containers</name>
 
   <modules>
     <module>kubernetes</module>
@@ -49,4 +41,12 @@
     <module>container-tests</module>
   </modules>
 
+  <properties>
+    <cassandra.version>2.1.3</cassandra.version>
+    <fabric8.version>2.0.39</fabric8.version>
+    <docker.user>hawkular</docker.user>
+    <hawkular-metrics.image>${docker.user}/hawkular-metrics:${project.version}</hawkular-metrics.image>
+    <cassandra.build>devel</cassandra.build>
+    <cassandra.image>${docker.user}/cassandra:${cassandra.version}-${cassandra.build}</cassandra.image>
+  </properties>
 </project>

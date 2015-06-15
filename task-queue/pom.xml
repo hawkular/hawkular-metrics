@@ -29,6 +29,7 @@
   </parent>
 
   <artifactId>hawkular-metrics-task-queue</artifactId>
+
   <name>Hawkular Metrics Task Queue</name>
 
   <properties>
@@ -51,7 +52,6 @@
     <dependency>
       <groupId>com.datastax.cassandra</groupId>
       <artifactId>cassandra-driver-core</artifactId>
-      <version>${datastax.driver.version}</version>
     </dependency>
 
     <dependency>
