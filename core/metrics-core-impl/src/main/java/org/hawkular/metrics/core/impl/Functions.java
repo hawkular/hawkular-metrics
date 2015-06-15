@@ -41,7 +41,7 @@ import com.google.common.base.Function;
  */
 public class Functions {
 
-    private static enum GAUGE_COLS {
+    private enum GAUGE_COLS {
         TIME,
         METRIC_TAGS,
         DATA_RETENTION,
@@ -50,7 +50,16 @@ public class Functions {
         WRITE_TIME
     }
 
-    private static enum AVAILABILITY_COLS {
+    private enum COUNTER_COLS {
+        TIME,
+        METRIC_TAGS,
+        DATA_RETENTION,
+        VALUE,
+        TAGS,
+        WRITE_TIME
+    }
+
+    private enum AVAILABILITY_COLS {
         TIME,
         METRIC_TAGS,
         DATA_RETENTION,
@@ -69,6 +78,14 @@ public class Functions {
                 UUIDs.unixTimestamp(row.getUUID(GAUGE_COLS.TIME.ordinal())),
                 row.getDouble(GAUGE_COLS.VALUE.ordinal()),
                 row.getMap(GAUGE_COLS.TAGS.ordinal(), String.class, String.class)
+        );
+    }
+
+    public static DataPoint<Long> getCounterDataPoint(Row row) {
+        return new DataPoint<>(
+                UUIDs.unixTimestamp(row.getUUID(COUNTER_COLS.TIME.ordinal())),
+                row.getLong(COUNTER_COLS.VALUE.ordinal()),
+                row.getMap(COUNTER_COLS.TAGS.ordinal(), String.class, String.class)
         );
     }
 

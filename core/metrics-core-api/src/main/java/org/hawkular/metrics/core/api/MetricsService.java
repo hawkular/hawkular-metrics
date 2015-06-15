@@ -98,6 +98,10 @@ public interface MetricsService {
     Observable<Map<MetricId, Set<DataPoint<AvailabilityType>>>> findAvailabilityByTags(String tenantId,
             Map<String, String> tags);
 
+    Observable<Void> addCounterData(Observable<Metric<Long>> counters);
+
+    Observable<DataPoint<Long>> findCounterData(String tenantId, MetricId id, long start, long end);
+
     /**
      * <p>
      * For a specified date range, return a list of periods in which the predicate evaluates to true for each

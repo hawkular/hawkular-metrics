@@ -83,6 +83,7 @@ CREATE TABLE ${keyspace}.data (
     m_tags map<text, text> static,
     n_value double,
     availability blob,
+    l_value bigint,
     aggregates set<frozen <aggregate_data>>,
     tags map<text, text>,
     PRIMARY KEY ((tenant_id, type, metric, interval, dpart), time)

@@ -43,7 +43,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.codahale.metrics.MetricRegistry;
@@ -311,6 +310,37 @@ public class MetricsServiceITest extends MetricsITest {
     }
 
     @Test
+    public void addAndFetchCounterData() throws Exception {
+        DateTime start = now().minusMinutes(30);
+        DateTime end = start.plusMinutes(20);
+        String tenantId = "counters-tenant";
+
+        metricsService.createTenant(new Tenant(tenantId)).toBlocking().lastOrDefault(null);
+
+        Metric<Long> counter = new Metric<>(tenantId, COUNTER, new MetricId("c1"), asList(
+                new DataPoint<>(start.getMillis(), 10L),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 15L),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 25L),
+                new DataPoint<>(end.getMillis(), 45L)
+        ));
+
+        metricsService.addCounterData(Observable.just(counter)).toBlocking().lastOrDefault(null);
+
+        Observable<DataPoint<Long>> data = metricsService.findCounterData(tenantId, new MetricId("c1"),
+                start.getMillis(), end.getMillis());
+        List<DataPoint<Long>> actual = toList(data);
+        List<DataPoint<Long>> expected = asList(
+                new DataPoint<>(start.getMillis(), 10L),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 15L),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 25L),
+                new DataPoint<>(end.getMillis(), 45L)
+        );
+
+        assertEquals(actual, expected, "The counter data does not match the expected values");
+        assertMetricIndexMatches(tenantId, COUNTER, singletonList(counter));
+    }
+
+    @Test
     public void verifyTTLsSetOnGaugeData() throws Exception {
         DateTime start = now().minusMinutes(10);
 
@@ -421,18 +451,12 @@ public class MetricsServiceITest extends MetricsITest {
             metricsService.setDataAccess(new DelegatingDataAccess(dataAccess) {
 
                 @Override
-                public Observable<Integer> insertData(Observable<GaugeAndTTL> observable) {
-                    List<ResultSetFuture> futures = new ArrayList<>();
-                    final AtomicInteger totalInserts = new AtomicInteger();
-                    for (GaugeAndTTL pair : observable.toBlocking().toIterable()) {
-                        totalInserts.addAndGet(pair.gauge.getDataPoints().size());
-                        futures.add(insertData(pair.gauge, pair.ttl));
-                    }
-                    return Observable.from(futures)
-                            .flatMap(future -> Observable.from(future).map(resultSet -> totalInserts.get()));
+                public Observable<Integer> insertData(Metric<Double> gauge, int ttl) {
+                    return Observable.from(insertDataWithNewWriteTime(gauge, ttl))
+                            .map(resultSet -> gauge.getDataPoints().size());
                 }
 
-                public ResultSetFuture insertData(Metric<Double> m, int ttl) {
+                public ResultSetFuture insertDataWithNewWriteTime(Metric<Double> m, int ttl) {
                     int actualTTL = ttl - duration.toStandardSeconds().getSeconds();
                     long writeTime = now().minus(duration).getMillis() * 1000;
                     BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
@@ -1080,10 +1104,9 @@ public class MetricsServiceITest extends MetricsITest {
         }
 
         @Override
-        public Observable<Integer> insertData(Observable<GaugeAndTTL> observable) {
-            observable.forEach(pair -> assertEquals(pair.ttl, gaugeTTL,
-                    "The gauge TTL does not match the expected value when inserting data"));
-            return super.insertData(observable);
+        public Observable<Integer> insertData(Metric<Double> gauge, int ttl) {
+            assertEquals(ttl, gaugeTTL, "The gauge TTL does not match the expected value when inserting data");
+            return super.insertData(gauge, ttl);
         }
 
         @Override

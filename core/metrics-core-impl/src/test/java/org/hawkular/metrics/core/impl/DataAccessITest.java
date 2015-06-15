@@ -125,7 +125,7 @@ public class DataAccessITest extends MetricsITest {
                 new DataPoint<>(end.getMillis(), 1.234)
         ));
 
-        dataAccess.insertData(Observable.just(new GaugeAndTTL(metric, DEFAULT_TTL))).toBlocking().last();
+        dataAccess.insertData(metric, DEFAULT_TTL).toBlocking().last();
 
         Observable<ResultSet> observable = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
                 end.getMillis());
@@ -162,7 +162,7 @@ public class DataAccessITest extends MetricsITest {
                 new DataPoint<>(end.getMillis(), 1.234)
         ));
 
-        dataAccess.insertData(Observable.just(new GaugeAndTTL(metric, DEFAULT_TTL))).toBlocking().last();
+        dataAccess.insertData(metric, DEFAULT_TTL).toBlocking().last();
 
         Observable<ResultSet> observable = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
                 end.getMillis());
