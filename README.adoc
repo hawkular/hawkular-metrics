@@ -18,7 +18,7 @@ It relies on https://cassandra.apache.org/[Apache Cassandra] as a backend and is
 - a core library
 - a REST/HTTP interface
 
-IMPORTANT: Cassandra 2.1.1 or later is required. It is recommended to use the latest 2.1.x release if possible.
+IMPORTANT: Cassandra 2.1.5 or later is required. It is recommended to use the latest 2.1.x release if possible.
 
 === The core library
 
@@ -80,12 +80,12 @@ https://github.com/pcmanus/ccm[Cassandra Cluster Manager, CCM].
 
 [source,bash]
 ----
-ccm create -v 2.1.2 hawkular
+ccm create -v 2.1.5 hawkular
 ccm populate -n 1
 ccm start
 ----
 
-These steps build and start a single node cluster of Cassandra 2.1.2. Note that while it is recommended to use ccm, it
+These steps build and start a single node cluster of Cassandra 2.1.5. Note that while it is recommended to use ccm, it
 is not necessary. You just need to make sure you have a running 2.1.x cluster.
 
 == Working with monitoring tools
