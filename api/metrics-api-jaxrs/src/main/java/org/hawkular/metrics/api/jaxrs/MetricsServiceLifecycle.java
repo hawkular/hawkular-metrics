@@ -44,6 +44,9 @@ import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.impl.MetricsServiceImpl;
+import org.hawkular.metrics.tasks.api.Task;
+import org.hawkular.metrics.tasks.api.TaskService;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +55,7 @@ import com.datastax.driver.core.Session;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.Uninterruptibles;
+import rx.Observable;
 
 /**
  * Bean created on startup to manage the lifecycle of the {@link MetricsService} instance shared in application scope.
@@ -106,6 +110,20 @@ public class MetricsServiceLifecycle {
     MetricsServiceLifecycle() {
         // Create the shared instance now and initialize it with the C* session when ready
         metricsService = new MetricsServiceImpl();
+        metricsService.setTaskService(new TaskService() {
+            @Override
+            public void start() {
+            }
+
+            @Override
+            public void shutdown() {
+            }
+
+            @Override
+            public Observable<Task> scheduleTask(DateTime time, Task task) {
+                throw new UnsupportedOperationException("Task scheduling is not yet supported");
+            }
+        });
         ThreadFactory threadFactory = r -> {
             Thread thread = Executors.defaultThreadFactory().newThread(r);
             thread.setName(MetricsService.class.getSimpleName().toLowerCase(Locale.ROOT) + "-lifecycle-thread");

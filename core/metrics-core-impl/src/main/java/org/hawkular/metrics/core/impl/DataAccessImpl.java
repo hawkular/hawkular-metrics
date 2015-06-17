@@ -583,9 +583,9 @@ public class DataAccessImpl implements DataAccess {
                 new BatchStatement(UNLOGGED),
                 (batch, a) -> {
                     batch.add(insertAvailabilityTags.bind(metric.getTenantId(), tag, tagValue,
-                            MetricType.AVAILABILITY.getCode(), metric.getId().getName(), metric.getId().getInterval()
-                                    .toString(), getTimeUUID(a.getDataPoint().getTimestamp()), getBytes(a.getDataPoint()),
-                            a.getTTL()));
+                            MetricType.AVAILABILITY.getCode(), metric.getId().getName(),
+                            metric.getId().getInterval().toString(), getTimeUUID(a.getDataPoint().getTimestamp()),
+                            getBytes(a.getDataPoint()), a.getTTL()));
                     return batch;
                 }).flatMap(rxSession::execute);
     }
