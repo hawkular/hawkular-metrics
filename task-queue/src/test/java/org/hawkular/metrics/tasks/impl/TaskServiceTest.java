@@ -98,7 +98,7 @@ public class TaskServiceTest extends BaseTest {
         TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType));
         taskService.setTimeUnit(TimeUnit.SECONDS);
 
-        DateTime expectedTimeSlice = dateTimeService.getTimeSlice(now(), standardSeconds(1)).plusSeconds(interval);
+        DateTime expectedTimeSlice = dateTimeService.getTimeSlice(now(), standardSeconds(5)).plusSeconds(interval);
         taskService.scheduleTask(now(), task).toBlocking().first();
 
         int segment = Math.abs(task.getTarget().hashCode() % task.getTaskType().getSegments());

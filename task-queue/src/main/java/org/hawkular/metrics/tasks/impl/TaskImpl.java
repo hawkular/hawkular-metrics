@@ -46,21 +46,9 @@ public class TaskImpl implements Task {
         this.timeSlice = timeSlice;
         this.target = target;
         this.sources = ImmutableSet.of(source);
-//        this.interval = standardMinutes(interval);
-//        this.window = standardMinutes(window);
         this.interval = interval;
         this.window = window;
     }
-
-//    public TaskImpl(TaskType taskType, DateTime timeSlice, String target, Set<String> sources, Duration interval,
-//            Duration window) {
-//        this.taskType = taskType;
-//        this.timeSlice = timeSlice;
-//        this.target = target;
-//        this.sources = sources;
-//        this.interval = interval;
-//        this.window = window;
-//    }
 
     public TaskImpl(TaskType taskType, DateTime timeSlice, String target, Set<String> sources, int interval,
             int window) {
