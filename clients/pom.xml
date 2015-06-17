@@ -25,6 +25,7 @@
     <groupId>org.hawkular.metrics</groupId>
     <version>0.3.5-SNAPSHOT</version>
   </parent>
+
   <artifactId>clients</artifactId>
   <packaging>pom</packaging>
 
@@ -35,5 +36,4 @@
     <module>common</module>
     <module>ptranslator</module>
   </modules>
-
 </project>

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
@@ -18,7 +19,6 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -29,9 +29,14 @@
   </parent>
 
   <artifactId>hawkular-container-tests</artifactId>
-  <name>Hawkular Metrics Container Tests</name>
   <version>0.3.5-SNAPSHOT</version>
   <packaging>jar</packaging>
+
+  <name>Hawkular Metrics Container Tests</name>
+
+  <properties>
+    <maven.test.skip>true</maven.test.skip>
+  </properties>
 
   <dependencies>
     <dependency>
@@ -65,10 +70,6 @@
 
   </dependencies>
 
-  <properties>
-    <maven.test.skip>true</maven.test.skip>
-  </properties>
-
   <profiles>
     <profile>
       <id>container-tests</id>
@@ -77,5 +78,4 @@
       </properties>
     </profile>
   </profiles>
-
 </project>

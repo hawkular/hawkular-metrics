@@ -3,7 +3,7 @@
   "kind": "List",
   "apiVersion": "v1beta3",
   "name": "Hawkular Metrics",
-  "description": "Hawkular Metrics Kuberenetes Application. Starts up the Hawkular Metrics web application and a cassandra cluster.",
+  "description": "Hawkular Metrics Kubernetes Application. Starts up the Hawkular Metrics web application and a cassandra cluster.",
   "items": [
     {
       "apiVersion" : "v1beta3",

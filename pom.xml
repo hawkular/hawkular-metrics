@@ -98,7 +98,6 @@
     <system>Travis-ci</system>
     <url>https://travis-ci.org/hawkular/hawkular-metrics</url>
   </ciManagement>
-
   <distributionManagement>
     <site>
       <id>local-site-tmp</id>
@@ -113,16 +112,10 @@
     <test.keyspace>hawkulartest</test.keyspace>
     <nodes>127.0.0.1</nodes>
 
-    <datastax.driver.version>2.1.5</datastax.driver.version>
     <joda.time.version>2.3</joda.time.version>
     <testng.version>6.8.8</testng.version>
     <slf4j.version>1.7.7</slf4j.version>
     <log4j.version>1.2.17</log4j.version>
-    <vertx.version>2.1RC3</vertx.version>
-    <vertx.testtools.version>2.0.3-final</vertx.testtools.version>
-    <jackson.version>2.3.2</jackson.version>
-    <trove4j.version>3.0.3</trove4j.version>
-    <google.guava.version>16.0.1</google.guava.version>
     <antlr.version>4.5</antlr.version>
     <rxjava.version>1.0.10</rxjava.version>
     <dropwizard.metrics.version>3.1.2</dropwizard.metrics.version>
@@ -141,7 +134,7 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>${google.guava.version}</version>
+        <version>${version.com.google.guava}</version>
       </dependency>
       <dependency>
         <groupId>org.antlr</groupId>
@@ -198,7 +191,6 @@
 
       </plugins>
     </pluginManagement>
-
     <plugins>
 
       <plugin>
@@ -351,5 +343,3 @@
     </profile>
   </profiles>
 </project>
-
-
