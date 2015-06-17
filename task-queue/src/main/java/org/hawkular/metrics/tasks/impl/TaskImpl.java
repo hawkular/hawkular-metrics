@@ -31,6 +31,8 @@ public class TaskImpl implements Task {
 
     private TaskType taskType;
 
+    private String tenantId;
+
     private String target;
 
     private Set<String> sources;
@@ -41,8 +43,10 @@ public class TaskImpl implements Task {
 
     private DateTime timeSlice;
 
-    public TaskImpl(TaskType taskType, DateTime timeSlice, String target, String source, int interval, int window) {
+    public TaskImpl(TaskType taskType, String tenantId, DateTime timeSlice, String target, String source, int interval,
+            int window) {
         this.taskType = taskType;
+        this.tenantId = tenantId;
         this.timeSlice = timeSlice;
         this.target = target;
         this.sources = ImmutableSet.of(source);
@@ -50,9 +54,10 @@ public class TaskImpl implements Task {
         this.window = window;
     }
 
-    public TaskImpl(TaskType taskType, DateTime timeSlice, String target, Set<String> sources, int interval,
-            int window) {
+    public TaskImpl(TaskType taskType, String tenantId, DateTime timeSlice, String target, Set<String> sources,
+            int interval, int window) {
         this.taskType = taskType;
+        this.tenantId = tenantId;
         this.timeSlice = timeSlice;
         this.target = target;
         this.sources = sources;
@@ -63,6 +68,11 @@ public class TaskImpl implements Task {
     @Override
     public TaskType getTaskType() {
         return taskType;
+    }
+
+    @Override
+    public String getTenantId() {
+        return tenantId;
     }
 
     @Override
@@ -96,6 +106,7 @@ public class TaskImpl implements Task {
         if (!(o instanceof Task)) return false;
         Task that = (Task) o;
         return Objects.equals(taskType, that.getTaskType()) &&
+                Objects.equals(tenantId, that.getTenantId()) &&
                 Objects.equals(target, that.getTarget()) &&
                 Objects.equals(sources, that.getSources()) &&
                 Objects.equals(interval, that.getInterval()) &&
@@ -105,13 +116,14 @@ public class TaskImpl implements Task {
 
     @Override
     public int hashCode() {
-        return Objects.hash(taskType, target, sources, interval, window, timeSlice);
+        return Objects.hash(taskType, tenantId, target, sources, interval, window, timeSlice);
     }
 
     @Override
     public String toString() {
         return com.google.common.base.Objects.toStringHelper(TaskImpl.class)
                 .add("taskType", taskType.getName())
+                .add("tenantId", tenantId)
                 .add("timeSlice", timeSlice)
                 .add("target", target)
                 .add("sources", sources)

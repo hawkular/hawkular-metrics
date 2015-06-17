@@ -74,15 +74,15 @@ public class Queries {
         deleteLeases = session.prepare("DELETE FROM leases WHERE time_slice = ?");
 
         createTask = session.prepare(
-            "INSERT INTO task_queue (task_type, time_slice, segment, target, sources, interval, window) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?)");
+            "INSERT INTO task_queue (task_type, tenant_id, time_slice, segment, target, sources, interval, window) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
 
         createTaskWithFailures = session.prepare(
-            "INSERT INTO task_queue (task_type, time_slice, segment, target, sources, interval, window, " +
-            "failed_time_slices) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            "INSERT INTO task_queue (task_type, tenant_id, time_slice, segment, target, sources, interval, window, " +
+            "failed_time_slices) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
         findTasks = session.prepare(
-            "SELECT target, sources, interval, window, failed_time_slices " +
+            "SELECT tenant_id, target, sources, interval, window, failed_time_slices " +
             "FROM task_queue " +
             "WHERE task_type = ? AND time_slice = ? AND segment = ?");
 

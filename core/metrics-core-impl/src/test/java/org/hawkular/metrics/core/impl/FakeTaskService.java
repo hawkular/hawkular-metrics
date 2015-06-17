@@ -46,6 +46,11 @@ public class FakeTaskService implements TaskService {
             }
 
             @Override
+            public String getTenantId() {
+                return task.getTenantId();
+            }
+
+            @Override
             public String getTarget() {
                 return task.getTarget();
             }

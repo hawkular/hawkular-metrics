@@ -135,8 +135,8 @@ public class TaskType {
      *
      * @return A {@link Task}
      */
-    public Task createTask(String target, String source) {
-        return createTask(target, source, interval, window);
+    public Task createTask(String tenantId, String target, String source) {
+        return createTask(tenantId, target, source, interval, window);
     }
 
     /**
@@ -149,8 +149,8 @@ public class TaskType {
      * @param window Specifies the amount of data to include, expressed as a duration
      * @return A {@link Task}
      */
-    public Task createTask(String target, String source, int interval, int window) {
-        return new TaskImpl(this, null, target, source, interval, window);
+    public Task createTask(String tenantId, String target, String source, int interval, int window) {
+        return new TaskImpl(this, tenantId, null, target, source, interval, window);
     }
 
     @Override

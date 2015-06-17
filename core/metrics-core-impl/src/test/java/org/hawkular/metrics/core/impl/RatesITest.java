@@ -88,7 +88,7 @@ public class RatesITest extends MetricsITest {
 
     @Test
     public void generateRates() throws Exception {
-        String tenantId = "rate-tenant";
+        String tenantId = "generate-rates-test";
         MetricId id = new MetricId("c1");
         DateTime start = dateTimeService.getTimeSlice(now(), standardSeconds(5)).plusSeconds(5);
         DateTime end = start.plusSeconds(30);

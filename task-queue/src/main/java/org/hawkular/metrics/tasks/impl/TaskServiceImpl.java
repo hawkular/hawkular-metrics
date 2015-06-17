@@ -178,8 +178,8 @@ public class TaskServiceImpl implements TaskService {
         TaskType taskType = findTaskType(type);
         return rxSession.execute(queries.findTasks.bind(type, timeSlice.toDate(), segment))
                 .flatMap(Observable::from)
-                .map(row -> new TaskContainer(taskType, timeSlice, segment, row.getString(0),
-                        row.getSet(1, String.class), row.getInt(2), row.getInt(3), row.getSet(4, Date.class).stream()
+                .map(row -> new TaskContainer(taskType, row.getString(0), timeSlice, segment, row.getString(1),
+                        row.getSet(2, String.class), row.getInt(3), row.getInt(4), row.getSet(5, Date.class).stream()
                         .map(DateTime::new).collect(toSet())));
     }
 
@@ -203,8 +203,8 @@ public class TaskServiceImpl implements TaskService {
         DateTime currentTimeSlice = dateTimeService.getTimeSlice(time, getDuration(task.getInterval()));
         DateTime timeSlice = currentTimeSlice.plus(getDuration(task.getInterval()));
 
-        return scheduleTaskAt(timeSlice, task).map(scheduledTime -> new TaskImpl(task.getTaskType(), scheduledTime,
-                task.getTarget(), task.getSources(), task.getInterval(), task.getWindow()));
+        return scheduleTaskAt(timeSlice, task).map(scheduledTime -> new TaskImpl(task.getTaskType(), task.getTenantId(),
+                scheduledTime, task.getTarget(), task.getSources(), task.getInterval(), task.getWindow()));
     }
 
     private Observable<TaskContainer> rescheduleTask(TaskContainer taskContainer) {
@@ -216,13 +216,13 @@ public class TaskServiceImpl implements TaskService {
         Observable<ResultSet> queueObservable;
 
         if (taskContainer.getFailedTimeSlices().isEmpty()) {
-            queueObservable = rxSession.execute(queries.createTask.bind(taskType.getName(), nextTimeSlice.toDate(),
-                    segment, taskContainer.getTarget(), taskContainer.getSources(), taskContainer.getInterval(),
-                    taskContainer.getWindow()));
+            queueObservable = rxSession.execute(queries.createTask.bind(taskType.getName(), taskContainer.getTenantId(),
+                    nextTimeSlice.toDate(), segment, taskContainer.getTarget(), taskContainer.getSources(),
+                    taskContainer.getInterval(), taskContainer.getWindow()));
         } else {
             queueObservable = rxSession.execute(queries.createTaskWithFailures.bind(taskType.getName(),
-                    nextTimeSlice.toDate(), segment, taskContainer.getTarget(), taskContainer.getSources(),
-                    taskContainer.getInterval(), taskContainer.getWindow(),
+                    taskContainer.getTenantId(), nextTimeSlice.toDate(), segment, taskContainer.getTarget(),
+                    taskContainer.getSources(), taskContainer.getInterval(), taskContainer.getWindow(),
                     toDates(taskContainer.getFailedTimeSlices())));
         }
         Observable<ResultSet> leaseObservable = rxSession.execute(queries.createLease.bind(nextTimeSlice.toDate(),
@@ -250,7 +250,7 @@ public class TaskServiceImpl implements TaskService {
         int segmentOffset = (segment / segmentsPerOffset) * segmentsPerOffset;
 
         Observable<ResultSet> queueObservable = rxSession.execute(queries.createTask.bind(taskType.getName(),
-                time.toDate(), segment, task.getTarget(), task.getSources(), (int) task.getInterval(),
+                task.getTenantId(), time.toDate(), segment, task.getTarget(), task.getSources(), task.getInterval(),
                 task.getWindow()));
         Observable<ResultSet> leaseObservable = rxSession.execute(queries.createLease.bind(time.toDate(),
                 taskType.getName(), segmentOffset));

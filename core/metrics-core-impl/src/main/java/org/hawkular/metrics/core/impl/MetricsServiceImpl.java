@@ -449,7 +449,7 @@ public class MetricsServiceImpl implements MetricsService {
 
                 if (metric.getType() == COUNTER) {
                     TaskType generateRatesType = taskTypes.get(0);
-                    Task task = generateRatesType.createTask(metric.getId().getName() + "$rate",
+                    Task task = generateRatesType.createTask(metric.getTenantId(), metric.getId().getName() + "$rate",
                             metric.getId().getName());
                     taskService.scheduleTask(now(), task);
                 }
@@ -816,15 +816,15 @@ public class MetricsServiceImpl implements MetricsService {
         return task -> {
             logger.info("Generating rate for {}", task);
             // TODO Store tenant id with task
-            String tenantId = "rate-tenant";
             MetricId id = new MetricId(task.getSources().iterator().next());
             long end = task.getTimeSlice().getMillis();
             long start = task.getTimeSlice().minusSeconds(task.getWindow()).getMillis();
             logger.debug("start = {}, end = {}", start, end);
-            findCounterData(tenantId, id, start, end)
+            findCounterData(task.getTenantId(), id, start, end)
                     .take(1)
                     .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
-                    .map(rate -> new Metric<>(tenantId, COUNTER_RATE, id, singletonList(new DataPoint<>(start, rate))))
+                    .map(rate -> new Metric<>(task.getTenantId(), COUNTER_RATE, id,
+                            singletonList(new DataPoint<>(start, rate))))
                     .flatMap(metric -> addGaugeData(Observable.just(metric)))
                     .subscribe(
                             aVoid -> {},

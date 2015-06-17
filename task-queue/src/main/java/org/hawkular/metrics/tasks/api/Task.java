@@ -31,6 +31,8 @@ public interface Task {
 
     TaskType getTaskType();
 
+    String getTenantId();
+
     /**
      * This is a key or identifier of the time series that is associated with the task. Consider aggregating metrics or
      * events as an example. Let's say there is a task for computing a 5 minute rollup from raw

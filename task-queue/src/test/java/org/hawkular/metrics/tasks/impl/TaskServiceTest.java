@@ -69,10 +69,11 @@ public class TaskServiceTest extends BaseTest {
     @Test
     public void scheduleTask() throws Exception {
         String type = "test1";
+        String tenantId = "test1";
         TaskType taskType = new TaskType().setName(type).setSegments(100).setSegmentOffsets(10);
         int interval = 5;
         int window = 15;
-        Task task = taskType.createTask("metric.5min", "metric", interval, window);
+        Task task = taskType.createTask(tenantId, "metric.5min", "metric", interval, window);
 
         TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType));
 
@@ -81,7 +82,7 @@ public class TaskServiceTest extends BaseTest {
 
         int segment = Math.abs(task.getTarget().hashCode() % task.getTaskType().getSegments());
 
-        assertTasksScheduled(taskType, expectedTimeSlice, segment, new TaskImpl(taskType, expectedTimeSlice,
+        assertTasksScheduled(taskType, expectedTimeSlice, segment, new TaskImpl(taskType, tenantId, expectedTimeSlice,
                 "metric.5min", "metric", 5, 15));
         int segmentOffset = (segment / 10) * 10;
         assertLeasesCreated(expectedTimeSlice, newLease(taskType, segmentOffset));
@@ -90,10 +91,11 @@ public class TaskServiceTest extends BaseTest {
     @Test
     public void scheduleTaskUsingSeconds() throws Exception {
         String type = "seconds-test";
+        String tenantId = "seconds-test";
         TaskType taskType = new TaskType().setName(type).setSegments(100).setSegmentOffsets(10);
         int interval = 5;
         int window = 15;
-        Task task = taskType.createTask("metric.5sec", "metric", interval, window);
+        Task task = taskType.createTask(tenantId, "metric.5sec", "metric", interval, window);
 
         TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType));
         taskService.setTimeUnit(TimeUnit.SECONDS);
@@ -103,7 +105,7 @@ public class TaskServiceTest extends BaseTest {
 
         int segment = Math.abs(task.getTarget().hashCode() % task.getTaskType().getSegments());
 
-        assertTasksScheduled(taskType, expectedTimeSlice, segment, new TaskImpl(taskType, expectedTimeSlice,
+        assertTasksScheduled(taskType, expectedTimeSlice, segment, new TaskImpl(taskType, tenantId, expectedTimeSlice,
                 "metric.5sec", "metric", interval, window));
     }
 
@@ -113,13 +115,14 @@ public class TaskServiceTest extends BaseTest {
         TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService,
                 singletonList(new TaskType().setName("test").setSegments(1).setSegmentOffsets(1)));
         TaskType invalidType = new TaskType().setName("invalid").setSegments(1).setSegmentOffsets(1);
-        Task task = invalidType.createTask("metric.5min", "metric", 5, 15);
+        Task task = invalidType.createTask("test", "metric.5min", "metric", 5, 15);
         taskService.scheduleTask(now(), task);
     }
 
     @Test
     public void executeTasksOfOneType() throws Exception {
         DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(1), standardMinutes(1));
+        String tenantId = "singleType-test";
         String type = "singleType-test";
         int interval = 5;
         int window = 15;
@@ -135,8 +138,8 @@ public class TaskServiceTest extends BaseTest {
         int metric1Segment = Math.abs(metric1.hashCode() % taskType.getSegments());
         int metric2Segment = Math.abs(metric2.hashCode() % taskType.getSegments());
 
-        Task task1 = new TaskImpl(taskType, timeSlice, metric1, "metric1", interval, window);
-        Task task2 = new TaskImpl(taskType, timeSlice, metric2, "metric2", interval, window);
+        Task task1 = new TaskImpl(taskType, tenantId, timeSlice, metric1, "metric1", interval, window);
+        Task task2 = new TaskImpl(taskType, tenantId, timeSlice, metric2, "metric2", interval, window);
 
         Map<Task, Boolean> executedTasks = new HashMap<>();
         executedTasks.put(task1, false);
@@ -144,9 +147,9 @@ public class TaskServiceTest extends BaseTest {
 
         taskType.setFactory(() -> task -> executedTasks.put(task, true));
 
-        session.execute(queries.createTask.bind(type, timeSlice.toDate(), metric1Segment, metric1,
+        session.execute(queries.createTask.bind(type, tenantId, timeSlice.toDate(), metric1Segment, metric1,
                 ImmutableSet.of("metric1"), interval, window));
-        session.execute(queries.createTask.bind(type, timeSlice.toDate(), metric2Segment, metric2,
+        session.execute(queries.createTask.bind(type, tenantId, timeSlice.toDate(), metric2Segment, metric2,
                 ImmutableSet.of("metric2"), interval, window));
         session.execute(queries.createLease.bind(timeSlice.toDate(), type, segmentOffset));
 
@@ -167,15 +170,16 @@ public class TaskServiceTest extends BaseTest {
 
         assertLeasesCreated(nextTimeSlice, newLease(taskType, segmentOffset));
 
-        assertTasksScheduled(taskType, nextTimeSlice, segment0, new TaskImpl(taskType, nextTimeSlice, metric1,
+        assertTasksScheduled(taskType, nextTimeSlice, segment0, new TaskImpl(taskType, tenantId, nextTimeSlice, metric1,
                 "metric1", interval, window));
-        assertTasksScheduled(taskType, nextTimeSlice, segment1, new TaskImpl(taskType, nextTimeSlice, metric2,
+        assertTasksScheduled(taskType, nextTimeSlice, segment1, new TaskImpl(taskType, tenantId, nextTimeSlice, metric2,
                 "metric2", interval, window));
     }
 
     @Test
     public void executeTasksOfMultipleTypes() throws Exception {
         DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(1), standardMinutes(1));
+        String tenantId = "multiType";
         String type1 = "multiType-test1";
         String type2 = "multiType-test2";
         int interval = 5;
@@ -197,15 +201,15 @@ public class TaskServiceTest extends BaseTest {
         int metric3Segment = metric3.hashCode() % taskType2.getSegments();
         int metric4Segment = metric4.hashCode() % taskType2.getSegments();
 
-        session.execute(queries.createTask.bind(type1, timeSlice.toDate(), metric1Segment, metric1,
+        session.execute(queries.createTask.bind(type1, tenantId, timeSlice.toDate(), metric1Segment, metric1,
                 ImmutableSet.of("test1.metric1"), interval, window));
-        session.execute(queries.createTask.bind(type1, timeSlice.toDate(), metric2Segment, metric2,
+        session.execute(queries.createTask.bind(type1, tenantId, timeSlice.toDate(), metric2Segment, metric2,
                 ImmutableSet.of("test1.metric2"), interval, window));
         session.execute(queries.createLease.bind(timeSlice.toDate(), type1, segmentOffset));
 
-        session.execute(queries.createTask.bind(type2, timeSlice.toDate(), metric3Segment, metric3,
+        session.execute(queries.createTask.bind(type2, tenantId, timeSlice.toDate(), metric3Segment, metric3,
                 ImmutableSet.of("test2.metric1"), interval, window));
-        session.execute(queries.createTask.bind(type2, timeSlice.toDate(), metric4Segment, metric4,
+        session.execute(queries.createTask.bind(type2, tenantId, timeSlice.toDate(), metric4Segment, metric4,
                 ImmutableSet.of("test2.metric2"), interval, window));
         session.execute(queries.createLease.bind(timeSlice.toDate(), type2, segmentOffset));
 
@@ -233,14 +237,14 @@ public class TaskServiceTest extends BaseTest {
 
         assertLeasesCreated(nextTimeSlice, newLease(taskType1, segmentOffset), newLease(taskType2, segmentOffset));
 
-        assertTasksScheduled(taskType1, nextTimeSlice, metric1Segment, new TaskImpl(taskType1, nextTimeSlice, metric1,
-                "test1.metric1", interval, window));
-        assertTasksScheduled(taskType1, nextTimeSlice, metric2Segment, new TaskImpl(taskType1, nextTimeSlice, metric2,
-                "test1.metric2", interval, window));
-        assertTasksScheduled(taskType2, nextTimeSlice, metric3Segment, new TaskImpl(taskType2, nextTimeSlice, metric3,
-                "test2.metric1", interval, window));
-        assertTasksScheduled(taskType2, nextTimeSlice, metric4Segment, new TaskImpl(taskType2, nextTimeSlice, metric4,
-                "test2.metric2", interval, window));
+        assertTasksScheduled(taskType1, nextTimeSlice, metric1Segment, new TaskImpl(taskType1, tenantId, nextTimeSlice,
+                metric1, "test1.metric1", interval, window));
+        assertTasksScheduled(taskType1, nextTimeSlice, metric2Segment, new TaskImpl(taskType1, tenantId, nextTimeSlice,
+                metric2, "test1.metric2", interval, window));
+        assertTasksScheduled(taskType2, nextTimeSlice, metric3Segment, new TaskImpl(taskType2, tenantId, nextTimeSlice,
+                metric3, "test2.metric1", interval, window));
+        assertTasksScheduled(taskType2, nextTimeSlice, metric4Segment, new TaskImpl(taskType2, tenantId, nextTimeSlice,
+                metric4, "test2.metric2", interval, window));
     }
 
     /**
@@ -250,6 +254,7 @@ public class TaskServiceTest extends BaseTest {
     @Test
     public void tryToExecuteTasksWhenAllLeasesAreAlreadyReserved() throws Exception {
         DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(1), standardMinutes(1));
+        String tenantId = "test1";
         String type1 = "test1";
         int interval = 5;
         int window = 15;
@@ -262,9 +267,9 @@ public class TaskServiceTest extends BaseTest {
 
         TaskType taskType1 = new TaskType().setName(type1).setSegments(5).setSegmentOffsets(1).setFactory(taskFactory);
 
-        session.execute(queries.createTask.bind(type1, timeSlice.toDate(), segment0, "test1.metric1.5min",
+        session.execute(queries.createTask.bind(type1, tenantId, timeSlice.toDate(), segment0, "test1.metric1.5min",
                 ImmutableSet.of("test1.metric1"), interval, window));
-        session.execute(queries.createTask.bind(type1, timeSlice.toDate(), segment1, "test1.metric2.5min",
+        session.execute(queries.createTask.bind(type1, tenantId, timeSlice.toDate(), segment1, "test1.metric2.5min",
                 ImmutableSet.of("test1.metric2"), interval, window));
         session.execute(queries.createLease.bind(timeSlice.toDate(), type1, segmentOffset));
 
@@ -312,6 +317,7 @@ public class TaskServiceTest extends BaseTest {
     @Test
     public void executeTaskThatFails() throws Exception {
         DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(1), standardMinutes(1));
+        String tenantId = "fails-test";
         String type = "fails-test";
         TaskType taskType = new TaskType().setName(type).setSegments(1).setSegmentOffsets(1)
                 .setFactory(() -> task -> {
@@ -324,8 +330,8 @@ public class TaskServiceTest extends BaseTest {
         int segmentOffset = 0;
 
 
-        session.execute(queries.createTask.bind(type, timeSlice.toDate(), segment, metric, ImmutableSet.of("metric1"),
-                interval, window));
+        session.execute(queries.createTask.bind(type, tenantId, timeSlice.toDate(), segment, metric,
+                ImmutableSet.of("metric1"), interval, window));
         session.execute(queries.createLease.bind(timeSlice.toDate(), type, segmentOffset));
 
         LeaseService leaseService = new LeaseService(rxSession, queries);
@@ -338,13 +344,14 @@ public class TaskServiceTest extends BaseTest {
         // now verify that the task is rescheduled
         DateTime nextTimeSlice = timeSlice.plusMinutes(interval);
         assertTasksScheduled(taskType, nextTimeSlice, segment,
-                new TaskImpl(taskType, timeSlice, metric, "metric1", interval, window),
-                new TaskImpl(taskType, nextTimeSlice, metric, "metric1", interval, window));
+                new TaskImpl(taskType, tenantId, timeSlice, metric, "metric1", interval, window),
+                new TaskImpl(taskType, tenantId, nextTimeSlice, metric, "metric1", interval, window));
     }
 
     @Test
     public void executeTaskThatPreviouslyFailed() throws Exception {
         DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(2), standardMinutes(1));
+        String tenantId = "previouslyFailed-test";
         String type = "previouslyFailed-test";
         TaskType taskType = new TaskType().setName(type).setSegments(1).setSegmentOffsets(1);
         String metric = "metric.5min";
@@ -357,7 +364,7 @@ public class TaskServiceTest extends BaseTest {
         List<Task> executedTasks = new ArrayList<>();
         taskType.setFactory(() -> executedTasks::add);
 
-        session.execute(queries.createTaskWithFailures.bind(type, timeSlice.toDate(), segment, metric,
+        session.execute(queries.createTaskWithFailures.bind(type, tenantId, timeSlice.toDate(), segment, metric,
                 ImmutableSet.of("metric"), interval, window, ImmutableSet.of(previousTimeSlice.toDate())));
         session.execute(queries.createLease.bind(timeSlice.toDate(), type, segmentOffset));
 
@@ -366,8 +373,8 @@ public class TaskServiceTest extends BaseTest {
         taskService.executeTasks(timeSlice);
 
         List<Task> expectedExecutedTasks = asList(
-                new TaskImpl(taskType, previousTimeSlice, metric, "metric", interval, window),
-                new TaskImpl(taskType, timeSlice, metric, "metric", interval, window)
+                new TaskImpl(taskType, tenantId, previousTimeSlice, metric, "metric", interval, window),
+                new TaskImpl(taskType, tenantId, timeSlice, metric, "metric", interval, window)
         );
 
         assertEquals(executedTasks, expectedExecutedTasks, "The executed tasks do not match expected values");
@@ -444,9 +451,9 @@ public class TaskServiceTest extends BaseTest {
     private Set<Task> getTasks(TaskType type, DateTime timeSlice, int segment) {
         ResultSet resultSet = session.execute(queries.findTasks.bind(type.getName(), timeSlice.toDate(), segment));
         Set<TaskContainer> containers = StreamSupport.stream(resultSet.spliterator(), false)
-                .map(row -> new TaskContainer(type, timeSlice, segment, row.getString(0), row.getSet(1, String.class),
-                        row.getInt(2), row.getInt(3),
-                        row.getSet(4, Date.class).stream().map(DateTime::new).collect(toSet())))
+                .map(row -> new TaskContainer(type, row.getString(0), timeSlice, segment, row.getString(1),
+                        row.getSet(2, String.class), row.getInt(3), row.getInt(4),
+                        row.getSet(5, Date.class).stream().map(DateTime::new).collect(toSet())))
                 .collect(toSet());
         return containers.stream()
                 .flatMap(container -> StreamSupport.stream(container.spliterator(), false))
