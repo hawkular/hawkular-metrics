@@ -30,7 +30,7 @@
   <fileSets>
     <fileSet>
       <directory>${project.basedir}/src/assembly/dist/assets</directory>
-      <outputDirectory>/</outputDirectory>
+      <outputDirectory>.</outputDirectory>
       <includes>
         <include>LICENSE</include>
         <include>log4j.xml</include>
@@ -42,13 +42,11 @@
   <files>
     <file>
       <source>${project.basedir}/src/assembly/dist/assets/README</source>
-      <outputDirectory>/${project.build.finalName}-${project.version}</outputDirectory>
       <filtered>true</filtered>
       <fileMode>644</fileMode>
     </file>
     <file>
       <source>${project.build.directory}/${project.build.finalName}-all.jar</source>
-      <outputDirectory>/${project.build.finalName}-${project.version}</outputDirectory>
       <fileMode>644</fileMode>
     </file>
   </files>
