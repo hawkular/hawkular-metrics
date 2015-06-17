@@ -22,6 +22,7 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Duration.standardMinutes;
+import static org.joda.time.Duration.standardSeconds;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
@@ -33,6 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -75,7 +77,7 @@ public class TaskServiceTest extends BaseTest {
         TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType));
 
         DateTime expectedTimeSlice = dateTimeService.getTimeSlice(now(), standardMinutes(5)).plusMinutes(5);
-        taskService.scheduleTask(now(), task).toBlocking().first();
+        Task scheduledTask = taskService.scheduleTask(now(), task).toBlocking().first();
 
         int segment = Math.abs(task.getTarget().hashCode() % task.getTaskType().getSegments());
 
@@ -83,6 +85,26 @@ public class TaskServiceTest extends BaseTest {
                 "metric.5min", "metric", 5, 15));
         int segmentOffset = (segment / 10) * 10;
         assertLeasesCreated(expectedTimeSlice, newLease(taskType, segmentOffset));
+    }
+
+    @Test
+    public void scheduleTaskUsingSeconds() throws Exception {
+        String type = "seconds-test";
+        TaskType taskType = new TaskType().setName(type).setSegments(100).setSegmentOffsets(10);
+        int interval = 5;
+        int window = 15;
+        Task task = taskType.createTask("metric.5sec", "metric", interval, window);
+
+        TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType));
+        taskService.setTimeUnit(TimeUnit.SECONDS);
+
+        DateTime expectedTimeSlice = dateTimeService.getTimeSlice(now(), standardSeconds(1)).plusSeconds(interval);
+        taskService.scheduleTask(now(), task).toBlocking().first();
+
+        int segment = Math.abs(task.getTarget().hashCode() % task.getTaskType().getSegments());
+
+        assertTasksScheduled(taskType, expectedTimeSlice, segment, new TaskImpl(taskType, expectedTimeSlice,
+                "metric.5sec", "metric", interval, window));
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)

@@ -16,16 +16,13 @@
  */
 package org.hawkular.metrics.tasks.impl;
 
-import static org.joda.time.Duration.standardMinutes;
-
 import java.util.Objects;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
-import org.hawkular.metrics.tasks.api.TaskType;
 import org.hawkular.metrics.tasks.api.Task;
+import org.hawkular.metrics.tasks.api.TaskType;
 import org.joda.time.DateTime;
-import org.joda.time.Duration;
 
 /**
  * @author jsanda
@@ -38,9 +35,9 @@ public class TaskImpl implements Task {
 
     private Set<String> sources;
 
-    private Duration interval;
+    private int interval;
 
-    private Duration window;
+    private int window;
 
     private DateTime timeSlice;
 
@@ -49,12 +46,24 @@ public class TaskImpl implements Task {
         this.timeSlice = timeSlice;
         this.target = target;
         this.sources = ImmutableSet.of(source);
-        this.interval = standardMinutes(interval);
-        this.window = standardMinutes(window);
+//        this.interval = standardMinutes(interval);
+//        this.window = standardMinutes(window);
+        this.interval = interval;
+        this.window = window;
     }
 
-    public TaskImpl(TaskType taskType, DateTime timeSlice, String target, Set<String> sources, Duration interval,
-            Duration window) {
+//    public TaskImpl(TaskType taskType, DateTime timeSlice, String target, Set<String> sources, Duration interval,
+//            Duration window) {
+//        this.taskType = taskType;
+//        this.timeSlice = timeSlice;
+//        this.target = target;
+//        this.sources = sources;
+//        this.interval = interval;
+//        this.window = window;
+//    }
+
+    public TaskImpl(TaskType taskType, DateTime timeSlice, String target, Set<String> sources, int interval,
+            int window) {
         this.taskType = taskType;
         this.timeSlice = timeSlice;
         this.target = target;
@@ -79,12 +88,12 @@ public class TaskImpl implements Task {
     }
 
     @Override
-    public Duration getInterval() {
+    public int getInterval() {
         return interval;
     }
 
     @Override
-    public Duration getWindow() {
+    public int getWindow() {
         return window;
     }
 

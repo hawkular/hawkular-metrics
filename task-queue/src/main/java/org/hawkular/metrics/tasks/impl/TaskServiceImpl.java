@@ -18,6 +18,7 @@ package org.hawkular.metrics.tasks.impl;
 
 import static java.util.stream.Collectors.toSet;
 import static org.joda.time.DateTime.now;
+import static org.joda.time.Duration.standardHours;
 import static org.joda.time.Duration.standardMinutes;
 import static org.joda.time.Duration.standardSeconds;
 
@@ -51,6 +52,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.functions.Func1;
+import rx.subjects.PublishSubject;
 
 /**
  * @author jsanda
@@ -160,6 +162,7 @@ public class TaskServiceImpl implements TaskService {
     public void shutdown() {
         logger.info("Shutting down");
 
+        tasksExecuted.onCompleted();
         leaseService.shutdown();
         ticker.shutdownNow();
         scheduler.shutdownNow();
@@ -200,8 +203,8 @@ public class TaskServiceImpl implements TaskService {
     public Observable<Task> scheduleTask(DateTime time, Task task) {
         TaskType taskType = findTaskType(task.getTaskType().getName());
 
-        DateTime currentTimeSlice = dateTimeService.getTimeSlice(time, task.getInterval());
-        DateTime timeSlice = currentTimeSlice.plus(task.getInterval());
+        DateTime currentTimeSlice = dateTimeService.getTimeSlice(time, getDuration(task.getInterval()));
+        DateTime timeSlice = currentTimeSlice.plus(getDuration(task.getInterval()));
 
         return scheduleTaskAt(timeSlice, task).map(scheduledTime -> new TaskImpl(task.getTaskType(), scheduledTime,
                 task.getTarget(), task.getSources(), task.getInterval(), task.getWindow()));
@@ -209,7 +212,7 @@ public class TaskServiceImpl implements TaskService {
 
     private Observable<TaskContainer> rescheduleTask(TaskContainer taskContainer) {
         TaskType taskType = taskContainer.getTaskType();
-        DateTime nextTimeSlice = taskContainer.getTimeSlice().plus(taskContainer.getInterval());
+        DateTime nextTimeSlice = taskContainer.getTimeSlice().plus(getDuration(taskContainer.getInterval()));
         int segment = Math.abs(taskContainer.getTarget().hashCode() % taskType.getSegments());
         int segmentsPerOffset = taskType.getSegments() / taskType.getSegmentOffsets();
         int segmentOffset = (segment / segmentsPerOffset) * segmentsPerOffset;
@@ -217,15 +220,13 @@ public class TaskServiceImpl implements TaskService {
 
         if (taskContainer.getFailedTimeSlices().isEmpty()) {
             queueObservable = rxSession.execute(queries.createTask.bind(taskType.getName(), nextTimeSlice.toDate(),
-                    segment, taskContainer.getTarget(), taskContainer.getSources(),
-                    taskContainer.getInterval().toStandardMinutes().getMinutes(),
-                    taskContainer.getWindow().toStandardMinutes().getMinutes()));
+                    segment, taskContainer.getTarget(), taskContainer.getSources(), taskContainer.getInterval(),
+                    taskContainer.getWindow()));
         } else {
             queueObservable = rxSession.execute(queries.createTaskWithFailures.bind(taskType.getName(),
                     nextTimeSlice.toDate(), segment, taskContainer.getTarget(), taskContainer.getSources(),
-                    taskContainer.getInterval().toStandardMinutes().getMinutes(),
-                    taskContainer.getWindow().toStandardMinutes().getMinutes(), toDates(
-                            taskContainer.getFailedTimeSlices())));
+                    taskContainer.getInterval(), taskContainer.getWindow(),
+                    toDates(taskContainer.getFailedTimeSlices())));
         }
         Observable<ResultSet> leaseObservable = rxSession.execute(queries.createLease.bind(nextTimeSlice.toDate(),
                 taskType.getName(), segmentOffset));
@@ -252,8 +253,8 @@ public class TaskServiceImpl implements TaskService {
         int segmentOffset = (segment / segmentsPerOffset) * segmentsPerOffset;
 
         Observable<ResultSet> queueObservable = rxSession.execute(queries.createTask.bind(taskType.getName(),
-                time.toDate(), segment, task.getTarget(), task.getSources(), (int) task.getInterval()
-                        .getStandardMinutes(), (int) task.getWindow().getStandardMinutes()));
+                time.toDate(), segment, task.getTarget(), task.getSources(), (int) task.getInterval(),
+                task.getWindow()));
         Observable<ResultSet> leaseObservable = rxSession.execute(queries.createLease.bind(time.toDate(),
                 taskType.getName(), segmentOffset));
 
@@ -371,5 +372,14 @@ public class TaskServiceImpl implements TaskService {
         }
         return executedTasks;
     };
+
+    private Duration getDuration(int duration) {
+        switch (timeUnit) {
+            case SECONDS: return standardSeconds(duration);
+            case MINUTES: return standardMinutes(duration);
+            case HOURS: return standardHours(duration);
+            default: throw new IllegalArgumentException(timeUnit + " is not a supported time unit");
+        }
+    }
 
 }

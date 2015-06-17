@@ -25,10 +25,9 @@ import java.util.Spliterators;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 
-import org.hawkular.metrics.tasks.api.TaskType;
 import org.hawkular.metrics.tasks.api.Task;
+import org.hawkular.metrics.tasks.api.TaskType;
 import org.joda.time.DateTime;
-import org.joda.time.Duration;
 
 /**
  * @author jsanda
@@ -41,9 +40,9 @@ class TaskContainer implements Iterable<Task> {
 
     private Set<String> sources;
 
-    private Duration interval;
+    private int interval;
 
-    private Duration window;
+    private int window;
 
     private DateTime timeSlice;
 
@@ -77,8 +76,10 @@ class TaskContainer implements Iterable<Task> {
         this.segment = segment;
         this.target = target;
         this.sources = sources;
-        this.interval = Duration.standardMinutes(interval);
-        this.window = Duration.standardMinutes(window);
+//        this.interval = Duration.standardMinutes(interval);
+//        this.window = Duration.standardMinutes(window);
+        this.interval = interval;
+        this.window = window;
         this.failedTimeSlices.addAll(failedTimeSlices);
     }
 
@@ -94,11 +95,11 @@ class TaskContainer implements Iterable<Task> {
         return sources;
     }
 
-    public Duration getInterval() {
+    public int getInterval() {
         return interval;
     }
 
-    public Duration getWindow() {
+    public int getWindow() {
         return window;
     }
 
@@ -184,8 +185,10 @@ class TaskContainer implements Iterable<Task> {
                 .add("taskDef", taskType.getName())
                 .add("target", target)
                 .add("sources", sources)
-                .add("interval", interval.toStandardMinutes())
-                .add("window", window.toStandardMinutes())
+//                .add("interval", interval.toStandardMinutes())
+//                .add("window", window.toStandardMinutes())
+                .add("interval", interval)
+                .add("window", window)
                 .add("failedTimeSlices", failedTimeSlices)
                 .add("timeSlice", timeSlice)
                 .add("segment", segment)
