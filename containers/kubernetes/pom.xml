@@ -31,7 +31,7 @@
   <artifactId>hawkular-metrics-kubernetes-app</artifactId>
   <version>0.3.5-SNAPSHOT</version>
 
-  <name>Hawkular Metrics Kuberenetes Application</name>
+  <name>Hawkular Metrics Kubernetes Application</name>
 
   <properties>
     <!-- Properties for the fabric8-maven-plugin -->
