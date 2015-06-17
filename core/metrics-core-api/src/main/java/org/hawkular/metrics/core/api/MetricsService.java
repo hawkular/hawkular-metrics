@@ -102,6 +102,8 @@ public interface MetricsService {
 
     Observable<DataPoint<Long>> findCounterData(String tenantId, MetricId id, long start, long end);
 
+    Observable<DataPoint<Double>> findRateData(String tenantId, MetricId id, long start, long end);
+
     /**
      * <p>
      * For a specified date range, return a list of periods in which the predicate evaluates to true for each

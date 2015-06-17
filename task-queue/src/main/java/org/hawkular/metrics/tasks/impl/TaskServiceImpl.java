@@ -52,7 +52,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.functions.Func1;
-import rx.subjects.PublishSubject;
 
 /**
  * @author jsanda
@@ -161,8 +160,6 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public void shutdown() {
         logger.info("Shutting down");
-
-        tasksExecuted.onCompleted();
         leaseService.shutdown();
         ticker.shutdownNow();
         scheduler.shutdownNow();

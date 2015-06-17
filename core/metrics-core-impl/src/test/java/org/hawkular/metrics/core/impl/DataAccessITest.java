@@ -127,8 +127,8 @@ public class DataAccessITest extends MetricsITest {
 
         dataAccess.insertData(metric, DEFAULT_TTL).toBlocking().last();
 
-        Observable<ResultSet> observable = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
-                end.getMillis());
+        Observable<ResultSet> observable = dataAccess.findData("tenant-1", new MetricId("metric-1"), GAUGE,
+                start.getMillis(), end.getMillis());
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
                 .flatMap(Observable::from)
                 .map(Functions::getGaugeDataPoint)
@@ -164,8 +164,8 @@ public class DataAccessITest extends MetricsITest {
 
         dataAccess.insertData(metric, DEFAULT_TTL).toBlocking().last();
 
-        Observable<ResultSet> observable = dataAccess.findData("tenant-1", new MetricId("metric-1"), start.getMillis(),
-                end.getMillis());
+        Observable<ResultSet> observable = dataAccess.findData("tenant-1", new MetricId("metric-1"), GAUGE,
+                start.getMillis(), end.getMillis());
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
                 .flatMap(Observable::from)
                 .map(Functions::getGaugeDataPoint)

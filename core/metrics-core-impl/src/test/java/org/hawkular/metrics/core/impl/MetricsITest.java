@@ -69,7 +69,7 @@ public class MetricsITest {
     }
 
     protected String getKeyspace() {
-        return System.getProperty("keyspace", "hawkular");
+        return System.getProperty("keyspace", "hawkulartest");
     }
 
     protected DateTime hour0() {
