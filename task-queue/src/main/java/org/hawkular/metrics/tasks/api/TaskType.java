@@ -17,6 +17,7 @@
 package org.hawkular.metrics.tasks.api;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -36,9 +37,15 @@ public class TaskType {
 
     private Supplier<Consumer<Task>> factory;
 
+    // TODO This should be an implementation detail of the taks service
     private int segments;
 
+    // TODO This should be an implementation detail of the taks service
     private int segmentOffsets;
+
+    private int interval;
+
+    private int window;
 
     /**
      * The task type name which must be unique among task types.
@@ -95,12 +102,51 @@ public class TaskType {
     }
 
     /**
+     * The default frequency of execution for tasks of this type. The time unit is configured globally with
+     * {@link TaskServiceBuilder#withTimeUnit(TimeUnit)}.
+     */
+    public int getInterval() {
+        return interval;
+    }
+
+    public TaskType setInterval(int interval) {
+        this.interval = interval;
+        return this;
+    }
+
+    /**
+     * The default amount of data to include for tasks of this type, expressed as a duration. The time unit is
+     * configured globally with {@link TaskServiceBuilder#withTimeUnit(TimeUnit)}.
+     */
+    public int getWindow() {
+        return window;
+    }
+
+    public TaskType setWindow(int window) {
+        this.window = window;
+        return this;
+    }
+
+    /**
      * A factory method for creating tasks of this type.
      *
-     * @param target Identifier or key of the entity or time series associated with the task
-     * @param source Identifiers or keys of the time series that provide input data for the task
-     * @param interval Specifies the frequency of execution in minutes
-     * @param window Specifies the amount of data to include in minutes
+     * @param target Identifier or key of the time series associated with the task
+     * @param source Identifier or key of the time series that provides input data for the task
+     *
+     * @return A {@link Task}
+     */
+    public Task createTask(String target, String source) {
+        return createTask(target, source, interval, window);
+    }
+
+    /**
+     * A factory method for creating tasks of this type. Note that the time units for <code>interval</code> and
+     * <code>window</code> is configured globally with {@link TaskServiceBuilder#withTimeUnit(TimeUnit)}.
+     *
+     * @param target Identifier or key of the time series associated with the task
+     * @param source Identifier or key of the time series that provides input data for the task
+     * @param interval Specifies the frequency of execution
+     * @param window Specifies the amount of data to include, expressed as a duration
      * @return A {@link Task}
      */
     public Task createTask(String target, String source, int interval, int window) {

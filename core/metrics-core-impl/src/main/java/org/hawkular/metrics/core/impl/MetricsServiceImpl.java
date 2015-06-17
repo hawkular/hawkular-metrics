@@ -157,6 +157,8 @@ public class MetricsServiceImpl implements MetricsService {
                     .setName("counter-rate")
                     .setSegments(10)
                     .setSegmentOffsets(10)
+                    .setInterval(5)
+                    .setWindow(5)
                     .setFactory(this::generateRate));
 
     private TaskService taskService;
@@ -327,6 +329,9 @@ public class MetricsServiceImpl implements MetricsService {
         this.dataAccess = dataAccess;
     }
 
+    /**
+     * This is a test hook
+     */
     List<TaskType> getTaskTypes() {
         return taskTypes;
     }
@@ -444,9 +449,8 @@ public class MetricsServiceImpl implements MetricsService {
 
                 if (metric.getType() == COUNTER) {
                     TaskType generateRatesType = taskTypes.get(0);
-                    // TODO DO not hard code task interval and window
                     Task task = generateRatesType.createTask(metric.getId().getName() + "$rate",
-                            metric.getId().getName(), 5, 5);
+                            metric.getId().getName());
                     taskService.scheduleTask(now(), task);
                 }
 

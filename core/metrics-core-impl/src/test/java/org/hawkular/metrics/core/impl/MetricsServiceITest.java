@@ -274,7 +274,7 @@ public class MetricsServiceITest extends MetricsITest {
                 .last();
 
         assertEquals(updatedMetric.getTags(), ImmutableMap.of("a2", "two", "a3", "3"),
-            "The updated meta data does not match the expected values");
+                "The updated meta data does not match the expected values");
 
         assertMetricIndexMatches(metric.getTenantId(), GAUGE, singletonList(updatedMetric));
     }
