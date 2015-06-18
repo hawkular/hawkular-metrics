@@ -22,13 +22,12 @@ import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
-import static org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler.TENANT_HEADER_NAME;
+import static org.hawkular.metrics.clients.ptrans.fullstack.ServerDataHelper.BASE_URI;
 import static org.hawkular.metrics.clients.ptrans.util.ProcessUtil.kill;
 import static org.hawkular.metrics.clients.ptrans.util.TenantUtil.getRandomTenantId;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
@@ -36,8 +35,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -56,10 +53,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.CollectionType;
-import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Resources;
 
@@ -70,13 +63,8 @@ import jnr.constants.platform.Signal;
  */
 public class CollectdITest extends ExecutableITestBase {
     private static final String COLLECTD_PATH = System.getProperty("collectd.path", "/usr/sbin/collectd");
-    private static final String BASE_URI = System.getProperty(
-            "hawkular-metrics.base-uri",
-            "127.0.0.1:8080/hawkular/metrics"
-    );
 
     private String tenant;
-    private String findGaugeMetricsUrl;
     private File collectdConfFile;
     private File collectdOut;
     private File collectdErr;
@@ -93,7 +81,6 @@ public class CollectdITest extends ExecutableITestBase {
     @Before
     public void setUp() throws Exception {
         tenant = getRandomTenantId();
-        findGaugeMetricsUrl = "http://" + BASE_URI + "/metrics?type=gauge";
         assumeCollectdIsPresent();
         configureCollectd();
         assertCollectdConfIsValid();
@@ -178,7 +165,9 @@ public class CollectdITest extends ExecutableITestBase {
         ptransProcess.waitFor();
 
         List<Point> expectedData = getExpectedData();
-        List<Point> serverData = getServerData();
+
+        ServerDataHelper serverDataHelper = new ServerDataHelper(tenant);
+        List<Point> serverData = serverDataHelper.getServerData();
 
         String failureMsg = String.format(
                 Locale.ROOT, "Expected:%n%s%nActual:%n%s%n",
@@ -239,129 +228,10 @@ public class CollectdITest extends ExecutableITestBase {
         return new Point(metric[1], timestamp, value);
     }
 
-    private List<Point> getServerData() throws Exception {
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        HttpURLConnection urlConnection = (HttpURLConnection) new URL(findGaugeMetricsUrl).openConnection();
-        urlConnection.setRequestProperty(TENANT_HEADER_NAME, tenant);
-        urlConnection.connect();
-        int responseCode = urlConnection.getResponseCode();
-        if (responseCode != HttpURLConnection.HTTP_OK) {
-            String msg = "Could not get metrics list from server: %s, %d";
-            fail(String.format(Locale.ROOT, msg, findGaugeMetricsUrl, responseCode));
-        }
-        List<String> metricNames;
-        try (InputStream inputStream = urlConnection.getInputStream()) {
-            TypeFactory typeFactory = objectMapper.getTypeFactory();
-            CollectionType valueType = typeFactory.constructCollectionType(List.class, MetricName.class);
-            List<MetricName> value = objectMapper.readValue(inputStream, valueType);
-            metricNames = value.stream().map(MetricName::getId).collect(toList());
-        }
-
-        Stream<Point> points = Stream.empty();
-
-        for (String metricName : metricNames) {
-            String[] split = metricName.split("\\.");
-            String type = split[split.length - 1];
-
-            urlConnection = (HttpURLConnection) new URL(findGaugeDataUrl(metricName)).openConnection();
-            urlConnection.setRequestProperty(TENANT_HEADER_NAME, tenant);
-            urlConnection.connect();
-            responseCode = urlConnection.getResponseCode();
-            if (responseCode != HttpURLConnection.HTTP_OK) {
-                fail("Could not load metric data from server: " + responseCode);
-            }
-
-            try (InputStream inputStream = urlConnection.getInputStream()) {
-                TypeFactory typeFactory = objectMapper.getTypeFactory();
-                CollectionType valueType = typeFactory.constructCollectionType(List.class, MetricData.class);
-                List<MetricData> data = objectMapper.readValue(inputStream, valueType);
-                Stream<Point> metricPoints = data.stream().map(
-                        metricData -> new Point(type, metricData.timestamp, metricData.value));
-                points = Stream.concat(points, metricPoints);
-            }
-        }
-
-        return points.sorted(Comparator.comparing(Point::getType).thenComparing(Point::getTimestamp)).collect(toList());
-    }
-
-    private String findGaugeDataUrl(String metricName) {
-        return "http://" + BASE_URI + "/gauges/" + metricName + "/data";
-    }
-
     @After
     public void tearDown() {
         if (collectdProcess != null && collectdProcess.isAlive()) {
             collectdProcess.destroy();
-        }
-    }
-
-    private static final class Point {
-        final String type;
-        final long timestamp;
-        final double value;
-
-        Point(String type, long timestamp, double value) {
-            this.type = type;
-            this.timestamp = timestamp;
-            this.value = value;
-        }
-
-        String getType() {
-            return type;
-        }
-
-        long getTimestamp() {
-            return timestamp;
-        }
-
-        double getValue() {
-            return value;
-        }
-
-        @Override
-        public String toString() {
-            return "Point[" +
-                   "type='" + type + '\'' +
-                   ", timestamp=" + timestamp +
-                   ", value=" + value +
-                   ']';
-        }
-    }
-
-    @SuppressWarnings("unused")
-    private static final class MetricData {
-        long timestamp;
-        double value;
-
-        public long getTimestamp() {
-            return timestamp;
-        }
-
-        public void setTimestamp(long timestamp) {
-            this.timestamp = timestamp;
-        }
-
-        public double getValue() {
-            return value;
-        }
-
-        public void setValue(double value) {
-            this.value = value;
-        }
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @SuppressWarnings("unused")
-    private static final class MetricName {
-        String id;
-
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
         }
     }
 }
