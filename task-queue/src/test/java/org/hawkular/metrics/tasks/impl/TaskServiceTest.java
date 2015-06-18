@@ -36,9 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
 import com.datastax.driver.core.ResultSet;
@@ -51,6 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+import rx.functions.Action1;
 
 /**
  * @author jsanda
@@ -145,8 +144,6 @@ public class TaskServiceTest extends BaseTest {
         executedTasks.put(task1, false);
         executedTasks.put(task2, false);
 
-        taskType.setFactory(() -> task -> executedTasks.put(task, true));
-
         session.execute(queries.createTask.bind(type, tenantId, timeSlice.toDate(), metric1Segment, metric1,
                 ImmutableSet.of("metric1"), interval, window));
         session.execute(queries.createTask.bind(type, tenantId, timeSlice.toDate(), metric2Segment, metric2,
@@ -155,6 +152,7 @@ public class TaskServiceTest extends BaseTest {
 
         LeaseService leaseService = new LeaseService(rxSession, queries);
         TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType));
+        taskService.subscribe(taskType, task -> executedTasks.put(task, true));
         taskService.executeTasks(timeSlice);
 
         // verify that the tasks were executed
@@ -186,10 +184,11 @@ public class TaskServiceTest extends BaseTest {
         int window = 15;
         int segmentOffset = 0;
         TaskExecutionHistory executionHistory = new TaskExecutionHistory();
-        Supplier<Consumer<Task>> taskFactory = () -> task -> executionHistory.add(task.getTarget());
 
-        TaskType taskType1 = new TaskType().setName(type1).setSegments(2).setSegmentOffsets(1).setFactory(taskFactory);
-        TaskType taskType2 = new TaskType().setName(type2).setSegments(2).setSegmentOffsets(1).setFactory(taskFactory);
+        Action1<Task> onNext = task -> executionHistory.add(task.getTarget());
+
+        TaskType taskType1 = new TaskType().setName(type1).setSegments(2).setSegmentOffsets(1);
+        TaskType taskType2 = new TaskType().setName(type2).setSegments(2).setSegmentOffsets(1);
 
         String metric1 = "test1.metric1.5min";
         String metric2 = "test1.metric2.5min";
@@ -216,6 +215,8 @@ public class TaskServiceTest extends BaseTest {
         LeaseService leaseService = new LeaseService(rxSession, queries);
         TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, asList(taskType1,
                 taskType2));
+        taskService.subscribe(taskType1, onNext);
+        taskService.subscribe(taskType2, onNext);
         taskService.executeTasks(timeSlice);
 
         // We need to verify that tasks are executed. We also need to verify that they are
@@ -263,9 +264,7 @@ public class TaskServiceTest extends BaseTest {
         int segmentOffset = 0;
 
         TaskExecutionHistory executionHistory = new TaskExecutionHistory();
-        Supplier<Consumer<Task>> taskFactory = () -> task -> executionHistory.add(task.getTarget());
-
-        TaskType taskType1 = new TaskType().setName(type1).setSegments(5).setSegmentOffsets(1).setFactory(taskFactory);
+        TaskType taskType1 = new TaskType().setName(type1).setSegments(5).setSegmentOffsets(1);
 
         session.execute(queries.createTask.bind(type1, tenantId, timeSlice.toDate(), segment0, "test1.metric1.5min",
                 ImmutableSet.of("test1.metric1"), interval, window));
@@ -280,6 +279,7 @@ public class TaskServiceTest extends BaseTest {
 
         LeaseService leaseService = new LeaseService(rxSession, queries);
         TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType1));
+        taskService.subscribe(taskType1, task -> executionHistory.add(task.getTarget()));
 
         Thread t1 = new Thread(() -> taskService.executeTasks(timeSlice));
         t1.start();
@@ -319,10 +319,7 @@ public class TaskServiceTest extends BaseTest {
         DateTime timeSlice = dateTimeService.getTimeSlice(now().minusMinutes(1), standardMinutes(1));
         String tenantId = "fails-test";
         String type = "fails-test";
-        TaskType taskType = new TaskType().setName(type).setSegments(1).setSegmentOffsets(1)
-                .setFactory(() -> task -> {
-                    throw new RuntimeException();
-                });
+        TaskType taskType = new TaskType().setName(type).setSegments(1).setSegmentOffsets(1);
         String metric = "metric1.5min";
         int interval = 5;
         int window = 15;
@@ -336,6 +333,9 @@ public class TaskServiceTest extends BaseTest {
 
         LeaseService leaseService = new LeaseService(rxSession, queries);
         TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType));
+        taskService.subscribe(taskType, task -> {
+            throw new RuntimeException();
+        });
         taskService.executeTasks(timeSlice);
 
         assertTasksPartitionDeleted(type, timeSlice, segment);
@@ -362,7 +362,6 @@ public class TaskServiceTest extends BaseTest {
         DateTime previousTimeSlice = timeSlice.minusMinutes(interval);
 
         List<Task> executedTasks = new ArrayList<>();
-        taskType.setFactory(() -> executedTasks::add);
 
         session.execute(queries.createTaskWithFailures.bind(type, tenantId, timeSlice.toDate(), segment, metric,
                 ImmutableSet.of("metric"), interval, window, ImmutableSet.of(previousTimeSlice.toDate())));
@@ -370,6 +369,7 @@ public class TaskServiceTest extends BaseTest {
 
         LeaseService leaseService = new LeaseService(rxSession, queries);
         TaskServiceImpl taskService = new TaskServiceImpl(rxSession, queries, leaseService, singletonList(taskType));
+        taskService.subscribe(taskType, executedTasks::add);
         taskService.executeTasks(timeSlice);
 
         List<Task> expectedExecutedTasks = asList(

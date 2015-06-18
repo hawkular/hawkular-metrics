@@ -152,14 +152,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     private DataAccess dataAccess;
 
-    private List<TaskType> taskTypes = singletonList(
-            new TaskType()
-                    .setName("counter-rate")
-                    .setSegments(10)
-                    .setSegmentOffsets(10)
-                    .setInterval(5)
-                    .setWindow(5)
-                    .setFactory(this::generateRate));
+    private List<TaskType> taskTypes;
 
     private TaskService taskService;
 
@@ -329,11 +322,8 @@ public class MetricsServiceImpl implements MetricsService {
         this.dataAccess = dataAccess;
     }
 
-    /**
-     * This is a test hook
-     */
-    List<TaskType> getTaskTypes() {
-        return taskTypes;
+    void setTaskTypes(List<TaskType> taskTypes) {
+        this.taskTypes = taskTypes;
     }
 
     public void setTaskService(TaskService taskService) {
@@ -833,4 +823,5 @@ public class MetricsServiceImpl implements MetricsService {
                     );
         };
     }
+
 }

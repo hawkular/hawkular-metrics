@@ -17,6 +17,7 @@
 package org.hawkular.metrics.core.impl;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Duration.standardSeconds;
@@ -30,6 +31,7 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.tasks.api.TaskService;
 import org.hawkular.metrics.tasks.api.TaskServiceBuilder;
+import org.hawkular.metrics.tasks.api.TaskType;
 import org.hawkular.metrics.tasks.impl.TaskServiceImpl;
 import org.joda.time.DateTime;
 import org.testng.annotations.AfterClass;
@@ -55,21 +57,30 @@ public class RatesITest extends MetricsITest {
 
         dateTimeService = new DateTimeService();
 
-        metricsService = new MetricsServiceImpl();
-
-        String keyspace = "hawkulartest";
-        System.setProperty("keyspace", keyspace);
+        TaskType taskType =new TaskType()
+                        .setName("counter-rate")
+                        .setSegments(10)
+                        .setSegmentOffsets(10)
+                        .setInterval(5)
+                        .setWindow(5);
 
         taskService = new TaskServiceBuilder()
                 .withSession(session)
                 .withTimeUnit(TimeUnit.SECONDS)
-                .withTaskTypes(metricsService.getTaskTypes())
+                .withTaskTypes(singletonList(taskType))
                 .build();
         ((TaskServiceImpl) taskService).setTimeUnit(TimeUnit.SECONDS);
-        taskService.start();
 
-
+        metricsService = new MetricsServiceImpl();
+        metricsService.setTaskTypes(singletonList(taskType));
         metricsService.setTaskService(taskService);
+
+        ((TaskServiceImpl) taskService).subscribe(taskType, new GenerateRate(metricsService));
+
+        String keyspace = "hawkulartest";
+        System.setProperty("keyspace", keyspace);
+
+        taskService.start();
         metricsService.startUp(session, keyspace, false, new MetricRegistry());
     }
 

@@ -18,8 +18,6 @@ package org.hawkular.metrics.tasks.api;
 
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import org.hawkular.metrics.tasks.impl.TaskImpl;
 
@@ -34,8 +32,6 @@ import org.hawkular.metrics.tasks.impl.TaskImpl;
 public class TaskType {
 
     private String name;
-
-    private Supplier<Consumer<Task>> factory;
 
     // TODO This should be an implementation detail of the taks service
     private int segments;
@@ -56,18 +52,6 @@ public class TaskType {
 
     public TaskType setName(String name) {
         this.name = name;
-        return this;
-    }
-
-    /**
-     * A function that produces functions that carry out task execution.
-     */
-    public Supplier<Consumer<Task>> getFactory() {
-        return factory;
-    }
-
-    public TaskType setFactory(Supplier<Consumer<Task>> factory) {
-        this.factory = factory;
         return this;
     }
 
