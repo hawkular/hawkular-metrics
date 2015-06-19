@@ -74,9 +74,6 @@ class ServerDataHelper {
         Stream<Point> points = Stream.empty();
 
         for (String metricName : metricNames) {
-            String[] split = metricName.split("\\.");
-            String type = split[split.length - 1];
-
             urlConnection = (HttpURLConnection) new URL(findGaugeDataUrl(metricName)).openConnection();
             urlConnection.setRequestProperty(TENANT_HEADER_NAME, tenant);
             urlConnection.connect();
@@ -90,13 +87,13 @@ class ServerDataHelper {
                 CollectionType valueType = typeFactory.constructCollectionType(List.class, MetricData.class);
                 List<MetricData> data = objectMapper.readValue(inputStream, valueType);
                 Stream<Point> metricPoints = data.stream().map(
-                        metricData -> new Point(type, metricData.timestamp, metricData.value)
+                        metricData -> new Point(metricName, metricData.timestamp, metricData.value)
                 );
                 points = Stream.concat(points, metricPoints);
             }
         }
 
-        return points.sorted(Comparator.comparing(Point::getType).thenComparing(Point::getTimestamp)).collect(toList());
+        return points.sorted(Comparator.comparing(Point::getName).thenComparing(Point::getTimestamp)).collect(toList());
     }
 
     private String findGaugeDataUrl(String metricName) {

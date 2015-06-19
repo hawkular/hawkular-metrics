@@ -20,18 +20,18 @@ package org.hawkular.metrics.clients.ptrans.fullstack;
  * @author Thomas Segismont
  */
 class Point {
-    final String type;
+    final String name;
     final long timestamp;
     final double value;
 
-    Point(String type, long timestamp, double value) {
-        this.type = type;
+    Point(String name, long timestamp, double value) {
+        this.name = name;
         this.timestamp = timestamp;
         this.value = value;
     }
 
-    String getType() {
-        return type;
+    String getName() {
+        return name;
     }
 
     long getTimestamp() {
@@ -45,7 +45,7 @@ class Point {
     @Override
     public String toString() {
         return "Point[" +
-               "type='" + type + '\'' +
+               "name='" + name + '\'' +
                ", timestamp=" + timestamp +
                ", value=" + value +
                ']';

@@ -183,7 +183,7 @@ public class CollectdITest extends ExecutableITestBase {
             long timeDiff = expectedPoint.getTimestamp() - serverPoint.getTimestamp();
             assertTrue(failureMsg, Math.abs(timeDiff) < 2);
 
-            assertEquals(failureMsg, expectedPoint.getType(), serverPoint.getType());
+            assertEquals(failureMsg, expectedPoint.getName(), serverPoint.getName());
             assertEquals(failureMsg, expectedPoint.getValue(), serverPoint.getValue(), 0.1);
         }
     }
@@ -206,17 +206,14 @@ public class CollectdITest extends ExecutableITestBase {
         return Files.lines(collectdOut.toPath())
                     .filter(l -> l.startsWith("PUTVAL"))
                     .map(this::collectdLogToPoint)
-                    .sorted(Comparator.comparing(Point::getType).thenComparing(Point::getTimestamp))
+                    .sorted(Comparator.comparing(Point::getName).thenComparing(Point::getTimestamp))
                     .collect(toList());
     }
 
     private Point collectdLogToPoint(String line) {
         String[] split = line.split(" ");
         assertEquals("Unexpected format: " + line, 4, split.length);
-        String[] metric = split[1].split("/");
-        assertEquals("Unexpected format: " + line, 3, metric.length);
-        metric = metric[2].split("-");
-        assertEquals("Unexpected format: " + line, 2, metric.length);
+        String metric = "collectd." + split[1].replace('/', '.').replace('-', '.');
         String[] data = split[3].split(":");
         assertEquals("Unexpected format: " + line, 2, data.length);
         long timestamp = Long.parseLong(data[0].replace(".", ""));
@@ -225,7 +222,7 @@ public class CollectdITest extends ExecutableITestBase {
             timestamp *= 1000;
         }
         double value = Double.parseDouble(data[1]);
-        return new Point(metric[1], timestamp, value);
+        return new Point(metric, timestamp, value);
     }
 
     @After
