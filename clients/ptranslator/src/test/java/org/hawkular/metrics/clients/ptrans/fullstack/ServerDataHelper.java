@@ -24,7 +24,6 @@ import static org.junit.Assert.fail;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Stream;
@@ -93,7 +92,7 @@ class ServerDataHelper {
             }
         }
 
-        return points.sorted(Comparator.comparing(Point::getName).thenComparing(Point::getTimestamp)).collect(toList());
+        return points.collect(toList());
     }
 
     private String findGaugeDataUrl(String metricName) {

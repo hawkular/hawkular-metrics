@@ -19,122 +19,63 @@ package org.hawkular.metrics.clients.ptrans.fullstack;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
-import static org.hawkular.metrics.clients.ptrans.fullstack.ServerDataHelper.BASE_URI;
-import static org.hawkular.metrics.clients.ptrans.util.ProcessUtil.kill;
-import static org.hawkular.metrics.clients.ptrans.util.TenantUtil.getRandomTenantId;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Properties;
 
 import org.hawkular.metrics.clients.ptrans.ConfigurationKey;
-import org.hawkular.metrics.clients.ptrans.ExecutableITestBase;
 import org.hawkular.metrics.clients.ptrans.Service;
 import org.jmxtrans.embedded.EmbeddedJmxTrans;
 import org.jmxtrans.embedded.QueryResult;
 import org.jmxtrans.embedded.config.ConfigurationParser;
 import org.jmxtrans.embedded.output.AbstractOutputWriter;
 import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-
-import jnr.constants.platform.Signal;
 
 /**
  * @author Thomas Segismont
  */
-public class GraphiteITest extends ExecutableITestBase {
+public class GraphiteITest extends FullStackITest {
 
-    private String tenant;
     private EmbeddedJmxTrans embeddedJmxTrans;
 
-
-    @Before
-    public void setUp() throws Exception {
-        tenant = getRandomTenantId();
-        configureEmbeddedJmxTrans();
-        configurePTrans();
-    }
-
-    private void configureEmbeddedJmxTrans() throws Exception {
+    @Override
+    protected void configureSource() throws Exception {
         ConfigurationParser configurationParser = new ConfigurationParser();
         embeddedJmxTrans = configurationParser.newEmbeddedJmxTrans("classpath:jmxtrans.json");
     }
 
-    public void configurePTrans() throws Exception {
-        Properties properties = new Properties();
-        try (InputStream in = new FileInputStream(ptransConfFile)) {
-            properties.load(in);
-        }
+    @Override
+    protected void changePTransConfig(Properties properties) {
         properties.setProperty(ConfigurationKey.SERVICES.toString(), Service.GRAPHITE.getExternalForm());
-        String restUrl = "http://" + BASE_URI + "/gauges/data";
-        properties.setProperty(ConfigurationKey.REST_URL.toString(), restUrl);
-        properties.setProperty(ConfigurationKey.TENANT.toString(), tenant);
-        try (OutputStream out = new FileOutputStream(ptransConfFile)) {
-            properties.store(out, "");
-        }
     }
 
-    @Test
-    public void shouldFindGraphiteMetricsOnServer() throws Exception {
-        ptransProcessBuilder.command().addAll(ImmutableList.of("-c", ptransConfFile.getAbsolutePath()));
-        ptransProcess = ptransProcessBuilder.start();
-        assertPtransHasStarted(ptransProcess, ptransOut);
-
+    @Override
+    protected void startSource() throws Exception {
         embeddedJmxTrans.start();
-
-        waitForEmbeddedJmxTransValues();
-
-        embeddedJmxTrans.stop();
-
-        Thread.sleep(MILLISECONDS.convert(1, SECONDS)); // Wait to make sure pTrans can send everything
-
-        kill(ptransProcess, Signal.SIGTERM);
-        ptransProcess.waitFor();
-
-        List<Point> expectedData = getExpectedData();
-
-        ServerDataHelper serverDataHelper = new ServerDataHelper(tenant);
-        List<Point> serverData = serverDataHelper.getServerData();
-
-        String failureMsg = String.format(
-                Locale.ROOT, "Expected:%n%s%nActual:%n%s%n",
-                pointsToString(expectedData), pointsToString(serverData)
-        );
-
-        assertEquals(failureMsg, expectedData.size(), serverData.size());
-
-        for (int i = 0; i < expectedData.size(); i++) {
-            Point expectedPoint = expectedData.get(i);
-            Point serverPoint = serverData.get(i);
-
-            long timeDiff = expectedPoint.getTimestamp() - serverPoint.getTimestamp();
-            assertTrue(failureMsg, Math.abs(timeDiff) < 1);
-
-            assertEquals(failureMsg, expectedPoint.getName(), serverPoint.getName());
-            assertEquals(failureMsg, expectedPoint.getValue(), serverPoint.getValue(), 0.1);
-        }
     }
 
-    private List<Point> getExpectedData() {
+    @Override
+    protected void waitForSourceValues() throws Exception {
+        do {
+            Thread.sleep(MILLISECONDS.convert(1, SECONDS));
+        } while (ListAppenderWriter.results.size() < 10);
+    }
+
+    @Override
+    protected void stopSource() throws Exception {
+        embeddedJmxTrans.stop();
+    }
+
+    @Override
+    protected List<Point> getExpectedData() {
         List<QueryResult> results = ListAppenderWriter.results;
         return results.stream()
                       .map(this::queryResultToPoint)
-                      .sorted(Comparator.comparing(Point::getName).thenComparing(Point::getTimestamp))
                       .collect(toList());
     }
 
@@ -146,14 +87,9 @@ public class GraphiteITest extends ExecutableITestBase {
         );
     }
 
-    private String pointsToString(List<Point> data) {
-        return data.stream().map(Point::toString).collect(joining(System.getProperty("line.separator")));
-    }
-
-    private void waitForEmbeddedJmxTransValues() throws Exception {
-        do {
-            Thread.sleep(MILLISECONDS.convert(1, SECONDS));
-        } while (ListAppenderWriter.results.size() < 10);
+    @Override
+    protected void checkTimestamps(String failureMsg, long expected, long actual) {
+        assertEquals(failureMsg, expected, actual);
     }
 
     @After
