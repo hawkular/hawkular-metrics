@@ -65,7 +65,6 @@ import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
-import org.hawkular.metrics.tasks.api.TaskType;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.testng.annotations.BeforeClass;
@@ -92,12 +91,6 @@ public class MetricsServiceITest extends MetricsITest {
 
         metricsService = new MetricsServiceImpl();
         metricsService.setTaskService(new FakeTaskService());
-        metricsService.setTaskTypes(singletonList(new TaskType()
-                .setName("counter-rate")
-                .setSegments(10)
-                .setSegmentOffsets(10)
-                .setInterval(5)
-                .setWindow(5)));
         metricsService.startUp(session, getKeyspace(), false, new MetricRegistry());
         dataAccess = metricsService.getDataAccess();
 

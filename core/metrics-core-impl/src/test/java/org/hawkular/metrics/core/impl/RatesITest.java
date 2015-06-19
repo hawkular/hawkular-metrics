@@ -31,7 +31,6 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.tasks.api.TaskService;
 import org.hawkular.metrics.tasks.api.TaskServiceBuilder;
-import org.hawkular.metrics.tasks.api.TaskType;
 import org.hawkular.metrics.tasks.impl.TaskServiceImpl;
 import org.joda.time.DateTime;
 import org.testng.annotations.AfterClass;
@@ -57,25 +56,17 @@ public class RatesITest extends MetricsITest {
 
         dateTimeService = new DateTimeService();
 
-        TaskType taskType =new TaskType()
-                        .setName("counter-rate")
-                        .setSegments(10)
-                        .setSegmentOffsets(10)
-                        .setInterval(5)
-                        .setWindow(5);
-
         taskService = new TaskServiceBuilder()
                 .withSession(session)
                 .withTimeUnit(TimeUnit.SECONDS)
-                .withTaskTypes(singletonList(taskType))
+                .withTaskTypes(singletonList(TaskTypes.COMPUTE_RATE))
                 .build();
         ((TaskServiceImpl) taskService).setTimeUnit(TimeUnit.SECONDS);
 
         metricsService = new MetricsServiceImpl();
-        metricsService.setTaskTypes(singletonList(taskType));
         metricsService.setTaskService(taskService);
 
-        ((TaskServiceImpl) taskService).subscribe(taskType, new GenerateRate(metricsService));
+        ((TaskServiceImpl) taskService).subscribe(TaskTypes.COMPUTE_RATE, new GenerateRate(metricsService));
 
         String keyspace = "hawkulartest";
         System.setProperty("keyspace", keyspace);

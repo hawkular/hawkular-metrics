@@ -62,7 +62,6 @@ import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
 import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.metrics.tasks.api.Task;
 import org.hawkular.metrics.tasks.api.TaskService;
-import org.hawkular.metrics.tasks.api.TaskType;
 import org.hawkular.rx.cassandra.driver.RxUtil;
 import org.joda.time.Duration;
 import org.joda.time.Hours;
@@ -151,8 +150,6 @@ public class MetricsServiceImpl implements MetricsService {
     private ListeningExecutorService metricsTasks;
 
     private DataAccess dataAccess;
-
-    private List<TaskType> taskTypes;
 
     private TaskService taskService;
 
@@ -322,10 +319,6 @@ public class MetricsServiceImpl implements MetricsService {
         this.dataAccess = dataAccess;
     }
 
-    void setTaskTypes(List<TaskType> taskTypes) {
-        this.taskTypes = taskTypes;
-    }
-
     public void setTaskService(TaskService taskService) {
         this.taskService = taskService;
     }
@@ -438,9 +431,8 @@ public class MetricsServiceImpl implements MetricsService {
                 }
 
                 if (metric.getType() == COUNTER) {
-                    TaskType generateRatesType = taskTypes.get(0);
-                    Task task = generateRatesType.createTask(metric.getTenantId(), metric.getId().getName() + "$rate",
-                            metric.getId().getName());
+                    Task task = TaskTypes.COMPUTE_RATE.createTask(metric.getTenantId(), metric.getId().getName() +
+                            "$rate", metric.getId().getName());
                     taskService.scheduleTask(now(), task);
                 }
 
