@@ -23,7 +23,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import rx.Observable;
-import rx.Observer;
+import rx.functions.Func1;
 
 /**
  * Interface that defines the functionality of the Metrics Service.
@@ -92,9 +92,20 @@ public interface MetricsService {
 
     Observable<DataPoint<Double>> findGaugeData(String tenantId, MetricId id, Long start, Long end);
 
+    /**
+     * @param tenantId the tenantId
+     * @param id the metricId
+     * @param start time window start, in ms
+     * @param end time window end, in ms
+     * @param funcs one or more functions to operate on the fetched gauge data
+     * @return the <code>Observable</code> emits in the same ordering as <code>funcs<funcs>
+     * @see Aggregate
+     */
+    <T> Observable<T> findGaugeData(String tenantId, MetricId id, Long start, Long end,
+            Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs);
+
     Observable<BucketedOutput<GaugeBucketDataPoint>> findGaugeStats(Metric<Double> metric, long start, long end,
-            Buckets buckets
-    );
+            Buckets buckets);
 
     Observable<Void> addAvailabilityData(List<Metric<AvailabilityType>> metrics);
 
@@ -104,8 +115,7 @@ public interface MetricsService {
             boolean distinct);
 
     Observable<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(Metric<AvailabilityType> metric,
-            long start, long end, Buckets buckets
-    );
+            long start, long end, Buckets buckets);
 
     /** Check if a metric with the passed {id} has been stored in the system */
     Observable<Boolean> idExists(String id);
@@ -167,5 +177,5 @@ public interface MetricsService {
      * the predicate matches, and the second element is the end time inclusive for which the predicate matches.
      */
     Observable<List<long[]>> getPeriods(String tenantId, MetricId id, Predicate<Double> predicate, long start,
-                                        long end);
+            long end);
 }
