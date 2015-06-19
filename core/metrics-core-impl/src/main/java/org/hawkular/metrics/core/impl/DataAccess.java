@@ -69,11 +69,11 @@ public interface DataAccess {
 
     Observable<ResultSet> findCounterData(String tenantId, MetricId id, long startTime, long endTime);
 
-    Observable<ResultSet> findData(String tenantId, MetricId id, long startTime, long endTime);
+    Observable<ResultSet> findData(String tenantId, MetricId id, MetricType type, long startTime, long endTime);
 
     Observable<ResultSet> findData(Metric<Double> metric, long startTime, long endTime, Order order);
 
-    Observable<ResultSet> findData(String tenantId, MetricId id, long startTime, long endTime,
+    Observable<ResultSet> findData(String tenantId, MetricId id, MetricType type, long startTime, long endTime,
             boolean includeWriteTime);
 
     Observable<ResultSet> findData(Metric<Double> metric, long timestamp, boolean includeWriteTime);

@@ -157,6 +157,7 @@ CREATE TABLE ${keyspace}.task_queue (
     task_type text,
     time_slice timestamp,
     segment int,
+    tenant_id text,
     target text,
     sources set<text>,
     interval int,

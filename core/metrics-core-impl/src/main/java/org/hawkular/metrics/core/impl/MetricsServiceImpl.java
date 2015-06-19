@@ -16,12 +16,14 @@
  */
 package org.hawkular.metrics.core.impl;
 
+import static java.util.Collections.singletonList;
 import static java.util.Comparator.comparingLong;
-
+import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.Functions.getTTLAvailabilityDataPoint;
 import static org.hawkular.metrics.core.impl.Functions.getTTLGaugeDataPoint;
+import static org.joda.time.DateTime.now;
 import static org.joda.time.Hours.hours;
 
 import java.util.ArrayList;
@@ -37,6 +39,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
@@ -57,6 +60,8 @@ import org.hawkular.metrics.core.api.RetentionSettings;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
 import org.hawkular.metrics.schema.SchemaManager;
+import org.hawkular.metrics.tasks.api.Task;
+import org.hawkular.metrics.tasks.api.TaskService;
 import org.hawkular.rx.cassandra.driver.RxUtil;
 import org.joda.time.Duration;
 import org.joda.time.Hours;
@@ -143,7 +148,10 @@ public class MetricsServiceImpl implements MetricsService {
     private final Map<DataRetentionKey, Integer> dataRetentions = new ConcurrentHashMap<>();
 
     private ListeningExecutorService metricsTasks;
+
     private DataAccess dataAccess;
+
+    private TaskService taskService;
 
     private MetricRegistry metricRegistry;
 
@@ -223,6 +231,10 @@ public class MetricsServiceImpl implements MetricsService {
         }
     }
 
+    void unloadDataRetentions() {
+        dataRetentions.clear();
+    }
+
     private void initMetrics() {
         gaugeInserts = metricRegistry.meter("gauge-inserts");
         availabilityInserts = metricRegistry.meter("availability-inserts");
@@ -230,10 +242,6 @@ public class MetricsServiceImpl implements MetricsService {
         gaugeReadLatency = metricRegistry.timer("gauge-read-latency");
         availabilityReadLatency = metricRegistry.timer("availability-read-latency");
         counterReadLatency = metricRegistry.timer("counter-read-latency");
-    }
-
-    void unloadDataRetentions() {
-        dataRetentions.clear();
     }
 
     private static class MergeDataPointTagsFunction<T extends DataPoint> implements
@@ -309,6 +317,10 @@ public class MetricsServiceImpl implements MetricsService {
      */
     void setDataAccess(DataAccess dataAccess) {
         this.dataAccess = dataAccess;
+    }
+
+    public void setTaskService(TaskService taskService) {
+        this.taskService = taskService;
     }
 
     @Override
@@ -416,6 +428,12 @@ public class MetricsServiceImpl implements MetricsService {
 
                 if (metric.getDataRetention() != null) {
                     updates.add(updateRetentionsIndex(metric));
+                }
+
+                if (metric.getType() == COUNTER) {
+                    Task task = TaskTypes.COMPUTE_RATE.createTask(metric.getTenantId(), metric.getId().getName() +
+                            "$rate", metric.getId().getName());
+                    taskService.scheduleTask(now(), task);
                 }
 
                 Observable.merge(updates).subscribe(new VoidSubscriber<>(subscriber));
@@ -556,15 +574,22 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
+    public Observable<DataPoint<Double>> findRateData(String tenantId, MetricId id, long start, long end) {
+        return time(gaugeReadLatency, () ->
+                dataAccess.findData(tenantId, id, COUNTER_RATE, start, end)
+                        .flatMap(Observable::from)
+                        .map(Functions::getGaugeDataPoint));
+    }
+
+    @Override
     public Observable<DataPoint<Double>> findGaugeData(String tenantId, MetricId id, Long start, Long end) {
         // When we implement date partitioning, dpart will have to be determined based on
         // the start and end params. And it is possible the the date range spans multiple
         // date partitions.
         return time(gaugeReadLatency, () ->
-            dataAccess.findData(tenantId, id, start, end)
+            dataAccess.findData(tenantId, id, GAUGE, start, end)
                     .flatMap(Observable::from)
-                    .map(Functions::getGaugeDataPoint)
-        );
+                    .map(Functions::getGaugeDataPoint));
     }
 
     @Override
@@ -574,7 +599,7 @@ public class MetricsServiceImpl implements MetricsService {
         // When we implement date partitioning, dpart will have to be determined based on
         // the start and end params. And it is possible the the date range spans multiple
         // date partitions.
-        return dataAccess.findData(metric.getTenantId(), metric.getId(), start, end)
+        return dataAccess.findData(metric.getTenantId(), metric.getId(), GAUGE, start, end)
                 .flatMap(Observable::from)
                 .map(Functions::getGaugeDataPoint)
                 .toList()
@@ -629,8 +654,8 @@ public class MetricsServiceImpl implements MetricsService {
     // metrics since they could efficiently be inserted in a single batch statement.
     public Observable<Void> tagGaugeData(Metric<Double> metric, final Map<String, String> tags, long start,
             long end) {
-        Observable<ResultSet> findDataObservable = dataAccess.findData(metric.getTenantId(), metric.getId(), start, end,
-                true);
+        Observable<ResultSet> findDataObservable = dataAccess.findData(metric.getTenantId(), metric.getId(), GAUGE,
+                start, end, true);
         return tagGaugeData(findDataObservable, tags, metric);
     }
 
@@ -768,4 +793,27 @@ public class MetricsServiceImpl implements MetricsService {
             throw new RuntimeException("There was an error during a timed event", e);
         }
     }
+
+    private Consumer<Task> generateRate() {
+        return task -> {
+            logger.info("Generating rate for {}", task);
+            // TODO Store tenant id with task
+            MetricId id = new MetricId(task.getSources().iterator().next());
+            long end = task.getTimeSlice().getMillis();
+            long start = task.getTimeSlice().minusSeconds(task.getWindow()).getMillis();
+            logger.debug("start = {}, end = {}", start, end);
+            findCounterData(task.getTenantId(), id, start, end)
+                    .take(1)
+                    .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
+                    .map(rate -> new Metric<>(task.getTenantId(), COUNTER_RATE, id,
+                            singletonList(new DataPoint<>(start, rate))))
+                    .flatMap(metric -> addGaugeData(Observable.just(metric)))
+                    .subscribe(
+                            aVoid -> {},
+                            t -> logger.warn("Failed to persist rate data", t),
+                            () -> logger.debug("Successfully persisted rate data")
+                    );
+        };
+    }
+
 }

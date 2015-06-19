@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import rx.Observable;
+import rx.Observer;
 
 /**
  * Interface that defines the functionality of the Metrics Service.
@@ -50,6 +51,31 @@ public interface MetricsService {
 
     Observable<Tenant> getTenants();
 
+    /**
+     * <p>
+     * Clients are not required to required to explicitly create a metric via this method before storing data for it.
+     * This method does a few things. First, it updates indexes with the metric meta data (i.e., name, tags, etc.) so
+     * that it can be found in metric queries performed with {@link #findMetrics(String, MetricType)}. Querying by
+     * tags will be supported in the future. Secondly, this method ensures that there are no metric naming conflicts.
+     * If another metric with the same name already exists, then returned Observable will fail with a
+     * {@link MetricAlreadyExistsException}. Lastly, meta data settings are configured and persisted. Currently this
+     * includes a couple things - data retention and counter rates. If data retention is specified for the metric,
+     * those settings are stored so that they will be applied to any data points that get persisted. If the metric is
+     * a counter, then a background job is created to compute and store rate data points. It is not yet possible to
+     * configure the settings for the rate calculation job; however, that will change in the near future.
+     * </p>
+     * <p>
+     * Note that in the current implementation if metric creation fails, things can be in an inconsistent state. For
+     * example, an index that should have been updated might not have been. There is no work around for this currently.
+     * </p>
+     *
+     * @param metric The metric to create
+     *
+     * @return This method only has side effects and does not return any data. As such,
+     * {@link rx.Observer#onNext(Object) onNext} is not called. {@link Observer#onCompleted()}  onCompleted} is called
+     * when the operation completes successfully, and {@link rx.Observer#onError(Throwable)}  onError} is called when it
+     * fails.
+     */
     Observable<Void> createMetric(Metric<?> metric);
 
     Observable<Metric> findMetric(String tenantId, MetricType type, MetricId id);
@@ -101,6 +127,20 @@ public interface MetricsService {
     Observable<Void> addCounterData(Observable<Metric<Long>> counters);
 
     Observable<DataPoint<Long>> findCounterData(String tenantId, MetricId id, long start, long end);
+
+    /**
+     * Fetches counter rate data points which are automatically generated for counter metrics. Note that rate data is
+     * generated if the metric has been explicitly created via the {@link #createMetric(Metric)} method.
+     *
+     * @param tenantId The teant to which the metric belongs
+     * @param id This is the id of the counter metric
+     * @param start The start time which is inclusive
+     * @param end The end time which is exclusive
+     *
+     * @return An Observable of {@link DataPoint data points} which are emitted in descending order. In other words,
+     * the most recent data is emitted first.
+     */
+    Observable<DataPoint<Double>> findRateData(String tenantId, MetricId id, long start, long end);
 
     /**
      * <p>

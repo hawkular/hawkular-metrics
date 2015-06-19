@@ -25,10 +25,9 @@ import java.util.Spliterators;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 
-import org.hawkular.metrics.tasks.api.TaskType;
 import org.hawkular.metrics.tasks.api.Task;
+import org.hawkular.metrics.tasks.api.TaskType;
 import org.joda.time.DateTime;
-import org.joda.time.Duration;
 
 /**
  * @author jsanda
@@ -37,13 +36,15 @@ class TaskContainer implements Iterable<Task> {
 
     private TaskType taskType;
 
+    private String tenantId;
+
     private String target;
 
     private Set<String> sources;
 
-    private Duration interval;
+    private int interval;
 
-    private Duration window;
+    private int window;
 
     private DateTime timeSlice;
 
@@ -57,6 +58,7 @@ class TaskContainer implements Iterable<Task> {
     public static TaskContainer copyWithoutFailures(TaskContainer container) {
         TaskContainer newContainer = new TaskContainer();
         newContainer.taskType = container.taskType;
+        newContainer.tenantId = container.tenantId;
         newContainer.timeSlice = container.timeSlice;
         newContainer.target = container.target;
         newContainer.sources = container.sources;
@@ -70,20 +72,25 @@ class TaskContainer implements Iterable<Task> {
     private TaskContainer() {
     }
 
-    public TaskContainer(TaskType taskType, DateTime timeSlice, int segment, String target, Set<String> sources, int
-            interval, int window, Set<DateTime> failedTimeSlices) {
+    public TaskContainer(TaskType taskType, String tenantId, DateTime timeSlice, int segment, String target,
+            Set<String> sources, int interval, int window, Set<DateTime> failedTimeSlices) {
         this.taskType = taskType;
+        this.tenantId = tenantId;
         this.timeSlice = timeSlice;
         this.segment = segment;
         this.target = target;
         this.sources = sources;
-        this.interval = Duration.standardMinutes(interval);
-        this.window = Duration.standardMinutes(window);
+        this.interval = interval;
+        this.window = window;
         this.failedTimeSlices.addAll(failedTimeSlices);
     }
 
     public TaskType getTaskType() {
         return taskType;
+    }
+
+    public String getTenantId() {
+        return tenantId;
     }
 
     public String getTarget() {
@@ -94,11 +101,11 @@ class TaskContainer implements Iterable<Task> {
         return sources;
     }
 
-    public Duration getInterval() {
+    public int getInterval() {
         return interval;
     }
 
-    public Duration getWindow() {
+    public int getWindow() {
         return window;
     }
 
@@ -132,7 +139,7 @@ class TaskContainer implements Iterable<Task> {
             @Override
             public Task next() {
                 timeSlice = timeSliceIterator.next();
-                return new TaskImpl(taskType, timeSlice, target, sources, interval, window);
+                return new TaskImpl(taskType, tenantId, timeSlice, target, sources, interval, window);
             }
         };
     }
@@ -141,7 +148,7 @@ class TaskContainer implements Iterable<Task> {
     public void forEach(Consumer<? super Task> action) {
         getAllTimeSlices().forEach(time -> {
             timeSlice = time;
-            action.accept(new TaskImpl(taskType, time, target, sources, interval, window));
+            action.accept(new TaskImpl(taskType, tenantId, time, target, sources, interval, window));
         });
     }
 
@@ -164,6 +171,7 @@ class TaskContainer implements Iterable<Task> {
         if (o == null || getClass() != o.getClass()) return false;
         TaskContainer task = (TaskContainer) o;
         return Objects.equals(taskType, task.taskType) &&
+                Objects.equals(tenantId, task.tenantId) &&
                 Objects.equals(target, task.target) &&
                 Objects.equals(sources, task.sources) &&
                 Objects.equals(interval, task.interval) &&
@@ -174,18 +182,18 @@ class TaskContainer implements Iterable<Task> {
 
     @Override
     public int hashCode() {
-        return Objects.hash(taskType, target, sources, interval, window, failedTimeSlices,
-                timeSlice);
+        return Objects.hash(taskType, tenantId, target, sources, interval, window, failedTimeSlices, timeSlice);
     }
 
     @Override
     public String toString() {
         return com.google.common.base.Objects.toStringHelper(TaskContainer.class)
                 .add("taskDef", taskType.getName())
+                .add("tenantId", tenantId)
                 .add("target", target)
                 .add("sources", sources)
-                .add("interval", interval.toStandardMinutes())
-                .add("window", window.toStandardMinutes())
+                .add("interval", interval)
+                .add("window", window)
                 .add("failedTimeSlices", failedTimeSlices)
                 .add("timeSlice", timeSlice)
                 .add("segment", segment)

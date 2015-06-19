@@ -16,16 +16,13 @@
  */
 package org.hawkular.metrics.tasks.impl;
 
-import static org.joda.time.Duration.standardMinutes;
-
 import java.util.Objects;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
-import org.hawkular.metrics.tasks.api.TaskType;
 import org.hawkular.metrics.tasks.api.Task;
+import org.hawkular.metrics.tasks.api.TaskType;
 import org.joda.time.DateTime;
-import org.joda.time.Duration;
 
 /**
  * @author jsanda
@@ -34,28 +31,33 @@ public class TaskImpl implements Task {
 
     private TaskType taskType;
 
+    private String tenantId;
+
     private String target;
 
     private Set<String> sources;
 
-    private Duration interval;
+    private int interval;
 
-    private Duration window;
+    private int window;
 
     private DateTime timeSlice;
 
-    public TaskImpl(TaskType taskType, DateTime timeSlice, String target, String source, int interval, int window) {
+    public TaskImpl(TaskType taskType, String tenantId, DateTime timeSlice, String target, String source, int interval,
+            int window) {
         this.taskType = taskType;
+        this.tenantId = tenantId;
         this.timeSlice = timeSlice;
         this.target = target;
         this.sources = ImmutableSet.of(source);
-        this.interval = standardMinutes(interval);
-        this.window = standardMinutes(window);
+        this.interval = interval;
+        this.window = window;
     }
 
-    public TaskImpl(TaskType taskType, DateTime timeSlice, String target, Set<String> sources, Duration interval,
-            Duration window) {
+    public TaskImpl(TaskType taskType, String tenantId, DateTime timeSlice, String target, Set<String> sources,
+            int interval, int window) {
         this.taskType = taskType;
+        this.tenantId = tenantId;
         this.timeSlice = timeSlice;
         this.target = target;
         this.sources = sources;
@@ -69,6 +71,11 @@ public class TaskImpl implements Task {
     }
 
     @Override
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    @Override
     public String getTarget() {
         return target;
     }
@@ -79,12 +86,12 @@ public class TaskImpl implements Task {
     }
 
     @Override
-    public Duration getInterval() {
+    public int getInterval() {
         return interval;
     }
 
     @Override
-    public Duration getWindow() {
+    public int getWindow() {
         return window;
     }
 
@@ -99,6 +106,7 @@ public class TaskImpl implements Task {
         if (!(o instanceof Task)) return false;
         Task that = (Task) o;
         return Objects.equals(taskType, that.getTaskType()) &&
+                Objects.equals(tenantId, that.getTenantId()) &&
                 Objects.equals(target, that.getTarget()) &&
                 Objects.equals(sources, that.getSources()) &&
                 Objects.equals(interval, that.getInterval()) &&
@@ -108,13 +116,14 @@ public class TaskImpl implements Task {
 
     @Override
     public int hashCode() {
-        return Objects.hash(taskType, target, sources, interval, window, timeSlice);
+        return Objects.hash(taskType, tenantId, target, sources, interval, window, timeSlice);
     }
 
     @Override
     public String toString() {
         return com.google.common.base.Objects.toStringHelper(TaskImpl.class)
                 .add("taskType", taskType.getName())
+                .add("tenantId", tenantId)
                 .add("timeSlice", timeSlice)
                 .add("target", target)
                 .add("sources", sources)

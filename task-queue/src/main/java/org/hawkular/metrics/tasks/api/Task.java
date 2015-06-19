@@ -19,7 +19,6 @@ package org.hawkular.metrics.tasks.api;
 import java.util.Set;
 
 import org.joda.time.DateTime;
-import org.joda.time.Duration;
 
 /**
  * Represents a unit of work to be performed by a user supplied function. All tasks are considered repeating and are
@@ -31,6 +30,8 @@ public interface Task {
 
 
     TaskType getTaskType();
+
+    String getTenantId();
 
     /**
      * This is a key or identifier of the time series that is associated with the task. Consider aggregating metrics or
@@ -49,14 +50,14 @@ public interface Task {
     /**
      * The frequency of the task execution, e.g., five minutes.
      */
-    Duration getInterval();
+    int getInterval();
 
     /**
      * Specifies the amount of data to be included. For an aggregation task that runs every 5 minutes with a window of
      * 15 minutes, the task should query for data from the past 15 minutes using {@link #getTimeSlice() timeSlice} as
      * the end time.
      */
-    Duration getWindow();
+    int getWindow();
 
     /**
      * The end time of the time slice for which the task is scheduled. If a task has an interval of an hour, then the

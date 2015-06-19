@@ -88,7 +88,9 @@ public class MetricsServiceITest extends MetricsITest {
     @BeforeClass
     public void initClass() {
         initSession();
+
         metricsService = new MetricsServiceImpl();
+        metricsService.setTaskService(new FakeTaskService());
         metricsService.startUp(session, getKeyspace(), false, new MetricRegistry());
         dataAccess = metricsService.getDataAccess();
 
@@ -273,7 +275,7 @@ public class MetricsServiceITest extends MetricsITest {
                 .last();
 
         assertEquals(updatedMetric.getTags(), ImmutableMap.of("a2", "two", "a3", "3"),
-            "The updated meta data does not match the expected values");
+                "The updated meta data does not match the expected values");
 
         assertMetricIndexMatches(metric.getTenantId(), GAUGE, singletonList(updatedMetric));
     }
@@ -330,10 +332,10 @@ public class MetricsServiceITest extends MetricsITest {
                 start.getMillis(), end.getMillis());
         List<DataPoint<Long>> actual = toList(data);
         List<DataPoint<Long>> expected = asList(
-                new DataPoint<>(start.getMillis(), 10L),
-                new DataPoint<>(start.plusMinutes(2).getMillis(), 15L),
+                new DataPoint<>(end.getMillis(), 45L),
                 new DataPoint<>(start.plusMinutes(4).getMillis(), 25L),
-                new DataPoint<>(end.getMillis(), 45L)
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 15L),
+                new DataPoint<>(start.getMillis(), 10L)
         );
 
         assertEquals(actual, expected, "The counter data does not match the expected values");

@@ -232,7 +232,7 @@ public class DataAccessImpl implements DataAccess {
         findCounterDataExclusive = session.prepare(
             "SELECT time, m_tags, data_retention, l_value, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? " +
-            "AND time < ? ORDER BY time ASC");
+            "AND time < ?");
 
         findGaugeDataWithWriteTimeByDateRangeExclusive = session.prepare(
             "SELECT time, m_tags, data_retention, n_value, tags, WRITETIME(n_value) FROM data " +
@@ -473,8 +473,8 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findData(String tenantId, MetricId id, long startTime, long endTime) {
-        return findData(tenantId, id, startTime, endTime, false);
+    public Observable<ResultSet> findData(String tenantId, MetricId id, MetricType type, long startTime, long endTime) {
+        return findData(tenantId, id, type, startTime, endTime, false);
     }
 
     @Override
@@ -498,16 +498,15 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findData(String tenantId, MetricId id, long startTime, long endTime,
+    public Observable<ResultSet> findData(String tenantId, MetricId id, MetricType type, long startTime, long endTime,
             boolean includeWriteTime) {
         if (includeWriteTime) {
-            return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeExclusive.bind(tenantId,
-                    MetricType.GAUGE.getCode(), id.getName(), id.getInterval().toString(), DPART,
-                    getTimeUUID(startTime), getTimeUUID(endTime)));
+            return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeExclusive.bind(tenantId, type.getCode(),
+                    id.getName(),
+                    id.getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
         } else {
-            return rxSession.execute(findGaugeDataByDateRangeExclusive.bind(tenantId, MetricType.GAUGE.getCode(),
-                    id.getName(), id.getInterval().toString(), DPART, getTimeUUID(startTime),
-                    getTimeUUID(endTime)));
+            return rxSession.execute(findGaugeDataByDateRangeExclusive.bind(tenantId, type.getCode(), id.getName(),
+                    id.getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
         }
     }
 
@@ -516,11 +515,11 @@ public class DataAccessImpl implements DataAccess {
             boolean includeWriteTime) {
         if (includeWriteTime) {
             return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeInclusive.bind(metric.getTenantId(),
-                    MetricType.GAUGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+                    metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                     DPART, UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
         } else {
             return rxSession.execute(findGaugeDataByDateRangeInclusive.bind(metric.getTenantId(),
-                    MetricType.GAUGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+                    metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
                     DPART, UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
         }
     }
@@ -581,14 +580,14 @@ public class DataAccessImpl implements DataAccess {
     public Observable<ResultSet> insertAvailabilityTag(String tag, String tagValue,
             Metric<AvailabilityType> metric, Observable<TTLDataPoint<AvailabilityType>> data) {
         return data.reduce(
-            new BatchStatement(UNLOGGED),
-            (batch, a) -> {
-                batch.add(insertAvailabilityTags.bind(metric.getTenantId(), tag, tagValue,
-                    MetricType.AVAILABILITY.getCode(), metric.getId().getName(), metric.getId().getInterval()
-                        .toString(), getTimeUUID(a.getDataPoint().getTimestamp()), getBytes(a.getDataPoint()),
-                        a.getTTL()));
-                return batch;
-            }).flatMap(rxSession::execute);
+                new BatchStatement(UNLOGGED),
+                (batch, a) -> {
+                    batch.add(insertAvailabilityTags.bind(metric.getTenantId(), tag, tagValue,
+                            MetricType.AVAILABILITY.getCode(), metric.getId().getName(),
+                            metric.getId().getInterval().toString(), getTimeUUID(a.getDataPoint().getTimestamp()),
+                            getBytes(a.getDataPoint()), a.getTTL()));
+                    return batch;
+                }).flatMap(rxSession::execute);
     }
 
     @Override
