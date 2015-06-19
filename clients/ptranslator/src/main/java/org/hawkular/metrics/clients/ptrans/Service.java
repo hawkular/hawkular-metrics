@@ -34,7 +34,9 @@ public enum Service {
     /** **/
     STATSD("statsd"),
     /** **/
-    COLLECTD("collectd");
+    COLLECTD("collectd"),
+    /** **/
+    GRAPHITE("graphite");
 
     private final String externalForm;
 

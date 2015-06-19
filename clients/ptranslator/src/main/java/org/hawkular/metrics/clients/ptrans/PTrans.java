@@ -17,6 +17,7 @@
 package org.hawkular.metrics.clients.ptrans;
 
 import static java.util.stream.Collectors.joining;
+
 import static org.hawkular.metrics.clients.ptrans.util.Arguments.checkArgument;
 
 import java.net.Inet4Address;
@@ -30,6 +31,7 @@ import java.util.Set;
 import org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler;
 import org.hawkular.metrics.clients.ptrans.collectd.CollectdChannelInitializer;
 import org.hawkular.metrics.clients.ptrans.ganglia.GangliaChannelInitializer;
+import org.hawkular.metrics.clients.ptrans.graphite.GraphiteChannelInitializer;
 import org.hawkular.metrics.clients.ptrans.statsd.StatsdChannelInitializer;
 import org.hawkular.metrics.clients.ptrans.syslog.TcpChannelInitializer;
 import org.hawkular.metrics.clients.ptrans.syslog.UdpChannelInitializer;
@@ -93,7 +95,7 @@ public class PTrans {
                     .group(group, workerGroup)
                     .channel(NioServerSocketChannel.class)
                     .localAddress(configuration.getTcpPort())
-                    .childHandler(new TcpChannelInitializer(configuration, forwardingHandler));
+                    .childHandler(new TcpChannelInitializer(forwardingHandler));
             ChannelFuture tcpBindFuture = serverBootstrap.bind().syncUninterruptibly();
             LOG.info("Server listening on TCP {}", tcpBindFuture.channel().localAddress());
             closeFutures.add(tcpBindFuture.channel().closeFuture());
@@ -151,6 +153,17 @@ public class PTrans {
             ChannelFuture statsdBindFuture = statsdBootstrap.bind().syncUninterruptibly();
             LOG.info("Statsd listening on UDP {}", statsdBindFuture.channel().localAddress());
             closeFutures.add(statsdBindFuture.channel().closeFuture());
+        }
+
+        if (services.contains(Service.GRAPHITE)) {
+            ServerBootstrap graphiteBootstrap = new ServerBootstrap()
+                    .group(group)
+                    .channel(NioServerSocketChannel.class)
+                    .localAddress(configuration.getGraphitePort())
+                    .childHandler(new GraphiteChannelInitializer(forwardingHandler));
+            ChannelFuture graphiteBindFuture = graphiteBootstrap.bind().syncUninterruptibly();
+            LOG.info("Graphite listening on TCP {}", graphiteBindFuture.channel().localAddress());
+            closeFutures.add(graphiteBindFuture.channel().closeFuture());
         }
 
         if (services.contains(Service.COLLECTD)) {

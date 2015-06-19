@@ -14,30 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.clients.ptrans.syslog;
 
-import org.hawkular.metrics.clients.ptrans.DemuxHandler;
+package org.hawkular.metrics.clients.ptrans.graphite;
+
 import org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
-import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.codec.LineBasedFrameDecoder;
+import io.netty.handler.codec.string.StringDecoder;
+import io.netty.util.CharsetUtil;
 
 /**
- * Channel initializer to be used when bootstrapping a TCP server.
+ * Channel initializer to be used when bootstrapping a Graphite server.
  *
  * @author Thomas Segismont
  */
-public class TcpChannelInitializer extends ChannelInitializer<SocketChannel> {
+public class GraphiteChannelInitializer extends ChannelInitializer<Channel> {
     private final RestForwardingHandler forwardingHandler;
 
-    public TcpChannelInitializer(RestForwardingHandler forwardingHandler) {
+    public GraphiteChannelInitializer(RestForwardingHandler forwardingHandler) {
         this.forwardingHandler = forwardingHandler;
     }
 
     @Override
-    public void initChannel(SocketChannel socketChannel) throws Exception {
+    public void initChannel(Channel socketChannel) throws Exception {
         ChannelPipeline pipeline = socketChannel.pipeline();
-        pipeline.addLast(new DemuxHandler(forwardingHandler));
+        pipeline.addLast(new LineBasedFrameDecoder(1024));
+        pipeline.addLast(new StringDecoder(CharsetUtil.UTF_8));
+        pipeline.addLast(new GraphiteEventDecoder());
+        pipeline.addLast(forwardingHandler);
     }
 }

@@ -16,60 +16,48 @@
  */
 package org.hawkular.metrics.clients.ptrans.graphite;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.MessageToMessageDecoder;
-import io.netty.util.CharsetUtil;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.hawkular.metrics.client.common.SingleMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.MessageToMessageDecoder;
+
 /**
- * Decoder for plaintext metric data sent from Graphite
- *
- * @see <a href="http://graphite.readthedocs.org/en/latest/feeding-carbon.html">Graphite - Feeding Carbon</a>
- *
- *      Format is source value path[source value path]?
+ * Decoder for plaintext metric data sent from Graphite.
  *
  * @author Heiko W. Rupp
+ * @author Thomas Segismont
  */
-public class GraphiteEventDecoder extends MessageToMessageDecoder<ByteBuf> {
-
-    private static final Logger logger = LoggerFactory.getLogger(GraphiteEventDecoder.class);
+public class GraphiteEventDecoder extends MessageToMessageDecoder<String> {
+    private static final Logger LOG = LoggerFactory.getLogger(GraphiteEventDecoder.class);
 
     @Override
-    protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
-
-        if (msg.readableBytes()<1) {
-            return; // Nothing to do
-        }
-
-        String data = msg.toString(CharsetUtil.UTF_8);
-
-        data = data.trim();
-
-        String[] lines = data.split("\\n");
-        if (lines.length==0) {
+    protected void decode(ChannelHandlerContext ctx, String msg, List<Object> out) throws Exception {
+        String[] items = msg.split(" ");
+        if (items.length != 3) {
+            LOG.debug("Unknown data format for '{}', skipping", msg);
             return;
         }
-        List<SingleMetric> metricList = new ArrayList<>(lines.length);
 
-        for (String line : lines) {
-            String[] items = line.split(" ");
-            if (items.length != 3) {
-                logger.debug("Unknown data format for [" + data + "], skipping");
-                return;
-            }
+        String name = items[0];
+        double value = Double.parseDouble(items[1]);
+        long timestamp = MILLISECONDS.convert(Long.parseLong(items[2]), SECONDS);
 
-            long secondsSinceEpoch = Long.parseLong(items[2]);
-            long timestamp = secondsSinceEpoch * 1000L;
-            SingleMetric metric = new SingleMetric(items[0], timestamp, Double.parseDouble(items[1]));
-            metricList.add(metric);
-        }
-        out.add(metricList);
+        SingleMetric metric = new SingleMetric(name, timestamp, value);
+
+        out.add(Collections.singletonList(metric));
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        LOG.debug("Could not decode message", cause);
+        ctx.channel().close();
     }
 }
