@@ -116,7 +116,7 @@ class CountersITest extends RESTTest {
             ]
         ]
     ]
-    assertEquals(expectedData, response.data1)
+    assertEquals(expectedData, response.data)
   }
 
 }
