@@ -80,7 +80,10 @@ public class MetricHandler {
     })
     public void findMetrics(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(value = "Queried metric type", required = true, allowableValues = "[gauge, availability]")
+            @ApiParam(
+                    value = "Queried metric type",
+                    required = true,
+                    allowableValues = "[gauge, availability, counter]")
         @QueryParam("type") String type) {
 
         try {
