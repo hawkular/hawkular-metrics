@@ -16,8 +16,10 @@
  */
 package org.hawkular.metrics.rest
 
+import org.joda.time.DateTime
 import org.junit.Test
 
+import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
 
 /**
@@ -115,6 +117,51 @@ class CountersITest extends RESTTest {
                 tag2: 'two'
             ]
         ]
+    ]
+    assertEquals(expectedData, response.data)
+  }
+
+  @Test
+  void addDataForMultipleCounters() {
+    String tenantId = nextTenantId()
+    String counter1 = "C1"
+    String counter2 = "C2"
+
+    DateTime start = now().minusMinutes(5)
+
+    def response = hawkularMetrics.post(
+        path: "counters/data",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                id: counter1,
+                data: [
+                    [timestamp: start.millis, value: 10],
+                    [timestamp: start.plusMinutes(1).millis, value: 20]
+                ]
+            ],
+            [
+                id: counter2,
+                data: [
+                    [timestamp: start.millis, value: 150],
+                    [timestamp: start.plusMinutes(1).millis, value: 225],
+                    [timestamp: start.plusMinutes(2).millis, value: 300]
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(
+        path: "counters/$counter1/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [start: start.millis, end: start.plusMinutes(1).millis]
+    )
+    assertEquals(200, response.status)
+
+    def expectedData = [
+        [timestamp: start.plusMinutes(1).millis, value: 20],
+        [timestamp: start.millis, value: 10]
     ]
     assertEquals(expectedData, response.data)
   }

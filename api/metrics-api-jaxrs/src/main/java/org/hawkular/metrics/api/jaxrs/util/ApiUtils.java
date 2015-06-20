@@ -17,7 +17,7 @@
 package org.hawkular.metrics.api.jaxrs.util;
 
 import static java.util.stream.Collectors.toList;
-
+import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 import java.util.Collection;
@@ -28,21 +28,21 @@ import java.util.Optional;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 
+import com.google.common.base.Function;
+import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
+import org.hawkular.metrics.api.jaxrs.model.Counter;
+import org.hawkular.metrics.api.jaxrs.model.CounterDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.Gauge;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
-
-import com.google.common.base.Function;
-import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-
 import rx.Observable;
 
 /**
@@ -84,6 +84,17 @@ public class ApiUtils {
     public static Observable<Metric<Double>> requestToGauges(String tenantId, List<Gauge> gauges) {
         return Observable.from(gauges).map(g ->
                 new Metric<>(tenantId, GAUGE, new MetricId(g.getId()), requestToGaugeDataPoints(g.getData())));
+    }
+
+    public static Observable<Metric<Long>> requestToCounters(String tenantId, List<Counter> counters) {
+        return Observable.from(counters).map(c ->
+                new Metric<>(tenantId, COUNTER, new MetricId(c.getId()), requestToCounterDataPoints(c.getData())));
+    }
+
+    public static List<DataPoint<Long>> requestToCounterDataPoints(List<CounterDataPoint> dataPoints) {
+        return dataPoints.stream()
+                .map(p -> new DataPoint<>(p.getTimestamp(), p.getValue(), p.getTags()))
+                .collect(toList());
     }
 
     // TODO We probably want to return an Observable here
