@@ -21,6 +21,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounterDataPoints;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounters;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 
@@ -129,12 +130,12 @@ public class CounterHandler {
 
     @POST
     @Path("/data")
-    @ApiOperation(value = "Add data points for multiple counter metrics.")
+    @ApiOperation(value = "Add data points for multiple counters")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data points succeeded."),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data points",
                          response = ApiError.class) })
-    public void addCounterData(@Suspended final AsyncResponse asyncResponse,
+    public void addData(@Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of metrics", required = true) List<Counter> counters) {
 
         if (counters.isEmpty()) {
@@ -142,6 +143,29 @@ public class CounterHandler {
         } else {
             Observable<Metric<Long>> metrics = requestToCounters(tenantId, counters);
             Observable<Void> observable = metricsService.addCounterData((metrics));
+            observable.subscribe(new ResultSetObserver(asyncResponse));
+        }
+    }
+
+    @POST
+    @Path("/{id}/data")
+    @ApiOperation(value = "Add data for a single counter")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Adding data succeeded."),
+            @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
+                         response = ApiError.class), })
+    public void addData(
+            @Suspended final AsyncResponse asyncResponse,
+            @PathParam("id") String id,
+            @ApiParam(value = "List of data points containing timestamp and value", required = true)
+            List<CounterDataPoint> data) {
+
+        if (data.isEmpty()) {
+            asyncResponse.resume(emptyPayload());
+        } else {
+            Metric<Long> metric = new Metric<>(tenantId, COUNTER, new MetricId(id), requestToCounterDataPoints(data));
+            Observable<Void> observable = metricsService.addCounterData(Observable.just(metric));
             observable.subscribe(new ResultSetObserver(asyncResponse));
         }
     }

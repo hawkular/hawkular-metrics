@@ -122,7 +122,7 @@ class CountersITest extends RESTTest {
   }
 
   @Test
-  void addDataForMultipleCounters() {
+  void addDataForMultipleCountersAndFindhWithDateRange() {
     String tenantId = nextTenantId()
     String counter1 = "C1"
     String counter2 = "C2"
@@ -164,6 +164,89 @@ class CountersITest extends RESTTest {
         [timestamp: start.millis, value: 10]
     ]
     assertEquals(expectedData, response.data)
+
+    response = hawkularMetrics.get(
+        path: "counters/$counter2/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [start: start.millis, end: start.plusMinutes(1).millis]
+    )
+    assertEquals(200, response.status)
+
+    expectedData = [
+        [timestamp: start.plusMinutes(1).millis, value: 225],
+        [timestamp: start.millis, value: 150]
+    ]
+    assertEquals(expectedData, response.data)
+  }
+
+  @Test
+  void addDataForSingleCounterAndFindWithDefaultDateRange() {
+    String tenantId = nextTenantId()
+    String counter = "C1"
+    DateTime start = now().minusHours(8)
+
+    def response = hawkularMetrics.post(
+        path: "counters/$counter/data",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [timestamp: start.millis, value: 100],
+            [timestamp: start.plusHours(1).millis, value :200],
+            [timestamp: start.plusHours(4).millis, value: 500],
+            [timestamp: now().plusSeconds(30).millis, value: 750]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(
+        path: "counters/$counter/data",
+        headers: [(tenantHeaderName): tenantId],
+    )
+    assertEquals(200, response.status)
+
+    def expectedData = [
+        [timestamp: start.plusHours(4).millis, value: 500],
+        [timestamp: start.plusHours(1).millis, value: 200]
+    ]
+    assertEquals(expectedData, response.data)
+  }
+
+  @Test
+  void findWhenThereIsNoData() {
+    String tenantId = nextTenantId()
+    String counter1 = "C1"
+    String counter2 = "C2"
+    DateTime start = now().minusHours(3)
+
+    def response = hawkularMetrics.post(
+        path: "counters/data",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                id: counter1,
+                data: [
+                    [timestamp: start.millis, value: 100],
+                    [timestamp: start.plusHours(1).millis, value: 150]
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    // First query a counter that has data but outside of the date range for which data
+    // points are available
+    response = hawkularMetrics.get(
+        path: "counters/$counter1/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [start: start.minusHours(5).millis, end: start.minusHours(4).millis]
+    )
+    assertEquals(204, response.status)
+
+    // Now query a counter that has no dat at all
+    response = hawkularMetrics.get(
+        path: "counters/$counter2/data",
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(204, response.status)
   }
 
 }
