@@ -30,7 +30,8 @@ public enum ConfigurationKey {
     CASSANDRA_CQL_PORT("hawkular-metrics.cassandra-cql-port", "9042", "CASSANDRA_CQL_PORT", false),
     CASSANDRA_KEYSPACE("cassandra.keyspace", "hawkular_metrics", null, false),
     CASSANDRA_RESETDB("cassandra.resetdb", null, null, true),
-    WAIT_FOR_SERVICE("hawkular.metrics.waitForService", null, null, true);
+    WAIT_FOR_SERVICE("hawkular.metrics.waitForService", null, null, true),
+    TASK_SCHEDULER_TIME_UNITS("hawkular.scheduler.time-units", "minutes", "SCHEDULER_TIME_UNITS", false);
 
     private final String name;
     private final String env;
