@@ -29,7 +29,6 @@
   </parent>
 
   <artifactId>cassandra-docker</artifactId>
-  <version>0.3.5-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Cassandra Docker Image</name>

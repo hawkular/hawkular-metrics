@@ -47,7 +47,7 @@ as possible.
 
 == Getting started with a release build
 
-http://wildfly.org/downloads/[Download a Wildfly 8.2.0.Final] archive and expand it somewhere on your disk.
+http://wildfly.org/downloads/[Download a Wildfly 9] archive and expand it somewhere on your disk.
 
 Check out the https://github.com/hawkular/hawkular-metrics/releases[Metrics releases] page and download the latest
 version of the web application archive: `hawkular-metrics-api-jaxrs-X.Y.Z.war`

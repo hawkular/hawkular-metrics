@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.hawkular</groupId>
     <artifactId>hawkular-parent</artifactId>
-    <version>15</version>
+    <version>16</version>
   </parent>
 
   <groupId>org.hawkular.metrics</groupId>
@@ -293,20 +293,6 @@
   </reporting>
 
   <profiles>
-
-    <!-- Note that the test.debug profile has moved to hawkular-parent -->
-
-    <profile>
-      <id>download_wildfly</id>
-      <dependencies>
-        <dependency>
-          <groupId>org.wildfly</groupId>
-          <artifactId>wildfly-dist</artifactId>
-          <version>${version.org.wildfly}</version>
-          <type>zip</type>
-        </dependency>
-      </dependencies>
-    </profile>
 
     <profile>
       <id>publish</id>
