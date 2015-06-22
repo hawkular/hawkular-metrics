@@ -19,6 +19,7 @@ package org.hawkular.metrics.api.jaxrs.handler;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.executeAsync;
 
 import java.util.ArrayList;
@@ -70,33 +71,32 @@ public class MetricHandler {
     @GET
     @Path("/")
     @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ",
-            response = List.class, responseContainer = "List")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully retrieved at least one metric "
-            + "definition."),
-            @ApiResponse(code = 204, message = "No metrics found."),
-            @ApiResponse(code = 400, message = "Given type is not a valid type.", response = ApiError.class),
+                  response = List.class, responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully retrieved at least one metric definition.",
+                         response = ApiError.class),
+            @ApiResponse(code = 204, message = "No metrics found.",
+                         response = ApiError.class),
+            @ApiResponse(code = 400, message = "Missing or invalid type parameter type.", response = ApiError.class),
             @ApiResponse(code = 500, message = "Failed to retrieve metrics due to unexpected error.",
                          response = ApiError.class)
     })
     public void findMetrics(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(
-                    value = "Queried metric type",
-                    required = true,
-                    allowableValues = "[gauge, availability, counter]")
-        @QueryParam("type") String type) {
-
-        try {
-            metricsService.findMetrics(tenantId, MetricType.fromTextCode(type))
-                    .map(MetricDefinition::new)
-                    .toList()
-                    .map(ApiUtils::collectionToResponse)
-                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
-
-        } catch (IllegalArgumentException e) {
-            ApiError error = new ApiError("[" + type + "] is not a valid type. Accepted values are gauge|avail|log");
-            asyncResponse.resume(Response.status(Response.Status.BAD_REQUEST).entity(error).build());
+            @ApiParam(value = "Queried metric type",
+                      required = true,
+                      allowableValues = "[gauge, availability, counter]")
+            @QueryParam("type") MetricType metricType
+    ) {
+        if (metricType == null) {
+            asyncResponse.resume(badRequest(new ApiError("Missing type param")));
+            return;
         }
+        metricsService.findMetrics(tenantId, metricType)
+                      .map(MetricDefinition::new)
+                      .toList()
+                      .map(ApiUtils::collectionToResponse)
+                      .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
 
     @POST

@@ -23,6 +23,8 @@ import javax.ws.rs.ext.ParamConverter;
 import javax.ws.rs.ext.ParamConverterProvider;
 import javax.ws.rs.ext.Provider;
 
+import org.hawkular.metrics.core.api.MetricType;
+
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -39,6 +41,7 @@ public class ConvertersProvider implements ParamConverterProvider {
         paramConverters = paramConvertersBuilder
                 .put(Duration.class, new DurationConverter())
                 .put(Tags.class, new TagsConverter())
+                .put(MetricType.class, new MetricTypeConverter())
                 .build();
     }
 
