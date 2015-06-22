@@ -78,6 +78,8 @@ public class AggregationTemplate {
      * <br>
      * <strong>Note:</strong> Once we have some of the functions support in
      * place, this will most likely change to be a strongly typed collection.
+     *
+     * @return set of functions
      */
     public Set<String> getFunctions() {
         return functions;

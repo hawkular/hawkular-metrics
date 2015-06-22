@@ -38,14 +38,16 @@ public interface MetricsService {
      * with the same id already exists.
      * </p>
      * <p>
-     * All data is associated with a {@link org.hawkular.metrics.core.api.Tenant tenant} via the tenant id; however,
-     * the foreign key like relationship is not enforced. Data can be inserted with a non-existent tenant id. More
+     * All data is associated with a {@link org.hawkular.metrics.core.api.Tenant tenant} via the tenant id; however, the
+     * foreign key like relationship is not enforced. Data can be inserted with a non-existent tenant id. More
      * importantly, data could be inserted with a tenant id that already exists.
      * </p>
      *
-     * @param tenant The {@link Tenant tenant} to create
-     * @return
+     * @param tenant
+     *            The {@link Tenant tenant} to create
+     * @return void
      * @throws org.hawkular.metrics.core.api.TenantAlreadyExistsException
+     *             tenant already exists
      */
     Observable<Void> createTenant(Tenant tenant);
 
@@ -72,9 +74,9 @@ public interface MetricsService {
      * @param metric The metric to create
      *
      * @return This method only has side effects and does not return any data. As such,
-     * {@link rx.Observer#onNext(Object) onNext} is not called. {@link Observer#onCompleted()}  onCompleted} is called
-     * when the operation completes successfully, and {@link rx.Observer#onError(Throwable)}  onError} is called when it
-     * fails.
+     * {@link rx.Observer#onNext(Object) onNext} is not called. {@link rx.Observer#onCompleted()}  onCompleted}
+     * is called when the operation completes successfully, and {@link rx.Observer#onError(Throwable)}  onError}
+     * is called when it fails.
      */
     Observable<Void> createMetric(Metric<?> metric);
 
@@ -110,7 +112,7 @@ public interface MetricsService {
      * @param start The start time inclusive as a Unix timestamp in milliseconds
      * @param end The end time exclusive as a Unix timestamp in milliseconds
      * @param funcs one or more functions to operate on the fetched gauge data
-     * @return An {@link Observable} that emits the results with the same ordering as <code>funcs<code>
+     * @return An {@link Observable} that emits the results with the same ordering as funcs
      * @see Aggregate
      */
     <T> Observable<T> findGaugeData(String tenantId, MetricId id, Long start, Long end,
