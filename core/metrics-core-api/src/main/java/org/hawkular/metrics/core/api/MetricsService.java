@@ -90,15 +90,27 @@ public interface MetricsService {
 
     Observable<Void> addGaugeData(Observable<Metric<Double>> gaugeObservable);
 
+    /**
+     * Fetches data points for a gauge metric.
+     *
+     * @param tenantId The tenant to which the metric belongs
+     * @param id The metric name
+     * @param start The start time inclusive as  aUnix timestamp in milliseconds
+     * @param end The end time exclusive as a Unix timestamp in milliseconds
+     * @return an {@link Observable} that emits {@link DataPoint data points}
+     */
     Observable<DataPoint<Double>> findGaugeData(String tenantId, MetricId id, Long start, Long end);
 
     /**
-     * @param tenantId the tenantId
-     * @param id the metricId
-     * @param start time window start, in ms
-     * @param end time window end, in ms
+     * This method applies one or more functions to an Observable that emits data points of a gauge metric. The data
+     * points Observable is asynchronous. The functions however, are applied serially in the order specified.
+     *
+     * @param tenantId The tenant to which the metric belongs
+     * @param id The metric name
+     * @param start The start time inclusive as a Unix timestamp in milliseconds
+     * @param end The end time exclusive as a Unix timestamp in milliseconds
      * @param funcs one or more functions to operate on the fetched gauge data
-     * @return the <code>Observable</code> emits in the same ordering as <code>funcs<funcs>
+     * @return An {@link Observable} that emits the results with the same ordering as <code>funcs<code>
      * @see Aggregate
      */
     <T> Observable<T> findGaugeData(String tenantId, MetricId id, Long start, Long end,
