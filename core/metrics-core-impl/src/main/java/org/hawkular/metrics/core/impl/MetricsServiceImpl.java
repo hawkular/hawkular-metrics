@@ -597,15 +597,7 @@ public class MetricsServiceImpl implements MetricsService {
             Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs) {
 
         Observable<DataPoint<Double>> dataCache = findGaugeData(tenantId, id, start, end).cache();
-        Observable<T> result = null;
-
-        for (Func1<Observable<DataPoint<Double>>, Observable<T>> func : funcs) {
-            result = (null == result) ?
-                    func.call(dataCache) :
-                    result.concatWith(func.call(dataCache));
-        }
-
-        return result;
+        return Observable.from(funcs).flatMap(fn -> fn.call(dataCache));
     }
 
     @Override

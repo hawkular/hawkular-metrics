@@ -28,19 +28,29 @@ import rx.observables.MathObservable;
  * @author jay shaughnessy
  */
 public interface Aggregate {
-    Func1<Observable<DataPoint<Double>>, Observable<Double>> Average = data -> {
-        return MathObservable.averageDouble(data.map(DataPoint::getValue));
-    };
 
-    Func1<Observable<DataPoint<Double>>, Observable<Double>> Max = data -> {
-        return MathObservable.max(data.map(DataPoint::getValue));
-    };
+    /**
+     * A function that emits a single item, the average of {@link DataPoint data points} as a double.
+     */
+    Func1<Observable<DataPoint<Double>>, Observable<Double>> Average = data ->
+        MathObservable.averageDouble(data.map(DataPoint::getValue));
 
-    Func1<Observable<DataPoint<Double>>, Observable<Double>> Min = data -> {
-        return MathObservable.min(data.map(DataPoint::getValue));
-    };
+    /**
+     * A function that emits a single item, the max of {@link DataPoint data points} as a double.
+     */
+    Func1<Observable<DataPoint<Double>>, Observable<Double>> Max = data ->
+        MathObservable.max(data.map(DataPoint::getValue));
 
-    Func1<Observable<DataPoint<Double>>, Observable<Double>> Sum = data -> {
-        return MathObservable.sumDouble(data.map(DataPoint::getValue));
-    };
+    /**
+     * A function that emits a single item, the min of {@link DataPoint data points} as a double.
+     */
+    Func1<Observable<DataPoint<Double>>, Observable<Double>> Min = data ->
+        MathObservable.min(data.map(DataPoint::getValue));
+
+    /**
+     * A function that emits a single item, the sum of {@link DataPoint data points} as a double.
+     */
+    Func1<Observable<DataPoint<Double>>, Observable<Double>> Sum = data ->
+        MathObservable.sumDouble(data.map(DataPoint::getValue));
+
 }
