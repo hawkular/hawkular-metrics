@@ -593,6 +593,22 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
+    public <T> Observable<T> findGaugeData(String tenantId, MetricId id, Long start, Long end,
+            Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs) {
+
+        Observable<DataPoint<Double>> dataCache = findGaugeData(tenantId, id, start, end).cache();
+        Observable<T> result = null;
+
+        for (Func1<Observable<DataPoint<Double>>, Observable<T>> func : funcs) {
+            result = (null == result) ?
+                    func.call(dataCache) :
+                    result.concatWith(func.call(dataCache));
+        }
+
+        return result;
+    }
+
+    @Override
     public Observable<BucketedOutput<GaugeBucketDataPoint>> findGaugeStats(
             Metric<Double> metric, long start, long end, Buckets buckets
     ) {

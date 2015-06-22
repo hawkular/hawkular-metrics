@@ -19,6 +19,7 @@ package org.hawkular.metrics.core.impl;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
+
 import static org.hawkular.metrics.core.api.AvailabilityType.DOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UNKNOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UP;
@@ -45,17 +46,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.codahale.metrics.MetricRegistry;
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import org.hawkular.metrics.core.api.Aggregate;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Interval;
@@ -70,6 +61,19 @@ import org.joda.time.Duration;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import com.codahale.metrics.MetricRegistry;
+import com.datastax.driver.core.BatchStatement;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+
 import rx.Observable;
 
 /**
@@ -340,6 +344,34 @@ public class MetricsServiceITest extends MetricsITest {
 
         assertEquals(actual, expected, "The counter data does not match the expected values");
         assertMetricIndexMatches(tenantId, COUNTER, singletonList(counter));
+    }
+
+    @Test
+    public void addAndFetchGaugeDataAggregates() throws Exception {
+        DateTime start = now().minusMinutes(30);
+        DateTime end = start.plusMinutes(20);
+        String tenantId = "t1";
+
+        metricsService.createTenant(new Tenant(tenantId)).toBlocking().lastOrDefault(null);
+
+        Metric<Double> m1 = new Metric<>(tenantId, GAUGE, new MetricId("m1"), asList(
+                new DataPoint<>(start.getMillis(), 10.0),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 20.0),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 30.0),
+                new DataPoint<>(end.getMillis(), 40.0)
+                ));
+
+        Observable<Void> insertObservable = metricsService.addGaugeData(Observable.just(m1));
+        insertObservable.toBlocking().lastOrDefault(null);
+
+        Observable<Double> observable = metricsService
+                .findGaugeData(tenantId, new MetricId("m1"), start.getMillis(), (end.getMillis() + 1000),
+                        Aggregate.Min, Aggregate.Max, Aggregate.Average, Aggregate.Sum);
+        List<Double> actual = toList(observable);
+        List<Double> expected = asList(10.0, 40.0, 25.0, 100.0);
+
+        assertEquals(actual, expected, "The data does not match the expected values");
+        assertMetricIndexMatches("t1", GAUGE, singletonList(m1));
     }
 
     @Test
