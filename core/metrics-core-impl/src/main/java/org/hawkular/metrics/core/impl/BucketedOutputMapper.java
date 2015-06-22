@@ -37,7 +37,7 @@ import rx.functions.Func1;
  * Transform a {@link Metric} with its {@link org.hawkular.metrics.core.api.DataPoint}
  * into a {@link org.hawkular.metrics.core.api.BucketedOutput}.
  *
- * @param <DATA>   type of metric data, like {@link org.hawkular.metrics.core.api.DataPoint&lt;Double&gt;}
+ * @param <DATA>   type of metric data, like {@link org.hawkular.metrics.core.api.DataPoint}
  * @param <POINT>  type of bucket points, like {@link org.hawkular.metrics.core.api.GaugeBucketDataPoint}
  *
  * @author Thomas Segismont

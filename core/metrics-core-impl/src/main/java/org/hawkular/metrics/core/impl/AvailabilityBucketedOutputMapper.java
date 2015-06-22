@@ -24,18 +24,17 @@ import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 
 /**
- * A {@link BucketedOutputMapper} for {@link Metric <AvailabilityDataPoint>}.
- *
  * @author Thomas Segismont
  */
 public class AvailabilityBucketedOutputMapper
         extends BucketedOutputMapper<AvailabilityType, AvailabilityBucketDataPoint> {
 
     /**
+     * @param tenantId the tenant
+     * @param id the id
      * @param buckets the bucket configuration
      */
     public AvailabilityBucketedOutputMapper(String tenantId, MetricId id, Buckets buckets) {
