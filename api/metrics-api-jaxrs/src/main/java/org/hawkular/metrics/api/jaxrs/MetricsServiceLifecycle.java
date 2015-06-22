@@ -121,7 +121,8 @@ public class MetricsServiceLifecycle {
 
             @Override
             public Observable<Task> scheduleTask(DateTime time, Task task) {
-                throw new UnsupportedOperationException("Task scheduling is not yet supported");
+                LOG.warn("Task scheduling is not yet supported");
+                return Observable.empty();
             }
         });
         ThreadFactory threadFactory = r -> {
