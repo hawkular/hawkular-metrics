@@ -20,23 +20,22 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
-import org.hawkular.metrics.core.api.DataPoint;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.wordnik.swagger.annotations.ApiModel;
+import org.hawkular.metrics.core.api.DataPoint;
 
 /**
  * @author jsanda
  */
-@ApiModel(description = "A timestamp and a value where the value is interpreted as a floating point number")
-public class GaugeDataPoint {
+@ApiModel(description = "A timestamp and a value where the value is interpreted as a signed 64 bit integer")
+public class CounterDataPoint {
 
     @JsonProperty
     private long timestamp;
 
     @JsonProperty
-    private Double value;
+    private Long value;
 
     @JsonProperty
     private Map<String, String> tags = Collections.emptyMap();
@@ -44,7 +43,7 @@ public class GaugeDataPoint {
     /**
      * Used by JAX-RS/Jackson to deserialize HTTP request data
      */
-    private GaugeDataPoint() {
+    private CounterDataPoint() {
     }
 
     /**
@@ -52,13 +51,13 @@ public class GaugeDataPoint {
      *
      * @param dataPoint
      */
-    public GaugeDataPoint(DataPoint<Double> dataPoint) {
+    public CounterDataPoint(DataPoint<Long> dataPoint) {
         timestamp = dataPoint.getTimestamp();
         value = dataPoint.getValue();
         tags = dataPoint.getTags();
     }
 
-    public Double getValue() {
+    public Long getValue() {
         return value;
     }
 
@@ -74,7 +73,7 @@ public class GaugeDataPoint {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        GaugeDataPoint that = (GaugeDataPoint) o;
+        CounterDataPoint that = (CounterDataPoint) o;
         // TODO should tags be included in equals?
         return Objects.equals(timestamp, that.timestamp) &&
                 Objects.equals(value, that.value);
@@ -88,7 +87,7 @@ public class GaugeDataPoint {
 
     @Override
     public String toString() {
-        return com.google.common.base.Objects.toStringHelper("GaugeDataPoint")
+        return com.google.common.base.Objects.toStringHelper(this)
                 .add("timestamp", timestamp)
                 .add("value", value)
                 .add("tags", tags)

@@ -16,12 +16,17 @@
  */
 package org.hawkular.metrics.api.jaxrs.handler;
 
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounterDataPoints;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounters;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 
 import java.net.URI;
+import java.util.List;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -31,6 +36,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
@@ -44,11 +50,16 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
+import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
+import org.hawkular.metrics.api.jaxrs.model.Counter;
+import org.hawkular.metrics.api.jaxrs.model.CounterDataPoint;
 import org.hawkular.metrics.api.jaxrs.request.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Observable;
 
 /**
@@ -61,6 +72,11 @@ import rx.Observable;
 @Api(value = "", description = "Counter metrics interface. A counter is a metric whose value are monotonically " +
     "increasing or decreasing.")
 public class CounterHandler {
+
+    private static Logger logger = LoggerFactory.getLogger(CounterHandler.class);
+
+    private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
+
     @Inject
     private MetricsService metricsService;
 
@@ -110,6 +126,81 @@ public class CounterHandler {
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(ApiUtils.noContent()))
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+    }
+
+    @POST
+    @Path("/data")
+    @ApiOperation(value = "Add data points for multiple counters")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Adding data points succeeded."),
+            @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error happened while storing the data points",
+                         response = ApiError.class) })
+    public void addData(@Suspended final AsyncResponse asyncResponse,
+            @ApiParam(value = "List of metrics", required = true) List<Counter> counters) {
+
+        if (counters.isEmpty()) {
+            asyncResponse.resume(emptyPayload());
+        } else {
+            Observable<Metric<Long>> metrics = requestToCounters(tenantId, counters);
+            Observable<Void> observable = metricsService.addCounterData((metrics));
+            observable.subscribe(new ResultSetObserver(asyncResponse));
+        }
+    }
+
+    @POST
+    @Path("/{id}/data")
+    @ApiOperation(value = "Add data for a single counter")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Adding data succeeded."),
+            @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
+                         response = ApiError.class), })
+    public void addData(
+            @Suspended final AsyncResponse asyncResponse,
+            @PathParam("id") String id,
+            @ApiParam(value = "List of data points containing timestamp and value", required = true)
+            List<CounterDataPoint> data) {
+
+        if (data.isEmpty()) {
+            asyncResponse.resume(emptyPayload());
+        } else {
+            Metric<Long> metric = new Metric<>(tenantId, COUNTER, new MetricId(id), requestToCounterDataPoints(data));
+            Observable<Void> observable = metricsService.addCounterData(Observable.just(metric));
+            observable.subscribe(new ResultSetObserver(asyncResponse));
+        }
+    }
+
+    @GET
+    @Path("/{id}/data")
+    @ApiOperation(value = "Retrieve counter data points.", response = List.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+            @ApiResponse(code = 204, message = "No metric data was found."),
+            @ApiResponse(code = 400, message = "start or end parameter is invalid.",
+                         response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                         response = ApiError.class) })
+    public void findCounterData(
+            @Suspended AsyncResponse asyncResponse,
+            @PathParam("id") String id,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end) {
+
+        long now = System.currentTimeMillis();
+        long startTime = start == null ? now - EIGHT_HOURS : start;
+        long endTime = end == null ? now : end;
+
+        metricsService.findCounterData(tenantId, new MetricId(id), startTime, endTime)
+                .map(CounterDataPoint::new)
+                .toList()
+                .map(ApiUtils::collectionToResponse)
+                .subscribe(
+                        asyncResponse::resume,
+                        t -> {
+                            logger.warn("Failed to fetch counter data", t);
+                            ApiUtils.serverError(t);
+                        });
     }
 
 }
