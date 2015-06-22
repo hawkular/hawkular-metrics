@@ -38,6 +38,8 @@
   </properties>
 
   <dependencyManagement>
+    <!-- Still using Wildfly 8 BOM as the Metrics image is based on a Wildfly 8.2 image -->
+    <!-- TODO remove (HWKMETRICS-147) -->
     <dependencies>
       <dependency>
         <groupId>org.wildfly.bom</groupId>
