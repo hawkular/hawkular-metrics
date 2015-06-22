@@ -73,10 +73,8 @@ public class MetricHandler {
     @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ",
                   response = List.class, responseContainer = "List")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully retrieved at least one metric definition.",
-                         response = ApiError.class),
-            @ApiResponse(code = 204, message = "No metrics found.",
-                         response = ApiError.class),
+            @ApiResponse(code = 200, message = "Successfully retrieved at least one metric definition."),
+            @ApiResponse(code = 204, message = "No metrics found."),
             @ApiResponse(code = 400, message = "Missing or invalid type parameter type.", response = ApiError.class),
             @ApiResponse(code = 500, message = "Failed to retrieve metrics due to unexpected error.",
                          response = ApiError.class)
