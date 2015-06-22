@@ -29,12 +29,14 @@
   </parent>
 
   <artifactId>hawkular-metrics-docker</artifactId>
-  <version>0.3.5-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Hawkular Metrics Docker Image</name>
 
   <properties>
+    <!-- Keeping Wildfly 8 base image as 9.CR2 image is not public yet -->
+    <!-- TODO remove (HWKMETRICS-147) -->
+    <!-- TODO fix container-tests BOM after changing image reference -->
     <docker.baseimage>jboss/wildfly:8.2.0.Final</docker.baseimage>
   </properties>
 

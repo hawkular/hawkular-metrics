@@ -83,6 +83,13 @@
       <artifactId>resteasy-client</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- commons-io required by resteasy-client -->
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.1</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-jackson2-provider</artifactId>

@@ -29,7 +29,6 @@
   </parent>
 
   <artifactId>hawkular-container-tests</artifactId>
-  <version>0.3.5-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>Hawkular Metrics Container Tests</name>
@@ -37,6 +36,20 @@
   <properties>
     <maven.test.skip>true</maven.test.skip>
   </properties>
+
+  <dependencyManagement>
+    <!-- Still using Wildfly 8 BOM as the Metrics docker image is based on a Wildfly 8.2 image -->
+    <!-- TODO remove (HWKMETRICS-147) -->
+    <dependencies>
+      <dependency>
+        <groupId>org.wildfly.bom</groupId>
+        <artifactId>jboss-javaee-7.0-with-all</artifactId>
+        <version>8.2.0.Final</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <dependency>
