@@ -45,6 +45,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
@@ -242,30 +243,22 @@ public class RestForwardingHandler extends ChannelInboundHandlerAdapter {
      * for the next try.
      * @author Heiko W. Rupp
     */
-    class HttpStatusWatcher extends ChannelInboundHandlerAdapter {
+    class HttpStatusWatcher extends SimpleChannelInboundHandler<FullHttpResponse> {
         private final Logger logger = LoggerFactory.getLogger(HttpStatusWatcher.class);
 
         @Override
-        public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-            if (msg instanceof FullHttpResponse) {
-                FullHttpResponse response = (FullHttpResponse) msg;
-                HttpResponseStatus status = response.getStatus();
-
-                if (status.equals(HttpResponseStatus.NO_CONTENT) || status.equals(HttpResponseStatus.OK)) {
-
-                    List<SingleMetric> metricsSent = ctx.channel().attr(listKey).getAndRemove();
-
-                    if (metricsSent != null) {
-                        // only clear the ones we sent - new ones may have arrived between batching and now
-                        fifo.cleanout(metricsSent);
-                        numberOfMetrics += metricsSent.size();
-                        logger.debug("sent {} items", metricsSent.size());
-                    }
-                } else {
-                    logger.warn("Send to rest-server failed:" + status);
+        protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse response) throws Exception {
+            HttpResponseStatus status = response.getStatus();
+            if (status.equals(HttpResponseStatus.NO_CONTENT) || status.equals(HttpResponseStatus.OK)) {
+                List<SingleMetric> metricsSent = ctx.channel().attr(listKey).getAndRemove();
+                if (metricsSent != null) {
+                    // only clear the ones we sent - new ones may have arrived between batching and now
+                    fifo.cleanout(metricsSent);
+                    numberOfMetrics += metricsSent.size();
+                    logger.debug("sent {} items", metricsSent.size());
                 }
             } else {
-                logger.error("msg " + msg);
+                logger.warn("Send to rest-server failed:" + status);
             }
         }
     }
