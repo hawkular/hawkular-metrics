@@ -83,9 +83,7 @@
       <artifactId>resteasy-client</artifactId>
       <scope>test</scope>
     </dependency>
-    <!-- commons-io added while upgrading to WLF9.CR2 -->
-    <!-- For some reason we need to add it manually now -->
-    <!-- TODO remove when resteasy-client dependency resolution is fixed -->
+    <!-- commons-io required by resteasy-client -->
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
