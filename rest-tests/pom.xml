@@ -33,6 +33,7 @@
 
   <properties>
     <cassandra.keyspace>hawkular_metrics_rest_tests</cassandra.keyspace>
+    <scheduler.units>seconds</scheduler.units>
   </properties>
 
   <dependencies>
@@ -232,6 +233,7 @@
                     <javaOpt>-Dcassandra.keyspace=${cassandra.keyspace}</javaOpt>
                     <javaOpt>-Dcassandra.resetdb</javaOpt>
                     <javaOpt>-Dhawkular.metrics.waitForService</javaOpt>
+                    <javaOpt>-Dhawkular.scheduler.time-units=${scheduler.units}</javaOpt>
                     <javaOpt>-Xdebug</javaOpt>
                     <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
                   </javaOpts>

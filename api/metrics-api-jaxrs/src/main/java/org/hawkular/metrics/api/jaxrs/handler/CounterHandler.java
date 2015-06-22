@@ -53,6 +53,7 @@ import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.model.Counter;
 import org.hawkular.metrics.api.jaxrs.model.CounterDataPoint;
+import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.request.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Metric;
@@ -199,6 +200,38 @@ public class CounterHandler {
                         asyncResponse::resume,
                         t -> {
                             logger.warn("Failed to fetch counter data", t);
+                            ApiUtils.serverError(t);
+                        });
+    }
+
+    @GET
+    @Path("/{id}/rate")
+    @ApiOperation(value = "Retrieve counter rate data points.", response = List.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+            @ApiResponse(code = 204, message = "No metric data was found."),
+            @ApiResponse(code = 400, message = "start or end parameter is invalid.",
+                         response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                         response = ApiError.class) })
+    public void findRate(
+        @Suspended AsyncResponse asyncResponse,
+        @PathParam("id") String id,
+        @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
+        @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end) {
+
+        long now = System.currentTimeMillis();
+        long startTime = start == null ? now - EIGHT_HOURS : start;
+        long endTime = end == null ? now : end;
+
+        metricsService.findRateData(tenantId, new MetricId(id), startTime, endTime)
+                .map(GaugeDataPoint::new)
+                .toList()
+                .map(ApiUtils::collectionToResponse)
+                .subscribe(
+                        asyncResponse::resume,
+                        t -> {
+                            logger.warn("Failed to fetch counter rate data", t);
                             ApiUtils.serverError(t);
                         });
     }

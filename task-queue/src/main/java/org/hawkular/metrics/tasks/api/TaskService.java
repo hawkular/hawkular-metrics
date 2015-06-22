@@ -18,6 +18,8 @@ package org.hawkular.metrics.tasks.api;
 
 import org.joda.time.DateTime;
 import rx.Observable;
+import rx.Subscription;
+import rx.functions.Action1;
 
 /**
  * The primary API for task scheduling and execution. See {@link TaskServiceBuilder} for details on creating and
@@ -65,4 +67,6 @@ public interface TaskService {
      * @return The task with its {@link Task#getTimeSlice() scheduled execution time} set
      */
     Observable<Task> scheduleTask(DateTime time, Task task);
+
+    Subscription subscribe(TaskType taskType, Action1<? super Task> onNext);
 }

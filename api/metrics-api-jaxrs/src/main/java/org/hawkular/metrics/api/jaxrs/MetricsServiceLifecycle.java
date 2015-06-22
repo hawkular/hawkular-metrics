@@ -51,6 +51,7 @@ import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.impl.GenerateRate;
 import org.hawkular.metrics.core.impl.MetricsServiceImpl;
 import org.hawkular.metrics.core.impl.TaskTypes;
 import org.hawkular.metrics.schema.SchemaManager;
@@ -175,11 +176,19 @@ public class MetricsServiceLifecycle {
             return;
         }
         try {
+            // When this class was first introduced, I said that the schema management
+            // should stay in MetricsServiceImpl, and now I am putting it back here. OK, so
+            // I deserve some criticism; however, I still think it should be done that way.
+            // I made this change temporarily because the schema for metrics and for the
+            // task scheduling service are declared and created in the same place. That
+            // will change at some point though because the task scheduling service will
+            // probably move to the hawkular-commons repo.
             initSchema();
             initTaskService();
 
             metricsService = new MetricsServiceImpl();
             metricsService.setTaskService(taskService);
+            taskService.subscribe(TaskTypes.COMPUTE_RATE, new GenerateRate(metricsService));
 
             // TODO Set up a managed metric registry
             // We want a managed registry that can be shared by the JAX-RS endpoint and the core. Then we can expose

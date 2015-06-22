@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 package org.hawkular.metrics.rest
-
+import org.hawkular.metrics.core.impl.DateTimeService
 import org.joda.time.DateTime
+import org.joda.time.Duration
 import org.junit.Test
 
 import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
-
 /**
  *
  */
@@ -247,6 +247,54 @@ class CountersITest extends RESTTest {
         headers: [(tenantHeaderName): tenantId]
     )
     assertEquals(204, response.status)
+  }
+
+  @Test
+  void findRate() {
+    String tenantId = nextTenantId()
+    String counter = "C1"
+    DateTimeService dateTimeService = new DateTimeService()
+    DateTime start = dateTimeService.getTimeSlice(now(), Duration.standardSeconds(5))
+
+    def response = hawkularMetrics.post(
+        path: "counters",
+        headers: [(tenantHeaderName): tenantId],
+        body: [id: counter]
+    )
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(
+        path: "counters/$counter/data",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [timestamp: start.millis, value: 100],
+            [timestamp: start.plusSeconds(1).millis, value :200]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    while (now().isBefore(start.plusSeconds(10))) {
+      Thread.sleep(100)
+    }
+
+    response = hawkularMetrics.get(
+        path: "counters/$counter/rate",
+        headers: [(tenantHeaderName): tenantId],
+        query: [start: now().minusSeconds(20).millis, end: now().millis]
+    )
+    assertEquals(200, response.status)
+
+    def expectedData = [
+        [timestamp: start.millis, value: (200 / (start.plusSeconds(5).millis - start.millis)) * 1000]
+    ]
+    assertRateEquals(expectedData, response.data)
+  }
+
+  static void assertRateEquals(def expected, def actual) {
+    expected.eachWithIndex { dataPoint, i ->
+      assertEquals("The timestamp does not match the expected value", dataPoint.timestamp, actual[i].timestamp)
+      assertDoubleEquals(dataPoint.value, actual[i].value)
+    }
   }
 
 }
