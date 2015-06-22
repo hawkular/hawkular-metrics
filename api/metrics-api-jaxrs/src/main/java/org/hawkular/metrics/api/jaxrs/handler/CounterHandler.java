@@ -133,6 +133,7 @@ public class CounterHandler {
     @ApiOperation(value = "Add data points for multiple counters")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data points succeeded."),
+            @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data points",
                          response = ApiError.class) })
     public void addData(@Suspended final AsyncResponse asyncResponse,
