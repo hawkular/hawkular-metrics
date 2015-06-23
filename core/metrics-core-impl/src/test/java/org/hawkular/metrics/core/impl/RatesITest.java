@@ -66,7 +66,7 @@ public class RatesITest extends MetricsITest {
         metricsService = new MetricsServiceImpl();
         metricsService.setTaskService(taskService);
 
-        ((TaskServiceImpl) taskService).subscribe(TaskTypes.COMPUTE_RATE, new GenerateRate(metricsService));
+        taskService.subscribe(TaskTypes.COMPUTE_RATE, new GenerateRate(metricsService));
 
         String keyspace = "hawkulartest";
         System.setProperty("keyspace", keyspace);

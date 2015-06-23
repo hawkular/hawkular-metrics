@@ -371,6 +371,7 @@ public class TaskServiceImpl implements TaskService {
         try {
             subject.onNext(task);
         } catch (Exception e) {
+            logger.warn("Execution of " + task + " failed", e);
             container.getFailedTimeSlices().add(task.getTimeSlice());
         }
         return container;

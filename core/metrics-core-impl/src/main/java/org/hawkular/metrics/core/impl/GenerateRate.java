@@ -46,9 +46,8 @@ public class GenerateRate implements Action1<Task> {
     public void call(Task task) {
         logger.info("Generating rate for {}", task);
         MetricId id = new MetricId(task.getSources().iterator().next());
-        long end = task.getTimeSlice().getMillis();
-        long start = task.getTimeSlice().minusSeconds(task.getWindow()).getMillis();
-        logger.debug("start = {}, end = {}", start, end);
+        long start = task.getTimeSlice().getMillis();
+        long end = task.getTimeSlice().plusSeconds(task.getWindow()).getMillis();
         metricsService.findCounterData(task.getTenantId(), id, start, end)
                 .take(1)
                 .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
@@ -58,7 +57,7 @@ public class GenerateRate implements Action1<Task> {
                 .subscribe(
                         aVoid -> {},
                         t -> logger.warn("Failed to persist rate data", t),
-                        () -> logger.debug("Successfully persisted rate data")
+                        () -> logger.debug("Successfully persisted rate data for {}", task)
                 );
     }
 }
