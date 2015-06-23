@@ -21,6 +21,7 @@ import static org.joda.time.Seconds.seconds
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
 
+import org.hawkular.metrics.core.api.MetricType
 import org.hawkular.metrics.core.impl.DateTimeService
 import org.joda.time.DateTime
 import org.junit.Test
@@ -348,6 +349,31 @@ class CassandraBackendITest extends RESTTest {
         ],
         response.data
     )
+  }
+
+  @Test
+  void findMetricsShouldFailProperlyWhenTypeIsMissingOrInvalid() {
+    def tenantId = nextTenantId()
+
+    badGet(path: "metrics",
+        headers: [(tenantHeaderName): tenantId]) { exception ->
+      // Missing type
+      assertEquals(400, exception.response.status)
+      assertEquals("Missing type param", exception.response.data["errorMsg"])
+    }
+
+    def invalidType = MetricType.values().join('"')
+    badGet(path: "metrics", query: [type: invalidType],
+        headers: [(tenantHeaderName): tenantId]) { exception ->
+      // Invalid type
+      assertEquals(400, exception.response.status)
+      assertEquals(invalidType + " is not a recognized metric type", exception.response.data["errorMsg"])
+    }
+
+    def response = hawkularMetrics.get(path: "metrics", query: [type: MetricType.GAUGE.text],
+        headers: [(tenantHeaderName): tenantId])
+    // Works fine when type is correctly set (here 204 as not metric has been created)
+    assertEquals(204, response.status)
   }
 
   @Test
