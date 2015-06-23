@@ -152,7 +152,7 @@ public interface MetricsService {
 
     /**
      * Fetches counter rate data points which are automatically generated for counter metrics. Note that rate data is
-     * generated if the metric has been explicitly created via the {@link #createMetric(Metric)} method.
+     * generated only if the metric has been explicitly created via the {@link #createMetric(Metric)} method.
      *
      * @param tenantId The teant to which the metric belongs
      * @param id This is the id of the counter metric
