@@ -336,7 +336,6 @@ public class MetricsServiceITest extends MetricsITest {
                 start.getMillis(), end.getMillis());
         List<DataPoint<Long>> actual = toList(data);
         List<DataPoint<Long>> expected = asList(
-                new DataPoint<>(end.getMillis(), 45L),
                 new DataPoint<>(start.plusMinutes(4).getMillis(), 25L),
                 new DataPoint<>(start.plusMinutes(2).getMillis(), 15L),
                 new DataPoint<>(start.getMillis(), 10L)

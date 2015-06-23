@@ -54,6 +54,8 @@ public class RatesITest extends MetricsITest {
     public void initClass() {
         initSession();
 
+        System.setProperty("hawkular.scheduler.time-units", "seconds");
+
         dateTimeService = new DateTimeService();
 
         taskService = new TaskServiceBuilder()
