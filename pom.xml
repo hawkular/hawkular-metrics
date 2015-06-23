@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.hawkular</groupId>
     <artifactId>hawkular-parent</artifactId>
-    <version>16</version>
+    <version>17</version>
   </parent>
 
   <groupId>org.hawkular.metrics</groupId>
