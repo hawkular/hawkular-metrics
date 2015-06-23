@@ -60,6 +60,7 @@ public enum MetricType {
         ImmutableMap.Builder<Integer, MetricType> builder = ImmutableMap.builder();
         Arrays.stream(values()).forEach(type -> builder.put(type.code, type));
         codes = builder.build();
+        checkArgument(codes.size() == values().length, "Some metric types have the same code");
     }
 
     private static final ImmutableMap<String, MetricType> texts;
@@ -68,6 +69,7 @@ public enum MetricType {
         ImmutableMap.Builder<String, MetricType> builder = ImmutableMap.builder();
         Arrays.stream(values()).forEach(type -> builder.put(type.text, type));
         texts = builder.build();
+        checkArgument(texts.size() == values().length, "Some metric types have the same string value");
     }
 
     public static MetricType fromCode(int code) {
