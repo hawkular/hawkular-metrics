@@ -81,13 +81,8 @@ public class PTrans {
     public PTrans(Configuration configuration) {
         checkArgument(configuration != null, "Configuration is null");
         checkArgument(configuration.isValid(), configuration.getValidationMessages().stream().collect(joining(", ")));
-        vertx = Vertx.vertx();
-        vertx.deployVerticle(
-                new MetricsSender(configuration), handler -> {
-                    metricsSenderID = handler.result();
-                }
-        );
         this.configuration = configuration;
+        vertx = Vertx.vertx();
         group = new NioEventLoopGroup();
         workerGroup = new NioEventLoopGroup();
         nettyToVertxHandler = new NettyToVertxHandler(vertx.eventBus());
@@ -98,6 +93,12 @@ public class PTrans {
      */
     public void start() {
         LOG.info("Starting ptrans...");
+
+        vertx.deployVerticle(
+                new MetricsSender(configuration), handler -> {
+                    metricsSenderID = handler.result();
+                }
+        );
 
         Set<Service> services = configuration.getServices();
         List<ChannelFuture> closeFutures = new ArrayList<>(services.size());
