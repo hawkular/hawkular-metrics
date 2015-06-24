@@ -26,40 +26,42 @@ public enum ConfigurationKey {
      * Services to start
      */
     SERVICES("services"),
-    /** Multiplexed  UDP port**/
+    /**
+     * Multiplexed  UDP port
+     */
     UDP_PORT("port.udp"),
-    /** Multiplexed  TCP port**/
+    /**
+     * Multiplexed  TCP port
+     */
     TCP_PORT("port.tcp"),
-    /** Ganglia port **/
+    /** Ganglia port */
     GANGLIA_PORT("ganglia.port"),
-    /** Ganglia group **/
+    /** Ganglia group */
     GANGLIA_GROUP("ganglia.group"),
-    /** Explicit multicast interface **/
+    /** Explicit multicast interface */
     GANGLIA_MULTICAST_INTERFACE("multicast.interface"),
-    /** UDP port for statsd type of messages **/
+    /** UDP port for statsd type of messages */
     STATSD_PORT("statsd.port"),
-    /** UDP port for collectd type of messages **/
+    /** UDP port for collectd type of messages */
     COLLECTD_PORT("collectd.port"),
     /**
      * TCP port for graphite type of messages
-     **/
+     */
     GRAPHITE_PORT("graphite.port"),
-    /** Minimum batch size of metrics to be forwarded (from one source) **/
+    /** Minimum batch size of metrics to be forwarded */
     BATCH_SIZE("batch.size"),
-    /** Maximum time (in seconds) a batch of metrics can stay unchanged before it is forwarded (from one source) **/
+    /** Maximum time (in seconds) a batch of metrics can stay unchanged before it is forwarded */
     BATCH_DELAY("batch.delay"),
-    /** REST endpoint **/
+    /** REST endpoint */
     REST_URL("rest.url"),
     /**
      * If present the HTTP proxy to use
-     **/
+     */
     HTTP_PROXY("http.proxy"),
-    /** Tenant **/
-    TENANT("tenant"),
-    /** Close connection to rest-server after this many requests **/
-    REST_CLOSE_AFTER_REQUESTS("rest.close-after"),
-    /** Maximum number of metrics to spool if the server is not reachable **/
-    SPOOL_SIZE("spool.size");
+    /**
+     * Tenant
+     */
+    TENANT("tenant");
 
     private final String externalForm;
 

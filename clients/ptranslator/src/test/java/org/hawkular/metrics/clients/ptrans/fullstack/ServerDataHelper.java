@@ -18,7 +18,7 @@ package org.hawkular.metrics.clients.ptrans.fullstack;
 
 import static java.util.stream.Collectors.toList;
 
-import static org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler.TENANT_HEADER_NAME;
+import static org.hawkular.metrics.clients.ptrans.backend.Constants.TENANT_HEADER_NAME;
 import static org.junit.Assert.fail;
 
 import java.io.InputStream;
@@ -55,7 +55,7 @@ class ServerDataHelper {
         ObjectMapper objectMapper = new ObjectMapper();
 
         HttpURLConnection urlConnection = (HttpURLConnection) new URL(findGaugeMetricsUrl).openConnection();
-        urlConnection.setRequestProperty(TENANT_HEADER_NAME, tenant);
+        urlConnection.setRequestProperty(String.valueOf(TENANT_HEADER_NAME), tenant);
         urlConnection.connect();
         int responseCode = urlConnection.getResponseCode();
         if (responseCode != HttpURLConnection.HTTP_OK) {
@@ -74,7 +74,7 @@ class ServerDataHelper {
 
         for (String metricName : metricNames) {
             urlConnection = (HttpURLConnection) new URL(findGaugeDataUrl(metricName)).openConnection();
-            urlConnection.setRequestProperty(TENANT_HEADER_NAME, tenant);
+            urlConnection.setRequestProperty(String.valueOf(TENANT_HEADER_NAME), tenant);
             urlConnection.connect();
             responseCode = urlConnection.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {

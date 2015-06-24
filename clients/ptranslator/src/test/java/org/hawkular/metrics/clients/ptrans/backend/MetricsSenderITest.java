@@ -16,71 +16,59 @@
  */
 package org.hawkular.metrics.clients.ptrans.backend;
 
-import static org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler.TENANT_HEADER_NAME;
+import static org.hawkular.metrics.clients.ptrans.backend.Constants.METRIC_ADDRESS;
+import static org.hawkular.metrics.clients.ptrans.backend.Constants.TENANT_HEADER_NAME;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.client.common.SingleMetric;
 import org.hawkular.metrics.clients.ptrans.Configuration;
 import org.hawkular.metrics.clients.ptrans.ConfigurationKey;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.EventLoop;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.vertx.core.Vertx;
 
 /**
  * @author Thomas Segismont
  */
-@RunWith(MockitoJUnitRunner.class)
-public class RestForwardingHandlerITest {
+public class MetricsSenderITest {
     private static final String BASE_URI = System.getProperty(
             "hawkular-metrics.base-uri",
             "127.0.0.1:8080/hawkular/metrics"
     );
     private static final String TENANT = "test";
-    private static final String METRIC_NAME = RestForwardingHandler.class.getName();
+    private static final String METRIC_NAME = MetricsSender.class.getName();
 
-    @Mock
-    private ChannelHandlerContext channelHandlerContext;
-    private RestForwardingHandler restForwardingHandler;
+    private MetricsSender metricsSender;
     private String findGaugeDataUrl;
+    private Vertx vertx;
 
     @Before
     public void setUp() throws Exception {
-        Channel channel = mock(Channel.class);
-        when(channelHandlerContext.channel()).thenReturn(channel);
-        EventLoop eventLoop = mock(EventLoop.class);
-        when(channel.eventLoop()).thenReturn(eventLoop);
-        EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
-        when(eventLoop.parent()).thenReturn(eventLoopGroup);
-
         Properties properties = new Properties();
         String addGaugeDataUrl = "http://" + BASE_URI + "/gauges/data";
         properties.setProperty(ConfigurationKey.REST_URL.toString(), addGaugeDataUrl);
         properties.setProperty(ConfigurationKey.TENANT.toString(), TENANT);
         Configuration configuration = Configuration.from(properties);
 
-        restForwardingHandler = new RestForwardingHandler(configuration);
+        vertx = Vertx.vertx();
+
+        CountDownLatch latch = new CountDownLatch(1);
+        vertx.deployVerticle(new MetricsSender(configuration), handler -> latch.countDown());
+        latch.await();
 
         findGaugeDataUrl = "http://" + BASE_URI + "/gauges/" + METRIC_NAME + "/data";
     }
@@ -88,7 +76,7 @@ public class RestForwardingHandlerITest {
     @Test
     public void shouldForwardMetrics() throws Exception {
         SingleMetric metric = new SingleMetric(METRIC_NAME, System.currentTimeMillis(), 13.5d);
-        restForwardingHandler.channelRead(channelHandlerContext, Arrays.asList(metric));
+        vertx.eventBus().publish(METRIC_ADDRESS, metric);
 
         boolean foundMetricOnServer = false;
         for (int i = 0; i < 20; i++) {
@@ -104,7 +92,7 @@ public class RestForwardingHandlerITest {
 
     private JsonNode findGaugeDataOnServer() throws IOException {
         HttpURLConnection urlConnection = (HttpURLConnection) new URL(findGaugeDataUrl).openConnection();
-        urlConnection.setRequestProperty(TENANT_HEADER_NAME, TENANT);
+        urlConnection.setRequestProperty(String.valueOf(TENANT_HEADER_NAME), TENANT);
         urlConnection.connect();
         int responseCode = urlConnection.getResponseCode();
         if (responseCode != HttpURLConnection.HTTP_OK) {
@@ -132,5 +120,10 @@ public class RestForwardingHandlerITest {
             }
         }
         return false;
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        vertx.close();
     }
 }

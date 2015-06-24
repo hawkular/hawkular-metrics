@@ -17,7 +17,7 @@
 
 package org.hawkular.metrics.clients.ptrans.graphite;
 
-import org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler;
+import org.hawkular.metrics.clients.ptrans.backend.NettyToVertxHandler;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -32,11 +32,12 @@ import io.netty.util.CharsetUtil;
  * @author Thomas Segismont
  */
 public class GraphiteChannelInitializer extends ChannelInitializer<Channel> {
-    private final RestForwardingHandler forwardingHandler;
+    private final NettyToVertxHandler nettyToVertxHandler;
 
-    public GraphiteChannelInitializer(RestForwardingHandler forwardingHandler) {
-        this.forwardingHandler = forwardingHandler;
+    public GraphiteChannelInitializer(NettyToVertxHandler nettyToVertxHandler) {
+        this.nettyToVertxHandler = nettyToVertxHandler;
     }
+
 
     @Override
     public void initChannel(Channel socketChannel) throws Exception {
@@ -44,6 +45,6 @@ public class GraphiteChannelInitializer extends ChannelInitializer<Channel> {
         pipeline.addLast(new LineBasedFrameDecoder(1024));
         pipeline.addLast(new StringDecoder(CharsetUtil.UTF_8));
         pipeline.addLast(new GraphiteEventDecoder());
-        pipeline.addLast(forwardingHandler);
+        pipeline.addLast(nettyToVertxHandler);
     }
 }

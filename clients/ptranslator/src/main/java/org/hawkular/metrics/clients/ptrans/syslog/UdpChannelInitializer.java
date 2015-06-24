@@ -16,7 +16,7 @@
  */
 package org.hawkular.metrics.clients.ptrans.syslog;
 
-import org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler;
+import org.hawkular.metrics.clients.ptrans.backend.NettyToVertxHandler;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -28,16 +28,17 @@ import io.netty.channel.ChannelPipeline;
  * @author Thomas Segismont
  */
 public class UdpChannelInitializer extends ChannelInitializer<Channel> {
-    private final RestForwardingHandler forwardingHandler;
+    private final NettyToVertxHandler nettyToVertxHandler;
 
-    public UdpChannelInitializer(RestForwardingHandler forwardingHandler) {
-        this.forwardingHandler = forwardingHandler;
+    public UdpChannelInitializer(NettyToVertxHandler nettyToVertxHandler) {
+        this.nettyToVertxHandler = nettyToVertxHandler;
     }
+
 
     @Override
     public void initChannel(Channel socketChannel) throws Exception {
         ChannelPipeline pipeline = socketChannel.pipeline();
         pipeline.addLast(new UdpSyslogEventDecoder());
-        pipeline.addLast(forwardingHandler);
+        pipeline.addLast(nettyToVertxHandler);
     }
 }

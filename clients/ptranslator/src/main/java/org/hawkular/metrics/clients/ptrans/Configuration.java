@@ -24,10 +24,8 @@ import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GANGLIA_MULTI
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GANGLIA_PORT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GRAPHITE_PORT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.HTTP_PROXY;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.REST_CLOSE_AFTER_REQUESTS;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.REST_URL;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SPOOL_SIZE;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.STATSD_PORT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.TCP_PORT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.TENANT;
@@ -65,8 +63,6 @@ public class Configuration {
     private final URI restUrl;
     private final URI httpProxy;
     private final String tenant;
-    private final int restCloseAfterRequests;
-    private final int spoolSize;
     private final Set<String> validationMessages;
 
     private Configuration(
@@ -84,8 +80,6 @@ public class Configuration {
             URI restUrl,
             URI httpProxy,
             String tenant,
-            int restCloseAfterRequests,
-            int spoolSize,
             Set<String> validationMessages
     ) {
         this.services = services;
@@ -102,8 +96,6 @@ public class Configuration {
         this.restUrl = restUrl;
         this.httpProxy = httpProxy;
         this.tenant = tenant;
-        this.restCloseAfterRequests = restCloseAfterRequests;
-        this.spoolSize = spoolSize;
         this.validationMessages = Collections.unmodifiableSet(validationMessages);
     }
 
@@ -120,16 +112,18 @@ public class Configuration {
         int graphitePort = getIntProperty(properties, GRAPHITE_PORT, 2003);
         int minimumBatchSize = getIntProperty(properties, BATCH_SIZE, 50);
         int maximumBatchDelay = getIntProperty(properties, BATCH_DELAY, 1);
-        URI restUrl = URI.create(properties.getProperty(REST_URL.toString(),
-            "http://localhost:8080/hawkular/metrics/gauges/data"));
+        URI restUrl = URI.create(
+                properties.getProperty(
+                        REST_URL.toString(),
+                        "http://localhost:8080/hawkular/metrics/gauges/data"
+                )
+        );
         String proxyString = properties.getProperty(HTTP_PROXY.toString());
         URI httpProxy = null;
         if (proxyString != null && !proxyString.trim().isEmpty()) {
             httpProxy = URI.create(proxyString);
         }
         String tenant = properties.getProperty(TENANT.toString(), "default");
-        int restCloseAfterRequests = getIntProperty(properties, REST_CLOSE_AFTER_REQUESTS, 200);
-        int spoolSize = getIntProperty(properties, SPOOL_SIZE, 10000);
         return new Configuration(
                 services,
                 udpPort,
@@ -145,8 +139,6 @@ public class Configuration {
                 restUrl,
                 httpProxy,
                 tenant,
-                restCloseAfterRequests,
-                spoolSize,
                 validationMessages
         );
     }
@@ -253,13 +245,5 @@ public class Configuration {
 
     public String getTenant() {
         return tenant;
-    }
-
-    public int getRestCloseAfterRequests() {
-        return restCloseAfterRequests;
-    }
-
-    public int getSpoolSize() {
-        return spoolSize;
     }
 }

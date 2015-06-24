@@ -16,16 +16,13 @@
  */
 package org.hawkular.metrics.clients.ptrans.collectd;
 
-import org.hawkular.metrics.clients.ptrans.Configuration;
-import org.hawkular.metrics.clients.ptrans.MetricBatcher;
-import org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler;
+import org.hawkular.metrics.clients.ptrans.backend.NettyToVertxHandler;
 import org.hawkular.metrics.clients.ptrans.collectd.event.CollectdEventsDecoder;
 import org.hawkular.metrics.clients.ptrans.collectd.packet.CollectdPacketDecoder;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
-import io.netty.handler.timeout.IdleStateHandler;
 
 /**
  * Channel initializer to be used when bootstrapping a collectd server.
@@ -33,12 +30,10 @@ import io.netty.handler.timeout.IdleStateHandler;
  * @author Thomas Segismont
  */
 public class CollectdChannelInitializer extends ChannelInitializer<Channel> {
-    private final Configuration configuration;
-    private final RestForwardingHandler forwardingHandler;
+    private final NettyToVertxHandler nettyToVertxHandler;
 
-    public CollectdChannelInitializer(Configuration configuration, RestForwardingHandler forwardingHandler) {
-        this.configuration = configuration;
-        this.forwardingHandler = forwardingHandler;
+    public CollectdChannelInitializer(NettyToVertxHandler nettyToVertxHandler) {
+        this.nettyToVertxHandler = nettyToVertxHandler;
     }
 
     @Override
@@ -47,8 +42,6 @@ public class CollectdChannelInitializer extends ChannelInitializer<Channel> {
         pipeline.addLast(new CollectdPacketDecoder());
         pipeline.addLast(new CollectdEventsDecoder());
         pipeline.addLast(new CollectdEventHandler());
-        pipeline.addLast(new IdleStateHandler(configuration.getMaximumBatchDelay(), 0, 0));
-        pipeline.addLast(new MetricBatcher("collectd", configuration.getMinimumBatchSize()));
-        pipeline.addLast(forwardingHandler);
+        pipeline.addLast(nettyToVertxHandler);
     }
 }
