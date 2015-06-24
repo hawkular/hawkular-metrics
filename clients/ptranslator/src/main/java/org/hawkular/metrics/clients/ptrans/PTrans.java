@@ -32,7 +32,7 @@ import java.util.concurrent.CountDownLatch;
 
 import org.hawkular.metrics.clients.ptrans.backend.MetricsSender;
 import org.hawkular.metrics.clients.ptrans.backend.NettyToVertxHandler;
-import org.hawkular.metrics.clients.ptrans.collectd.CollectdChannelInitializer;
+import org.hawkular.metrics.clients.ptrans.collectd.CollectdServer;
 import org.hawkular.metrics.clients.ptrans.ganglia.GangliaChannelInitializer;
 import org.hawkular.metrics.clients.ptrans.graphite.GraphiteServer;
 import org.hawkular.metrics.clients.ptrans.statsd.StatsdChannelInitializer;
@@ -174,14 +174,9 @@ public class PTrans {
         }
 
         if (services.contains(Service.COLLECTD)) {
-            Bootstrap collectdBootstrap = new Bootstrap()
-                    .group(group)
-                    .channel(NioDatagramChannel.class)
-                    .localAddress(configuration.getCollectdPort())
-                    .handler(new CollectdChannelInitializer(nettyToVertxHandler));
-            ChannelFuture collectdBindFuture = collectdBootstrap.bind().syncUninterruptibly();
-            LOG.info("Collectd listening on UDP {}", collectdBindFuture.channel().localAddress());
-            closeFutures.add(collectdBindFuture.channel().closeFuture());
+            vertx.deployVerticle(new CollectdServer(configuration), handler -> {
+                LOG.info("Collectd listening on UDP {}", configuration.getCollectdPort());
+            });
         }
 
         LOG.info("ptrans started");

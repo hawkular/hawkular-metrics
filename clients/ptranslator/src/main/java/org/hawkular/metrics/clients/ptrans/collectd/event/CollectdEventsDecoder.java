@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.clients.ptrans.collectd.event;
 
-import static io.netty.channel.ChannelHandler.Sharable;
 import static org.hawkular.metrics.clients.ptrans.collectd.event.TimeResolution.HIGH_RES;
 import static org.hawkular.metrics.clients.ptrans.collectd.event.TimeResolution.SECONDS;
 
@@ -30,23 +29,18 @@ import org.hawkular.metrics.clients.ptrans.collectd.packet.PartType;
 import org.hawkular.metrics.clients.ptrans.collectd.packet.StringPart;
 import org.hawkular.metrics.clients.ptrans.collectd.packet.ValuePart;
 import org.hawkular.metrics.clients.ptrans.collectd.packet.Values;
-
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.MessageToMessageDecoder;
-import io.netty.util.internal.logging.InternalLogger;
-import io.netty.util.internal.logging.InternalLoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Thomas Segismont
  */
-@Sharable
-public final class CollectdEventsDecoder extends MessageToMessageDecoder<CollectdPacket> {
-    private static final InternalLogger logger = InternalLoggerFactory.getInstance(CollectdEventsDecoder.class);
+public final class CollectdEventsDecoder {
+    private static final Logger LOG = LoggerFactory.getLogger(CollectdEventsDecoder.class);
 
     private static final String EMPTY_STRING_VALUE = "";
 
-    @Override
-    protected void decode(ChannelHandlerContext context, CollectdPacket packet, List<Object> out) throws Exception {
+    public List<Event> decode(CollectdPacket packet) {
         long start = System.currentTimeMillis();
         String host = EMPTY_STRING_VALUE, pluginName = EMPTY_STRING_VALUE, pluginInstance = EMPTY_STRING_VALUE;
         String typeName = EMPTY_STRING_VALUE, typeInstance = EMPTY_STRING_VALUE;
@@ -87,20 +81,20 @@ public final class CollectdEventsDecoder extends MessageToMessageDecoder<Collect
                             host, timestamp, pluginName, pluginInstance, typeName,
                             typeInstance, getValues(part).getData(), interval
                     );
-                    logger.trace("Decoded ValueListEvent: {}", event);
+                    LOG.trace("Decoded ValueListEvent: {}", event);
                     events.add(event);
                     break;
                 default:
-                    logger.debug("Skipping unknown part type: {}", partType);
+                    LOG.debug("Skipping unknown part type: {}", partType);
             }
         }
 
-        if (logger.isTraceEnabled()) {
+        if (LOG.isTraceEnabled()) {
             long stop = System.currentTimeMillis();
-            logger.trace("Decoded events in {} ms", stop - start);
+            LOG.trace("Decoded events in {} ms", stop - start);
         }
 
-        out.addAll(events);
+        return events;
     }
 
     private String getString(Part part) {
