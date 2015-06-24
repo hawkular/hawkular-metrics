@@ -99,10 +99,6 @@ public class PTrans {
             metricsSenderID = handler.result();
         });
 
-        vertx.deployVerticle(new MetricsSender(configuration), handler -> {
-            metricsSenderID = handler.result();
-        });
-
         Set<Service> services = configuration.getServices();
         List<ChannelFuture> closeFutures = new ArrayList<>(services.size());
 
