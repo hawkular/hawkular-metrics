@@ -60,7 +60,6 @@ public class MetricsSender extends AbstractVerticle {
     private final List<SingleMetric> queue;
 
     private HttpClient httpClient;
-    private long timerId;
     private long sendTime;
 
     public MetricsSender(Configuration configuration) {
@@ -91,7 +90,7 @@ public class MetricsSender extends AbstractVerticle {
                                                                      .setKeepAlive(true)
                                                                      .setTryUseCompression(true);
         httpClient = vertx.createHttpClient(httpClientOptions);
-        timerId = vertx.setPeriodic(MILLISECONDS.convert(batchDelay, SECONDS), this::flushIfIdle);
+        vertx.setPeriodic(MILLISECONDS.convert(batchDelay, SECONDS), this::flushIfIdle);
         sendTime = System.nanoTime();
         vertx.eventBus().registerDefaultCodec(SingleMetric.class, new SingleMetricCodec());
         vertx.eventBus().localConsumer(METRIC_ADDRESS, this::handleMetric)
@@ -146,12 +145,6 @@ public class MetricsSender extends AbstractVerticle {
             queue.clear();
             send(metrics);
         }
-    }
-
-    @Override
-    public void stop() throws Exception {
-        vertx.cancelTimer(timerId);
-        httpClient.close();
     }
 
     public static class SingleMetricCodec implements MessageCodec<SingleMetric, SingleMetric> {
