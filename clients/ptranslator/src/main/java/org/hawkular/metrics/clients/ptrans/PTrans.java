@@ -34,7 +34,7 @@ import org.hawkular.metrics.clients.ptrans.backend.MetricsSender;
 import org.hawkular.metrics.clients.ptrans.backend.NettyToVertxHandler;
 import org.hawkular.metrics.clients.ptrans.collectd.CollectdChannelInitializer;
 import org.hawkular.metrics.clients.ptrans.ganglia.GangliaChannelInitializer;
-import org.hawkular.metrics.clients.ptrans.graphite.GraphiteChannelInitializer;
+import org.hawkular.metrics.clients.ptrans.graphite.GraphiteServer;
 import org.hawkular.metrics.clients.ptrans.statsd.StatsdChannelInitializer;
 import org.hawkular.metrics.clients.ptrans.syslog.TcpChannelInitializer;
 import org.hawkular.metrics.clients.ptrans.syslog.UdpChannelInitializer;
@@ -168,14 +168,9 @@ public class PTrans {
         }
 
         if (services.contains(Service.GRAPHITE)) {
-            ServerBootstrap graphiteBootstrap = new ServerBootstrap()
-                    .group(group)
-                    .channel(NioServerSocketChannel.class)
-                    .localAddress(configuration.getGraphitePort())
-                    .childHandler(new GraphiteChannelInitializer(nettyToVertxHandler));
-            ChannelFuture graphiteBindFuture = graphiteBootstrap.bind().syncUninterruptibly();
-            LOG.info("Graphite listening on TCP {}", graphiteBindFuture.channel().localAddress());
-            closeFutures.add(graphiteBindFuture.channel().closeFuture());
+            vertx.deployVerticle(new GraphiteServer(configuration), handler -> {
+                LOG.info("Graphite listening on TCP {}", configuration.getGraphitePort());
+            });
         }
 
         if (services.contains(Service.COLLECTD)) {
