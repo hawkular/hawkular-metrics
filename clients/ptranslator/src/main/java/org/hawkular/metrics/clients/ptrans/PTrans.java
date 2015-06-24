@@ -17,6 +17,7 @@
 package org.hawkular.metrics.clients.ptrans;
 
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toSet;
 
 import static org.hawkular.metrics.clients.ptrans.util.Arguments.checkArgument;
 
@@ -94,11 +95,13 @@ public class PTrans {
     public void start() {
         LOG.info("Starting ptrans...");
 
-        vertx.deployVerticle(
-                new MetricsSender(configuration), handler -> {
-                    metricsSenderID = handler.result();
-                }
-        );
+        vertx.deployVerticle(new MetricsSender(configuration), handler -> {
+            metricsSenderID = handler.result();
+        });
+
+        vertx.deployVerticle(new MetricsSender(configuration), handler -> {
+            metricsSenderID = handler.result();
+        });
 
         Set<Service> services = configuration.getServices();
         List<ChannelFuture> closeFutures = new ArrayList<>(services.size());
@@ -202,11 +205,29 @@ public class PTrans {
         LOG.info("Stopping ptrans...");
         group.shutdownGracefully().syncUninterruptibly();
         workerGroup.shutdownGracefully().syncUninterruptibly();
-        CountDownLatch latch = new CountDownLatch(2);
-        vertx.undeploy(metricsSenderID, handler -> latch.countDown());
-        vertx.close(avoid -> latch.countDown());
+        Set<String> deploymentIDs = vertx.deploymentIDs().stream()
+                .filter(id -> !metricsSenderID.equals(id))
+                .collect(toSet());
+        CountDownLatch deploymentsLatch = new CountDownLatch(deploymentIDs.size());
+        deploymentIDs.forEach(id -> {
+            vertx.undeploy(id, handler -> deploymentsLatch.countDown());
+        });
         try {
-            latch.await();
+            deploymentsLatch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        CountDownLatch senderLatch = new CountDownLatch(1);
+        vertx.undeploy(metricsSenderID, handler -> senderLatch.countDown());
+        try {
+            senderLatch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        CountDownLatch vertxLatch = new CountDownLatch(1);
+        vertx.close(handler -> vertxLatch.countDown());
+        try {
+            vertxLatch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
