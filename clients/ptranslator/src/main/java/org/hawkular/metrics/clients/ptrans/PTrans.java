@@ -66,6 +66,8 @@ public class PTrans {
     private final Vertx vertx;
     private final EventLoopGroup group;
     private final EventLoopGroup workerGroup;
+    // Needed as long as some servers are still Netty-based
+    // Can be removed as soon as all servers are implemented on top of vertx
     private final NettyToVertxHandler nettyToVertxHandler;
 
     private String metricsSenderID;

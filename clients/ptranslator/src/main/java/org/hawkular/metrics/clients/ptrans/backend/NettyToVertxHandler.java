@@ -28,6 +28,9 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.vertx.core.eventbus.EventBus;
 
 /**
+ * A channel used during transition from vanilla Netty to vertx 3. At the time of writing only collectd and graphite
+ * servers have been refactored. This class can be deleted as soon as all servers are implemented on top of vertx.
+ *
  * @author Thomas Segismont
  */
 @Sharable
