@@ -48,7 +48,7 @@ public final class MetricBuffer {
             throw new IllegalArgumentException("capacity: " + capacity);
         }
         this.capacity = capacity;
-        buffer = new ArrayDeque<>();
+        buffer = new ArrayDeque<>(capacity);
     }
 
     /**
