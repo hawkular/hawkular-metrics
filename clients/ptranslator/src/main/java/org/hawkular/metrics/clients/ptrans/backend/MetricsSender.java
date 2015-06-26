@@ -16,17 +16,13 @@
  */
 package org.hawkular.metrics.clients.ptrans.backend;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
-
 import static org.hawkular.metrics.clients.ptrans.backend.Constants.METRIC_ADDRESS;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.hawkular.metrics.client.common.Batcher;
+import org.hawkular.metrics.client.common.MetricBuffer;
 import org.hawkular.metrics.client.common.SingleMetric;
 import org.hawkular.metrics.clients.ptrans.Configuration;
 import org.slf4j.Logger;
@@ -43,6 +39,12 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpHeaders;
 
 /**
+ * Forwards metrics to the REST backend. This verticle consumes metrics published on the bus and inserts them in a
+ * buffer. Metrics are sent as soon as the buffer is larger than the batch size. If servers are idle then the buffer is
+ * flushed, regardless of its size.
+ * <p>
+ * When batches fail, the corresponding metrics are re-inserted in the buffer.
+ *
  * @author Thomas Segismont
  */
 public class MetricsSender extends AbstractVerticle {
@@ -55,12 +57,16 @@ public class MetricsSender extends AbstractVerticle {
 
     private final CharSequence tenant;
 
+    private final MetricBuffer buffer;
     private final int batchSize;
-    private final long batchDelay;
-    private final List<SingleMetric> queue;
+    private final int maxConnections;
 
     private HttpClient httpClient;
-    private long sendTime;
+
+    private int connectionsUsed;
+
+    private boolean flushScheduled;
+    private long flushScheduleId;
 
     public MetricsSender(Configuration configuration) {
         URI restUrl = configuration.getRestUrl();
@@ -78,76 +84,103 @@ public class MetricsSender extends AbstractVerticle {
 
         tenant = HttpHeaders.createOptimized(configuration.getTenant());
 
-        batchSize = configuration.getMinimumBatchSize();
-        batchDelay = configuration.getMaximumBatchDelay();
-        queue = new ArrayList<>(batchSize);
+        buffer = new MetricBuffer(configuration.getBufferCapacity());
+        batchSize = configuration.getBatchSize();
+        maxConnections = configuration.getRestMaxConnections();
     }
 
     @Override
     public void start(Future<Void> startFuture) throws Exception {
-        HttpClientOptions httpClientOptions = new HttpClientOptions().setDefaultHost(host)
-                                                                     .setDefaultPort(port)
-                                                                     .setKeepAlive(true)
-                                                                     .setTryUseCompression(true);
+        HttpClientOptions httpClientOptions = new HttpClientOptions()
+                .setDefaultHost(host)
+                .setDefaultPort(port)
+                .setKeepAlive(true)
+                .setTryUseCompression(true)
+                .setMaxPoolSize(maxConnections);
         httpClient = vertx.createHttpClient(httpClientOptions);
-        vertx.setPeriodic(MILLISECONDS.convert(batchDelay, SECONDS), this::flushIfIdle);
-        sendTime = System.nanoTime();
+
+        connectionsUsed = 0;
+
+        flushScheduled = false;
+
         vertx.eventBus().registerDefaultCodec(SingleMetric.class, new SingleMetricCodec());
         vertx.eventBus().localConsumer(METRIC_ADDRESS, this::handleMetric)
-             .completionHandler(v -> startFuture.complete());
+                .completionHandler(v -> startFuture.complete());
     }
 
     private void handleMetric(Message<SingleMetric> metricMessage) {
-        queue.add(metricMessage.body());
-        if (queue.size() < batchSize) {
-            return;
-        }
-        List<SingleMetric> metrics = new ArrayList<>(queue);
-        queue.clear();
-        do {
-            List<SingleMetric> subList = metrics.subList(0, batchSize);
-            send(subList);
-            subList.clear();
-        } while (metrics.size() >= batchSize);
-        queue.addAll(metrics);
+        buffer.insert(metricMessage.body());
+        metricInserted();
     }
 
-    private void send(List<SingleMetric> metrics) {
-        String json = Batcher.metricListToJson(metrics);
-        Buffer buffer = Buffer.buffer(json);
-        HttpClientRequest req = httpClient.post(
-                postUri,
-                response -> {
-                    if (response.statusCode() != 200 && LOG.isTraceEnabled()) {
-                        response.bodyHandler(
-                                msg -> LOG.trace(
-                                        "Could not send metrics: " + response.statusCode() + " : "
-                                        + msg.toString()
-                                )
-                        );
-                    }
-                }
-        );
-        req.putHeader(HttpHeaders.HOST, hostHeader);
-        req.putHeader(HttpHeaders.CONTENT_LENGTH, String.valueOf(buffer.length()));
-        req.putHeader(HttpHeaders.CONTENT_TYPE, Constants.APPLICATION_JSON);
-        req.putHeader(Constants.TENANT_HEADER_NAME, tenant);
-        req.exceptionHandler(err -> LOG.trace("Could not send metrics", err));
-        req.write(buffer);
-        req.end();
-        sendTime = System.nanoTime();
+    private void metricInserted() {
+        sendBatches(false);
+        scheduleFlush();
     }
 
-    private void flushIfIdle(Long timerId) {
-        if (System.nanoTime() - sendTime > NANOSECONDS.convert(batchDelay, SECONDS)
-            && queue.size() > 0) {
-            List<SingleMetric> metrics = new ArrayList<>(queue);
-            queue.clear();
+    private void sendBatches(boolean force) {
+        for (int bufferSize = buffer.size(); ; bufferSize = buffer.size()) {
+            if ((!force && bufferSize < batchSize) || bufferSize < 1) {
+                break;
+            }
+            if (connectionsUsed >= maxConnections) {
+                break;
+            }
+            List<SingleMetric> metrics = buffer.remove(Math.min(bufferSize, batchSize));
             send(metrics);
         }
     }
 
-    public static class SingleMetricCodec implements MessageCodec<SingleMetric, SingleMetric> {
+    private void scheduleFlush() {
+        if (flushScheduled) {
+            vertx.cancelTimer(flushScheduleId);
+        } else {
+            flushScheduled = true;
+        }
+        flushScheduleId = vertx.setTimer(10, h -> {
+            flushScheduled = false;
+            sendBatches(true);
+        });
+    }
+
+    private void send(List<SingleMetric> metrics) {
+        connectionsUsed++;
+        String json = Batcher.metricListToJson(metrics);
+        Buffer data = Buffer.buffer(json);
+        HttpClientRequest req = httpClient.post(postUri, response -> {
+            connectionsUsed--;
+            if (response.statusCode() != 200) {
+                if (LOG.isTraceEnabled()) {
+                    response.bodyHandler(msg -> {
+                        LOG.trace("Could not send metrics: " + response.statusCode() + " : " + msg.toString());
+                    });
+                }
+                buffer.reInsert(metrics);
+                metricInserted();
+            }
+        });
+        req.putHeader(HttpHeaders.HOST, hostHeader);
+        req.putHeader(HttpHeaders.CONTENT_LENGTH, String.valueOf(data.length()));
+        req.putHeader(HttpHeaders.CONTENT_TYPE, Constants.APPLICATION_JSON);
+        req.putHeader(Constants.TENANT_HEADER_NAME, tenant);
+        req.exceptionHandler(err -> {
+            connectionsUsed--;
+            LOG.trace("Could not send metrics", err);
+            buffer.reInsert(metrics);
+            metricInserted();
+        });
+        req.write(data);
+        req.end();
+    }
+
+    @Override
+    public void stop() throws Exception {
+        if (flushScheduled) {
+            vertx.cancelTimer(flushScheduleId);
+        }
+    }
+
+    private static class SingleMetricCodec implements MessageCodec<SingleMetric, SingleMetric> {
         @Override
         public void encodeToWire(Buffer buffer, SingleMetric singleMetric) {
         }
