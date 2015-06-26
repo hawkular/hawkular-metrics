@@ -36,7 +36,7 @@ import java.util.List;
  */
 public final class MetricBuffer {
     private final int capacity;
-    private Deque<SingleMetric> buffer;
+    private final Deque<SingleMetric> buffer;
 
     /**
      * Creates a new buffer with fixed capacity.
