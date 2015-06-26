@@ -14,22 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.clients.ptrans.fullstack;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+package org.hawkular.metrics.clients.ptrans.data;
 
 /**
  * @author Thomas Segismont
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
-class MetricName {
-    String id;
+public final class MetricData {
+    long timestamp;
+    double value;
 
-    public String getId() {
-        return id;
+    public long getTimestamp() {
+        return timestamp;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public double getValue() {
+        return value;
+    }
+
+    public void setValue(double value) {
+        this.value = value;
     }
 }

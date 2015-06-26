@@ -30,6 +30,7 @@ import java.util.Properties;
 
 import org.hawkular.metrics.clients.ptrans.ConfigurationKey;
 import org.hawkular.metrics.clients.ptrans.Service;
+import org.hawkular.metrics.clients.ptrans.data.Point;
 import org.jmxtrans.embedded.EmbeddedJmxTrans;
 import org.jmxtrans.embedded.QueryResult;
 import org.jmxtrans.embedded.config.ConfigurationParser;

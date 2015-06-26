@@ -37,8 +37,9 @@ import java.util.Properties;
 import java.util.stream.Stream;
 
 import org.hawkular.metrics.clients.ptrans.ConfigurationKey;
-import org.hawkular.metrics.clients.ptrans.PrintOutputOnFailureWatcher;
 import org.hawkular.metrics.clients.ptrans.Service;
+import org.hawkular.metrics.clients.ptrans.data.Point;
+import org.hawkular.metrics.clients.ptrans.util.PrintOutputOnFailureWatcher;
 import org.junit.After;
 import org.junit.Rule;
 

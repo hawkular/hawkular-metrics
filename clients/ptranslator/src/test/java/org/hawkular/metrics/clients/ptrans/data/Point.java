@@ -14,36 +14,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.clients.ptrans;
-
-import java.io.File;
-
-import org.hamcrest.Description;
-import org.hamcrest.Factory;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeMatcher;
+package org.hawkular.metrics.clients.ptrans.data;
 
 /**
  * @author Thomas Segismont
  */
-public class CanReadMatcher extends TypeSafeMatcher<File> {
-    @Override
-    public void describeTo(Description description) {
-        description.appendText("can read");
+public class Point {
+    final String name;
+    final long timestamp;
+    final double value;
+
+    public Point(String name, long timestamp, double value) {
+        this.name = name;
+        this.timestamp = timestamp;
+        this.value = value;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public double getValue() {
+        return value;
     }
 
     @Override
-    protected void describeMismatchSafely(File item, Description mismatchDescription) {
-        mismatchDescription.appendValue(item).appendText(" is not readable");
-    }
-
-    @Override
-    protected boolean matchesSafely(File item) {
-        return item.canRead();
-    }
-
-    @Factory
-    public static Matcher<File> canRead() {
-        return new CanReadMatcher();
+    public String toString() {
+        return "Point[" +
+                "name='" + name + '\'' +
+                ", timestamp=" + timestamp +
+                ", value=" + value +
+                ']';
     }
 }

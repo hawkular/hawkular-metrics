@@ -20,7 +20,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.joining;
 
-import static org.hawkular.metrics.clients.ptrans.fullstack.ServerDataHelper.BASE_URI;
+import static org.hawkular.metrics.clients.ptrans.data.ServerDataHelper.BASE_URI;
 import static org.hawkular.metrics.clients.ptrans.util.ProcessUtil.kill;
 import static org.hawkular.metrics.clients.ptrans.util.TenantUtil.getRandomTenantId;
 import static org.junit.Assert.assertEquals;
@@ -36,7 +36,9 @@ import java.util.Locale;
 import java.util.Properties;
 
 import org.hawkular.metrics.clients.ptrans.ConfigurationKey;
-import org.hawkular.metrics.clients.ptrans.ExecutableITestBase;
+import org.hawkular.metrics.clients.ptrans.data.Point;
+import org.hawkular.metrics.clients.ptrans.data.ServerDataHelper;
+import org.hawkular.metrics.clients.ptrans.exec.ExecutableITestBase;
 import org.junit.Before;
 import org.junit.Test;
 

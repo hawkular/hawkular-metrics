@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.clients.ptrans;
+package org.hawkular.metrics.clients.ptrans.exec;
 
 import static java.util.stream.Collectors.joining;
+
 import static org.hamcrest.CoreMatchers.allOf;
-import static org.hawkular.metrics.clients.ptrans.CanReadMatcher.canRead;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES;
-import static org.hawkular.metrics.clients.ptrans.IsFileMatcher.isFile;
+import static org.hawkular.metrics.clients.ptrans.matchers.CanReadMatcher.canRead;
+import static org.hawkular.metrics.clients.ptrans.matchers.IsFileMatcher.isFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;

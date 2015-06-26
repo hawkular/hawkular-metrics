@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.clients.ptrans.fullstack;
+package org.hawkular.metrics.clients.ptrans.data;
 
 import static java.util.stream.Collectors.toList;
 
@@ -37,7 +37,7 @@ import com.fasterxml.jackson.databind.type.TypeFactory;
  *
  * @author Thomas Segismont
  */
-class ServerDataHelper {
+public class ServerDataHelper {
     public static final String BASE_URI = System.getProperty(
             "hawkular-metrics.base-uri",
             "127.0.0.1:8080/hawkular/metrics"

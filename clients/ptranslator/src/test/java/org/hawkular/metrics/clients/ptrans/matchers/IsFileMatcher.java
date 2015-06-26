@@ -14,28 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.clients.ptrans.fullstack;
+package org.hawkular.metrics.clients.ptrans.matchers;
+
+import java.io.File;
+
+import org.hamcrest.Description;
+import org.hamcrest.Factory;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 
 /**
  * @author Thomas Segismont
  */
-final class MetricData {
-    long timestamp;
-    double value;
-
-    public long getTimestamp() {
-        return timestamp;
+public class IsFileMatcher extends TypeSafeMatcher<File> {
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("is file");
     }
 
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
+    @Override
+    protected void describeMismatchSafely(File item, Description mismatchDescription) {
+        mismatchDescription.appendValue(item).appendText(" is not a file");
     }
 
-    public double getValue() {
-        return value;
+    @Override
+    protected boolean matchesSafely(File item) {
+        return item.isFile();
     }
 
-    public void setValue(double value) {
-        this.value = value;
+    @Factory
+    public static Matcher<File> isFile() {
+        return new IsFileMatcher();
     }
 }

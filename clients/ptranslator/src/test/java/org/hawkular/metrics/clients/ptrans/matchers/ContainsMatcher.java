@@ -14,9 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.clients.ptrans;
+package org.hawkular.metrics.clients.ptrans.matchers;
+
+import static org.hawkular.metrics.clients.ptrans.util.Arguments.checkArgument;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 
 import org.hamcrest.Description;
 import org.hamcrest.Factory;
@@ -26,30 +30,35 @@ import org.hamcrest.TypeSafeMatcher;
 /**
  * @author Thomas Segismont
  */
-public class HasSizeMatcher extends TypeSafeMatcher<File> {
-    private final long size;
+public class ContainsMatcher extends TypeSafeMatcher<File> {
+    private final String content;
 
-    public HasSizeMatcher(long size) {
-        this.size = size;
+    public ContainsMatcher(String content) {
+        checkArgument(content != null, "content is null");
+        this.content = content;
     }
 
     @Override
     public void describeTo(Description description) {
-        description.appendText("has size");
+        description.appendText("contains");
     }
 
     @Override
     protected void describeMismatchSafely(File item, Description mismatchDescription) {
-        mismatchDescription.appendValue(item).appendText(" has size: ").appendText(String.valueOf(size));
+        mismatchDescription.appendValue(item).appendText(" has no line with content: ").appendText(content);
     }
 
     @Override
     protected boolean matchesSafely(File item) {
-        return item.length() == size;
+        try {
+            return Files.lines(item.toPath()).anyMatch(line -> line.contains(content));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Factory
-    public static Matcher<File> hasSize(long size) {
-        return new HasSizeMatcher(size);
+    public static Matcher<File> contains(String content) {
+        return new ContainsMatcher(content);
     }
 }

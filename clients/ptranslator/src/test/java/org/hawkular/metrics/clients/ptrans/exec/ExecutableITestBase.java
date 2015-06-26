@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.clients.ptrans;
+package org.hawkular.metrics.clients.ptrans.exec;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -24,6 +24,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 
+import org.hawkular.metrics.clients.ptrans.util.PrintOutputOnFailureWatcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
