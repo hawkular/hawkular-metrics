@@ -53,6 +53,7 @@ public class GraphiteITest extends FullStackITest {
     @Override
     protected void changePTransConfig(Properties properties) {
         properties.setProperty(ConfigurationKey.SERVICES.toString(), Service.GRAPHITE.getExternalForm());
+        properties.setProperty(ConfigurationKey.GRAPHITE_PORT.toString(), String.valueOf(12003));
     }
 
     @Override
