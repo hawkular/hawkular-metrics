@@ -17,24 +17,38 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <artifactId>hawkular-metrics-parent</artifactId>
+    <artifactId>clients</artifactId>
     <groupId>org.hawkular.metrics</groupId>
     <version>0.5.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>clients</artifactId>
-  <packaging>pom</packaging>
+  <artifactId>hawkular-metrics-rest-client</artifactId>
 
-  <name>Hawkular Metrics clients</name>
-  <description>Clients for use with Hawkular Metrics</description>
+  <properties>
+    <vertx.version>3.0.0</vertx.version>
+  </properties>
 
-  <modules>
-    <module>common</module>
-    <module>ptranslator</module>
-    <module>rest-client</module>
-  </modules>
+  <dependencies>
+    <dependency>
+      <groupId>io.reactivex</groupId>
+      <artifactId>rxjava</artifactId>
+      <version>${rxjava.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-core</artifactId>
+      <version>${vertx.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-rx-java</artifactId>
+      <version>${vertx.version}</version>
+    </dependency>
+  </dependencies>
 </project>
