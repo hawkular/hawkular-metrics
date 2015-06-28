@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.vertx.rxjava.core.http.HttpClientResponse;
 import org.hawkular.metrics.rest.model.DataPoints;
 import org.hawkular.metrics.rest.model.GaugeDataPoint;
 import org.testng.annotations.AfterClass;
@@ -70,16 +69,12 @@ public class ClientITest {
                 new GaugeDataPoint(startTime, 10.1)
         );
 
-        TestSubscriber<HttpClientResponse> writeSubscriber = new TestSubscriber<>();
+        TestSubscriber<Void> writeSubscriber = new TestSubscriber<>();
 
         client.addGaugeData(tenantId, gauge, dataPoints).subscribe(writeSubscriber);
 
         writeSubscriber.awaitTerminalEvent();
         writeSubscriber.assertNoErrors();
-        assertEquals(writeSubscriber.getOnNextEvents().size(), 1, "Expected to get back one http response");
-
-        HttpClientResponse response = writeSubscriber.getOnNextEvents().get(0);
-        assertEquals(200, response.statusCode(), "Expected a 200 status when data points are successfully stored");
 
         TestSubscriber<GaugeDataPoint> readSubscriber = new TestSubscriber<>();
         client.findGaugeData(tenantId, gauge, startTime, endTime).subscribe(readSubscriber);
@@ -108,16 +103,12 @@ public class ClientITest {
                 ))
         );
 
-        TestSubscriber<HttpClientResponse> writeSubscriber = new TestSubscriber<>();
+        TestSubscriber<Void> writeSubscriber = new TestSubscriber<>();
 
         client.addGaugeData(tenantId, gauges).subscribe(writeSubscriber);
 
         writeSubscriber.awaitTerminalEvent();
         writeSubscriber.assertNoErrors();
-        assertEquals(writeSubscriber.getOnNextEvents().size(), 1, "Expected to get back one http response");
-
-        HttpClientResponse response = writeSubscriber.getOnNextEvents().get(0);
-        assertEquals(200, response.statusCode(), "Expected a 200 status when data points are successfully stored");
 
         TestSubscriber<GaugeDataPoint> readSubscriber = new TestSubscriber<>();
         client.findGaugeData(tenantId, prefix + 0, startTime, endTime).subscribe(readSubscriber);
@@ -127,7 +118,7 @@ public class ClientITest {
         assertEquals(readSubscriber.getOnNextEvents(), gauges.get(0).getData(), "The data points do not match");
 
         readSubscriber = new TestSubscriber<>();
-        
+
         client.findGaugeData(tenantId, prefix + 1, startTime, endTime).subscribe(readSubscriber);
 
         readSubscriber.awaitTerminalEvent();
