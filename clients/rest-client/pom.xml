@@ -31,6 +31,17 @@
   <artifactId>hawkular-metrics-rest-client</artifactId>
 
   <properties>
+    <cassandra.keyspace>hawkular_metrics_rest_client_tests</cassandra.keyspace>
+    <!-- IMPORTANT: The port must be the port offset + 8080. -->
+    <server.hostname>localhost</server.hostname>
+    <server.port>55977</server.port>
+    <base-uri>${server.hostname}:${server.port}/hawkular/metrics</base-uri>
+    <wildfly.port.offset>57897</wildfly.port.offset>
+    <!-- IMPORTANT: The management port must be the port offset + 9990. -->
+    <wildfly.management.port>57887</wildfly.management.port>
+    <wildfly.logging.console.level>ERROR</wildfly.logging.console.level>
+    <wildfly.logging.file.level>DEBUG</wildfly.logging.file.level>
+
     <vertx.version>3.0.0</vertx.version>
   </properties>
 
@@ -40,15 +51,202 @@
       <artifactId>rxjava</artifactId>
       <version>${rxjava.version}</version>
     </dependency>
+
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-core</artifactId>
       <version>${vertx.version}</version>
     </dependency>
+
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-rx-java</artifactId>
       <version>${vertx.version}</version>
     </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+      <version>${project.version}</version>
+      <type>war</type>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.testng</groupId>
+      <artifactId>testng</artifactId>
+      <version>${testng.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-standalone-test</id>
+            <phase>process-test-resources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <!--
+                We cannot specify an arbitrary path to standalone-test.xml, so we include the necessary
+                configuration files and override the default configuration directory. See
+                https://issues.jboss.org/browse/JBASMP-75 for details.
+              -->
+              <outputDirectory>${project.build.directory}/wildfly-configuration</outputDirectory>
+              <overwrite>true</overwrite>
+              <useDefaultDelimiters>false</useDefaultDelimiters>
+              <delimiters>
+                <delimiter>@@@</delimiter>
+              </delimiters>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}/src/test/wildfly-configuration</directory>
+                  <includes>
+                    <include>*</include>
+                  </includes>
+                  <filtering>true</filtering>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!--<skipTests>true</skipTests>-->
+          <excludes>
+            <exclude>**/*ITest*</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <includes>
+            <include>**/*ITest*</include>
+          </includes>
+          <systemPropertyVariables>
+            <keyspace>${cassandra.keyspace}</keyspace>
+            <server.hostname>${server.hostname}</server.hostname>
+            <server.port>${server.port}</server.port>
+            <hawkular-metrics.base-uri>${base-uri}</hawkular-metrics.base-uri>
+            <project.version>${project.version}</project.version>
+          </systemPropertyVariables>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>test.debug</id>
+      <activation>
+        <property>
+          <name>test.debug</name>
+        </property>
+      </activation>
+      <properties>
+        <!-- See: http://maven.apache.org/plugins/maven-surefire-plugin/test-mojo.html#debugForkedProcess -->
+        <maven.surefire.debug>-Xdebug -Xnoagent -Djava.compiler=NONE
+          -Xrunjdwp:transport=dt_socket,address=8797,server=y,suspend=y</maven.surefire.debug>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>wildfly.deployment</id>
+      <activation>
+        <property>
+          <name>!running.service</name>
+        </property>
+      </activation>
+
+      <properties>
+        <server.hostname>localhost</server.hostname>
+        <server.port>55977</server.port>
+        <!-- IMPORTANT: The port must be the port offset + 8080. -->
+        <base-uri>127.0.0.1:55977/hawkular/metrics</base-uri>
+        <wildfly.port.offset>47897</wildfly.port.offset>
+        <!-- IMPORTANT: The management port must be the port offset + 9990. -->
+        <wildfly.management.port>57887</wildfly.management.port>
+        <wildfly.logging.console.level>ERROR</wildfly.logging.console.level>
+        <wildfly.logging.file.level>DEBUG</wildfly.logging.file.level>
+      </properties>
+
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.wildfly.plugins</groupId>
+            <artifactId>wildfly-maven-plugin</artifactId>
+            <configuration>
+              <skip>${skipTests}</skip>
+              <port>${wildfly.management.port}</port>
+            </configuration>
+            <executions>
+              <execution>
+                <id>start-wildfly</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>start</goal>
+                </goals>
+                <configuration>
+                  <serverConfig>standalone-test.xml</serverConfig>
+                  <javaOpts>
+                    <javaOpt>-Xms64m</javaOpt>
+                    <javaOpt>-Xmx512m</javaOpt>
+                    <javaOpt>-Xss256k</javaOpt>
+                    <javaOpt>-Djava.net.preferIPv4Stack=true</javaOpt>
+                    <javaOpt>-Dsun.rmi.dgc.client.gcInterval=3600000</javaOpt>
+                    <javaOpt>-Dsun.rmi.dgc.server.gcInterval=3600000</javaOpt>
+                    <javaOpt>-Djboss.socket.binding.port-offset=${wildfly.port.offset}</javaOpt>
+                    <javaOpt>-Djboss.server.config.dir=${project.build.directory}/wildfly-configuration</javaOpt>
+                    <javaOpt>-Dcassandra.keyspace=${cassandra.keyspace}</javaOpt>
+                    <javaOpt>-Dcassandra.resetdb</javaOpt>
+                    <javaOpt>-Dhawkular.metrics.waitForService</javaOpt>
+                    <javaOpt>-Xdebug</javaOpt>
+                    <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
+                  </javaOpts>
+                </configuration>
+              </execution>
+              <execution>
+                <id>deploy-webapp</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>deploy-artifact</goal>
+                </goals>
+                <configuration>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+                  <name>hawkular-metric-rest.war</name>
+                </configuration>
+              </execution>
+              <execution>
+                <id>stop-wildfly</id>
+                <phase>post-integration-test</phase>
+                <goals>
+                  <goal>shutdown</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

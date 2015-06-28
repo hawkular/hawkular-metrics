@@ -16,8 +16,6 @@
  */
 package org.hawkular.metrics.rest;
 
-import static io.vertx.core.http.HttpMethod.POST;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +27,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.vertx.core.http.HttpClientOptions;
 import io.vertx.rxjava.core.Vertx;
 import io.vertx.rxjava.core.buffer.Buffer;
 import io.vertx.rxjava.core.http.HttpClient;
@@ -41,6 +40,8 @@ import rx.subjects.PublishSubject;
 
 public class Client {
 
+    private static final String BASE_PATH = "/hawkular/metrics/";
+
     private Vertx vertx;
 
     private HttpClient httpClient;
@@ -49,13 +50,17 @@ public class Client {
 
     private int port;
 
+    private String baseURI;
+
     private ObjectMapper mapper;
 
     public Client(String host, int port) {
-        this.host = host;
-        this.port = port;
+//        this.host = host;
+//        this.port = port;
+        this.baseURI = baseURI;
         this.vertx = Vertx.vertx();
-        httpClient = vertx.createHttpClient();
+        HttpClientOptions options = new HttpClientOptions().setDefaultHost(host).setDefaultPort(port);
+        httpClient = vertx.createHttpClient(options);
 
         mapper = new ObjectMapper();
         mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
@@ -74,7 +79,7 @@ public class Client {
         try {
             String json = mapper.writeValueAsString(gauges);
             PublishSubject<HttpClientResponse> subject = PublishSubject.create();
-            HttpClientRequest request = httpClient.post(port, host, "/hawkular/metrics/gauges/data")
+            HttpClientRequest request = httpClient.post(baseURI + "/gauges/data")
                     .putHeader("Content-Type", "application/json")
                     .putHeader("Hawkular-Tenant", tenant);
             request.toObservable().subscribe(subject::onNext, subject::onError, subject::onCompleted);
@@ -89,8 +94,8 @@ public class Client {
         try {
             PublishSubject<HttpClientResponse> subject = PublishSubject.create();
             String json = mapper.writeValueAsString(dataPoints);
-            HttpClientRequest request = httpClient.request(POST, port, host, "/hawkular/metrics/gauges/" + gauge +
-                    "/data")
+//            HttpClientRequest request = httpClient.post(baseURI + "/gauges/" + gauge + "/data")
+            HttpClientRequest request = httpClient.post(BASE_PATH + "gauges/" + gauge + "/data")
                     .putHeader("Content-Type", "application/json")
                     .putHeader("Hawkular-Tenant", tenant);
 //                .write(json.toString());
@@ -110,8 +115,8 @@ public class Client {
 
     public Observable<GaugeDataPoint> findGaugeData(String tenantId, String gauge, long start, long end) {
         PublishSubject<GaugeDataPoint> subject = PublishSubject.create();
-        HttpClientRequest request = httpClient.get(port, host, "/hawkular/metrics/gauges/" + gauge + "/data?start=" +
-            start + "&end=" + end)
+        HttpClientRequest request = httpClient.get(baseURI + "/gauges/" + gauge + "/data?start=" + start + "&end=" +
+                end)
                 .putHeader("Hawkular-Tenant", tenantId)
                 .putHeader("Content-Type", "application/json");
         Observable<GaugeDataPoint> observable = request.toObservable()
@@ -130,36 +135,56 @@ public class Client {
         }
     }
 
-    public static void main(String[] args) throws InterruptedException {
-        Client client = new Client("localhost", 8080);
-//        long end = System.currentTimeMillis();
-//        long start = end - TimeUnit.MILLISECONDS.convert(8, TimeUnit.HOURS);
-//        client.findGaugeData("Vert.x", "Test1", start, end).subscribe(
-//                System.out::println,
-//                t -> {
-//                    t.printStackTrace();
-//                    try {
-//                        client.shutdown();
-//                    } catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                    }
-//                },
-//                () -> {
-//                    try {
-//                        client.shutdown();
-//                    } catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                    }
-//                }
-//        );
-
-
-//        List<GaugeDataPoint> dataPoints = asList(
-//                new GaugeDataPoint(System.currentTimeMillis() - 500, 10.1),
-//                new GaugeDataPoint(System.currentTimeMillis() - 400, 11.1112),
-//                new GaugeDataPoint(System.currentTimeMillis() - 300, 13.4783)
-//        );
-//        client.addGaugeData("Vert.x", "TEST3", dataPoints).subscribe(
+//    public static void main(String[] args) throws InterruptedException {
+//        Client client = new Client("localhost", 8080);
+////        long end = System.currentTimeMillis();
+////        long start = end - TimeUnit.MILLISECONDS.convert(8, TimeUnit.HOURS);
+////        client.findGaugeData("Vert.x", "Test1", start, end).subscribe(
+////                System.out::println,
+////                t -> {
+////                    t.printStackTrace();
+////                    try {
+////                        client.shutdown();
+////                    } catch (InterruptedException e) {
+////                        e.printStackTrace();
+////                    }
+////                },
+////                () -> {
+////                    try {
+////                        client.shutdown();
+////                    } catch (InterruptedException e) {
+////                        e.printStackTrace();
+////                    }
+////                }
+////        );
+//
+//
+////        List<GaugeDataPoint> dataPoints = asList(
+////                new GaugeDataPoint(System.currentTimeMillis() - 500, 10.1),
+////                new GaugeDataPoint(System.currentTimeMillis() - 400, 11.1112),
+////                new GaugeDataPoint(System.currentTimeMillis() - 300, 13.4783)
+////        );
+////        client.addGaugeData("Vert.x", "TEST3", dataPoints).subscribe(
+////                response -> System.out.println("status: {code: " + response.statusCode() + ", message: " +
+////                        response.statusMessage() + "}"),
+////                t -> {
+////                    t.printStackTrace();
+////                    try {
+////                        client.shutdown();
+////                    } catch (InterruptedException e) {
+////                        e.printStackTrace();
+////                    }
+////                },
+////                () -> {
+////                    try {
+////                        client.shutdown();
+////                    } catch (InterruptedException e) {
+////                        e.printStackTrace();
+////                    }
+////                }
+////        );
+//
+//        client.addGaugeData("Multi-Metric-Test", createDataPoints()).subscribe(
 //                response -> System.out.println("status: {code: " + response.statusCode() + ", message: " +
 //                        response.statusMessage() + "}"),
 //                t -> {
@@ -178,27 +203,7 @@ public class Client {
 //                    }
 //                }
 //        );
-
-        client.addGaugeData("Multi-Metric-Test", createDataPoints()).subscribe(
-                response -> System.out.println("status: {code: " + response.statusCode() + ", message: " +
-                        response.statusMessage() + "}"),
-                t -> {
-                    t.printStackTrace();
-                    try {
-                        client.shutdown();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                },
-                () -> {
-                    try {
-                        client.shutdown();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-        );
-    }
+//    }
 
     private static List<DataPoints<GaugeDataPoint>> createDataPoints() {
         List<DataPoints<GaugeDataPoint>> dataPointsList = new ArrayList<>();
