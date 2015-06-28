@@ -79,7 +79,7 @@ public class Client {
         try {
             String json = mapper.writeValueAsString(gauges);
             PublishSubject<HttpClientResponse> subject = PublishSubject.create();
-            HttpClientRequest request = httpClient.post(baseURI + "/gauges/data")
+            HttpClientRequest request = httpClient.post(BASE_PATH + "gauges/data")
                     .putHeader("Content-Type", "application/json")
                     .putHeader("Hawkular-Tenant", tenant);
             request.toObservable().subscribe(subject::onNext, subject::onError, subject::onCompleted);
@@ -115,7 +115,7 @@ public class Client {
 
     public Observable<GaugeDataPoint> findGaugeData(String tenantId, String gauge, long start, long end) {
         PublishSubject<GaugeDataPoint> subject = PublishSubject.create();
-        HttpClientRequest request = httpClient.get(baseURI + "/gauges/" + gauge + "/data?start=" + start + "&end=" +
+        HttpClientRequest request = httpClient.get(BASE_PATH + "gauges/" + gauge + "/data?start=" + start + "&end=" +
                 end)
                 .putHeader("Hawkular-Tenant", tenantId)
                 .putHeader("Content-Type", "application/json");
