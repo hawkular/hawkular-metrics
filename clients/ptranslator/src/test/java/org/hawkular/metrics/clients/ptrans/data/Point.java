@@ -16,13 +16,24 @@
  */
 package org.hawkular.metrics.clients.ptrans.data;
 
+import static java.util.stream.Collectors.joining;
+
+import java.util.Comparator;
+import java.util.List;
+
 /**
  * @author Thomas Segismont
  */
 public class Point {
-    final String name;
-    final long timestamp;
-    final double value;
+    public static final Comparator<Point> POINT_COMPARATOR;
+
+    static {
+        POINT_COMPARATOR = Comparator.comparing(Point::getName).thenComparing(Point::getTimestamp);
+    }
+
+    private final String name;
+    private final long timestamp;
+    private final double value;
 
     public Point(String name, long timestamp, double value) {
         this.name = name;
@@ -49,5 +60,9 @@ public class Point {
                 ", timestamp=" + timestamp +
                 ", value=" + value +
                 ']';
+    }
+
+    public static String listToString(List<Point> data) {
+        return data.stream().map(Point::toString).collect(joining(System.getProperty("line.separator")));
     }
 }

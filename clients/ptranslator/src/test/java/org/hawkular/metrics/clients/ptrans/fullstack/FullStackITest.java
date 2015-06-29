@@ -18,7 +18,6 @@ package org.hawkular.metrics.clients.ptrans.fullstack;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.stream.Collectors.joining;
 
 import static org.hawkular.metrics.clients.ptrans.data.ServerDataHelper.BASE_URI;
 import static org.hawkular.metrics.clients.ptrans.util.ProcessUtil.kill;
@@ -30,7 +29,6 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
@@ -50,12 +48,6 @@ import jnr.constants.platform.Signal;
  * @author Thomas Segismont
  */
 abstract class FullStackITest extends ExecutableITestBase {
-    private static final Comparator<Point> POINT_COMPARATOR;
-
-    static {
-        POINT_COMPARATOR = Comparator.comparing(Point::getName).thenComparing(Point::getTimestamp);
-    }
-
     private String tenant;
 
     @Before
@@ -95,15 +87,15 @@ abstract class FullStackITest extends ExecutableITestBase {
         ptransProcess.waitFor();
 
         List<Point> expectedData = getExpectedData();
-        Collections.sort(expectedData, POINT_COMPARATOR);
+        Collections.sort(expectedData, Point.POINT_COMPARATOR);
 
         ServerDataHelper serverDataHelper = new ServerDataHelper(tenant);
         List<Point> serverData = serverDataHelper.getServerData();
-        Collections.sort(serverData, POINT_COMPARATOR);
+        Collections.sort(serverData, Point.POINT_COMPARATOR);
 
         String failureMsg = String.format(
                 Locale.ROOT, "Expected:%n%s%nActual:%n%s%n",
-                pointsToString(expectedData), pointsToString(serverData)
+                Point.listToString(expectedData), Point.listToString(serverData)
         );
 
         assertEquals(failureMsg, expectedData.size(), serverData.size());
@@ -116,10 +108,6 @@ abstract class FullStackITest extends ExecutableITestBase {
             assertEquals(failureMsg, expectedPoint.getName(), serverPoint.getName());
             assertEquals(failureMsg, expectedPoint.getValue(), serverPoint.getValue(), 0.1);
         }
-    }
-
-    private String pointsToString(List<Point> data) {
-        return data.stream().map(Point::toString).collect(joining(System.getProperty("line.separator")));
     }
 
     protected abstract void configureSource() throws Exception;
