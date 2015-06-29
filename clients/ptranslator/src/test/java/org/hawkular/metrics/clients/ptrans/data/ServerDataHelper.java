@@ -96,6 +96,6 @@ public class ServerDataHelper {
     }
 
     private String findGaugeDataUrl(String metricName) {
-        return "http://" + BASE_URI + "/gauges/" + metricName + "/data";
+        return "http://" + BASE_URI + "/gauges/" + metricName + "/data?start=0";
     }
 }
