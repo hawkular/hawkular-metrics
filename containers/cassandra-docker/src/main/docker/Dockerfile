@@ -78,4 +78,12 @@ ENV PATH /opt/apache-cassandra/bin:$PATH
 # The name of the service exposing the Cassandra nodes
 ENV CASSANDRA_NODES_SERVICE_NAME hawkular-cassandra-nodes
 
+# Create a 'Cassandra' user to own the directory and set it to be readable & writable by any user
+RUN groupadd -r cassandra -g 312 && \
+    useradd -u 313 -r -g cassandra -d /opt/apache-cassandra -s /sbin/nologin cassandra && \
+    chown -R cassandra:cassandra /opt/apache-cassandra && \
+    chmod -R go+rw /opt/apache-cassandra
+
+USER cassandra
+
 CMD ["/opt/apache-cassandra/bin/cassandra-docker.sh", "--seed_provider_classname=org.hawkular.openshift.cassandra.OpenshiftSeedProvider" ,"--cluster_name=hawkular-metrics"]
