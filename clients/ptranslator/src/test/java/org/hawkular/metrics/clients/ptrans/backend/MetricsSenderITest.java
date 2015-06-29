@@ -16,28 +16,30 @@
  */
 package org.hawkular.metrics.clients.ptrans.backend;
 
-import static org.hawkular.metrics.clients.ptrans.backend.Constants.METRIC_ADDRESS;
-import static org.hawkular.metrics.clients.ptrans.backend.Constants.TENANT_HEADER_NAME;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static java.util.concurrent.TimeUnit.MINUTES;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import static org.hawkular.metrics.clients.ptrans.backend.Constants.METRIC_ADDRESS;
+import static org.hawkular.metrics.clients.ptrans.util.TenantUtil.getRandomTenantId;
+import static org.junit.Assert.assertEquals;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.hawkular.metrics.client.common.SingleMetric;
 import org.hawkular.metrics.clients.ptrans.Configuration;
 import org.hawkular.metrics.clients.ptrans.ConfigurationKey;
+import org.hawkular.metrics.clients.ptrans.data.Point;
+import org.hawkular.metrics.clients.ptrans.data.ServerDataHelper;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.rules.Timeout;
 
 import io.vertx.core.Vertx;
 
@@ -45,23 +47,28 @@ import io.vertx.core.Vertx;
  * @author Thomas Segismont
  */
 public class MetricsSenderITest {
-    private static final String BASE_URI = System.getProperty(
-            "hawkular-metrics.base-uri",
-            "127.0.0.1:8080/hawkular/metrics"
-    );
-    private static final String TENANT = "test";
-    private static final String METRIC_NAME = MetricsSender.class.getName();
+    private static final String BASE_URI;
 
-    private MetricsSender metricsSender;
-    private String findGaugeDataUrl;
+    static {
+        BASE_URI = System.getProperty("hawkular-metrics.base-uri", "127.0.0.1:8080/hawkular/metrics");
+    }
+
+    @Rule
+    public final Timeout timeout = new Timeout(1, MINUTES);
+
+    private String tenant;
+    private AtomicLong idGenerator;
     private Vertx vertx;
 
     @Before
     public void setUp() throws Exception {
-        Properties properties = new Properties();
+        tenant = getRandomTenantId();
+        idGenerator = new AtomicLong(0);
         String addGaugeDataUrl = "http://" + BASE_URI + "/gauges/data";
+
+        Properties properties = new Properties();
         properties.setProperty(ConfigurationKey.REST_URL.toString(), addGaugeDataUrl);
-        properties.setProperty(ConfigurationKey.TENANT.toString(), TENANT);
+        properties.setProperty(ConfigurationKey.TENANT.toString(), tenant);
         Configuration configuration = Configuration.from(properties);
 
         vertx = Vertx.vertx();
@@ -70,56 +77,57 @@ public class MetricsSenderITest {
         vertx.deployVerticle(new MetricsSender(configuration), handler -> latch.countDown());
         latch.await();
 
-        findGaugeDataUrl = "http://" + BASE_URI + "/gauges/" + METRIC_NAME + "/data";
     }
 
     @Test
     public void shouldForwardMetrics() throws Exception {
-        SingleMetric metric = new SingleMetric(METRIC_NAME, System.currentTimeMillis(), 13.5d);
-        vertx.eventBus().publish(METRIC_ADDRESS, metric);
+        int total = 3000;
 
-        boolean foundMetricOnServer = false;
-        for (int i = 0; i < 20; i++) {
-            Thread.sleep(TimeUnit.SECONDS.toMillis(1));
-            JsonNode jsonNode = findGaugeDataOnServer();
-            if (jsonNode != null && expectedMetricIsPresent(metric, jsonNode)) {
-                foundMetricOnServer = true;
-                break;
-            }
+        List<Point> expectedData = new ArrayList<>(total);
+        List<SingleMetric> metrics = new ArrayList<>(total);
+        for (int i = 0; i < total; i++) {
+            long id = idGenerator.incrementAndGet();
+            String name = String.valueOf(id);
+            expectedData.add(new Point(name, id, (double) id));
+            metrics.add(new SingleMetric(name, id, (double) id));
         }
-        assertTrue("Did not find expected metric on server", foundMetricOnServer);
-    }
 
-    private JsonNode findGaugeDataOnServer() throws IOException {
-        HttpURLConnection urlConnection = (HttpURLConnection) new URL(findGaugeDataUrl).openConnection();
-        urlConnection.setRequestProperty(String.valueOf(TENANT_HEADER_NAME), TENANT);
-        urlConnection.connect();
-        int responseCode = urlConnection.getResponseCode();
-        if (responseCode != HttpURLConnection.HTTP_OK) {
-            return null;
+        for (int i = 0; !metrics.isEmpty(); i++) {
+            // Simulate time before a server publishes another batch of metrics
+            long wait = i % 2 == 0 ? 12 : 25;
+            // Simulate servers publishing N metrics in a row
+            int count = i % 2 == 0 ? 63 : 12;
+
+            Thread.sleep(wait);
+            List<SingleMetric> batch = metrics.subList(0, Math.min(count, metrics.size()));
+            batch.forEach(metric -> vertx.eventBus().publish(METRIC_ADDRESS, metric));
+            batch.clear();
         }
-        ObjectMapper objectMapper = new ObjectMapper();
-        try (InputStream inputStream = urlConnection.getInputStream()) {
-            return objectMapper.readTree(inputStream);
+
+        ServerDataHelper dataHelper = new ServerDataHelper(tenant);
+        List<Point> serverData;
+        do {
+            Thread.sleep(1000);
+            serverData = dataHelper.getServerData();
         }
-    }
+        while (serverData.size() != expectedData.size());
 
-    private boolean expectedMetricIsPresent(SingleMetric metric, JsonNode jsonNode) {
-        assertTrue("Data is not an array", jsonNode.isArray());
+        Collections.sort(expectedData, Point.POINT_COMPARATOR);
+        Collections.sort(serverData, Point.POINT_COMPARATOR);
 
-        for (JsonNode gaugeData : jsonNode) {
-            JsonNode timestamp = gaugeData.get("timestamp");
-            assertNotNull("Gauge data has no timestamp attribute", timestamp);
-            assertTrue("Timestamp is not a number", timestamp.isNumber());
-            JsonNode value = gaugeData.get("value");
-            assertNotNull("Gauge data has no value attribute", value);
-            assertTrue("Value is not a floating point number", value.isFloatingPointNumber());
+        String failureMsg = String.format(
+                Locale.ROOT, "Expected:%n%s%nActual:%n%s%n",
+                Point.listToString(expectedData), Point.listToString(serverData)
+        );
 
-            if (timestamp.asLong() == metric.getTimestamp() && value.asDouble() == metric.getValue()) {
-                return true;
-            }
+        for (int i = 0; i < expectedData.size(); i++) {
+            Point expectedPoint = expectedData.get(i);
+            Point serverPoint = serverData.get(i);
+
+            assertEquals(failureMsg, expectedPoint.getTimestamp(), serverPoint.getTimestamp());
+            assertEquals(failureMsg, expectedPoint.getName(), serverPoint.getName());
+            assertEquals(failureMsg, expectedPoint.getValue(), serverPoint.getValue(), 0.1);
         }
-        return false;
     }
 
     @After
