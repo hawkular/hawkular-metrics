@@ -68,5 +68,13 @@ public interface TaskService {
      */
     Observable<Task> scheduleTask(DateTime time, Task task);
 
+    /**
+     * The scheduler does not execute tasks. Instead when a task is ready for execution the scheduler emits an event
+     * where the event is the task to be executed. The observer can then execute the task.
+     *
+     * @param taskType The type of task for which you want to observe tasks
+     * @param onNext The action that will be called when a a task is ready for execution
+     * @return The {@link Subscription Rx subscription}
+     */
     Subscription subscribe(TaskType taskType, Action1<? super Task> onNext);
 }

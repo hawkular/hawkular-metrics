@@ -27,7 +27,7 @@ import static org.junit.Assert.assertEquals
  */
 class CountersITest extends RESTTest {
 
-//  @Test
+  @Test
   void createSimpleCounter() {
     String tenantId = nextTenantId()
     String id = "C1"
@@ -46,7 +46,7 @@ class CountersITest extends RESTTest {
     assertEquals(expectedData, response.data)
   }
 
-//  @Test
+  @Test
   void createCounterWithTagsAndDataRetention() {
     String tenantId = nextTenantId()
     String id = "C1"
@@ -74,7 +74,7 @@ class CountersITest extends RESTTest {
     assertEquals(expectedData, response.data)
   }
 
-//  @Test
+  @Test
   void createAndFindCounters() {
     String tenantId = nextTenantId()
     String counter1 = "C1"
@@ -121,7 +121,7 @@ class CountersITest extends RESTTest {
     assertEquals(expectedData, response.data)
   }
 
-//  @Test
+  @Test
   void addDataForMultipleCountersAndFindhWithDateRange() {
     String tenantId = nextTenantId()
     String counter1 = "C1"
@@ -160,7 +160,6 @@ class CountersITest extends RESTTest {
     assertEquals(200, response.status)
 
     def expectedData = [
-        [timestamp: start.plusMinutes(1).millis, value: 20],
         [timestamp: start.millis, value: 10]
     ]
     assertEquals(expectedData, response.data)
@@ -168,7 +167,7 @@ class CountersITest extends RESTTest {
     response = hawkularMetrics.get(
         path: "counters/$counter2/data",
         headers: [(tenantHeaderName): tenantId],
-        query: [start: start.millis, end: start.plusMinutes(1).millis]
+        query: [start: start.millis, end: start.plusMinutes(2).millis]
     )
     assertEquals(200, response.status)
 
@@ -179,7 +178,7 @@ class CountersITest extends RESTTest {
     assertEquals(expectedData, response.data)
   }
 
-//  @Test
+  @Test
   void addDataForSingleCounterAndFindWithDefaultDateRange() {
     String tenantId = nextTenantId()
     String counter = "C1"
@@ -210,7 +209,7 @@ class CountersITest extends RESTTest {
     assertEquals(expectedData, response.data)
   }
 
-//  @Test
+  @Test
   void findWhenThereIsNoData() {
     String tenantId = nextTenantId()
     String counter1 = "C1"
