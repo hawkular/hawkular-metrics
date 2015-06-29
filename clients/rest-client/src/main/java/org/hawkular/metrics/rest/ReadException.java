@@ -17,14 +17,14 @@
 package org.hawkular.metrics.rest;
 
 /**
- * Thrown if a write request fails on the server. The server will send back a status code other than 200 when this
- * happens.
+ * Thrown if a read request fails on the server. The server will send back a status code other than 200 when this
+ * happens. The server returns a 204 when there is no data, but this exception is not thrown in that case.
  */
-public class WriteException extends RuntimeException {
+public class ReadException extends RuntimeException {
 
     private int status;
 
-    public WriteException(String message, int status) {
+    public ReadException(String message, int status) {
         super(message);
         this.status = status;
     }

@@ -121,7 +121,7 @@ public class Client {
 
         @Override
         public void onError(Throwable e) {
-            subject.onError(new ClientException("There was an unexpecte error while adding data", e));
+            subject.onError(new ClientException("There was an unexpected error while adding data", e));
         }
 
         @Override
@@ -139,9 +139,24 @@ public class Client {
                 .putHeader(TENANT_HEADER, tenantId)
                 .putHeader("Content-Type", "application/json");
         Observable<GaugeDataPoint> observable = request.toObservable()
-                .flatMap(HttpClientResponse::toObservable)
+                .flatMap(response -> {
+                    if (response.statusCode() == 200 || response.statusCode() == 204) {
+                        return response.toObservable();
+                    }
+                    throw new ReadException(response.statusMessage(), response.statusCode());
+                })
                 .flatMap(buffer -> Observable.from(getGaugeDataPoints(buffer)));
-        observable.subscribe(subject::onNext, subject::onError, subject::onCompleted);
+        observable.subscribe(
+                subject::onNext,
+                t -> {
+                    if (t instanceof ReadException) {
+                        subject.onError(t);
+                    } else {
+                        subject.onError(new ClientException("There was an unexpected error while reading data", t));
+                    }
+                },
+                subject::onCompleted
+        );
         request.end();
         return subject;
     }
