@@ -157,6 +157,8 @@ public class MetricsSender extends AbstractVerticle {
                 }
                 buffer.reInsert(metrics);
                 metricInserted();
+            } else {
+                scheduleFlush();
             }
         });
         req.putHeader(HttpHeaders.HOST, hostHeader);
