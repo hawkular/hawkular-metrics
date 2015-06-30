@@ -132,6 +132,8 @@ public class MetricsSenderITest {
 
     @After
     public void tearDown() throws Exception {
-        vertx.close();
+        CountDownLatch latch = new CountDownLatch(1);
+        vertx.close(h -> latch.countDown());
+        latch.await();
     }
 }

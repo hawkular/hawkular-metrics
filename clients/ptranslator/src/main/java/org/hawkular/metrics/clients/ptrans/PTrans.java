@@ -63,13 +63,13 @@ public class PTrans {
     private static final Logger LOG = LoggerFactory.getLogger(PTrans.class);
 
     private final Configuration configuration;
-    private final Vertx vertx;
-    private final EventLoopGroup group;
-    private final EventLoopGroup workerGroup;
+
+    private EventLoopGroup group;
+    private EventLoopGroup workerGroup;
+    private Vertx vertx;
     // Needed as long as some servers are still Netty-based
     // Can be removed as soon as all servers are implemented on top of vertx
-    private final NettyToVertxHandler nettyToVertxHandler;
-
+    private NettyToVertxHandler nettyToVertxHandler;
     private String metricsSenderID;
 
     /**
@@ -85,10 +85,6 @@ public class PTrans {
         checkArgument(configuration != null, "Configuration is null");
         checkArgument(configuration.isValid(), configuration.getValidationMessages().stream().collect(joining(", ")));
         this.configuration = configuration;
-        vertx = Vertx.vertx();
-        group = new NioEventLoopGroup();
-        workerGroup = new NioEventLoopGroup();
-        nettyToVertxHandler = new NettyToVertxHandler(vertx.eventBus());
     }
 
     /**
@@ -96,6 +92,12 @@ public class PTrans {
      */
     public void start() {
         LOG.info("Starting ptrans...");
+
+        group = new NioEventLoopGroup();
+        workerGroup = new NioEventLoopGroup();
+
+        vertx = Vertx.vertx();
+        nettyToVertxHandler = new NettyToVertxHandler(vertx.eventBus());
 
         vertx.deployVerticle(new MetricsSender(configuration), handler -> {
             metricsSenderID = handler.result();
