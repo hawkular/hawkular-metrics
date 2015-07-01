@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.hawkular.metrics.rest.model.AvailabilityDataPoint;
+import org.hawkular.metrics.rest.model.CounterDataPoint;
 import org.hawkular.metrics.rest.model.DataPoints;
 import org.hawkular.metrics.rest.model.GaugeDataPoint;
 import org.testng.annotations.AfterClass;
@@ -170,6 +171,51 @@ public class ClientITest {
         readSubscriber.awaitTerminalEvent();
         readSubscriber.assertNoErrors();
         assertEquals(readSubscriber.getOnNextEvents(), singletonList(new AvailabilityDataPoint(startTime, "up")),
+                "The data points do not match");
+    }
+
+    @Test
+    public void addDataPointsForMultipleCounterMetrics() throws Exception {
+        String tenantId = nextTenantId();
+        long endTime = System.currentTimeMillis();
+        long startTime = endTime - TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
+
+        List<DataPoints<CounterDataPoint>> dataPoints = asList(
+                new DataPoints<>("C1", asList(
+                        new CounterDataPoint(startTime + 2000, 50L),
+                        new CounterDataPoint(startTime + 1000, 75L),
+                        new CounterDataPoint(startTime, 87L))),
+                new DataPoints<>("C2", asList(
+                        new CounterDataPoint(startTime, 158L),
+                        new CounterDataPoint(endTime + 100, 244L)
+                ))
+        );
+        TestSubscriber<Void> writeSubscriber = new TestSubscriber<>();
+        client.addCounterData(tenantId, dataPoints).subscribe(writeSubscriber);
+
+        writeSubscriber.awaitTerminalEvent();
+        writeSubscriber.assertNoErrors();
+
+        TestSubscriber<CounterDataPoint> readSubscriber = new TestSubscriber<>();
+        client.findCounterData(tenantId, "C1", startTime, endTime).subscribe(readSubscriber);
+
+        readSubscriber.awaitTerminalEvent();
+        readSubscriber.assertNoErrors();
+
+        List<CounterDataPoint> expected = asList(
+                new CounterDataPoint(startTime + 2000, 50L),
+                new CounterDataPoint(startTime + 1000, 75L),
+                new CounterDataPoint(startTime, 87L)
+        );
+        assertEquals(readSubscriber.getOnNextEvents(), expected, "The data points do not match");
+
+        readSubscriber = new TestSubscriber<>();
+
+        client.findCounterData(tenantId, "C2", startTime, endTime).subscribe(readSubscriber);
+
+        readSubscriber.awaitTerminalEvent();
+        readSubscriber.assertNoErrors();
+        assertEquals(readSubscriber.getOnNextEvents(), singletonList(new CounterDataPoint(startTime, 158L)),
                 "The data points do not match");
     }
 

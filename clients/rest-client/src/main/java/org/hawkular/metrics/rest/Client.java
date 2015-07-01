@@ -33,6 +33,7 @@ import io.vertx.rxjava.core.http.HttpClient;
 import io.vertx.rxjava.core.http.HttpClientRequest;
 import io.vertx.rxjava.core.http.HttpClientResponse;
 import org.hawkular.metrics.rest.model.AvailabilityDataPoint;
+import org.hawkular.metrics.rest.model.CounterDataPoint;
 import org.hawkular.metrics.rest.model.DataPoint;
 import org.hawkular.metrics.rest.model.DataPoints;
 import org.hawkular.metrics.rest.model.GaugeDataPoint;
@@ -96,14 +97,9 @@ public class Client {
         return addDataPoints(tenant, "availability/data", dataPoints);
     }
 
-//    public Observable<Void> addCounterData(String tenant, List<DataPoints<CounterDataPoint>> dataPoints) {
-//        try {
-//            String json = mapper.writeValueAsString(dataPoints);
-//            HttpClientRequest request
-//        } catch (JsonProcessingException e) {
-//            throw new ClientException("Failed to parse data points", e);
-//        }
-//    }
+    public Observable<Void> addCounterData(String tenant, List<DataPoints<CounterDataPoint>> dataPoints) {
+        return addDataPoints(tenant, "counters/data", dataPoints);
+    }
 
     private <T extends DataPoint> Observable<Void> addDataPoints(String tenant, String path,
             List<DataPoints<T>> dataPoints) {
@@ -140,6 +136,11 @@ public class Client {
             long end) {
         String path = "availability/" + metric + "/data?start=" + start + "&end=" + end;
         return getDataPoints(tenantId, path, this::getAvailabilityDataPoints);
+    }
+
+    public Observable<CounterDataPoint> findCounterData(String tenantId, String metric, long start, long end) {
+        String path = "counters/" + metric + "/data?start=" + start + "&end=" + end;
+        return getDataPoints(tenantId, path, this::getCounterDataPoints);
     }
 
     private <T extends DataPoint> Observable<T> getDataPoints(String tenantId, String path,
@@ -184,6 +185,14 @@ public class Client {
     private List<AvailabilityDataPoint> getAvailabilityDataPoints(Buffer buffer) throws RuntimeException {
         try {
             return mapper.readValue(buffer.toString("UTF-8"), new TypeReference<List<AvailabilityDataPoint>>() {});
+        } catch (IOException e) {
+            throw new ClientException("Failed to parse response", e);
+        }
+    }
+
+    private List<CounterDataPoint> getCounterDataPoints(Buffer buffer) throws RuntimeException {
+        try {
+            return mapper.readValue(buffer.toString("UTF-8"), new TypeReference<List<CounterDataPoint>>() {});
         } catch (IOException e) {
             throw new ClientException("Failed to parse response", e);
         }
