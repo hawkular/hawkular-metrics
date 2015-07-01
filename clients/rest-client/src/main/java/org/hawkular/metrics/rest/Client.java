@@ -32,6 +32,7 @@ import io.vertx.rxjava.core.buffer.Buffer;
 import io.vertx.rxjava.core.http.HttpClient;
 import io.vertx.rxjava.core.http.HttpClientRequest;
 import io.vertx.rxjava.core.http.HttpClientResponse;
+import org.hawkular.metrics.rest.model.AvailabilityDataPoint;
 import org.hawkular.metrics.rest.model.DataPoints;
 import org.hawkular.metrics.rest.model.GaugeDataPoint;
 import rx.Observable;
@@ -106,6 +107,22 @@ public class Client {
         }
     }
 
+    public Observable<Void> addAvailabilty(String tenant, List<DataPoints<AvailabilityDataPoint>> dataPoints) {
+        try {
+            String json = mapper.writeValueAsString(dataPoints);
+            HttpClientRequest request = httpClient.post(BASE_PATH + "availability/data")
+                    .putHeader("Content-Type", "application/json")
+                    .putHeader(TENANT_HEADER, tenant);
+            WriteObserver writeObserver = new WriteObserver();
+            request.toObservable().subscribe(writeObserver);
+            request.end(json);
+
+            return writeObserver.getObservable();
+        } catch (JsonProcessingException e) {
+            throw new ClientException("Failed to parse data points", e);
+        }
+    }
+
     private class WriteObserver implements Observer<HttpClientResponse> {
 
         private PublishSubject<Void> subject = PublishSubject.create();
@@ -161,13 +178,51 @@ public class Client {
         return subject;
     }
 
+    public Observable<AvailabilityDataPoint> findAvailabilityData(String tenantId, String metric, long start, long
+            end) {
+        PublishSubject<AvailabilityDataPoint> subject = PublishSubject.create();
+        HttpClientRequest request = httpClient.get(BASE_PATH + "availability/" + metric + "/data?start=" + start +
+                "&end=" + end)
+                .putHeader(TENANT_HEADER, tenantId)
+                .putHeader("Content-Type", "application/json");
+        Observable<AvailabilityDataPoint> observable = request.toObservable()
+                .flatMap(response -> {
+                    if (response.statusCode() == 200 || response.statusCode() == 204) {
+                        return response.toObservable();
+                    }
+                    throw new ReadException(response.statusMessage(), response.statusCode());
+                })
+                .flatMap(buffer -> Observable.from(getAvailabilityDataPoints(buffer)));
+        observable.subscribe(
+                subject::onNext,
+                t -> {
+                    if (t instanceof ReadException) {
+                        subject.onError(t);
+                    } else {
+                        subject.onError(new ClientException("There was an unexpected error while reading data", t));
+                    }
+                },
+                subject::onCompleted
+        );
+        request.end();
+        return subject;
+    }
+
     private List<GaugeDataPoint> getGaugeDataPoints(Buffer buffer) throws RuntimeException {
         try {
-            return mapper.readValue(buffer.toString("UTF-8"), new TypeReference<List<GaugeDataPoint>>() {
-            });
+            return mapper.readValue(buffer.toString("UTF-8"), new TypeReference<List<GaugeDataPoint>>() {});
         } catch (IOException e) {
             throw new ClientException("Failed to parse response", e);
         }
     }
+
+    private List<AvailabilityDataPoint> getAvailabilityDataPoints(Buffer buffer) throws RuntimeException {
+        try {
+            return mapper.readValue(buffer.toString("UTF-8"), new TypeReference<List<AvailabilityDataPoint>>() {});
+        } catch (IOException e) {
+            throw new ClientException("Failed to parse response", e);
+        }
+    }
+
 
 }

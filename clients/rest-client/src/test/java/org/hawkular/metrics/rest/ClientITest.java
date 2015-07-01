@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.hawkular.metrics.rest.model.AvailabilityDataPoint;
 import org.hawkular.metrics.rest.model.DataPoints;
 import org.hawkular.metrics.rest.model.GaugeDataPoint;
 import org.testng.annotations.AfterClass;
@@ -124,6 +125,51 @@ public class ClientITest {
         readSubscriber.awaitTerminalEvent();
         readSubscriber.assertNoErrors();
         assertEquals(readSubscriber.getOnNextEvents(), singletonList(new GaugeDataPoint(startTime, 25.474)),
+                "The data points do not match");
+    }
+
+    @Test
+    public void addDataPointsForMultipleAvailabilityMetrics() throws Exception {
+        String tenantId = nextTenantId();
+        long endTime = System.currentTimeMillis();
+        long startTime = endTime - TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
+
+        List<DataPoints<AvailabilityDataPoint>> dataPoints = asList(
+                new DataPoints<>("A1", asList(
+                        new AvailabilityDataPoint(startTime + 2000, "up"),
+                        new AvailabilityDataPoint(startTime + 1000, "down"),
+                        new AvailabilityDataPoint(startTime, "down"))),
+                new DataPoints<>("A2", asList(
+                        new AvailabilityDataPoint(startTime, "up"),
+                        new AvailabilityDataPoint(endTime + 100, "down")
+                ))
+        );
+        TestSubscriber<Void> writeSubscriber = new TestSubscriber<>();
+        client.addAvailabilty(tenantId, dataPoints).subscribe(writeSubscriber);
+
+        writeSubscriber.awaitTerminalEvent();
+        writeSubscriber.assertNoErrors();
+
+        TestSubscriber<AvailabilityDataPoint> readSubscriber = new TestSubscriber<>();
+        client.findAvailabilityData(tenantId, "A1", startTime, endTime).subscribe(readSubscriber);
+
+        readSubscriber.awaitTerminalEvent();
+        readSubscriber.assertNoErrors();
+
+        List<AvailabilityDataPoint> expected = asList(
+                new AvailabilityDataPoint(startTime, "down"),
+                new AvailabilityDataPoint(startTime + 1000, "down"),
+                new AvailabilityDataPoint(startTime + 2000, "up")
+        );
+        assertEquals(readSubscriber.getOnNextEvents(), expected, "The data points do not match");
+
+        readSubscriber = new TestSubscriber<>();
+
+        client.findAvailabilityData(tenantId, "A2", startTime, endTime).subscribe(readSubscriber);
+
+        readSubscriber.awaitTerminalEvent();
+        readSubscriber.assertNoErrors();
+        assertEquals(readSubscriber.getOnNextEvents(), singletonList(new AvailabilityDataPoint(startTime, "up")),
                 "The data points do not match");
     }
 
