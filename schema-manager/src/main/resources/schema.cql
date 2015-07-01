@@ -153,6 +153,27 @@ CREATE TABLE ${keyspace}.retentions_idx (
 
 -- #
 
+-- Task scheduler schema
+
+CREATE TYPE ${keyspace}.trigger_def (
+    type int,
+    delay bigint,
+    interval bigint
+);
+
+-- #
+
+CREATE TABLE ${keyspace}.tasks (
+    id uuid,
+    shard int,
+    name text,
+    params map<text, text>,
+    trigger frozen <trigger_def>,
+    PRIMARY KEY (id)
+);
+
+-- #
+
 CREATE TABLE ${keyspace}.task_queue (
     task_type text,
     time_slice timestamp,
