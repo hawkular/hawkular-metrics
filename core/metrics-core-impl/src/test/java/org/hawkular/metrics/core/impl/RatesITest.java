@@ -18,37 +18,52 @@ package org.hawkular.metrics.core.impl;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
-import static org.joda.time.DateTime.now;
-import static org.joda.time.Duration.standardSeconds;
+import static org.joda.time.Duration.standardMinutes;
 import static org.testng.Assert.assertEquals;
 
+import java.util.Date;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import com.codahale.metrics.MetricRegistry;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.tasks.api.TaskService;
-import org.hawkular.metrics.tasks.api.TaskServiceBuilder;
-import org.hawkular.metrics.tasks.impl.TaskServiceImpl;
+import org.hawkular.metrics.tasks.api.AbstractTrigger;
+import org.hawkular.metrics.tasks.impl.Queries;
+import org.hawkular.metrics.tasks.impl.TaskSchedulerImpl;
 import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import rx.Observable;
+import rx.Observer;
+import rx.observers.TestSubscriber;
+import rx.schedulers.Schedulers;
+import rx.schedulers.TestScheduler;
 
 /**
  * @author jsanda
  */
 public class RatesITest extends MetricsITest {
 
+    private static Logger logger = LoggerFactory.getLogger(RatesITest.class);
+
     private MetricsServiceImpl metricsService;
 
-    private TaskService taskService;
+    private TaskSchedulerImpl taskScheduler;
 
     private DateTimeService dateTimeService;
+
+    private TestScheduler tickScheduler;
+
+    private Observable<Long> finishedTimeSlices;
 
     @BeforeClass
     public void initClass() {
@@ -58,22 +73,28 @@ public class RatesITest extends MetricsITest {
 
         dateTimeService = new DateTimeService();
 
-        taskService = new TaskServiceBuilder()
-                .withSession(session)
-                .withTimeUnit(TimeUnit.SECONDS)
-                .withTaskTypes(singletonList(TaskTypes.COMPUTE_RATE))
-                .build();
-        ((TaskServiceImpl) taskService).setTimeUnit(TimeUnit.SECONDS);
+        DateTime startTime = dateTimeService.getTimeSlice(DateTime.now(), standardMinutes(1)).minusMinutes(20);
+
+        tickScheduler = Schedulers.test();
+        tickScheduler.advanceTimeTo(startTime.getMillis(), TimeUnit.MILLISECONDS);
+
+        taskScheduler = new TaskSchedulerImpl(rxSession, new Queries(session));
+        taskScheduler.setTickScheduler(tickScheduler);
+
+        AbstractTrigger.now = tickScheduler::now;
 
         metricsService = new MetricsServiceImpl();
-        metricsService.setTaskService(taskService);
-
-        taskService.subscribe(TaskTypes.COMPUTE_RATE, new GenerateRate(metricsService));
+        metricsService.setTaskScheduler(taskScheduler);
 
         String keyspace = "hawkulartest";
         System.setProperty("keyspace", keyspace);
 
-        taskService.start();
+        finishedTimeSlices = taskScheduler.getFinishedTimeSlices();
+        taskScheduler.start();
+
+        GenerateRate generateRate = new GenerateRate(metricsService);
+        taskScheduler.subscribe(generateRate);
+
         metricsService.startUp(session, keyspace, false, new MetricRegistry());
     }
 
@@ -87,52 +108,106 @@ public class RatesITest extends MetricsITest {
 
     @AfterClass
     public void shutdown() {
-        taskService.shutdown();
+//        taskScheduler.shutdown();
     }
 
     @Test
     public void generateRates() throws Exception {
-        String tenantId = "generate-rates-test";
-        MetricId id = new MetricId(tenantId, COUNTER, "c1");
-        DateTime start = dateTimeService.getTimeSlice(now(), standardSeconds(5)).plusSeconds(5);
-        DateTime end = start.plusSeconds(30);
+        MetricId id = new MetricId("counter-rates-test", COUNTER, "c1");
+        DateTime start = new DateTime(tickScheduler.now());
+        DateTime end = start.plusMinutes(10);
+
+        logger.debug("START TIME = {}", new Date(start.getMillis()));
+        logger.debug("END TIME = {}", new Date(end.getMillis()));
 
         Metric<Long> counter = new Metric<>(id, asList(
-                new DataPoint<>(start.plusMillis(50).getMillis(), 11L),
-                new DataPoint<>(start.plusSeconds(1).getMillis(), 17L),
-                new DataPoint<>(start.plusSeconds(11).getMillis(), 29L),
-                new DataPoint<>(start.plusSeconds(17).getMillis(), 46L),
-                new DataPoint<>(start.plusSeconds(21).getMillis(), 69L)
+                new DataPoint<>(start.plusMinutes(1).plusMillis(50).getMillis(), 11L),
+                new DataPoint<>(start.plusMinutes(1).plusSeconds(30).getMillis(), 17L),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 29L),
+                new DataPoint<>(start.plusMinutes(2).plusSeconds(30).getMillis(), 46L),
+                new DataPoint<>(start.plusMinutes(3).getMillis(), 69L),
+                new DataPoint<>(start.plusMinutes(3).plusSeconds(30).getMillis(), 85L),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 107L)
         ));
-        metricsService.createMetric(counter).toBlocking().lastOrDefault(null);
-        metricsService.addCounterData(Observable.just(counter)).toBlocking().lastOrDefault(null);
 
-        while (now().isBefore(end)) {
-            Thread.sleep(100);
-        }
+        insertBlocking(() -> metricsService.createMetric(counter));
+        insertBlocking(() -> metricsService.addCounterData(Observable.just(counter)));
 
-        DataPoint<Double> actual = metricsService.findRateData(id, start.getMillis(),
-                start.plusSeconds(5).getMillis()).toBlocking().last();
-        DataPoint<Double> expected = new DataPoint<>(start.getMillis(), calculateRate(17, start, start.plusSeconds(5)));
-        assertEquals(actual, expected, "The rate for " + start + " does not match the expected value");
+        Observer<Long> observer = new Observer<Long>() {
+            @Override
+            public void onCompleted() {
+                logger.debug("Finished observing");
+            }
 
-        actual = metricsService.findRateData(id, start.plusSeconds(10).getMillis(),
-                start.plusSeconds(15).getMillis()).toBlocking().last();
-        expected = new DataPoint<>(start.plusSeconds(10).getMillis(), calculateRate(29, start.plusSeconds(10),
-                start.plusSeconds(15)));
-        assertEquals(actual, expected, "The rate for " + start.plusSeconds(10) + " does not match the expected value.");
+            @Override
+            public void onError(Throwable e) {
 
-        actual = metricsService.findRateData(id, start.plusSeconds(15).getMillis(),
-                start.plusSeconds(20).getMillis()).toBlocking().last();
-        expected = new DataPoint<>(start.plusSeconds(15).getMillis(), calculateRate(46, start.plusSeconds(15),
-                start.plusSeconds(20)));
-        assertEquals(actual, expected, "The rate for " + start.plusSeconds(15) + " does not match the expected value.");
+            }
 
-        actual = metricsService.findRateData(id, start.plusSeconds(20).getMillis(),
-                start.plusSeconds(25).getMillis()).toBlocking().last();
-        expected = new DataPoint<>(start.plusSeconds(20).getMillis(), calculateRate(69, start.plusSeconds(20),
-                start.plusSeconds(25)));
-        assertEquals(actual, expected, "The rate for " + start.plusSeconds(20) + " does not match the expected value.");
+            @Override
+            public void onNext(Long timestamp) {
+                logger.debug("Observing {}", new Date(timestamp));
+            }
+        };
+
+        TestSubscriber<Long> subscriber = new TestSubscriber<>(observer);
+//        finishedTimeSlices.takeUntil(time -> time > end.getMillis())
+        finishedTimeSlices.takeUntil(time -> time >= start.plusMinutes(5).getMillis())
+                .doOnNext(time -> logger.debug("NEXT TICK = {}", new Date(time)))
+                .observeOn(Schedulers.immediate())
+                .subscribe(subscriber);
+
+        tickScheduler.advanceTimeTo(start.plusMinutes(5).getMillis(), TimeUnit.MILLISECONDS);
+//        tickScheduler.advanceTimeTo(end.plusSeconds(2).getMillis(), TimeUnit.MILLISECONDS);
+
+        subscriber.awaitTerminalEvent(10, SECONDS);
+        subscriber.assertNoErrors();
+        subscriber.assertTerminalEvent();
+
+        List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(id,
+                start.plusMinutes(1).getMillis(), start.plusMinutes(2).getMillis()));
+        List<DataPoint<Double>> expected = singletonList(new DataPoint<>(start.plusMinutes(1).getMillis(),
+                calculateRate(17, start.plusMinutes(1), start.plusMinutes(2))));
+        assertEquals(actual, expected, "The rate for " + start.plusMinutes(1) + " does not match the expected values");
+
+
+        actual = getOnNextEvents(() -> metricsService.findRateData(id, start.plusMinutes(2).getMillis(),
+                start.plusMinutes(3).getMillis()));
+        expected = singletonList(new DataPoint<>(start.plusMinutes(2).getMillis(),
+                calculateRate(46, start.plusMinutes(2), start.plusMinutes(3))));
+        assertEquals(actual, expected, "The rate for " + start.plusMinutes(2) + " does not match the expected values");
+
+        actual = getOnNextEvents(() -> metricsService.findRateData(id, start.plusMinutes(3).getMillis(),
+                start.plusMinutes(4).getMillis()));
+        expected = singletonList(new DataPoint<>(start.plusMinutes(3).getMillis(),
+                calculateRate(85, start.plusMinutes(3), start.plusMinutes(4))));
+        assertEquals(actual, expected, "The rate for " + start.plusMinutes(3) + " does not match the expected values");
+
+//        actual = metricsService.findRateData(tenantId, id, start.plusSeconds(20).getMillis(),
+//                start.plusSeconds(25).getMillis()).toBlocking().last();
+//        expected = new DataPoint<>(start.plusSeconds(20).getMillis(), calculateRate(69, start.plusSeconds(20),
+//                start.plusSeconds(25)));
+//     assertEquals(actual, expected, "The rate for " + start.plusSeconds(20) + " does not match the expected value.");
+    }
+
+    private void insertBlocking(Supplier<Observable<Void>> fn) {
+        TestSubscriber<Void> subscriber = new TestSubscriber<>();
+        Observable<Void> observable = fn.get();
+        observable.subscribe(subscriber);
+        subscriber.awaitTerminalEvent(5, TimeUnit.SECONDS);
+        subscriber.assertNoErrors();
+        subscriber.assertCompleted();
+    }
+
+    private <T> List<T> getOnNextEvents(Supplier<Observable<T>> fn) {
+        TestSubscriber<T> subscriber = new TestSubscriber<>();
+        Observable<T> observable = fn.get();
+        observable.subscribe(subscriber);
+        subscriber.awaitTerminalEvent(5, SECONDS);
+        subscriber.assertNoErrors();
+        subscriber.assertCompleted();
+
+        return subscriber.getOnNextEvents();
     }
 
     private double calculateRate(double value, DateTime startTime, DateTime endTime) {

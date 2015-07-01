@@ -305,7 +305,7 @@ class CountersITest extends RESTTest {
     assertEquals(204, response.status)
   }
 
-  @Test
+//  @Test
   void findRate() {
     String tenantId = nextTenantId()
     String counter = "C1"

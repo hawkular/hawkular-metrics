@@ -14,21 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.tasks.api;
+package org.hawkular.metrics.core.impl;
+
+import java.util.Map;
+
+import org.hawkular.metrics.tasks.api.Task2;
+import org.hawkular.metrics.tasks.api.TaskScheduler;
+import org.hawkular.metrics.tasks.api.Trigger;
+import org.hawkular.metrics.tasks.impl.Lease;
+import rx.Observable;
 
 /**
  * @author jsanda
  */
-public class TaskExecutionException extends RuntimeException {
+public class FakeTaskScheduler implements TaskScheduler {
 
-    private final Task failedTask;
-
-    public TaskExecutionException(Task failedTask, Throwable cause) {
-        super(cause);
-        this.failedTask = failedTask;
+    @Override
+    public Observable<Lease> start() {
+        return Observable.empty();
     }
 
-    public Task getFailedTask() {
-        return failedTask;
+    @Override
+    public Observable<Task2> scheduleTask(String name, String groupKey, int executionOrder,
+            Map<String, String> parameters, Trigger trigger) {
+        return Observable.empty();
+    }
+
+    @Override
+    public void shutdown() {
     }
 }

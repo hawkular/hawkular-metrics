@@ -153,26 +153,49 @@ CREATE TABLE ${keyspace}.retentions_idx (
 
 -- #
 
+-- Task scheduler schema
+
+CREATE TYPE ${keyspace}.trigger_def (
+    type int,
+    trigger_time bigint,
+    delay bigint,
+    interval bigint,
+    repeat_count int,
+    execution_count int
+);
+
+-- #
+
+CREATE TABLE ${keyspace}.tasks (
+    id uuid,
+    group_key text,
+    name text,
+    exec_order int,
+    params map<text, text>,
+    trigger frozen <trigger_def>,
+    PRIMARY KEY (id)
+);
+
+-- #
+
 CREATE TABLE ${keyspace}.task_queue (
-    task_type text,
     time_slice timestamp,
-    segment int,
-    tenant_id text,
-    target text,
-    sources set<text>,
-    interval int,
-    window int,
-    failed_time_slices set<timestamp>,
-    PRIMARY KEY ((task_type, time_slice, segment), target)
+    shard int,
+    group_key text,
+    exec_order int,
+    task_name text,
+    task_id uuid,
+    task_params map<text, text>,
+    trigger frozen <trigger_def>,
+    PRIMARY KEY ((time_slice, shard), group_key, exec_order, task_name, task_id)
 );
 
 -- #
 
 CREATE TABLE ${keyspace}.leases (
     time_slice timestamp,
-    task_type text,
-    segment_offset int,
+    shard int,
     owner text,
     finished boolean,
-    PRIMARY KEY (time_slice, task_type, segment_offset)
+    PRIMARY KEY (time_slice, shard)
 );

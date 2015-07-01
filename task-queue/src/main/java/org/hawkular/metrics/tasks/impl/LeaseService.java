@@ -16,13 +16,10 @@
  */
 package org.hawkular.metrics.tasks.impl;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
-import com.datastax.driver.core.ResultSet;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -69,11 +66,12 @@ public class LeaseService {
     }
 
     public Observable<? extends List<Lease>> loadLeases(DateTime timeSlice) {
-        return session.execute(queries.findLeases.bind(timeSlice.toDate()))
-                .flatMap(Observable::from)
-                .map(row -> new Lease(timeSlice, row.getString(0), row.getInt(1), row.getString(2), row.getBool(3)))
-                .filter(lease -> !lease.isFinished())
-                .collect(ArrayList::new, ArrayList::add);
+//        return session.execute(queries.findLeases.bind(timeSlice.toDate()))
+//                .flatMap(Observable::from)
+//                .map(row -> new Lease(timeSlice, row.getString(0), row.getInt(1), row.getString(2), row.getBool(3)))
+//                .filter(lease -> !lease.isFinished())
+//                .collect(ArrayList::new, ArrayList::add);
+        return null;
     }
 
     public Observable<Lease> findUnfinishedLeases(DateTime timeSlice) {
@@ -82,32 +80,33 @@ public class LeaseService {
         // or all leases are marked finished. And to make things more interesting, we do
         // not want to poll again until there is at least one worker thread (i.e., one of
         // the threads executing tasks) free.
-        return Observable.create(subscriber ->
-                        loadLeases(timeSlice)
-                                .flatMap(Observable::from)
-                                .filter(lease -> lease.getOwner() == null)
-                                .flatMap(lease ->
-                                        acquire(lease).map(acquired ->
-                                                acquired ? lease : null))
-                                .subscribe(subscriber::onNext, subscriber::onError, subscriber::onCompleted)
-        );
+//        return Observable.create(subscriber ->
+//                        loadLeases(timeSlice)
+//                                .flatMap(Observable::from)
+//                                .filter(lease -> lease.getOwner() == null)
+//                                .flatMap(lease ->
+//                                        acquire(lease).map(acquired ->
+//                                                acquired ? lease : null))
+//                                .subscribe(subscriber::onNext, subscriber::onError, subscriber::onCompleted)
+//        );
+        return null;
     }
 
 
-    public Observable<Boolean> acquire(Lease lease) {
-        return session.execute(queries.acquireLease.bind(ttl, lease.getOwner(), lease.getTimeSlice().toDate(),
-                lease.getTaskType(), lease.getSegmentOffset())).map(ResultSet::wasApplied);
-    }
-
-    public Observable<Boolean> acquire(Lease lease, int ttl) {
-        return session.execute(queries.acquireLease.bind(ttl, lease.getOwner(), lease.getTimeSlice().toDate(),
-                lease.getTaskType(), lease.getSegmentOffset())).map(ResultSet::wasApplied);
-    }
-
-    public Observable<Boolean> renew(Lease lease) {
-        return session.execute(queries.renewLease.bind(ttl, lease.getOwner(), lease.getTimeSlice().toDate(),
-                lease.getTaskType(), lease.getSegmentOffset(), lease.getOwner())).map(ResultSet::wasApplied);
-    }
+//    public Observable<Boolean> acquire(Lease lease) {
+//        return session.execute(queries.acquireLease.bind(ttl, lease.getOwner(), lease.getTimeSlice().toDate(),
+//                lease.getTaskType(), lease.getSegmentOffset())).map(ResultSet::wasApplied);
+//    }
+//
+//    public Observable<Boolean> acquire(Lease lease, int ttl) {
+//        return session.execute(queries.acquireLease.bind(ttl, lease.getOwner(), lease.getTimeSlice().toDate(),
+//                lease.getTaskType(), lease.getSegmentOffset())).map(ResultSet::wasApplied);
+//    }
+//
+//    public Observable<Boolean> renew(Lease lease) {
+//        return session.execute(queries.renewLease.bind(ttl, lease.getOwner(), lease.getTimeSlice().toDate(),
+//                lease.getTaskType(), lease.getSegmentOffset(), lease.getOwner())).map(ResultSet::wasApplied);
+//    }
 
     /**
      * Schedules the lease to be automatically renewed every {@link #DEFAULT_RENEWAL_RATE} seconds in a background
@@ -115,42 +114,42 @@ public class LeaseService {
      * owner, i.e., the calling thread, will be interrupted. It therefore important for lease owners to handle
      * InterruptedExceptions appropriately.
      */
-    public void autoRenew(Lease lease) {
-        autoRenew(lease, Thread.currentThread());
-    }
+//    public void autoRenew(Lease lease) {
+//        autoRenew(lease, Thread.currentThread());
+//    }
 
-    private void autoRenew(Lease lease, Thread leaseOwner) {
-        renewals.schedule(createRenewRunnable(lease, leaseOwner), renewalRate, TimeUnit.SECONDS);
-    }
+//    private void autoRenew(Lease lease, Thread leaseOwner) {
+//        renewals.schedule(createRenewRunnable(lease, leaseOwner), renewalRate, TimeUnit.SECONDS);
+//    }
 
-    private Runnable createRenewRunnable(Lease lease, Thread leaseOwner) {
-        return () -> {
-            if (lease.isFinished()) {
-                return;
-            }
-            renew(lease).subscribe(
-                    renewed -> {
-                        if (renewed) {
-                            autoRenew(lease, leaseOwner);
-                        } else {
-                            logger.info("Failed to renew " + lease + " for " + leaseOwner);
-                            leaseOwner.interrupt();
-                        }
-                    },
-                    t -> {
-                        logger.warn("Failed to renew " + lease + " for " + leaseOwner);
-                        // TODO figure out what to do in this scenario
-                    });
-        };
-    }
-
-    public Observable<Boolean> finish(Lease lease) {
-        return session.execute(queries.finishLease.bind(lease.getTimeSlice().toDate(), lease.getTaskType(),
-                lease.getSegmentOffset(), lease.getOwner())).map(ResultSet::wasApplied);
-    }
-
-    public Observable<Void> deleteLeases(DateTime timeSlice) {
-        return session.execute(queries.deleteLeases.bind(timeSlice.toDate())).flatMap(resultSet -> null);
-    }
+//    private Runnable createRenewRunnable(Lease lease, Thread leaseOwner) {
+//        return () -> {
+//            if (lease.isFinished()) {
+//                return;
+//            }
+//            renew(lease).subscribe(
+//                    renewed -> {
+//                        if (renewed) {
+//                            autoRenew(lease, leaseOwner);
+//                        } else {
+//                            logger.info("Failed to renew " + lease + " for " + leaseOwner);
+//                            leaseOwner.interrupt();
+//                        }
+//                    },
+//                    t -> {
+//                        logger.warn("Failed to renew " + lease + " for " + leaseOwner);
+//                        // TODO figure out what to do in this scenario
+//                    });
+//        };
+//    }
+//
+//    public Observable<Boolean> finish(Lease lease) {
+//        return session.execute(queries.finishLease.bind(lease.getTimeSlice().toDate(), lease.getTaskType(),
+//                lease.getSegmentOffset(), lease.getOwner())).map(ResultSet::wasApplied);
+//    }
+//
+//    public Observable<Void> deleteLeases(DateTime timeSlice) {
+//        return session.execute(queries.deleteLeases.bind(timeSlice.toDate())).flatMap(resultSet -> null);
+//    }
 
 }
