@@ -40,11 +40,6 @@ runs on a http://www.wildfly.org/[Wildfly] server. The data format is JSON.
 The http://www.hawkular.org/docs/rest/rest-metrics.html[REST API] should be easy to use. Users should be able to send
 data with the simplest tools: shell scripts and `curl`.
 
-=== Speed
-
-Design choices are driven with throughput in mind: we want Metrics to be able to ingest as many data points per minute
-as possible.
-
 == Getting started with a release build
 
 http://wildfly.org/downloads/[Download a Wildfly 9] archive and expand it somewhere on your disk.
@@ -88,6 +83,13 @@ ccm start
 These steps build and start a single node cluster of Cassandra 2.1.5. Note that while it is recommended to use ccm, it
 is not necessary. You just need to make sure you have a running 2.1.x cluster.
 
+== Client tools
+
+If you want to send or fetch metrics from your own application, there are client libraries available to assist:
+
+- https://github.com/hawkular/hawkular-client-python[Python]
+- https://github.com/hawkular/hawkular-client-go[Go]
+
 == Working with monitoring tools
 
 You can send data collected with your usual monitoring tools to Hawkular Metrics:
@@ -113,4 +115,4 @@ To meet the guys, join us on irc://irc.freenode.net/#hawkular[Freenode IRC] in c
 If you can not use the irc protocol, you can also use a web to irc gateway like
 http://webchat.freenode.net/?channels=hawkular[Web chat on Freenode].
 
-Hawkular-metrics is http://twitter.com/#!/hawkular_org/[@hawkular_org] on Twitter.
+Hawkular-Metrics is http://twitter.com/#!/hawkular_org/[@hawkular_org] on Twitter.
