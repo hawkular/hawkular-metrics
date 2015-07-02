@@ -158,11 +158,19 @@ public class MetricsServiceITest extends MetricsITest {
 
     @Test
     public void createAndFindMetrics() throws Exception {
+        Metric<Double> em1 = new Metric<>("t1", GAUGE, new MetricId("em1"));
+        metricsService.createMetric(em1).toBlocking().lastOrDefault(null);
+        Metric actual = metricsService.findMetric(em1.getTenantId(), em1.getType(), em1.getId())
+                .toBlocking()
+                .lastOrDefault(null);
+        assertNotNull(actual);
+        assertEquals(actual, em1, "The metric does not match the expected value");
+
         Metric<Double> m1 = new Metric<>("t1", GAUGE, new MetricId("m1"),
                 ImmutableMap.of("a1", "1", "a2", "2"), 24);
         metricsService.createMetric(m1).toBlocking().lastOrDefault(null);
 
-        Metric actual = metricsService.findMetric(m1.getTenantId(), m1.getType(), m1.getId()).toBlocking().last();
+        actual = metricsService.findMetric(m1.getTenantId(), m1.getType(), m1.getId()).toBlocking().last();
         assertEquals(actual, m1, "The metric does not match the expected value");
 
         Metric<DataPoint<AvailabilityType>> m2 = new Metric<>("t1", AVAILABILITY, new MetricId("m2"),
@@ -194,7 +202,7 @@ public class MetricsServiceITest extends MetricsITest {
                 ImmutableMap.of("a1", "A", "a2", ""), null);
         metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
 
-        assertMetricIndexMatches("t1", GAUGE, asList(m1, m3, m4));
+        assertMetricIndexMatches("t1", GAUGE, asList(em1, m1, m3, m4));
         assertMetricIndexMatches("t1", AVAILABILITY, singletonList(m2));
 
         assertDataRetentionsIndexMatches("t1", GAUGE, ImmutableSet.of(new Retention(m3.getId(), 24),
