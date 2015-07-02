@@ -23,6 +23,8 @@ import org.hawkular.metrics.tasks.api.TaskService;
 import org.hawkular.metrics.tasks.api.TaskType;
 import org.joda.time.DateTime;
 import rx.Observable;
+import rx.Subscription;
+import rx.functions.Action1;
 
 /**
  * @author jsanda
@@ -75,5 +77,10 @@ public class FakeTaskService implements TaskService {
                 return time;
             }
         });
+    }
+
+    @Override
+    public Subscription subscribe(TaskType taskType, Action1<? super Task> onNext) {
+        return null;
     }
 }

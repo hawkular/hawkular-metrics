@@ -18,12 +18,15 @@ package org.hawkular.metrics.core.impl;
 
 import static java.util.Collections.singletonList;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
+import static org.joda.time.Duration.standardMinutes;
+import static org.joda.time.Duration.standardSeconds;
 
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.tasks.api.Task;
+import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -46,9 +49,8 @@ public class GenerateRate implements Action1<Task> {
     public void call(Task task) {
         logger.info("Generating rate for {}", task);
         MetricId id = new MetricId(task.getSources().iterator().next());
-        long end = task.getTimeSlice().getMillis();
-        long start = task.getTimeSlice().minusSeconds(task.getWindow()).getMillis();
-        logger.debug("start = {}, end = {}", start, end);
+        long start = task.getTimeSlice().getMillis();
+        long end = task.getTimeSlice().plus(getDuration(task.getWindow())).getMillis();
         metricsService.findCounterData(task.getTenantId(), id, start, end)
                 .take(1)
                 .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
@@ -56,9 +58,21 @@ public class GenerateRate implements Action1<Task> {
                         singletonList(new DataPoint<>(start, rate))))
                 .flatMap(metric -> metricsService.addGaugeData(Observable.just(metric)))
                 .subscribe(
-                        aVoid -> {},
+                        aVoid -> {
+                        },
                         t -> logger.warn("Failed to persist rate data", t),
-                        () -> logger.debug("Successfully persisted rate data")
+                        () -> logger.debug("Successfully persisted rate data for {}", task)
                 );
+    }
+
+    private Duration getDuration(int duration) {
+        // This is somewhat of a temporary hack until HWKMETRICS-142 is done. The time units
+        // for tasks are currently scheduled globally with the TaskServiceBuilder class. The
+        // system property below is the only hook we have right now for specifying and
+        // checking the time units used.
+        if (System.getProperty("hawkular.scheduler.time-units", "minutes").equals("seconds")) {
+            return standardSeconds(duration);
+        }
+        return standardMinutes(duration);
     }
 }

@@ -18,6 +18,8 @@ package org.hawkular.metrics.tasks.api;
 
 import org.joda.time.DateTime;
 import rx.Observable;
+import rx.Subscription;
+import rx.functions.Action1;
 
 /**
  * The primary API for task scheduling and execution. See {@link TaskServiceBuilder} for details on creating and
@@ -65,4 +67,14 @@ public interface TaskService {
      * @return The task with its {@link Task#getTimeSlice() scheduled execution time} set
      */
     Observable<Task> scheduleTask(DateTime time, Task task);
+
+    /**
+     * The scheduler does not execute tasks. Instead when a task is ready for execution the scheduler emits an event
+     * where the event is the task to be executed. The observer can then execute the task.
+     *
+     * @param taskType The type of task for which you want to observe tasks
+     * @param onNext The action that will be called when a a task is ready for execution
+     * @return The {@link Subscription Rx subscription}
+     */
+    Subscription subscribe(TaskType taskType, Action1<? super Task> onNext);
 }

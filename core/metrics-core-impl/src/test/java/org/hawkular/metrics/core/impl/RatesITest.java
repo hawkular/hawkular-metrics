@@ -54,6 +54,8 @@ public class RatesITest extends MetricsITest {
     public void initClass() {
         initSession();
 
+        System.setProperty("hawkular.scheduler.time-units", "seconds");
+
         dateTimeService = new DateTimeService();
 
         taskService = new TaskServiceBuilder()
@@ -66,7 +68,7 @@ public class RatesITest extends MetricsITest {
         metricsService = new MetricsServiceImpl();
         metricsService.setTaskService(taskService);
 
-        ((TaskServiceImpl) taskService).subscribe(TaskTypes.COMPUTE_RATE, new GenerateRate(metricsService));
+        taskService.subscribe(TaskTypes.COMPUTE_RATE, new GenerateRate(metricsService));
 
         String keyspace = "hawkulartest";
         System.setProperty("keyspace", keyspace);

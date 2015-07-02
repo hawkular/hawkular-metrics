@@ -480,7 +480,7 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<ResultSet> findCounterData(String tenantId, MetricId id, long startTime, long endTime) {
         return rxSession.execute(findCounterDataExclusive.bind(tenantId, COUNTER.getCode(), id.getName(),
-                id.getInterval().toString(), DPART, UUIDs.startOf(startTime), UUIDs.endOf(endTime)));
+                id.getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
     }
 
     @Override

@@ -137,6 +137,7 @@ public class TaskServiceImpl implements TaskService {
      * </p>
      */
     public void setTimeUnit(TimeUnit timeUnit) {
+        logger.info("Using time unit of {}", timeUnit);
         switch (timeUnit) {
             case SECONDS:
                 this.timeUnit = TimeUnit.SECONDS;
@@ -190,6 +191,7 @@ public class TaskServiceImpl implements TaskService {
         return subject.subscribe(onNext, onError, onComplete);
     }
 
+    @Override
     public Subscription subscribe(TaskType taskType, Action1<? super Task> onNext) {
         PublishSubject<Task> subject = subjects.get(taskType);
         if (subject == null) {
@@ -316,6 +318,8 @@ public class TaskServiceImpl implements TaskService {
      * @param taskType
      */
     private void executeTasks(DateTime timeSlice, TaskType taskType) {
+        logger.info("Executing tasks for time slice {}", timeSlice);
+
         // I know, I know. We should not have to used CountDownLatch with RxJava. It is
         // left over from the original implementation and was/is used to ensure tasks of
         // one type finish executing before we start executing tasks of the next type.
@@ -367,6 +371,7 @@ public class TaskServiceImpl implements TaskService {
         try {
             subject.onNext(task);
         } catch (Exception e) {
+            logger.warn("Execution of " + task + " failed", e);
             container.getFailedTimeSlices().add(task.getTimeSlice());
         }
         return container;
