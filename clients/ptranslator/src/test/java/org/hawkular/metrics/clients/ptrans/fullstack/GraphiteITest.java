@@ -19,13 +19,15 @@ package org.hawkular.metrics.clients.ptrans.fullstack;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.groupingBy;
 
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.hawkular.metrics.clients.ptrans.ConfigurationKey;
@@ -73,16 +75,28 @@ public class GraphiteITest extends FullStackITest {
 
     @Override
     protected List<Point> getExpectedData() {
-        List<QueryResult> results = ListAppenderWriter.results;
-        return results.stream()
-                      .map(this::queryResultToPoint)
-                      .collect(toList());
+        // When EmbeddedJMXTrans is stopped, it collects and sends metrics one last time after the schedulers have
+        // been shut down. So two data points can have very close timestamps. But Graphite only supports second
+        // resolution. So it is possible that two points with the same timestamp (see #getTimestamp logic) are sent
+        // to the server. Consequently, when building the expected data set, we need to check if one metric has two
+        // points with the same timestamp, and, in this case, keep the older one only.
+        List<Point> points = new ArrayList<>();
+        ListAppenderWriter.results.stream().collect(groupingBy(QueryResult::getName)).entrySet().forEach(entry -> {
+            Map<Long, QueryResult> resultByTimestamp = new HashMap<>();
+            entry.getValue().forEach(result -> resultByTimestamp.put(getTimestamp(result), result));
+            resultByTimestamp.values().stream().map(this::queryResultToPoint).forEach(points::add);
+        });
+        return points;
+    }
+
+    private long getTimestamp(QueryResult result) {
+        return MILLISECONDS.convert(result.getEpoch(SECONDS), SECONDS);
     }
 
     private Point queryResultToPoint(QueryResult result) {
         return new Point(
                 result.getName(),
-                MILLISECONDS.convert(result.getEpoch(SECONDS), SECONDS),
+                getTimestamp(result),
                 Double.valueOf(String.valueOf(result.getValue()))
         );
     }
