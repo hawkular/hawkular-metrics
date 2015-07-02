@@ -545,4 +545,23 @@ class CassandraBackendITest extends RESTTest {
       assertGaugeDataPointEquals(expectedDataPoint, response.data.n4[i])
     }
   }
+
+  @Test
+  void createEmptyMetric() {
+    String tenantId = nextTenantId()
+
+    // Create a gauge metric
+    def response = hawkularMetrics.post(path: "gauges", body: [
+            id: 'Empty1'
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    // Fetch the metric
+    response = hawkularMetrics.get(path: "gauges/Empty1", headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals([
+            tenantId: tenantId,
+            id: 'Empty1'
+    ], response.data)
+  }
 }
