@@ -16,20 +16,11 @@
  */
 package org.hawkular.metrics.tasks.api;
 
-import java.util.Map;
-import java.util.UUID;
-
 /**
  * @author jsanda
  */
-public interface Task2 {
+public interface Trigger {
 
-    UUID getId();
-
-    String getName();
-
-    Map<String, String> getParameters();
-
-    Trigger getTrigger();
+    long getTriggerTime();
 
 }

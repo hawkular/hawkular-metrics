@@ -21,8 +21,8 @@ import java.util.Objects;
 import java.util.UUID;
 
 import com.google.common.collect.ImmutableMap;
-import org.hawkular.metrics.tasks.api.RepeatingTrigger;
 import org.hawkular.metrics.tasks.api.Task2;
+import org.hawkular.metrics.tasks.api.Trigger;
 
 /**
  * @author jsanda
@@ -37,9 +37,9 @@ public class Task2Impl implements Task2 {
 
     private ImmutableMap<String, String> parameters;
 
-    private RepeatingTrigger trigger;
+    private Trigger trigger;
 
-    public Task2Impl(UUID id, int shard, String name, Map<String, String> parameters, RepeatingTrigger trigger) {
+    public Task2Impl(UUID id, int shard, String name, Map<String, String> parameters, Trigger trigger) {
         this.id = id;
         this.shard = shard;
         this.name = name;
@@ -67,7 +67,7 @@ public class Task2Impl implements Task2 {
     }
 
     @Override
-    public RepeatingTrigger getTrigger() {
+    public Trigger getTrigger() {
         return trigger;
     }
 

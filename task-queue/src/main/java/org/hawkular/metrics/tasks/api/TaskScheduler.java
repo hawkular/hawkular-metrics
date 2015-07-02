@@ -27,6 +27,8 @@ public interface TaskScheduler {
 
 //    void start();
 
-    Observable<Task2> createTask(String name, Map<String, String> parameters, RepeatingTrigger trigger);
+    Observable<Task2> createTask(String name, Map<String, String> parameters, Trigger trigger);
+
+    Observable<Task2> scheduleTask(String name, Map<String, String> parameters, Trigger trigger);
 
 }

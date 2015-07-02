@@ -157,6 +157,7 @@ CREATE TABLE ${keyspace}.retentions_idx (
 
 CREATE TYPE ${keyspace}.trigger_def (
     type int,
+    trigger_time bigint,
     delay bigint,
     interval bigint
 );
@@ -175,16 +176,11 @@ CREATE TABLE ${keyspace}.tasks (
 -- #
 
 CREATE TABLE ${keyspace}.task_queue (
-    task_type text,
     time_slice timestamp,
-    segment int,
-    tenant_id text,
-    target text,
-    sources set<text>,
-    interval int,
-    window int,
-    failed_time_slices set<timestamp>,
-    PRIMARY KEY ((task_type, time_slice, segment), target)
+    shard int,
+    task_id uuid,
+    task_params map<text, text>,
+    PRIMARY KEY ((time_slice, shard), task_id)
 );
 
 -- #
