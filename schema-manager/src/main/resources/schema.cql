@@ -187,9 +187,8 @@ CREATE TABLE ${keyspace}.task_queue (
 
 CREATE TABLE ${keyspace}.leases (
     time_slice timestamp,
-    task_type text,
-    segment_offset int,
+    shard int,
     owner text,
     finished boolean,
-    PRIMARY KEY (time_slice, task_type, segment_offset)
+    PRIMARY KEY (time_slice, shard)
 );

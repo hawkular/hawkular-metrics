@@ -54,6 +54,8 @@ public abstract class BaseITest {
         session = cluster.connect("system");
         rxSession = new RxSessionImpl(session);
 
+        System.out.println("SESSION INITIALIZED");
+
         SchemaManager schemaManager = new SchemaManager(session);
         schemaManager.createSchema(keyspace);
 

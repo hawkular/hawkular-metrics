@@ -52,32 +52,32 @@ public class Queries {
 
     public Queries(Session session) {
         createLease = session.prepare(
-            "INSERT INTO leases (time_slice, task_type, segment_offset) VALUES (?, ?, ?)");
+            "INSERT INTO leases (time_slice, shard) VALUES (?, ?)");
 
         findLeases = session.prepare(
-            "SELECT task_type, segment_offset, owner, finished FROM leases WHERE time_slice = ?");
+            "SELECT shard, owner, finished FROM leases WHERE time_slice = ?");
 
-        acquireLease = session.prepare(
-            "UPDATE leases " +
-            "USING TTL ? " +
-            "SET owner = ? " +
-            "WHERE time_slice = ? AND task_type = ? AND segment_offset = ? " +
-            "IF owner = NULL");
-
-        renewLease = session.prepare(
-            "UPDATE leases " +
-            "USING TTL ? " +
-            "SET owner = ? " +
-            "WHERE time_slice = ? AND task_type = ? AND segment_offset = ? " +
-            "IF owner = ?");
-
-        finishLease = session.prepare(
-            "UPDATE leases " +
-            "SET finished = true " +
-            "WHERE time_slice = ? AND task_type = ? AND segment_offset = ? " +
-            "IF owner = ?");
-
-        deleteLeases = session.prepare("DELETE FROM leases WHERE time_slice = ?");
+//        acquireLease = session.prepare(
+//            "UPDATE leases " +
+//            "USING TTL ? " +
+//            "SET owner = ? " +
+//            "WHERE time_slice = ? AND task_type = ? AND segment_offset = ? " +
+//            "IF owner = NULL");
+//
+//        renewLease = session.prepare(
+//            "UPDATE leases " +
+//            "USING TTL ? " +
+//            "SET owner = ? " +
+//            "WHERE time_slice = ? AND task_type = ? AND segment_offset = ? " +
+//            "IF owner = ?");
+//
+//        finishLease = session.prepare(
+//            "UPDATE leases " +
+//            "SET finished = true " +
+//            "WHERE time_slice = ? AND task_type = ? AND segment_offset = ? " +
+//            "IF owner = ?");
+//
+//        deleteLeases = session.prepare("DELETE FROM leases WHERE time_slice = ?");
 
 //        createTask = session.prepare(
 //            "INSERT INTO task_queue (task_type, tenant_id, time_slice, segment, target, sources, interval, window) " +

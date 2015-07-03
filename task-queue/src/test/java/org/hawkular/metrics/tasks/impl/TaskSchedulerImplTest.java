@@ -51,6 +51,7 @@ public class TaskSchedulerImplTest extends BaseTest {
 
     @BeforeClass
     public void initClass() {
+        System.out.println("SESSION = " + session);
         findTasks = session.prepare("select id, shard, name, params, trigger from tasks");
         insertTask = session.prepare("insert into tasks (id, shard, name, params, trigger) values (?, ?, ?, ?, ?)");
         findQueueEntries = session.prepare("select task_id from task_queue where time_slice = ? and shard = ?");
@@ -108,14 +109,20 @@ public class TaskSchedulerImplTest extends BaseTest {
 
         subscriber.awaitTerminalEvent();
         subscriber.assertNoErrors();
+        // verify that the task received is persisted in the database
         subscriber.assertReceivedOnNext(getTasksFromDB());
 
         Task2Impl task = (Task2Impl) subscriber.getOnNextEvents().get(0);
         long timeSlice = task.getTrigger().getTriggerTime();
         int shard = task.getShard();
 
+        // verify that the queue has been updated
         assertEquals(getTaskIdsFromQueue(timeSlice, shard), singletonList(task.getId()),
                 "The task ids for queue{timeSlice: " + timeSlice + ", shard: " + shard + "} do not match");
+
+        // verify that the lease has been created
+        assertEquals(getLeasesFromDB(timeSlice), singletonList(new Lease(timeSlice, shard)),
+                "The leases for time slice [" + timeSlice + "] do not match");
     }
 
     private void assertTaskEquals(Task2 actual, Task2 expected) {
@@ -147,6 +154,15 @@ public class TaskSchedulerImplTest extends BaseTest {
             taskIds.add(row.getUUID(0));
         }
         return taskIds;
+    }
+
+    private List<Lease> getLeasesFromDB(long timeSlice) {
+        ResultSet resultSet = session.execute(queries.findLeases.bind(new Date(timeSlice)));
+        List<Lease> leases = new ArrayList<>();
+        for (Row row : resultSet) {
+            leases.add(new Lease(timeSlice, row.getInt(0), row.getString(1), row.getBool(2)));
+        }
+        return leases;
     }
 
 }

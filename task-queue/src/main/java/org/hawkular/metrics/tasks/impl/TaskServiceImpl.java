@@ -210,9 +210,10 @@ public class TaskServiceImpl implements TaskService {
     }
 
     public Observable<TaskContainer> findTasks(Lease lease, TaskType taskType) {
-        int start = lease.getSegmentOffset();
-        int end = start + taskType.getSegments();
-        return Observable.range(start, end).flatMap(i -> findTasks(lease.getTaskType(), lease.getTimeSlice(), i));
+//        int start = lease.getSegmentOffset();
+//        int end = start + taskType.getSegments();
+//        return Observable.range(start, end).flatMap(i -> findTasks(lease.getTaskType(), lease.getTimeSlice(), i));
+        return null;
     }
 
     private TaskType findTaskType(String type) {
@@ -302,13 +303,13 @@ public class TaskServiceImpl implements TaskService {
      * @param timeSlice The time slice to process
      */
     void executeTasks(DateTime timeSlice) {
-        try {
-            // Execute tasks in order of task types. Once all of the tasks are executed, we delete the lease partition.
-            taskTypes.forEach(taskType -> executeTasks(timeSlice, taskType));
-            leaseService.deleteLeases(timeSlice).toBlocking().lastOrDefault(null);
-        } catch (Exception e) {
-            logger.warn("Failed to delete lease partition for time slice " + timeSlice, e);
-        }
+//        try {
+//         // Execute tasks in order of task types. Once all of the tasks are executed, we delete the lease partition.
+//            taskTypes.forEach(taskType -> executeTasks(timeSlice, taskType));
+//            leaseService.deleteLeases(timeSlice).toBlocking().lastOrDefault(null);
+//        } catch (Exception e) {
+//            logger.warn("Failed to delete lease partition for time slice " + timeSlice, e);
+//        }
     }
 
     /**
@@ -337,33 +338,33 @@ public class TaskServiceImpl implements TaskService {
         // finished flag of the lease to true. When all of the leases for the time slice
         // being processed are "finished", we delete the leases partition. Then we are done.
 
-        leaseService.findUnfinishedLeases(timeSlice)
-                .filter(lease -> lease.getTaskType().equals(taskType.getName()))
-                .flatMap(lease -> findTasks(lease, taskType)
-                        .map(TaskContainer::copyWithoutFailures)
-                        .flatMap(container -> Observable.from(container)
-                                .reduce(container, executeTask))
-                        .flatMap(this::rescheduleTask)
-                        .flatMap(this::deleteTaskSegment)
-                        .flatMap(resultSet -> leaseService.finish(lease)
-                                .map(lease::setFinished)))
-                .subscribe(
-                        lease -> {
-                            // TODO should this be treated as a failure situation?
-                            if (!lease.isFinished()) {
-                                logger.warn("Failed to mark {} finished", lease);
-                            }
-                        },
-                        t -> logger.warn("Task execution failed", t),
-                        latch::countDown);
-
-
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            logger.warn("There was an interrupt waiting for task execution of type " + taskType.getName() +
-                            "to complete for time slice " + timeSlice, e);
-        }
+//        leaseService.findUnfinishedLeases(timeSlice)
+//                .filter(lease -> lease.getTaskType().equals(taskType.getName()))
+//                .flatMap(lease -> findTasks(lease, taskType)
+//                        .map(TaskContainer::copyWithoutFailures)
+//                        .flatMap(container -> Observable.from(container)
+//                                .reduce(container, executeTask))
+//                        .flatMap(this::rescheduleTask)
+//                        .flatMap(this::deleteTaskSegment)
+//                        .flatMap(resultSet -> leaseService.finish(lease)
+//                                .map(lease::setFinished)))
+//                .subscribe(
+//                        lease -> {
+//                            // TODO should this be treated as a failure situation?
+//                            if (!lease.isFinished()) {
+//                                logger.warn("Failed to mark {} finished", lease);
+//                            }
+//                        },
+//                        t -> logger.warn("Task execution failed", t),
+//                        latch::countDown);
+//
+//
+//        try {
+//            latch.await();
+//        } catch (InterruptedException e) {
+//            logger.warn("There was an interrupt waiting for task execution of type " + taskType.getName() +
+//                            "to complete for time slice " + timeSlice, e);
+//        }
     }
 
     private Func2<TaskContainer, Task, TaskContainer> executeTask = (container, task) -> {

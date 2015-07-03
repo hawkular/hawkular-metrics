@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.UDTValue;
 import com.datastax.driver.core.UserType;
 import com.google.common.hash.HashCode;
@@ -83,17 +84,30 @@ public class TaskSchedulerImpl implements TaskScheduler {
 
     @Override
     public Observable<Task2> scheduleTask(String name, Map<String, String> parameters, Trigger trigger) {
-        return createTask(name, parameters, trigger).flatMap(task -> addToQueue((Task2Impl) task));
-    }
+        UUID id = UUID.randomUUID();
+        int shard = computeShard(id);
+        UDTValue triggerUDT = getTriggerValue(session, trigger);
+        Date timeSlice = new Date(trigger.getTriggerTime());
+        Task2Impl task = new Task2Impl(id, shard, name, parameters, trigger);
 
-    private Observable<Task2> addToQueue(Task2Impl task) {
+        Observable<ResultSet> createTask = session.execute(queries.createTask2.bind(id, shard, name, parameters,
+                triggerUDT));
+        Observable<ResultSet> updateQueue = session.execute(queries.insertIntoQueue.bind(timeSlice, shard, id));
+        Observable<ResultSet> createLease = session.execute(queries.createLease.bind(timeSlice, shard));
+
         return Observable.create(subscriber ->
-                        session.execute(queries.insertIntoQueue.bind(new Date(task.getTrigger().getTriggerTime()),
-                                task.getShard(), task.getId())).subscribe(
-                                resultSet -> subscriber.onNext(task),
-                                t -> subscriber.onError(new RuntimeException("Failed to add task to queue", t)),
-                                subscriber::onCompleted
-                        )
+            Observable.merge(createTask, updateQueue, createLease).subscribe(
+                    resultSet -> {},
+                    t -> subscriber.onError(new RuntimeException("Failed to schedule task [" + task + "]", t)),
+                    () -> {
+                        try {
+                            subscriber.onNext(task);
+                            subscriber.onCompleted();
+                        } catch (Throwable t) {
+                            subscriber.onError(t);
+                        }
+                    }
+            )
         );
     }
 
