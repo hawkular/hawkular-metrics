@@ -43,7 +43,7 @@
       "@class": "org.jmxtrans.embedded.output.GraphiteWriter",
       "settings": {
         "host": "localhost",
-        "port": "2003",
+        "port": "12003",
         "namePrefix": ""
       }
     }

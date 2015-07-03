@@ -16,18 +16,17 @@
  */
 package org.hawkular.metrics.clients.ptrans;
 
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BATCH_DELAY;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BATCH_SIZE;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BUFFER_CAPACITY;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.COLLECTD_PORT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GANGLIA_GROUP;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GANGLIA_MULTICAST_INTERFACE;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GANGLIA_PORT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GRAPHITE_PORT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.HTTP_PROXY;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.REST_CLOSE_AFTER_REQUESTS;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.REST_MAX_CONNECTIONS;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.REST_URL;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SPOOL_SIZE;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.STATSD_PORT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.TCP_PORT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.TENANT;
@@ -60,13 +59,12 @@ public class Configuration {
     private final int collectdPort;
     private final int graphitePort;
     private final String multicastIfOverride;
-    private final int minimumBatchSize;
-    private final int maximumBatchDelay;
     private final URI restUrl;
     private final URI httpProxy;
     private final String tenant;
-    private final int restCloseAfterRequests;
-    private final int spoolSize;
+    private final int bufferCapacity;
+    private final int batchSize;
+    private final int restMaxConnections;
     private final Set<String> validationMessages;
 
     private Configuration(
@@ -79,13 +77,12 @@ public class Configuration {
             int collectdPort,
             int graphitePort,
             String multicastIfOverride,
-            int minimumBatchSize,
-            int maximumBatchDelay,
             URI restUrl,
             URI httpProxy,
             String tenant,
-            int restCloseAfterRequests,
-            int spoolSize,
+            int bufferCapacity,
+            int batchSize,
+            int restMaxConnections,
             Set<String> validationMessages
     ) {
         this.services = services;
@@ -97,13 +94,12 @@ public class Configuration {
         this.gangliaGroup = gangliaGroup;
         this.graphitePort = graphitePort;
         this.multicastIfOverride = multicastIfOverride;
-        this.minimumBatchSize = minimumBatchSize;
-        this.maximumBatchDelay = maximumBatchDelay;
         this.restUrl = restUrl;
         this.httpProxy = httpProxy;
         this.tenant = tenant;
-        this.restCloseAfterRequests = restCloseAfterRequests;
-        this.spoolSize = spoolSize;
+        this.bufferCapacity = bufferCapacity;
+        this.batchSize = batchSize;
+        this.restMaxConnections = restMaxConnections;
         this.validationMessages = Collections.unmodifiableSet(validationMessages);
     }
 
@@ -118,18 +114,17 @@ public class Configuration {
         int statsDport = getIntProperty(properties, STATSD_PORT, 8125);
         int collectdPort = getIntProperty(properties, COLLECTD_PORT, 25826);
         int graphitePort = getIntProperty(properties, GRAPHITE_PORT, 2003);
-        int minimumBatchSize = getIntProperty(properties, BATCH_SIZE, 50);
-        int maximumBatchDelay = getIntProperty(properties, BATCH_DELAY, 1);
         URI restUrl = URI.create(properties.getProperty(REST_URL.toString(),
-            "http://localhost:8080/hawkular/metrics/gauges/data"));
+                "http://localhost:8080/hawkular/metrics/gauges/data"));
         String proxyString = properties.getProperty(HTTP_PROXY.toString());
         URI httpProxy = null;
         if (proxyString != null && !proxyString.trim().isEmpty()) {
             httpProxy = URI.create(proxyString);
         }
         String tenant = properties.getProperty(TENANT.toString(), "default");
-        int restCloseAfterRequests = getIntProperty(properties, REST_CLOSE_AFTER_REQUESTS, 200);
-        int spoolSize = getIntProperty(properties, SPOOL_SIZE, 10000);
+        int bufferCapacity = getIntProperty(properties, BUFFER_CAPACITY, 10000);
+        int batchSize = getIntProperty(properties, BATCH_SIZE, 50);
+        int restMaxConnections = getIntProperty(properties, REST_MAX_CONNECTIONS, 10);
         return new Configuration(
                 services,
                 udpPort,
@@ -140,13 +135,12 @@ public class Configuration {
                 collectdPort,
                 graphitePort,
                 multicastIfOverride,
-                minimumBatchSize,
-                maximumBatchDelay,
                 restUrl,
                 httpProxy,
                 tenant,
-                restCloseAfterRequests,
-                spoolSize,
+                bufferCapacity,
+                batchSize,
+                restMaxConnections,
                 validationMessages
         );
     }
@@ -235,14 +229,6 @@ public class Configuration {
         return multicastIfOverride;
     }
 
-    public int getMinimumBatchSize() {
-        return minimumBatchSize;
-    }
-
-    public int getMaximumBatchDelay() {
-        return maximumBatchDelay;
-    }
-
     public URI getRestUrl() {
         return restUrl;
     }
@@ -255,11 +241,15 @@ public class Configuration {
         return tenant;
     }
 
-    public int getRestCloseAfterRequests() {
-        return restCloseAfterRequests;
+    public int getBufferCapacity() {
+        return bufferCapacity;
     }
 
-    public int getSpoolSize() {
-        return spoolSize;
+    public int getBatchSize() {
+        return batchSize;
+    }
+
+    public int getRestMaxConnections() {
+        return restMaxConnections;
     }
 }

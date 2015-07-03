@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.clients.ptrans.fullstack;
+package org.hawkular.metrics.clients.ptrans.data;
 
 import static java.util.stream.Collectors.toList;
 
-import static org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler.TENANT_HEADER_NAME;
+import static org.hawkular.metrics.clients.ptrans.backend.Constants.TENANT_HEADER_NAME;
 import static org.junit.Assert.fail;
 
 import java.io.InputStream;
@@ -37,7 +37,7 @@ import com.fasterxml.jackson.databind.type.TypeFactory;
  *
  * @author Thomas Segismont
  */
-class ServerDataHelper {
+public class ServerDataHelper {
     public static final String BASE_URI = System.getProperty(
             "hawkular-metrics.base-uri",
             "127.0.0.1:8080/hawkular/metrics"
@@ -55,7 +55,7 @@ class ServerDataHelper {
         ObjectMapper objectMapper = new ObjectMapper();
 
         HttpURLConnection urlConnection = (HttpURLConnection) new URL(findGaugeMetricsUrl).openConnection();
-        urlConnection.setRequestProperty(TENANT_HEADER_NAME, tenant);
+        urlConnection.setRequestProperty(String.valueOf(TENANT_HEADER_NAME), tenant);
         urlConnection.connect();
         int responseCode = urlConnection.getResponseCode();
         if (responseCode != HttpURLConnection.HTTP_OK) {
@@ -74,7 +74,7 @@ class ServerDataHelper {
 
         for (String metricName : metricNames) {
             urlConnection = (HttpURLConnection) new URL(findGaugeDataUrl(metricName)).openConnection();
-            urlConnection.setRequestProperty(TENANT_HEADER_NAME, tenant);
+            urlConnection.setRequestProperty(String.valueOf(TENANT_HEADER_NAME), tenant);
             urlConnection.connect();
             responseCode = urlConnection.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {
@@ -96,6 +96,6 @@ class ServerDataHelper {
     }
 
     private String findGaugeDataUrl(String metricName) {
-        return "http://" + BASE_URI + "/gauges/" + metricName + "/data";
+        return "http://" + BASE_URI + "/gauges/" + metricName + "/data?start=0";
     }
 }

@@ -14,40 +14,55 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.clients.ptrans.fullstack;
+package org.hawkular.metrics.clients.ptrans.data;
+
+import static java.util.stream.Collectors.joining;
+
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * @author Thomas Segismont
  */
-class Point {
-    final String name;
-    final long timestamp;
-    final double value;
+public class Point {
+    public static final Comparator<Point> POINT_COMPARATOR;
 
-    Point(String name, long timestamp, double value) {
+    static {
+        POINT_COMPARATOR = Comparator.comparing(Point::getName).thenComparing(Point::getTimestamp);
+    }
+
+    private final String name;
+    private final long timestamp;
+    private final double value;
+
+    public Point(String name, long timestamp, double value) {
         this.name = name;
         this.timestamp = timestamp;
         this.value = value;
     }
 
-    String getName() {
+    public String getName() {
         return name;
     }
 
-    long getTimestamp() {
+    public long getTimestamp() {
         return timestamp;
     }
 
-    double getValue() {
+    public double getValue() {
         return value;
     }
 
     @Override
     public String toString() {
         return "Point[" +
-               "name='" + name + '\'' +
-               ", timestamp=" + timestamp +
-               ", value=" + value +
-               ']';
+                "name='" + name + '\'' +
+                ", timestamp=" + timestamp +
+                ", value=" + value +
+                ']';
+    }
+
+    public static String listToString(List<Point> data) {
+        return data.stream().map(Point::toString).collect(joining(System.getProperty("line.separator")));
     }
 }

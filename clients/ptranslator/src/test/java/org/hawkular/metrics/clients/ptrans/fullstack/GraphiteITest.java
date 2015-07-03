@@ -32,6 +32,7 @@ import java.util.Properties;
 
 import org.hawkular.metrics.clients.ptrans.ConfigurationKey;
 import org.hawkular.metrics.clients.ptrans.Service;
+import org.hawkular.metrics.clients.ptrans.data.Point;
 import org.jmxtrans.embedded.EmbeddedJmxTrans;
 import org.jmxtrans.embedded.QueryResult;
 import org.jmxtrans.embedded.config.ConfigurationParser;
@@ -54,6 +55,7 @@ public class GraphiteITest extends FullStackITest {
     @Override
     protected void changePTransConfig(Properties properties) {
         properties.setProperty(ConfigurationKey.SERVICES.toString(), Service.GRAPHITE.getExternalForm());
+        properties.setProperty(ConfigurationKey.GRAPHITE_PORT.toString(), String.valueOf(12003));
     }
 
     @Override

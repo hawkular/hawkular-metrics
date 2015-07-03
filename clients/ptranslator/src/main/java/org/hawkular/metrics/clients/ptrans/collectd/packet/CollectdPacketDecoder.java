@@ -16,36 +16,30 @@
  */
 package org.hawkular.metrics.clients.ptrans.collectd.packet;
 
-import static io.netty.channel.ChannelHandler.Sharable;
-
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.hawkular.metrics.clients.ptrans.collectd.event.DataType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.socket.DatagramPacket;
-import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.util.CharsetUtil;
-import io.netty.util.internal.logging.InternalLogger;
-import io.netty.util.internal.logging.InternalLoggerFactory;
+import io.vertx.core.datagram.DatagramPacket;
 
 /**
- * A Netty decoding handler: from {@link DatagramPacket} to {@link CollectdPacket}.
+ * A decoding handler: from {@link DatagramPacket} to {@link CollectdPacket}.
  *
  * @author Thomas Segismont
  */
-@Sharable
-public final class CollectdPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
-    private static final InternalLogger logger = InternalLoggerFactory.getInstance(CollectdPacketDecoder.class);
+public final class CollectdPacketDecoder {
+    private static final Logger LOG = LoggerFactory.getLogger(CollectdPacketDecoder.class);
 
-    @Override
-    protected void decode(ChannelHandlerContext context, DatagramPacket packet, List<Object> out) throws Exception {
+    public CollectdPacket decode(DatagramPacket packet) {
         long start = System.currentTimeMillis();
-        ByteBuf content = packet.content();
+        ByteBuf content = packet.data().getByteBuf();
         List<Part> parts = new ArrayList<>(100);
         for (; ; ) {
             if (!hasReadableBytes(content, 4)) {
@@ -86,21 +80,21 @@ public final class CollectdPacketDecoder extends MessageToMessageDecoder<Datagra
             }
             //noinspection ConstantConditions
             if (part != null) {
-                logger.trace("Decoded part: {}", part);
+                LOG.trace("Decoded part: {}", part);
                 parts.add(part);
             }
         }
 
-        if (logger.isTraceEnabled()) {
+        if (LOG.isTraceEnabled()) {
             long stop = System.currentTimeMillis();
-            logger.trace("Decoded datagram in {} ms", stop - start);
+            LOG.trace("Decoded datagram in {} ms", stop - start);
         }
 
         if (parts.size() > 0) {
-            CollectdPacket collectdPacket = new CollectdPacket(parts);
-            out.add(collectdPacket);
+            return new CollectdPacket(parts);
         } else {
-            logger.debug("No parts decoded, no CollectdPacket output");
+            LOG.debug("No parts decoded, no CollectdPacket output");
+            return null;
         }
     }
 
@@ -145,7 +139,7 @@ public final class CollectdPacketDecoder extends MessageToMessageDecoder<Datagra
                     data.add(Double.longBitsToDouble(ByteBufUtil.swapLong(content.readLong())));
                     break;
                 default:
-                    logger.debug("Skipping unknown data type: {}", dataType);
+                    LOG.debug("Skipping unknown data type: {}", dataType);
             }
         }
         // Skip any additionnal bytes

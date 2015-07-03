@@ -28,15 +28,14 @@ import static org.hawkular.metrics.clients.ptrans.collectd.packet.PartType.TIME_
 import static org.hawkular.metrics.clients.ptrans.collectd.packet.PartType.TYPE;
 import static org.hawkular.metrics.clients.ptrans.collectd.packet.PartType.VALUES;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 import org.hawkular.metrics.clients.ptrans.collectd.packet.CollectdPacket;
@@ -47,8 +46,6 @@ import org.hawkular.metrics.clients.ptrans.collectd.packet.StringPart;
 import org.hawkular.metrics.clients.ptrans.collectd.packet.ValuePart;
 import org.hawkular.metrics.clients.ptrans.collectd.packet.Values;
 import org.junit.Test;
-
-import io.netty.channel.embedded.EmbeddedChannel;
 
 public class CollectdEventsDecoderTest {
 
@@ -79,8 +76,9 @@ public class CollectdEventsDecoderTest {
         }
         CollectdPacket packet = new CollectdPacket(parts);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new CollectdEventsDecoder());
-        assertFalse("Expected no event", channel.writeInbound(packet));
+        CollectdEventsDecoder eventsDecoder = new CollectdEventsDecoder();
+        List<Event> events = eventsDecoder.decode(packet);
+        assertTrue("Expected no event", events.size() == 0);
     }
 
     @Test
@@ -99,21 +97,22 @@ public class CollectdEventsDecoderTest {
         parts.add(valuePart); // add it twice
         CollectdPacket packet = new CollectdPacket(parts);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new CollectdEventsDecoder());
-        assertTrue("Expected an event", channel.writeInbound(packet));
+        CollectdEventsDecoder eventsDecoder = new CollectdEventsDecoder();
+        List<Event> events = eventsDecoder.decode(packet);
+        assertTrue("Expected two instances of Event", events.size() == 2);
 
-        Object output = channel.readInbound();
+        Iterator<Event> iterator = events.iterator();
+
+        Event output = iterator.next();
         assertEquals(ValueListEvent.class, output.getClass());
         ValueListEvent event = (ValueListEvent) output;
         checkValueListEvent(event);
 
         // A second event with same values should be emitted
-        output = channel.readInbound();
+        output = iterator.next();
         assertEquals(ValueListEvent.class, output.getClass());
         event = (ValueListEvent) output;
         checkValueListEvent(event);
-
-        assertNull("Expected no more than two instances of Event", channel.readInbound());
     }
 
     private void checkValueListEvent(ValueListEvent event) {
@@ -150,14 +149,13 @@ public class CollectdEventsDecoderTest {
         parts.add(valuePart);
         CollectdPacket packet = new CollectdPacket(parts);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new CollectdEventsDecoder());
-        assertTrue("Expected an event", channel.writeInbound(packet));
+        CollectdEventsDecoder eventsDecoder = new CollectdEventsDecoder();
+        List<Event> events = eventsDecoder.decode(packet);
+        assertTrue("Expected one instance of Event", events.size() == 1);
 
-        Object output = channel.readInbound();
+        Event output = events.iterator().next();
         assertEquals(ValueListEvent.class, output.getClass());
         ValueListEvent event = (ValueListEvent) output;
         assertNotNull(event.getTypeInstance());
-
-        assertNull("Expected exactly one instance of Event", channel.readInbound());
     }
 }

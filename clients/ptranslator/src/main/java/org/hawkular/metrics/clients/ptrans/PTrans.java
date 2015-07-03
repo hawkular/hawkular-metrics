@@ -17,6 +17,7 @@
 package org.hawkular.metrics.clients.ptrans;
 
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toSet;
 
 import static org.hawkular.metrics.clients.ptrans.util.Arguments.checkArgument;
 
@@ -27,11 +28,13 @@ import java.net.NetworkInterface;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 
-import org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler;
-import org.hawkular.metrics.clients.ptrans.collectd.CollectdChannelInitializer;
+import org.hawkular.metrics.clients.ptrans.backend.MetricsSender;
+import org.hawkular.metrics.clients.ptrans.backend.NettyToVertxHandler;
+import org.hawkular.metrics.clients.ptrans.collectd.CollectdServer;
 import org.hawkular.metrics.clients.ptrans.ganglia.GangliaChannelInitializer;
-import org.hawkular.metrics.clients.ptrans.graphite.GraphiteChannelInitializer;
+import org.hawkular.metrics.clients.ptrans.graphite.GraphiteServer;
 import org.hawkular.metrics.clients.ptrans.statsd.StatsdChannelInitializer;
 import org.hawkular.metrics.clients.ptrans.syslog.TcpChannelInitializer;
 import org.hawkular.metrics.clients.ptrans.syslog.UdpChannelInitializer;
@@ -47,6 +50,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.vertx.core.Vertx;
 
 /**
  * PTrans core. After an instance is created for a specific {@link org.hawkular.metrics.clients.ptrans.Configuration},
@@ -59,9 +63,14 @@ public class PTrans {
     private static final Logger LOG = LoggerFactory.getLogger(PTrans.class);
 
     private final Configuration configuration;
-    private final EventLoopGroup group;
-    private final EventLoopGroup workerGroup;
-    private final RestForwardingHandler forwardingHandler;
+
+    private EventLoopGroup group;
+    private EventLoopGroup workerGroup;
+    private Vertx vertx;
+    // Needed as long as some servers are still Netty-based
+    // Can be removed as soon as all servers are implemented on top of vertx
+    private NettyToVertxHandler nettyToVertxHandler;
+    private String metricsSenderID;
 
     /**
      * Creates a new PTrans instance for the given {@code configuration}.
@@ -76,9 +85,6 @@ public class PTrans {
         checkArgument(configuration != null, "Configuration is null");
         checkArgument(configuration.isValid(), configuration.getValidationMessages().stream().collect(joining(", ")));
         this.configuration = configuration;
-        group = new NioEventLoopGroup();
-        workerGroup = new NioEventLoopGroup();
-        forwardingHandler = new RestForwardingHandler(configuration);
     }
 
     /**
@@ -86,6 +92,16 @@ public class PTrans {
      */
     public void start() {
         LOG.info("Starting ptrans...");
+
+        group = new NioEventLoopGroup();
+        workerGroup = new NioEventLoopGroup();
+
+        vertx = Vertx.vertx();
+        nettyToVertxHandler = new NettyToVertxHandler(vertx.eventBus());
+
+        vertx.deployVerticle(new MetricsSender(configuration), handler -> {
+            metricsSenderID = handler.result();
+        });
 
         Set<Service> services = configuration.getServices();
         List<ChannelFuture> closeFutures = new ArrayList<>(services.size());
@@ -95,7 +111,7 @@ public class PTrans {
                     .group(group, workerGroup)
                     .channel(NioServerSocketChannel.class)
                     .localAddress(configuration.getTcpPort())
-                    .childHandler(new TcpChannelInitializer(forwardingHandler));
+                    .childHandler(new TcpChannelInitializer(nettyToVertxHandler));
             ChannelFuture tcpBindFuture = serverBootstrap.bind().syncUninterruptibly();
             LOG.info("Server listening on TCP {}", tcpBindFuture.channel().localAddress());
             closeFutures.add(tcpBindFuture.channel().closeFuture());
@@ -106,7 +122,7 @@ public class PTrans {
                     .group(group)
                     .channel(NioDatagramChannel.class)
                     .localAddress(configuration.getUdpPort())
-                    .handler(new UdpChannelInitializer(forwardingHandler));
+                    .handler(new UdpChannelInitializer(nettyToVertxHandler));
             ChannelFuture udpBindFuture = udpBootstrap.bind().syncUninterruptibly();
             LOG.info("Syslogd listening on UDP {}", udpBindFuture.channel().localAddress());
             closeFutures.add(udpBindFuture.channel().closeFuture());
@@ -134,7 +150,7 @@ public class PTrans {
                     .option(ChannelOption.SO_REUSEADDR, true)
                     .option(ChannelOption.IP_MULTICAST_IF, mcIf)
                     .localAddress(gangliaSocket)
-                    .handler(new GangliaChannelInitializer(configuration, forwardingHandler));
+                    .handler(new GangliaChannelInitializer(nettyToVertxHandler));
             LOG.trace("Ganglia bootstrap is {}", gangliaBootstrap);
             ChannelFuture gangliaBindFuture = gangliaBootstrap.bind().syncUninterruptibly();
             LOG.info("Ganglia listening on UDP {}", gangliaBindFuture.channel().localAddress());
@@ -149,32 +165,22 @@ public class PTrans {
                     .group(group)
                     .channel(NioDatagramChannel.class)
                     .localAddress(configuration.getStatsDport())
-                    .handler(new StatsdChannelInitializer(configuration, forwardingHandler));
+                    .handler(new StatsdChannelInitializer(nettyToVertxHandler));
             ChannelFuture statsdBindFuture = statsdBootstrap.bind().syncUninterruptibly();
             LOG.info("Statsd listening on UDP {}", statsdBindFuture.channel().localAddress());
             closeFutures.add(statsdBindFuture.channel().closeFuture());
         }
 
         if (services.contains(Service.GRAPHITE)) {
-            ServerBootstrap graphiteBootstrap = new ServerBootstrap()
-                    .group(group)
-                    .channel(NioServerSocketChannel.class)
-                    .localAddress(configuration.getGraphitePort())
-                    .childHandler(new GraphiteChannelInitializer(forwardingHandler));
-            ChannelFuture graphiteBindFuture = graphiteBootstrap.bind().syncUninterruptibly();
-            LOG.info("Graphite listening on TCP {}", graphiteBindFuture.channel().localAddress());
-            closeFutures.add(graphiteBindFuture.channel().closeFuture());
+            vertx.deployVerticle(new GraphiteServer(configuration), handler -> {
+                LOG.info("Graphite listening on TCP {}", configuration.getGraphitePort());
+            });
         }
 
         if (services.contains(Service.COLLECTD)) {
-            Bootstrap collectdBootstrap = new Bootstrap()
-                    .group(group)
-                    .channel(NioDatagramChannel.class)
-                    .localAddress(configuration.getCollectdPort())
-                    .handler(new CollectdChannelInitializer(configuration, forwardingHandler));
-            ChannelFuture collectdBindFuture = collectdBootstrap.bind().syncUninterruptibly();
-            LOG.info("Collectd listening on UDP {}", collectdBindFuture.channel().localAddress());
-            closeFutures.add(collectdBindFuture.channel().closeFuture());
+            vertx.deployVerticle(new CollectdServer(configuration), handler -> {
+                LOG.info("Collectd listening on UDP {}", configuration.getCollectdPort());
+            });
         }
 
         LOG.info("ptrans started");
@@ -189,6 +195,32 @@ public class PTrans {
         LOG.info("Stopping ptrans...");
         group.shutdownGracefully().syncUninterruptibly();
         workerGroup.shutdownGracefully().syncUninterruptibly();
+        Set<String> deploymentIDs = vertx.deploymentIDs().stream()
+                .filter(id -> !metricsSenderID.equals(id))
+                .collect(toSet());
+        CountDownLatch deploymentsLatch = new CountDownLatch(deploymentIDs.size());
+        deploymentIDs.forEach(id -> {
+            vertx.undeploy(id, handler -> deploymentsLatch.countDown());
+        });
+        try {
+            deploymentsLatch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        CountDownLatch senderLatch = new CountDownLatch(1);
+        vertx.undeploy(metricsSenderID, handler -> senderLatch.countDown());
+        try {
+            senderLatch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        CountDownLatch vertxLatch = new CountDownLatch(1);
+        vertx.close(handler -> vertxLatch.countDown());
+        try {
+            vertxLatch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         LOG.info("ptrans stopped");
     }
 }

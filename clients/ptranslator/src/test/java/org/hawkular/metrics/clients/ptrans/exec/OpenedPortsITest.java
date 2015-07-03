@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.clients.ptrans;
+package org.hawkular.metrics.clients.ptrans.exec;
 
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES;
 
@@ -28,6 +28,8 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Properties;
 
+import org.hawkular.metrics.clients.ptrans.Configuration;
+import org.hawkular.metrics.clients.ptrans.Service;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;

@@ -19,27 +19,53 @@ package org.hawkular.metrics.clients.ptrans.graphite;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import java.util.Collections;
-import java.util.List;
+import static org.hawkular.metrics.clients.ptrans.backend.Constants.METRIC_ADDRESS;
 
 import org.hawkular.metrics.client.common.SingleMetric;
+import org.hawkular.metrics.clients.ptrans.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.MessageToMessageDecoder;
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Future;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.net.NetServer;
+import io.vertx.core.parsetools.RecordParser;
 
 /**
- * Decoder for plaintext metric data sent from Graphite.
+ * A TCP server for the Graphite plaintext protocol.
  *
- * @author Heiko W. Rupp
  * @author Thomas Segismont
  */
-public class GraphiteEventDecoder extends MessageToMessageDecoder<String> {
-    private static final Logger LOG = LoggerFactory.getLogger(GraphiteEventDecoder.class);
+public class GraphiteServer extends AbstractVerticle {
+    private static final Logger LOG = LoggerFactory.getLogger(GraphiteServer.class);
+
+    private final int port;
+    private final RecordParser recordParser;
+
+    public GraphiteServer(Configuration configuration) {
+        port = configuration.getGraphitePort();
+        recordParser = RecordParser.newDelimited("\n", this::handleRecord);
+    }
 
     @Override
-    protected void decode(ChannelHandlerContext ctx, String msg, List<Object> out) throws Exception {
+    public void start(Future<Void> startFuture) throws Exception {
+        NetServer tcpServer = vertx.createNetServer();
+        tcpServer.connectHandler(socket -> {
+            socket.handler(recordParser::handle);
+        });
+        tcpServer.listen(port, result -> {
+            if (result.succeeded()) {
+                startFuture.complete();
+            } else {
+                startFuture.fail(result.cause());
+            }
+        });
+    }
+
+    private void handleRecord(Buffer buf) {
+        String msg = buf.toString("UTF-8");
+
         String[] items = msg.split(" ");
         if (items.length != 3) {
             LOG.debug("Unknown data format for '{}', skipping", msg);
@@ -51,13 +77,6 @@ public class GraphiteEventDecoder extends MessageToMessageDecoder<String> {
         long timestamp = MILLISECONDS.convert(Long.parseLong(items[2]), SECONDS);
 
         SingleMetric metric = new SingleMetric(name, timestamp, value);
-
-        out.add(Collections.singletonList(metric));
-    }
-
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        LOG.debug("Could not decode message", cause);
-        ctx.channel().close();
+        vertx.eventBus().publish(METRIC_ADDRESS, metric);
     }
 }

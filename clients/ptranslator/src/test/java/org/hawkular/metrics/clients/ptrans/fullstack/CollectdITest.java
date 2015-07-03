@@ -37,8 +37,9 @@ import java.util.Properties;
 import java.util.stream.Stream;
 
 import org.hawkular.metrics.clients.ptrans.ConfigurationKey;
-import org.hawkular.metrics.clients.ptrans.PrintOutputOnFailureWatcher;
 import org.hawkular.metrics.clients.ptrans.Service;
+import org.hawkular.metrics.clients.ptrans.data.Point;
+import org.hawkular.metrics.clients.ptrans.util.PrintOutputOnFailureWatcher;
 import org.junit.After;
 import org.junit.Rule;
 
@@ -107,8 +108,7 @@ public class CollectdITest extends FullStackITest {
     @Override
     protected void changePTransConfig(Properties properties) {
         properties.setProperty(ConfigurationKey.SERVICES.toString(), Service.COLLECTD.getExternalForm());
-        properties.setProperty(ConfigurationKey.BATCH_DELAY.toString(), String.valueOf(1));
-        properties.setProperty(ConfigurationKey.BATCH_SIZE.toString(), String.valueOf(1));
+        properties.setProperty(ConfigurationKey.COLLECTD_PORT.toString(), String.valueOf(35826));
     }
 
     @Override
@@ -152,7 +152,7 @@ public class CollectdITest extends FullStackITest {
     private Point collectdLogToPoint(String line) {
         String[] split = line.split(" ");
         assertEquals("Unexpected format: " + line, 4, split.length);
-        String metric = "collectd." + split[1].replace('/', '.').replace('-', '.');
+        String metric = split[1].replace('/', '.').replace('-', '.');
         String[] data = split[3].split(":");
         assertEquals("Unexpected format: " + line, 2, data.length);
         long timestamp = Long.parseLong(data[0].replace(".", ""));

@@ -22,44 +22,36 @@ package org.hawkular.metrics.clients.ptrans;
  * @author Thomas Segismont
  */
 public enum ConfigurationKey {
-    /**
-     * Services to start
-     */
+    /** Services to start. */
     SERVICES("services"),
-    /** Multiplexed  UDP port**/
+    /** Multiplexed  UDP port. */
     UDP_PORT("port.udp"),
-    /** Multiplexed  TCP port**/
+    /** Multiplexed  TCP port. */
     TCP_PORT("port.tcp"),
-    /** Ganglia port **/
+    /** Ganglia port. */
     GANGLIA_PORT("ganglia.port"),
-    /** Ganglia group **/
+    /** Ganglia group. */
     GANGLIA_GROUP("ganglia.group"),
-    /** Explicit multicast interface **/
+    /** Explicit multicast interface. */
     GANGLIA_MULTICAST_INTERFACE("multicast.interface"),
-    /** UDP port for statsd type of messages **/
+    /** UDP port for statsd type of messages. */
     STATSD_PORT("statsd.port"),
-    /** UDP port for collectd type of messages **/
+    /** UDP port for collectd type of messages. */
     COLLECTD_PORT("collectd.port"),
-    /**
-     * TCP port for graphite type of messages
-     **/
+    /** TCP port for graphite type of messages. */
     GRAPHITE_PORT("graphite.port"),
-    /** Minimum batch size of metrics to be forwarded (from one source) **/
-    BATCH_SIZE("batch.size"),
-    /** Maximum time (in seconds) a batch of metrics can stay unchanged before it is forwarded (from one source) **/
-    BATCH_DELAY("batch.delay"),
-    /** REST endpoint **/
+    /** REST endpoint. */
     REST_URL("rest.url"),
-    /**
-     * If present the HTTP proxy to use
-     **/
+    /** If present the HTTP proxy to use. */
     HTTP_PROXY("http.proxy"),
-    /** Tenant **/
+    /** Tenant. */
     TENANT("tenant"),
-    /** Close connection to rest-server after this many requests **/
-    REST_CLOSE_AFTER_REQUESTS("rest.close-after"),
-    /** Maximum number of metrics to spool if the server is not reachable **/
-    SPOOL_SIZE("spool.size");
+    /** Capacity of the buffer where incoming metrics are queued before sending to the backend. */
+    BUFFER_CAPACITY("buffer.capacity"),
+    /** Size of the metric batches sent to the backend. */
+    BATCH_SIZE("batch.size"),
+    /** Maximum number of HTTP connections used to send metrics to the backend. */
+    REST_MAX_CONNECTIONS("rest.max.connections");
 
     private final String externalForm;
 

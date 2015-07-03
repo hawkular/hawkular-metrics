@@ -16,14 +16,11 @@
  */
 package org.hawkular.metrics.clients.ptrans.ganglia;
 
-import org.hawkular.metrics.clients.ptrans.Configuration;
-import org.hawkular.metrics.clients.ptrans.MetricBatcher;
-import org.hawkular.metrics.clients.ptrans.backend.RestForwardingHandler;
+import org.hawkular.metrics.clients.ptrans.backend.NettyToVertxHandler;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
-import io.netty.handler.timeout.IdleStateHandler;
 
 /**
  * Channel initializer to be used when bootstrapping a Ganglia server.
@@ -31,20 +28,17 @@ import io.netty.handler.timeout.IdleStateHandler;
  * @author Thomas Segismont
  */
 public class GangliaChannelInitializer extends ChannelInitializer<Channel> {
-    private final Configuration configuration;
-    private final RestForwardingHandler forwardingHandler;
+    private final NettyToVertxHandler nettyToVertxHandler;
 
-    public GangliaChannelInitializer(Configuration configuration, RestForwardingHandler forwardingHandler) {
-        this.configuration = configuration;
-        this.forwardingHandler = forwardingHandler;
+    public GangliaChannelInitializer(NettyToVertxHandler nettyToVertxHandler) {
+        this.nettyToVertxHandler = nettyToVertxHandler;
     }
+
 
     @Override
     public void initChannel(Channel socketChannel) throws Exception {
         ChannelPipeline pipeline = socketChannel.pipeline();
         pipeline.addLast(new UdpGangliaDecoder());
-        pipeline.addLast(new IdleStateHandler(configuration.getMaximumBatchDelay(), 0, 0));
-        pipeline.addLast(new MetricBatcher("ganglia", configuration.getMinimumBatchSize()));
-        pipeline.addLast(forwardingHandler);
+        pipeline.addLast(nettyToVertxHandler);
     }
 }

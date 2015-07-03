@@ -17,17 +17,18 @@
 package org.hawkular.metrics.clients.ptrans.collectd.packet;
 
 import static java.util.stream.Collectors.toList;
+
 import static org.hawkular.metrics.clients.ptrans.collectd.packet.PacketDecodingTest.createNumericPartBuffer;
 import static org.hawkular.metrics.clients.ptrans.collectd.packet.PacketDecodingTest.createStringPartBuffer;
 import static org.hawkular.metrics.clients.ptrans.collectd.packet.PacketDecodingTest.createValuesPartBuffer;
 import static org.hawkular.metrics.clients.ptrans.collectd.packet.PacketDecodingTest.newValuesInstance;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -36,17 +37,17 @@ import org.junit.Test;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.embedded.EmbeddedChannel;
-import io.netty.channel.socket.DatagramPacket;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.datagram.DatagramPacket;
 
 public class CollectdPacketDecoderTest {
-    private static final InetSocketAddress DUMMY_ADDRESS = InetSocketAddress.createUnresolved("dummy", 9999);
 
     @Test
     public void handlerShouldNotOutputCollectdPacketWhenNoPartIsDecoded() {
-        DatagramPacket datagramPacket = new DatagramPacket(Unpooled.buffer(), DUMMY_ADDRESS);
-        EmbeddedChannel channel = new EmbeddedChannel(new CollectdPacketDecoder());
-        assertFalse("Expected no CollectdPacket", channel.writeInbound(datagramPacket));
+        DatagramPacket packet = mock(DatagramPacket.class);
+        when(packet.data()).thenReturn(Buffer.buffer());
+        CollectdPacketDecoder packetDecoder = new CollectdPacketDecoder();
+        assertNull("Expected no CollectdPacket", packetDecoder.decode(packet));
     }
 
     @Test
@@ -105,19 +106,16 @@ public class CollectdPacketDecoderTest {
             }
         }
 
-        DatagramPacket datagramPacket = new DatagramPacket(buffer, DUMMY_ADDRESS);
-        EmbeddedChannel channel = new EmbeddedChannel(new CollectdPacketDecoder());
-        assertTrue("Expected CollectdPacket", channel.writeInbound(datagramPacket));
+        DatagramPacket packet = mock(DatagramPacket.class);
+        when(packet.data()).thenReturn(Buffer.buffer(buffer));
 
-        Object output = channel.readInbound();
-        assertEquals(CollectdPacket.class, output.getClass());
+        CollectdPacketDecoder packetDecoder = new CollectdPacketDecoder();
+        CollectdPacket collectdPacket = packetDecoder.decode(packet);
+        assertNotNull("Expected CollectdPacket", collectdPacket);
 
-        CollectdPacket collectdPacket = (CollectdPacket) output;
         List<Part> partsResult = collectdPacket.getParts();
         assertEquals("Wrong number of parts in the packet", numberOfParts, partsResult.size());
         assertEquals("Wrong packet order", toPartTypeList(parts), toPartTypeList(partsResult));
-
-        assertNull("Expected just one CollectdPacket", channel.readInbound());
     }
 
     private List<PartType> toPartTypeList(List<Part> parts) {
