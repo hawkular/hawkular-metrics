@@ -17,12 +17,12 @@
 package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.executeAsync;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilities;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounters;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGauges;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -37,20 +37,19 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
 
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.request.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.request.MixedMetricsRequest;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
-
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
+import rx.Observable;
+import rx.schedulers.Schedulers;
 
 
 /**
@@ -106,37 +105,19 @@ public class MetricHandler {
                 response = ApiError.class) })
     public void addMetricsData(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(value = "List of metrics", required = true) MixedMetricsRequest metricsRequest
-    ) {
-        executeAsync(asyncResponse, () -> {
-            if ((metricsRequest.getGaugeMetrics() == null || !metricsRequest.getGaugeMetrics().isEmpty())
-                    && (metricsRequest.getAvailabilityMetrics() == null || metricsRequest.getAvailabilityMetrics()
-                    .isEmpty())) {
-                return Futures.immediateFuture(Response.ok().build());
-            }
+            @ApiParam(value = "List of metrics", required = true) MixedMetricsRequest metricsRequest) {
 
-            List<ListenableFuture<Void>> simpleFuturesList = new ArrayList<>();
+        Observable<Void> gaugeInserts = metricsService.addGaugeData(requestToGauges(tenantId,
+                metricsRequest.getGaugeMetrics()).subscribeOn(Schedulers.computation()));
+        Observable<Void> counterInserts = metricsService.addCounterData(requestToCounters(tenantId,
+                metricsRequest.getCounters()).subscribeOn(Schedulers.computation()));
+        Observable<Void> availabilityInserts = metricsService.addAvailabilityData(requestToAvailabilities(tenantId,
+                metricsRequest.getAvailabilityMetrics()).subscribeOn(Schedulers.computation()));
 
-//            if (metricsRequest.getGaugeMetrics() != null && !metricsRequest.getGaugeMetrics().isEmpty()) {
-//                metricsRequest.getGaugeMetrics().forEach(m -> m.setTenantId(tenantId));
-//                // TODO This needs to be fix - this needs to refactored..
-//                // Temporarily commented out to get it to compile as we midst of updating MetricsService
-//                // to use rx.Observable instead of ListenableFuture
-//
-//            //                Observable<Void> voidObservable = metricsService.addGaugeData(Observable.
-//            // from(metricsRequest.getGaugeMetrics()));
-//            //                simpleFuturesList.add(metricsService.addGaugeData(metricsRequest.getGaugeMetrics()));
-//            }
-//
-//            if (metricsRequest.getAvailabilityMetrics() != null
-//                    && !metricsRequest.getAvailabilityMetrics().isEmpty()) {
-//                metricsRequest.getAvailabilityMetrics().forEach(m -> m.setTenantId(tenantId));
-//                metricsService.addAvailabilityData(metricsRequest.getAvailabilityMetrics())
-//                        .subscribe(r -> asyncResponse.resume(Response.ok().build()),
-//                                   t -> asyncResponse.resume(ApiUtils.serverError(t)));
-//            }
-
-            return Futures.transform(Futures.successfulAsList(simpleFuturesList), ApiUtils.MAP_LIST_VOID);
-        });
+        Observable.merge(gaugeInserts, counterInserts, availabilityInserts).subscribe(
+                aVoid -> {},
+                t -> asyncResponse.resume(ApiUtils.serverError(t)),
+                () -> asyncResponse.resume(Response.ok().build())
+        );
     }
 }
