@@ -42,12 +42,13 @@
 
   <properties>
     <cassandra.version>2.1.6</cassandra.version>
-    <fabric8.version>2.2.4</fabric8.version>
+    <fabric8.version>2.2.5</fabric8.version>
     <docker-maven-plugin.version>0.12.0</docker-maven-plugin.version>
     <docker.user>hawkular</docker.user>
     <hawkular-metrics.image>${docker.user}/hawkular-metrics:${project.version}</hawkular-metrics.image>
     <cassandra.build>devel</cassandra.build>
     <cassandra.image>${docker.user}/hawkular-cassandra:${cassandra.version}-${cassandra.build}</cassandra.image>
+    <heapster.image>kubernetes/heapster:v0.14.3</heapster.image>
   </properties>
 
   <dependencyManagement>
