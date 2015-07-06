@@ -527,9 +527,8 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<Void> addAvailabilityData(List<Metric<AvailabilityType>> metrics) {
+    public Observable<Void> addAvailabilityData(Observable<Metric<AvailabilityType>> availabilities) {
         PublishSubject<Void> results = PublishSubject.create();
-        Observable<Metric<AvailabilityType>> availabilities = Observable.from(metrics);
         Observable<Integer> updates = availabilities
                 .filter(a -> !a.getDataPoints().isEmpty())
                 .flatMap(a -> dataAccess.insertAvailabilityData(a, getTTL(a)));

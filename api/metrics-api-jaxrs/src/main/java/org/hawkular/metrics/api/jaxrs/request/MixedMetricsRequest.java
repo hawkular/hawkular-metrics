@@ -16,14 +16,14 @@
  */
 package org.hawkular.metrics.api.jaxrs.request;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import org.hawkular.metrics.api.jaxrs.model.Availability;
-import org.hawkular.metrics.api.jaxrs.model.Gauge;
-
-import com.google.common.base.Objects;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import com.wordnik.swagger.annotations.ApiModel;
+import org.hawkular.metrics.api.jaxrs.model.Availability;
+import org.hawkular.metrics.api.jaxrs.model.Counter;
+import org.hawkular.metrics.api.jaxrs.model.Gauge;
 
 /**
  * @author Stefan Negrea
@@ -31,32 +31,34 @@ import com.wordnik.swagger.annotations.ApiModel;
 @ApiModel
 public class MixedMetricsRequest {
 
-    private List<Gauge> gaugeMetrics = new ArrayList<>();
-    private List<Availability> availabilityMetrics = new ArrayList<>();
+    @JsonProperty("gauges")
+    private List<Gauge> gaugeMetrics;
+
+    @JsonProperty("availabilities")
+    private List<Availability> availabilityMetrics;
+
+    @JsonProperty("counters")
+    private List<Counter> counters;
 
 
     public List<Gauge> getGaugeMetrics() {
-        return gaugeMetrics;
-    }
-
-    public void setGaugeMetric(List<Gauge> gaugeMetrics) {
-        this.gaugeMetrics = gaugeMetrics;
+        return ImmutableList.copyOf(gaugeMetrics);
     }
 
     public List<Availability> getAvailabilityMetrics() {
-        return availabilityMetrics;
+        return ImmutableList.copyOf(availabilityMetrics);
     }
 
-    public void setAvailabilityMetrics(List<Availability> availabilityMetrics) {
-        this.availabilityMetrics = availabilityMetrics;
+    public List<Counter> getCounters() {
+        return ImmutableList.copyOf(counters);
     }
-
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
-                .add("guageMetrics", gaugeMetrics)
-                .add("availibilityMetrics", availabilityMetrics)
-                .toString();
+        return "MixedMetricsRequest{" +
+                "gaugeMetrics=" + gaugeMetrics +
+                ", availabilityMetrics=" + availabilityMetrics +
+                ", counters=" + counters +
+                '}';
     }
 }

@@ -121,7 +121,7 @@ public interface MetricsService {
     Observable<BucketedOutput<GaugeBucketDataPoint>> findGaugeStats(Metric<Double> metric, long start, long end,
             Buckets buckets);
 
-    Observable<Void> addAvailabilityData(List<Metric<AvailabilityType>> metrics);
+    Observable<Void> addAvailabilityData(Observable<Metric<AvailabilityType>> availabilities);
 
     Observable<DataPoint<AvailabilityType>> findAvailabilityData(String tenantId, MetricId id, long start, long end);
 

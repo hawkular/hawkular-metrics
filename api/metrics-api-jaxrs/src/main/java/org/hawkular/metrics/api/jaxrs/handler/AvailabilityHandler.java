@@ -18,18 +18,15 @@ package org.hawkular.metrics.api.jaxrs.handler;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.stream.Collectors.toList;
-
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilities;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilityDataPoints;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 
 import java.net.URI;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -51,6 +48,11 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
@@ -69,13 +71,6 @@ import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-
 import rx.Observable;
 
 /**
@@ -209,8 +204,8 @@ public class AvailabilityHandler {
         } else {
             Metric<AvailabilityType> metric = new Metric<>(tenantId,
                     AVAILABILITY, new MetricId(id), requestToAvailabilityDataPoints(data));
-            metricsService.addAvailabilityData(Collections.singletonList(metric)).subscribe(
-                    new ResultSetObserver(asyncResponse));
+            metricsService.addAvailabilityData(Observable.just(metric))
+                    .subscribe(new ResultSetObserver(asyncResponse));
         }
     }
 
@@ -230,10 +225,8 @@ public class AvailabilityHandler {
         if (availabilities.isEmpty()) {
             asyncResponse.resume(ApiUtils.emptyPayload());
         } else {
-            List<Metric<AvailabilityType>> metrics = availabilities.stream().map(availability ->
-                    new Metric<>(tenantId, AVAILABILITY, new MetricId(availability.getId()),
-                            requestToAvailabilityDataPoints(availability.getData()))).collect(toList());
-            metricsService.addAvailabilityData(metrics).subscribe(new ResultSetObserver(asyncResponse));
+            metricsService.addAvailabilityData(requestToAvailabilities(tenantId, availabilities))
+                    .subscribe(new ResultSetObserver(asyncResponse));
         }
     }
 

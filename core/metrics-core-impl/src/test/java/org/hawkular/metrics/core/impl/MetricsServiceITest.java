@@ -483,7 +483,7 @@ public class MetricsServiceITest extends MetricsITest {
         Metric<AvailabilityType> m3 = new Metric<>("t3", AVAILABILITY, new MetricId("m3"),
                 singletonList(new DataPoint<>(start.getMillis(), UP)));
 
-        metricsService.addAvailabilityData(singletonList(m3)).toBlocking();
+        metricsService.addAvailabilityData(Observable.just(m3)).toBlocking();
     }
 
     private void addGaugeDataInThePast(Metric<Double> metric, final Duration duration) throws Exception {
@@ -533,7 +533,7 @@ public class MetricsServiceITest extends MetricsITest {
                     return rxSession.execute(batchStatement).map(resultSet -> batchStatement.size());
                 }
             });
-            metricsService.addAvailabilityData(singletonList(metric));
+            metricsService.addAvailabilityData(Observable.just(metric));
         } finally {
             metricsService.setDataAccess(originalDataAccess);
         }
@@ -658,7 +658,7 @@ public class MetricsServiceITest extends MetricsITest {
         ));
         Metric<AvailabilityType> m3 = new Metric<>(tenantId, AVAILABILITY, new MetricId("m3"));
 
-        metricsService.addAvailabilityData(asList(m1, m2, m3)).toBlocking().lastOrDefault(null);
+        metricsService.addAvailabilityData(Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
 
         List<DataPoint<AvailabilityType>> actual = metricsService.findAvailabilityData(tenantId, m1.getId(),
                 start.getMillis(), end.getMillis()).toList().toBlocking().last();
@@ -677,7 +677,7 @@ public class MetricsServiceITest extends MetricsITest {
                 new DataPoint<>(end.plusMinutes(2).getMillis(), UP)));
         metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
 
-        metricsService.addAvailabilityData(singletonList(m4)).toBlocking().lastOrDefault(null);
+        metricsService.addAvailabilityData(Observable.just(m4)).toBlocking().lastOrDefault(null);
 
         actual = metricsService.findAvailabilityData(tenantId, m4.getId(), start.getMillis(), end.getMillis()).toList()
             .toBlocking().last();
@@ -707,7 +707,7 @@ public class MetricsServiceITest extends MetricsITest {
         );
         Metric<AvailabilityType> metric = new Metric<>("tenant1", AVAILABILITY, new MetricId("A1"), dataPoints);
 
-        metricsService.addAvailabilityData(singletonList(metric)).toBlocking().lastOrDefault(null);
+        metricsService.addAvailabilityData(Observable.just(metric)).toBlocking().lastOrDefault(null);
 
         Map<String, String> tags1 = ImmutableMap.of("t1", "1", "t2", "");
         metricsService.tagAvailabilityData(metric, tags1, start.plusMinutes(2).getMillis()).toBlocking()
@@ -759,7 +759,7 @@ public class MetricsServiceITest extends MetricsITest {
                 new DataPoint<>(start.plusMinutes(10).getMillis(), UP)
         ));
 
-        metricsService.addAvailabilityData(singletonList(metric)).toBlocking().lastOrDefault(null);
+        metricsService.addAvailabilityData(Observable.just(metric)).toBlocking().lastOrDefault(null);
 
         List<DataPoint<AvailabilityType>> actual = metricsService.findAvailabilityData(tenantId, metricId,
                 start.getMillis(), end.getMillis(), true).toList().toBlocking().lastOrDefault(null);
@@ -849,7 +849,7 @@ public class MetricsServiceITest extends MetricsITest {
                 asList(a3, a4, a5, a7));
         Metric<AvailabilityType> m3 = new Metric<>(tenant, AVAILABILITY, new MetricId("m3"), asList(a8, a9));
 
-        metricsService.addAvailabilityData(asList(m1, m2, m3)).toBlocking().lastOrDefault(null);
+        metricsService.addAvailabilityData(Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
 
         Map<String, String> tags1 = ImmutableMap.of("t1", "1");
         Map<String, String> tags2 = ImmutableMap.of("t2", "2");
@@ -954,7 +954,7 @@ public class MetricsServiceITest extends MetricsITest {
                 asList(a3, a4, a5, a7));
         Metric<AvailabilityType> m3 = new Metric<>(tenant, AVAILABILITY, new MetricId("m3"), asList(a8, a9));
 
-        metricsService.addAvailabilityData(asList(m1, m2, m3)).toBlocking().lastOrDefault(null);
+        metricsService.addAvailabilityData(Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
 
         Map<String, String> tags1 = ImmutableMap.of("t1", "");
         metricsService.tagAvailabilityData(m1, tags1, a1.getTimestamp()).toBlocking().lastOrDefault(null);
