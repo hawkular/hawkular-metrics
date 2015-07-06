@@ -17,14 +17,19 @@
 package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static javax.ws.rs.core.MediaType.APPLICATION_XHTML_XML;
+import static javax.ws.rs.core.MediaType.TEXT_HTML;
 
 import com.wordnik.swagger.annotations.ApiOperation;
 import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import org.jboss.resteasy.spi.ResteasyProviderFactory;
 
 /**
  * @author mwringe
@@ -49,6 +54,15 @@ public class BaseHandler {
         hawkularMetrics.version = version;
 
         return Response.ok(hawkularMetrics).build();
+    }
+
+    @GET
+    @Produces({APPLICATION_XHTML_XML, TEXT_HTML})
+    public void baseHTML(@Context ServletContext context) throws Exception {
+
+        HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
+        HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
+        request.getRequestDispatcher("/static/index.html").forward(request,response);
     }
 
     private class HawkularMetricsBase {

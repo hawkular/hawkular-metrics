@@ -22,13 +22,21 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
-  <meta http-equiv="refresh" content="0;hawkular/metrics">
-  <title>Hawkular Metrics</title>
+    <title>Hawkular Metrics</title>
+    <link rel="shortcut icon" href="/hawkular/metrics/static/favicon.ico" type="image/x-icon">
+    <link rel="StyleSheet" href="/hawkular/metrics/static/welcome.css" type="text/css">
+    <script src="/hawkular/metrics/static/status.js"></script>
 </head>
 
 <body>
-  <h1>Hawkular Metrics</h1>
-  <h3>A time series metrics engine based on Cassandra</h3>
-  <p>${project.version}</p>
+  <div class="content">
+    <div class="logo"/>
+      <img src="/hawkular/metrics/static/hawkular_logo.png" alt="Hawkular Logo"/>
+    </div>
+    <h1>Hawkular Metrics</h1>
+    <h3>A time series metrics engine based on Cassandra</h3>
+    <p>${project.version}</p>
+    <p id="status">Status: <i>Checking...</i></p>
+  </div>
 </body>
 </html>

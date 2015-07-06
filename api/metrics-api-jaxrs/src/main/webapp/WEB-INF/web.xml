@@ -40,4 +40,18 @@
     <param-name>resteasy.providers</param-name>
     <param-value>org.hawkular.metrics.api.jaxrs.util.JacksonConfig</param-value>
   </context-param>
+
+  <servlet>
+    <servlet-name>staticContent</servlet-name>
+    <servlet-class>io.undertow.servlet.handlers.DefaultServlet</servlet-class>
+    <init-param>
+      <param-name>resolve-against-context-root</param-name>
+      <param-value>true</param-value>
+    </init-param>
+  </servlet>
+
+  <servlet-mapping>
+    <servlet-name>staticContent</servlet-name>
+    <url-pattern>/static/*</url-pattern>
+  </servlet-mapping>
 </web-app>

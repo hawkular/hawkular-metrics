@@ -27,14 +27,14 @@ if (window.XMLHttpRequest) {
 }
 
 httpRequest.onreadystatechange = updateStatus;
-httpRequest.open("GET", "/hawkular/metrics/ping");
-httpRequest.setRequestHeader("Hawkular-Tenant", "status");
+httpRequest.open("GET", "/hawkular/metrics/status");
 httpRequest.send();
 
 function updateStatus() {
  if (httpRequest.readyState === 4) {
    if (httpRequest.status === 200) {
-     document.getElementById("status").innerHTML = "Started";
+     statusJson = JSON.parse(httpRequest.responseText);
+     document.getElementById("status").innerHTML = "Metrics Service :" + statusJson.MetricsService;
    } else if (httpRequest.status === 404 || httpRequest.status === 503) {
      document.getElementById("status").innerHTML = "The server is not available";
    } else {
