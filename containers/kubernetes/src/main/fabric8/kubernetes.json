@@ -1,12 +1,12 @@
 {
   "id": "hawkular-metrics",
   "kind": "List",
-  "apiVersion": "v1beta3",
+  "apiVersion": "v1",
   "name": "Hawkular Metrics",
   "description": "Hawkular Metrics Kubernetes Application. Starts up the Hawkular Metrics web application and a cassandra cluster.",
   "items": [
     {
-      "apiVersion" : "v1beta3",
+      "apiVersion" : "v1",
       "kind": "Service",
       "metadata" : {
         "name": "hawkular-cassandra-nodes",
@@ -28,7 +28,7 @@
       }
     },
     {
-      "apiVersion" : "v1beta3",
+      "apiVersion" : "v1",
       "kind": "Service",
       "metadata" : {
         "name": "hawkular-cassandra",
@@ -49,7 +49,7 @@
       }
     },
     {
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "kind": "ReplicationController",
       "metadata": {
         "name": "hawkular-cassandra",
@@ -63,7 +63,7 @@
         },
         "replicas": 1,
         "template": {
-          "version": "v1beta3",
+          "version": "v1",
           "metadata": {
             "labels" : {
               "name": "hawkular-cassandra"
@@ -102,7 +102,7 @@
       }
     },
     {
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "kind": "Service",
       "metadata": {
         "name": "hawkular-metrics",
@@ -120,7 +120,7 @@
       }
     },
     {
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "kind": "ReplicationController",
       "metadata": {
         "name": "hawkular-metrics",
@@ -134,7 +134,7 @@
         },
         "replicas": 1,
         "template": {
-          "version": "v1beta3",
+          "version": "v1",
           "metadata": {
             "labels" : {
               "name": "hawkular-metrics"

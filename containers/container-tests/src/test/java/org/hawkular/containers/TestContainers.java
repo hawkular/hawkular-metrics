@@ -96,7 +96,7 @@ public class TestContainers extends BaseContainerTests{
         assertThat((List)pods).hasSize(1);
 
         Pod pod = pods.get(0);
-        assertEquals("Ready", pod.getStatus().getCondition().get(0).getType());
+        assertEquals("Ready", pod.getStatus().getConditions().get(0).getType());
     }
 
     @Test
@@ -106,7 +106,7 @@ public class TestContainers extends BaseContainerTests{
         assertThat((List)pods).hasSize(1);
 
         Pod pod = pods.get(0);
-        assertEquals(READY_STATE, pod.getStatus().getCondition().get(0).getType());
+        assertEquals(READY_STATE, pod.getStatus().getConditions().get(0).getType());
     }
 
     @Test
@@ -116,7 +116,7 @@ public class TestContainers extends BaseContainerTests{
         assertThat((List)pods).hasSize(1);
 
         Pod pod = pods.get(0);
-        assertEquals(READY_STATE, pod.getStatus().getCondition().get(0).getType());
+        assertEquals(READY_STATE, pod.getStatus().getConditions().get(0).getType());
     }
 
     private boolean checkPorts(List<ServicePort> ports, int... expectedPorts) {

@@ -98,11 +98,15 @@ public abstract class BaseContainerTests {
     }
 
     public JsonNode getJSON(String path) throws Exception{
+        return getJSON(path, getTenant());
+    }
+
+    public JsonNode getJSON(String path, String tenant) throws Exception {
         Response response = target.clone()
                 .path(path)
                 .queryParam("start", 0)
                 .request(MediaType.APPLICATION_JSON_TYPE)
-                .header(TENANT_HEADER, getTenant())
+                .header(TENANT_HEADER, tenant)
                 .get();
 
         if (response.getStatus() == HttpResponseCodes.SC_NO_CONTENT) {

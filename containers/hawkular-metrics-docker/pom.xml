@@ -55,14 +55,13 @@
       <plugin>
         <groupId>org.jolokia</groupId>
         <artifactId>docker-maven-plugin</artifactId>
-        <version>0.12.0</version>
         <configuration>
           <images>
             <image>
               <name>${hawkular-metrics.image}</name>
               <build>
                 <assembly>
-                  <dockerFileDir>${project.basedir}/target/docker/hawkular/hawkular-metrics/${project.version}/build/maven</dockerFileDir>
+                  <dockerFileDir>${project.basedir}/target/docker/${docker.user}/hawkular-metrics/${project.version}/build/maven</dockerFileDir>
                   <descriptor>../resources/assemblies/assemble-docker.xml</descriptor>
                 </assembly>
               </build>
@@ -81,12 +80,31 @@
           <plugin>
             <groupId>org.jolokia</groupId>
             <artifactId>docker-maven-plugin</artifactId>
-            <version>0.11.2</version>
             <executions>
               <execution>
                 <phase>package</phase>
                 <goals>
                   <goal>build</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>docker-push</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.jolokia</groupId>
+            <artifactId>docker-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>docker-push</id>
+                <phase>install</phase>
+                <goals>
+                  <goal>push</goal>
                 </goals>
               </execution>
             </executions>
