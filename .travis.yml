@@ -25,6 +25,7 @@ addons:
     build_command: mvn -DskipTests=true compile
     branch_pattern: coverity_scan
 before_install:
+- ulimit -a
 - sudo apt-get update -qq
 - sudo apt-get install -qq collectd collectd-utils
 - bash .travis.install.cassandra.sh
