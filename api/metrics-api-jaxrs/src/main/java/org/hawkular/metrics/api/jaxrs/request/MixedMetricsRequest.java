@@ -42,15 +42,27 @@ public class MixedMetricsRequest {
 
 
     public List<Gauge> getGaugeMetrics() {
-        return ImmutableList.copyOf(gaugeMetrics);
+        if(gaugeMetrics != null){
+            return ImmutableList.copyOf(gaugeMetrics);
+        }
+
+        return null;
     }
 
     public List<Availability> getAvailabilityMetrics() {
-        return ImmutableList.copyOf(availabilityMetrics);
+        if (availabilityMetrics != null) {
+            return ImmutableList.copyOf(availabilityMetrics);
+        }
+
+        return null;
     }
 
     public List<Counter> getCounters() {
-        return ImmutableList.copyOf(counters);
+        if (counters != null) {
+            return ImmutableList.copyOf(counters);
+        }
+
+        return null;
     }
 
     @Override

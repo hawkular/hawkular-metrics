@@ -23,6 +23,8 @@ import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabiliti
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounters;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGauges;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -43,11 +45,15 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import org.hawkular.metrics.api.jaxrs.ApiError;
+import org.hawkular.metrics.api.jaxrs.model.Availability;
+import org.hawkular.metrics.api.jaxrs.model.Counter;
+import org.hawkular.metrics.api.jaxrs.model.Gauge;
 import org.hawkular.metrics.api.jaxrs.request.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.request.MixedMetricsRequest;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
+
 import rx.Observable;
 import rx.schedulers.Schedulers;
 
@@ -101,20 +107,34 @@ public class MetricHandler {
     @ApiOperation(value = "Add data for multiple metrics in a single call.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
+            @ApiResponse(code = 400, message = "Missing or invalid payload.", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
                 response = ApiError.class) })
     public void addMetricsData(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of metrics", required = true) MixedMetricsRequest metricsRequest) {
 
-        Observable<Void> gaugeInserts = metricsService.addGaugeData(requestToGauges(tenantId,
-                metricsRequest.getGaugeMetrics()).subscribeOn(Schedulers.computation()));
-        Observable<Void> counterInserts = metricsService.addCounterData(requestToCounters(tenantId,
-                metricsRequest.getCounters()).subscribeOn(Schedulers.computation()));
-        Observable<Void> availabilityInserts = metricsService.addAvailabilityData(requestToAvailabilities(tenantId,
-                metricsRequest.getAvailabilityMetrics()).subscribeOn(Schedulers.computation()));
+        Collection<Observable<Void>> observables = new ArrayList<>();
 
-        Observable.merge(gaugeInserts, counterInserts, availabilityInserts).subscribe(
+        List<Gauge> gauges = metricsRequest.getGaugeMetrics();
+        if (gauges != null && !gauges.isEmpty()) {
+            observables.add(metricsService
+                    .addGaugeData(requestToGauges(tenantId, gauges).subscribeOn(Schedulers.computation())));
+        }
+
+        List<Counter> counters = metricsRequest.getCounters();
+        if (counters != null && !counters.isEmpty()) {
+            observables.add(metricsService
+                    .addCounterData(requestToCounters(tenantId, counters).subscribeOn(Schedulers.computation())));
+        }
+
+        List<Availability> availabilities = metricsRequest.getAvailabilityMetrics();
+        if (availabilities != null && !availabilities.isEmpty()) {
+            observables.add(metricsService.addAvailabilityData(
+                    requestToAvailabilities(tenantId, availabilities).subscribeOn(Schedulers.computation())));
+        }
+
+        Observable.merge(observables).subscribe(
                 aVoid -> {},
                 t -> asyncResponse.resume(ApiUtils.serverError(t)),
                 () -> asyncResponse.resume(Response.ok().build())

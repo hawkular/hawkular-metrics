@@ -150,4 +150,189 @@ class MetricsITest extends RESTTest {
     )
   }
 
+  @Test
+  void addMixedDataMissingGauges() {
+    String tenantId = nextTenantId()
+    DateTime start = DateTime.now().minusMinutes(10)
+
+    def response = hawkularMetrics.post(
+        path: "metrics/data",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            counters: [
+                [
+                    id: 'GC1',
+                    data: [
+                        [timestamp: start.millis, value: 10],
+                        [timestamp: start.plusMinutes(1).millis, value: 20]
+                    ]
+                ]
+            ],
+            availabilities: [
+                [
+                    id: 'GA1',
+                    data: [
+                        [timestamp: start.millis, value: "down"],
+                        [timestamp: start.plusMinutes(1).millis, value: "up"]
+                    ]
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: 'counters/GC1/data', headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(
+        [
+            [timestamp: start.plusMinutes(1).millis, value: 20],
+            [timestamp: start.millis, value: 10]
+        ],
+        response.data
+    )
+
+    response = hawkularMetrics.get(path: 'availability/GA1/data', headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(
+        [
+            [timestamp: start.millis, value: "down"],
+            [timestamp: start.plusMinutes(1).millis, value: "up"]
+        ],
+        response.data
+    )
+  }
+
+  @Test
+  void addMixedDataMissingCounters() {
+    String tenantId = nextTenantId()
+    DateTime start = DateTime.now().minusMinutes(10)
+
+    def response = hawkularMetrics.post(
+        path: "metrics/data",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            gauges: [
+                [
+                    id: 'CG1',
+                    data:  [
+                        [timestamp: start.millis, value: 10.032],
+                        [timestamp: start.plusMinutes(1).millis, value: 9.589]
+                    ],
+                ]
+            ],
+            availabilities: [
+                [
+                    id: 'CA1',
+                    data: [
+                        [timestamp: start.millis, value: "down"],
+                        [timestamp: start.plusMinutes(1).millis, value: "up"]
+                    ]
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+
+    response = hawkularMetrics.get(path: 'gauges/CG1/data', headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(
+        [
+            [timestamp: start.plusMinutes(1).millis, value: 9.589],
+            [timestamp: start.millis, value: 10.032]
+        ],
+        response.data
+    )
+
+    response = hawkularMetrics.get(path: 'availability/CA1/data', headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(
+        [
+            [timestamp: start.millis, value: "down"],
+            [timestamp: start.plusMinutes(1).millis, value: "up"]
+        ],
+        response.data
+    )
+  }
+
+  @Test
+  void addMixedDataMissingAvailabilities() {
+    String tenantId = nextTenantId()
+    DateTime start = DateTime.now().minusMinutes(10)
+
+    def response = hawkularMetrics.post(
+        path: "metrics/data",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            gauges: [
+                [
+                    id: 'AG1',
+                    data:  [
+                        [timestamp: start.millis, value: 10.032],
+                        [timestamp: start.plusMinutes(1).millis, value: 9.589]
+                    ],
+                ]
+            ],
+            counters: [
+                [
+                    id: 'AC1',
+                    data: [
+                        [timestamp: start.millis, value: 10],
+                        [timestamp: start.plusMinutes(1).millis, value: 20]
+                    ]
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: 'gauges/AG1/data', headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(
+        [
+            [timestamp: start.plusMinutes(1).millis, value: 9.589],
+            [timestamp: start.millis, value: 10.032]
+        ],
+        response.data
+    )
+
+    response = hawkularMetrics.get(path: 'counters/AC1/data', headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(
+        [
+            [timestamp: start.plusMinutes(1).millis, value: 20],
+            [timestamp: start.millis, value: 10]
+        ],
+        response.data
+    )
+  }
+
+  @Test
+  void addMixedDataEmptyRequestPayload() {
+    String tenantId = nextTenantId()
+
+    badPost( path: "metrics/data",
+        body: [],
+        headers: [(tenantHeaderName): tenantId]) { exception ->
+      // Missing type
+      assertEquals(400, exception.response.status)
+    }
+  }
+
+  @Test
+  void addMixedDataMissingData() {
+    String tenantId = nextTenantId()
+
+    def response = hawkularMetrics.post(
+        path: "metrics/data",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            gauges: [
+            ],
+            counters: [
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+  }
 }
