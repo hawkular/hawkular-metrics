@@ -84,6 +84,15 @@ public interface MetricsService {
 
     Observable<Metric> findMetrics(String tenantId, MetricType type);
 
+    /**
+     *
+     * @param tenantId
+     * @param tags
+     * @param type Optional MetricType, if null is given all matching metrics are returned
+     * @return
+     */
+    Observable<Metric> findMetricsWithTags(String tenantId, Map<String, String> tags, MetricType type);
+
     Observable<Optional<Map<String, String>>> getMetricTags(String tenantId, MetricType type, MetricId id);
 
     Observable<Void> addTags(Metric metric, Map<String, String> tags);

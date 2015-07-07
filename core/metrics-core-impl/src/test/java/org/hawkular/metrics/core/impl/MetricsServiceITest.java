@@ -39,6 +39,7 @@ import static org.testng.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -177,6 +178,20 @@ public class MetricsServiceITest extends MetricsITest {
                 ImmutableMap.of("a3", "3", "a4", "3"), DEFAULT_TTL);
         metricsService.createMetric(m2).toBlocking().lastOrDefault(null);
 
+        // Find definitions with given tags
+        Map<String, String> tagMap = new HashMap<>();
+        tagMap.putAll(ImmutableMap.of("a1", "1", "a2", "2"));
+        tagMap.putAll(ImmutableMap.of("a3", "3", "a4", "3"));
+
+        // Test that distinct filtering does not remove same name from different types
+        Metric<DataPoint<AvailabilityType>> gm2 = new Metric<>("t1", GAUGE, new MetricId("m2"),
+                                                              ImmutableMap.of("a3", "3", "a4", "3"), null);
+        metricsService.createMetric(gm2).toBlocking().lastOrDefault(null);
+
+        List<Metric> metrics = metricsService.findMetricsWithTags("t1", tagMap, null)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 3, "The returned size does not match expected");
+
         Metric actualAvail = metricsService.findMetric(m2.getTenantId(), m2.getType(), m2.getId()).toBlocking()
                 .last();
         assertEquals(actualAvail, m2, "The metric does not match the expected value");
@@ -202,7 +217,7 @@ public class MetricsServiceITest extends MetricsITest {
                 ImmutableMap.of("a1", "A", "a2", ""), null);
         metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
 
-        assertMetricIndexMatches("t1", GAUGE, asList(em1, m1, m3, m4));
+        assertMetricIndexMatches("t1", GAUGE, asList(em1, m1, gm2, m3, m4));
         assertMetricIndexMatches("t1", AVAILABILITY, singletonList(m2));
 
         assertDataRetentionsIndexMatches("t1", GAUGE, ImmutableSet.of(new Retention(m3.getId(), 24),

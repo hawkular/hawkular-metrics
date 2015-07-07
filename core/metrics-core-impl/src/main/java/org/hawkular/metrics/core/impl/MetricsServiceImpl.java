@@ -18,6 +18,7 @@ package org.hawkular.metrics.core.impl;
 
 import static java.util.Collections.singletonList;
 import static java.util.Comparator.comparingLong;
+
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
@@ -42,6 +43,18 @@ import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Session;
+import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.BucketedOutput;
@@ -67,20 +80,6 @@ import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Session;
-import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-
 import rx.Observable;
 import rx.functions.Func1;
 import rx.subjects.PublishSubject;
@@ -460,10 +459,23 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<Metric> findMetrics(String tenantId, MetricType type) {
-        return dataAccess.findMetricsInMetricsIndex(tenantId, type)
+        Observable<MetricType> typeObservable = (type == null) ? Observable.from(MetricType.userTypes()) :
+                Observable.just(type);
+
+        return typeObservable.flatMap(t -> dataAccess.findMetricsInMetricsIndex(tenantId, t))
                 .flatMap(Observable::from)
                 .map(row -> new Metric(tenantId, type, new MetricId(row.getString(0), Interval.parse(row.getString(1))),
-                        row.getMap(2, String.class, String.class), row.getInt(3)));
+                                       row.getMap(2, String.class, String.class), row.getInt(3)));
+    }
+
+    @Override
+    public Observable<Metric> findMetricsWithTags(String tenantId, Map<String, String> tags, MetricType type) {
+        return dataAccess.findMetricsFromTagsIndex(tenantId, tags)
+                .flatMap(Observable::from)
+                .filter(r -> (type == null || MetricType.fromCode(r.getInt(0)) == type))
+                .distinct(r -> Integer.valueOf(r.getInt(0)).toString() + r.getString(1) + r.getString(2))
+                .flatMap(r -> findMetric(tenantId, MetricType.fromCode(r.getInt(0)), new MetricId(r.getString
+                        (1), Interval.parse(r.getString(2)))));
     }
 
     @Override

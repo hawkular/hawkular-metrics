@@ -355,19 +355,19 @@ class CassandraBackendITest extends RESTTest {
   void findMetricsShouldFailProperlyWhenTypeIsMissingOrInvalid() {
     def tenantId = nextTenantId()
 
-    badGet(path: "metrics",
-        headers: [(tenantHeaderName): tenantId]) { exception ->
-      // Missing type
-      assertEquals(400, exception.response.status)
-      assertEquals("Missing type param", exception.response.data["errorMsg"])
-    }
-
     def invalidType = MetricType.values().join('"')
     badGet(path: "metrics", query: [type: invalidType],
         headers: [(tenantHeaderName): tenantId]) { exception ->
       // Invalid type
       assertEquals(400, exception.response.status)
       assertEquals(invalidType + " is not a recognized metric type", exception.response.data["errorMsg"])
+    }
+
+    badGet(path: "metrics", query: [type: MetricType.COUNTER_RATE.toString()],
+            headers: [(tenantHeaderName): tenantId]) { exception ->
+      // Not user definable type
+      assertEquals(400, exception.response.status)
+      assertEquals("Incorrect type param", exception.response.data["errorMsg"])
     }
 
     def response = hawkularMetrics.get(path: "metrics", query: [type: MetricType.GAUGE.text],

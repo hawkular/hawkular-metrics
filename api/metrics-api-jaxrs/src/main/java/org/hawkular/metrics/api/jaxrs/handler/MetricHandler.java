@@ -17,6 +17,7 @@
 package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilities;
@@ -43,9 +44,11 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import org.hawkular.metrics.api.jaxrs.ApiError;
+import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.request.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.request.MixedMetricsRequest;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import rx.Observable;
@@ -74,26 +77,31 @@ public class MetricHandler {
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully retrieved at least one metric definition."),
             @ApiResponse(code = 204, message = "No metrics found."),
-            @ApiResponse(code = 400, message = "Missing or invalid type parameter type.", response = ApiError.class),
+            @ApiResponse(code = 400, message = "Invalid type parameter type.", response = ApiError.class),
             @ApiResponse(code = 500, message = "Failed to retrieve metrics due to unexpected error.",
                          response = ApiError.class)
     })
     public void findMetrics(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "Queried metric type",
-                      required = true,
+                      required = false,
                       allowableValues = "[gauge, availability, counter]")
-            @QueryParam("type") MetricType metricType
-    ) {
-        if (metricType == null) {
-            asyncResponse.resume(badRequest(new ApiError("Missing type param")));
+            @QueryParam("type") MetricType metricType,
+            @ApiParam(value = "List of tags", required = false) @QueryParam ("tags") Tags tags) {
+        if(metricType != null && !MetricType.userTypes().stream().filter(t -> metricType == t)
+                .findAny().isPresent()) {
+            asyncResponse.resume(badRequest(new ApiError("Incorrect type param")));
             return;
         }
-        metricsService.findMetrics(tenantId, metricType)
-                      .map(MetricDefinition::new)
-                      .toList()
-                      .map(ApiUtils::collectionToResponse)
-                      .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+
+        Observable<Metric> metricObservable = (tags == null) ? metricsService.findMetrics(tenantId, metricType)
+                : metricsService.findMetricsWithTags(tenantId, tags.getTags(), metricType);
+
+        metricObservable
+                    .map(MetricDefinition::new)
+                    .toList()
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
 
     @POST

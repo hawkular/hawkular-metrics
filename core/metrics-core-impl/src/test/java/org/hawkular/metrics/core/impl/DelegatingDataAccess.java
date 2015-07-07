@@ -240,4 +240,9 @@ public class DelegatingDataAccess implements DataAccess {
     public Observable<ResultSet> findMetricsByTag(String tenantId, String tag) {
         return delegate.findMetricsByTag(tenantId, tag);
     }
+
+    @Override
+    public Observable<ResultSet> findMetricsFromTagsIndex(String tenantId, Map<String, String> tags) {
+        return delegate.findMetricsFromTagsIndex(tenantId, tags);
+    }
 }

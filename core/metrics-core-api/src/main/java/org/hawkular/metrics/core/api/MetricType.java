@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.util.Arrays;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.List;
 
 /**
  * An enumeration of the supported metric types.
@@ -87,6 +88,10 @@ public enum MetricType {
             throw new IllegalArgumentException(textCode + " is not a recognized metric type");
         }
         return type;
+    }
+
+    public static List<MetricType> userTypes() {
+        return Arrays.asList(Arrays.copyOf(MetricType.values(), 3));
     }
 
 }

@@ -184,4 +184,54 @@ class TagsITest extends RESTTest {
     response = hawkularMetrics.get(path: "availability/A1/tags", headers: [(tenantHeaderName): tenantId])
     assertEquals([a3: 'THREE'], response.data)
   }
+
+  @Test
+  void findDefinitionsWithTags() {
+    String tenantId = nextTenantId()
+
+    // Create a gauge metric
+    def response = hawkularMetrics.post(path: "gauges", body: [
+            id  : 'N1',
+            tags: ['a1': 'A', 'd1': 'B']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    // Create an availability metric that sets its data retention
+    response = hawkularMetrics.post(path: "availability", body: [
+            id           : 'A2',
+            tags         : [a22: '22', b22: '22'],
+            dataRetention: 48
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    // Fetch metrics using tags
+    response = hawkularMetrics.get(path: "metrics",
+            query: [tags: "a22:22,b22:22,a1:A,d1:B"],
+            headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals([
+            [
+                    tenantId     : tenantId,
+                    id           : 'A2',
+                    tags         : [a22: '22', b22: '22'],
+                    dataRetention: 48
+            ],
+            [
+                    tenantId: tenantId,
+                    id      : 'N1',
+                    tags    : ['a1': 'A', 'd1': 'B']
+            ]
+    ], response.data)
+
+    // Fetch with tags & type
+    response = hawkularMetrics.get(path: "metrics",
+            query: [tags: "a22:22,b22:22,a1:A,d1:B", type: "gauge"],
+            headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals([[
+                          tenantId: tenantId,
+                          id  : 'N1',
+                          tags: ['a1': 'A', 'd1': 'B']
+                  ]], response.data)
+  }
 }
