@@ -88,7 +88,7 @@ public abstract class ExecutableITestBase {
         ptransProcessBuilder.redirectOutput(ptransOut);
         ptransProcessBuilder.redirectError(ptransErr);
 
-        ptransProcessBuilder.command(JAVA, "-jar", PTRANS_ALL);
+        ptransProcessBuilder.command(JAVA, "-Xss228k", "-jar", PTRANS_ALL);
     }
 
     protected void assertPtransHasStarted(Process process, File output) throws Exception {
