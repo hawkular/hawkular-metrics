@@ -23,6 +23,8 @@ import static java.util.stream.Collectors.groupingBy;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,11 +40,17 @@ import org.jmxtrans.embedded.QueryResult;
 import org.jmxtrans.embedded.config.ConfigurationParser;
 import org.jmxtrans.embedded.output.AbstractOutputWriter;
 import org.junit.After;
+import org.junit.Rule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 /**
  * @author Thomas Segismont
  */
 public class GraphiteITest extends FullStackITest {
+
+    @Rule
+    public final TestWatcher testWatcher = new DumpDataSetOnFailureWatcher();
 
     private EmbeddedJmxTrans embeddedJmxTrans;
 
@@ -121,6 +129,22 @@ public class GraphiteITest extends FullStackITest {
         @Override
         public void write(Iterable<QueryResult> results) {
             results.forEach(ListAppenderWriter.results::add);
+        }
+    }
+
+    private class DumpDataSetOnFailureWatcher extends TestWatcher {
+        static final String SEPARATOR = "###########";
+
+        @Override
+        protected void failed(Throwable e, Description description) {
+            StringWriter stringWriter = new StringWriter();
+            PrintWriter printWriter = new PrintWriter(stringWriter);
+            printWriter.println(GraphiteITest.class.getSimpleName() + ", graphite captured dataset:");
+            printWriter.println(SEPARATOR);
+            ListAppenderWriter.results.forEach(printWriter::println);
+            printWriter.println(SEPARATOR);
+            printWriter.close();
+            System.out.println(stringWriter.toString());
         }
     }
 }
