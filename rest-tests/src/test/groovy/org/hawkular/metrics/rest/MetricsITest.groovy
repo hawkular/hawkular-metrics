@@ -21,6 +21,8 @@ import org.junit.Test
 
 import static org.junit.Assert.assertEquals
 
+import groovyx.net.http.ContentType
+
 /**
  * @author jsanda
  */
@@ -308,7 +310,7 @@ class MetricsITest extends RESTTest {
   }
 
   @Test
-  void addMixedDataEmptyRequestPayload() {
+  void addMixedDataInvalidRequestPayload() {
     String tenantId = nextTenantId()
 
     badPost( path: "metrics/data",
@@ -320,19 +322,43 @@ class MetricsITest extends RESTTest {
   }
 
   @Test
+  void addMixedDataMissingRequestPayload() {
+    String tenantId = nextTenantId()
+
+    badPost( path: "metrics/data",
+        requestContentType: ContentType.JSON,
+        headers: [(tenantHeaderName): tenantId]) { exception ->
+      // Missing type
+      assertEquals(415, exception.response.status)
+    }
+  }
+
+  @Test
+  void addMixedDataEmptyRequestPayload() {
+    String tenantId = nextTenantId()
+
+    badPost( path: "metrics/data",
+        body: new HashMap(),
+        headers: [(tenantHeaderName): tenantId]) { exception ->
+      // Missing type
+      assertEquals(400, exception.response.status)
+    }
+  }
+
+  @Test
   void addMixedDataMissingData() {
     String tenantId = nextTenantId()
 
-    def response = hawkularMetrics.post(
-        path: "metrics/data",
-        headers: [(tenantHeaderName): tenantId],
+    badPost( path: "metrics/data",
         body: [
-            gauges: [
-            ],
-            counters: [
-            ]
-        ]
-    )
-    assertEquals(200, response.status)
+         gauges: [
+         ],
+         counters: [
+         ]
+        ],
+        headers: [(tenantHeaderName): tenantId]) { exception ->
+      // Missing type
+      assertEquals(400, exception.response.status)
+    }
   }
 }

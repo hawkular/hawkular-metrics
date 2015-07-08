@@ -19,6 +19,7 @@ package org.hawkular.metrics.api.jaxrs.handler;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilities;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounters;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGauges;
@@ -114,24 +115,37 @@ public class MetricHandler {
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of metrics", required = true) MixedMetricsRequest metricsRequest) {
 
-        Collection<Observable<Void>> observables = new ArrayList<>();
+        if (metricsRequest == null) {
+            asyncResponse.resume(emptyPayload());
+            return;
+        }
 
-        List<Gauge> gauges = metricsRequest.getGaugeMetrics();
+        List<Gauge> gauges = metricsRequest.getGauges();
+        List<Counter> counters = metricsRequest.getCounters();
+        List<Availability> availabilities = metricsRequest.getAvailabilities();
+
+        if ((gauges == null || gauges.isEmpty()) && (availabilities == null || availabilities.isEmpty())
+                && (counters == null || counters.isEmpty())) {
+            asyncResponse.resume(emptyPayload());
+            return;
+        }
+
+        Collection<Observable<Void>> observables = new ArrayList<>();
         if (gauges != null && !gauges.isEmpty()) {
+            gauges = ImmutableList.copyOf(gauges);
             observables.add(metricsService
                     .addGaugeData(requestToGauges(tenantId, gauges).subscribeOn(Schedulers.computation())));
         }
-
-        List<Counter> counters = metricsRequest.getCounters();
         if (counters != null && !counters.isEmpty()) {
+            counters = ImmutableList.copyOf(counters);
             observables.add(metricsService
                     .addCounterData(requestToCounters(tenantId, counters).subscribeOn(Schedulers.computation())));
         }
-
-        List<Availability> availabilities = metricsRequest.getAvailabilityMetrics();
         if (availabilities != null && !availabilities.isEmpty()) {
-            observables.add(metricsService.addAvailabilityData(
-                    requestToAvailabilities(tenantId, availabilities).subscribeOn(Schedulers.computation())));
+            availabilities = ImmutableList.copyOf(availabilities);
+            observables.add(metricsService
+                    .addAvailabilityData(requestToAvailabilities(tenantId, ImmutableList.copyOf(availabilities))
+                            .subscribeOn(Schedulers.computation())));
         }
 
         Observable.merge(observables).subscribe(
