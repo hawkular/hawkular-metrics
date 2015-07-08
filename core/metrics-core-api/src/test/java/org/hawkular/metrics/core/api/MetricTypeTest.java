@@ -17,7 +17,7 @@
 package org.hawkular.metrics.core.api;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertFalse;
 
 import org.junit.Test;
 
@@ -28,8 +28,7 @@ public class MetricTypeTest {
 
     @Test
     public void testUserValues() {
-        MetricType.userTypes().stream().filter(metricType -> metricType == MetricType.COUNTER_RATE).forEach
-                (metricType -> fail("COUNTER_RATE is not user defined type"));
+        assertFalse("COUNTER_RATE is not user defined type", MetricType.userTypes().contains(MetricType.COUNTER_RATE));
         assertEquals(3, MetricType.userTypes().size());
     }
 }

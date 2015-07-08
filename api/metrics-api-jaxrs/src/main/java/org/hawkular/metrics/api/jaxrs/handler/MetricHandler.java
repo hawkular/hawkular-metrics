@@ -88,8 +88,8 @@ public class MetricHandler {
                       allowableValues = "[gauge, availability, counter]")
             @QueryParam("type") MetricType metricType,
             @ApiParam(value = "List of tags", required = false) @QueryParam ("tags") Tags tags) {
-        if(metricType != null && !MetricType.userTypes().stream().filter(t -> metricType == t)
-                .findAny().isPresent()) {
+
+        if(metricType != null && !MetricType.userTypes().contains(metricType)) {
             asyncResponse.resume(badRequest(new ApiError("Incorrect type param")));
             return;
         }

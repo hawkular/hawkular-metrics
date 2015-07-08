@@ -18,6 +18,7 @@ package org.hawkular.metrics.rest
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertTrue
 
 import org.junit.Test
 
@@ -209,19 +210,19 @@ class TagsITest extends RESTTest {
             query: [tags: "a22:22,b22:22,a1:A,d1:B"],
             headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
-    assertEquals([
-            [
-                    tenantId     : tenantId,
-                    id           : 'A2',
-                    tags         : [a22: '22', b22: '22'],
-                    dataRetention: 48
-            ],
-            [
-                    tenantId: tenantId,
-                    id      : 'N1',
-                    tags    : ['a1': 'A', 'd1': 'B']
-            ]
-    ], response.data)
+    assertTrue(response.data instanceof List)
+    assertEquals(response.data.size(), 2)
+    assertTrue(response.data.contains([
+            tenantId: tenantId,
+            id      : 'N1',
+            tags    : ['a1': 'A', 'd1': 'B']
+    ]))
+    assertTrue(response.data.contains([
+            tenantId     : tenantId,
+            id           : 'A2',
+            tags         : [a22: '22', b22: '22'],
+            dataRetention: 48
+    ]))
 
     // Fetch with tags & type
     response = hawkularMetrics.get(path: "metrics",
@@ -230,8 +231,8 @@ class TagsITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals([[
                           tenantId: tenantId,
-                          id  : 'N1',
-                          tags: ['a1': 'A', 'd1': 'B']
+                          id      : 'N1',
+                          tags    : ['a1': 'A', 'd1': 'B']
                   ]], response.data)
   }
 }
