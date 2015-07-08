@@ -19,7 +19,6 @@ package org.hawkular.metrics.api.jaxrs.request;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableList;
 import com.wordnik.swagger.annotations.ApiModel;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.Counter;
@@ -32,32 +31,31 @@ import org.hawkular.metrics.api.jaxrs.model.Gauge;
 public class MixedMetricsRequest {
 
     @JsonProperty("gauges")
-    private List<Gauge> gaugeMetrics;
+    private List<Gauge> gauges;
 
     @JsonProperty("availabilities")
-    private List<Availability> availabilityMetrics;
+    private List<Availability> availabilities;
 
     @JsonProperty("counters")
     private List<Counter> counters;
 
-
-    public List<Gauge> getGaugeMetrics() {
-        return ImmutableList.copyOf(gaugeMetrics);
+    public List<Gauge> getGauges() {
+        return gauges;
     }
 
-    public List<Availability> getAvailabilityMetrics() {
-        return ImmutableList.copyOf(availabilityMetrics);
+    public List<Availability> getAvailabilities() {
+        return availabilities;
     }
 
     public List<Counter> getCounters() {
-        return ImmutableList.copyOf(counters);
+        return counters;
     }
 
     @Override
     public String toString() {
         return "MixedMetricsRequest{" +
-                "gaugeMetrics=" + gaugeMetrics +
-                ", availabilityMetrics=" + availabilityMetrics +
+                "gaugeMetrics=" + gauges +
+                ", availabilityMetrics=" + availabilities +
                 ", counters=" + counters +
                 '}';
     }
