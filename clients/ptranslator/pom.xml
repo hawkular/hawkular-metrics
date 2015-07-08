@@ -37,13 +37,7 @@
 
   <properties>
     <cassandra.keyspace>hawkular_metrics_ptrans_integration_tests</cassandra.keyspace>
-    <!-- IMPORTANT: The port must be the port offset + 8080. -->
-    <base-uri>127.0.0.1:55988/hawkular/metrics</base-uri>
-    <ptrans.wildfly.port.offset>47908</ptrans.wildfly.port.offset>
-    <!-- IMPORTANT: The management port must be the port offset + 9990. -->
-    <ptrans.wildfly.management.port>57898</ptrans.wildfly.management.port>
-    <wildfly.logging.console.level>ERROR</wildfly.logging.console.level>
-    <wildfly.logging.file.level>DEBUG</wildfly.logging.file.level>
+    <scheduler.units>seconds</scheduler.units>
     <!-- Configuration files used when starting a development ptrans instance with mvn exec:java -->
     <dev.log4j.configuration>${project.basedir}/log4j-dev.xml</dev.log4j.configuration>
     <dev.ptrans.conf>${project.basedir}/ptrans.conf</dev.ptrans.conf>
@@ -121,41 +115,6 @@
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-resources-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>copy-standalone-test</id>
-            <phase>process-test-resources</phase>
-            <goals>
-              <goal>copy-resources</goal>
-            </goals>
-            <configuration>
-              <!--
-                We cannot specify an arbitrary path to standalone-test.xml, so we include the necessary
-                configuration files and override the default configuration directory. See
-                https://issues.jboss.org/browse/JBASMP-75 for details.
-              -->
-              <outputDirectory>${project.build.directory}/wildfly-configuration</outputDirectory>
-              <overwrite>true</overwrite>
-              <useDefaultDelimiters>false</useDefaultDelimiters>
-              <delimiters>
-                <delimiter>@@@</delimiter>
-              </delimiters>
-              <resources>
-                <resource>
-                  <directory>${project.basedir}/src/test/wildfly-configuration</directory>
-                  <includes>
-                    <include>*</include>
-                  </includes>
-                  <filtering>true</filtering>
-                </resource>
-              </resources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <excludes>
@@ -185,81 +144,6 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-failsafe-plugin</artifactId>
-        <configuration>
-          <includes>
-            <include>**/*ITest*</include>
-          </includes>
-          <systemPropertyVariables>
-            <keyspace>${cassandra.keyspace}</keyspace>
-            <hawkular-metrics.base-uri>${base-uri}</hawkular-metrics.base-uri>
-          </systemPropertyVariables>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>integration-test</goal>
-              <goal>verify</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.wildfly.plugins</groupId>
-        <artifactId>wildfly-maven-plugin</artifactId>
-        <configuration>
-          <skip>${skipTests}</skip>
-          <port>${ptrans.wildfly.management.port}</port>
-        </configuration>
-        <executions>
-          <execution>
-            <id>start-wildfly</id>
-            <phase>pre-integration-test</phase>
-            <goals>
-              <goal>start</goal>
-            </goals>
-            <configuration>
-              <serverConfig>standalone-test.xml</serverConfig>
-              <javaOpts>
-                <javaOpt>-Xms64m</javaOpt>
-                <javaOpt>-Xmx512m</javaOpt>
-                <javaOpt>-Xss256k</javaOpt>
-                <javaOpt>-Djava.net.preferIPv4Stack=true</javaOpt>
-                <javaOpt>-Dsun.rmi.dgc.client.gcInterval=3600000</javaOpt>
-                <javaOpt>-Dsun.rmi.dgc.server.gcInterval=3600000</javaOpt>
-                <javaOpt>-Djboss.socket.binding.port-offset=${ptrans.wildfly.port.offset}</javaOpt>
-                <javaOpt>-Djboss.server.config.dir=${project.build.directory}/wildfly-configuration</javaOpt>
-                <javaOpt>-Dcassandra.keyspace=${cassandra.keyspace}</javaOpt>
-                <javaOpt>-Dcassandra.resetdb</javaOpt>
-                <javaOpt>-Dhawkular.metrics.waitForService</javaOpt>
-                <javaOpt>-Xdebug</javaOpt>
-                <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
-              </javaOpts>
-            </configuration>
-          </execution>
-          <execution>
-            <id>deploy-webapp</id>
-            <phase>pre-integration-test</phase>
-            <goals>
-              <goal>deploy-artifact</goal>
-            </goals>
-            <configuration>
-              <groupId>${project.groupId}</groupId>
-              <artifactId>hawkular-metrics-api-jaxrs</artifactId>
-              <name>hawkular-metric-rest.war</name>
-            </configuration>
-          </execution>
-          <execution>
-            <id>stop-wildfly</id>
-            <phase>post-integration-test</phase>
-            <goals>
-              <goal>shutdown</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <configuration>
@@ -280,6 +164,7 @@
   </build>
 
   <profiles>
+
     <profile>
       <id>publish</id>
       <build>
@@ -303,5 +188,148 @@
         </plugins>
       </build>
     </profile>
+
+    <profile>
+      <id>ptrans-integration-tests</id>
+      <activation>
+        <property>
+          <name>integration-tests</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>copy-standalone-test</id>
+                <phase>process-test-resources</phase>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+                <configuration>
+                  <!--
+                    We cannot specify an arbitrary path to standalone-test.xml, so we include the necessary
+                    configuration files and override the default configuration directory. See
+                    https://issues.jboss.org/browse/JBASMP-75 for details.
+                  -->
+                  <outputDirectory>${project.build.directory}/wildfly-configuration</outputDirectory>
+                  <overwrite>true</overwrite>
+                  <useDefaultDelimiters>false</useDefaultDelimiters>
+                  <delimiters>
+                    <delimiter>@@@</delimiter>
+                  </delimiters>
+                  <resources>
+                    <resource>
+                      <directory>${project.basedir}/src/test/wildfly-configuration</directory>
+                      <includes>
+                        <include>*</include>
+                      </includes>
+                      <filtering>true</filtering>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <includes>
+                <include>**/*ITest*</include>
+              </includes>
+              <systemPropertyVariables>
+                <keyspace>${cassandra.keyspace}</keyspace>
+                <hawkular-metrics.base-uri>${base-uri}</hawkular-metrics.base-uri>
+              </systemPropertyVariables>
+            </configuration>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.wildfly.plugins</groupId>
+            <artifactId>wildfly-maven-plugin</artifactId>
+            <configuration>
+              <skip>${running.service}</skip>
+              <port>${ptrans.wildfly.management.port}</port>
+            </configuration>
+            <executions>
+              <execution>
+                <id>start-wildfly</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>start</goal>
+                </goals>
+                <configuration>
+                  <serverConfig>standalone-test.xml</serverConfig>
+                  <javaOpts>
+                    <javaOpt>-Xms64m</javaOpt>
+                    <javaOpt>-Xmx512m</javaOpt>
+                    <javaOpt>-Xss256k</javaOpt>
+                    <javaOpt>-Djava.net.preferIPv4Stack=true</javaOpt>
+                    <javaOpt>-Dsun.rmi.dgc.client.gcInterval=3600000</javaOpt>
+                    <javaOpt>-Dsun.rmi.dgc.server.gcInterval=3600000</javaOpt>
+                    <javaOpt>-Djboss.socket.binding.port-offset=${ptrans.wildfly.port.offset}</javaOpt>
+                    <javaOpt>-Djboss.server.config.dir=${project.build.directory}/wildfly-configuration</javaOpt>
+                    <javaOpt>-Dcassandra.keyspace=${cassandra.keyspace}</javaOpt>
+                    <javaOpt>-Dcassandra.resetdb</javaOpt>
+                    <javaOpt>-Dhawkular.metrics.waitForService</javaOpt>
+                    <javaOpt>-Dhawkular.scheduler.time-units=${scheduler.units}</javaOpt>
+                    <javaOpt>-Xdebug</javaOpt>
+                    <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
+                  </javaOpts>
+                </configuration>
+              </execution>
+              <execution>
+                <id>deploy-webapp</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>deploy-artifact</goal>
+                </goals>
+                <configuration>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+                  <name>hawkular-metric-rest.war</name>
+                </configuration>
+              </execution>
+              <execution>
+                <id>stop-wildfly</id>
+                <phase>post-integration-test</phase>
+                <goals>
+                  <goal>shutdown</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>wildfly.deployment</id>
+      <activation>
+        <property>
+          <name>!running.service</name>
+        </property>
+      </activation>
+      <properties>
+        <!-- IMPORTANT: The port must be the port offset + 8080. -->
+        <base-uri>127.0.0.1:55988/hawkular/metrics</base-uri>
+        <ptrans.wildfly.port.offset>47908</ptrans.wildfly.port.offset>
+        <!-- IMPORTANT: The management port must be the port offset + 9990. -->
+        <ptrans.wildfly.management.port>57898</ptrans.wildfly.management.port>
+        <wildfly.logging.console.level>ERROR</wildfly.logging.console.level>
+        <wildfly.logging.file.level>DEBUG</wildfly.logging.file.level>
+      </properties>
+    </profile>
+
   </profiles>
 </project>

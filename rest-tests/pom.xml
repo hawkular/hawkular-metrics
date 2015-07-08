@@ -102,75 +102,16 @@
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-resources-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>copy-standalone-test</id>
-            <phase>process-test-resources</phase>
-            <goals>
-              <goal>copy-resources</goal>
-            </goals>
-            <configuration>
-              <!--
-                We cannot specify an arbitrary path to standalone-test.xml, so we include the necessary
-                configuration files and override the default configuration directory. See
-                https://issues.jboss.org/browse/JBASMP-75 for details.
-              -->
-              <outputDirectory>${project.build.directory}/wildfly-configuration</outputDirectory>
-              <overwrite>true</overwrite>
-              <useDefaultDelimiters>false</useDefaultDelimiters>
-              <delimiters>
-                <delimiter>@@@</delimiter>
-              </delimiters>
-              <resources>
-                <resource>
-                  <directory>${project.basedir}/src/test/wildfly-configuration</directory>
-                  <includes>
-                    <include>*</include>
-                  </includes>
-                  <filtering>true</filtering>
-                </resource>
-              </resources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <skipTests>true</skipTests>
-          <excludes>
-            <exclude>**/*ITest*</exclude>
-          </excludes>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-failsafe-plugin</artifactId>
-        <configuration>
-          <includes>
-            <include>**/*ITest*</include>
-          </includes>
-          <systemPropertyVariables>
-            <keyspace>${cassandra.keyspace}</keyspace>
-            <hawkular-metrics.base-uri>${base-uri}</hawkular-metrics.base-uri>
-            <project.version>${project.version}</project.version>
-          </systemPropertyVariables>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>integration-test</goal>
-              <goal>verify</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>
 
   <profiles>
+
     <profile>
       <id>test.debug</id>
       <activation>
@@ -186,30 +127,54 @@
     </profile>
 
     <profile>
-      <id>wildfly.deployment</id>
+      <id>rest-tests-integration-tests</id>
       <activation>
         <property>
-          <name>!running.service</name>
+          <name>integration-tests</name>
         </property>
       </activation>
-
-      <properties>
-        <!-- IMPORTANT: The port must be the port offset + 8080. -->
-        <base-uri>127.0.0.1:55977/hawkular/metrics</base-uri>
-        <wildfly.port.offset>47897</wildfly.port.offset>
-        <!-- IMPORTANT: The management port must be the port offset + 9990. -->
-        <wildfly.management.port>57887</wildfly.management.port>
-        <wildfly.logging.console.level>ERROR</wildfly.logging.console.level>
-        <wildfly.logging.file.level>DEBUG</wildfly.logging.file.level>
-      </properties>
-
       <build>
         <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>copy-standalone-test</id>
+                <phase>process-test-resources</phase>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+                <configuration>
+                  <!--
+                    We cannot specify an arbitrary path to standalone-test.xml, so we include the necessary
+                    configuration files and override the default configuration directory. See
+                    https://issues.jboss.org/browse/JBASMP-75 for details.
+                  -->
+                  <outputDirectory>${project.build.directory}/wildfly-configuration</outputDirectory>
+                  <overwrite>true</overwrite>
+                  <useDefaultDelimiters>false</useDefaultDelimiters>
+                  <delimiters>
+                    <delimiter>@@@</delimiter>
+                  </delimiters>
+                  <resources>
+                    <resource>
+                      <directory>${project.basedir}/src/test/wildfly-configuration</directory>
+                      <includes>
+                        <include>*</include>
+                      </includes>
+                      <filtering>true</filtering>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
           <plugin>
             <groupId>org.wildfly.plugins</groupId>
             <artifactId>wildfly-maven-plugin</artifactId>
             <configuration>
-              <skip>${skipTests}</skip>
+              <skip>${running.service}</skip>
               <port>${wildfly.management.port}</port>
             </configuration>
             <executions>
@@ -260,8 +225,49 @@
               </execution>
             </executions>
           </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <includes>
+                <include>**/*ITest*</include>
+              </includes>
+              <systemPropertyVariables>
+                <keyspace>${cassandra.keyspace}</keyspace>
+                <hawkular-metrics.base-uri>${base-uri}</hawkular-metrics.base-uri>
+                <project.version>${project.version}</project.version>
+              </systemPropertyVariables>
+            </configuration>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
         </plugins>
       </build>
     </profile>
+
+    <profile>
+      <id>wildfly.deployment</id>
+      <activation>
+        <property>
+          <name>!running.service</name>
+        </property>
+      </activation>
+      <properties>
+        <!-- IMPORTANT: The port must be the port offset + 8080. -->
+        <base-uri>127.0.0.1:55977/hawkular/metrics</base-uri>
+        <wildfly.port.offset>47897</wildfly.port.offset>
+        <!-- IMPORTANT: The management port must be the port offset + 9990. -->
+        <wildfly.management.port>57887</wildfly.management.port>
+        <wildfly.logging.console.level>ERROR</wildfly.logging.console.level>
+        <wildfly.logging.file.level>DEBUG</wildfly.logging.file.level>
+      </properties>
+    </profile>
+
   </profiles>
 </project>

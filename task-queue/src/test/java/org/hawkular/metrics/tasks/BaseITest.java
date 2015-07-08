@@ -20,10 +20,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Session;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.Uninterruptibles;
 import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.metrics.tasks.impl.Queries;
 import org.hawkular.rx.cassandra.driver.RxSession;
@@ -31,10 +27,15 @@ import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
 
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Session;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.Uninterruptibles;
+
 /**
  * @author jsanda
  */
-public class BaseTest {
+public abstract class BaseITest {
 
     private static final long FUTURE_TIMEOUT = 3;
 

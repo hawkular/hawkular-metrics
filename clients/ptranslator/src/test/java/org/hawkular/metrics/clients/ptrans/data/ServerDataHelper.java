@@ -38,10 +38,15 @@ import com.fasterxml.jackson.databind.type.TypeFactory;
  * @author Thomas Segismont
  */
 public class ServerDataHelper {
-    public static final String BASE_URI = System.getProperty(
-            "hawkular-metrics.base-uri",
-            "127.0.0.1:8080/hawkular/metrics"
-    );
+    public static final String BASE_URI;
+
+    static {
+        String baseUri = System.getProperty("hawkular-metrics.base-uri");
+        if (baseUri == null || baseUri.trim().isEmpty()) {
+            baseUri = "127.0.0.1:8080/hawkular/metrics";
+        }
+        BASE_URI = baseUri;
+    }
 
     private final String tenant;
     private final String findGaugeMetricsUrl;

@@ -20,6 +20,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
+
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Duration.standardMinutes;
 import static org.joda.time.Duration.standardSeconds;
@@ -39,9 +40,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.StreamSupport;
 
-import com.datastax.driver.core.ResultSet;
-import com.google.common.collect.ImmutableSet;
-import org.hawkular.metrics.tasks.BaseTest;
+import org.hawkular.metrics.tasks.BaseITest;
 import org.hawkular.metrics.tasks.api.Task;
 import org.hawkular.metrics.tasks.api.TaskType;
 import org.joda.time.DateTime;
@@ -49,14 +48,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import com.datastax.driver.core.ResultSet;
+import com.google.common.collect.ImmutableSet;
+
 import rx.functions.Action1;
 
 /**
  * @author jsanda
  */
-public class TaskServiceTest extends BaseTest {
+public class TaskServiceITest extends BaseITest {
 
-    private static final Logger logger = LoggerFactory.getLogger(TaskServiceTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(TaskServiceITest.class);
 
     protected LeaseService leaseService;
 

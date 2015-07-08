@@ -43,7 +43,7 @@ before_install:
 install:
 - mvn -version -B
 script:
-- mvn verify -Dwildfly.logging.console.level=DEBUG -B
+- mvn verify -Dintegration-tests -Dwildfly.logging.console.level=DEBUG -B
 after_failure: bash .travis.diagnose.sh
 after_success:
 - PROJECT_VERSION=`mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -v '\['`

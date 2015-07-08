@@ -17,6 +17,7 @@
 package org.hawkular.metrics.tasks.impl;
 
 import static java.util.Collections.singletonList;
+
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Duration.standardMinutes;
 import static org.testng.Assert.assertEquals;
@@ -29,10 +30,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.datastax.driver.core.PreparedStatement;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import org.hawkular.metrics.tasks.BaseTest;
+import org.hawkular.metrics.tasks.BaseITest;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.joda.time.DateTime;
 import org.joda.time.Minutes;
@@ -42,12 +40,16 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import com.datastax.driver.core.PreparedStatement;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+
 /**
  * @author jsanda
  */
-public class LeaseServiceTest extends BaseTest {
+public class LeaseServiceITest extends BaseITest {
 
-    private static Logger logger = LoggerFactory.getLogger(LeaseServiceTest.class);
+    private static Logger logger = LoggerFactory.getLogger(LeaseServiceITest.class);
 
     private LeaseService leaseService;
 
