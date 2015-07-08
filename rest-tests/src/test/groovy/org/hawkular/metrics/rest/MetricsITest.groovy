@@ -21,8 +21,6 @@ import org.junit.Test
 
 import static org.junit.Assert.assertEquals
 
-import groovyx.net.http.ContentType
-
 /**
  * @author jsanda
  */
@@ -326,10 +324,10 @@ class MetricsITest extends RESTTest {
     String tenantId = nextTenantId()
 
     badPost( path: "metrics/data",
-        requestContentType: ContentType.JSON,
+        body: "",
         headers: [(tenantHeaderName): tenantId]) { exception ->
       // Missing type
-      assertEquals(415, exception.response.status)
+      assertEquals(400, exception.response.status)
     }
   }
 
