@@ -18,23 +18,23 @@
 
 
 set -xe
-cVersion="2.1.1"
 
 cd "${HOME}"
 
-wget http://downloads.datastax.com/community/dsc-cassandra-${cVersion}-bin.tar.gz
-tar -xzf dsc-cassandra-${cVersion}-bin.tar.gz
-cHome="${HOME}/dsc-cassandra-${cVersion}"
+wget -O datastax-releases "http://downloads.datastax.com/community/?C=M;O=D"
+LATEST_MICRO=`cat datastax-releases | grep -m 1 -o -E "dsc-cassandra-2\.1\.[0-9]+-bin\.tar.gz" | head -1 | cut -d '.' -f3 | cut -d '-' -f1`
 
-mkdir "${cHome}/logs"
+CASSANDRA_VERSION="2.1.${LATEST_MICRO}"
+CASSANDRA_BINARY="dsc-cassandra-${CASSANDRA_VERSION}-bin.tar.gz"
 
-cat /proc/sys/kernel/core_pattern
+wget http://downloads.datastax.com/community/${CASSANDRA_BINARY}
+tar -xzf ${CASSANDRA_BINARY}
 
-ulimit -c unlimited -S
-ulimit -c
+CASSANDRA_HOME="${HOME}/dsc-cassandra-${CASSANDRA_VERSION}"
+
+mkdir "${CASSANDRA_HOME}/logs"
 
 export HEAP_NEWSIZE="100M"
 export MAX_HEAP_SIZE="1G"
 
-nohup sh ${cHome}/bin/cassandra -f -p ${HOME}/cassandra.pid > ${cHome}/logs/stdout.log 2>&1 &
-
+nohup sh ${CASSANDRA_HOME}/bin/cassandra -f -p ${HOME}/cassandra.pid > ${CASSANDRA_HOME}/logs/stdout.log 2>&1 &
