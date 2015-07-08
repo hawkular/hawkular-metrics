@@ -25,6 +25,8 @@ addons:
     build_command: mvn -DskipTests=true compile
     branch_pattern: coverity_scan
 before_install:
+# Increase max number of processes in order to avoid "OutOfMemoryError: unable to create new native thread"
+- ulimit -u 4096
 - ulimit -a
 - sudo apt-get update -qq
 - sudo apt-get install -qq collectd collectd-utils
