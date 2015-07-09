@@ -16,9 +16,10 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
+
+import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -27,6 +28,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+
+import org.hawkular.metrics.core.api.AggregationTemplate;
+import org.hawkular.metrics.core.api.AvailabilityType;
+import org.hawkular.metrics.core.api.DataPoint;
+import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.Retention;
+import org.hawkular.metrics.core.api.RetentionSettings;
+import org.hawkular.metrics.core.api.Tenant;
+import org.hawkular.rx.cassandra.driver.RxSession;
+import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
@@ -41,18 +55,7 @@ import com.datastax.driver.core.TupleValue;
 import com.datastax.driver.core.UDTValue;
 import com.datastax.driver.core.UserType;
 import com.datastax.driver.core.utils.UUIDs;
-import org.hawkular.metrics.core.api.AggregationTemplate;
-import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.Retention;
-import org.hawkular.metrics.core.api.RetentionSettings;
-import org.hawkular.metrics.core.api.Tenant;
-import org.hawkular.rx.cassandra.driver.RxSession;
-import org.hawkular.rx.cassandra.driver.RxSessionImpl;
+
 import rx.Observable;
 
 /**
@@ -139,6 +142,8 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement deleteMetricsTagsIndex;
 
     private PreparedStatement findMetricsByTagName;
+
+    private PreparedStatement findMetricsFromTagsIndex;
 
     public DataAccessImpl(Session session) {
         this.session = session;
@@ -324,6 +329,11 @@ public class DataAccessImpl implements DataAccess {
             "SELECT tvalue, type, metric, interval " +
             "FROM metrics_tags_idx " +
             "WHERE tenant_id = ? AND tname = ?");
+
+        findMetricsFromTagsIndex = session.prepare(
+                "SELECT type, metric, interval " +
+                        "FROM metrics_tags_idx " +
+                        "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
     }
 
     @Override
@@ -666,6 +676,12 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<ResultSet> findMetricsByTag(String tenantId, String tag) {
         return rxSession.execute(findMetricsByTagName.bind(tenantId, tag));
+    }
+
+    @Override
+    public Observable<ResultSet> findMetricsFromTagsIndex(String tenantId, Map<String, String> tags) {
+        return Observable.from(tags.entrySet())
+                .flatMap(e -> rxSession.execute(findMetricsFromTagsIndex.bind(tenantId, e.getKey(), e.getValue())));
     }
 
     @Override

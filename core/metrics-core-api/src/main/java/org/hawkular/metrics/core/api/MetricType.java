@@ -19,6 +19,7 @@ package org.hawkular.metrics.core.api;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Arrays;
+import java.util.EnumSet;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -35,6 +36,8 @@ public enum MetricType {
 
     private int code;
     private String text;
+
+    private static EnumSet<MetricType> userDefinableTypes = EnumSet.range(GAUGE, COUNTER);
 
     MetricType(int code, String text) {
         this.code = code;
@@ -89,4 +92,7 @@ public enum MetricType {
         return type;
     }
 
+    public static EnumSet<MetricType> userTypes() {
+        return userDefinableTypes;
+    }
 }

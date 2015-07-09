@@ -82,7 +82,21 @@ public interface MetricsService {
 
     Observable<Metric> findMetric(String tenantId, MetricType type, MetricId id);
 
+    /**
+     * Returns tenant's metric definitions. The results can be filtered using a type.
+     *
+     * @param type If type is null, all user definable metric definitions are returned.
+     */
     Observable<Metric> findMetrics(String tenantId, MetricType type);
+
+    /**
+     * Returns tenant's metric definitions. The results can be filtered using a type and tags. Use findMetrics
+     * if you don't intend to use tags for filtering.
+     *
+     * @param tags Tag names and values that are used to filter definitions
+     * @param type Optional MetricType, if null is given all matching metrics are returned
+     */
+    Observable<Metric> findMetricsWithTags(String tenantId, Map<String, String> tags, MetricType type);
 
     Observable<Optional<Map<String, String>>> getMetricTags(String tenantId, MetricType type, MetricId id);
 
