@@ -22,10 +22,50 @@ import org.junit.Test
 
 import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
+
 /**
- *
+ * @author John Sanda
  */
 class CountersITest extends RESTTest {
+
+  @Test
+  void shouldNotCreateMetricWithEmptyPayload() {
+    def tenantId = nextTenantId()
+
+    badPost(path: "counters", headers: [(tenantHeaderName): tenantId], body: "" /* Empty Body */) { exception ->
+      assertEquals(400, exception.response.status)
+    }
+  }
+
+  @Test
+  void shouldNotAddDataForCounterWithEmptyPayload() {
+    def tenantId = nextTenantId()
+
+    badPost(path: "counters/pimpo/data", headers: [(tenantHeaderName): tenantId],
+        body: "" /* Empty Body */) { exception ->
+      assertEquals(400, exception.response.status)
+    }
+
+    badPost(path: "counters/pimpo/data", headers: [(tenantHeaderName): tenantId],
+        body: [] /* Empty List */) { exception ->
+      assertEquals(400, exception.response.status)
+    }
+  }
+
+  @Test
+  void shouldNotAddDataWithEmptyPayload() {
+    def tenantId = nextTenantId()
+
+    badPost(path: "counters/data", headers: [(tenantHeaderName): tenantId],
+        body: "" /* Empty Body */) { exception ->
+      assertEquals(400, exception.response.status)
+    }
+
+    badPost(path: "counters/data", headers: [(tenantHeaderName): tenantId],
+        body: [] /* Empty List */) { exception ->
+      assertEquals(400, exception.response.status)
+    }
+  }
 
   @Test
   void createSimpleCounter() {
@@ -44,6 +84,23 @@ class CountersITest extends RESTTest {
 
     def expectedData = [tenantId: tenantId, id: id]
     assertEquals(expectedData, response.data)
+  }
+
+  @Test
+  void shouldNotCreateDuplicateCounter() {
+    String tenantId = nextTenantId()
+    String id = "C1"
+
+    def response = hawkularMetrics.post(
+        path: "counters",
+        headers: [(tenantHeaderName): tenantId],
+        body: [id: id]
+    )
+    assertEquals(201, response.status)
+
+    badPost(path: 'counters', headers: [(tenantHeaderName): tenantId], body: [id: id]) { exception ->
+      assertEquals(409, exception.response.status)
+    }
   }
 
   @Test
