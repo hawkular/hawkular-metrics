@@ -16,16 +16,43 @@
  */
 package org.hawkular.metrics.rest
 
-import static org.joda.time.DateTime.now
-import static org.junit.Assert.assertEquals
-
+import org.apache.http.util.EntityUtils
 import org.joda.time.DateTime
 import org.junit.Test
+
+import javax.ws.rs.core.MediaType
+
+import static groovyx.net.http.Method.POST
+import static org.joda.time.DateTime.now
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.fail
 
 /**
  * @author Thomas Segismont
  */
 class InfluxITest extends RESTTest {
+
+  @Test
+  void testEmptyPayload() {
+    def tenantId = nextTenantId()
+
+    hawkularMetrics.request(POST) { request ->
+      uri.path = "db/${tenantId}/series"
+      body = "" /* Empty body */
+      requestContentType = 'application/json'
+      headers = [Accept: 'application/json, text/plain']
+
+      response.success = { response ->
+        fail("Expected error response, got ${response.statusLine}")
+      }
+
+      response.failure = { response ->
+        assertEquals(400, response.status)
+        assertEquals(MediaType.TEXT_PLAIN, response.contentType)
+        assertEquals("Null objects", EntityUtils.toString(response.entity))
+      }
+    }
+  }
 
   @Test
   void testListSeries() {
@@ -257,14 +284,16 @@ class InfluxITest extends RESTTest {
         response.data
     )
   }
- @Test
+
+  @Test
   void testInfluxBottom() {
-   def tenantId = nextTenantId()
+    def tenantId = nextTenantId()
     def timeseriesName = "influx.bottom"
     def start = now().minus(4000)
-   postData(tenantId, timeseriesName, start)
+    postData(tenantId, timeseriesName, start)
 
-    def influxQuery = 'select bottom(value, 3) from "' + timeseriesName + '" where time > now() - 30s group by time(30s)'
+    def influxQuery = 'select bottom(value, 3) from "' + timeseriesName + '" where time > now() - 30s group by time' +
+        '(30s)'
 
     def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
@@ -285,12 +314,12 @@ class InfluxITest extends RESTTest {
     )
   }
 
- @Test
+  @Test
   void testInfluxStddev() {
-   def tenantId = nextTenantId()
+    def tenantId = nextTenantId()
     def timeseriesName = "influx.stddev"
     def start = now().minus(4000)
-   postData(tenantId, timeseriesName, start)
+    postData(tenantId, timeseriesName, start)
 
     def influxQuery = 'select stddev(value) from "' + timeseriesName + '" where time > now() - 30s group by time(30s)'
 
