@@ -16,10 +16,10 @@
  */
 package org.hawkular.metrics.rest
 
+import org.junit.Test
+
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
-
-import org.junit.Test
 
 /**
  * @author Thomas Segismont
@@ -72,7 +72,7 @@ class TenantITest extends RESTTest {
 
   @Test
   void invalidPayloadTest() {
-    badPost(path: 'tenants', body: [] /* Empty body */) { exception ->
+    badPost(path: 'tenants', body: "" /* Empty body */) { exception ->
       assertEquals(400, exception.response.status)
       assertTrue(exception.response.data.containsKey("errorMsg"))
     }
