@@ -202,7 +202,7 @@ public class GaugeHandler {
             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
             List<GaugeDataPoint> data
     ) {
-        if (data.isEmpty()) {
+        if (data == null || data.isEmpty()) {
             asyncResponse.resume(emptyPayload());
         } else {
             Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId(id), requestToGaugeDataPoints(data));
@@ -222,7 +222,7 @@ public class GaugeHandler {
     public void addGaugeData(@Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of metrics", required = true) List<Gauge> gauges) {
 
-        if (gauges.isEmpty()) {
+        if (gauges == null || gauges.isEmpty()) {
             asyncResponse.resume(emptyPayload());
         } else {
             Observable<Metric<Double>> metrics = requestToGauges(tenantId, gauges);
@@ -410,12 +410,19 @@ public class GaugeHandler {
     @POST
     @Path("/{id}/tag")
     @ApiOperation(value = "Add or update gauge metric's tags.")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Tags were modified successfully."),
-        @ApiResponse(code = 500, message = "Processing tags failed") })
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Tags were modified successfully."),
+            @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
+            @ApiResponse(code = 500, message = "Processing tags failed")
+    })
     public void tagGaugeData(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") final String id, @ApiParam(required = true) TagRequest params
     ) {
+        if (params == null) {
+            asyncResponse.resume(emptyPayload());
+            return;
+        }
         Observable<Void> resultSetObservable;
         Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId(id));
         if (params.getTimestamp() != null) {
