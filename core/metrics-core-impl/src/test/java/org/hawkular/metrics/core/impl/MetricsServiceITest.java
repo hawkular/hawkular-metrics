@@ -192,6 +192,10 @@ public class MetricsServiceITest extends MetricsITest {
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(metrics.size(), 3, "The returned size does not match expected");
 
+        metrics = metricsService.findMetricsWithTags("t1", tagMap, AVAILABILITY).toList().toBlocking()
+                .lastOrDefault(null);
+        assertEquals(metrics.size(), 1, "The returned size does not match expected, only m2 is expected");
+
         Metric actualAvail = metricsService.findMetric(m2.getTenantId(), m2.getType(), m2.getId()).toBlocking()
                 .last();
         assertEquals(actualAvail, m2, "The metric does not match the expected value");
