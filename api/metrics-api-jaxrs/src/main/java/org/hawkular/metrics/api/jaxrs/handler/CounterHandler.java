@@ -98,18 +98,16 @@ public class CounterHandler {
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "Metric definition created successfully"),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
-            @ApiResponse(code = 409, message = "Counter metric with given id already exists",
-                         response = ApiError.class),
+            @ApiResponse(code = 409, message = "Counter metric with given id already exists", response = ApiError
+                    .class),
             @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
-                         response = ApiError.class) })
-    public void createCounter (
+                    response = ApiError.class)
+    })
+    public void createCounter(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(required = true) MetricDefinition metricDefinition,
-            @Context UriInfo uriInfo) {
-        if (metricDefinition == null) {
-            asyncResponse.resume(emptyPayload());
-            return;
-        }
+            @Context UriInfo uriInfo
+    ) {
         Metric<Double> metric = new Metric<>(tenantId, COUNTER, new MetricId(metricDefinition.getId()),
                 metricDefinition.getTags(), metricDefinition.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getId().getName());
@@ -140,11 +138,12 @@ public class CounterHandler {
             @ApiResponse(code = 200, message = "Adding data points succeeded."),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data points",
-                    response = ApiError.class)})
+                    response = ApiError.class)
+    })
     public void addData(@Suspended final AsyncResponse asyncResponse,
                         @ApiParam(value = "List of metrics", required = true) List<Counter> counters
     ) {
-        if (counters == null || counters.isEmpty()) {
+        if (counters.isEmpty()) {
             asyncResponse.resume(emptyPayload());
         } else {
             Observable<Metric<Long>> metrics = requestToCounters(tenantId, counters);
@@ -160,14 +159,15 @@ public class CounterHandler {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
-                    response = ApiError.class),})
+                    response = ApiError.class),
+    })
     public void addData(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
             @ApiParam(value = "List of data points containing timestamp and value", required = true)
             List<CounterDataPoint> data
     ) {
-        if (data == null || data.isEmpty()) {
+        if (data.isEmpty()) {
             asyncResponse.resume(emptyPayload());
         } else {
             Metric<Long> metric = new Metric<>(tenantId, COUNTER, new MetricId(id), requestToCounterDataPoints(data));

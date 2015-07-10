@@ -106,19 +106,15 @@ public class AvailabilityHandler {
             @ApiResponse(code = 201, message = "Metric definition created successfully"),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
             @ApiResponse(code = 409, message = "Availability metric with given id already exists",
-                response = ApiError.class),
+                    response = ApiError.class),
             @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
-                response = ApiError.class) })
+                    response = ApiError.class)
+    })
     public void createAvailabilityMetric(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(required = true) MetricDefinition metricDefinition,
             @Context UriInfo uriInfo
     ) {
-        if (metricDefinition == null) {
-            asyncResponse.resume(emptyPayload());
-            return;
-        }
-
         URI location = uriInfo.getBaseUriBuilder().path("/availability/{id}").build(metricDefinition.getId());
         Metric metric = new Metric(tenantId, AVAILABILITY, new MetricId(metricDefinition.getId()),
                 metricDefinition.getTags(), metricDefinition.getDataRetention());
@@ -201,12 +197,13 @@ public class AvailabilityHandler {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
-                response = ApiError.class) })
+                    response = ApiError.class)
+    })
     public void addAvailabilityForMetric(
             @Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
             @ApiParam(value = "List of availability datapoints", required = true) List<AvailabilityDataPoint> data
     ) {
-        if (data == null || data.isEmpty()) {
+        if (data.isEmpty()) {
             asyncResponse.resume(emptyPayload());
         } else {
             Metric<AvailabilityType> metric = new Metric<>(tenantId,
@@ -223,13 +220,14 @@ public class AvailabilityHandler {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
-                response = ApiError.class) })
+                    response = ApiError.class)
+    })
     public void addAvailabilityData(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of availability metrics", required = true)
             List<Availability> availabilities
     ) {
-        if (availabilities == null || availabilities.isEmpty()) {
+        if (availabilities.isEmpty()) {
             asyncResponse.resume(emptyPayload());
         } else {
             metricsService.addAvailabilityData(requestToAvailabilities(tenantId, availabilities))
@@ -336,10 +334,6 @@ public class AvailabilityHandler {
             @PathParam("id") final String id,
             @ApiParam(required = true) TagRequest params
     ) {
-        if (params == null) {
-            asyncResponse.resume(emptyPayload());
-            return;
-        }
         Observable<Void> resultSetObservable;
         Metric<AvailabilityType> metric = new Metric<>(tenantId, AVAILABILITY, new MetricId(id));
         if (params.getTimestamp() != null) {

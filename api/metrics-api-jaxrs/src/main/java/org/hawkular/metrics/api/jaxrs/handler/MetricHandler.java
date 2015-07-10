@@ -120,16 +120,12 @@ public class MetricHandler {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 400, message = "Missing or invalid payload.", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
-                response = ApiError.class) })
+                    response = ApiError.class)
+    })
     public void addMetricsData(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(value = "List of metrics", required = true) MixedMetricsRequest metricsRequest) {
-
-        if (metricsRequest == null) {
-            asyncResponse.resume(emptyPayload());
-            return;
-        }
-
+            @ApiParam(value = "List of metrics", required = true) MixedMetricsRequest metricsRequest
+    ) {
         List<Gauge> gauges = metricsRequest.getGauges();
         List<Counter> counters = metricsRequest.getCounters();
         List<Availability> availabilities = metricsRequest.getAvailabilities();
