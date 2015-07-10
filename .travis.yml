@@ -33,6 +33,7 @@ addons:
 cache:
   directories:
   - $HOME/.m2/repository
+  - $HOME/cassandra-downloads
 before_install:
 # Increase max number of processes in order to avoid "OutOfMemoryError: unable to create new native thread"
 - ulimit -u 4096

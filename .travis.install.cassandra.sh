@@ -26,9 +26,17 @@ LATEST_MICRO=`cat datastax-releases | grep -m 1 -o -E "dsc-cassandra-2\.1\.[0-9]
 
 CASSANDRA_VERSION="2.1.${LATEST_MICRO}"
 CASSANDRA_BINARY="dsc-cassandra-${CASSANDRA_VERSION}-bin.tar.gz"
+CASSANDRA_DOWNLOADS="${HOME}/cassandra-downloads"
 
-wget http://downloads.datastax.com/community/${CASSANDRA_BINARY}
-tar -xzf ${CASSANDRA_BINARY}
+mkdir -p ${CASSANDRA_DOWNLOADS}
+
+if [ ! -f "${CASSANDRA_DOWNLOADS}/${CASSANDRA_BINARY}" ]; then
+  wget -O ${CASSANDRA_DOWNLOADS}/${CASSANDRA_BINARY} http://downloads.datastax.com/community/${CASSANDRA_BINARY}
+else
+  echo 'Using cached Cassandra archive'
+fi
+
+tar -xzf ${CASSANDRA_DOWNLOADS}/${CASSANDRA_BINARY}
 
 CASSANDRA_HOME="${HOME}/dsc-cassandra-${CASSANDRA_VERSION}"
 
