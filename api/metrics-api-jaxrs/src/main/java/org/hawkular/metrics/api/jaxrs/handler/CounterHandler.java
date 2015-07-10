@@ -22,7 +22,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounterDataPoints;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounters;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
@@ -143,13 +142,9 @@ public class CounterHandler {
     public void addData(@Suspended final AsyncResponse asyncResponse,
                         @ApiParam(value = "List of metrics", required = true) List<Counter> counters
     ) {
-        if (counters.isEmpty()) {
-            asyncResponse.resume(emptyPayload());
-        } else {
-            Observable<Metric<Long>> metrics = requestToCounters(tenantId, counters);
-            Observable<Void> observable = metricsService.addCounterData(metrics);
-            observable.subscribe(new ResultSetObserver(asyncResponse));
-        }
+        Observable<Metric<Long>> metrics = requestToCounters(tenantId, counters);
+        Observable<Void> observable = metricsService.addCounterData(metrics);
+        observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @POST
@@ -167,13 +162,9 @@ public class CounterHandler {
             @ApiParam(value = "List of data points containing timestamp and value", required = true)
             List<CounterDataPoint> data
     ) {
-        if (data.isEmpty()) {
-            asyncResponse.resume(emptyPayload());
-        } else {
-            Metric<Long> metric = new Metric<>(tenantId, COUNTER, new MetricId(id), requestToCounterDataPoints(data));
-            Observable<Void> observable = metricsService.addCounterData(Observable.just(metric));
-            observable.subscribe(new ResultSetObserver(asyncResponse));
-        }
+        Metric<Long> metric = new Metric<>(tenantId, COUNTER, new MetricId(id), requestToCounterDataPoints(data));
+        Observable<Void> observable = metricsService.addCounterData(Observable.just(metric));
+        observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @GET

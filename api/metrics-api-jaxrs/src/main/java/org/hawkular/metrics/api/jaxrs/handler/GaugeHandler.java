@@ -23,7 +23,6 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGaugeDataPoints;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGauges;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
@@ -200,13 +199,9 @@ public class GaugeHandler {
             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
             List<GaugeDataPoint> data
     ) {
-        if (data.isEmpty()) {
-            asyncResponse.resume(emptyPayload());
-        } else {
-            Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId(id), requestToGaugeDataPoints(data));
-            Observable<Void> observable = metricsService.addGaugeData(Observable.just(metric));
-            observable.subscribe(new ResultSetObserver(asyncResponse));
-        }
+        Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId(id), requestToGaugeDataPoints(data));
+        Observable<Void> observable = metricsService.addGaugeData(Observable.just(metric));
+        observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @POST
@@ -221,13 +216,9 @@ public class GaugeHandler {
     public void addGaugeData(@Suspended final AsyncResponse asyncResponse,
                              @ApiParam(value = "List of metrics", required = true) List<Gauge> gauges
     ) {
-        if (gauges.isEmpty()) {
-            asyncResponse.resume(emptyPayload());
-        } else {
-            Observable<Metric<Double>> metrics = requestToGauges(tenantId, gauges);
-            Observable<Void> observable = metricsService.addGaugeData(metrics);
-            observable.subscribe(new ResultSetObserver(asyncResponse));
-        }
+        Observable<Metric<Double>> metrics = requestToGauges(tenantId, gauges);
+        Observable<Void> observable = metricsService.addGaugeData(metrics);
+        observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @GET
@@ -426,7 +417,6 @@ public class GaugeHandler {
             resultSetObservable = metricsService.tagGaugeData(metric, params.getTags(), params.getStart(), params
                     .getEnd());
         }
-
         resultSetObservable.subscribe(new ResultSetObserver(asyncResponse));
     }
 }

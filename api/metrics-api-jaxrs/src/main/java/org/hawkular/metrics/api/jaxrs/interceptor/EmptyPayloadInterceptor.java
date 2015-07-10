@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.api.jaxrs.interceptor;
 
 import static java.lang.Boolean.TRUE;
@@ -21,6 +22,8 @@ import static java.lang.Boolean.TRUE;
 import static org.hawkular.metrics.api.jaxrs.filter.EmptyPayloadFilter.EMPTY_PAYLOAD;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Map;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.ext.Provider;
@@ -40,9 +43,22 @@ public class EmptyPayloadInterceptor implements ReaderInterceptor {
     @Override
     public Object aroundReadFrom(ReaderInterceptorContext context) throws IOException, WebApplicationException {
         Object object = context.proceed();
-        if (object != null || context.getProperty(EMPTY_PAYLOAD) != TRUE) {
+        if (context.getProperty(EMPTY_PAYLOAD) != TRUE) {
             return object;
         }
-        throw new EmptyPayloadException();
+        if (object instanceof Collection) {
+            Collection collection = (Collection) object;
+            if (collection.isEmpty()) {
+                throw new EmptyPayloadException();
+            }
+        } else if (object instanceof Map) {
+            Map map = (Map) object;
+            if (map.isEmpty()) {
+                throw new EmptyPayloadException();
+            }
+        } else if (object == null) {
+            throw new EmptyPayloadException();
+        }
+        return object;
     }
 }

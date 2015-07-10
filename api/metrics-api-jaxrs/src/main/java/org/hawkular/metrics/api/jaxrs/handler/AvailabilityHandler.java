@@ -23,7 +23,6 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilities;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilityDataPoints;
@@ -203,14 +202,9 @@ public class AvailabilityHandler {
             @Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
             @ApiParam(value = "List of availability datapoints", required = true) List<AvailabilityDataPoint> data
     ) {
-        if (data.isEmpty()) {
-            asyncResponse.resume(emptyPayload());
-        } else {
-            Metric<AvailabilityType> metric = new Metric<>(tenantId,
-                    AVAILABILITY, new MetricId(id), requestToAvailabilityDataPoints(data));
-            metricsService.addAvailabilityData(Observable.just(metric))
-                    .subscribe(new ResultSetObserver(asyncResponse));
-        }
+        Metric<AvailabilityType> metric = new Metric<>(tenantId, AVAILABILITY, new MetricId(id),
+                requestToAvailabilityDataPoints(data));
+        metricsService.addAvailabilityData(Observable.just(metric)).subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @POST
@@ -227,12 +221,8 @@ public class AvailabilityHandler {
             @ApiParam(value = "List of availability metrics", required = true)
             List<Availability> availabilities
     ) {
-        if (availabilities.isEmpty()) {
-            asyncResponse.resume(emptyPayload());
-        } else {
-            metricsService.addAvailabilityData(requestToAvailabilities(tenantId, availabilities))
-                    .subscribe(new ResultSetObserver(asyncResponse));
-        }
+        metricsService.addAvailabilityData(requestToAvailabilities(tenantId, availabilities))
+                .subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @GET
