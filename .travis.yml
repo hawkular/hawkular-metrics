@@ -1,3 +1,5 @@
+# Enable container-based infrastructure
+sudo: false
 language: java
 jdk:
 - oraclejdk8
@@ -16,6 +18,10 @@ env:
   # for pushing the swagger adoc documentation to the website repository
   - secure: 6JUY0hUjTXaRcVHFqt1q06enCXdqZ9qYkgLA/uUoKq4tYBVDaaqF4yB88CRzr3rXpytz2aywH2dR1idZH4zoWzv1jQ/tCiYE7GjLRO2qn9wgCMzBRq8G7Ov5iFnsT+aBsf6Syx2rNXwH206cHXP4JY/CRs0ez9tcO4LlYls7XN8=
 addons:
+  apt:
+    packages:
+    - collectd
+    - collectd-utils
   coverity_scan:
     project:
       name: hawkular/hawkular-metrics
@@ -28,8 +34,6 @@ before_install:
 # Increase max number of processes in order to avoid "OutOfMemoryError: unable to create new native thread"
 - ulimit -u 4096
 - ulimit -a
-- sudo apt-get update -qq
-- sudo apt-get install -qq collectd collectd-utils
 - bash .travis.install.cassandra.sh
 install:
 - mvn -version -B
