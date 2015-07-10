@@ -30,21 +30,25 @@ addons:
     build_command_prepend: mvn clean
     build_command: mvn -DskipTests=true compile
     branch_pattern: coverity_scan
+cache:
+  directories:
+  - $HOME/.m2/repository
 before_install:
 # Increase max number of processes in order to avoid "OutOfMemoryError: unable to create new native thread"
 - ulimit -u 4096
 - ulimit -a
 - bash .travis.install.cassandra.sh
+- cp .travis.maven.settings.xml $HOME/.m2/settings.xml
 install:
 - mvn -version -B
 script:
-- mvn -s .travis.maven.settings.xml verify -Dwildfly.logging.console.level=DEBUG -B | grep -vF "[INFO] Downloading:" | grep -vF "[INFO] Downloaded:"; test ${PIPESTATUS[0]} -eq 0
+- mvn verify -Dwildfly.logging.console.level=DEBUG -B
 after_failure: bash .travis.diagnose.sh
 after_success:
 - PROJECT_VERSION=`mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -v '\['`
 - if [[ "$PROJECT_VERSION" =~ .*SNAPSHOT ]] && [[ "${TRAVIS_BRANCH}" = "master" ]] && [[ "${TRAVIS_PULL_REQUEST}" = "false" ]];
   then
-    mvn -s .travis.maven.settings.xml deploy -DskipTests ;
+    mvn deploy -DskipTests ;
     ./.travis.swagger.sh ;
     curl --data "build=true" -X POST https://registry.hub.docker.com/u/hawkular/hawkular-metrics/trigger/5e78d947-bbc3-403d-804d-1b9f92d78ed8/ ;
     curl --data "build=true" -X POST https://registry.hub.docker.com/u/hawkular/hawkular-cassandra/trigger/4c78fb4a-acad-4801-83a7-0794347bbe90/ ;
