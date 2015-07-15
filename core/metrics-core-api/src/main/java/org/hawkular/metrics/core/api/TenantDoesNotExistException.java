@@ -21,7 +21,7 @@ package org.hawkular.metrics.core.api;
  */
 public class TenantDoesNotExistException extends RuntimeException {
 
-    private String tenantId;
+    private final String tenantId;
 
     public TenantDoesNotExistException(String tenantId) {
         this.tenantId = tenantId;

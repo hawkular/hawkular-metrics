@@ -53,8 +53,8 @@ public class TokenReplacingReader extends Reader {
     public TokenReplacingReader(String source, Map<String, String> tokens) {
         this.pushbackReader = new PushbackReader(new StringReader(source), 2);
         this.tokens = tokens;
-        this.activeTokens = new ArrayDeque<String>();
-        this.resolvedTokens = new HashMap<String, String>();
+        this.activeTokens = new ArrayDeque<>();
+        this.resolvedTokens = new HashMap<>();
     }
 
     public TokenReplacingReader(String source, Map<String, String> tokens, Deque<String> activeTokens,
@@ -65,10 +65,12 @@ public class TokenReplacingReader extends Reader {
         this.resolvedTokens = resolvedTokens;
     }
 
+    @Override
     public int read(CharBuffer target) throws IOException {
-        throw new RuntimeException("Operation Not Supported");
+        throw new UnsupportedOperationException("Operation Not Supported");
     }
 
+    @Override
     public int read() throws IOException {
         if (this.tokenValue != null) {
             if (this.tokenValueIndex < this.tokenValue.length()) {
@@ -195,6 +197,8 @@ public class TokenReplacingReader extends Reader {
                         tokenNameBuffer.append((char) data);
                     }
                 }
+                default:
+                    throw new IllegalArgumentException("Unknown state");
             }
         }
 

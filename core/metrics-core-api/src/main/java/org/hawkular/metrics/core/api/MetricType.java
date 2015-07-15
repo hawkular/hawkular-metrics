@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -92,7 +93,7 @@ public enum MetricType {
         return type;
     }
 
-    public static EnumSet<MetricType> userTypes() {
+    public static Set<MetricType> userTypes() {
         return userDefinableTypes;
     }
 }

@@ -21,7 +21,7 @@ package org.hawkular.metrics.core.api;
  */
 public class MetricAlreadyExistsException extends RuntimeException {
 
-    private Metric metric;
+    private final Metric metric;
 
     public MetricAlreadyExistsException(Metric metric) {
         this.metric = metric;

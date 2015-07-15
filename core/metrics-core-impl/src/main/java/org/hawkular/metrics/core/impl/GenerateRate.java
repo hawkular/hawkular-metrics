@@ -53,7 +53,7 @@ public class GenerateRate implements Action1<Task> {
         long end = task.getTimeSlice().plus(getDuration(task.getWindow())).getMillis();
         metricsService.findCounterData(task.getTenantId(), id, start, end)
                 .take(1)
-                .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
+                .map(dataPoint -> dataPoint.getValue().doubleValue() / (end - start) * 1000)
                 .map(rate -> new Metric<>(task.getTenantId(), COUNTER_RATE, id,
                         singletonList(new DataPoint<>(start, rate))))
                 .flatMap(metric -> metricsService.addGaugeData(Observable.just(metric)))
@@ -70,7 +70,7 @@ public class GenerateRate implements Action1<Task> {
         // for tasks are currently scheduled globally with the TaskServiceBuilder class. The
         // system property below is the only hook we have right now for specifying and
         // checking the time units used.
-        if (System.getProperty("hawkular.scheduler.time-units", "minutes").equals("seconds")) {
+        if ("seconds".equals(System.getProperty("hawkular.scheduler.time-units", "minutes"))) {
             return standardSeconds(duration);
         }
         return standardMinutes(duration);

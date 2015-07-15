@@ -23,17 +23,11 @@ import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
-import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 
-import com.google.common.base.Function;
 import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
@@ -56,10 +50,6 @@ public class ApiUtils {
     }
 
     public static Response collectionToResponse(Collection<?> collection) {
-        return collection.isEmpty() ? noContent() : Response.ok(collection).build();
-    }
-
-    public static Response mapToResponse(Map<?, ?> collection) {
         return collection.isEmpty() ? noContent() : Response.ok(collection).build();
     }
 
@@ -113,13 +103,6 @@ public class ApiUtils {
                 .collect(toList());
     }
 
-    @Deprecated
-    public static final Function<List<Void>, Response> MAP_LIST_VOID = v -> Response.ok().build();
-
-    @Deprecated
-    public static final Function<Collection<?>, Response> MAP_COLLECTION = collection ->
-            collection.isEmpty() ? noContent() : Response.ok(collection).build();
-
     public static Response noContent() {
         return Response.noContent().build();
     }
@@ -131,26 +114,4 @@ public class ApiUtils {
     public static Response badRequest(ApiError error) {
         return Response.status(Response.Status.BAD_REQUEST).entity(error).build();
     }
-
-    /**
-     * @deprecated rx-migration
-     */
-    @Deprecated
-    public static void executeAsync(AsyncResponse asyncResponse,
-            java.util.function.Supplier<ListenableFuture<Response>> supplier) {
-        ListenableFuture<Response> future = supplier.get();
-        Futures.addCallback(future, new FutureCallback<Response>() {
-            @Override
-            public void onSuccess(Response response) {
-                asyncResponse.resume(response);
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                String msg = "Failed to perform operation due to an error: " + Throwables.getRootCause(t).getMessage();
-                asyncResponse.resume(Response.serverError().entity(new ApiError(msg)).build());
-            }
-        });
-    }
-
 }

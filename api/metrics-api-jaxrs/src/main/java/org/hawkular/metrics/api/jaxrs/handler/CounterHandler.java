@@ -144,7 +144,7 @@ public class CounterHandler {
             asyncResponse.resume(emptyPayload());
         } else {
             Observable<Metric<Long>> metrics = requestToCounters(tenantId, counters);
-            Observable<Void> observable = metricsService.addCounterData((metrics));
+            Observable<Void> observable = metricsService.addCounterData(metrics);
             observable.subscribe(new ResultSetObserver(asyncResponse));
         }
     }

@@ -530,7 +530,7 @@ public class InfluxSeriesHandler {
         List<Double> bla = new ArrayList<>(n);
         bla.addAll(in.stream().map(DataPoint::getValue).sorted().collect(Collectors.toList()));
         float x = (float) (n * (val / 100));
-        if (Math.floor(x) == x) {
+        if ((int) Math.floor(x) == (int) x) {
             return 0.5 * (bla.get((int) x - 1) + bla.get((int) (x)));
         } else {
             return bla.get((int) Math.ceil(x - 1));

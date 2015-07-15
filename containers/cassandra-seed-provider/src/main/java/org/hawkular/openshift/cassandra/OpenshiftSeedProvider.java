@@ -61,18 +61,7 @@ public class OpenshiftSeedProvider implements SeedProvider {
 
             // we need to wait until the service is started
             for (int i = 0; i < SERVICE_TRIES; i++) {
-                try {
-                    inetAddresses = InetAddress.getAllByName(serviceName);
-                } catch (UnknownHostException e) {
-                    if (i == (SERVICE_TRIES - 1)) {
-                        logger.error("Could not detect service. Aborting.");
-                        throw e;
-                    } else {
-                        logger.warn("Could not detect service '" + serviceName +
-                                "'. It may not be up yet trying again.", e);
-                        Thread.sleep(SERVICE_TRY_WAIT_TIME_MILLISECONDS);
-                    }
-                }
+                inetAddresses = getInetAddresses(serviceName, inetAddresses, i);
             }
 
             if (inetAddresses == null) {
@@ -98,6 +87,23 @@ public class OpenshiftSeedProvider implements SeedProvider {
         }
 
         return seeds;
+    }
+
+    private InetAddress[] getInetAddresses(String serviceName, InetAddress[] inetAddresses, int i)
+            throws UnknownHostException, InterruptedException {
+        try {
+            inetAddresses = InetAddress.getAllByName(serviceName);
+        } catch (UnknownHostException e) {
+            if (i == (SERVICE_TRIES - 1)) {
+                logger.error("Could not detect service. Aborting.");
+                throw e;
+            } else {
+                logger.warn("Could not detect service '" + serviceName +
+                        "'. It may not be up yet trying again.", e);
+                Thread.sleep(SERVICE_TRY_WAIT_TIME_MILLISECONDS);
+            }
+        }
+        return inetAddresses;
     }
 
     private List<InetAddress> getSeedsFromConfig() throws ConfigurationException {

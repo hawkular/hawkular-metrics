@@ -48,6 +48,6 @@ public class ResultSetObserver implements Observer<Void> {
 
     @Override
     public void onNext(Void aVoid) {
-
+        // We're only interested in onCompleted status
     }
 }

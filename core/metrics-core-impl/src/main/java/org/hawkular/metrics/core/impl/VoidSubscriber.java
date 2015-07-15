@@ -50,5 +50,6 @@ public class VoidSubscriber<T> extends Subscriber<T> {
 
     @Override
     public void onNext(T t) {
+        // Only the onComplete event is interesting
     }
 }

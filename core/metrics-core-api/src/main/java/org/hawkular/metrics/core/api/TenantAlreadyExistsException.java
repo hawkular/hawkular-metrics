@@ -21,7 +21,7 @@ package org.hawkular.metrics.core.api;
  */
 public class TenantAlreadyExistsException extends RuntimeException {
 
-    private String tenantId;
+    private final String tenantId;
 
     public TenantAlreadyExistsException(String tenantId) {
         this.tenantId = tenantId;
