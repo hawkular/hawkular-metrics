@@ -33,6 +33,7 @@ public class MetricsThreadFactory implements ThreadFactory, Thread.UncaughtExcep
 
     private String poolName = "MetricsThreadPool";
 
+    @Override
     public Thread newThread(Runnable r) {
         Thread t = new Thread(r, poolName + "-" + threadNumber.getAndIncrement());
         t.setDaemon(false);
@@ -41,6 +42,7 @@ public class MetricsThreadFactory implements ThreadFactory, Thread.UncaughtExcep
         return t;
     }
 
+    @Override
     public void uncaughtException(Thread t, Throwable e) {
         logger.error("Uncaught exception on scheduled thread [{}]", t.getName(), e);
     }

@@ -25,7 +25,7 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
  */
 @ApiModel(description = "If REST-call returns other than success, detailed error is returned.")
 public class ApiError {
-    private String errorMsg;
+    private final String errorMsg;
 
     public ApiError(String errorMsg) {
         this.errorMsg = errorMsg;

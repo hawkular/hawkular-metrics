@@ -21,7 +21,7 @@ package org.hawkular.metrics.tasks.api;
  */
 public class TaskExecutionException extends RuntimeException {
 
-    private Task failedTask;
+    private final Task failedTask;
 
     public TaskExecutionException(Task failedTask, Throwable cause) {
         super(cause);

@@ -166,11 +166,11 @@ public class MetricsServiceLifecycle {
         connectionAttempts++;
         try {
             session = createSession();
-        } catch (Throwable t) {
+        } catch (Exception t) {
             Throwable rootCause = Throwables.getRootCause(t);
             LOG.warn("Could not connect to Cassandra cluster - assuming its not up yet", rootCause);
             // cycle between original and more wait time - avoid waiting huge amounts of time
-            long delay = 1 + ((connectionAttempts - 1) % 4);
+            long delay = 1L + ((connectionAttempts - 1L) % 4L);
             LOG.warn("[{}] Retrying connecting to Cassandra cluster in [{}]s...", connectionAttempts, delay);
             lifecycleExecutor.schedule(this::startMetricsService, delay, SECONDS);
             return;
@@ -197,14 +197,15 @@ public class MetricsServiceLifecycle {
             metricsService.startUp(session, keyspace, false, false, new MetricRegistry());
             LOG.info("Metrics service started");
             state = State.STARTED;
-        } catch (Throwable t) {
+        } catch (Exception t) {
             LOG.error("An error occurred trying to connect to the Cassandra cluster", t);
             state = State.FAILED;
         } finally {
             if (state != State.STARTED) {
                 try {
                     metricsService.shutdown();
-                } catch (Throwable ignore) {
+                } catch (Exception ignore) {
+                    LOG.error("Could not shutdown the metricsService instance: ", ignore);
                 }
             }
         }
@@ -224,13 +225,13 @@ public class MetricsServiceLifecycle {
         Arrays.stream(nodes.split(",")).forEach(clusterBuilder::addContactPoint);
 
         Cluster cluster = null;
-        Session session = null;
+        Session createdSession = null;
         try {
             cluster = clusterBuilder.build();
-            session = cluster.connect("system");
-            return session;
+            createdSession = cluster.connect("system");
+            return createdSession;
         } finally {
-            if (session == null && cluster != null) {
+            if (createdSession == null && cluster != null) {
                 cluster.close();
             }
         }
@@ -256,7 +257,7 @@ public class MetricsServiceLifecycle {
     }
 
     private TimeUnit getTimeUnit() {
-        if (timeUnits.equals("seconds")) {
+        if ("seconds".equals(timeUnits)) {
             return SECONDS;
         }
         return MINUTES;
@@ -277,6 +278,7 @@ public class MetricsServiceLifecycle {
         try {
             Futures.get(stopFuture, 1, MINUTES, Exception.class);
         } catch (Exception ignore) {
+            LOG.error("Unexcepted exception while shutting down, ", ignore);
         }
         lifecycleExecutor.shutdown();
     }

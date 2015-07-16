@@ -16,8 +16,6 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import static org.hawkular.metrics.core.api.DataPoint.TIMESTAMP_COMPARATOR;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -84,7 +82,6 @@ public abstract class BucketedOutputMapper<DATA, POINT> implements Func1<List<Da
         }
 
         int dataIndex = 0;
-        DataPoint<DATA> previous;
         for (int bucketIndex = 0; bucketIndex < buckets.getCount(); bucketIndex++) {
             long from = buckets.getStart() + bucketIndex * buckets.getStep();
             long to = buckets.getStart() + (bucketIndex + 1) * buckets.getStep();
@@ -108,11 +105,8 @@ public abstract class BucketedOutputMapper<DATA, POINT> implements Func1<List<Da
                 metricDatas.add(current);
 
                 // Move to next data point
-                previous = current;
                 dataIndex++;
                 current = dataIndex < dataList.size() ? dataList.get(dataIndex) : null;
-
-//                checkOrder(previous, current);
 
                 // Continue until end of data points is reached or data point does not belong to this bucket
             } while (current != null && current.getTimestamp() < to);
@@ -121,12 +115,6 @@ public abstract class BucketedOutputMapper<DATA, POINT> implements Func1<List<Da
         }
 
         return output;
-    }
-
-    private void checkOrder(DataPoint<DATA> previous, DataPoint<DATA> current) {
-        if (previous != null && current != null && TIMESTAMP_COMPARATOR.compare(previous, current) > 0) {
-            throw new IllegalArgumentException("Expected to iterate over data sorted by time ascending");
-        }
     }
 
     /**

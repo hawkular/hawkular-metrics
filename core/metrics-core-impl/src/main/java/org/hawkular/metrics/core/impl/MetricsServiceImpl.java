@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import static java.util.Collections.singletonList;
 import static java.util.Comparator.comparingLong;
 
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
@@ -40,7 +39,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
@@ -85,8 +83,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import rx.Observable;
 import rx.functions.Func1;
 import rx.subjects.PublishSubject;
-
-//import org.hawkular.metrics.core.api.Metric;
 
 /**
  * @author John Sanda
@@ -476,8 +472,8 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<Metric> findMetricsWithTags(String tenantId, Map<String, String> tags, MetricType type) {
         return dataAccess.findMetricsFromTagsIndex(tenantId, tags)
                 .flatMap(Observable::from)
-                .filter(r -> ((type == null && MetricType.userTypes().contains(MetricType.fromCode(r.getInt(0))))
-                        || MetricType.fromCode(r.getInt(0)) == type))
+                .filter(r -> (type == null && MetricType.userTypes().contains(MetricType.fromCode(r.getInt(0))))
+                        || MetricType.fromCode(r.getInt(0)) == type)
                 .distinct(r -> Integer.valueOf(r.getInt(0)).toString() + r.getString(1) + r.getString(2))
                 .flatMap(r -> findMetric(tenantId, MetricType.fromCode(r.getInt(0)), new MetricId(r.getString
                         (1), Interval.parse(r.getString(2)))));
@@ -817,27 +813,4 @@ public class MetricsServiceImpl implements MetricsService {
             throw new RuntimeException("There was an error during a timed event", e);
         }
     }
-
-    private Consumer<Task> generateRate() {
-        return task -> {
-            logger.info("Generating rate for {}", task);
-            // TODO Store tenant id with task
-            MetricId id = new MetricId(task.getSources().iterator().next());
-            long end = task.getTimeSlice().getMillis();
-            long start = task.getTimeSlice().minusSeconds(task.getWindow()).getMillis();
-            logger.debug("start = {}, end = {}", start, end);
-            findCounterData(task.getTenantId(), id, start, end)
-                    .take(1)
-                    .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
-                    .map(rate -> new Metric<>(task.getTenantId(), COUNTER_RATE, id,
-                            singletonList(new DataPoint<>(start, rate))))
-                    .flatMap(metric -> addGaugeData(Observable.just(metric)))
-                    .subscribe(
-                            aVoid -> {},
-                            t -> logger.warn("Failed to persist rate data", t),
-                            () -> logger.debug("Successfully persisted rate data")
-                    );
-        };
-    }
-
 }

@@ -58,65 +58,33 @@ public class GaugeBucketDataPoint {
         return start;
     }
 
-//    public void setStart(long start) {
-//        this.start = start;
-//    }
-
     public long getEnd() {
         return end;
     }
-
-//    public void setEnd(long end) {
-//        this.end = end;
-//    }
 
     public double getValue() {
         return value;
     }
 
-//    public void setValue(double value) {
-//        this.value = value;
-//    }
-
     public double getMin() {
         return min;
     }
-
-//    public void setMin(double min) {
-//        this.min = min;
-//    }
 
     public double getMax() {
         return max;
     }
 
-//    public void setMax(double max) {
-//        this.max = max;
-//    }
-
     public double getAvg() {
         return avg;
     }
-
-//    public void setAvg(double avg) {
-//        this.avg = avg;
-//    }
 
     public double getMedian() {
         return median;
     }
 
-//    public void setMedian(double median) {
-//        this.median = median;
-//    }
-
     public double getPercentile95th() {
         return percentile95th;
     }
-
-//    public void setPercentile95th(double percentile95th) {
-//        this.percentile95th = percentile95th;
-//    }
 
     public boolean isEmpty() {
         return isNaN(min) || isNaN(avg) || isNaN(median) || isNaN(max) || isNaN(percentile95th);

@@ -226,7 +226,7 @@ public class GaugeHandler {
             asyncResponse.resume(emptyPayload());
         } else {
             Observable<Metric<Double>> metrics = requestToGauges(tenantId, gauges);
-            Observable<Void> observable = metricsService.addGaugeData((metrics));
+            Observable<Void> observable = metricsService.addGaugeData(metrics);
             observable.subscribe(new ResultSetObserver(asyncResponse));
         }
     }
@@ -334,7 +334,7 @@ public class GaugeHandler {
             @QueryParam("threshold") double threshold,
             @ApiParam(value = "A comparison operation to perform between values and the threshold."
                               + " Supported operations include ge, gte, lt, lte, and eq", required = true,
-                      allowableValues = "[ge, gte, lt, lte, eq]")
+                      allowableValues = "[ge, gte, lt, lte, eq, neq]")
             @QueryParam("op") String operator
     ) {
         long now = System.currentTimeMillis();
