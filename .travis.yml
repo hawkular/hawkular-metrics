@@ -49,7 +49,7 @@ after_success:
 - PROJECT_VERSION=`mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -v '\['`
 - if [[ "$PROJECT_VERSION" =~ .*SNAPSHOT ]] && [[ "${TRAVIS_BRANCH}" = "master" ]] && [[ "${TRAVIS_PULL_REQUEST}" = "false" ]];
   then
-    mvn deploy -DskipTests ;
+    mvn deploy -Ppublish -DskipTests ;
     ./.travis.swagger.sh ;
     curl --data "build=true" -X POST https://registry.hub.docker.com/u/hawkular/hawkular-metrics/trigger/5e78d947-bbc3-403d-804d-1b9f92d78ed8/ ;
     curl --data "build=true" -X POST https://registry.hub.docker.com/u/hawkular/hawkular-cassandra/trigger/4c78fb4a-acad-4801-83a7-0794347bbe90/ ;
