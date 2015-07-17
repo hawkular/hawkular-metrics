@@ -61,6 +61,12 @@
       <artifactId>cassandra-driver-core</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>org.jboss.resteasy</groupId>
+      <artifactId>resteasy-jackson2-provider</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
     <!-- test -->
 
     <dependency>

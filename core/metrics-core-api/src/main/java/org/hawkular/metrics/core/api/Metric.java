@@ -37,6 +37,9 @@ public class Metric<T> {
     private Integer dataRetention;
     private List<DataPoint<T>> dataPoints = new ArrayList<>();
 
+    public Metric() {
+    }
+
     public Metric(String tenantId, MetricType type, MetricId id) {
         this.tenantId = tenantId;
         this.type = type;
