@@ -82,6 +82,7 @@
     <module>task-queue</module>
     <module>core/metrics-core-api</module>
     <module>core/metrics-core-impl</module>
+    <module>core/metrics-core-bus</module>
     <module>api/metrics-api-jaxrs</module>
     <module>rest-tests</module>
     <module>clients</module>
