@@ -318,7 +318,7 @@ public class TaskServiceImpl implements TaskService {
      * @param taskType
      */
     private void executeTasks(DateTime timeSlice, TaskType taskType) {
-        logger.info("Executing tasks for time slice {}", timeSlice);
+        logger.debug("Executing tasks for time slice {}", timeSlice);
 
         // I know, I know. We should not have to used CountDownLatch with RxJava. It is
         // left over from the original implementation and was/is used to ensure tasks of
