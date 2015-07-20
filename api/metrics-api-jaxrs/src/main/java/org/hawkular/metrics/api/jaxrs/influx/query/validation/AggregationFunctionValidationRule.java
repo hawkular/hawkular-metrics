@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.api.jaxrs.influx.query.validation;
 
+import java.io.Serializable;
 import java.util.List;
 
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.FunctionArgument;
@@ -23,7 +24,7 @@ import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.FunctionArgu
 /**
  * @author Thomas Segismont
  */
-public interface AggregationFunctionValidationRule {
+public interface AggregationFunctionValidationRule extends Serializable {
     /**
      * @param aggregationFunctionArguments
      * @throws org.hawkular.metrics.api.jaxrs.influx.query.validation.IllegalQueryException

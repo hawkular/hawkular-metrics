@@ -19,6 +19,7 @@ package org.hawkular.metrics.core.api;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,7 +29,7 @@ import java.util.Objects;
 /**
  * @author jsanda
  */
-public class Metric<T> {
+public class Metric<T> implements Serializable {
 
     private String tenantId;
     private MetricType type;

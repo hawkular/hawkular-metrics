@@ -34,7 +34,7 @@ public class TaskTypes {
     private TaskTypes() {
     }
 
-    public static TaskType COMPUTE_RATE = new TaskType()
+    public static final TaskType COMPUTE_RATE = new TaskType()
             .setName("counter-rate")
             .setSegments(10)
             .setSegmentOffsets(10)

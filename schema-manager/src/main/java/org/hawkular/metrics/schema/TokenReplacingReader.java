@@ -197,8 +197,9 @@ public class TokenReplacingReader extends Reader {
                         tokenNameBuffer.append((char) data);
                     }
                 }
-                default:
-                    throw new IllegalArgumentException("Unknown state");
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown state");
             }
         }
 
