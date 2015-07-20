@@ -19,7 +19,6 @@ package org.hawkular.metrics.api.jaxrs.handler;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.collectionToResponse;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 
 import java.net.URI;
@@ -78,10 +77,6 @@ public class TenantsHandler {
             @Suspended AsyncResponse asyncResponse, @ApiParam(required = true) TenantParam params,
             @Context UriInfo uriInfo
     ) {
-        if (params == null) {
-            asyncResponse.resume(emptyPayload());
-            return;
-        }
         URI location = uriInfo.getBaseUriBuilder().path("/tenants").build();
         metricsService.createTenant(new Tenant(params.getId())).subscribe(new TenantCreatedObserver(asyncResponse,
                 location));

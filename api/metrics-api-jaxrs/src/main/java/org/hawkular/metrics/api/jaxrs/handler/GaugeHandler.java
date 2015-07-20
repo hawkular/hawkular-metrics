@@ -23,7 +23,6 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGaugeDataPoints;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGauges;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
@@ -100,18 +99,15 @@ public class GaugeHandler {
             @ApiResponse(code = 201, message = "Metric definition created successfully"),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
             @ApiResponse(code = 409, message = "Gauge metric with given id already exists",
-                response = ApiError.class),
+                    response = ApiError.class),
             @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
-                response = ApiError.class) })
+                    response = ApiError.class)
+    })
     public void createGaugeMetric(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(required = true) MetricDefinition metricDefinition,
             @Context UriInfo uriInfo
     ) {
-        if (metricDefinition == null) {
-            asyncResponse.resume(emptyPayload());
-            return;
-        }
         Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId(metricDefinition.getId()),
                 metricDefinition.getTags(), metricDefinition.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getId().getName());
@@ -195,20 +191,17 @@ public class GaugeHandler {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
-                response = ApiError.class), })
+                    response = ApiError.class),
+    })
     public void addDataForMetric(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
             List<GaugeDataPoint> data
     ) {
-        if (data.isEmpty()) {
-            asyncResponse.resume(emptyPayload());
-        } else {
-            Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId(id), requestToGaugeDataPoints(data));
-            Observable<Void> observable = metricsService.addGaugeData(Observable.just(metric));
-            observable.subscribe(new ResultSetObserver(asyncResponse));
-        }
+        Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId(id), requestToGaugeDataPoints(data));
+        Observable<Void> observable = metricsService.addGaugeData(Observable.just(metric));
+        observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @POST
@@ -218,17 +211,14 @@ public class GaugeHandler {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
-                response = ApiError.class) })
+                    response = ApiError.class)
+    })
     public void addGaugeData(@Suspended final AsyncResponse asyncResponse,
-            @ApiParam(value = "List of metrics", required = true) List<Gauge> gauges) {
-
-        if (gauges.isEmpty()) {
-            asyncResponse.resume(emptyPayload());
-        } else {
-            Observable<Metric<Double>> metrics = requestToGauges(tenantId, gauges);
-            Observable<Void> observable = metricsService.addGaugeData(metrics);
-            observable.subscribe(new ResultSetObserver(asyncResponse));
-        }
+                             @ApiParam(value = "List of metrics", required = true) List<Gauge> gauges
+    ) {
+        Observable<Metric<Double>> metrics = requestToGauges(tenantId, gauges);
+        Observable<Void> observable = metricsService.addGaugeData(metrics);
+        observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @GET
@@ -410,8 +400,11 @@ public class GaugeHandler {
     @POST
     @Path("/{id}/tag")
     @ApiOperation(value = "Add or update gauge metric's tags.")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Tags were modified successfully."),
-        @ApiResponse(code = 500, message = "Processing tags failed") })
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Tags were modified successfully."),
+            @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
+            @ApiResponse(code = 500, message = "Processing tags failed")
+    })
     public void tagGaugeData(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") final String id, @ApiParam(required = true) TagRequest params
@@ -424,7 +417,6 @@ public class GaugeHandler {
             resultSetObservable = metricsService.tagGaugeData(metric, params.getTags(), params.getStart(), params
                     .getEnd());
         }
-
         resultSetObservable.subscribe(new ResultSetObserver(asyncResponse));
     }
 }

@@ -18,9 +18,10 @@ package org.hawkular.metrics.api.jaxrs.handler;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounterDataPoints;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounters;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
@@ -43,11 +44,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
@@ -61,6 +57,13 @@ import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+
 import rx.Observable;
 
 /**
@@ -94,18 +97,16 @@ public class CounterHandler {
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "Metric definition created successfully"),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
-            @ApiResponse(code = 409, message = "Counter metric with given id already exists",
-                         response = ApiError.class),
+            @ApiResponse(code = 409, message = "Counter metric with given id already exists", response = ApiError
+                    .class),
             @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
-                         response = ApiError.class) })
-    public void createCounter (
+                    response = ApiError.class)
+    })
+    public void createCounter(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(required = true) MetricDefinition metricDefinition,
-            @Context UriInfo uriInfo) {
-        if (metricDefinition == null) {
-            asyncResponse.resume(emptyPayload());
-            return;
-        }
+            @Context UriInfo uriInfo
+    ) {
         Metric<Double> metric = new Metric<>(tenantId, COUNTER, new MetricId(metricDefinition.getId()),
                 metricDefinition.getTags(), metricDefinition.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getId().getName());
@@ -136,17 +137,14 @@ public class CounterHandler {
             @ApiResponse(code = 200, message = "Adding data points succeeded."),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data points",
-                         response = ApiError.class) })
+                    response = ApiError.class)
+    })
     public void addData(@Suspended final AsyncResponse asyncResponse,
-            @ApiParam(value = "List of metrics", required = true) List<Counter> counters) {
-
-        if (counters.isEmpty()) {
-            asyncResponse.resume(emptyPayload());
-        } else {
-            Observable<Metric<Long>> metrics = requestToCounters(tenantId, counters);
-            Observable<Void> observable = metricsService.addCounterData(metrics);
-            observable.subscribe(new ResultSetObserver(asyncResponse));
-        }
+                        @ApiParam(value = "List of metrics", required = true) List<Counter> counters
+    ) {
+        Observable<Metric<Long>> metrics = requestToCounters(tenantId, counters);
+        Observable<Void> observable = metricsService.addCounterData(metrics);
+        observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @POST
@@ -156,20 +154,17 @@ public class CounterHandler {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
-                         response = ApiError.class), })
+                    response = ApiError.class),
+    })
     public void addData(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
             @ApiParam(value = "List of data points containing timestamp and value", required = true)
-            List<CounterDataPoint> data) {
-
-        if (data.isEmpty()) {
-            asyncResponse.resume(emptyPayload());
-        } else {
-            Metric<Long> metric = new Metric<>(tenantId, COUNTER, new MetricId(id), requestToCounterDataPoints(data));
-            Observable<Void> observable = metricsService.addCounterData(Observable.just(metric));
-            observable.subscribe(new ResultSetObserver(asyncResponse));
-        }
+            List<CounterDataPoint> data
+    ) {
+        Metric<Long> metric = new Metric<>(tenantId, COUNTER, new MetricId(id), requestToCounterDataPoints(data));
+        Observable<Void> observable = metricsService.addCounterData(Observable.just(metric));
+        observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @GET

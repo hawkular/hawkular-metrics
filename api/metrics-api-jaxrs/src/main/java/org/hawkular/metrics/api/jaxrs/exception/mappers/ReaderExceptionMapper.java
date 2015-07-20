@@ -20,7 +20,11 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
+import org.hawkular.metrics.api.jaxrs.interceptor.EmptyPayloadException;
+import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.jboss.resteasy.spi.ReaderException;
+
+import com.google.common.base.Throwables;
 
 /**
  * Exception mapper for any exception thrown by a body reader chain.
@@ -35,6 +39,10 @@ public class ReaderExceptionMapper implements ExceptionMapper<ReaderException> {
 
     @Override
     public Response toResponse(ReaderException exception) {
-        return ExceptionMapperUtils.buildResponse(exception, Response.Status.BAD_REQUEST);
+        Throwable rootCause = Throwables.getRootCause(exception);
+        if (rootCause instanceof EmptyPayloadException) {
+            return ApiUtils.emptyPayload();
+        }
+        return ExceptionMapperUtils.buildResponse(rootCause, Response.Status.BAD_REQUEST);
     }
 }
