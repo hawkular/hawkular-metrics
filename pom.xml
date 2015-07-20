@@ -187,14 +187,6 @@
           <version>1.11</version>
         </plugin>
 
-        <plugin>
-          <groupId>org.wildfly.plugins</groupId>
-          <artifactId>wildfly-maven-plugin</artifactId>
-          <configuration>
-            <version>${version.org.wildfly}</version>
-          </configuration>
-        </plugin>
-
       </plugins>
     </pluginManagement>
     <plugins>
