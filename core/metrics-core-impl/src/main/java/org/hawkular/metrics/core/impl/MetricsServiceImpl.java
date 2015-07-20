@@ -17,6 +17,7 @@
 package org.hawkular.metrics.core.impl;
 
 import static java.util.Comparator.comparingLong;
+import static java.util.stream.Collectors.toSet;
 
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
@@ -59,6 +60,9 @@ import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.RetentionSettings;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
+import org.hawkular.metrics.core.impl.tags.MetricIndex;
+import org.hawkular.metrics.core.impl.transformers.TagsIndexResultSetTransformer;
+import org.hawkular.metrics.core.impl.transformers.ItemsToSetTransformer;
 import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.metrics.tasks.api.Task;
 import org.hawkular.metrics.tasks.api.TaskService;
@@ -441,6 +445,10 @@ public class MetricsServiceImpl implements MetricsService {
         return dataRetentionUpdated;
     }
 
+    private Observable<Metric> findMetric(final String tenantId, final MetricIndex index) {
+        return findMetric(tenantId, index.getType(), index.getId());
+    }
+
     @Override
     public Observable<Metric> findMetric(final MetricId id) {
         return dataAccess.findMetric(id)
@@ -461,14 +469,53 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<Metric> findMetricsWithTags(String tenantId, Map<String, String> tags, MetricType type) {
-        return dataAccess.findMetricsFromTagsIndex(tenantId, tags)
+    public Observable<Metric> findMetricsWithFilters(String tenantId, Map<String, String> tagsQueries, MetricType
+            type) {
+
+        // SearchQueries that are fetched with tag name
+        Set<Map.Entry<String, String>> tnames = tagsQueries.entrySet().stream()
+                .filter(e -> e.getValue().equals("*")).collect(toSet());
+
+        // SearchQueries that are fetched with tag name and value
+        Set<Map.Entry<String, String>> tvalues = tagsQueries.entrySet().stream()
+                .filter(e -> !e.getValue().equals("*")).collect(toSet());
+
+        // Define queries separately for tname and tname,tvalue Cassandra queries
+        Observable<Set<MetricIndex>> nameMatches = Observable.from(tnames)
+                .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
+                        .compose(new TagsIndexResultSetTransformer(type))
+                        .compose(new ItemsToSetTransformer<MetricIndex>()));
+
+        Observable<Set<MetricIndex>> valueMatches = Observable.from(tvalues).flatMap(e -> {
+            String[] values = e.getValue().split("\\|");
+            return Observable.from(values)
+                    .flatMap(v -> dataAccess.findMetricsByTagNameValue(tenantId, e.getKey(), v)
+                            .compose(new TagsIndexResultSetTransformer(type))
+                            .compose(new ItemsToSetTransformer<MetricIndex>()))
+                    .reduce((s1, s2) -> {
+                        s1.addAll(s2);
+                        return s1;
+                    });
+        });
+
+        // We should not process empty Observables if they were never called (otherwise our intersection is not right)
+        Observable<Set<MetricIndex>> indexes;
+        if (!tvalues.isEmpty() && !tnames.isEmpty()) {
+            indexes = nameMatches.mergeWith(valueMatches);
+        } else if (tvalues.isEmpty()) {
+            indexes = nameMatches;
+        } else {
+            indexes = valueMatches;
+        }
+
+        // Take intersection of every processed metric index set and fetch metric definitions
+        return indexes
+                .reduce((s1, s2) -> {
+                    s1.retainAll(s2);
+                    return s1;
+                })
                 .flatMap(Observable::from)
-                .filter(r -> (type == null && MetricType.userTypes().contains(MetricType.fromCode(r.getInt(0))))
-                        || MetricType.fromCode(r.getInt(0)) == type)
-                .distinct(r -> Integer.valueOf(r.getInt(0)).toString() + r.getString(1) + r.getString(2))
-                .flatMap(r -> findMetric(new MetricId(tenantId, MetricType.fromCode(r.getInt(0)), r.getString
-                        (1), Interval.parse(r.getString(2))))); // We'll need to fetch type here from the Cassandra..
+                .flatMap(i -> findMetric(tenantId, i));
     }
 
     @Override

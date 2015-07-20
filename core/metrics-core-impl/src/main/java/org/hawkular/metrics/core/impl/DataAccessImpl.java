@@ -143,7 +143,7 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findMetricsByTagName;
 
-    private PreparedStatement findMetricsFromTagsIndex;
+    private PreparedStatement findMetricsByTagNameValue;
 
     public DataAccessImpl(Session session) {
         this.session = session;
@@ -326,11 +326,11 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND tname = ? AND tvalue = ? AND type = ? AND metric = ? AND interval = ?");
 
         findMetricsByTagName = session.prepare(
-            "SELECT tvalue, type, metric, interval " +
+            "SELECT type, metric, interval, tvalue " +
             "FROM metrics_tags_idx " +
             "WHERE tenant_id = ? AND tname = ?");
 
-        findMetricsFromTagsIndex = session.prepare(
+        findMetricsByTagNameValue = session.prepare(
                 "SELECT type, metric, interval " +
                         "FROM metrics_tags_idx " +
                         "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
@@ -676,14 +676,13 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findMetricsByTag(String tenantId, String tag) {
+    public Observable<ResultSet> findMetricsByTagName(String tenantId, String tag) {
         return rxSession.execute(findMetricsByTagName.bind(tenantId, tag));
     }
 
     @Override
-    public Observable<ResultSet> findMetricsFromTagsIndex(String tenantId, Map<String, String> tags) {
-        return Observable.from(tags.entrySet())
-                .flatMap(e -> rxSession.execute(findMetricsFromTagsIndex.bind(tenantId, e.getKey(), e.getValue())));
+    public Observable<ResultSet> findMetricsByTagNameValue(String tenantId, String tag, String tvalue) {
+        return rxSession.execute(findMetricsByTagNameValue.bind(tenantId, tag, tvalue));
     }
 
     @Override
