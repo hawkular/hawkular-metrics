@@ -29,8 +29,15 @@ public class InfluxDBTest {
     private static final String TENANT_PREFIX = UUID.randomUUID().toString();
     private static final AtomicInteger TENANT_ID_COUNTER = new AtomicInteger(0);
 
-    static String baseURI = System.getProperty("hawkular-metrics.base-uri", "127.0.0.1:8080/hawkular/metrics");
+    static String baseURI = System.getProperty("hawkular-metrics.base-uri");
     static InfluxDB influxDB;
+
+    static {
+        baseURI = System.getProperty("hawkular-metrics.base-uri");
+        if (baseURI == null || baseURI.trim().isEmpty()) {
+            baseURI = "127.0.0.1:8080/hawkular/metrics";
+        }
+    }
 
     @BeforeClass
     public static void initClient() {

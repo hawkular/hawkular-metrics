@@ -18,6 +18,7 @@ package org.hawkular.metrics.tasks.impl;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Duration.standardSeconds;
 import static org.testng.Assert.assertTrue;
@@ -26,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.hawkular.metrics.tasks.BaseTest;
+import org.hawkular.metrics.tasks.BaseITest;
 import org.hawkular.metrics.tasks.api.TaskType;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.joda.time.DateTime;
@@ -36,7 +37,7 @@ import org.testng.annotations.Test;
 /**
  * @author jsanda
  */
-public class TaskSchedulerTest extends BaseTest {
+public class TaskSchedulerITest extends BaseITest {
 
     private LeaseService leaseService;
 

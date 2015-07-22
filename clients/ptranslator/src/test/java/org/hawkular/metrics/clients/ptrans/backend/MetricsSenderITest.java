@@ -19,6 +19,7 @@ package org.hawkular.metrics.clients.ptrans.backend;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 import static org.hawkular.metrics.clients.ptrans.backend.Constants.METRIC_ADDRESS;
+import static org.hawkular.metrics.clients.ptrans.data.ServerDataHelper.BASE_URI;
 import static org.hawkular.metrics.clients.ptrans.util.TenantUtil.getRandomTenantId;
 import static org.junit.Assert.assertEquals;
 
@@ -47,11 +48,6 @@ import io.vertx.core.Vertx;
  * @author Thomas Segismont
  */
 public class MetricsSenderITest {
-    private static final String BASE_URI;
-
-    static {
-        BASE_URI = System.getProperty("hawkular-metrics.base-uri", "127.0.0.1:8080/hawkular/metrics");
-    }
 
     @Rule
     public final Timeout timeout = new Timeout(1, MINUTES);
