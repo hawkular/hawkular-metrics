@@ -192,9 +192,7 @@
     <profile>
       <id>ptrans-integration-tests</id>
       <activation>
-        <property>
-          <name>integration-tests</name>
-        </property>
+        <activeByDefault>true</activeByDefault>
       </activation>
       <build>
         <plugins>
