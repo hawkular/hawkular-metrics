@@ -18,6 +18,7 @@ package org.hawkular.metrics.tasks.api;
 
 import java.util.Map;
 
+import org.hawkular.metrics.tasks.impl.Lease;
 import rx.Observable;
 
 /**
@@ -25,7 +26,7 @@ import rx.Observable;
  */
 public interface TaskScheduler {
 
-//    void start();
+    Observable<Lease> start();
 
     Observable<Task2> createTask(String name, Map<String, String> parameters, Trigger trigger);
 

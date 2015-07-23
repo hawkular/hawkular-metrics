@@ -179,7 +179,9 @@ CREATE TABLE ${keyspace}.task_queue (
     time_slice timestamp,
     shard int,
     task_id uuid,
+    task_name text,
     task_params map<text, text>,
+    trigger frozen <trigger_def>,
     PRIMARY KEY ((time_slice, shard), task_id)
 );
 

@@ -25,7 +25,7 @@ import java.util.Objects;
  *
  * @author jsanda
  */
-class Lease {
+public class Lease {
 
     private long timeSlice;
 

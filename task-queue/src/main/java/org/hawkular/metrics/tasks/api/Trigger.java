@@ -23,4 +23,6 @@ public interface Trigger {
 
     long getTriggerTime();
 
+    Trigger nextTrigger();
+
 }

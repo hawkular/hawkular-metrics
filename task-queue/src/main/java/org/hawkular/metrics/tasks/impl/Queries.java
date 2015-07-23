@@ -42,6 +42,8 @@ public class Queries {
 
     public PreparedStatement insertIntoQueue;
 
+    public PreparedStatement getTasksFromQueue;
+
     public PreparedStatement createTaskWithFailures;
 
     public PreparedStatement findTasks;
@@ -57,12 +59,12 @@ public class Queries {
         findLeases = session.prepare(
             "SELECT shard, owner, finished FROM leases WHERE time_slice = ?");
 
-//        acquireLease = session.prepare(
-//            "UPDATE leases " +
-//            "USING TTL ? " +
-//            "SET owner = ? " +
-//            "WHERE time_slice = ? AND task_type = ? AND segment_offset = ? " +
-//            "IF owner = NULL");
+        acquireLease = session.prepare(
+            "UPDATE leases " +
+            "USING TTL ? " +
+            "SET owner = ? " +
+            "WHERE time_slice = ? AND shard = ? " +
+            "IF owner = NULL");
 //
 //        renewLease = session.prepare(
 //            "UPDATE leases " +
@@ -71,13 +73,12 @@ public class Queries {
 //            "WHERE time_slice = ? AND task_type = ? AND segment_offset = ? " +
 //            "IF owner = ?");
 //
-//        finishLease = session.prepare(
-//            "UPDATE leases " +
-//            "SET finished = true " +
-//            "WHERE time_slice = ? AND task_type = ? AND segment_offset = ? " +
-//            "IF owner = ?");
+        finishLease = session.prepare(
+            "UPDATE leases " +
+            "SET finished = true " +
+            "WHERE time_slice = ? AND shard = ?");
 //
-//        deleteLeases = session.prepare("DELETE FROM leases WHERE time_slice = ?");
+        deleteLeases = session.prepare("DELETE FROM leases WHERE time_slice = ?");
 
 //        createTask = session.prepare(
 //            "INSERT INTO task_queue (task_type, tenant_id, time_slice, segment, target, sources, interval, window) " +
@@ -86,7 +87,12 @@ public class Queries {
         createTask2 = session.prepare(
                 "INSERT INTO tasks (id, shard, name, params, trigger) VALUES (?, ?, ?, ?, ?)");
 
-        insertIntoQueue = session.prepare("INSERT INTO task_queue (time_slice, shard, task_id) VALUES (?, ?, ?)");
+        insertIntoQueue = session.prepare(
+                "INSERT INTO task_queue (time_slice, shard, task_id, task_name, task_params, trigger) " +
+                "VALUES (?, ?, ?, ?, ?, ?)");
+
+        getTasksFromQueue = session.prepare(
+                "SELECT task_id, task_name, task_params, trigger FROM task_queue WHERE time_slice = ? AND shard = ?");
 
 //        createTaskWithFailures = session.prepare(
 //            "INSERT INTO task_queue (task_type, tenant_id, time_slice, segment, target, sources, interval, window, " +
@@ -99,8 +105,7 @@ public class Queries {
 
         findTask = session.prepare("SELECT shard, name, params, trigger FROM tasks WHERE id = ?");
 
-//        deleteTasks = session.prepare(
-//            "DELETE FROM task_queue WHERE task_type = ? AND time_slice = ? AND segment = ?");
+        deleteTasks = session.prepare("DELETE FROM task_queue WHERE time_slice = ? AND shard = ?");
     }
 
 }

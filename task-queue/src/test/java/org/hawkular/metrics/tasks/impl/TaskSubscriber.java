@@ -17,14 +17,27 @@
 package org.hawkular.metrics.tasks.impl;
 
 import java.util.List;
+import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.tasks.api.Task2;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.observers.TestSubscriber;
 
 /**
  * @author jsanda
  */
 public class TaskSubscriber extends TestSubscriber<Task2> {
+
+    private static Logger logger = LoggerFactory.getLogger(TaskSubscriber.class);
+
+    private Random random = new Random();
+
+    private int numberOfOnNextEvents;
+
+    private CountDownLatch onNextEventsLatch = new CountDownLatch(0);
 
     @Override
     public void assertReceivedOnNext(List<Task2> tasks) {
@@ -74,4 +87,53 @@ public class TaskSubscriber extends TestSubscriber<Task2> {
             throw new AssertionError(errors);
         }
     }
+
+    public void awaitOnNextEvents(int count) {
+        if (count < 1) {
+            throw new IllegalArgumentException("count must be positive");
+        }
+        numberOfOnNextEvents = count;
+        onNextEventsLatch = new CountDownLatch(1);
+        try {
+            onNextEventsLatch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Interrupted waiting for onNext events", e);
+        } finally {
+            unsubscribe();
+        }
+    }
+
+    public void awaitOnNextEvents(int count, long timeout, TimeUnit unit) {
+        if (count < 1) {
+            throw new IllegalArgumentException("count must be positive");
+        }
+        if (getOnNextEvents().size() >= count) {
+            unsubscribe();
+        } else {
+            numberOfOnNextEvents = count;
+            onNextEventsLatch = new CountDownLatch(1);
+            try {
+                onNextEventsLatch.await(timeout, unit);
+            } catch (InterruptedException e) {
+                throw new RuntimeException("Interrupted waiting for onNext events", e);
+            } finally {
+                unsubscribe();
+            }
+        }
+    }
+
+    @Override
+    public void onNext(Task2 task2) {
+//        try {
+//            long duration = Math.abs(random.nextLong()) % 5000;
+//            logger.debug("Sleeping {} ms for execution of {}", duration, task2.getName());
+//            Thread.sleep(duration);
+//        } catch (InterruptedException e) {
+//        }
+        super.onNext(task2);
+        if (numberOfOnNextEvents > 0 && getOnNextEvents().size() >= numberOfOnNextEvents) {
+            onNextEventsLatch.countDown();
+        }
+    }
+
 }

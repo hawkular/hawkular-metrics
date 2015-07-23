@@ -117,7 +117,7 @@
     <slf4j.version>1.7.7</slf4j.version>
     <log4j.version>1.2.17</log4j.version>
     <antlr.version>4.5</antlr.version>
-    <rxjava.version>1.0.10</rxjava.version>
+    <rxjava.version>1.0.12</rxjava.version>
     <dropwizard.metrics.version>3.1.2</dropwizard.metrics.version>
     <rxjava-math.version>1.0.0</rxjava-math.version>
 

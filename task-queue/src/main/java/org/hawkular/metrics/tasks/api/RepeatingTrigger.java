@@ -84,6 +84,11 @@ public class RepeatingTrigger implements Trigger {
         return triggerTime;
     }
 
+    @Override
+    public Trigger nextTrigger() {
+        return new RepeatingTrigger(interval, delay, triggerTime + interval);
+    }
+
     private DateTime getExecutionDateTime() {
         DateTime dt = DateTime.now();
         Duration duration = Duration.millis(interval);

@@ -79,12 +79,13 @@ public class Task2Impl implements Task2 {
         return Objects.equals(shard, task2.shard) &&
                 Objects.equals(id, task2.id) &&
                 Objects.equals(name, task2.name) &&
-                Objects.equals(parameters, task2.parameters);
+                Objects.equals(parameters, task2.parameters) &&
+                Objects.equals(trigger, task2.trigger);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, shard, name, parameters);
+        return Objects.hash(id, shard, name, parameters, trigger);
     }
 
     @Override
@@ -94,6 +95,7 @@ public class Task2Impl implements Task2 {
                 ", shard=" + shard +
                 ", name='" + name + '\'' +
                 ", parameters=" + parameters +
+                ", trigger=" + trigger +
                 '}';
     }
 }
