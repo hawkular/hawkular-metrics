@@ -66,14 +66,13 @@ public abstract class BaseContainerTests {
     @Before
     public void setup() throws Exception {
         Service service = client.getService(HAWKULAR_METRICS_NAME);
-        metricsIP = service.getSpec().getPortalIP();
+        metricsIP = service.getSpec().getClusterIP();
+
         assertTrue(metricsIP != null && !metricsIP.equalsIgnoreCase("None"));
 
         ResteasyClient restClient = new ResteasyClientBuilder().build();
         target = restClient.target("http://" + metricsIP);
     }
-
-
 
     protected void foo() throws Exception {
         ResteasyClient restClient = new ResteasyClientBuilder().build();

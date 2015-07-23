@@ -28,14 +28,14 @@ mvn clean install -Pdocker-build -Ddocker.host=tcp://127.0.0.1:2375
 
 == Running the Container Tests
 
-The container tests are meant to be run on OpenShift v3 1.0.0
+The container tests are meant to be run on OpenShift v3 1.0.3
 
 === Download OpenShift and extract it
 
 [source,bash]
 ----
-wget https://github.com/openshift/origin/releases/download/v1.0.0/openshift-origin-v1.0.0-67617dd-linux-amd64.tar.gz[https://github.com/openshift/origin/releases/download/v1.0.0/openshift-origin-v1.0.0-67617dd-linux-amd64.tar.gz]
-tar zxvf openshift-origin-v1.0.0-67617dd-linux-amd64.tar.gz
+wget https://github.com/openshift/origin/releases/download/v1.0.3/openshift-origin-v1.0.3-1695461-linux-amd64.tar.gz[https://github.com/openshift/origin/releases/download/v1.0.3/openshift-origin-v1.0.3-1695461-linux-amd64.tar.gz]
+tar zxvf openshift-origin-v1.0.3-1695461-linux-amd64.tar.gz
 ----
 
 === Expose the OpenShift binaries to $PATH
@@ -63,7 +63,7 @@ export BINDING_ADDRESS=<INSERT-YOUR-BINDING-ADDRESS-HERE>
 
 === Temporary fix for heapster
 
-For 1.0.0 heapster will not function properly due to it requring an non-secured `/stats` endpoint
+For 1.0.3 heapster will not function properly due to it requring an non-secured `/stats` endpoint
 
 You will need to configure OpenShift to expose the RO endpoint as being unsecured
 
@@ -124,6 +124,52 @@ firewall-cmd -zone=trusted -change-interface=docker0
 ----
 
 Also, enable the DNS service in the `FedoraWorkstation` zone.
+
+=== Deploying Hawkular Metrics with Cassandra and Heapster in OpenShift
+
+A few steps will need to be followed to deploy Hawkular Metrics on top of OpenShift.
+
+
+==== Creating and Deploying the Hawkular secret
+You will first need to create the secret which will contain the SSL certificates used between the Hawkular Metrics
+and Cassandra containers to enable SSL and certificate based authentication. This can be easily done by running the
+'create-secret.sh' in the containers/scripts/secrets directory.
+
+[source, bash]
+----
+./scripts/secrets/create-secret.sh
+----
+
+This script will prompt to enter some information required to create the certificates. Once the script is run, you will now have
+a 'hawkular-secrets.json' file in that directory.
+
+To add this secret to hawkular metrics, run the following command:
+[source, bash]
+----
+oc create -f hawkular-secrets.json
+----
+
+==== Giving the Hawkular user Cluster Reader permissions
+Heapster requires having read access to the cluster in order to be able gather metrics from the cluster. To give
+the 'hawkular' user this permission you will need to run the following command:
+
+[source, bash]
+----
+oadm policy add-cluster-role-to-user cluster-admin system:serviceaccount:default:hawkular
+----
+
+Note: if you are running the containers on a project other than 'default' you will need to replace
+'default' in the previous command with the name of the project you are deploying into.
+
+==== Deploying the Hawkular Metrics Kubernetes Application
+Deploying the Hawkular Metrics Kubernetes application will deploy and configure the Hawkular Metrics container,
+Cassandra container and Heapster container to OpenShift. No other steps are required and all the data gathered
+from Heapster will be written into Hawkular Metrics automatically.
+
+[source, bash]
+----
+oc create -f ./containers/kubernetes/target/generated-app/hawkular-metrics-kubernetes-app/kubernetes.json
+----
 
 === Running the Tests
 

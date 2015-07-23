@@ -44,7 +44,7 @@ import org.junit.runner.RunWith;
 @RunWith(Arquillian.class)
 public class HeapsterTest extends BaseContainerTests {
 
-    private static final String HEAPSTER_SERVICE_ACCOUNT_NAME = "heapster";
+    private static final String HEAPSTER_SERVICE_ACCOUNT_NAME = "hawkular";
     private static final String HEAPSTER_SERVICE_NAME = "heapster";
 
     @Test
@@ -70,8 +70,7 @@ public class HeapsterTest extends BaseContainerTests {
         Thread.sleep(10000);
 
         Service service = client.getService(HEAPSTER_SERVICE_NAME);
-        String heapsterAddress = service.getSpec().getPortalIP();
-
+        String heapsterAddress = service.getSpec().getClusterIP();
 
         ResteasyClient restClient = new ResteasyClientBuilder().build();
         ResteasyWebTarget target = restClient.target("http://" + heapsterAddress);

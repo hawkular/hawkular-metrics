@@ -20,10 +20,10 @@
         },
         "portalIp": "None",
         "ports": [
-          { "name": "cassandra-cql-port", "port": 9042, "targetPort": "cassandra-cql-port" },
-          { "name": "cassandra-thift-port", "port": 9160, "targetPort": "cassandra-thift-port" },
-          { "name": "cassandra-tcp-port", "port": 7000, "targetPort": "cassandra-tcp-port" },
-          { "name": "cassandra-ssl-port", "port": 7001, "targetPort": "cassandra-ssl-port" }
+          { "name": "cql-port", "port": 9042, "targetPort": "cql-port" },
+          { "name": "thift-port", "port": 9160, "targetPort": "thift-port" },
+          { "name": "tcp-port", "port": 7000, "targetPort": "tcp-port" },
+          { "name": "ssl-port", "port": 7001, "targetPort": "ssl-port" }
         ]
       }
     },
@@ -41,10 +41,10 @@
           "name": "hawkular-cassandra"
         },
         "ports": [
-          { "name": "cassandra-cql-port", "port": 9042, "targetPort": "cassandra-cql-port" },
-          { "name": "cassandra-thift-port", "port": 9160, "targetPort": "cassandra-thift-port" },
-          { "name": "cassandra-tcp-port", "port": 7000, "targetPort": "cassandra-tcp-port" },
-          { "name": "cassandra-ssl-port", "port": 7001, "targetPort": "cassandra-ssl-port" }
+          { "name": "cql-port", "port": 9042, "targetPort": "cql-port" },
+          { "name": "thift-port", "port": 9160, "targetPort": "thift-port" },
+          { "name": "tcp-port", "port": 7000, "targetPort": "tcp-port" },
+          { "name": "ssl-port", "port": 7001, "targetPort": "ssl-port" }
         ]
       }
     },
@@ -70,21 +70,32 @@
             }
           },
           "spec": {
+            "serviceAccount": "hawkular",
             "containers": [{
               "image": "${cassandra.image}",
               "name" : "hawkular-cassandra",
               "ports": [
-                { "name": "cassandra-cql-port", "containerPort": 9042},
-                { "name": "cassandra-thift-port", "containerPort": 9160},
-                { "name": "cassandra-tcp-port", "containerPort": 7000},
-                { "name": "cassandra-ssl-port", "containerPort": 7001}
+                { "name": "cql-port", "containerPort": 9042},
+                { "name": "thift-port", "containerPort": 9160},
+                { "name": "tcp-port", "containerPort": 7000},
+                { "name": "ssl-port", "containerPort": 7001}
               ],
               "command" : ["/opt/apache-cassandra/bin/cassandra-docker.sh",
                 "--seed_provider_classname=org.hawkular.openshift.cassandra.OpenshiftSeedProvider",
                 "--cluster_name=hawkular-metrics",
-                "--data_volume=/cassandra_data"],
+                "--data_volume=/cassandra_data",
+                "--internode_encryption=all",
+                "--require_node_auth=true",
+                "--enable_client_encryption=true",
+                "--require_client_auth=false",
+                "--keystore_file=/secret/cassandra.keystore",
+                "--keystore_password_file=/secret/cassandra.keystore.password",
+                "--truststore_file=/secret/cassandra.truststore",
+                "--truststore_password_file=/secret/cassandra.truststore.password"
+                ],
               "volumeMounts": [
-                { "name": "cassandra-data", "mountPath": "/cassandra_data" }
+                { "name": "cassandra-data", "mountPath": "/cassandra_data" },
+                { "name": "cassandra-secrets", "mountPath": "/secret"}
               ],
               "lifecycle": {
                 "preStop": {
@@ -95,7 +106,8 @@
               }
             }],
             "volumes": [
-              { "name": "cassandra-data", "emptyDir":{} }
+              { "name": "cassandra-data", "emptyDir":{} },
+              { "name": "cassandra-secrets", "secret": { "secretName": "cassandra-secrets"} }
             ]
           }
         }
@@ -115,7 +127,7 @@
           "name": "hawkular-metrics"
         },
         "ports": [
-          { "name": "hawkular-metrics-endpoint", "port": 80, "targetPort": "hawkular-metrics-endpoint" }
+          { "name": "http-endpoint", "port": 80, "targetPort": "http-endpoint" }
         ]
       }
     },
@@ -141,11 +153,24 @@
             }
           },
           "spec": {
+            "serviceAccount": "hawkular",
             "containers": [{
               "image": "${hawkular-metrics.image}",
               "name" : "hawkular-metrics",
+              "command" : [ "/opt/jboss/wildfly/bin/standalone.sh",
+                "-b", "0.0.0.0",
+                "-Dhawkular-metrics.cassandra-nodes=hawkular-cassandra",
+                "-Dhawkular-metrics.cassandra-use-ssl",
+                "-Djavax.net.ssl.keyStore=/secrets/hawkular-metrics.keystore",
+                "-Djavax.net.ssl.keyStorePassword=hawkular",
+                "-Djavax.net.ssl.trustStore=/secrets/hawkular-metrics.truststore",
+                "-Djavax.net.ssl.trustStorePassword=hawkular"
+              ],
+              "volumeMounts": [
+                { "name": "hawkular-metrics-secrets", "mountPath": "/secrets"}
+              ],
               "ports": [
-                { "name": "hawkular-metrics-endpoint", "containerPort": 8080}
+                { "name": "http-endpoint", "containerPort": 8080}
               ],
               "lifecycle": {
                 "postStart": {
@@ -159,7 +184,10 @@
                   "command": ["/opt/hawkular/scripts/hawkular-metrics-liveness.sh"]
                 }
               }
-            }]
+            }],
+            "volumes": [
+              { "name": "hawkular-metrics-secrets", "secret": { "secretName": "hawkular-metrics-secrets"} }
+            ]
           }
         }
       }
@@ -178,7 +206,7 @@
           "name": "heapster"
         },
         "ports": [
-          { "name": "heapster-http-endpoint", "port": 80, "targetPort": "heapster-http-endpoint" }
+          { "name": "http-endpoint", "port": 80, "targetPort": "http-endpoint" }
         ]
       }
     },
@@ -208,7 +236,7 @@
               "image": "${heapster.image}",
               "name" : "heapster",
               "ports": [
-                { "name": "heapster-http-endpoint", "containerPort": 8082}
+                { "name": "http-endpoint", "containerPort": 8082}
               ],
               "command" : ["./heapster",
                 "--source=kubernetes:https://kubernetes.default:443?useServiceAccount=true&insecure=true&kubeletHttps=false&kubeletPort=10266&auth=",
@@ -216,7 +244,7 @@
                 "--logtostderr=true",
                 "--vmodule=*=4"]
             }],
-            "serviceAccount" : "heapster"
+            "serviceAccount" : "hawkular"
           }
         }
       }
@@ -225,8 +253,12 @@
       "apiVersion": "v1",
       "kind": "ServiceAccount",
       "metadata": {
-        "name": "heapster"
-      }
+        "name": "hawkular"
+      },
+      "secrets": [
+        { "name": "cassandra-secrets" },
+        { "name": "hawkular-metrics-secrets" }
+      ]
     }
   ]
 }
