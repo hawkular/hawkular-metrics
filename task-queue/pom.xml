@@ -99,7 +99,9 @@
     <profile>
       <id>task-queue-integration-tests</id>
       <activation>
-        <activeByDefault>true</activeByDefault>
+        <property>
+          <name>!skipTests</name>
+        </property>
       </activation>
       <build>
         <plugins>
