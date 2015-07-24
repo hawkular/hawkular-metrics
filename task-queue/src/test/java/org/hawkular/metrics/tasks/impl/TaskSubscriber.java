@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import org.hawkular.metrics.tasks.api.Task2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.functions.Action1;
 import rx.observers.TestSubscriber;
 
 /**
@@ -38,6 +39,12 @@ public class TaskSubscriber extends TestSubscriber<Task2> {
     private int numberOfOnNextEvents;
 
     private CountDownLatch onNextEventsLatch = new CountDownLatch(0);
+
+    private Action1<Task2> onNext = task -> {};
+
+    public void setOnNext(Action1<Task2> onNext) {
+        this.onNext = onNext;
+    }
 
     @Override
     public void assertReceivedOnNext(List<Task2> tasks) {
@@ -130,10 +137,12 @@ public class TaskSubscriber extends TestSubscriber<Task2> {
 //            Thread.sleep(duration);
 //        } catch (InterruptedException e) {
 //        }
+//        super.onNext(task2);
+//        if (numberOfOnNextEvents > 0 && getOnNextEvents().size() >= numberOfOnNextEvents) {
+//            onNextEventsLatch.countDown();
+//        }
+        onNext.call(task2);
         super.onNext(task2);
-        if (numberOfOnNextEvents > 0 && getOnNextEvents().size() >= numberOfOnNextEvents) {
-            onNextEventsLatch.countDown();
-        }
     }
 
 }

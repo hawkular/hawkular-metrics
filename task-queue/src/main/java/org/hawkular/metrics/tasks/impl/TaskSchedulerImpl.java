@@ -132,6 +132,34 @@ public class TaskSchedulerImpl implements TaskScheduler {
         taskSubject = PublishSubject.create();
     }
 
+    private class SubscriberWrapper extends Subscriber<Task2> {
+
+        private Subscriber<Task2> delegate;
+
+        public SubscriberWrapper(Subscriber<Task2> delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void onCompleted() {
+            delegate.onCompleted();
+        }
+
+        @Override
+        public void onError(Throwable e) {
+            delegate.onError(e);
+        }
+
+        @Override
+        public void onNext(Task2 task2) {
+            try {
+                delegate.onNext(task2);
+            } catch (Exception e) {
+                logger.warn("Execution of {} failed", task2);
+            }
+        }
+    }
+
     /**
      * Subscribe a callback that will be responsible for executing tasks.
      *
@@ -149,7 +177,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
      * @return A subscription which can be used to stop receiving task notifications.
      */
     public Subscription subscribe(Subscriber<Task2> subscriber) {
-        return taskSubject.subscribe(subscriber);
+        return taskSubject.subscribe(new SubscriberWrapper(subscriber));
     }
 
     /**
@@ -186,7 +214,8 @@ public class TaskSchedulerImpl implements TaskScheduler {
                                             session.execute(queries.finishLease.bind(timeSlice, lease.getShard()),
                                                     tasksScheduler)
                                     ).subscribe(
-                                            resultSet -> {},
+                                            resultSet -> {
+                                            },
                                             t -> {
                                                 logger.warn("There was an error during post-task processing", t);
                                                 subscriber.onError(t);
@@ -347,16 +376,28 @@ public class TaskSchedulerImpl implements TaskScheduler {
      */
     private Observable<Task2Impl> execute(Task2Impl task) {
         Observable<Task2Impl> observable = Observable.create(subscriber -> {
-            try {
-                logger.debug("Emitting {} for execution", task);
-                taskSubject.onNext(task);
-                subscriber.onNext(task);
-                subscriber.onCompleted();
-                logger.debug("Finished executing {}", task);
-            } catch (Exception e) {
-                logger.warn("There was an unexpected error emitting " + task, e);
-                subscriber.onError(e);
-            }
+            logger.debug("Emitting {} for execution", task);
+            // This onNext call is to perform the actual task execution
+            taskSubject.onNext(task);
+            // This onNext call is for data flow. After the task executes, we call
+            // this onNext so that the task gets rescheduled.
+            subscriber.onNext(task);
+            subscriber.onCompleted();
+            logger.debug("Finished executing {}", task);
+
+//            try {
+//                logger.debug("Emitting {} for execution", task);
+//                // This onNext call is to perform the actual task execution
+//                taskSubject.onNext(task);
+//            } catch (Exception e) {
+//                logger.warn("There was an unexpected error emitting " + task, e);
+//            }
+//
+//            // This onNext call is for data flow. After the task executes, we call
+//            // this onNext so that the task gets rescheduled.
+//            subscriber.onNext(task);
+//            subscriber.onCompleted();
+//            logger.debug("Finished executing {}", task);
         });
         return observable.subscribeOn(tasksScheduler);
     }

@@ -238,7 +238,7 @@ public class TaskSchedulerImplTest extends BaseTest {
         assertLeasesDoNotExist(trigger.nextTrigger().getTriggerTime());
     }
 
-    @Test
+//    @Test
     public void executeMultipleTasksAcrossDifferentShards() throws Exception {
         Trigger trigger = new RepeatingTrigger.Builder()
                 .withInterval(1, TimeUnit.SECONDS)
@@ -248,8 +248,6 @@ public class TaskSchedulerImplTest extends BaseTest {
         Date timeSlice = new Date(trigger.getTriggerTime());
         Task2Impl task1 = new Task2Impl(randomUUID(), 0, "task1", emptyMap(), trigger);
         Task2Impl task2 = new Task2Impl(randomUUID(), 1, "task2", emptyMap(), trigger);
-
-        logger.debug("The first trigger is {}", trigger);
 
         TestSubscriber<ResultSet> resultSetSubscriber = new TestSubscriber<>();
 
@@ -309,6 +307,76 @@ public class TaskSchedulerImplTest extends BaseTest {
 
         assertLeasesDoNotExist(trigger.getTriggerTime());
         assertLeasesDoNotExist(trigger.nextTrigger().getTriggerTime());
+    }
+
+    @Test
+    public void executeTaskThatThrowsException() {
+        Trigger trigger = new RepeatingTrigger.Builder()
+                .withInterval(1, TimeUnit.SECONDS)
+                .withDelay(2, TimeUnit.SECONDS)
+                .build();
+        UDTValue triggerUDT = getTriggerValue(rxSession, trigger);
+        Date timeSlice = new Date(trigger.getTriggerTime());
+        Task2Impl task1 = new Task2Impl(randomUUID(), 0, "task1", emptyMap(), trigger);
+        Task2Impl task2 = new Task2Impl(randomUUID(), 1, "task2", emptyMap(), trigger);
+
+        TestSubscriber<ResultSet> resultSetSubscriber = new TestSubscriber<>();
+
+        TaskSubscriber taskSubscriber = new TaskSubscriber();
+        taskSubscriber.setOnNext(task -> {
+            if (task.getName().equals(task1.getName()) && task.getTrigger().equals(trigger)) {
+                logger.debug("Failing execution of {}", task);
+                throw new RuntimeException("Execution of " + task + " failed!");
+            }
+
+        });
+        scheduler.subscribe(taskSubscriber);
+
+        Observable<ResultSet> resultSets = Observable.merge(
+                rxSession.execute(queries.insertIntoQueue.bind(timeSlice, task1.getShard(), task1.getId(),
+                        task1.getName(), emptyMap(), triggerUDT)),
+                rxSession.execute(queries.insertIntoQueue.bind(timeSlice, task2.getShard(), task2.getId(),
+                        task2.getName(), emptyMap(), triggerUDT)),
+                rxSession.execute(queries.createLease.bind(timeSlice, task1.getShard())),
+                rxSession.execute(queries.createLease.bind(timeSlice, task2.getShard()))
+        );
+
+        resultSets.subscribe(resultSetSubscriber);
+        resultSetSubscriber.awaitTerminalEvent(5, TimeUnit.SECONDS);
+        resultSetSubscriber.assertCompleted();
+        resultSetSubscriber.assertNoErrors();
+
+        TestSubscriber<Lease> leaseSubscriber = new TestSubscriber<>();
+        leaseObservable.take(4).observeOn(Schedulers.immediate()).subscribe(leaseSubscriber);
+
+        leaseSubscriber.awaitTerminalEvent(10, TimeUnit.SECONDS);
+        leaseSubscriber.assertCompleted();
+
+        List<Lease> actualLeases = leaseSubscriber.getOnNextEvents();
+        assertEquals(actualLeases.size(), 4, "Expected to receive four leases");
+
+        List<Task2> onNextEvents = taskSubscriber.getOnNextEvents();
+        assertTrue(taskSubscriber.getOnNextEvents().size() >= 3, "Expected to receive at least three task events but "
+                + "received " + onNextEvents.size() + " events: " + onNextEvents);
+
+        List<Task2> actual = onNextEvents.subList(0, 3);
+
+        Set<Task2Impl> expectedValuesFor1stTrigger = ImmutableSet.of(task2);
+        Set<Task2Impl> expectedValuesFor2ndTrigger = ImmutableSet.of(
+                new Task2Impl(task1.getId(), task1.getShard(), task1.getName(), task1.getParameters(),
+                        trigger.nextTrigger()),
+                new Task2Impl(task2.getId(), task2.getShard(), task2.getName(), task2.getParameters(),
+                        trigger.nextTrigger())
+        );
+
+        // The scheduler guarantees that tasks are executed in order with respect to time
+        // There are no guarantees though around execution order for tasks scheduled for
+        // the same execution time. The first two events/tasks should have the first trigger
+        // time, and the latter two tasks should have the next trigger time.
+        assertEquals(ImmutableSet.copyOf(actual.subList(0, 1)), expectedValuesFor1stTrigger, "The tasks for the " +
+                "first trigger " + trigger + " do not match expected values - ");
+        assertEquals(ImmutableSet.copyOf(actual.subList(1, 3)), expectedValuesFor2ndTrigger, "The tasks for the " +
+                "second trigger " + trigger.nextTrigger() + " do not match expected values - ");
     }
 
 //    @Test
