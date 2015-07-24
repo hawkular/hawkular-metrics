@@ -32,6 +32,7 @@
   <name>Hawkular Metrics Rest Tests</name>
 
   <properties>
+    <wildfly-maven-plugin.skip>true</wildfly-maven-plugin.skip>
     <cassandra.keyspace>hawkular_metrics_rest_tests</cassandra.keyspace>
     <scheduler.units>seconds</scheduler.units>
   </properties>
@@ -129,42 +130,31 @@
     <profile>
       <id>rest-tests-integration-tests</id>
       <activation>
-        <activeByDefault>true</activeByDefault>
+        <property>
+          <name>!skipTests</name>
+        </property>
       </activation>
       <build>
         <plugins>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-resources-plugin</artifactId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <includes>
+                <include>**/*ITest*</include>
+              </includes>
+              <systemPropertyVariables>
+                <keyspace>${cassandra.keyspace}</keyspace>
+                <hawkular-metrics.base-uri>${base-uri}</hawkular-metrics.base-uri>
+                <project.version>${project.version}</project.version>
+              </systemPropertyVariables>
+            </configuration>
             <executions>
               <execution>
-                <id>copy-standalone-test</id>
-                <phase>process-test-resources</phase>
                 <goals>
-                  <goal>copy-resources</goal>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
                 </goals>
-                <configuration>
-                  <!--
-                    We cannot specify an arbitrary path to standalone-test.xml, so we include the necessary
-                    configuration files and override the default configuration directory. See
-                    https://issues.jboss.org/browse/JBASMP-75 for details.
-                  -->
-                  <outputDirectory>${project.build.directory}/wildfly-configuration</outputDirectory>
-                  <overwrite>true</overwrite>
-                  <useDefaultDelimiters>false</useDefaultDelimiters>
-                  <delimiters>
-                    <delimiter>@@@</delimiter>
-                  </delimiters>
-                  <resources>
-                    <resource>
-                      <directory>${project.basedir}/src/test/wildfly-configuration</directory>
-                      <includes>
-                        <include>*</include>
-                      </includes>
-                      <filtering>true</filtering>
-                    </resource>
-                  </resources>
-                </configuration>
               </execution>
             </executions>
           </plugin>
@@ -172,7 +162,7 @@
             <groupId>org.wildfly.plugins</groupId>
             <artifactId>wildfly-maven-plugin</artifactId>
             <configuration>
-              <skip>${running.service}</skip>
+              <skip>${wildfly-maven-plugin.skip}</skip>
               <port>${wildfly.management.port}</port>
             </configuration>
             <executions>
@@ -223,28 +213,6 @@
               </execution>
             </executions>
           </plugin>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <configuration>
-              <includes>
-                <include>**/*ITest*</include>
-              </includes>
-              <systemPropertyVariables>
-                <keyspace>${cassandra.keyspace}</keyspace>
-                <hawkular-metrics.base-uri>${base-uri}</hawkular-metrics.base-uri>
-                <project.version>${project.version}</project.version>
-              </systemPropertyVariables>
-            </configuration>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>integration-test</goal>
-                  <goal>verify</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
         </plugins>
       </build>
     </profile>
@@ -257,6 +225,7 @@
         </property>
       </activation>
       <properties>
+        <wildfly-maven-plugin.skip>false</wildfly-maven-plugin.skip>
         <!-- IMPORTANT: The port must be the port offset + 8080. -->
         <base-uri>127.0.0.1:55977/hawkular/metrics</base-uri>
         <wildfly.port.offset>47897</wildfly.port.offset>
@@ -265,6 +234,45 @@
         <wildfly.logging.console.level>ERROR</wildfly.logging.console.level>
         <wildfly.logging.file.level>DEBUG</wildfly.logging.file.level>
       </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>copy-standalone-test</id>
+                <phase>process-test-resources</phase>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+                <configuration>
+                  <!--
+                    We cannot specify an arbitrary path to standalone-test.xml, so we include the necessary
+                    configuration files and override the default configuration directory. See
+                    https://issues.jboss.org/browse/JBASMP-75 for details.
+                  -->
+                  <outputDirectory>${project.build.directory}/wildfly-configuration</outputDirectory>
+                  <overwrite>true</overwrite>
+                  <useDefaultDelimiters>false</useDefaultDelimiters>
+                  <delimiters>
+                    <delimiter>@@@</delimiter>
+                  </delimiters>
+                  <resources>
+                    <resource>
+                      <directory>${project.basedir}/src/test/wildfly-configuration</directory>
+                      <includes>
+                        <include>*</include>
+                      </includes>
+                      <filtering>true</filtering>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
 
   </profiles>
