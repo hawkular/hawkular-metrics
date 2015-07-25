@@ -24,6 +24,7 @@ import static org.hawkular.metrics.tasks.impl.TaskSchedulerImpl.getTriggerValue;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -31,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
@@ -45,6 +47,7 @@ import org.hawkular.metrics.tasks.api.Trigger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import rx.Observable;
 import rx.observers.TestSubscriber;
@@ -67,6 +70,8 @@ public class TaskSchedulerImplTest extends BaseTest {
 
     private Observable<Lease> leaseObservable;
 
+    private AtomicInteger ids = new AtomicInteger();
+
     @BeforeClass
     public void initClass() {
         findTasks = session.prepare("select id, shard, name, params, trigger from tasks");
@@ -75,6 +80,11 @@ public class TaskSchedulerImplTest extends BaseTest {
 
         scheduler = new TaskSchedulerImpl(rxSession, queries);
         leaseObservable = scheduler.start();
+    }
+
+    @BeforeMethod
+    public void beforeTestMethod(Method method) {
+        logger.debug("Preparing to execute {}", method.getName());
     }
 
 //    @Test
@@ -145,7 +155,7 @@ public class TaskSchedulerImplTest extends BaseTest {
                 "The leases for time slice [" + timeSlice + "] do not match");
     }
 
-//    @Test
+    @Test
     public void scheduleAndExecuteTaskWithNoParams() throws Exception {
         String taskName = "SimpleTaskWithNoParams";
         Trigger trigger = new RepeatingTrigger.Builder()
@@ -191,7 +201,7 @@ public class TaskSchedulerImplTest extends BaseTest {
         assertLeasesDoNotExist(trigger.nextTrigger().getTriggerTime());
     }
 
-//    @Test
+    @Test
     public void scheduleAndExecuteTaskWithParams() throws Exception {
         String taskName = "SimpleTaskWithParams";
         Map<String, String> params = ImmutableMap.of("x", "1", "y", "2", "z", "3");
@@ -238,35 +248,20 @@ public class TaskSchedulerImplTest extends BaseTest {
         assertLeasesDoNotExist(trigger.nextTrigger().getTriggerTime());
     }
 
-//    @Test
+    @Test
     public void executeMultipleTasksAcrossDifferentShards() throws Exception {
         Trigger trigger = new RepeatingTrigger.Builder()
                 .withInterval(1, TimeUnit.SECONDS)
                 .withDelay(2, TimeUnit.SECONDS)
                 .build();
-        UDTValue triggerUDT = getTriggerValue(rxSession, trigger);
         Date timeSlice = new Date(trigger.getTriggerTime());
         Task2Impl task1 = new Task2Impl(randomUUID(), 0, "task1", emptyMap(), trigger);
         Task2Impl task2 = new Task2Impl(randomUUID(), 1, "task2", emptyMap(), trigger);
 
-        TestSubscriber<ResultSet> resultSetSubscriber = new TestSubscriber<>();
-
         TaskSubscriber taskSubscriber = new TaskSubscriber();
         scheduler.subscribe(taskSubscriber);
 
-        Observable<ResultSet> resultSets = Observable.merge(
-                rxSession.execute(queries.insertIntoQueue.bind(timeSlice, task1.getShard(), task1.getId(),
-                        task1.getName(), emptyMap(), triggerUDT)),
-                rxSession.execute(queries.insertIntoQueue.bind(timeSlice, task2.getShard(), task2.getId(),
-                        task2.getName(), emptyMap(), triggerUDT)),
-                rxSession.execute(queries.createLease.bind(timeSlice, task1.getShard())),
-                rxSession.execute(queries.createLease.bind(timeSlice, task2.getShard()))
-        );
-
-        resultSets.subscribe(resultSetSubscriber);
-        resultSetSubscriber.awaitTerminalEvent(5, TimeUnit.SECONDS);
-        resultSetSubscriber.assertCompleted();
-        resultSetSubscriber.assertNoErrors();
+        setUpTasksForExecution(timeSlice, task1, task2);
 
         TestSubscriber<Lease> leaseSubscriber = new TestSubscriber<>();
         leaseObservable.take(4).observeOn(Schedulers.immediate()).subscribe(leaseSubscriber);
@@ -315,12 +310,9 @@ public class TaskSchedulerImplTest extends BaseTest {
                 .withInterval(1, TimeUnit.SECONDS)
                 .withDelay(2, TimeUnit.SECONDS)
                 .build();
-        UDTValue triggerUDT = getTriggerValue(rxSession, trigger);
         Date timeSlice = new Date(trigger.getTriggerTime());
         Task2Impl task1 = new Task2Impl(randomUUID(), 0, "task1", emptyMap(), trigger);
         Task2Impl task2 = new Task2Impl(randomUUID(), 1, "task2", emptyMap(), trigger);
-
-        TestSubscriber<ResultSet> resultSetSubscriber = new TestSubscriber<>();
 
         TaskSubscriber taskSubscriber = new TaskSubscriber();
         taskSubscriber.setOnNext(task -> {
@@ -332,19 +324,7 @@ public class TaskSchedulerImplTest extends BaseTest {
         });
         scheduler.subscribe(taskSubscriber);
 
-        Observable<ResultSet> resultSets = Observable.merge(
-                rxSession.execute(queries.insertIntoQueue.bind(timeSlice, task1.getShard(), task1.getId(),
-                        task1.getName(), emptyMap(), triggerUDT)),
-                rxSession.execute(queries.insertIntoQueue.bind(timeSlice, task2.getShard(), task2.getId(),
-                        task2.getName(), emptyMap(), triggerUDT)),
-                rxSession.execute(queries.createLease.bind(timeSlice, task1.getShard())),
-                rxSession.execute(queries.createLease.bind(timeSlice, task2.getShard()))
-        );
-
-        resultSets.subscribe(resultSetSubscriber);
-        resultSetSubscriber.awaitTerminalEvent(5, TimeUnit.SECONDS);
-        resultSetSubscriber.assertCompleted();
-        resultSetSubscriber.assertNoErrors();
+        setUpTasksForExecution(timeSlice, task1, task2);
 
         TestSubscriber<Lease> leaseSubscriber = new TestSubscriber<>();
         leaseObservable.take(4).observeOn(Schedulers.immediate()).subscribe(leaseSubscriber);
@@ -377,6 +357,105 @@ public class TaskSchedulerImplTest extends BaseTest {
                 "first trigger " + trigger + " do not match expected values - ");
         assertEquals(ImmutableSet.copyOf(actual.subList(1, 3)), expectedValuesFor2ndTrigger, "The tasks for the " +
                 "second trigger " + trigger.nextTrigger() + " do not match expected values - ");
+
+        assertQueueDoesNotExist(trigger.getTriggerTime(), task1.getShard());
+        assertQueueDoesNotExist(trigger.getTriggerTime(), task2.getShard());
+        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime(), task1.getShard());
+        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime(), task2.getShard());
+
+        assertLeasesDoNotExist(trigger.getTriggerTime());
+        assertLeasesDoNotExist(trigger.nextTrigger().getTriggerTime());
+    }
+
+    @Test
+    public void executeLongRunningTask() {
+        Trigger trigger = new RepeatingTrigger.Builder()
+                .withInterval(1, TimeUnit.SECONDS)
+                .withDelay(2, TimeUnit.SECONDS)
+                .withRepeatCount(2)
+                .build();
+        Date timeSlice = new Date(trigger.getTriggerTime());
+        Task2Impl task1 = new Task2Impl(randomUUID(), 0, "taskLongRunning-1", emptyMap(), trigger);
+        Task2Impl task2 = new Task2Impl(randomUUID(), 1, "taskLongRunning-2", emptyMap(), trigger);
+
+        TaskSubscriber taskSubscriber = new TaskSubscriber();
+        taskSubscriber.setOnNext(task -> {
+            if (task.getName().equals(task1.getName())) {
+                logger.debug("Executing long running task {}", task);
+                try {
+                    Thread.sleep(1500);
+                } catch (InterruptedException e) {
+                }
+            }
+        });
+        scheduler.subscribe(taskSubscriber);
+
+        setUpTasksForExecution(timeSlice, task1, task2);
+
+        TestSubscriber<Lease> leaseSubscriber = new TestSubscriber<>();
+        leaseObservable.take(4).observeOn(Schedulers.immediate()).subscribe(leaseSubscriber);
+
+        leaseSubscriber.awaitTerminalEvent(10, TimeUnit.SECONDS);
+        leaseSubscriber.assertCompleted();
+
+        List<Lease> actualLeases = leaseSubscriber.getOnNextEvents();
+        assertEquals(actualLeases.size(), 4, "Expected to receive four leases");
+
+        List<Task2> onNextEvents = taskSubscriber.getOnNextEvents();
+        assertTrue(taskSubscriber.getOnNextEvents().size() >= 4, "Expected to receive at least four task events but " +
+                "received " + onNextEvents.size() + " events: " + onNextEvents);
+
+        List<Task2> actual = onNextEvents.subList(0, 4);
+
+        Set<Task2Impl> expectedValuesFor1stTrigger = ImmutableSet.of(task1, task2);
+        Set<Task2Impl> expectedValuesFor2ndTrigger = ImmutableSet.of(
+                new Task2Impl(task1.getId(), task1.getShard(), task1.getName(), task1.getParameters(),
+                        trigger.nextTrigger()),
+                new Task2Impl(task2.getId(), task2.getShard(), task2.getName(), task2.getParameters(),
+                        trigger.nextTrigger())
+        );
+
+        // The scheduler guarantees that tasks are executed in order with respect to time
+        // There are no guarantees though around execution order for tasks scheduled for
+        // the same execution time. The first two events/tasks should have the first trigger
+        // time, and the latter two tasks should have the next trigger time.
+        assertEquals(ImmutableSet.copyOf(actual.subList(0, 2)), expectedValuesFor1stTrigger, "The tasks for the " +
+                "first trigger " + trigger + " do not match expected values - ");
+        assertEquals(ImmutableSet.copyOf(actual.subList(2, 4)), expectedValuesFor2ndTrigger, "The tasks for the " +
+                "second trigger " + trigger.nextTrigger() + " do not match expected values - ");
+
+        assertQueueDoesNotExist(trigger.getTriggerTime(), task1.getShard());
+        assertQueueDoesNotExist(trigger.getTriggerTime(), task2.getShard());
+        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime(), task1.getShard());
+        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime(), task2.getShard());
+
+        assertLeasesDoNotExist(trigger.getTriggerTime());
+        assertLeasesDoNotExist(trigger.nextTrigger().getTriggerTime());
+    }
+
+    /**
+     * Inserts the tasks into the time slice queue and creates the leases. The method then
+     * blocks until all writes have completed and asserts that there are no errors.
+     *
+     * @param timeSlice The time slice for which tasks and leases will be created
+     * @param tasks The tasks to create
+     */
+    private void setUpTasksForExecution(Date timeSlice, Task2Impl... tasks) {
+        List<Observable<ResultSet>> resultSets = new ArrayList<>();
+        for (Task2Impl t : tasks) {
+            resultSets.add(rxSession.execute(queries.insertIntoQueue.bind(timeSlice, t.getShard(), t.getId(),
+                    t.getName(), t.getParameters(), getTriggerValue(rxSession, t.getTrigger()))));
+            resultSets.add(rxSession.execute(queries.createLease.bind(timeSlice, t.getShard())));
+        }
+        TestSubscriber<ResultSet> subscriber = new TestSubscriber<>();
+        Observable.merge(resultSets).subscribe(subscriber);
+        subscriber.awaitTerminalEvent(5, TimeUnit.SECONDS);
+        subscriber.assertCompleted();
+        subscriber.assertNoErrors();
+    }
+
+    private int nextId() {
+        return ids.getAndIncrement();
     }
 
 //    @Test

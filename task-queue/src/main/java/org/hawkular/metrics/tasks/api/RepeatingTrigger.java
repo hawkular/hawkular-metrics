@@ -34,6 +34,10 @@ public class RepeatingTrigger implements Trigger {
 
     private long delay;
 
+    private Integer repeatCount;
+
+    private int executionCount;
+
     public static class Builder {
 
         private RepeatingTrigger trigger = new RepeatingTrigger();
@@ -48,8 +52,14 @@ public class RepeatingTrigger implements Trigger {
             return this;
         }
 
+        public Builder withRepeatCount(int count) {
+            trigger.repeatCount = count;
+            return this;
+        }
+
         public RepeatingTrigger build() {
             trigger.triggerTime = trigger.getExecutionDateTime().getMillis() + trigger.delay;
+            trigger.executionCount = 1;
             return trigger;
         }
 
@@ -62,13 +72,29 @@ public class RepeatingTrigger implements Trigger {
         this.interval = interval;
     }
 
-    // TODO shoud this constructor be exposed in the client API?
-    // We need this constructor for use by the scheduler when creating a trigger from a row
-    // in the database.
     public RepeatingTrigger(long interval, long delay, long triggerTime) {
         this.interval = interval;
         this.delay = delay;
         this.triggerTime = triggerTime;
+    }
+
+    // TODO shoud this constructor be exposed in the client API?
+    // We need this constructor for use by the scheduler when creating a trigger from a row
+    // in the database.
+    public RepeatingTrigger(long interval, long delay, long triggerTime, int executionCount) {
+        this.interval = interval;
+        this.delay = delay;
+        this.triggerTime = triggerTime;
+        this.executionCount = executionCount;
+    }
+
+    public RepeatingTrigger(long interval, long delay, long triggerTime, int repeatCount, int executionCount) {
+        this.interval = interval;
+        this.delay = delay;
+        this.triggerTime = triggerTime;
+        this.executionCount = executionCount;
+        this.repeatCount = repeatCount == 0 ? null : repeatCount;
+        this.executionCount = executionCount;
     }
 
     public long getInterval() {
@@ -84,9 +110,27 @@ public class RepeatingTrigger implements Trigger {
         return triggerTime;
     }
 
+    public Integer getRepeatCount() {
+        return repeatCount;
+    }
+
+    public int getExecutionCount() {
+        return executionCount;
+    }
+
     @Override
     public Trigger nextTrigger() {
-        return new RepeatingTrigger(interval, delay, triggerTime + interval);
+        if (repeatCount != null && executionCount + 1 > repeatCount) {
+            return null;
+        }
+        RepeatingTrigger next = new RepeatingTrigger();
+        next.interval = interval;
+        next.delay = delay;
+        next.triggerTime = triggerTime + interval;
+        next.repeatCount = repeatCount;
+        next.executionCount = executionCount + 1;
+
+        return next;
     }
 
     private DateTime getExecutionDateTime() {

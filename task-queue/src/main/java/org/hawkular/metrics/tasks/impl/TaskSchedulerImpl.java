@@ -132,6 +132,10 @@ public class TaskSchedulerImpl implements TaskScheduler {
         taskSubject = PublishSubject.create();
     }
 
+    void setTickScheduler(Scheduler scheduler) {
+        this.tickScheduler = scheduler;
+    }
+
     private class SubscriberWrapper extends Subscriber<Task2> {
 
         private Subscriber<Task2> delegate;
@@ -495,6 +499,11 @@ public class TaskSchedulerImpl implements TaskScheduler {
      *         completed.
      */
     private Observable<Task2Impl> rescheduleTask(Task2Impl task) {
+        Trigger nextTrigger = task.getTrigger().nextTrigger();
+        if (nextTrigger == null) {
+            logger.debug("There are no more executions for {}", task);
+            return Observable.just(task);
+        }
         Task2Impl newTask = new Task2Impl(task.getId(), task.getShard(), task.getName(), task.getParameters(),
                 task.getTrigger().nextTrigger());
         UDTValue triggerUDT = getTriggerValue(session, newTask.getTrigger());
@@ -549,7 +558,13 @@ public class TaskSchedulerImpl implements TaskScheduler {
         if (type != 1) {
             throw new IllegalArgumentException("Trigger type [" + type + "] is not supported");
         }
-        return new RepeatingTrigger(value.getLong("interval"), value.getLong("delay"), value.getLong("trigger_time"));
+        return new RepeatingTrigger(
+                value.getLong("interval"),
+                value.getLong("delay"),
+                value.getLong("trigger_time"),
+                value.getInt("repeat_count"),
+                value.getInt("execution_count")
+        );
     }
 
     static UDTValue getTriggerValue(RxSession session, Trigger trigger) {
@@ -567,6 +582,10 @@ public class TaskSchedulerImpl implements TaskScheduler {
         triggerUDT.setLong("trigger_time", trigger.getTriggerTime());
         if (trigger.getDelay() > 0) {
             triggerUDT.setLong("delay", trigger.getDelay());
+        }
+        if (trigger.getRepeatCount() != null) {
+            triggerUDT.setInt("repeat_count", trigger.getRepeatCount());
+            triggerUDT.setInt("execution_count", trigger.getExecutionCount());
         }
 
         return triggerUDT;

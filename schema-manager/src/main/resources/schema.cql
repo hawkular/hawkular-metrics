@@ -159,7 +159,9 @@ CREATE TYPE ${keyspace}.trigger_def (
     type int,
     trigger_time bigint,
     delay bigint,
-    interval bigint
+    interval bigint,
+    repeat_count int,
+    execution_count int
 );
 
 -- #
