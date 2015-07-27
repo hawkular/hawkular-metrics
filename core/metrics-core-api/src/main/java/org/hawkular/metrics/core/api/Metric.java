@@ -30,22 +30,16 @@ import java.util.Objects;
  */
 public class Metric<T> {
 
-    private String tenantId;
-    private MetricType type;
     private MetricId id;
     private Map<String, String> tags = Collections.emptyMap();
     private Integer dataRetention;
     private List<DataPoint<T>> dataPoints = new ArrayList<>();
 
-    public Metric(String tenantId, MetricType type, MetricId id) {
-        this.tenantId = tenantId;
-        this.type = type;
+    public Metric(MetricId id) {
         this.id = id;
     }
 
-    public Metric(String tenantId, MetricType type, MetricId id, Map<String, String> tags, Integer dataRetention) {
-        this.tenantId = tenantId;
-        this.type = type;
+    public Metric(MetricId id, Map<String, String> tags, Integer dataRetention) {
         this.id = id;
         this.tags = unmodifiableMap(tags);
         // If the data_retention column is not set, the driver returns zero instead of null.
@@ -58,17 +52,13 @@ public class Metric<T> {
         }
     }
 
-    public Metric(String tenantId, MetricType type, MetricId id, List<DataPoint<T>> dataPoints) {
-        this.tenantId = tenantId;
-        this.type = type;
+    public Metric(MetricId id, List<DataPoint<T>> dataPoints) {
         this.id = id;
         this.dataPoints = unmodifiableList(dataPoints);
     }
 
-    public Metric(String tenantId, MetricType type, MetricId id, Map<String, String> tags, Integer dataRetention,
+    public Metric(MetricId id, Map<String, String> tags, Integer dataRetention,
             List<DataPoint<T>> dataPoints) {
-        this.tenantId = tenantId;
-        this.type = type;
         this.id = id;
         this.tags = unmodifiableMap(tags);
         // If the data_retention column is not set, the driver returns zero instead of null.
@@ -82,12 +72,14 @@ public class Metric<T> {
         this.dataPoints = unmodifiableList(dataPoints);
     }
 
-    public MetricType getType() {
-        return type;
+    @Deprecated
+    public String getTenantId() {
+        return getId().getTenantId();
     }
 
-    public String getTenantId() {
-        return tenantId;
+    @Deprecated
+    public MetricType getType() {
+        return getId().getType();
     }
 
     public MetricId getId() {
@@ -111,22 +103,19 @@ public class Metric<T> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Metric<?> metric = (Metric<?>) o;
-        return Objects.equals(tenantId, metric.tenantId) &&
-                Objects.equals(type, metric.type) &&
-                Objects.equals(id, metric.id) &&
+        return Objects.equals(id, metric.id) &&
                 Objects.equals(tags, metric.tags) &&
                 Objects.equals(dataRetention, metric.dataRetention);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(tenantId, type, id, tags, dataRetention);
+        return Objects.hash(id, tags, dataRetention);
     }
 
     @Override
     public String toString() {
         return com.google.common.base.Objects.toStringHelper(this)
-                .add("tenantId", tenantId)
                 .add("id", id)
                 .add("tags", tags)
                 .add("dataRetention", dataRetention)

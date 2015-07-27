@@ -63,7 +63,7 @@ public class TaggedGaugeDataPointMapper {
     }
 
     private static Metric<Double> createMetric(Row row) {
-        return new Metric<>(row.getString(0), MetricType.GAUGE, new MetricId(row.getString(4),
+        return new Metric<>(new MetricId(row.getString(0), MetricType.GAUGE, row.getString(4),
                 Interval.parse(row.getString(5))));
     }
 

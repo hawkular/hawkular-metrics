@@ -25,6 +25,7 @@ import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_N
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounterDataPoints;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounters;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
+import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 
 import java.net.URI;
 import java.util.List;
@@ -107,7 +108,7 @@ public class CounterHandler {
             @ApiParam(required = true) MetricDefinition metricDefinition,
             @Context UriInfo uriInfo
     ) {
-        Metric<Double> metric = new Metric<>(tenantId, COUNTER, new MetricId(metricDefinition.getId()),
+        Metric<Double> metric = new Metric<>(new MetricId(tenantId, COUNTER, metricDefinition.getId()),
                 metricDefinition.getTags(), metricDefinition.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getId().getName());
         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
@@ -123,7 +124,7 @@ public class CounterHandler {
                          response = ApiError.class) })
     public void getCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
 
-        metricsService.findMetric(tenantId, COUNTER, new MetricId(id))
+        metricsService.findMetric(new MetricId(tenantId, COUNTER, id))
                 .map(MetricDefinition::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(ApiUtils.noContent()))
@@ -162,7 +163,8 @@ public class CounterHandler {
             @ApiParam(value = "List of data points containing timestamp and value", required = true)
             List<CounterDataPoint> data
     ) {
-        Metric<Long> metric = new Metric<>(tenantId, COUNTER, new MetricId(id), requestToCounterDataPoints(data));
+        Metric<Long> metric = new Metric<>(new MetricId(tenantId, COUNTER, id),
+                                           requestToCounterDataPoints(data));
         Observable<Void> observable = metricsService.addCounterData(Observable.just(metric));
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
@@ -187,7 +189,7 @@ public class CounterHandler {
         long startTime = start == null ? now - EIGHT_HOURS : start;
         long endTime = end == null ? now : end;
 
-        metricsService.findCounterData(tenantId, new MetricId(id), startTime, endTime)
+        metricsService.findCounterData(new MetricId(tenantId, COUNTER, id), startTime, endTime)
                 .map(CounterDataPoint::new)
                 .toList()
                 .map(ApiUtils::collectionToResponse)
@@ -222,7 +224,7 @@ public class CounterHandler {
         long startTime = start == null ? now - EIGHT_HOURS : start;
         long endTime = end == null ? now : end;
 
-        metricsService.findRateData(tenantId, new MetricId(id), startTime, endTime)
+        metricsService.findRateData(new MetricId(tenantId, COUNTER_RATE, id), startTime, endTime)
                 .map(GaugeDataPoint::new)
                 .toList()
                 .map(ApiUtils::collectionToResponse)

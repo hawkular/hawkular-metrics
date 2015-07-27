@@ -48,13 +48,13 @@ public class GenerateRate implements Action1<Task> {
     @Override
     public void call(Task task) {
         logger.info("Generating rate for {}", task);
-        MetricId id = new MetricId(task.getSources().iterator().next());
+        MetricId id = new MetricId(task.getTenantId(), COUNTER_RATE, task.getSources().iterator().next());
         long start = task.getTimeSlice().getMillis();
         long end = task.getTimeSlice().plus(getDuration(task.getWindow())).getMillis();
-        metricsService.findCounterData(task.getTenantId(), id, start, end)
+        metricsService.findCounterData(id, start, end)
                 .take(1)
                 .map(dataPoint -> dataPoint.getValue().doubleValue() / (end - start) * 1000)
-                .map(rate -> new Metric<>(task.getTenantId(), COUNTER_RATE, id,
+                .map(rate -> new Metric<>(id,
                         singletonList(new DataPoint<>(start, rate))))
                 .flatMap(metric -> metricsService.addGaugeData(Observable.just(metric)))
                 .subscribe(

@@ -157,7 +157,7 @@ public class InfluxSeriesHandler {
             }
             dataPoints.add(new DataPoint<>(timestamp, value));
         }
-        return new Metric<>(tenantId, GAUGE, new MetricId(influxObject.getName()), dataPoints);
+        return new Metric<>(new MetricId(tenantId, GAUGE, influxObject.getName()), dataPoints);
     }
 
     @GET
@@ -266,7 +266,7 @@ public class InfluxSeriesHandler {
                                   return Observable.just(null);
                               }
                               return metricsService.findGaugeData(
-                                      tenantId, new MetricId(metric),
+                                      new MetricId(tenantId, GAUGE, metric),
                                       timeInterval.getStartMillis(), timeInterval.getEndMillis()
                               ).toList();
                           }

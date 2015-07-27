@@ -66,13 +66,13 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findMetric(String tenantId, MetricType type, MetricId id) {
-        return delegate.findMetric(tenantId, type, id);
+    public Observable<ResultSet> findMetric(MetricId id) {
+        return delegate.findMetric(id);
     }
 
     @Override
-    public Observable<ResultSet> getMetricTags(String tenantId, MetricType type, MetricId id, long dpart) {
-        return delegate.getMetricTags(tenantId, type, id, dpart);
+    public Observable<ResultSet> getMetricTags(MetricId id, long dpart) {
+        return delegate.getMetricTags(id, dpart);
     }
 
     @Override
@@ -122,13 +122,13 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findCounterData(String tenantId, MetricId id, long startTime, long endTime) {
-        return delegate.findCounterData(tenantId, id, startTime, endTime);
+    public Observable<ResultSet> findCounterData(MetricId id, long startTime, long endTime) {
+        return delegate.findCounterData(id, startTime, endTime);
     }
 
     @Override
-    public Observable<ResultSet> findData(String tenantId, MetricId id, MetricType type, long startTime, long endTime) {
-        return delegate.findData(tenantId, id, type, startTime, endTime);
+    public Observable<ResultSet> findData(MetricId id, long startTime, long endTime) {
+        return delegate.findData(id, startTime, endTime);
     }
 
     @Override
@@ -138,9 +138,9 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findData(String tenantId, MetricId id, MetricType type, long startTime, long endTime,
+    public Observable<ResultSet> findData(MetricId id, long startTime, long endTime,
             boolean includeWriteTime) {
-        return delegate.findData(tenantId, id, type, startTime, endTime, includeWriteTime);
+        return delegate.findData(id, startTime, endTime, includeWriteTime);
     }
 
     @Override
@@ -209,8 +209,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findAvailabilityData(String tenantId, MetricId id, long startTime, long endTime) {
-        return delegate.findAvailabilityData(tenantId, id, startTime, endTime);
+    public Observable<ResultSet> findAvailabilityData(MetricId id, long startTime, long endTime) {
+        return delegate.findAvailabilityData(id, startTime, endTime);
     }
 
     @Override

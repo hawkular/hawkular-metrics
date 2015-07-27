@@ -382,14 +382,15 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findMetric(String tenantId, MetricType type, MetricId id) {
-        return rxSession.execute(findMetric.bind(tenantId, type.getCode(), id.getName(), id.getInterval().toString()));
+    public Observable<ResultSet> findMetric(MetricId id) {
+        return rxSession.execute(findMetric.bind(id.getTenantId(), id.getType().getCode(), id.getName(),
+                                                 id.getInterval().toString()));
     }
 
     @Override
-    public Observable<ResultSet> getMetricTags(String tenantId, MetricType type, MetricId id, long dpart) {
-        return rxSession.execute(getMetricTags.bind(tenantId, type.getCode(), id.getName(), id.getInterval()
-                .toString(), dpart));
+    public Observable<ResultSet> getMetricTags(MetricId id, long dpart) {
+        return rxSession.execute(getMetricTags.bind(id.getTenantId(), id.getType().getCode(), id.getName(),
+                                                    id.getInterval().toString(), dpart));
     }
 
     // This method updates the metric tags and data retention in the data table. In the
@@ -483,13 +484,13 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findData(String tenantId, MetricId id, MetricType type, long startTime, long endTime) {
-        return findData(tenantId, id, type, startTime, endTime, false);
+    public Observable<ResultSet> findData(MetricId id, long startTime, long endTime) {
+        return findData(id, startTime, endTime, false);
     }
 
     @Override
-    public Observable<ResultSet> findCounterData(String tenantId, MetricId id, long startTime, long endTime) {
-        return rxSession.execute(findCounterDataExclusive.bind(tenantId, COUNTER.getCode(), id.getName(),
+    public Observable<ResultSet> findCounterData(MetricId id, long startTime, long endTime) {
+        return rxSession.execute(findCounterDataExclusive.bind(id.getTenantId(), COUNTER.getCode(), id.getName(),
                 id.getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
     }
 
@@ -508,15 +509,16 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findData(String tenantId, MetricId id, MetricType type, long startTime, long endTime,
+    public Observable<ResultSet> findData(MetricId id, long startTime, long endTime,
             boolean includeWriteTime) {
         if (includeWriteTime) {
-            return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeExclusive.bind(tenantId, type.getCode(),
-                    id.getName(),
+            return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeExclusive.bind(id.getTenantId(),
+                    id.getType().getCode(), id.getName(),
                     id.getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
         } else {
-            return rxSession.execute(findGaugeDataByDateRangeExclusive.bind(tenantId, type.getCode(), id.getName(),
-                    id.getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+            return rxSession.execute(findGaugeDataByDateRangeExclusive.bind(id.getTenantId(),
+                                     id.getType().getCode(), id.getName(),
+                                     id.getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
         }
     }
 
@@ -634,9 +636,9 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findAvailabilityData(String tenantId, MetricId id, long startTime, long endTime) {
-        return rxSession.execute(findAvailabilities.bind(tenantId, MetricType.AVAILABILITY.getCode(), id.getName(), id
-                .getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+    public Observable<ResultSet> findAvailabilityData(MetricId id, long startTime, long endTime) {
+        return rxSession.execute(findAvailabilities.bind(id.getTenantId(), MetricType.AVAILABILITY.getCode(),
+               id.getName(), id.getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
     }
 
     @Override
