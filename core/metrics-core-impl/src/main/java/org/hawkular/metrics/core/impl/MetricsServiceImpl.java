@@ -579,8 +579,9 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<DataPoint<Double>> findRateData(MetricId id, long start, long end) {
+        MetricId rateId = new MetricId(id.getTenantId(), COUNTER_RATE, id.getName(), id.getInterval());
         return time(gaugeReadLatency, () ->
-                dataAccess.findData(id, start, end)
+                dataAccess.findData(rateId, start, end)
                         .flatMap(Observable::from)
                         .map(Functions::getGaugeDataPoint));
     }

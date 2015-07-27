@@ -54,8 +54,7 @@ public class GenerateRate implements Action1<Task> {
         metricsService.findCounterData(id, start, end)
                 .take(1)
                 .map(dataPoint -> dataPoint.getValue().doubleValue() / (end - start) * 1000)
-                .map(rate -> new Metric<>(id,
-                        singletonList(new DataPoint<>(start, rate))))
+                .map(rate -> new Metric<>(id, singletonList(new DataPoint<>(start, rate))))
                 .flatMap(metric -> metricsService.addGaugeData(Observable.just(metric)))
                 .subscribe(
                         aVoid -> {
