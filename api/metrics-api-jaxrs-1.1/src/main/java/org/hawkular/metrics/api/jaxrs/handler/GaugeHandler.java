@@ -18,9 +18,7 @@ package org.hawkular.metrics.api.jaxrs.handler;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGaugeDataPoints;
@@ -32,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
-import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -43,14 +40,13 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
+import org.hawkular.metrics.api.jaxrs.handler.observer.EntityCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
-import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.model.Gauge;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
@@ -83,7 +79,6 @@ import rx.Observable;
 public class GaugeHandler {
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
-    @Inject
     private MetricsService metricsService;
 
     @HeaderParam(TENANT_HEADER_NAME)
@@ -102,15 +97,23 @@ public class GaugeHandler {
             @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
                     response = ApiError.class)
     })
-    public void createGaugeMetric(
-            @Suspended final AsyncResponse asyncResponse,
+    public Response createGaugeMetric(
             @ApiParam(required = true) MetricDefinition metricDefinition,
             @Context UriInfo uriInfo
     ) {
         Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId(metricDefinition.getId()),
                 metricDefinition.getTags(), metricDefinition.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getId().getName());
-        metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
+
+        try {
+            EntityCreatedObserver<?> observer = new MetricCreatedObserver(location);
+            Observable<Void> observable = metricsService.createMetric(metric);
+            observable.subscribe(observer);
+            observable.toBlocking().last();
+            return observer.getResponse();
+        } catch (Exception e) {
+            return ApiUtils.serverError(e);
+        }
     }
 
     @GET
@@ -121,13 +124,16 @@ public class GaugeHandler {
             @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.",
                          response = ApiError.class) })
-    public void getGaugeMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
-
-        metricsService.findMetric(tenantId, GAUGE, new MetricId(id))
+    public Response getGaugeMetric(@PathParam("id") String id) {
+        try {
+            return metricsService.findMetric(tenantId, GAUGE, new MetricId(id))
                 .map(MetricDefinition::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(ApiUtils.noContent()))
-                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+                .toBlocking().last();
+        } catch (Exception e) {
+            return ApiUtils.serverError(e);
+        }
     }
 
     @GET
@@ -139,15 +145,13 @@ public class GaugeHandler {
             @ApiResponse(code = 204, message = "Query was successful, but no metrics were found."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's tags.",
                 response = ApiError.class) })
-    public void getGaugeMetricTags(
-            @Suspended final AsyncResponse asyncResponse,
-            @PathParam("id") String id
-    ) {
-        metricsService.getMetricTags(tenantId, GAUGE, new MetricId(id))
-                .subscribe(
-                        optional -> asyncResponse.resume(ApiUtils.valueToResponse(optional)),
-                        t ->asyncResponse.resume(ApiUtils.serverError(t))
-                );
+    public Response getGaugeMetricTags(@PathParam("id") String id) {
+        try {
+            return metricsService.getMetricTags(tenantId, GAUGE, new MetricId(id))
+                .map(ApiUtils::valueToResponse).toBlocking().last();
+        } catch (Exception e) {
+            return ApiUtils.serverError(e);
+        }
     }
 
     @PUT
@@ -157,13 +161,16 @@ public class GaugeHandler {
             @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while updating metric's tags.",
                 response = ApiError.class) })
-    public void updateGaugeMetricTags(
-            @Suspended final AsyncResponse asyncResponse,
+    public Response updateGaugeMetricTags(
             @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags
     ) {
         Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId(id));
-        metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
+        try {
+            return metricsService.addTags(metric, tags).map(ApiUtils::simpleOKResponse).toBlocking().last();
+        } catch (Exception e) {
+            return ApiUtils.serverError(e);
+        }
     }
 
     @DELETE
@@ -174,13 +181,17 @@ public class GaugeHandler {
             @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.",
                 response = ApiError.class) })
-    public void deleteGaugeMetricTags(
-            @Suspended final AsyncResponse asyncResponse,
+    public Response deleteGaugeMetricTags(
             @PathParam("id") String id,
             @ApiParam("Tag list") @PathParam("tags") Tags tags
     ) {
+        try {
         Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId(id));
-        metricsService.deleteTags(metric, tags.getTags()).subscribe(new ResultSetObserver(asyncResponse));
+            return metricsService.deleteTags(metric, tags.getTags()).map(ApiUtils::simpleOKResponse).toBlocking()
+                    .last();
+        } catch (Exception e) {
+            return ApiUtils.serverError(e);
+        }
     }
 
     @POST
@@ -192,15 +203,18 @@ public class GaugeHandler {
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
                     response = ApiError.class),
     })
-    public void addDataForMetric(
-            @Suspended final AsyncResponse asyncResponse,
+    public Response addDataForMetric(
             @PathParam("id") String id,
             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
             List<GaugeDataPoint> data
     ) {
         Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId(id), requestToGaugeDataPoints(data));
+        try {
         Observable<Void> observable = metricsService.addGaugeData(Observable.just(metric));
-        observable.subscribe(new ResultSetObserver(asyncResponse));
+            return observable.map(ApiUtils::simpleOKResponse).toBlocking().last();
+        } catch (Exception e) {
+            return ApiUtils.serverError(e);
+        }
     }
 
     @POST
@@ -212,12 +226,16 @@ public class GaugeHandler {
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
                     response = ApiError.class)
     })
-    public void addGaugeData(@Suspended final AsyncResponse asyncResponse,
-                             @ApiParam(value = "List of metrics", required = true) List<Gauge> gauges
+    public Response addGaugeData(@ApiParam(value = "List of metrics", required = true) List<Gauge> gauges
     ) {
         Observable<Metric<Double>> metrics = requestToGauges(tenantId, gauges);
-        Observable<Void> observable = metricsService.addGaugeData(metrics);
-        observable.subscribe(new ResultSetObserver(asyncResponse));
+
+        try {
+            Observable<Void> observable = metricsService.addGaugeData(metrics);
+            return observable.map(ApiUtils::simpleOKResponse).toBlocking().last();
+        } catch (Exception e) {
+            return ApiUtils.serverError(e);
+        }
     }
 
     @GET
@@ -227,20 +245,21 @@ public class GaugeHandler {
             @ApiResponse(code = 204, message = "No matching data found."),
             @ApiResponse(code = 400, message = "Missing or invalid tags query", response = ApiError.class),
             @ApiResponse(code = 500, message = "Any error in the query.", response = ApiError.class), })
-    public void findGaugeDataByTags(
-            @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(value = "Tag list", required = true) @QueryParam("tags") Tags tags
-    ) {
+    public Response findGaugeDataByTags(@ApiParam(value = "Tag list", required = true) @QueryParam("tags") Tags tags) {
         if (tags == null) {
-            asyncResponse.resume(badRequest(new ApiError("Missing tags query")));
+            return badRequest(new ApiError("Missing tags query"));
         } else {
-            metricsService.findGaugeDataByTags(tenantId, tags.getTags()).subscribe(m -> {
-                if (m.isEmpty()) {
-                    asyncResponse.resume(Response.noContent().build());
-                } else {
-                    asyncResponse.resume(Response.ok(m).build());
-                }
-            }, t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
+            try{
+                return metricsService.findGaugeDataByTags(tenantId, tags.getTags()).map(m -> {
+                    if (m.isEmpty()) {
+                        return ApiUtils.noContent();
+                    } else {
+                        return Response.ok(m).build();
+                    }
+                }).toBlocking().last();
+            } catch (Exception e) {
+                return Response.serverError().entity(new ApiError(e.getMessage())).build();
+            }
         }
     }
 
@@ -256,8 +275,7 @@ public class GaugeHandler {
                 response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
                 response = ApiError.class) })
-    public void findGaugeData(
-            @Suspended AsyncResponse asyncResponse,
+    public Response findGaugeData(
             @PathParam("id") String id,
             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
             @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
@@ -269,18 +287,15 @@ public class GaugeHandler {
             long startTime = start == null ? now - EIGHT_HOURS : start;
             long endTime = end == null ? now : end;
 
-            metricsService.findGaugeData(tenantId, new MetricId(id), startTime, endTime)
+            try {
+                return metricsService.findGaugeData(tenantId, new MetricId(id), startTime, endTime)
                     .toList()
-                    .map(ApiUtils::collectionToResponse)
-                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+                        .map(ApiUtils::collectionToResponse).toBlocking().last();
+            } catch (Exception e) {
+                return ApiUtils.serverError(e);
+            }
         } else if (bucketsCount != null && bucketDuration != null) {
-                asyncResponse.resume(
-                        badRequest(
-                                new ApiError(
-                                        "Both buckets and bucketDuration parameters are used"
-                                )
-                        )
-                );
+            return badRequest(new ApiError("Both buckets and bucketDuration parameters are used"));
         } else {
             long now = System.currentTimeMillis();
             long startTime = start == null ? now - EIGHT_HOURS : start;
@@ -296,14 +311,16 @@ public class GaugeHandler {
                     buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
                 }
             } catch (IllegalArgumentException e) {
-                asyncResponse.resume(badRequest(new ApiError("Bucket: " + e.getMessage())));
-                return;
+                return badRequest(new ApiError("Bucket: " + e.getMessage()));
             }
 
-            metricsService.findGaugeStats(metric, startTime, endTime, buckets)
+            try {
+            return metricsService.findGaugeStats(metric, startTime, endTime, buckets)
                     .map(BucketedOutput::getData)
-                    .map(ApiUtils::collectionToResponse)
-                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+                    .map(ApiUtils::collectionToResponse).toBlocking().last();
+            } catch (Exception e) {
+                return ApiUtils.serverError(e);
+            }
         }
     }
 
@@ -314,8 +331,7 @@ public class GaugeHandler {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched periods."),
             @ApiResponse(code = 204, message = "No data was found."),
             @ApiResponse(code = 400, message = "Missing or invalid query parameters") })
-    public void findPeriods(
-            @Suspended final AsyncResponse asyncResponse,
+    public Response findPeriods(
             @PathParam("id") String id,
             @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") final Long start,
             @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") final Long end,
@@ -361,16 +377,15 @@ public class GaugeHandler {
         }
 
         if (predicate == null) {
-            asyncResponse.resume(badRequest(
-                    new ApiError(
-                            "Invalid value for op parameter. Supported values are lt, "
-                                    + "lte, eq, gt, gte."
-                    )
-            ));
+            return badRequest(
+                    new ApiError("Invalid value for op parameter. Supported values are lt, lte, eq, gt, gte."));
         } else {
-            metricsService.getPeriods(tenantId, new MetricId(id), predicate, startTime, endTime)
-                    .map(ApiUtils::collectionToResponse)
-                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+            try {
+                return metricsService.getPeriods(tenantId, new MetricId(id), predicate, startTime, endTime)
+                        .map(ApiUtils::collectionToResponse).toBlocking().last();
+            } catch (Exception e) {
+                return ApiUtils.serverError(e);
+            }
         }
     }
 
@@ -381,19 +396,21 @@ public class GaugeHandler {
             @ApiResponse(code = 204, message = "No matching data found."),
             @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
             @ApiResponse(code = 500, message = "Any error while fetching data.", response = ApiError.class), })
-    public void findTaggedGaugeData(
-            @Suspended final AsyncResponse asyncResponse,
-            @ApiParam("Tag list") @PathParam("tags") Tags tags
-    ) {
-        metricsService.findGaugeDataByTags(tenantId, tags.getTags())
-            .flatMap(input -> Observable.from(input.entrySet())).toMap(e -> e.getKey().getName(), e2 -> e2.getValue())
-            .subscribe(m -> { // @TODO Repeated code
-                    if (m.isEmpty()) {
-                        asyncResponse.resume(Response.noContent().build());
-                    } else {
-                        asyncResponse.resume(Response.ok(m).build());
-                    }
-                }, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+    public Response findTaggedGaugeData(@ApiParam("Tag list") @PathParam("tags") Tags tags) {
+        try {
+            return metricsService.findGaugeDataByTags(tenantId, tags.getTags())
+                    .flatMap(input -> Observable.from(input.entrySet()))
+                    .toMap(e -> e.getKey().getName(), e2 -> e2.getValue())
+.map(m -> {
+                        if (m.isEmpty()) {
+                        return ApiUtils.noContent();
+                        } else {
+                            return Response.ok(m).build();
+                        }
+                    }).toBlocking().last();
+        } catch (Exception e) {
+            return ApiUtils.serverError(e);
+        }
     }
 
     @POST
@@ -404,10 +421,7 @@ public class GaugeHandler {
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
             @ApiResponse(code = 500, message = "Processing tags failed")
     })
-    public void tagGaugeData(
-            @Suspended final AsyncResponse asyncResponse,
-            @PathParam("id") final String id, @ApiParam(required = true) TagRequest params
-    ) {
+    public Response tagGaugeData(@PathParam("id") final String id, @ApiParam(required = true) TagRequest params) {
         Observable<Void> resultSetObservable;
         Metric<Double> metric = new Metric<>(tenantId, GAUGE, new MetricId(id));
         if (params.getTimestamp() != null) {
@@ -416,6 +430,11 @@ public class GaugeHandler {
             resultSetObservable = metricsService.tagGaugeData(metric, params.getTags(), params.getStart(), params
                     .getEnd());
         }
-        resultSetObservable.subscribe(new ResultSetObserver(asyncResponse));
+
+        try {
+            return resultSetObservable.map(ApiUtils::simpleOKResponse).toBlocking().last();
+        } catch (Exception e) {
+            return ApiUtils.serverError(e);
+        }
     }
 }

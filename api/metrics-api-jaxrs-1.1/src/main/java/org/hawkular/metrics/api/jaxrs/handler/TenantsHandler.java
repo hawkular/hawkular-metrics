@@ -18,25 +18,22 @@ package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.collectionToResponse;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
-
 import java.net.URI;
 
-import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
+import org.hawkular.metrics.api.jaxrs.handler.observer.EntityCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.TenantCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.request.TenantParam;
+import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.Tenant;
 
@@ -45,6 +42,8 @@ import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
+
+import rx.Observable;
 
 /**
  * @author Thomas Segismont
@@ -57,7 +56,6 @@ public class TenantsHandler {
 
     // TODO: add back retention settings
 
-    @Inject
     private MetricsService metricsService;
 
     @POST
@@ -73,13 +71,19 @@ public class TenantsHandler {
             @ApiResponse(code = 500, message = "An unexpected error occured while trying to create a tenant.",
                          response = ApiError.class)
     })
-    public void createTenant(
-            @Suspended AsyncResponse asyncResponse, @ApiParam(required = true) TenantParam params,
+    public Response createTenant(@ApiParam(required = true) TenantParam params,
             @Context UriInfo uriInfo
     ) {
         URI location = uriInfo.getBaseUriBuilder().path("/tenants").build();
-        metricsService.createTenant(new Tenant(params.getId())).subscribe(new TenantCreatedObserver(asyncResponse,
-                location));
+        try {
+            EntityCreatedObserver<?> observer = new TenantCreatedObserver(location);
+            Observable<Void> observable = metricsService.createTenant(new Tenant(params.getId()));
+            observable.subscribe(observer);
+            observable.toBlocking().last();
+            return observer.getResponse();
+        } catch (Exception e) {
+            return ApiUtils.serverError(e);
+        }
     }
 
     @GET
@@ -90,12 +94,17 @@ public class TenantsHandler {
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching tenants.",
                          response = ApiError.class)
     })
-    public void findTenants(@Suspended AsyncResponse asyncResponse) {
-        metricsService.getTenants()
+    public Response findTenants() {
+        try {
+        return metricsService
+                .getTenants()
                 .map(TenantParam::new)
-                .toList().subscribe(
-                tenants -> asyncResponse.resume(collectionToResponse(tenants)),
-                error -> asyncResponse.resume(serverError(error))
-        );
+                .toList()
+                .map(ApiUtils::collectionToResponse)
+                .toBlocking()
+                .last();
+        } catch (Exception e) {
+            return ApiUtils.serverError(e);
+        }
     }
 }

@@ -17,10 +17,8 @@
 package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilities;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounters;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGauges;
@@ -29,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
@@ -37,8 +34,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
@@ -73,12 +68,13 @@ import rx.schedulers.Schedulers;
 @Produces(APPLICATION_JSON)
 @Api(value = "", description = "Metrics related REST interface")
 public class MetricHandler {
-    @Inject
+
     private MetricsService metricsService;
 
     @HeaderParam(TENANT_HEADER_NAME)
     private String tenantId;
 
+    @SuppressWarnings("rawtypes")
     @GET
     @Path("/")
     @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ",
@@ -90,8 +86,7 @@ public class MetricHandler {
             @ApiResponse(code = 500, message = "Failed to retrieve metrics due to unexpected error.",
                          response = ApiError.class)
     })
-    public void findMetrics(
-            @Suspended final AsyncResponse asyncResponse,
+    public Response findMetrics(
             @ApiParam(value = "Queried metric type",
                     required = false,
                       allowableValues = "[gauge, availability, counter]")
@@ -99,18 +94,22 @@ public class MetricHandler {
             @ApiParam(value = "List of tags", required = false) @QueryParam("tags") Tags tags) {
 
         if (metricType != null && !MetricType.userTypes().contains(metricType)) {
-            asyncResponse.resume(badRequest(new ApiError("Incorrect type param")));
-            return;
+            return badRequest(new ApiError("Incorrect type param"));
         }
 
         Observable<Metric> metricObservable = (tags == null) ? metricsService.findMetrics(tenantId, metricType)
                 : metricsService.findMetricsWithTags(tenantId, tags.getTags(), metricType);
 
-        metricObservable
+        try {
+            return metricObservable
                 .map(MetricDefinition::new)
                 .toList()
                 .map(ApiUtils::collectionToResponse)
-                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+                .toBlocking()
+                .last();
+        } catch (Exception e) {
+            return ApiUtils.serverError(e);
+        }
     }
 
     @POST
@@ -122,8 +121,7 @@ public class MetricHandler {
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
                     response = ApiError.class)
     })
-    public void addMetricsData(
-            @Suspended final AsyncResponse asyncResponse,
+    public Response addMetricsData(
             @ApiParam(value = "List of metrics", required = true) MixedMetricsRequest metricsRequest
     ) {
         List<Gauge> gauges = metricsRequest.getGauges();
@@ -132,8 +130,7 @@ public class MetricHandler {
 
         if ((gauges == null || gauges.isEmpty()) && (availabilities == null || availabilities.isEmpty())
                 && (counters == null || counters.isEmpty())) {
-            asyncResponse.resume(emptyPayload());
-            return;
+            return ApiUtils.emptyPayload();
         }
 
         Collection<Observable<Void>> observables = new ArrayList<>();
@@ -154,10 +151,10 @@ public class MetricHandler {
                             .subscribeOn(Schedulers.computation())));
         }
 
-        Observable.merge(observables).subscribe(
-                aVoid -> {},
-                t -> asyncResponse.resume(ApiUtils.serverError(t)),
-                () -> asyncResponse.resume(Response.ok().build())
-        );
+        try {
+            return Observable.merge(observables).map(ApiUtils::simpleOKResponse).toBlocking().last();
+        } catch (Exception e) {
+            return ApiUtils.serverError(e);
+        }
     }
 }

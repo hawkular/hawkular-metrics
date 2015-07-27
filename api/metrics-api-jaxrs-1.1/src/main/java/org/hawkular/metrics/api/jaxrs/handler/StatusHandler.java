@@ -21,14 +21,10 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
-
-import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle;
-import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle.State;
 
 import com.wordnik.swagger.annotations.ApiOperation;
 
@@ -41,10 +37,9 @@ public class StatusHandler {
 
     public static final String PATH = "/status";
 
-    @Inject
-    private MetricsServiceLifecycle metricsServiceLifecycle;
+    // private MetricsServiceLifecycle metricsServiceLifecycle;
 
-    private static final String METRICSSERVICE_NAME = "MetricsService";
+    // private static final String METRICSSERVICE_NAME = "MetricsService";
 
     @GET
     @ApiOperation(value = "Returns the current status for various components.",
@@ -52,8 +47,8 @@ public class StatusHandler {
     public Response status() {
         Map<String, Object> status = new HashMap<>();
 
-        State metricState = metricsServiceLifecycle.getState();
-        status.put(METRICSSERVICE_NAME, metricState.toString());
+        // State metricState = metricsServiceLifecycle.getState();
+        // status.put(METRICSSERVICE_NAME, metricState.toString());
 
         return Response.ok(status).build();
     }

@@ -19,7 +19,6 @@ package org.hawkular.metrics.api.jaxrs.handler.observer;
 
 import java.net.URI;
 
-import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
@@ -33,10 +32,8 @@ import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
  */
 public class MetricCreatedObserver extends EntityCreatedObserver<MetricAlreadyExistsException> {
 
-    public MetricCreatedObserver(AsyncResponse asyncResponse, URI location) {
-        super(
-                asyncResponse,
-                location,
+    public MetricCreatedObserver(URI location) {
+        super( location,
                 MetricAlreadyExistsException.class,
                 MetricCreatedObserver::getMetricAlreadyExistsResponse
         );

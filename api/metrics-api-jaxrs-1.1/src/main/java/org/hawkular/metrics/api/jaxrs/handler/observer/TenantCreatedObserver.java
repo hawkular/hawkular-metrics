@@ -19,7 +19,6 @@ package org.hawkular.metrics.api.jaxrs.handler.observer;
 
 import java.net.URI;
 
-import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
@@ -33,9 +32,8 @@ import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
  */
 public class TenantCreatedObserver extends EntityCreatedObserver<TenantAlreadyExistsException> {
 
-    public TenantCreatedObserver(AsyncResponse asyncResponse, URI location) {
+    public TenantCreatedObserver(URI location) {
         super(
-                asyncResponse,
                 location,
                 TenantAlreadyExistsException.class,
                 TenantCreatedObserver::getTenantAlreadyExistsResponse

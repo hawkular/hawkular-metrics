@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.api.jaxrs.handler.observer;
 
-import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
@@ -30,24 +29,27 @@ import rx.Observer;
  */
 public class ResultSetObserver implements Observer<Void> {
 
-    private AsyncResponse asyncResponse;
+    private Response response;
 
-    public ResultSetObserver(AsyncResponse asyncResponse) {
-        this.asyncResponse = asyncResponse;
+    public ResultSetObserver() {
     }
 
     @Override
     public void onCompleted() {
-        asyncResponse.resume(Response.ok().build());
+        response = Response.ok().build();
     }
 
     @Override
     public void onError(Throwable t) {
-        asyncResponse.resume(ApiUtils.serverError(t));
+        response = ApiUtils.serverError(t);
     }
 
     @Override
     public void onNext(Void aVoid) {
         // We're only interested in onCompleted status
+    }
+
+    public Response getResponse() {
+        return response;
     }
 }
