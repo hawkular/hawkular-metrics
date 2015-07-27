@@ -27,7 +27,6 @@ import java.util.Optional;
 
 import javax.ws.rs.core.Response;
 
-import com.google.common.base.Throwables;
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
@@ -39,6 +38,9 @@ import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
+
+import com.google.common.base.Throwables;
+
 import rx.Observable;
 
 /**
@@ -62,7 +64,11 @@ public class ApiUtils {
         return serverError(t, "Failed to perform operation due to an error");
     }
 
-    public static Response valueToResponse(Optional<?> optional) {
+    public static <E> Response simpleOKResponse(E optional) {
+        return Response.ok().build();
+    }
+
+    public static <E> Response valueToResponse(Optional<E> optional) {
         return optional.map(value -> Response.ok(value).build()).orElse(noContent());
     }
 
