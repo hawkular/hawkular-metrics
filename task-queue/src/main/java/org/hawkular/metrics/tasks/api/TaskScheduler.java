@@ -28,8 +28,9 @@ public interface TaskScheduler {
 
     Observable<Lease> start();
 
-    Observable<Task2> createTask(String name, Map<String, String> parameters, Trigger trigger);
+//    Observable<Task2> createTask(String name, Map<String, String> parameters, Trigger trigger);
 
-    Observable<Task2> scheduleTask(String name, Map<String, String> parameters, Trigger trigger);
+    Observable<Task2> scheduleTask(String name, String groupKey, int executionOrder, Map<String, String> parameters,
+            Trigger trigger);
 
 }

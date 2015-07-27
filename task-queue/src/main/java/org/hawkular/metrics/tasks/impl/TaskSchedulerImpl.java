@@ -112,6 +112,8 @@ public class TaskSchedulerImpl implements TaskScheduler {
      */
     private PublishSubject<Task2> taskSubject;
 
+    private PublishSubject<Long> tickSubject;
+
     public TaskSchedulerImpl(RxSession session, Queries queries) {
         this.session = session;
         this.queries = queries;
@@ -130,6 +132,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
         leaseScheduler = Schedulers.from(leaseExecutor);
 
         taskSubject = PublishSubject.create();
+        tickSubject = PublishSubject.create();
     }
 
     void setTickScheduler(Scheduler scheduler) {
@@ -182,6 +185,10 @@ public class TaskSchedulerImpl implements TaskScheduler {
      */
     public Subscription subscribe(Subscriber<Task2> subscriber) {
         return taskSubject.subscribe(new SubscriberWrapper(subscriber));
+    }
+
+    Observable<Long> getFinishedTimeSlices() {
+        return tickSubject;
     }
 
     /**
@@ -245,6 +252,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
                             // not want to try and acquire another lease until we have
                             // finished with the tasks for the current lease.
                             latch.await();
+                            logger.debug("Done waiting!");
                         } catch (InterruptedException e) {
                             logger.warn("Interrupted waiting for task execution to complete", e);
                         }
@@ -325,8 +333,10 @@ public class TaskSchedulerImpl implements TaskScheduler {
                     leases = findAvailableLeases(timeSlice);
                 }
                 logger.debug("No more leases to process for {}", timeSlice);
+                // TODO we do not want to perform a delete if there are no leases for the time slice
                 session.execute(queries.deleteLeases.bind(timeSlice)).toBlocking().first();
                 subscriber.onCompleted();
+                tickSubject.onNext(timeSlice.getTime());
             } catch (Exception e) {
                 subscriber.onError(e);
             }
@@ -375,10 +385,10 @@ public class TaskSchedulerImpl implements TaskScheduler {
     /**
      * Creates an observable that emits a task that has been executed. Task execution is
      * accomplished by publishing the task. This method is somewhat of a hack because it
-     * is really just for side effects. We want tasks to execute in parallel. Wrapping this
-     * task execution in an observable over which we then flatMap is the one way I have
-     * managed to achieve the parallel execution. The observable should run on the tasks
-     * scheduler.
+     * is really just for side effects. We want tasks from different groups to execute in
+     * parallel. Execution of tasks within the same group should be serialized based on
+     * their specified order. If the tasks have the same order, they can be executed in
+     * parallel. The observable should run on the tasks scheduler.
      *
      * @param task The task to emit for execution
      * @return An observable that emits a task once it has been executed.
@@ -395,8 +405,8 @@ public class TaskSchedulerImpl implements TaskScheduler {
             logger.debug("Finished executing {}", task);
 
         });
-        // Subscribe on the same scheduler to make sure tasks within the same group execute
-        // in order.
+        // Subscribe on the same scheduler thread to make sure tasks within the same group
+        // execute in order.
         return observable.subscribeOn(Schedulers.immediate());
     }
 
