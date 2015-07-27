@@ -63,6 +63,12 @@
       <version>${project.version}</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.hawkular.metrics</groupId>
+      <artifactId>hawkular-metrics-api-common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
     <!-- Wildfly provided -->
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
