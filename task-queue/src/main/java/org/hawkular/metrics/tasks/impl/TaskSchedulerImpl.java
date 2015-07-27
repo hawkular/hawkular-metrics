@@ -16,8 +16,6 @@
  */
 package org.hawkular.metrics.tasks.impl;
 
-import static org.joda.time.DateTime.now;
-
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -39,10 +37,12 @@ import com.google.common.hash.Hashing;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.hawkular.metrics.tasks.DateTimeService;
 import org.hawkular.metrics.tasks.api.RepeatingTrigger;
+import org.hawkular.metrics.tasks.api.SingleExecutionTrigger;
 import org.hawkular.metrics.tasks.api.Task2;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.hawkular.metrics.tasks.api.Trigger;
 import org.hawkular.rx.cassandra.driver.RxSession;
+import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -202,36 +202,39 @@ public class TaskSchedulerImpl implements TaskScheduler {
                     lease -> {
                         logger.debug("Loading tasks for {}", lease);
                         CountDownLatch latch = new CountDownLatch(1);
-                        getQueue(lease).flatMap(this::execute).flatMap(this::rescheduleTask).subscribe(
-                                task -> logger.debug("Finished executing {}", task),
-                                t -> logger.warn("There was an error observing tasks", t),
-                                () -> {
-                                    Date timeSlice = new Date(lease.getTimeSlice());
-                                    // TODO We need error handling here
-                                    // We do not want to mark the lease finished if deleting the task partition fails.
-                                    // If either delete fails, we probably want to employ some retry policy. If the
-                                    // failures continue, then we probably need to shut down the scheduler because
-                                    // Cassandra is unstable.
-                                    Observable.merge(
-                                            session.execute(queries.deleteTasks.bind(timeSlice, lease.getShard()),
-                                                    tasksScheduler),
-                                            session.execute(queries.finishLease.bind(timeSlice, lease.getShard()),
-                                                    tasksScheduler)
-                                    ).subscribe(
-                                            resultSet -> {
-                                            },
-                                            t -> {
-                                                logger.warn("There was an error during post-task processing", t);
-                                                subscriber.onError(t);
-                                            },
-                                            () -> {
-                                                logger.debug("Finished executing tasks for {}", lease);
-                                                latch.countDown();
-                                                subscriber.onNext(lease);
-                                            }
-                                    );
-                                }
-                        );
+                        getQueue(lease)
+                                .groupBy(Task2Impl::getGroupKey)
+                                .flatMap(group -> group.flatMap(this::execute).map(this::rescheduleTask))
+                                .subscribe(
+                                        task -> logger.debug("Finished executing {}", task),
+                                        t -> logger.warn("There was an error observing tasks", t),
+                                        () -> {
+                                            Date timeSlice = new Date(lease.getTimeSlice());
+                                            // TODO We need error handling here
+                                            // We do not want to mark the lease finished if deleting the task partition fails.
+                                            // If either delete fails, we probably want to employ some retry policy. If the
+                                            // failures continue, then we probably need to shut down the scheduler because
+                                            // Cassandra is unstable.
+                                            Observable.merge(
+                                                    session.execute(queries.deleteTasks.bind(timeSlice, lease.getShard()),
+                                                            tasksScheduler),
+                                                    session.execute(queries.finishLease.bind(timeSlice, lease.getShard()),
+                                                            tasksScheduler)
+                                            ).subscribe(
+                                                    resultSet -> {
+                                                    },
+                                                    t -> {
+                                                        logger.warn("There was an error during post-task processing", t);
+                                                        subscriber.onError(t);
+                                                    },
+                                                    () -> {
+                                                        logger.debug("Finished executing tasks for {}", lease);
+                                                        latch.countDown();
+                                                        subscriber.onNext(lease);
+                                                    }
+                                            );
+                                        }
+                                );
                         logger.debug("Started processing tasks for {}", lease);
                         try {
                             // While using a CountDownLatch might seem contrary to RxJava, we
@@ -277,6 +280,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
     // TODO We probably still need a check in place to make sure we don't skip a second
     private Observable<Date> createTicks() {
         return Observable.timer(0, 1, TimeUnit.SECONDS, tickScheduler)
+                .onBackpressureLatest()
                 .map(tick -> currentTimeSlice())
                 .takeUntil(d -> shutdown)
                 .doOnNext(tick -> logger.debug("Tick {}", tick))
@@ -306,6 +310,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
             // available leases again only after those tasks have completed.
             try {
                 logger.debug("Loading leases for {}", timeSlice);
+                logger.debug("Timestamp is {}", timeSlice.getTime());
                 List<Lease> leases = findAvailableLeases(timeSlice);
                 while (!leases.isEmpty()) {
                     for (Lease lease : leases) {
@@ -361,8 +366,8 @@ public class TaskSchedulerImpl implements TaskScheduler {
         return session.execute(queries.getTasksFromQueue.bind(new Date(lease.getTimeSlice()), lease.getShard()),
                 Schedulers.immediate())
                 .flatMap(Observable::from)
-                .map(row -> new Task2Impl(row.getUUID(0), lease.getShard(), row.getString(1),
-                        row.getMap(2, String.class, String.class), getTrigger(row.getUDTValue(3))))
+                .map(row -> new Task2Impl(row.getUUID(2), row.getString(0), row.getInt(1), row.getString(3),
+                        row.getMap(4, String.class, String.class), getTrigger(row.getUDTValue(5))))
 //                .subscribeOn(tasksScheduler);
                 .observeOn(tasksScheduler);
     }
@@ -389,21 +394,10 @@ public class TaskSchedulerImpl implements TaskScheduler {
             subscriber.onCompleted();
             logger.debug("Finished executing {}", task);
 
-//            try {
-//                logger.debug("Emitting {} for execution", task);
-//                // This onNext call is to perform the actual task execution
-//                taskSubject.onNext(task);
-//            } catch (Exception e) {
-//                logger.warn("There was an unexpected error emitting " + task, e);
-//            }
-//
-//            // This onNext call is for data flow. After the task executes, we call
-//            // this onNext so that the task gets rescheduled.
-//            subscriber.onNext(task);
-//            subscriber.onCompleted();
-//            logger.debug("Finished executing {}", task);
         });
-        return observable.subscribeOn(tasksScheduler);
+        // Subscribe on the same scheduler to make sure tasks within the same group execute
+        // in order.
+        return observable.subscribeOn(Schedulers.immediate());
     }
 
     public void shutdown() {
@@ -425,29 +419,30 @@ public class TaskSchedulerImpl implements TaskScheduler {
     }
 
     private Date currentTimeSlice() {
-        return dateTimeService.getTimeSlice(now(), Duration.standardSeconds(1)).toDate();
+//        return dateTimeService.getTimeSlice(now(), Duration.standardSeconds(1)).toDate();
+        return dateTimeService.getTimeSlice(new DateTime(tickScheduler.now()), Duration.standardSeconds(1)).toDate();
     }
 
-    @Override
-    public Observable<Task2> createTask(String name, Map<String, String> parameters, Trigger trigger) {
-        UUID id = UUID.randomUUID();
-        int shard = computeShard(id);
-        UDTValue triggerUDT = getTriggerValue(session, trigger);
-
-        return Observable.create(subscriber ->
-                        session.execute(queries.createTask2.bind(id, shard, name, parameters, triggerUDT)).subscribe(
-                                resultSet -> subscriber.onNext(new Task2Impl(id, shard, name, parameters, trigger)),
-                                t -> subscriber.onError(new RuntimeException("Failed to create task", t)),
-                                subscriber::onCompleted
-                        )
-        );
-    }
+//    @Override
+//    public Observable<Task2> createTask(String name, Map<String, String> parameters, Trigger trigger) {
+//        UUID id = UUID.randomUUID();
+//        int shard = computeShard(id);
+//        UDTValue triggerUDT = getTriggerValue(session, trigger);
+//
+//        return Observable.create(subscriber ->
+//                        session.execute(queries.createTask2.bind(id, shard, name, parameters, triggerUDT)).subscribe(
+//                                resultSet -> subscriber.onNext(new Task2Impl(id, shard, name, parameters, trigger)),
+//                                t -> subscriber.onError(new RuntimeException("Failed to create task", t)),
+//                                subscriber::onCompleted
+//                        )
+//        );
+//    }
 
     public Observable<Task2> findTask(UUID id) {
         return Observable.create(subscriber ->
             session.execute(queries.findTask.bind(id)).flatMap(Observable::from).subscribe(
-                    row -> subscriber.onNext(new Task2Impl(id, row.getInt(0), row.getString(1),
-                            row.getMap(2, String.class, String.class), getTrigger(row.getUDTValue(3)))),
+                    row -> subscriber.onNext(new Task2Impl(id, row.getString(0), row.getInt(1), row.getString(2),
+                            row.getMap(3, String.class, String.class), getTrigger(row.getUDTValue(4)))),
                     t -> subscriber.onError(new RuntimeException("Failed to find task with id " + id, t)),
                     subscriber::onCompleted
             )
@@ -455,19 +450,21 @@ public class TaskSchedulerImpl implements TaskScheduler {
     }
 
     @Override
-    public Observable<Task2> scheduleTask(String name, Map<String, String> parameters, Trigger trigger) {
+    public Observable<Task2> scheduleTask(String name, String groupKey, int executionOrder,
+            Map<String, String> parameters, Trigger trigger) {
+
         UUID id = UUID.randomUUID();
-        int shard = computeShard(id);
+        int shard = computeShard(groupKey);
         UDTValue triggerUDT = getTriggerValue(session, trigger);
         Date timeSlice = new Date(trigger.getTriggerTime());
-        Task2Impl task = new Task2Impl(id, shard, name, parameters, trigger);
+        Task2Impl task = new Task2Impl(id, groupKey, executionOrder, name, parameters, trigger);
 
         logger.debug("Scheduling {}", task);
 
-        Observable<ResultSet> createTask = session.execute(queries.createTask2.bind(id, shard, name, parameters,
-                triggerUDT));
-        Observable<ResultSet> updateQueue = session.execute(queries.insertIntoQueue.bind(timeSlice, shard, id, name,
+        Observable<ResultSet> createTask = session.execute(queries.createTask2.bind(id, groupKey, executionOrder, name,
                 parameters, triggerUDT));
+        Observable<ResultSet> updateQueue = session.execute(queries.insertIntoQueue.bind(timeSlice, shard, id, groupKey,
+                executionOrder, name, parameters, triggerUDT));
         Observable<ResultSet> createLease = session.execute(queries.createLease.bind(timeSlice, shard));
 
         return Observable.create(subscriber ->
@@ -504,26 +501,24 @@ public class TaskSchedulerImpl implements TaskScheduler {
             logger.debug("There are no more executions for {}", task);
             return Observable.just(task);
         }
-        Task2Impl newTask = new Task2Impl(task.getId(), task.getShard(), task.getName(), task.getParameters(),
-                task.getTrigger().nextTrigger());
+        int shard = computeShard(task.getGroupKey());
+        Task2Impl newTask = new Task2Impl(task.getId(), task.getGroupKey(), task.getOrder(), task.getName(),
+                task.getParameters(), task.getTrigger().nextTrigger());
         UDTValue triggerUDT = getTriggerValue(session, newTask.getTrigger());
         Date timeSlice = new Date(newTask.getTrigger().getTriggerTime());
 
         logger.debug("Next execution time for Task2Impl{id=" + newTask.getId() + ", name=" + newTask.getName() +
                 "} is " + new Date(newTask.getTrigger().getTriggerTime()));
 
-        Observable<ResultSet> updateQueue = session.execute(queries.insertIntoQueue.bind(timeSlice, newTask.getShard(),
-                newTask.getId(), newTask.getName(), newTask.getParameters(), triggerUDT), tasksScheduler);
-        Observable<ResultSet> createLease = session.execute(queries.createLease.bind(timeSlice, newTask.getShard()),
-                tasksScheduler);
-
-        Scheduler scheduler = Schedulers.immediate();
-
-//        return Observable.merge(updateQueue, createLease).map(resultSet -> newTask).observeOn(Schedulers.immediate());
+        Observable<ResultSet> updateQueue = session.execute(queries.insertIntoQueue.bind(timeSlice, shard,
+                newTask.getId(), task.getGroupKey(), task.getOrder(), newTask.getName(), newTask.getParameters(),
+                triggerUDT), tasksScheduler);
+        Observable<ResultSet> createLease = session.execute(queries.createLease.bind(timeSlice, shard), tasksScheduler);
 
         Observable<Task2Impl> observable = Observable.create(subscriber -> {
             Observable.merge(updateQueue, createLease).subscribe(
-                    resultSet -> {},
+                    resultSet -> {
+                    },
                     // TODO handle rescheduling failure
                     // If either write fails, we treat it as a scheduling failure. We cannot
                     // delete the current task/lease until these writes succeed. I think we
@@ -544,8 +539,8 @@ public class TaskSchedulerImpl implements TaskScheduler {
         return observable;//.observeOn(Schedulers.immediate());
     }
 
-    private int computeShard(UUID uuid) {
-        HashCode hashCode = hashFunction.hashBytes(uuid.toString().getBytes());
+    int computeShard(String key) {
+        HashCode hashCode = hashFunction.hashBytes(key.getBytes());
         return Hashing.consistentHash(hashCode, numShards);
     }
 
@@ -555,23 +550,40 @@ public class TaskSchedulerImpl implements TaskScheduler {
 
     static Trigger getTrigger(UDTValue value) {
         int type = value.getInt("type");
-        if (type != 1) {
-            throw new IllegalArgumentException("Trigger type [" + type + "] is not supported");
+
+        switch (type) {
+            case 0:
+                return new SingleExecutionTrigger(value.getLong("trigger_time"));
+            case 1:
+                return new RepeatingTrigger(
+                        value.getLong("interval"),
+                        value.getLong("delay"),
+                        value.getLong("trigger_time"),
+                        value.getInt("repeat_count"),
+                        value.getInt("execution_count")
+                );
+            default:
+                throw new IllegalArgumentException("Trigger type [" + type + "] is not supported");
         }
-        return new RepeatingTrigger(
-                value.getLong("interval"),
-                value.getLong("delay"),
-                value.getLong("trigger_time"),
-                value.getInt("repeat_count"),
-                value.getInt("execution_count")
-        );
     }
 
     static UDTValue getTriggerValue(RxSession session, Trigger trigger) {
         if (trigger instanceof RepeatingTrigger) {
             return getRepeatingTriggerValue(session, (RepeatingTrigger) trigger);
         }
+        if (trigger instanceof SingleExecutionTrigger) {
+            return getSingleExecutionTriggerValue(session, (SingleExecutionTrigger) trigger);
+        }
         throw new IllegalArgumentException(trigger.getClass() + " is not a supported trigger type");
+    }
+
+    static UDTValue getSingleExecutionTriggerValue(RxSession session, SingleExecutionTrigger trigger) {
+        UserType triggerType = getKeyspace(session).getUserType("trigger_def");
+        UDTValue triggerUDT = triggerType.newValue();
+        triggerUDT.setInt("type", 0);
+        triggerUDT.setLong("trigger_time", trigger.getTriggerTime());
+
+        return triggerUDT;
     }
 
     static UDTValue getRepeatingTriggerValue(RxSession session, RepeatingTrigger trigger) {

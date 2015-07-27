@@ -168,8 +168,9 @@ CREATE TYPE ${keyspace}.trigger_def (
 
 CREATE TABLE ${keyspace}.tasks (
     id uuid,
-    shard int,
+    group_key text,
     name text,
+    exec_order int,
     params map<text, text>,
     trigger frozen <trigger_def>,
     PRIMARY KEY (id)
@@ -180,11 +181,13 @@ CREATE TABLE ${keyspace}.tasks (
 CREATE TABLE ${keyspace}.task_queue (
     time_slice timestamp,
     shard int,
-    task_id uuid,
+    group_key text,
+    exec_order int,
     task_name text,
+    task_id uuid,
     task_params map<text, text>,
     trigger frozen <trigger_def>,
-    PRIMARY KEY ((time_slice, shard), task_id)
+    PRIMARY KEY ((time_slice, shard), group_key, exec_order, task_name, task_id)
 );
 
 -- #

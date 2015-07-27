@@ -130,7 +130,7 @@ public class TaskSubscriber extends TestSubscriber<Task2> {
     }
 
     @Override
-    public void onNext(Task2 task2) {
+    public synchronized void onNext(Task2 task2) {
 //        try {
 //            long duration = Math.abs(random.nextLong()) % 5000;
 //            logger.debug("Sleeping {} ms for execution of {}", duration, task2.getName());
@@ -141,6 +141,7 @@ public class TaskSubscriber extends TestSubscriber<Task2> {
 //        if (numberOfOnNextEvents > 0 && getOnNextEvents().size() >= numberOfOnNextEvents) {
 //            onNextEventsLatch.countDown();
 //        }
+        logger.debug("Executing {}", task2);
         onNext.call(task2);
         super.onNext(task2);
     }

@@ -31,7 +31,9 @@ public class Task2Impl implements Task2 {
 
     private UUID id;
 
-    private int shard;
+    private String groupKey;
+
+    private int order;
 
     private String name;
 
@@ -39,9 +41,11 @@ public class Task2Impl implements Task2 {
 
     private Trigger trigger;
 
-    public Task2Impl(UUID id, int shard, String name, Map<String, String> parameters, Trigger trigger) {
+    public Task2Impl(UUID id, String groupKey, int order, String name, Map<String, String> parameters,
+            Trigger trigger) {
         this.id = id;
-        this.shard = shard;
+        this.groupKey = groupKey;
+        this.order = order;
         this.name = name;
         this.parameters = ImmutableMap.copyOf(parameters);
         this.trigger = trigger;
@@ -52,8 +56,14 @@ public class Task2Impl implements Task2 {
         return id;
     }
 
-    public int getShard() {
-        return shard;
+    @Override
+    public String getGroupKey() {
+        return groupKey;
+    }
+
+    @Override
+    public int getOrder() {
+        return order;
     }
 
     @Override
@@ -76,8 +86,9 @@ public class Task2Impl implements Task2 {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Task2Impl task2 = (Task2Impl) o;
-        return Objects.equals(shard, task2.shard) &&
+        return Objects.equals(order, task2.order) &&
                 Objects.equals(id, task2.id) &&
+                Objects.equals(groupKey, task2.groupKey) &&
                 Objects.equals(name, task2.name) &&
                 Objects.equals(parameters, task2.parameters) &&
                 Objects.equals(trigger, task2.trigger);
@@ -85,14 +96,15 @@ public class Task2Impl implements Task2 {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, shard, name, parameters, trigger);
+        return Objects.hash(id, groupKey, order, name, parameters, trigger);
     }
 
     @Override
     public String toString() {
         return "Task2Impl{" +
                 "id=" + id +
-                ", shard=" + shard +
+                ", groupKey='" + groupKey + '\'' +
+                ", order=" + order +
                 ", name='" + name + '\'' +
                 ", parameters=" + parameters +
                 ", trigger=" + trigger +

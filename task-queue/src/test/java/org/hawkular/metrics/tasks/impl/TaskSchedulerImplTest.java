@@ -74,8 +74,10 @@ public class TaskSchedulerImplTest extends BaseTest {
 
     @BeforeClass
     public void initClass() {
-        findTasks = session.prepare("select id, shard, name, params, trigger from tasks");
-        insertTask = session.prepare("insert into tasks (id, shard, name, params, trigger) values (?, ?, ?, ?, ?)");
+        findTasks = session.prepare("select id, group_key, exec_order, name, params, trigger from tasks");
+        insertTask = session.prepare(
+                "insert into tasks (id, group_key, exec_order, name, params, trigger) " +
+                "values (?, ?, ?, ?, ?, ?)");
         findQueueEntries = session.prepare("select task_id from task_queue where time_slice = ? and shard = ?");
 
         scheduler = new TaskSchedulerImpl(rxSession, queries);
@@ -88,32 +90,17 @@ public class TaskSchedulerImplTest extends BaseTest {
     }
 
 //    @Test
-    public void createTask() {
-        TaskSchedulerImpl scheduler = new TaskSchedulerImpl(rxSession, queries);
-        String taskName = "test";
-        Map<String, String> params = ImmutableMap.of("x", "1");
-        Trigger trigger = new RepeatingTrigger.Builder().withInterval(1, TimeUnit.SECONDS).build();
-
-        Observable<Task2> observable = scheduler.createTask(taskName, params, trigger);
-        TaskSubscriber subscriber = new TaskSubscriber();
-        observable.subscribe(subscriber);
-
-        subscriber.awaitTerminalEvent();
-        subscriber.assertNoErrors();
-        subscriber.assertReceivedOnNext(getTasksFromDB());
-    }
-
-//    @Test
     public void findTask() {
         TaskSchedulerImpl scheduler = new TaskSchedulerImpl(rxSession, queries);
+        String group = "test-group";
+        int order = 100;
         String taskName = "test";
-        int shard = 10;
         Map<String, String> params = ImmutableMap.of("x", "1");
         Trigger trigger = new RepeatingTrigger.Builder()
                 .withInterval(1, TimeUnit.SECONDS)
                 .withDelay(5, TimeUnit.SECONDS)
                 .build();
-        Task2Impl task = new Task2Impl(randomUUID(), shard, taskName, params, trigger);
+        Task2Impl task = new Task2Impl(randomUUID(), group, order, taskName, params, trigger);
 
         insertTaskIntoDB(task);
 
@@ -130,10 +117,12 @@ public class TaskSchedulerImplTest extends BaseTest {
     public void scheduleTask() {
         TaskSchedulerImpl scheduler = new TaskSchedulerImpl(rxSession, queries);
         String taskName = "test";
+        String group = "test-group";
+        int order = 100;
         Map<String, String> params = ImmutableMap.of("x", "1", "y", "2");
         Trigger trigger = new RepeatingTrigger.Builder().withInterval(1, TimeUnit.MINUTES).build();
 
-        Observable<Task2> observable = scheduler.scheduleTask(taskName, params, trigger);
+        Observable<Task2> observable = scheduler.scheduleTask(taskName, group, order, params, trigger);
         TaskSubscriber subscriber = new TaskSubscriber();
         observable.subscribe(subscriber);
 
@@ -144,7 +133,7 @@ public class TaskSchedulerImplTest extends BaseTest {
 
         Task2Impl task = (Task2Impl) subscriber.getOnNextEvents().get(0);
         long timeSlice = task.getTrigger().getTriggerTime();
-        int shard = task.getShard();
+        int shard = scheduler.computeShard(task.getGroupKey());
 
         // verify that the queue has been updated
         assertEquals(getTaskIdsFromQueue(timeSlice, shard), singletonList(task.getId()),
@@ -157,6 +146,8 @@ public class TaskSchedulerImplTest extends BaseTest {
 
     @Test
     public void scheduleAndExecuteTaskWithNoParams() throws Exception {
+        String group = "test-group";
+        int order = 100;
         String taskName = "SimpleTaskWithNoParams";
         Trigger trigger = new RepeatingTrigger.Builder()
                 .withInterval(1, TimeUnit.SECONDS)
@@ -166,7 +157,7 @@ public class TaskSchedulerImplTest extends BaseTest {
         TaskSubscriber executeSubscriber = new TaskSubscriber();
         scheduler.subscribe(executeSubscriber);
 
-        Observable<Task2> scheduled = scheduler.scheduleTask(taskName, emptyMap(), trigger);
+        Observable<Task2> scheduled = scheduler.scheduleTask(taskName, group, order, emptyMap(), trigger);
         TaskSubscriber scheduledSubscriber = new TaskSubscriber();
         scheduled.subscribe(scheduledSubscriber);
 
@@ -181,14 +172,14 @@ public class TaskSchedulerImplTest extends BaseTest {
 
         Task2Impl scheduledTask = (Task2Impl) scheduledSubscriber.getOnNextEvents().get(0);
         UUID id = scheduledTask.getId();
-        int shard = scheduledTask.getShard();
+        int shard = scheduler.computeShard(group);
 
         assertEquals(executeSubscriber.getOnNextEvents().size(), 2, "Expected two task executions for two time " +
                 "slices");
 
         List<Task2> expected = asList(
-                new Task2Impl(id, shard, taskName, emptyMap(), trigger),
-                new Task2Impl(id, shard, taskName, emptyMap(), trigger.nextTrigger())
+                new Task2Impl(id, group, order, taskName, emptyMap(), trigger),
+                new Task2Impl(id, group, order, taskName, emptyMap(), trigger.nextTrigger())
         );
         List<Task2> actual = executeSubscriber.getOnNextEvents();
 
@@ -203,6 +194,8 @@ public class TaskSchedulerImplTest extends BaseTest {
 
     @Test
     public void scheduleAndExecuteTaskWithParams() throws Exception {
+        String group = "test-group";
+        int order = 100;
         String taskName = "SimpleTaskWithParams";
         Map<String, String> params = ImmutableMap.of("x", "1", "y", "2", "z", "3");
         Trigger trigger = new RepeatingTrigger.Builder()
@@ -213,7 +206,7 @@ public class TaskSchedulerImplTest extends BaseTest {
         TaskSubscriber executeSubscriber = new TaskSubscriber();
         scheduler.subscribe(executeSubscriber);
 
-        Observable<Task2> scheduled = scheduler.scheduleTask(taskName, params, trigger);
+        Observable<Task2> scheduled = scheduler.scheduleTask(taskName, group, order, params, trigger);
         TaskSubscriber scheduledSubscriber = new TaskSubscriber();
         scheduled.subscribe(scheduledSubscriber);
 
@@ -228,14 +221,14 @@ public class TaskSchedulerImplTest extends BaseTest {
 
         Task2Impl scheduledTask = (Task2Impl) scheduledSubscriber.getOnNextEvents().get(0);
         UUID id = scheduledTask.getId();
-        int shard = scheduledTask.getShard();
+        int shard = scheduler.computeShard(group);
 
         assertEquals(executeSubscriber.getOnNextEvents().size(), 2, "Expected two task executions for two time " +
                 "slices");
 
         List<Task2> expected = asList(
-                new Task2Impl(id, shard, taskName, params, trigger),
-                new Task2Impl(id, shard, taskName, params, trigger.nextTrigger())
+                new Task2Impl(id, group, order, taskName, params, trigger),
+                new Task2Impl(id, group, order, taskName, params, trigger.nextTrigger())
         );
         List<Task2> actual = executeSubscriber.getOnNextEvents();
 
@@ -250,13 +243,16 @@ public class TaskSchedulerImplTest extends BaseTest {
 
     @Test
     public void executeMultipleTasksAcrossDifferentShards() throws Exception {
+        String group1 = "group-1";
+        String group2 = "group-2";
+        int order = 100;
         Trigger trigger = new RepeatingTrigger.Builder()
                 .withInterval(1, TimeUnit.SECONDS)
                 .withDelay(2, TimeUnit.SECONDS)
                 .build();
         Date timeSlice = new Date(trigger.getTriggerTime());
-        Task2Impl task1 = new Task2Impl(randomUUID(), 0, "task1", emptyMap(), trigger);
-        Task2Impl task2 = new Task2Impl(randomUUID(), 1, "task2", emptyMap(), trigger);
+        Task2Impl task1 = new Task2Impl(randomUUID(), group1, order, "task1", emptyMap(), trigger);
+        Task2Impl task2 = new Task2Impl(randomUUID(), group2, order, "task2", emptyMap(), trigger);
 
         TaskSubscriber taskSubscriber = new TaskSubscriber();
         scheduler.subscribe(taskSubscriber);
@@ -280,9 +276,9 @@ public class TaskSchedulerImplTest extends BaseTest {
 
         Set<Task2Impl> expectedValuesFor1stTrigger = ImmutableSet.of(task1, task2);
         Set<Task2Impl> expectedValuesFor2ndTrigger = ImmutableSet.of(
-                new Task2Impl(task1.getId(), task1.getShard(), task1.getName(), task1.getParameters(),
+                new Task2Impl(task1.getId(), group1, order, task1.getName(), task1.getParameters(),
                         trigger.nextTrigger()),
-                new Task2Impl(task2.getId(), task2.getShard(), task2.getName(), task2.getParameters(),
+                new Task2Impl(task2.getId(), group2, order, task2.getName(), task2.getParameters(),
                         trigger.nextTrigger())
         );
 
@@ -295,10 +291,10 @@ public class TaskSchedulerImplTest extends BaseTest {
         assertEquals(ImmutableSet.copyOf(actual.subList(2, 4)), expectedValuesFor2ndTrigger, "The tasks for the " +
                 "second trigger " + trigger.nextTrigger() + " do not match expected values - ");
 
-        assertQueueDoesNotExist(trigger.getTriggerTime(), task1.getShard());
-        assertQueueDoesNotExist(trigger.getTriggerTime(), task2.getShard());
-        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime(), task1.getShard());
-        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime(), task2.getShard());
+        assertQueueDoesNotExist(trigger.getTriggerTime(), scheduler.computeShard(task1.getGroupKey()));
+        assertQueueDoesNotExist(trigger.getTriggerTime(), scheduler.computeShard(task2.getGroupKey()));
+        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime(), scheduler.computeShard(task1.getGroupKey()));
+        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime(), scheduler.computeShard(task2.getGroupKey()));
 
         assertLeasesDoNotExist(trigger.getTriggerTime());
         assertLeasesDoNotExist(trigger.nextTrigger().getTriggerTime());
@@ -306,13 +302,16 @@ public class TaskSchedulerImplTest extends BaseTest {
 
     @Test
     public void executeTaskThatThrowsException() {
+        String group1 = "group-1";
+        String group2 = "group-2";
+        int order = 100;
         Trigger trigger = new RepeatingTrigger.Builder()
                 .withInterval(1, TimeUnit.SECONDS)
                 .withDelay(2, TimeUnit.SECONDS)
                 .build();
         Date timeSlice = new Date(trigger.getTriggerTime());
-        Task2Impl task1 = new Task2Impl(randomUUID(), 0, "task1", emptyMap(), trigger);
-        Task2Impl task2 = new Task2Impl(randomUUID(), 1, "task2", emptyMap(), trigger);
+        Task2Impl task1 = new Task2Impl(randomUUID(), group1, order, "task1", emptyMap(), trigger);
+        Task2Impl task2 = new Task2Impl(randomUUID(), group2, order, "task2", emptyMap(), trigger);
 
         TaskSubscriber taskSubscriber = new TaskSubscriber();
         taskSubscriber.setOnNext(task -> {
@@ -343,10 +342,10 @@ public class TaskSchedulerImplTest extends BaseTest {
 
         Set<Task2Impl> expectedValuesFor1stTrigger = ImmutableSet.of(task2);
         Set<Task2Impl> expectedValuesFor2ndTrigger = ImmutableSet.of(
-                new Task2Impl(task1.getId(), task1.getShard(), task1.getName(), task1.getParameters(),
-                        trigger.nextTrigger()),
-                new Task2Impl(task2.getId(), task2.getShard(), task2.getName(), task2.getParameters(),
-                        trigger.nextTrigger())
+                new Task2Impl(task1.getId(), task1.getGroupKey(), task1.getOrder(), task1.getName(),
+                        task1.getParameters(), trigger.nextTrigger()),
+                new Task2Impl(task2.getId(), task2.getGroupKey(), task2.getOrder(), task2.getName(),
+                        task2.getParameters(), trigger.nextTrigger())
         );
 
         // The scheduler guarantees that tasks are executed in order with respect to time
@@ -358,10 +357,10 @@ public class TaskSchedulerImplTest extends BaseTest {
         assertEquals(ImmutableSet.copyOf(actual.subList(1, 3)), expectedValuesFor2ndTrigger, "The tasks for the " +
                 "second trigger " + trigger.nextTrigger() + " do not match expected values - ");
 
-        assertQueueDoesNotExist(trigger.getTriggerTime(), task1.getShard());
-        assertQueueDoesNotExist(trigger.getTriggerTime(), task2.getShard());
-        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime(), task1.getShard());
-        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime(), task2.getShard());
+        assertQueueDoesNotExist(trigger.getTriggerTime(), scheduler.computeShard(task1.getGroupKey()));
+        assertQueueDoesNotExist(trigger.getTriggerTime(), scheduler.computeShard(task2.getGroupKey()));
+        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime(), scheduler.computeShard(task1.getGroupKey()));
+        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime(), scheduler.computeShard(task2.getGroupKey()));
 
         assertLeasesDoNotExist(trigger.getTriggerTime());
         assertLeasesDoNotExist(trigger.nextTrigger().getTriggerTime());
@@ -369,14 +368,17 @@ public class TaskSchedulerImplTest extends BaseTest {
 
     @Test
     public void executeLongRunningTask() {
+        String group1 = "group-1";
+        String group2 = "group-2";
+        int order = 100;
         Trigger trigger = new RepeatingTrigger.Builder()
                 .withInterval(1, TimeUnit.SECONDS)
                 .withDelay(2, TimeUnit.SECONDS)
                 .withRepeatCount(2)
                 .build();
         Date timeSlice = new Date(trigger.getTriggerTime());
-        Task2Impl task1 = new Task2Impl(randomUUID(), 0, "taskLongRunning-1", emptyMap(), trigger);
-        Task2Impl task2 = new Task2Impl(randomUUID(), 1, "taskLongRunning-2", emptyMap(), trigger);
+        Task2Impl task1 = new Task2Impl(randomUUID(), group1, order, "taskLongRunning-1", emptyMap(), trigger);
+        Task2Impl task2 = new Task2Impl(randomUUID(), group2, order, "taskLongRunning-2", emptyMap(), trigger);
 
         TaskSubscriber taskSubscriber = new TaskSubscriber();
         taskSubscriber.setOnNext(task -> {
@@ -409,10 +411,10 @@ public class TaskSchedulerImplTest extends BaseTest {
 
         Set<Task2Impl> expectedValuesFor1stTrigger = ImmutableSet.of(task1, task2);
         Set<Task2Impl> expectedValuesFor2ndTrigger = ImmutableSet.of(
-                new Task2Impl(task1.getId(), task1.getShard(), task1.getName(), task1.getParameters(),
-                        trigger.nextTrigger()),
-                new Task2Impl(task2.getId(), task2.getShard(), task2.getName(), task2.getParameters(),
-                        trigger.nextTrigger())
+                new Task2Impl(task1.getId(), task1.getGroupKey(), task1.getOrder(), task1.getName(),
+                        task1.getParameters(), trigger.nextTrigger()),
+                new Task2Impl(task2.getId(), task2.getGroupKey(), task2.getOrder(), task2.getName(),
+                        task2.getParameters(), trigger.nextTrigger())
         );
 
         // The scheduler guarantees that tasks are executed in order with respect to time
@@ -424,10 +426,10 @@ public class TaskSchedulerImplTest extends BaseTest {
         assertEquals(ImmutableSet.copyOf(actual.subList(2, 4)), expectedValuesFor2ndTrigger, "The tasks for the " +
                 "second trigger " + trigger.nextTrigger() + " do not match expected values - ");
 
-        assertQueueDoesNotExist(trigger.getTriggerTime(), task1.getShard());
-        assertQueueDoesNotExist(trigger.getTriggerTime(), task2.getShard());
-        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime(), task1.getShard());
-        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime(), task2.getShard());
+        assertQueueDoesNotExist(trigger.getTriggerTime(), scheduler.computeShard(task1.getGroupKey()));
+        assertQueueDoesNotExist(trigger.getTriggerTime(), scheduler.computeShard(task2.getGroupKey()));
+        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime(), scheduler.computeShard(task1.getGroupKey()));
+        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime(), scheduler.computeShard(task2.getGroupKey()));
 
         assertLeasesDoNotExist(trigger.getTriggerTime());
         assertLeasesDoNotExist(trigger.nextTrigger().getTriggerTime());
@@ -443,9 +445,10 @@ public class TaskSchedulerImplTest extends BaseTest {
     private void setUpTasksForExecution(Date timeSlice, Task2Impl... tasks) {
         List<Observable<ResultSet>> resultSets = new ArrayList<>();
         for (Task2Impl t : tasks) {
-            resultSets.add(rxSession.execute(queries.insertIntoQueue.bind(timeSlice, t.getShard(), t.getId(),
-                    t.getName(), t.getParameters(), getTriggerValue(rxSession, t.getTrigger()))));
-            resultSets.add(rxSession.execute(queries.createLease.bind(timeSlice, t.getShard())));
+            int shard = scheduler.computeShard(t.getGroupKey());
+            resultSets.add(rxSession.execute(queries.insertIntoQueue.bind(timeSlice, shard, t.getId(), t.getGroupKey(),
+                    t.getOrder(), t.getName(), t.getParameters(), getTriggerValue(rxSession, t.getTrigger()))));
+            resultSets.add(rxSession.execute(queries.createLease.bind(timeSlice, shard)));
         }
         TestSubscriber<ResultSet> subscriber = new TestSubscriber<>();
         Observable.merge(resultSets).subscribe(subscriber);
@@ -536,15 +539,15 @@ public class TaskSchedulerImplTest extends BaseTest {
         ResultSet resultSet = session.execute(findTasks.bind());
         List<Task2> tasks = new ArrayList<>();
         for (Row row : resultSet) {
-            tasks.add(new Task2Impl(row.getUUID(0), row.getInt(1), row.getString(2),
-                    row.getMap(3, String.class, String.class), TaskSchedulerImpl.getTrigger(row.getUDTValue(4))));
+            tasks.add(new Task2Impl(row.getUUID(0), row.getString(1), row.getInt(2), row.getString(3),
+                    row.getMap(4, String.class, String.class), TaskSchedulerImpl.getTrigger(row.getUDTValue(5))));
         }
         return tasks;
     }
 
     private void insertTaskIntoDB(Task2Impl task) {
-        session.execute(insertTask.bind(task.getId(), task.getShard(), task.getName(), task.getParameters(),
-                getTriggerValue(rxSession, task.getTrigger())));
+        session.execute(insertTask.bind(task.getId(), task.getGroupKey(), task.getOrder(), task.getName(),
+                task.getParameters(), getTriggerValue(rxSession, task.getTrigger())));
     }
 
     private List<UUID> getTaskIdsFromQueue(long timeSlice, int shard) {

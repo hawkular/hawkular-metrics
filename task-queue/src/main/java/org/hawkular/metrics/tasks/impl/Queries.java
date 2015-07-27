@@ -85,14 +85,16 @@ public class Queries {
 //            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
 
         createTask2 = session.prepare(
-                "INSERT INTO tasks (id, shard, name, params, trigger) VALUES (?, ?, ?, ?, ?)");
+                "INSERT INTO tasks (id, group_key, exec_order, name, params, trigger) VALUES (?, ?, ?, ?, ?, ?)");
 
         insertIntoQueue = session.prepare(
-                "INSERT INTO task_queue (time_slice, shard, task_id, task_name, task_params, trigger) " +
-                "VALUES (?, ?, ?, ?, ?, ?)");
+                "INSERT INTO task_queue (time_slice, shard, task_id, group_key, exec_order, task_name, task_params, " +
+                        "trigger) " +  "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
 
         getTasksFromQueue = session.prepare(
-                "SELECT task_id, task_name, task_params, trigger FROM task_queue WHERE time_slice = ? AND shard = ?");
+                "SELECT group_key, exec_order, task_id, task_name, task_params, trigger " +
+                "FROM task_queue " +
+                "WHERE time_slice = ? AND shard = ?");
 
 //        createTaskWithFailures = session.prepare(
 //            "INSERT INTO task_queue (task_type, tenant_id, time_slice, segment, target, sources, interval, window, " +
@@ -103,7 +105,7 @@ public class Queries {
 //            "FROM task_queue " +
 //            "WHERE task_type = ? AND time_slice = ? AND segment = ?");
 
-        findTask = session.prepare("SELECT shard, name, params, trigger FROM tasks WHERE id = ?");
+        findTask = session.prepare("SELECT group_key, exec_order, name, params, trigger FROM tasks WHERE id = ?");
 
         deleteTasks = session.prepare("DELETE FROM task_queue WHERE time_slice = ? AND shard = ?");
     }
