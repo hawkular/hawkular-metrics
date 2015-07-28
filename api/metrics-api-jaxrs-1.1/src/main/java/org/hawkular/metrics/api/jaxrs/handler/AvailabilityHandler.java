@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -88,6 +89,7 @@ public class AvailabilityHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(AvailabilityHandler.class);
 
+    @Inject
     private MetricsService metricsService;
 
     @HeaderParam(TenantFilter.TENANT_HEADER_NAME)

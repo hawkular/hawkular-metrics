@@ -27,6 +27,7 @@ import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import java.net.URI;
 import java.util.List;
 
+import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
@@ -76,6 +77,7 @@ public class CounterHandler {
 
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
+    @Inject
     private MetricsService metricsService;
 
     @HeaderParam(TENANT_HEADER_NAME)

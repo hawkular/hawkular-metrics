@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
+import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -79,6 +80,7 @@ import rx.Observable;
 public class GaugeHandler {
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
+    @Inject
     private MetricsService metricsService;
 
     @HeaderParam(TENANT_HEADER_NAME)

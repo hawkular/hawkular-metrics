@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
@@ -69,6 +70,7 @@ import rx.schedulers.Schedulers;
 @Api(value = "", description = "Metrics related REST interface")
 public class MetricHandler {
 
+    @Inject
     private MetricsService metricsService;
 
     @HeaderParam(TENANT_HEADER_NAME)

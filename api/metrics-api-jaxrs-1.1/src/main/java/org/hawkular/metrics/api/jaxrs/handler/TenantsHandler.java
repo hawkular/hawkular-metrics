@@ -20,6 +20,7 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import java.net.URI;
 
+import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -54,8 +55,7 @@ import rx.Observable;
 @Api(value = "/tenants", description = "Tenants related REST interface")
 public class TenantsHandler {
 
-    // TODO: add back retention settings
-
+    @Inject
     private MetricsService metricsService;
 
     @POST
