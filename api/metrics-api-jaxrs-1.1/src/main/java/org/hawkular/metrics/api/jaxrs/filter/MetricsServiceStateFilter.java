@@ -16,33 +16,46 @@
  */
 package org.hawkular.metrics.api.jaxrs.filter;
 
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
-
 import java.io.IOException;
 
-import javax.inject.Inject;
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.container.ContainerRequestFilter;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriInfo;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import javax.ws.rs.ext.Provider;
-
-import org.hawkular.metrics.api.jaxrs.ApiError;
-import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle;
-import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle.State;
-import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
 
 /**
  * @author Matt Wringe
  */
 @Provider
-public class MetricsServiceStateFilter implements ContainerRequestFilter {
+public class MetricsServiceStateFilter implements Filter {
 
     private static final String STARTING = "Service unavailable while initializing.";
     private static final String FAILED = "Internal server error.";
     private static final String STOPPED = "The service is no longer running.";
 
+    @Override
+    public void init(FilterConfig filterConfig) throws ServletException {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void destroy() {
+        // TODO Auto-generated method stub
+
+    }
+
+    /**
     @Inject
     private MetricsServiceLifecycle metricsServiceLifecycle;
 
@@ -79,4 +92,5 @@ public class MetricsServiceStateFilter implements ContainerRequestFilter {
             containerRequestContext.abortWith(response);
         }
     }
+    */
 }

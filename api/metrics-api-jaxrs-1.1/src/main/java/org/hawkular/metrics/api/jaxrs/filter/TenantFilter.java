@@ -19,13 +19,17 @@ package org.hawkular.metrics.api.jaxrs.filter;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.container.ContainerRequestFilter;
-import javax.ws.rs.core.Response;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriInfo;
-import javax.ws.rs.ext.Provider;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.BaseHandler;
@@ -34,8 +38,7 @@ import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
 /**
  * @author Stefan Negrea
  */
-@Provider
-public class TenantFilter implements ContainerRequestFilter {
+public class TenantFilter implements Filter {
     public static final String TENANT_HEADER_NAME = "Hawkular-Tenant";
 
     private static final String MISSING_TENANT_MSG;
@@ -47,27 +50,44 @@ public class TenantFilter implements ContainerRequestFilter {
     }
 
     @Override
-    public void filter(ContainerRequestContext requestContext) throws IOException {
-        UriInfo uriInfo = requestContext.getUriInfo();
-        String path = uriInfo.getPath();
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
+
+        final HttpServletRequest httpRequest = (HttpServletRequest) request;
+
+        String path = httpRequest.getRequestURI();
 
         if (path.startsWith("/tenants") || path.startsWith("/db") || path.startsWith(StatusHandler.PATH)
             || path.equals(BaseHandler.PATH)) {
             // Tenants, Influx and status handlers do not check the tenant header
+            chain.doFilter(request, response);
             return;
         }
 
-        String tenant = requestContext.getHeaders().getFirst(TENANT_HEADER_NAME);
+        String tenant = httpRequest.getHeader(TENANT_HEADER_NAME);
         if (tenant != null && !tenant.trim().isEmpty()) {
             // We're good already
+            chain.doFilter(request, response);
             return;
         }
 
         // Fail on missing tenant info
-        Response response = Response.status(Status.BAD_REQUEST)
-                                    .type(APPLICATION_JSON_TYPE)
-                                    .entity(new ApiError(MISSING_TENANT_MSG))
-                                    .build();
-        requestContext.abortWith(response);
+        final HttpServletResponse httpResponse = (HttpServletResponse) response;
+        httpResponse.setStatus(Status.BAD_REQUEST.getStatusCode());
+        httpResponse.setContentType(APPLICATION_JSON_TYPE.toString());
+        PrintWriter out = response.getWriter();
+        out.println(new ApiError(MISSING_TENANT_MSG).toString());
+    }
+
+    @Override
+    public void destroy() {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void init(FilterConfig arg0) throws ServletException {
+        // TODO Auto-generated method stub
+
     }
 }
