@@ -18,6 +18,7 @@ package org.hawkular.metrics.tasks.api;
 
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
@@ -27,6 +28,8 @@ import org.joda.time.Period;
  * @author jsanda
  */
 public class RepeatingTrigger implements Trigger {
+
+    public static Supplier<Long> now = System::currentTimeMillis;
 
     private long triggerTime;
 
@@ -134,7 +137,7 @@ public class RepeatingTrigger implements Trigger {
     }
 
     private DateTime getExecutionDateTime() {
-        DateTime dt = DateTime.now();
+        DateTime dt = new DateTime(now.get());
         Duration duration = Duration.millis(interval);
         Period p = duration.toPeriod();
 

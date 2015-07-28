@@ -210,6 +210,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
                         logger.debug("Loading tasks for {}", lease);
                         CountDownLatch latch = new CountDownLatch(1);
                         getQueue(lease)
+                                .observeOn(tasksScheduler)
                                 .groupBy(Task2Impl::getGroupKey)
                                 .flatMap(group -> group.flatMap(this::execute).map(this::rescheduleTask))
                                 .subscribe(
@@ -371,15 +372,13 @@ public class TaskSchedulerImpl implements TaskScheduler {
      * Loads the task queue for the specified lease. The returned observable emits tasks in
      * the queue. The observable should execute on the lease scheduler.
      */
-    private Observable<Task2Impl> getQueue(Lease lease) {
+    Observable<Task2Impl> getQueue(Lease lease) {
         logger.debug("Loading task queue for {}", lease);
         return session.execute(queries.getTasksFromQueue.bind(new Date(lease.getTimeSlice()), lease.getShard()),
                 Schedulers.immediate())
                 .flatMap(Observable::from)
                 .map(row -> new Task2Impl(row.getUUID(2), row.getString(0), row.getInt(1), row.getString(3),
-                        row.getMap(4, String.class, String.class), getTrigger(row.getUDTValue(5))))
-//                .subscribeOn(tasksScheduler);
-                .observeOn(tasksScheduler);
+                        row.getMap(4, String.class, String.class), getTrigger(row.getUDTValue(5))));
     }
 
     /**

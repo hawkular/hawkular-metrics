@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.tasks.impl;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.UUID.randomUUID;
@@ -28,11 +29,15 @@ import static org.testng.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.google.common.collect.ImmutableMap;
 import org.hawkular.metrics.tasks.BaseTest;
+import org.hawkular.metrics.tasks.api.RepeatingTrigger;
 import org.hawkular.metrics.tasks.api.SingleExecutionTrigger;
 import org.hawkular.metrics.tasks.api.Task2;
 import org.hawkular.metrics.tasks.api.Trigger;
@@ -98,6 +103,8 @@ public class TaskSchedulerITest extends BaseITest {
         scheduler.setTickScheduler(tickScheduler);
         finishedTimeSlices = scheduler.getFinishedTimeSlices();
         leaseObservable = scheduler.start();
+
+        RepeatingTrigger.now = tickScheduler::now;
     }
 
     @BeforeMethod
@@ -130,13 +137,96 @@ public class TaskSchedulerITest extends BaseITest {
         timeSlicesSubscriber.awaitTerminalEvent(5, SECONDS);
         timeSlicesSubscriber.assertNoErrors();
         timeSlicesSubscriber.assertTerminalEvent();
-        taskSubscriber.assertValueCount(1);
 
+        taskSubscriber.assertValueCount(1);
         taskSubscriber.assertReceivedOnNext(singletonList(task));
 
         // verify that the lease and queue have been deleted
         assertLeasesDoNotExist(trigger.getTriggerTime());
         assertQueueDoesNotExist(trigger.getTriggerTime(), group);
+    }
+
+    @Test
+    public void executeRepeatingTask() {
+        RepeatingTrigger trigger = new RepeatingTrigger.Builder()
+                .withDelay(1, SECONDS)
+                .withInterval(1, SECONDS)
+                .build();
+        String group = "test-group";
+        int order = 10;
+        Map<String, String> params = ImmutableMap.of("x", "1", "y", "2", "z", "3");
+        Task2Impl task = new Task2Impl(randomUUID(), group, order, "task-1", params, trigger);
+
+        setUpTasksForExecution(Observable.just(task));
+
+        TestSubscriber<Long> timeSlicesSubscriber = new TestSubscriber<>();
+        finishedTimeSlices.take(2).observeOn(Schedulers.immediate()).subscribe(timeSlicesSubscriber);
+
+        TaskSubscriber taskSubscriber = new TaskSubscriber();
+        scheduler.subscribe(taskSubscriber);
+
+        tickScheduler.advanceTimeBy(3, SECONDS);
+
+        timeSlicesSubscriber.awaitTerminalEvent(5, SECONDS);
+        timeSlicesSubscriber.assertNoErrors();
+        timeSlicesSubscriber.assertTerminalEvent();
+
+        taskSubscriber.assertValueCount(2);
+
+        Trigger nextTrigger = getNthTrigger(trigger, 3);
+        Task2Impl nextTask = new Task2Impl(task.getId(), group, order, task.getName(), params, nextTrigger);
+
+        assertLeaseExists(nextTrigger.getTriggerTime(), group);
+        assertEquals(getQueue(nextTask.getTrigger().getTriggerTime(), group), singletonList(nextTask),
+                "The queue should does not match the expected values");
+
+        assertLeasesDoNotExist(trigger.getTriggerTime());
+        assertLeasesDoNotExist(trigger.nextTrigger().getTriggerTime());
+
+        assertQueueDoesNotExist(trigger.getTriggerTime(), group);
+        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime(), group);
+    }
+
+    @Test
+    public void executeTaskThatRepeatsTwice() {
+        RepeatingTrigger trigger = new RepeatingTrigger.Builder()
+                .withInterval(1, SECONDS)
+                .withDelay(1, SECONDS)
+                .withRepeatCount(2)
+                .build();
+        String group = "test-group";
+        int order = 10;
+        Task2Impl task = new Task2Impl(randomUUID(), group, order, "task-1", emptyMap(), trigger);
+
+        setUpTasksForExecution(Observable.just(task));
+
+        TestSubscriber<Long> timeSlicesSubscriber = new TestSubscriber<>();
+        finishedTimeSlices.take(2).observeOn(Schedulers.immediate()).subscribe(timeSlicesSubscriber);
+
+        TaskSubscriber taskSubscriber = new TaskSubscriber();
+        scheduler.subscribe(taskSubscriber);
+
+        tickScheduler.advanceTimeBy(3, SECONDS);
+
+        timeSlicesSubscriber.awaitTerminalEvent(5, SECONDS);
+        timeSlicesSubscriber.assertNoErrors();
+        timeSlicesSubscriber.assertTerminalEvent();
+
+        taskSubscriber.assertValueCount(2);
+
+        Task2Impl nextTask = new Task2Impl(task.getId(), group, order, task.getName(), task.getParameters(),
+                trigger.nextTrigger());
+        taskSubscriber.assertReceivedOnNext(asList(task, nextTask));
+
+        assertLeasesDoNotExist(trigger.getTriggerTime());
+        assertLeasesDoNotExist(trigger.nextTrigger().getTriggerTime());
+        // make sure a 3rd execution was not scheduled
+        assertLeasesDoNotExist(trigger.nextTrigger().getTriggerTime() + trigger.getInterval());
+
+        assertQueueDoesNotExist(trigger.getTriggerTime(), group);
+        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime(), group);
+        // make sure a 3rd execution was not scheduled
+        assertQueueDoesNotExist(trigger.nextTrigger().getTriggerTime() + trigger.getInterval(), group);
     }
 
     /**
@@ -323,6 +413,34 @@ public class TaskSchedulerITest extends BaseITest {
     private Observable<ResultSet> createLease(Task2 task) {
         return rxSession.execute(queries.createLease.bind(new Date(task.getTrigger().getTriggerTime()),
                 scheduler.computeShard(task.getGroupKey())));
+    }
+
+    private List<Task2Impl> getQueue(long time, String group) {
+        int shard = scheduler.computeShard(group);
+
+        return scheduler.getQueue(new Lease(time, shard, null, false)).toList().toBlocking().first();
+    }
+
+    private Trigger getNthTrigger(Trigger trigger, int n) {
+        Trigger next = trigger;
+        for (int i = 1; i < n; ++i) {
+            next = next.nextTrigger();
+        }
+        return next;
+    }
+
+    private void assertLeaseExists(long time, String group) {
+        Date timeSlice = new Date(time);
+        int shard = scheduler.computeShard(group);
+        ResultSet resultSet = session.execute(queries.findLeases.bind(timeSlice));
+        boolean found = false;
+        for (Row row : resultSet) {
+            if (row.getInt(0) == shard) {
+                found = true;
+                break;
+            }
+        }
+        assertTrue(found, "Expected to find lease for {time=" + time + ", shard=" + shard + ", group=" + group + "}");
     }
 
     private void assertLeasesDoNotExist(long time) {
