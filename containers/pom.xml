@@ -42,7 +42,7 @@
 
   <properties>
     <cassandra.version>2.1.6</cassandra.version>
-    <fabric8.version>2.2.5</fabric8.version>
+    <fabric8.version>2.2.16</fabric8.version>
     <docker-maven-plugin.version>0.12.0</docker-maven-plugin.version>
     <docker.user>hawkular</docker.user>
     <hawkular-metrics.image>${docker.user}/hawkular-metrics:${project.version}</hawkular-metrics.image>

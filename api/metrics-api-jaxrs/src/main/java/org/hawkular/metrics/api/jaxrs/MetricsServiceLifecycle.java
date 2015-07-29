@@ -24,6 +24,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_C
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_KEYSPACE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_NODES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_RESETDB;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_USESSL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.TASK_SCHEDULER_TIME_UNITS;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
@@ -113,6 +114,11 @@ public class MetricsServiceLifecycle {
     @Configurable
     @ConfigurationProperty(TASK_SCHEDULER_TIME_UNITS)
     private String timeUnits;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(CASSANDRA_USESSL)
+    private String cassandraUseSSL;
 
     private volatile State state;
     private int connectionAttempts;
@@ -223,6 +229,10 @@ public class MetricsServiceLifecycle {
         }
         clusterBuilder.withPort(port);
         Arrays.stream(nodes.split(",")).forEach(clusterBuilder::addContactPoint);
+
+        if (Boolean.parseBoolean(cassandraUseSSL)) {
+            clusterBuilder.withSSL();
+        }
 
         Cluster cluster = null;
         Session createdSession = null;

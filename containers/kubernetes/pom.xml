@@ -58,6 +58,13 @@
             </goals>
           </execution>
           <execution>
+            <id>attach</id>
+            <phase>package</phase>
+            <goals>
+              <goal>attach</goal>
+            </goals>
+          </execution>
+          <execution>
             <id>zip</id>
             <phase>package</phase>
             <goals>

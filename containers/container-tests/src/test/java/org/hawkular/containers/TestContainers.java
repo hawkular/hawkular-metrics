@@ -71,7 +71,7 @@ public class TestContainers extends BaseContainerTests{
         assertThat(service).isNotNull();
 
         ServiceSpec spec = service.getSpec();
-        assertTrue(!spec.getPortalIP().equalsIgnoreCase("None"));
+        assertTrue(!spec.getClusterIP().equalsIgnoreCase("None"));
         assertThat(spec).isNotNull();
 
         assertTrue(checkPorts(spec.getPorts(), 9042, 9160, 7000, 7001));
@@ -83,7 +83,7 @@ public class TestContainers extends BaseContainerTests{
         assertThat(service).isNotNull();
 
         ServiceSpec spec = service.getSpec();
-        assertThat(spec).hasPortalIP("None");
+        assertThat(spec).hasClusterIP("None");
         assertThat(spec).isNotNull();
 
         assertTrue(checkPorts(spec.getPorts(), 9042, 9160, 7000, 7001));

@@ -31,6 +31,36 @@ do
     --seed_provider_classname=*)
       SEED_PROVIDER_CLASSNAME="${args#*=}"
     ;;
+    --internode_encryption=*)
+      INTERNODE_ENCRYPTION="${args#*=}"
+    ;;
+    --require_node_auth=*)
+      REQUIRE_NODE_AUTH="${args#*=}"
+    ;;
+    --enable_client_encryption=*)
+      ENABLE_CLIENT_ENCRYPTION="${args#*=}"
+    ;;
+    --require_client_auth=*)
+      REQUIRE_CLIENT_AUTH="${args#*=}"
+    ;;
+    --keystore_file=*)
+      KEYSTORE_FILE="${args#*=}"
+    ;;
+    --keystore_password=*)
+      KEYSTORE_PASSWORD="${args#*=}"
+    ;;
+    --keystore_password_file=*)
+      KEYSTORE_PASSWORD_FILE="${args#*=}"
+    ;;
+    --truststore_file=*)
+      TRUSTSTORE_FILE="${args#*=}"
+    ;;
+    --trustsotre_password=*)
+      TRUSTSTORE_PASSWORD="${args#*=}"
+    ;;
+    --truststore_password_file=*)
+      TRUSTSTORE_PASSWORD_FILE="${args#*=}"
+    ;;
     --help)
       HELP=true
     ;;
@@ -60,9 +90,42 @@ if [ -n "$HELP" ]; then
   echo "        the classname to use as the seed provider"
   echo "        default: org.apache.cassandra.locator.SimpleSeedProdiver"
   echo
+  echo "  --internode_encryption=[all|none|dc|rack]"
+  echo "        what type of internode encryption should be used"
+  echo "        default: none"
+  echo
+  echo "  --enable_client_encryption=[true|false]"
+  echo "        if client encryption should be enabled"
+  echo "        default: false"
+  echo
+  echo "  --require_node_auth=[true|false]"
+  echo "        if certificate based authentication should be required between nodes"
+  echo "        default: false"
+  echo
+  echo "  --require_client_auth=[true|false]"
+  echo "        if certificate based authentication should be required for client"
+  echo "        default: false"
+  echo
+  echo "  --keystore_file=KEYSTORE_FILE_LOCATION"
+  echo "        the path to where the keystore is located"
+  echo
+  echo "  --keystore_password=KEYSTORE_PASSWORD"
+  echo "        the password to use for the keystore"
+  echo
+  echo "  --keystore_password_file=KEYSTORE_PASSWORD"
+  echo "        a file containing only the keystore password"
+  echo
+  echo "  --truststore_file=TRUSTSTORE_FILE_LOCATION"
+  echo "        the path to where the truststore is located"
+  echo
+  echo "  --truststore_password=TRUSTSTORE_PASSWORD"
+  echo "        the password to use for the truststore"
+  echo
+  echo "  --truststore_password_file=TRUSTSTORE_PASSWORD"
+  echo "        a file containing only the truststore password"
+  echo
   exit 0
 fi
-
 
 # set the hostname in the cassandra configuration file
 sed -i 's/${HOSTNAME}/'$HOSTNAME'/g' /opt/apache-cassandra/conf/cassandra.yaml
@@ -96,6 +159,54 @@ if [ -n "$SEED_PROVIDER_CLASSNAME" ]; then
 else
     sed -i 's#${SEED_PROVIDER_CLASSNAME}#org.apache.cassandra.locator.SimpleSeedProvider#g' /opt/apache-cassandra/conf/cassandra.yaml
 fi
+
+# setup and configure the security setting
+if [ -n "$INTERNODE_ENCRYPTION" ]; then
+   sed -i 's#${INTERNODE_ENCRYPTION}#'$INTERNODE_ENCRYPTION'#g' /opt/apache-cassandra/conf/cassandra.yaml
+else
+   sed -i 's#${INTERNODE_ENCRYPTION}#/none#g' /opt/apache-cassandra/conf/cassandra.yaml
+fi
+
+if [ -n "$ENABLE_CLIENT_ENCRYPTION" ]; then
+   sed -i 's#${ENABLE_CLIENT_ENCRYPTION}#'$ENABLE_CLIENT_ENCRYPTION'#g' /opt/apache-cassandra/conf/cassandra.yaml
+else
+   sed -i 's#${ENABLE_CLIENT_ENCRYPTION}#/false#g' /opt/apache-cassandra/conf/cassandra.yaml
+fi
+
+if [ -n "$REQUIRE_NODE_AUTH" ]; then
+   sed -i 's#${REQUIRE_NODE_AUTH}#'$REQUIRE_NODE_AUTH'#g' /opt/apache-cassandra/conf/cassandra.yaml
+else
+   sed -i 's#${REQUIRE_NODE_AUTH}#/false#g' /opt/apache-cassandra/conf/cassandra.yaml
+fi
+
+if [ -n "$REQUIRE_CLIENT_AUTH" ]; then
+   sed -i 's#${REQUIRE_CLIENT_AUTH}#'$REQUIRE_CLIENT_AUTH'#g' /opt/apache-cassandra/conf/cassandra.yaml
+else
+   sed -i 's#${REQUIRE_CLIENT_AUTH}#/false#g' /opt/apache-cassandra/conf/cassandra.yaml
+fi
+
+# handle setting up the keystore
+if [ -n "$KEYSTORE_FILE" ]; then
+   sed -i 's#${KEYSTORE_FILE}#'$KEYSTORE_FILE'#g' /opt/apache-cassandra/conf/cassandra.yaml
+fi
+if [ -n "$KEYSTORE_PASSWORD_FILE" ]; then
+   KEYSTORE_PASSWORD=$(cat $KEYSTORE_PASSWORD_FILE)
+fi
+if [ -n "$KEYSTORE_PASSWORD" ]; then
+   sed -i 's#${KEYSTORE_PASSWORD}#'$KEYSTORE_PASSWORD'#g' /opt/apache-cassandra/conf/cassandra.yaml
+fi
+
+# handle setting up the truststore
+if [ -n "$TRUSTSTORE_FILE" ]; then
+   sed -i 's#${TRUSTSTORE_FILE}#'$TRUSTSTORE_FILE'#g' /opt/apache-cassandra/conf/cassandra.yaml
+fi
+if [ -n "$TRUSTSTORE_PASSWORD_FILE" ]; then
+   TRUSTSTORE_PASSWORD=$(cat $TRUSTSTORE_PASSWORD_FILE)
+fi
+if [ -n "$TRUSTSTORE_PASSWORD" ]; then
+   sed -i 's#${TRUSTSTORE_PASSWORD}#'$TRUSTSTORE_PASSWORD'#g' /opt/apache-cassandra/conf/cassandra.yaml
+fi
+
 
 if [ -n "$CASSANDRA_HOME" ]; then
   exec ${CASSANDRA_HOME}/bin/cassandra -f
