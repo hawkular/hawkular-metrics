@@ -93,12 +93,11 @@ public class RatesITest extends MetricsITest {
     @Test
     public void generateRates() throws Exception {
         String tenantId = "generate-rates-test";
-        MetricId id = new MetricId("c1");
+        MetricId id = new MetricId(tenantId, COUNTER, "c1");
         DateTime start = dateTimeService.getTimeSlice(now(), standardSeconds(5)).plusSeconds(5);
         DateTime end = start.plusSeconds(30);
 
-
-        Metric<Long> counter = new Metric<>(tenantId, COUNTER, id, asList(
+        Metric<Long> counter = new Metric<>(id, asList(
                 new DataPoint<>(start.plusMillis(50).getMillis(), 11L),
                 new DataPoint<>(start.plusSeconds(1).getMillis(), 17L),
                 new DataPoint<>(start.plusSeconds(11).getMillis(), 29L),
@@ -112,24 +111,24 @@ public class RatesITest extends MetricsITest {
             Thread.sleep(100);
         }
 
-        DataPoint<Double> actual = metricsService.findRateData(tenantId, id, start.getMillis(),
+        DataPoint<Double> actual = metricsService.findRateData(id, start.getMillis(),
                 start.plusSeconds(5).getMillis()).toBlocking().last();
         DataPoint<Double> expected = new DataPoint<>(start.getMillis(), calculateRate(17, start, start.plusSeconds(5)));
         assertEquals(actual, expected, "The rate for " + start + " does not match the expected value");
 
-        actual = metricsService.findRateData(tenantId, id, start.plusSeconds(10).getMillis(),
+        actual = metricsService.findRateData(id, start.plusSeconds(10).getMillis(),
                 start.plusSeconds(15).getMillis()).toBlocking().last();
         expected = new DataPoint<>(start.plusSeconds(10).getMillis(), calculateRate(29, start.plusSeconds(10),
                 start.plusSeconds(15)));
         assertEquals(actual, expected, "The rate for " + start.plusSeconds(10) + " does not match the expected value.");
 
-        actual = metricsService.findRateData(tenantId, id, start.plusSeconds(15).getMillis(),
+        actual = metricsService.findRateData(id, start.plusSeconds(15).getMillis(),
                 start.plusSeconds(20).getMillis()).toBlocking().last();
         expected = new DataPoint<>(start.plusSeconds(15).getMillis(), calculateRate(46, start.plusSeconds(15),
                 start.plusSeconds(20)));
         assertEquals(actual, expected, "The rate for " + start.plusSeconds(15) + " does not match the expected value.");
 
-        actual = metricsService.findRateData(tenantId, id, start.plusSeconds(20).getMillis(),
+        actual = metricsService.findRateData(id, start.plusSeconds(20).getMillis(),
                 start.plusSeconds(25).getMillis()).toBlocking().last();
         expected = new DataPoint<>(start.plusSeconds(20).getMillis(), calculateRate(69, start.plusSeconds(20),
                 start.plusSeconds(25)));

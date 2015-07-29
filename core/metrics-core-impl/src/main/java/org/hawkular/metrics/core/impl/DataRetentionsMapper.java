@@ -25,6 +25,7 @@ import com.google.common.base.Function;
 
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Retention;
 
 /**
@@ -32,11 +33,20 @@ import org.hawkular.metrics.core.api.Retention;
  */
 public class DataRetentionsMapper implements Function<ResultSet, Set<Retention>> {
 
+    private final String tenantId;
+    private final MetricType type;
+
+    public DataRetentionsMapper(final String tenantId, final MetricType type) {
+        this.tenantId = tenantId;
+        this.type = type;
+    }
+
     @Override
     public Set<Retention> apply(ResultSet resultSet) {
         Set<Retention> dataRetentions = new HashSet<>();
         for (Row row : resultSet) {
-            dataRetentions.add(new Retention(new MetricId(row.getString(3), Interval.parse(row.getString(2))),
+            dataRetentions.add(new Retention(new MetricId(tenantId, type, row.getString(3), Interval.parse(row.getString
+                    (2))),
                 row.getInt(4)));
         }
         return dataRetentions;

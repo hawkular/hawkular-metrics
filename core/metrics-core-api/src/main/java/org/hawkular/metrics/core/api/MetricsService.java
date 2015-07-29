@@ -80,7 +80,7 @@ public interface MetricsService {
      */
     Observable<Void> createMetric(Metric<?> metric);
 
-    Observable<Metric> findMetric(String tenantId, MetricType type, MetricId id);
+    Observable<Metric> findMetric(MetricId id);
 
     /**
      * Returns tenant's metric definitions. The results can be filtered using a type.
@@ -98,7 +98,7 @@ public interface MetricsService {
      */
     Observable<Metric> findMetricsWithTags(String tenantId, Map<String, String> tags, MetricType type);
 
-    Observable<Optional<Map<String, String>>> getMetricTags(String tenantId, MetricType type, MetricId id);
+    Observable<Optional<Map<String, String>>> getMetricTags(MetricId id);
 
     Observable<Void> addTags(Metric metric, Map<String, String> tags);
 
@@ -109,19 +109,17 @@ public interface MetricsService {
     /**
      * Fetches data points for a gauge metric.
      *
-     * @param tenantId The tenant to which the metric belongs
      * @param id The metric name
      * @param start The start time inclusive as  aUnix timestamp in milliseconds
      * @param end The end time exclusive as a Unix timestamp in milliseconds
      * @return an {@link Observable} that emits {@link DataPoint data points}
      */
-    Observable<DataPoint<Double>> findGaugeData(String tenantId, MetricId id, Long start, Long end);
+    Observable<DataPoint<Double>> findGaugeData(MetricId id, Long start, Long end);
 
     /**
      * This method applies one or more functions to an Observable that emits data points of a gauge metric. The data
      * points Observable is asynchronous. The functions however, are applied serially in the order specified.
      *
-     * @param tenantId The tenant to which the metric belongs
      * @param id The metric name
      * @param start The start time inclusive as a Unix timestamp in milliseconds
      * @param end The end time exclusive as a Unix timestamp in milliseconds
@@ -129,18 +127,18 @@ public interface MetricsService {
      * @return An {@link Observable} that emits the results with the same ordering as funcs
      * @see Aggregate
      */
-    <T> Observable<T> findGaugeData(String tenantId, MetricId id, Long start, Long end,
-            Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs);
+    <T> Observable<T> findGaugeData(MetricId id, Long start, Long end,
+                                    Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs);
 
     Observable<BucketedOutput<GaugeBucketDataPoint>> findGaugeStats(Metric<Double> metric, long start, long end,
             Buckets buckets);
 
     Observable<Void> addAvailabilityData(Observable<Metric<AvailabilityType>> availabilities);
 
-    Observable<DataPoint<AvailabilityType>> findAvailabilityData(String tenantId, MetricId id, long start, long end);
+    Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId id, long start, long end);
 
-    Observable<DataPoint<AvailabilityType>> findAvailabilityData(String tenantId, MetricId id, long start, long end,
-            boolean distinct);
+    Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId id, long start, long end,
+                                                                 boolean distinct);
 
     Observable<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(Metric<AvailabilityType> metric,
             long start, long end, Buckets buckets);
@@ -164,13 +162,12 @@ public interface MetricsService {
 
     Observable<Void> addCounterData(Observable<Metric<Long>> counters);
 
-    Observable<DataPoint<Long>> findCounterData(String tenantId, MetricId id, long start, long end);
+    Observable<DataPoint<Long>> findCounterData(MetricId id, long start, long end);
 
     /**
      * Fetches counter rate data points which are automatically generated for counter metrics. Note that rate data is
      * generated only if the metric has been explicitly created via the {@link #createMetric(Metric)} method.
      *
-     * @param tenantId The teant to which the metric belongs
      * @param id This is the id of the counter metric
      * @param start The start time which is inclusive
      * @param end The end time which is exclusive
@@ -178,7 +175,7 @@ public interface MetricsService {
      * @return An Observable of {@link DataPoint data points} which are emitted in descending order. In other words,
      * the most recent data is emitted first.
      */
-    Observable<DataPoint<Double>> findRateData(String tenantId, MetricId id, long start, long end);
+    Observable<DataPoint<Double>> findRateData(MetricId id, long start, long end);
 
     /**
      * <p>
@@ -196,7 +193,6 @@ public interface MetricsService {
      * {start: 2, end: 3}, {start: 5, end: 5}, {start: 7, end: 7}
      * </p>
      *
-     * @param tenantId
      * @param id
      * @param predicate A function applied to the value of each data point
      * @param start The start time inclusive
@@ -204,6 +200,6 @@ public interface MetricsService {
      * @return Each element in the list is a two element array. The first element is the start time inclusive for which
      * the predicate matches, and the second element is the end time inclusive for which the predicate matches.
      */
-    Observable<List<long[]>> getPeriods(String tenantId, MetricId id, Predicate<Double> predicate, long start,
-            long end);
+    Observable<List<long[]>> getPeriods(MetricId id, Predicate<Double> predicate, long start,
+                                        long end);
 }

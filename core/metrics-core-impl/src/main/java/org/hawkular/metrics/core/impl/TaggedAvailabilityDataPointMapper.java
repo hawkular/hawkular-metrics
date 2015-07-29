@@ -65,7 +65,7 @@ public class TaggedAvailabilityDataPointMapper {
     }
 
     private static Metric<AvailabilityType> createMetric(Row row) {
-        return new Metric<>(row.getString(0), AVAILABILITY, new MetricId(row.getString(4),
+        return new Metric<>(new MetricId(row.getString(0), AVAILABILITY, row.getString(4),
                 Interval.parse(row.getString(5))));
     }
 

@@ -22,7 +22,7 @@ import rx.observables.MathObservable;
 
 /**
  * Predefined aggregate functions usable with
- * {@link MetricsService#findGaugeData(String, MetricId, Long, Long, Func1...)}.
+ * {@link MetricsService#findGaugeData(MetricId, Long, Long, Func1[])}.
  *
  * @author john sanda
  * @author jay shaughnessy

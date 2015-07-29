@@ -23,15 +23,21 @@ import com.google.common.base.Objects;
  */
 public class MetricId {
 
+    private String tenantId;
+
+    private MetricType type;
+
     private String name;
 
     private Interval interval;
 
-    public MetricId(String name) {
-        this(name, Interval.NONE);
+    public MetricId(String tenantId, MetricType type, String name) {
+        this(tenantId, type, name, Interval.NONE);
     }
 
-    public MetricId(String name, Interval interval) {
+    public MetricId(String tenantId, MetricType type, String name, Interval interval) {
+        this.tenantId = tenantId;
+        this.type = type;
         this.name = name;
         this.interval = interval;
     }
@@ -50,17 +56,29 @@ public class MetricId {
         if (o == null || getClass() != o.getClass()) return false;
         MetricId metricId = (MetricId) o;
         return java.util.Objects.equals(name, metricId.name) &&
-                java.util.Objects.equals(interval, metricId.interval);
+                java.util.Objects.equals(interval, metricId.interval) &&
+                java.util.Objects.equals(tenantId, metricId.tenantId) &&
+                java.util.Objects.equals(type, metricId.type);
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public MetricType getType() {
+        return type;
     }
 
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(name, interval);
+        return java.util.Objects.hash(name, interval, tenantId, type);
     }
 
     @Override
     public String toString() {
         return Objects.toStringHelper(this)
+                .add("tenantId", tenantId)
+                .add("type", type.toString())
                 .add("name", name)
                 .add("interval", interval)
                 .omitNullValues()
