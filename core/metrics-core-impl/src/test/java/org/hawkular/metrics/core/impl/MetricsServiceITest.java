@@ -189,14 +189,6 @@ public class MetricsServiceITest extends MetricsITest {
                 ImmutableMap.of("a3", "3", "a4", "3"), null);
         metricsService.createMetric(gm2).toBlocking().lastOrDefault(null);
 
-        List<Metric> metrics = metricsService.findMetricsWithTags("t1", tagMap, null)
-                .toList().toBlocking().lastOrDefault(null);
-        assertEquals(metrics.size(), 3, "The returned size does not match expected");
-
-        metrics = metricsService.findMetricsWithTags("t1", tagMap, AVAILABILITY).toList().toBlocking()
-                .lastOrDefault(null);
-        assertEquals(metrics.size(), 1, "The returned size does not match expected, only m2 is expected");
-
         Metric actualAvail = metricsService.findMetric(m2.getId()).toBlocking()
                 .last();
         assertEquals(actualAvail, m2, "The metric does not match the expected value");
@@ -236,17 +228,20 @@ public class MetricsServiceITest extends MetricsITest {
 
     @Test
     public void createAndFindMetricsWithTags() throws Exception {
+
+        String tenantId = "t1";
+
         // Create the gauges
-        Metric<Double> m1 = new Metric<>("t1", GAUGE, new MetricId("m1"), ImmutableMap.of("a1","1"), 24);
-        Metric<Double> m2 = new Metric<>("t1", GAUGE, new MetricId("m2"), ImmutableMap.of("a1","2","a3","3"), 24);
-        Metric<Double> m3 = new Metric<>("t1", GAUGE, new MetricId("m3"), ImmutableMap.of("a1","2","a2","2"), 24);
-        Metric<Double> m4 = new Metric<>("t1", GAUGE, new MetricId("m4"), ImmutableMap.of("a1","2","a2","3"), 24);
-        Metric<Double> m5 = new Metric<>("t1", GAUGE, new MetricId("m5"), ImmutableMap.of("a1","2","a2","4"), 24);
-        Metric<Double> m6 = new Metric<>("t1", GAUGE, new MetricId("m6"), ImmutableMap.of("a2","4"), 24);
+        Metric<Double> m1 = new Metric<>(new MetricId(tenantId, GAUGE, "m1"), ImmutableMap.of("a1","1"), 24);
+        Metric<Double> m2 = new Metric<>(new MetricId(tenantId, GAUGE, "m2"), ImmutableMap.of("a1","2","a3","3"), 24);
+        Metric<Double> m3 = new Metric<>(new MetricId(tenantId, GAUGE, "m3"), ImmutableMap.of("a1","2","a2","2"), 24);
+        Metric<Double> m4 = new Metric<>(new MetricId(tenantId, GAUGE, "m4"), ImmutableMap.of("a1","2","a2","3"), 24);
+        Metric<Double> m5 = new Metric<>(new MetricId(tenantId, GAUGE, "m5"), ImmutableMap.of("a1","2","a2","4"), 24);
+        Metric<Double> m6 = new Metric<>(new MetricId(tenantId, GAUGE, "m6"), ImmutableMap.of("a2","4"), 24);
 
         // Create the availabilities
-        Metric<AvailabilityType> a1 = new Metric<>("t1", AVAILABILITY, new MetricId("a1"), ImmutableMap.of("a1","4"),
-                                                  24);
+        Metric<AvailabilityType> a1 = new Metric<>(new MetricId(tenantId, AVAILABILITY, "a1"),
+                                                   ImmutableMap.of("a1","4"), 24);
 
         // Insert metrics
         metricsService.createMetric(m1).toBlocking().lastOrDefault(null);
@@ -541,7 +536,7 @@ public class MetricsServiceITest extends MetricsITest {
                 new DataPoint<>(start.plusMinutes(1).getMillis(), DOWN),
                 new DataPoint<>(start.plusMinutes(2).getMillis(), DOWN)
         );
-        Metric<AvailabilityType> m1 = new Metric<>("t1", AVAILABILITY, new MetricId("m1"), dataPoints);
+        Metric<AvailabilityType> m1 = new Metric<>(new MetricId("t1", AVAILABILITY, "m1"), dataPoints);
 
         addAvailabilityDataInThePast(m1, days(2).toStandardDuration());
 
@@ -653,7 +648,7 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.tagGaugeData(metric, tags2, start.plusMinutes(3).getMillis(), start.plusMinutes(5).getMillis()
         ).toBlocking().lastOrDefault(null);
 
-        Observable<DataPoint<Double>> observable = metricsService.findGaugeData("tenant1", new MetricId("m1"),
+        Observable<DataPoint<Double>> observable = metricsService.findGaugeData(new MetricId("tenant1", GAUGE, "m1"),
                 start.getMillis(), end.getMillis());
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable.toBlocking().toIterable());
         List<DataPoint<Double>> expected = asList(

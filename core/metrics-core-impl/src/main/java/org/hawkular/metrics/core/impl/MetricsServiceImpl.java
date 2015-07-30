@@ -60,7 +60,6 @@ import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.RetentionSettings;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
-import org.hawkular.metrics.core.impl.tags.MetricIndex;
 import org.hawkular.metrics.core.impl.transformers.TagsIndexResultSetTransformer;
 import org.hawkular.metrics.core.impl.transformers.ItemsToSetTransformer;
 import org.hawkular.metrics.schema.SchemaManager;
@@ -445,10 +444,6 @@ public class MetricsServiceImpl implements MetricsService {
         return dataRetentionUpdated;
     }
 
-    private Observable<Metric> findMetric(final String tenantId, final MetricIndex index) {
-        return findMetric(tenantId, index.getType(), index.getId());
-    }
-
     @Override
     public Observable<Metric> findMetric(final MetricId id) {
         return dataAccess.findMetric(id)
@@ -481,17 +476,17 @@ public class MetricsServiceImpl implements MetricsService {
                 .filter(e -> !e.getValue().equals("*")).collect(toSet());
 
         // Define queries separately for tname and tname,tvalue Cassandra queries
-        Observable<Set<MetricIndex>> nameMatches = Observable.from(tnames)
+        Observable<Set<MetricId>> nameMatches = Observable.from(tnames)
                 .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
-                        .compose(new TagsIndexResultSetTransformer(type))
-                        .compose(new ItemsToSetTransformer<MetricIndex>()));
+                        .compose(new TagsIndexResultSetTransformer(tenantId, type))
+                        .compose(new ItemsToSetTransformer<MetricId>()));
 
-        Observable<Set<MetricIndex>> valueMatches = Observable.from(tvalues).flatMap(e -> {
+        Observable<Set<MetricId>> valueMatches = Observable.from(tvalues).flatMap(e -> {
             String[] values = e.getValue().split("\\|");
             return Observable.from(values)
                     .flatMap(v -> dataAccess.findMetricsByTagNameValue(tenantId, e.getKey(), v)
-                            .compose(new TagsIndexResultSetTransformer(type))
-                            .compose(new ItemsToSetTransformer<MetricIndex>()))
+                            .compose(new TagsIndexResultSetTransformer(tenantId, type))
+                            .compose(new ItemsToSetTransformer<MetricId>()))
                     .reduce((s1, s2) -> {
                         s1.addAll(s2);
                         return s1;
@@ -499,7 +494,7 @@ public class MetricsServiceImpl implements MetricsService {
         });
 
         // We should not process empty Observables if they were never called (otherwise our intersection is not right)
-        Observable<Set<MetricIndex>> indexes;
+        Observable<Set<MetricId>> indexes;
         if (!tvalues.isEmpty() && !tnames.isEmpty()) {
             indexes = nameMatches.mergeWith(valueMatches);
         } else if (tvalues.isEmpty()) {
@@ -515,7 +510,7 @@ public class MetricsServiceImpl implements MetricsService {
                     return s1;
                 })
                 .flatMap(Observable::from)
-                .flatMap(i -> findMetric(tenantId, i));
+                .flatMap(i -> findMetric(i));
     }
 
     @Override

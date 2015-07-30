@@ -20,33 +20,32 @@ import com.datastax.driver.core.ResultSet;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.impl.tags.MetricIndex;
 import rx.Observable;
 
 /**
- * Transforms ResultSets from metrics_tags_idx to a MetricIndex. Requires the following order on select:
+ * Transforms ResultSets from metrics_tags_idx to a MetricId. Requires the following order on select:
  * type, metric, interval
- *
- * HWKMETRICS-114 might require changes to this
  *
  * @author Michael Burman
  */
-public class TagsIndexResultSetTransformer implements Observable.Transformer<ResultSet, MetricIndex> {
+public class TagsIndexResultSetTransformer implements Observable.Transformer<ResultSet, MetricId> {
 
     private MetricType type;
+    private String tenantId;
 
-    public TagsIndexResultSetTransformer(MetricType type) {
+    public TagsIndexResultSetTransformer(String tenantId, MetricType type) {
         this.type = type;
+        this.tenantId = tenantId;
     }
 
     @Override
-    public Observable<MetricIndex> call(Observable<ResultSet> resultSetObservable) {
+    public Observable<MetricId> call(Observable<ResultSet> resultSetObservable) {
         return resultSetObservable
                 .flatMap(Observable::from)
                 .filter(r -> (type == null
                         && MetricType.userTypes().contains(MetricType.fromCode(r.getInt(0))))
                         || MetricType.fromCode(r.getInt(0)) == type)
-                .map(r -> new MetricIndex(MetricType.fromCode(r.getInt(0)), new MetricId(r.getString
-                        (1), Interval.parse(r.getString(2)))));
+                .map(r -> new MetricId(tenantId, MetricType.fromCode(r.getInt(0)), r.getString
+                        (1), Interval.parse(r.getString(2))));
     }
 }
