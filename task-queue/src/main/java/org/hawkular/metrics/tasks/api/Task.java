@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.tasks.api;
 
+import java.io.Serializable;
 import java.util.Set;
 
 import org.joda.time.DateTime;
@@ -26,7 +27,7 @@ import org.joda.time.DateTime;
 
  * @author jsanda
  */
-public interface Task {
+public interface Task extends Serializable {
 
 
     TaskType getTaskType();
