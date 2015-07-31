@@ -33,6 +33,7 @@ import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Days.days;
 import static org.joda.time.Hours.hours;
+import static org.junit.Assert.fail;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
@@ -47,6 +48,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import java.util.regex.PatternSyntaxException;
 import org.hawkular.metrics.core.api.Aggregate;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
@@ -304,6 +306,14 @@ public class MetricsServiceITest extends MetricsITest {
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(metrics.size(), 1, "Only metrics m3 should have been returned");
         assertEquals(metrics.get(0), m3, "m3 did not match the original inserted metric");
+
+        // What about incorrect query?
+        try {
+            metricsService.findMetricsWithFilters("t1", ImmutableMap.of("a2","**"), GAUGE)
+                    .toList().toBlocking().lastOrDefault(null);
+            fail("Should have thrown an PatternSyntaxException");
+        } catch(PatternSyntaxException e) { }
+
     }
 
     @Test

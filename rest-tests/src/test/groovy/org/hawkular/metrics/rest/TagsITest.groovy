@@ -234,5 +234,12 @@ class TagsITest extends RESTTest {
                       id      : 'N1',
                       tags    : ['a1': 'A', 'd1': 'B']
                   ]], response.data)
+
+    // Fetch with incorrect regexp
+    badGet(path: "metrics", query: [tags: "a1:**", type: "gauge"],
+        headers: [(tenantHeaderName): tenantId]) { exception ->
+      // Missing query
+      assertEquals(400, exception.response.status)
+    }
   }
 }

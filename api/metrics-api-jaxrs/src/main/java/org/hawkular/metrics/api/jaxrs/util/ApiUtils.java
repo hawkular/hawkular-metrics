@@ -74,8 +74,8 @@ public class ApiUtils {
     }
 
     public static Observable<Metric<Double>> requestToGauges(String tenantId, List<Gauge> gauges) {
-        return Observable.from(gauges).map(g ->
-                new Metric<>(new MetricId(tenantId, GAUGE, g.getId()), requestToGaugeDataPoints(g.getData())));
+        return Observable.from(gauges).map(g -> new Metric<>(new MetricId(tenantId, GAUGE, g.getId()),
+                                                             requestToGaugeDataPoints(g.getData())));
     }
 
     public static Observable<Metric<Long>> requestToCounters(String tenantId, List<Counter> counters) {
@@ -113,5 +113,10 @@ public class ApiUtils {
 
     public static Response badRequest(ApiError error) {
         return Response.status(Response.Status.BAD_REQUEST).entity(error).build();
+    }
+
+    public static Response badRequest(Throwable t) {
+        ApiError error = new ApiError(t.getLocalizedMessage());
+        return badRequest(error);
     }
 }

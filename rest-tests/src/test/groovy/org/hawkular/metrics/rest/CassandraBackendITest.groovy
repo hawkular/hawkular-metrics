@@ -367,7 +367,7 @@ class CassandraBackendITest extends RESTTest {
         headers: [(tenantHeaderName): tenantId]) { exception ->
       // Not user definable type
       assertEquals(400, exception.response.status)
-      assertEquals("Incorrect type param", exception.response.data["errorMsg"])
+      assertEquals("Incorrect type param counter_rate", exception.response.data["errorMsg"])
     }
 
     def response = hawkularMetrics.get(path: "metrics", query: [type: MetricType.GAUGE.text],

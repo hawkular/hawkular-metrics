@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import java.util.regex.PatternSyntaxException;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -99,7 +100,7 @@ public class MetricHandler {
             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags) {
 
         if (metricType != null && !MetricType.userTypes().contains(metricType)) {
-            asyncResponse.resume(badRequest(new ApiError("Incorrect type param")));
+            asyncResponse.resume(badRequest(new ApiError("Incorrect type param " + metricType.toString())));
             return;
         }
 
@@ -110,7 +111,13 @@ public class MetricHandler {
                 .map(MetricDefinition::new)
                 .toList()
                 .map(ApiUtils::collectionToResponse)
-                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+                .subscribe(asyncResponse::resume, t -> {
+                    if(t instanceof PatternSyntaxException) {
+                        asyncResponse.resume(ApiUtils.badRequest(t));
+                    } else {
+                        asyncResponse.resume(ApiUtils.serverError(t));
+                    }
+                });
     }
 
     @POST
