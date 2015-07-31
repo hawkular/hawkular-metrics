@@ -138,7 +138,7 @@ public class RepeatingTrigger implements Trigger {
 
     private DateTime getExecutionDateTime() {
         DateTime dt = new DateTime(now.get());
-        Duration duration = Duration.millis(interval);
+        Duration duration = Duration.standardMinutes(1);
         Period p = duration.toPeriod();
 
         if (p.getYears() != 0) {

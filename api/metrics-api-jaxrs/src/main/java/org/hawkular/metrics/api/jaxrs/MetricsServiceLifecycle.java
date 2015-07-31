@@ -125,6 +125,23 @@ public class MetricsServiceLifecycle {
     private Session session;
 
     MetricsServiceLifecycle() {
+        // Create the shared instance now and initialize it with the C* session when ready
+        metricsService = new MetricsServiceImpl();
+        metricsService.setTaskScheduler(new TaskService() {
+            @Override
+            public void start() {
+            }
+
+            @Override
+            public void shutdown() {
+            }
+
+            @Override
+            public Observable<Task> scheduleTask(DateTime time, Task task) {
+                LOG.warn("Task scheduling is not yet supported");
+                return Observable.empty();
+            }
+        });
         ThreadFactory threadFactory = r -> {
             Thread thread = Executors.defaultThreadFactory().newThread(r);
             thread.setName(MetricsService.class.getSimpleName().toLowerCase(Locale.ROOT) + "-lifecycle-thread");

@@ -14,25 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.tasks.api;
+package org.hawkular.metrics.core.impl;
 
 import java.util.Map;
 
+import org.hawkular.metrics.tasks.api.Task2;
+import org.hawkular.metrics.tasks.api.TaskScheduler;
+import org.hawkular.metrics.tasks.api.Trigger;
 import org.hawkular.metrics.tasks.impl.Lease;
 import rx.Observable;
 
 /**
  * @author jsanda
  */
-public interface TaskScheduler {
+public class FakeTaskScheduler implements TaskScheduler {
 
-    Observable<Lease> start();
+    @Override
+    public Observable<Lease> start() {
+        return Observable.empty();
+    }
 
-//    Observable<Task2> createTask(String name, Map<String, String> parameters, Trigger trigger);
+    @Override
+    public Observable<Task2> scheduleTask(String name, String groupKey, int executionOrder,
+            Map<String, String> parameters, Trigger trigger) {
+        return Observable.empty();
+    }
 
-    Observable<Task2> scheduleTask(String name, String groupKey, int executionOrder, Map<String, String> parameters,
-            Trigger trigger);
-
-    void shutdown();
-
+    @Override
+    public void shutdown() {
+    }
 }

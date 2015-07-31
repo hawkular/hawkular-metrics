@@ -114,6 +114,8 @@ public class TaskSchedulerImpl implements TaskScheduler {
 
     private PublishSubject<Long> tickSubject;
 
+    private Subscription leasesSubscription;
+
     public TaskSchedulerImpl(RxSession session, Queries queries) {
         this.session = session;
         this.queries = queries;
@@ -135,7 +137,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
         tickSubject = PublishSubject.create();
     }
 
-    void setTickScheduler(Scheduler scheduler) {
+    public void setTickScheduler(Scheduler scheduler) {
         this.tickScheduler = scheduler;
     }
 
@@ -187,7 +189,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
         return taskSubject.subscribe(new SubscriberWrapper(subscriber));
     }
 
-    Observable<Long> getFinishedTimeSlices() {
+    public Observable<Long> getFinishedTimeSlices() {
         return tickSubject;
     }
 
@@ -205,7 +207,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
         Observable<Date> seconds = createTicks();
         Observable<Lease> leases = seconds.flatMap(this::getAvailableLeases);
         Observable<Lease> processedLeases = Observable.create(subscriber -> {
-            leases.subscribe(
+            leasesSubscription = leases.subscribe(
                     lease -> {
                         logger.debug("Loading tasks for {}", lease);
                         CountDownLatch latch = new CountDownLatch(1);
@@ -219,20 +221,20 @@ public class TaskSchedulerImpl implements TaskScheduler {
                                         () -> {
                                             Date timeSlice = new Date(lease.getTimeSlice());
                                             // TODO We need error handling here
-                                            // We do not want to mark the lease finished if deleting the task partition fails.
-                                            // If either delete fails, we probably want to employ some retry policy. If the
-                                            // failures continue, then we probably need to shut down the scheduler because
-                                            // Cassandra is unstable.
+                                            // We do not want to mark the lease finished if deleting the task partition
+                                            // fails. If either delete fails, we probably want to employ some retry
+                                            // policy. If the failures continue, then we probably need to shut down the
+                                            // scheduler because Cassandra is unstable.
                                             Observable.merge(
-                                                    session.execute(queries.deleteTasks.bind(timeSlice, lease.getShard()),
-                                                            tasksScheduler),
-                                                    session.execute(queries.finishLease.bind(timeSlice, lease.getShard()),
-                                                            tasksScheduler)
+                                                    session.execute(queries.deleteTasks.bind(timeSlice,
+                                                                    lease.getShard()), tasksScheduler),
+                                                    session.execute(queries.finishLease.bind(timeSlice,
+                                                                    lease.getShard()), tasksScheduler)
                                             ).subscribe(
-                                                    resultSet -> {
-                                                    },
+                                                    resultSet -> {},
                                                     t -> {
-                                                        logger.warn("There was an error during post-task processing", t);
+                                                        logger.warn("There was an error during post-task processing",
+                                                                t);
                                                         subscriber.onError(t);
                                                     },
                                                     () -> {
@@ -277,8 +279,8 @@ public class TaskSchedulerImpl implements TaskScheduler {
 
     /**
      * <p>
-     * Returns an observable that emits "ticks" in the form of {@link Date} objects. Each
-     * tick represents a time slice to be processed.
+     * Returns an observable that emits "ticks" in the form of {@link Date} objects every
+     * minute. Each tick represents a time slice to be processed.
      * </p>
      * <p>
      * <strong>Note:</strong> Ticks must be emitted on the tick scheduler and observed on
@@ -288,8 +290,13 @@ public class TaskSchedulerImpl implements TaskScheduler {
      */
     // TODO We probably still need a check in place to make sure we don't skip a second
     private Observable<Date> createTicks() {
-        return Observable.timer(0, 1, TimeUnit.SECONDS, tickScheduler)
-                .onBackpressureLatest()
+        // TODO handle back pressure
+        // The timer previously emitted ticks every second, but it has been changed to
+        // emit every minute to avoid back pressure. Emitting ticks less frequently
+        // should help a lot but it does not completely avoid the problem. It only
+        // takes one really long running task to cause back pressure. We will need to
+        // figure something out.
+        return Observable.timer(0, 1, TimeUnit.MINUTES, tickScheduler)
                 .map(tick -> currentTimeSlice())
                 .takeUntil(d -> shutdown)
                 .doOnNext(tick -> logger.debug("Tick {}", tick))
@@ -409,10 +416,15 @@ public class TaskSchedulerImpl implements TaskScheduler {
         return observable.subscribeOn(Schedulers.immediate());
     }
 
+    @Override
     public void shutdown() {
         try {
             logger.debug("shutting down");
             shutdown = true;
+
+            if (leasesSubscription != null) {
+                leasesSubscription.unsubscribe();
+            }
 
             tasksExecutor.shutdown();
             tasksExecutor.awaitTermination(5, TimeUnit.SECONDS);
@@ -429,7 +441,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
 
     private Date currentTimeSlice() {
 //        return dateTimeService.getTimeSlice(now(), Duration.standardSeconds(1)).toDate();
-        return dateTimeService.getTimeSlice(new DateTime(tickScheduler.now()), Duration.standardSeconds(1)).toDate();
+        return dateTimeService.getTimeSlice(new DateTime(tickScheduler.now()), Duration.standardMinutes(1)).toDate();
     }
 
 //    @Override

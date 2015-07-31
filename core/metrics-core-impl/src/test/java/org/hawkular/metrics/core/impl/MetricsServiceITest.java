@@ -97,7 +97,7 @@ public class MetricsServiceITest extends MetricsITest {
         initSession();
 
         metricsService = new MetricsServiceImpl();
-        metricsService.setTaskService(new FakeTaskService());
+        metricsService.setTaskScheduler(new FakeTaskScheduler());
         metricsService.startUp(session, getKeyspace(), false, new MetricRegistry());
         dataAccess = metricsService.getDataAccess();
 

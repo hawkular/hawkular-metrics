@@ -489,8 +489,8 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findCounterData(MetricId id, long startTime, long endTime) {
-        return rxSession.execute(findCounterDataExclusive.bind(id.getTenantId(), COUNTER.getCode(), id.getName(),
+    public Observable<ResultSet> findCounterData(String tenantId, MetricId id, long startTime, long endTime) {
+        return rxSession.execute(findCounterDataExclusive.bind(tenantId, COUNTER.getCode(), id.getName(),
                 id.getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
     }
 

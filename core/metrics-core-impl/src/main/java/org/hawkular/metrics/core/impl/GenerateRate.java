@@ -21,12 +21,15 @@ import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 import static org.joda.time.Duration.standardMinutes;
 import static org.joda.time.Duration.standardSeconds;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricsService;
-import org.hawkular.metrics.tasks.api.Task;
-import org.joda.time.Duration;
+import org.hawkular.metrics.tasks.api.Task2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -35,7 +38,7 @@ import rx.functions.Action1;
 /**
  * @author jsanda
  */
-public class GenerateRate implements Action1<Task> {
+public class GenerateRate implements Action1<Task2>, Function<Task2, Observable<Task2>> {
 
     private static final Logger logger = LoggerFactory.getLogger(GenerateRate.class);
 
@@ -46,32 +49,56 @@ public class GenerateRate implements Action1<Task> {
     }
 
     @Override
-    public void call(Task task) {
+    public void call(Task2 task) {
         logger.info("Generating rate for {}", task);
-        MetricId id = new MetricId(task.getTenantId(), COUNTER_RATE, task.getSources().iterator().next());
-        long start = task.getTimeSlice().getMillis();
-        long end = task.getTimeSlice().plus(getDuration(task.getWindow())).getMillis();
-        metricsService.findCounterData(id, start, end)
+        MetricId id = new MetricId(task.getParameters().get("metricId"));
+        String tenantId = task.getParameters().get("tenantId");
+        long start = task.getTrigger().getTriggerTime();
+        long end = start + TimeUnit.MINUTES.toMillis(1);
+
+        CountDownLatch latch = new CountDownLatch(1);
+
+        logger.debug("start = {}, end = {}", start, end);
+        metricsService.findCounterData(tenantId, id, start, end)
                 .take(1)
-                .map(dataPoint -> dataPoint.getValue().doubleValue() / (end - start) * 1000)
-                .map(rate -> new Metric<>(id, singletonList(new DataPoint<>(start, rate))))
+                .doOnNext(dataPoint -> logger.debug("Data Point = {}", dataPoint))
+                .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
+                .map(rate -> new Metric<>(tenantId, COUNTER_RATE, id, singletonList(new DataPoint<>(start, rate))))
                 .flatMap(metric -> metricsService.addGaugeData(Observable.just(metric)))
                 .subscribe(
                         aVoid -> {
                         },
-                        t -> logger.warn("Failed to persist rate data", t),
-                        () -> logger.debug("Successfully persisted rate data for {}", task)
+                        t -> {
+                            logger.warn("Failed to persist rate data", t);
+                            latch.countDown();
+                        },
+                        () -> {
+                            logger.debug("Successfully persisted rate data");
+                            latch.countDown();
+                        }
                 );
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+        }
     }
 
-    private Duration getDuration(int duration) {
-        // This is somewhat of a temporary hack until HWKMETRICS-142 is done. The time units
-        // for tasks are currently scheduled globally with the TaskServiceBuilder class. The
-        // system property below is the only hook we have right now for specifying and
-        // checking the time units used.
-        if ("seconds".equals(System.getProperty("hawkular.scheduler.time-units", "minutes"))) {
-            return standardSeconds(duration);
-        }
-        return standardMinutes(duration);
+    @Override
+    public Observable<Task2> apply(Task2 task) {
+        return Observable.defer(() -> {
+            MetricId id = new MetricId(task.getParameters().get("metricId"));
+            String tenantId = task.getParameters().get("tenantId");
+            long start = task.getTrigger().getTriggerTime();
+            long end = start + TimeUnit.MINUTES.toMillis(1);
+
+            logger.debug("start = {}, end = {}", start, end);
+            return metricsService.findCounterData(tenantId, id, start, end)
+                    .take(1)
+                    .doOnNext(dataPoint -> logger.debug("Data Point = {}", dataPoint))
+                    .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
+                    .map(rate -> new Metric<>(tenantId, COUNTER_RATE, id, singletonList(new DataPoint<>(start, rate))))
+                    .flatMap(metric -> metricsService.addGaugeData(Observable.just(metric)))
+                    .map(avoid -> task);
+            });
     }
 }

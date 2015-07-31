@@ -20,6 +20,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.UUID.randomUUID;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static org.hawkular.metrics.tasks.impl.TaskSchedulerImpl.getTriggerValue;
@@ -44,6 +45,7 @@ import org.hawkular.metrics.tasks.api.Trigger;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -107,6 +109,11 @@ public class TaskSchedulerITest extends BaseITest {
         RepeatingTrigger.now = tickScheduler::now;
     }
 
+    @AfterClass
+    public void shutdown() {
+        scheduler.shutdown();
+    }
+
     @BeforeMethod
     public void initMethod() {
         scheduler.resetComputeShardFn();
@@ -120,19 +127,19 @@ public class TaskSchedulerITest extends BaseITest {
     public void executeSingleTask() {
         String group = "group-1";
         int order = 100;
-        SingleExecutionTrigger trigger = new SingleExecutionTrigger(tickScheduler.now() + SECONDS.toMillis(1));
+        SingleExecutionTrigger trigger = new SingleExecutionTrigger(tickScheduler.now() + MINUTES.toMillis(1));
         Date timeSlice = new Date(trigger.getTriggerTime());
         Task2Impl task = new Task2Impl(randomUUID(), group, order, "task1", emptyMap(), trigger);
 
         setUpTasksForExecution(timeSlice, task);
 
         TestSubscriber<Long> timeSlicesSubscriber = new TestSubscriber<>();
-        finishedTimeSlices.take(1).observeOn(Schedulers.immediate()).subscribe(timeSlicesSubscriber);
+        finishedTimeSlices.take(2).observeOn(Schedulers.immediate()).subscribe(timeSlicesSubscriber);
 
         TaskSubscriber taskSubscriber = new TaskSubscriber();
         scheduler.subscribe(taskSubscriber);
 
-        tickScheduler.advanceTimeBy(1, SECONDS);
+        tickScheduler.advanceTimeBy(3, MINUTES);
 
         timeSlicesSubscriber.awaitTerminalEvent(5, SECONDS);
         timeSlicesSubscriber.assertNoErrors();
@@ -149,8 +156,8 @@ public class TaskSchedulerITest extends BaseITest {
     @Test
     public void executeRepeatingTask() {
         RepeatingTrigger trigger = new RepeatingTrigger.Builder()
-                .withDelay(1, SECONDS)
-                .withInterval(1, SECONDS)
+                .withDelay(1, MINUTES)
+                .withInterval(1, MINUTES)
                 .build();
         String group = "test-group";
         int order = 10;
@@ -165,7 +172,7 @@ public class TaskSchedulerITest extends BaseITest {
         TaskSubscriber taskSubscriber = new TaskSubscriber();
         scheduler.subscribe(taskSubscriber);
 
-        tickScheduler.advanceTimeBy(3, SECONDS);
+        tickScheduler.advanceTimeBy(3, MINUTES);
 
         timeSlicesSubscriber.awaitTerminalEvent(5, SECONDS);
         timeSlicesSubscriber.assertNoErrors();
@@ -190,8 +197,8 @@ public class TaskSchedulerITest extends BaseITest {
     @Test
     public void executeTaskThatRepeatsTwice() {
         RepeatingTrigger trigger = new RepeatingTrigger.Builder()
-                .withInterval(1, SECONDS)
-                .withDelay(1, SECONDS)
+                .withInterval(1, MINUTES)
+                .withDelay(1, MINUTES)
                 .withRepeatCount(2)
                 .build();
         String group = "test-group";
@@ -206,7 +213,7 @@ public class TaskSchedulerITest extends BaseITest {
         TaskSubscriber taskSubscriber = new TaskSubscriber();
         scheduler.subscribe(taskSubscriber);
 
-        tickScheduler.advanceTimeBy(3, SECONDS);
+        tickScheduler.advanceTimeBy(3, MINUTES);
 
         timeSlicesSubscriber.awaitTerminalEvent(5, SECONDS);
         timeSlicesSubscriber.assertNoErrors();
@@ -238,18 +245,18 @@ public class TaskSchedulerITest extends BaseITest {
     public void executeMultipleTasksFromSameGroup() {
         int numTasks = 10;
         String group = "group-1";
-        SingleExecutionTrigger trigger = new SingleExecutionTrigger(tickScheduler.now() + SECONDS.toMillis(1));
+        SingleExecutionTrigger trigger = new SingleExecutionTrigger(tickScheduler.now() + MINUTES.toMillis(1));
 
         Observable<Task2> tasks = createTasks(numTasks, group, trigger).cache();
         setUpTasksForExecution(tasks);
 
         TestSubscriber<Long> timeSlicesSubscriber = new TestSubscriber<>();
-        finishedTimeSlices.take(1).observeOn(Schedulers.immediate()).subscribe(timeSlicesSubscriber);
+        finishedTimeSlices.take(2).observeOn(Schedulers.immediate()).subscribe(timeSlicesSubscriber);
 
         TaskSubscriber taskSubscriber = new TaskSubscriber();
         scheduler.subscribe(taskSubscriber);
 
-        tickScheduler.advanceTimeBy(1, SECONDS);
+        tickScheduler.advanceTimeBy(2, MINUTES);
         timeSlicesSubscriber.awaitTerminalEvent(5, SECONDS);
         timeSlicesSubscriber.assertNoErrors();
         timeSlicesSubscriber.assertCompleted();
@@ -273,7 +280,7 @@ public class TaskSchedulerITest extends BaseITest {
         int numTasks = 10;
         final String group1 = "group-one";
         final String group2 = "group-two";
-        SingleExecutionTrigger trigger = new SingleExecutionTrigger(tickScheduler.now() + SECONDS.toMillis(1));
+        SingleExecutionTrigger trigger = new SingleExecutionTrigger(tickScheduler.now() + MINUTES.toMillis(1));
 
         scheduler.setComputeShardFn(group -> {
             switch (group) {
@@ -292,14 +299,14 @@ public class TaskSchedulerITest extends BaseITest {
         setUpTasksForExecution(group1Tasks.concatWith(group2Tasks));
 
         TestSubscriber<Long> timeSlicesSubscriber = new TestSubscriber<>();
-        finishedTimeSlices.takeUntil(time -> time > trigger.getTriggerTime() + SECONDS.toMillis(1))
+        finishedTimeSlices.takeUntil(time -> time > trigger.getTriggerTime() + MINUTES.toMillis(1))
                 .observeOn(Schedulers.immediate())
                 .subscribe(timeSlicesSubscriber);
 
         TaskSubscriber taskSubscriber = new TaskSubscriber();
         scheduler.subscribe(taskSubscriber);
 
-        tickScheduler.advanceTimeBy(3, SECONDS);
+        tickScheduler.advanceTimeBy(3, MINUTES);
         timeSlicesSubscriber.awaitTerminalEvent(5, SECONDS);
         timeSlicesSubscriber.assertNoErrors();
         timeSlicesSubscriber.assertCompleted();
@@ -325,7 +332,7 @@ public class TaskSchedulerITest extends BaseITest {
         final String group1 = "group-one";
         final String group2 = "group-two";
         final int shard = 1;
-        SingleExecutionTrigger trigger = new SingleExecutionTrigger(tickScheduler.now() + SECONDS.toMillis(1));
+        SingleExecutionTrigger trigger = new SingleExecutionTrigger(tickScheduler.now() + MINUTES.toMillis(1));
 
         scheduler.setComputeShardFn(group -> shard);
 
@@ -335,14 +342,14 @@ public class TaskSchedulerITest extends BaseITest {
         setUpTasksForExecution(group1Tasks.concatWith(group2Tasks));
 
         TestSubscriber<Long> timeSlicesSubscriber = new TestSubscriber<>();
-        finishedTimeSlices.takeUntil(time -> time > trigger.getTriggerTime() + SECONDS.toMillis(1))
+        finishedTimeSlices.takeUntil(time -> time > trigger.getTriggerTime() + MINUTES.toMillis(1))
                 .observeOn(Schedulers.immediate())
                 .subscribe(timeSlicesSubscriber);
 
         TaskSubscriber taskSubscriber = new TaskSubscriber();
         scheduler.subscribe(taskSubscriber);
 
-        tickScheduler.advanceTimeBy(3, SECONDS);
+        tickScheduler.advanceTimeBy(3, MINUTES);
         timeSlicesSubscriber.awaitTerminalEvent(5, SECONDS);
         timeSlicesSubscriber.assertNoErrors();
         timeSlicesSubscriber.assertCompleted();

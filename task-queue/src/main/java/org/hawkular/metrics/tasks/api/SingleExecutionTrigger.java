@@ -75,7 +75,7 @@ public class SingleExecutionTrigger implements Trigger {
 
     private static DateTime getExecutionDateTime(long time) {
         DateTime dt = new DateTime(time);
-        Duration duration = Duration.millis(1000);
+        Duration duration = Duration.standardMinutes(1);
         Period p = duration.toPeriod();
 
         if (p.getYears() != 0) {
