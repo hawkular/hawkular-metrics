@@ -290,6 +290,20 @@ public class MetricsServiceITest extends MetricsITest {
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(metrics.size(), 1, "Only metric m3 should have been returned");
         assertEquals(metrics.get(0), m3, "m3 did not match the original inserted metric");
+
+        // Test for NOT operator
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("a2","!4"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 2, "Only metrics m3-m4 should have been returned");
+
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("a1", "2", "a2","!4"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 2, "Only metrics m3-m4 should have been returned");
+
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("a2","!4|3"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 1, "Only metrics m3 should have been returned");
+        assertEquals(metrics.get(0), m3, "m3 did not match the original inserted metric");
     }
 
     @Test

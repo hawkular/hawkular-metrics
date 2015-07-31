@@ -16,32 +16,32 @@
  */
 package org.hawkular.metrics.core.impl.transformers;
 
-import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import rx.Observable;
 
 /**
- * Transforms ResultSets from metrics_tags_idx to a MetricId. Requires the following order on select:
+ * Transforms ResultSets's Rows from metrics_tags_idx to a MetricId. Requires the following order on select:
  * type, metric, interval
  *
  * @author Michael Burman
  */
-public class TagsIndexResultSetTransformer implements Observable.Transformer<ResultSet, MetricId> {
+public class TagsIndexRowTransformer implements Observable.Transformer<Row, MetricId> {
 
     private MetricType type;
     private String tenantId;
 
-    public TagsIndexResultSetTransformer(String tenantId, MetricType type) {
+    public TagsIndexRowTransformer(String tenantId, MetricType type) {
         this.type = type;
         this.tenantId = tenantId;
     }
 
     @Override
-    public Observable<MetricId> call(Observable<ResultSet> resultSetObservable) {
+    public Observable<MetricId> call(Observable<Row> resultSetObservable) {
         return resultSetObservable
-                .flatMap(Observable::from)
+//                .flatMap(Observable::from)
                 .filter(r -> (type == null
                         && MetricType.userTypes().contains(MetricType.fromCode(r.getInt(0))))
                         || MetricType.fromCode(r.getInt(0)) == type)
