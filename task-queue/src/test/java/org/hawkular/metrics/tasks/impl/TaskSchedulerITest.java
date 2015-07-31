@@ -46,6 +46,7 @@ import org.hawkular.metrics.tasks.api.Trigger;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -108,11 +109,6 @@ public class TaskSchedulerITest extends BaseITest {
 
         AbstractTrigger.now = tickScheduler::now;
     }
-
-//    @AfterClass
-//    public void shutdown() {
-//        scheduler.shutdown();
-//    }
 
     @BeforeMethod
     public void initMethod() {
