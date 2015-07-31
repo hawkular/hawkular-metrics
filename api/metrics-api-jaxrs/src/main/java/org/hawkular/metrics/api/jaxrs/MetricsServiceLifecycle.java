@@ -28,6 +28,11 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_U
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.TASK_SCHEDULER_TIME_UNITS;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Produces;
+import javax.inject.Inject;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.concurrent.Executors;
@@ -35,12 +40,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
 
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
@@ -174,7 +173,8 @@ public class MetricsServiceLifecycle {
             session = createSession();
         } catch (Exception t) {
             Throwable rootCause = Throwables.getRootCause(t);
-            LOG.warn("Could not connect to Cassandra cluster - assuming its not up yet", rootCause);
+            LOG.warn("Could not connect to Cassandra cluster - assuming its not up yet: ",
+                    rootCause.getLocalizedMessage());
             // cycle between original and more wait time - avoid waiting huge amounts of time
             long delay = 1L + ((connectionAttempts - 1L) % 4L);
             LOG.warn("[{}] Retrying connecting to Cassandra cluster in [{}]s...", connectionAttempts, delay);
