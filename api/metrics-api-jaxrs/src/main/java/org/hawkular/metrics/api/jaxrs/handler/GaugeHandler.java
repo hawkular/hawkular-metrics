@@ -203,7 +203,7 @@ public class GaugeHandler {
             List<GaugeDataPoint> data
     ) {
         try {
-            long time = random.nextLong() % 10000;
+            long time = Math.abs(random.nextLong() % 10000);
             Thread.sleep(time);
         } catch (InterruptedException e) {
         }
@@ -225,7 +225,7 @@ public class GaugeHandler {
                              @ApiParam(value = "List of metrics", required = true) List<Gauge> gauges
     ) {
         try {
-            long time = random.nextLong() % 10000;
+            long time = Math.abs(random.nextLong() % 10000);
             Thread.sleep(time);
         } catch (InterruptedException e) {
         }
