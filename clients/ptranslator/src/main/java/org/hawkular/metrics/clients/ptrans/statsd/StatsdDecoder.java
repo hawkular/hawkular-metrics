@@ -18,14 +18,14 @@ package org.hawkular.metrics.clients.ptrans.statsd;
 
 import java.util.List;
 
+import org.hawkular.metrics.client.common.MetricType;
+import org.hawkular.metrics.client.common.SingleMetric;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.util.CharsetUtil;
-
-import org.hawkular.metrics.client.common.MetricType;
-import org.hawkular.metrics.client.common.SingleMetric;
 
 /**
  * Decoder for Stats packets that comes in the form of

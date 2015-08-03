@@ -21,13 +21,12 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.util.CharsetUtil;
-
+import org.hawkular.metrics.client.common.SingleMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.hawkular.metrics.client.common.SingleMetric;
+import io.netty.buffer.ByteBuf;
+import io.netty.util.CharsetUtil;
 
 /**
  * Do the actual decoding of the syslog line.

@@ -18,9 +18,9 @@ package org.hawkular.metrics.api.jaxrs.influx.write.validation;
 
 import java.util.List;
 
-import com.google.common.collect.ImmutableList;
-
 import org.hawkular.metrics.api.jaxrs.influx.InfluxObject;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * @author Thomas Segismont

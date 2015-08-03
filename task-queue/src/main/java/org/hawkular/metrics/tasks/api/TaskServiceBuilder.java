@@ -19,12 +19,13 @@ package org.hawkular.metrics.tasks.api;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.datastax.driver.core.Session;
 import org.hawkular.metrics.tasks.impl.LeaseService;
 import org.hawkular.metrics.tasks.impl.Queries;
 import org.hawkular.metrics.tasks.impl.TaskServiceImpl;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
+
+import com.datastax.driver.core.Session;
 
 /**
  * A builder for creating and configuring a {@link TaskService} instance.

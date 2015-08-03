@@ -20,7 +20,6 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.APPLICATION_XHTML_XML;
 import static javax.ws.rs.core.MediaType.TEXT_HTML;
 
-import com.wordnik.swagger.annotations.ApiOperation;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -29,7 +28,10 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
+
+import com.wordnik.swagger.annotations.ApiOperation;
 
 /**
  * @author mwringe

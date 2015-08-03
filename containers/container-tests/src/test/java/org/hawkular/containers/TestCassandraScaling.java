@@ -18,11 +18,13 @@ package org.hawkular.containers;
 
 import static org.junit.Assert.assertEquals;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.fabric8.kubernetes.api.model.ReplicationController;
 import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
+import io.fabric8.kubernetes.api.model.ReplicationController;
 
 /**
  * @author mwringe

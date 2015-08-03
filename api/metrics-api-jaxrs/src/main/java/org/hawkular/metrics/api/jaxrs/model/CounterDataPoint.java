@@ -20,10 +20,11 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
+import org.hawkular.metrics.core.api.DataPoint;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.wordnik.swagger.annotations.ApiModel;
-import org.hawkular.metrics.core.api.DataPoint;
 
 /**
  * @author jsanda

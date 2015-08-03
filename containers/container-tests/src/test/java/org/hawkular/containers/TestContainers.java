@@ -16,19 +16,23 @@
  */
 package org.hawkular.containers;
 
-import static io.fabric8.kubernetes.assertions.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+
+import static io.fabric8.kubernetes.assertions.Assertions.assertThat;
+import static io.fabric8.kubernetes.assertions.internal.Assertions.assertThat;
+
+import java.util.List;
+
+import org.jboss.arquillian.junit.Arquillian;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.ReplicationController;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServicePort;
 import io.fabric8.kubernetes.api.model.ServiceSpec;
-import java.util.List;
-import org.jboss.arquillian.junit.Arquillian;
-import org.junit.Test;
-import org.junit.runner.RunWith;
 
 /**
  * @author mwringe

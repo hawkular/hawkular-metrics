@@ -18,6 +18,7 @@ package org.hawkular.metrics.core.impl;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+
 import static org.hawkular.metrics.core.api.AvailabilityType.UP;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
@@ -28,11 +29,6 @@ import static org.testng.Assert.assertFalse;
 
 import java.util.List;
 
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import org.hawkular.metrics.core.api.AggregationTemplate;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
@@ -45,6 +41,13 @@ import org.joda.time.Days;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+
 import rx.Observable;
 
 /**

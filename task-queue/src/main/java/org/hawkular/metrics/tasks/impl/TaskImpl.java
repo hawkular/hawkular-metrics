@@ -19,10 +19,11 @@ package org.hawkular.metrics.tasks.impl;
 import java.util.Objects;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
 import org.hawkular.metrics.tasks.api.Task;
 import org.hawkular.metrics.tasks.api.TaskType;
 import org.joda.time.DateTime;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * @author jsanda

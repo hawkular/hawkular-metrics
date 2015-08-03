@@ -16,14 +16,14 @@
  */
 package org.hawkular.metrics.api.jaxrs.influx.query.parse.type;
 
-import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.ListSeriesContext;
-import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.SelectQueryContext;
 import static org.hawkular.metrics.api.jaxrs.influx.query.parse.type.QueryType.LIST_SERIES;
 import static org.hawkular.metrics.api.jaxrs.influx.query.parse.type.QueryType.SELECT;
 
 import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.tree.RuleNode;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryBaseVisitor;
+import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.ListSeriesContext;
+import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.SelectQueryContext;
 
 /**
  * @author Thomas Segismont
