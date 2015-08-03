@@ -241,6 +241,24 @@ public class MetricsServiceITest extends MetricsITest {
         Metric<Double> m5 = new Metric<>(new MetricId(tenantId, GAUGE, "m5"), ImmutableMap.of("a1","2","a2","4"), 24);
         Metric<Double> m6 = new Metric<>(new MetricId(tenantId, GAUGE, "m6"), ImmutableMap.of("a2","4"), 24);
 
+        Metric<Double> mA = new Metric<>(new MetricId(tenantId, GAUGE, "mA"), ImmutableMap.of("hostname","webfin01"),
+                                         24);
+        Metric<Double> mB = new Metric<>(new MetricId(tenantId, GAUGE, "mB"), ImmutableMap.of("hostname","webswe02"),
+                                         24);
+        Metric<Double> mC = new Metric<>(new MetricId(tenantId, GAUGE, "mC"), ImmutableMap.of("hostname",
+                                                                                              "backendfin01"),
+                                         24);
+        Metric<Double> mD = new Metric<>(new MetricId(tenantId, GAUGE, "mD"), ImmutableMap.of("hostname",
+                                                                                              "backendswe02"),
+                                         24);
+        Metric<Double> mE = new Metric<>(new MetricId(tenantId, GAUGE, "mE"), ImmutableMap.of("owner","hede"),
+                                         24);
+        Metric<Double> mF = new Metric<>(new MetricId(tenantId, GAUGE, "mF"), ImmutableMap.of("owner","hades"),
+                                         24);
+        Metric<Double> mG = new Metric<>(new MetricId(tenantId, GAUGE, "mG"), ImmutableMap.of("owner","had"),
+                                         24);
+
+
         // Create the availabilities
         Metric<AvailabilityType> a1 = new Metric<>(new MetricId(tenantId, AVAILABILITY, "a1"),
                                                    ImmutableMap.of("a1","4"), 24);
@@ -253,6 +271,14 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.createMetric(m5).toBlocking().lastOrDefault(null);
         metricsService.createMetric(m6).toBlocking().lastOrDefault(null);
         metricsService.createMetric(a1).toBlocking().lastOrDefault(null);
+
+        metricsService.createMetric(mA).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(mB).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(mC).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(mD).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(mE).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(mF).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(mG).toBlocking().lastOrDefault(null);
 
         // Check different scenarios..
         List<Metric> metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("a1", "*"), GAUGE).toList()
@@ -314,6 +340,18 @@ public class MetricsServiceITest extends MetricsITest {
             fail("Should have thrown an PatternSyntaxException");
         } catch(PatternSyntaxException e) { }
 
+        // More regexp tests
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("hostname","web.*"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 2, "Only websrv01 and websrv02 should have been returned");
+
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("hostname",".*01"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 2, "Only websrv01 and backend01 should have been returned");
+
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("owner","h[e|a]de(s?)"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 2, "Both hede and hades should have been returned, but not 'had'");
     }
 
     @Test
