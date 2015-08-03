@@ -61,6 +61,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Session;
+import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.Uninterruptibles;
+import rx.Observable;
+
 /**
  * Bean created on startup to manage the lifecycle of the {@link MetricsService} instance shared in application scope.
  *
@@ -127,19 +134,23 @@ public class MetricsServiceLifecycle {
     MetricsServiceLifecycle() {
         // Create the shared instance now and initialize it with the C* session when ready
         metricsService = new MetricsServiceImpl();
-        metricsService.setTaskScheduler(new TaskService() {
+        metricsService.setTaskScheduler(new TaskScheduler() {
             @Override
-            public void start() {
+            public Observable<Lease> start() {
+                LOG.warn("Task scheduling is not yet supported");
+                return Observable.empty();
+            }
+
+            @Override
+            public Observable<Task2> scheduleTask(String name, String groupKey, int executionOrder,
+                    Map<String, String> parameters, Trigger trigger) {
+                LOG.warn("Task scheduling is not yet supported");
+                return Observable.empty();
             }
 
             @Override
             public void shutdown() {
-            }
 
-            @Override
-            public Observable<Task> scheduleTask(DateTime time, Task task) {
-                LOG.warn("Task scheduling is not yet supported");
-                return Observable.empty();
             }
         });
         ThreadFactory threadFactory = r -> {
