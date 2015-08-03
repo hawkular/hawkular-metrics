@@ -202,6 +202,11 @@ public class GaugeHandler {
             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
             List<GaugeDataPoint> data
     ) {
+        try {
+            long time = random.nextLong() % 10000;
+            Thread.sleep(time);
+        } catch (InterruptedException e) {
+        }
         Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id), requestToGaugeDataPoints(data));
         Observable<Void> observable = metricsService.addGaugeData(Observable.just(metric));
         observable.subscribe(new ResultSetObserver(asyncResponse));
