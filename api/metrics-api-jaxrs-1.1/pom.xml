@@ -86,6 +86,12 @@
     </dependency>
 
     <dependency>
+      <groupId>javax.enterprise</groupId>
+      <artifactId>cdi-api</artifactId>
+      <version>1.0-SP4</version>
+    </dependency>
+
+    <dependency>
       <groupId>io.reactivex</groupId>
       <artifactId>rxjava</artifactId>
     </dependency>

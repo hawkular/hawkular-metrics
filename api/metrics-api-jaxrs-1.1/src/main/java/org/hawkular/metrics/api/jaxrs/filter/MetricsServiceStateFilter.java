@@ -16,15 +16,28 @@
  */
 package org.hawkular.metrics.api.jaxrs.filter;
 
-import java.io.IOException;
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+
+import javax.inject.Inject;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.ext.Provider;
+
+import org.hawkular.metrics.api.jaxrs.ApiError;
+import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle;
+import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle.State;
+import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
 
 /**
  * @author Matt Wringe
@@ -36,33 +49,19 @@ public class MetricsServiceStateFilter implements Filter {
     private static final String FAILED = "Internal server error.";
     private static final String STOPPED = "The service is no longer running.";
 
+    @Inject
+    private MetricsServiceLifecycle metricsServiceLifecycle;
+
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
-        // TODO Auto-generated method stub
-
     }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        // TODO Auto-generated method stub
 
-    }
-
-    @Override
-    public void destroy() {
-        // TODO Auto-generated method stub
-
-    }
-
-    /**
-    @Inject
-    private MetricsServiceLifecycle metricsServiceLifecycle;
-
-    @Override
-    public void filter(ContainerRequestContext containerRequestContext) throws IOException {
-        UriInfo uriInfo = containerRequestContext.getUriInfo();
-        String path = uriInfo.getPath();
+        final HttpServletRequest httpRequest = (HttpServletRequest) request;
+        String path = httpRequest.getRequestURI();
 
         if (path.startsWith(StatusHandler.PATH)) {
             // The status page does not require the MetricsService to be up and running.
@@ -71,26 +70,47 @@ public class MetricsServiceStateFilter implements Filter {
 
         if (metricsServiceLifecycle.getState() == State.STARTING) {
             // Fail since the Cassandra cluster is not yet up yet.
-            Response response = Response.status(Status.SERVICE_UNAVAILABLE)
+            Response actualResponse = Response.status(Status.SERVICE_UNAVAILABLE)
                     .type(APPLICATION_JSON_TYPE)
                     .entity(new ApiError(STARTING))
                     .build();
-            containerRequestContext.abortWith(response);
+
+            final HttpServletResponse httpResponse = (HttpServletResponse) response;
+            httpResponse.setStatus(actualResponse.getStatus());
+            httpResponse.setContentType(APPLICATION_JSON_TYPE.toString());
+            PrintWriter out = response.getWriter();
+            out.println(new ApiError(STARTING).toString());
+            return;
         } else if (metricsServiceLifecycle.getState() == State.FAILED) {
             // Fail since an error has occured trying to start the Metrics service
-            Response response = Response.status(Status.INTERNAL_SERVER_ERROR)
+            Response actualResponse = Response.status(Status.INTERNAL_SERVER_ERROR)
                     .type(APPLICATION_JSON_TYPE)
                     .entity(new ApiError(FAILED))
                     .build();
-            containerRequestContext.abortWith(response);
-        } else if (metricsServiceLifecycle.getState() == State.STOPPED ||
-                   metricsServiceLifecycle.getState() == State.STOPPING) {
-            Response response = Response.status(Status.SERVICE_UNAVAILABLE)
+
+            final HttpServletResponse httpResponse = (HttpServletResponse) response;
+            httpResponse.setStatus(actualResponse.getStatus());
+            httpResponse.setContentType(APPLICATION_JSON_TYPE.toString());
+            PrintWriter out = response.getWriter();
+            out.println(new ApiError(FAILED).toString());
+            return;
+        } else if (metricsServiceLifecycle.getState() == State.STOPPED
+                || metricsServiceLifecycle.getState() == State.STOPPING) {
+            Response actualResponse = Response.status(Status.SERVICE_UNAVAILABLE)
                     .type(APPLICATION_JSON_TYPE)
                     .entity(new ApiError(STOPPED))
                     .build();
-            containerRequestContext.abortWith(response);
+
+            final HttpServletResponse httpResponse = (HttpServletResponse) response;
+            httpResponse.setStatus(actualResponse.getStatus());
+            httpResponse.setContentType(APPLICATION_JSON_TYPE.toString());
+            PrintWriter out = response.getWriter();
+            out.println(new ApiError(STOPPED).toString());
+            return;
         }
     }
-    */
+
+    @Override
+    public void destroy() {
+    }
 }

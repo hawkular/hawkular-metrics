@@ -54,7 +54,6 @@ public class TenantFilter implements Filter {
             throws IOException, ServletException {
 
         final HttpServletRequest httpRequest = (HttpServletRequest) request;
-
         String path = httpRequest.getRequestURI();
 
         if (path.startsWith("/tenants") || path.startsWith("/db") || path.startsWith(StatusHandler.PATH)
