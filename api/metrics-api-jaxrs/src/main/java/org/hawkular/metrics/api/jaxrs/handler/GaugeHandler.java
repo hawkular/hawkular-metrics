@@ -30,6 +30,7 @@ import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.function.Predicate;
 
 import javax.inject.Inject;
@@ -89,6 +90,8 @@ public class GaugeHandler {
 
     @HeaderParam(TENANT_HEADER_NAME)
     private String tenantId;
+
+    private Random random = new Random();
 
     @POST
     @Path("/")
@@ -216,6 +219,11 @@ public class GaugeHandler {
     public void addGaugeData(@Suspended final AsyncResponse asyncResponse,
                              @ApiParam(value = "List of metrics", required = true) List<Gauge> gauges
     ) {
+        try {
+            long time = random.nextLong() % 10000;
+            Thread.sleep(time);
+        } catch (InterruptedException e) {
+        }
         Observable<Metric<Double>> metrics = requestToGauges(tenantId, gauges);
         Observable<Void> observable = metricsService.addGaugeData(metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
