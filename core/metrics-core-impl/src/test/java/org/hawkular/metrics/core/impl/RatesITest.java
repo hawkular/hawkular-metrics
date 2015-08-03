@@ -113,15 +113,14 @@ public class RatesITest extends MetricsITest {
 
     @Test
     public void generateRates() throws Exception {
-        String tenantId = "generate-rates-test";
-        MetricId id = new MetricId("c1");
+        MetricId id = new MetricId("counter-rates-test", COUNTER, "c1");
         DateTime start = new DateTime(tickScheduler.now());
         DateTime end = start.plusMinutes(10);
 
         logger.debug("START TIME = {}", new Date(start.getMillis()));
         logger.debug("END TIME = {}", new Date(end.getMillis()));
 
-        Metric<Long> counter = new Metric<>(tenantId, COUNTER, id, asList(
+        Metric<Long> counter = new Metric<>(id, asList(
                 new DataPoint<>(start.plusMinutes(1).plusMillis(50).getMillis(), 11L),
                 new DataPoint<>(start.plusMinutes(1).plusSeconds(30).getMillis(), 17L),
                 new DataPoint<>(start.plusMinutes(2).getMillis(), 29L),
@@ -165,20 +164,20 @@ public class RatesITest extends MetricsITest {
         subscriber.assertNoErrors();
         subscriber.assertTerminalEvent();
 
-        List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(tenantId, id,
+        List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(id,
                 start.plusMinutes(1).getMillis(), start.plusMinutes(2).getMillis()));
         List<DataPoint<Double>> expected = singletonList(new DataPoint<>(start.plusMinutes(1).getMillis(),
                 calculateRate(17, start.plusMinutes(1), start.plusMinutes(2))));
         assertEquals(actual, expected, "The rate for " + start.plusMinutes(1) + " does not match the expected values");
 
 
-        actual = getOnNextEvents(() -> metricsService.findRateData(tenantId, id, start.plusMinutes(2).getMillis(),
+        actual = getOnNextEvents(() -> metricsService.findRateData(id, start.plusMinutes(2).getMillis(),
                 start.plusMinutes(3).getMillis()));
         expected = singletonList(new DataPoint<>(start.plusMinutes(2).getMillis(),
                 calculateRate(46, start.plusMinutes(2), start.plusMinutes(3))));
         assertEquals(actual, expected, "The rate for " + start.plusMinutes(2) + " does not match the expected values");
 
-        actual = getOnNextEvents(() -> metricsService.findRateData(tenantId, id, start.plusMinutes(3).getMillis(),
+        actual = getOnNextEvents(() -> metricsService.findRateData(id, start.plusMinutes(3).getMillis(),
                 start.plusMinutes(4).getMillis()));
         expected = singletonList(new DataPoint<>(start.plusMinutes(3).getMillis(),
                 calculateRate(85, start.plusMinutes(3), start.plusMinutes(4))));

@@ -37,7 +37,7 @@ import java.util.function.Function;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.google.common.collect.ImmutableMap;
-import org.hawkular.metrics.tasks.BaseTest;
+import org.hawkular.metrics.tasks.BaseITest;
 import org.hawkular.metrics.tasks.api.RepeatingTrigger;
 import org.hawkular.metrics.tasks.api.SingleExecutionTrigger;
 import org.hawkular.metrics.tasks.api.Task2;
@@ -59,7 +59,7 @@ import rx.schedulers.TestScheduler;
  */
 public class TaskSchedulerITest extends BaseITest {
 
-    private static Logger logger = LoggerFactory.getLogger(TaskSchedulerTest.class);
+    private static Logger logger = LoggerFactory.getLogger(TaskSchedulerITest.class);
 
     private TestTaskScheduler scheduler;
 

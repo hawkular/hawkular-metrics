@@ -17,13 +17,11 @@
 package org.hawkular.metrics.core.impl;
 
 import static java.util.Collections.singletonList;
+import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
-import static org.joda.time.Duration.standardMinutes;
-import static org.joda.time.Duration.standardSeconds;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
@@ -38,7 +36,7 @@ import rx.functions.Action1;
 /**
  * @author jsanda
  */
-public class GenerateRate implements Action1<Task2>, Function<Task2, Observable<Task2>> {
+public class GenerateRate implements Action1<Task2> {
 
     private static final Logger logger = LoggerFactory.getLogger(GenerateRate.class);
 
@@ -51,19 +49,19 @@ public class GenerateRate implements Action1<Task2>, Function<Task2, Observable<
     @Override
     public void call(Task2 task) {
         logger.info("Generating rate for {}", task);
-        MetricId id = new MetricId(task.getParameters().get("metricId"));
-        String tenantId = task.getParameters().get("tenantId");
+        MetricId id = new MetricId(task.getParameters().get("tenantId"), COUNTER, task.getParameters().get("metricId"));
         long start = task.getTrigger().getTriggerTime();
         long end = start + TimeUnit.MINUTES.toMillis(1);
 
         CountDownLatch latch = new CountDownLatch(1);
 
         logger.debug("start = {}, end = {}", start, end);
-        metricsService.findCounterData(tenantId, id, start, end)
+        metricsService.findCounterData(id, start, end)
                 .take(1)
                 .doOnNext(dataPoint -> logger.debug("Data Point = {}", dataPoint))
                 .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
-                .map(rate -> new Metric<>(tenantId, COUNTER_RATE, id, singletonList(new DataPoint<>(start, rate))))
+                .map(rate -> new Metric<>(new MetricId(id.getTenantId(), COUNTER_RATE, id.getName()),
+                        singletonList(new DataPoint<>(start, rate))))
                 .flatMap(metric -> metricsService.addGaugeData(Observable.just(metric)))
                 .subscribe(
                         aVoid -> {
@@ -83,22 +81,4 @@ public class GenerateRate implements Action1<Task2>, Function<Task2, Observable<
         }
     }
 
-    @Override
-    public Observable<Task2> apply(Task2 task) {
-        return Observable.defer(() -> {
-            MetricId id = new MetricId(task.getParameters().get("metricId"));
-            String tenantId = task.getParameters().get("tenantId");
-            long start = task.getTrigger().getTriggerTime();
-            long end = start + TimeUnit.MINUTES.toMillis(1);
-
-            logger.debug("start = {}, end = {}", start, end);
-            return metricsService.findCounterData(tenantId, id, start, end)
-                    .take(1)
-                    .doOnNext(dataPoint -> logger.debug("Data Point = {}", dataPoint))
-                    .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
-                    .map(rate -> new Metric<>(tenantId, COUNTER_RATE, id, singletonList(new DataPoint<>(start, rate))))
-                    .flatMap(metric -> metricsService.addGaugeData(Observable.just(metric)))
-                    .map(avoid -> task);
-            });
-    }
 }
