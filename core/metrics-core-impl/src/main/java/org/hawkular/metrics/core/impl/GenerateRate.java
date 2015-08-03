@@ -17,6 +17,7 @@
 package org.hawkular.metrics.core.impl;
 
 import static java.util.Collections.singletonList;
+
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 import static org.joda.time.Duration.standardMinutes;
 import static org.joda.time.Duration.standardSeconds;
@@ -29,6 +30,7 @@ import org.hawkular.metrics.tasks.api.Task;
 import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import rx.Observable;
 import rx.functions.Action1;
 

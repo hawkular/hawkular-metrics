@@ -22,6 +22,7 @@ import org.hawkular.metrics.tasks.api.Task;
 import org.hawkular.metrics.tasks.api.TaskService;
 import org.hawkular.metrics.tasks.api.TaskType;
 import org.joda.time.DateTime;
+
 import rx.Observable;
 import rx.Subscription;
 import rx.functions.Action1;

@@ -17,6 +17,7 @@
 package org.hawkular.metrics.tasks.impl;
 
 import static java.util.stream.Collectors.toSet;
+
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Duration.standardHours;
 import static org.joda.time.Duration.standardMinutes;
@@ -36,9 +37,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.datastax.driver.core.ResultSet;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.metrics.tasks.DateTimeService;
 import org.hawkular.metrics.tasks.api.Task;
@@ -49,6 +47,11 @@ import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.datastax.driver.core.ResultSet;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+
 import rx.Observable;
 import rx.Subscription;
 import rx.functions.Action0;

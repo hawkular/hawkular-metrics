@@ -17,6 +17,7 @@
 package org.hawkular.metrics.tasks.api;
 
 import org.joda.time.DateTime;
+
 import rx.Observable;
 import rx.Subscription;
 import rx.functions.Action1;

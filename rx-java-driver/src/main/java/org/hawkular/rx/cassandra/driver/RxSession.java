@@ -24,6 +24,7 @@ import com.datastax.driver.core.RegularStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
+
 import rx.Observable;
 import rx.Scheduler;
 

@@ -22,11 +22,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.datastax.driver.core.ResultSet;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.datastax.driver.core.ResultSet;
+
 import rx.Observable;
 
 /**

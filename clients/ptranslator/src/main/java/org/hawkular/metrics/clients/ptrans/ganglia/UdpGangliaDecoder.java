@@ -16,15 +16,15 @@
  */
 package org.hawkular.metrics.clients.ptrans.ganglia;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.socket.DatagramPacket;
-import io.netty.handler.codec.MessageToMessageDecoder;
-
 import java.util.List;
 
 import org.acplt.oncrpc.XdrBufferDecodingStream;
 import org.hawkular.metrics.client.common.SingleMetric;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.socket.DatagramPacket;
+import io.netty.handler.codec.MessageToMessageDecoder;
 
 /**
  * A Decoder for Ganglia metrics packets.
