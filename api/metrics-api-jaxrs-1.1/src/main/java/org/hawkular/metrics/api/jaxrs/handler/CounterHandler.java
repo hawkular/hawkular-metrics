@@ -102,7 +102,7 @@ public class CounterHandler {
             @ApiParam(required = true) MetricDefinition metricDefinition,
             @Context UriInfo uriInfo
     ) {
-        Metric<Double> metric = new Metric<>(tenantId, COUNTER, new MetricId(metricDefinition.getId()),
+        Metric<Double> metric = new Metric<>(new MetricId(tenantId, COUNTER, metricDefinition.getId()),
                 metricDefinition.getTags(), metricDefinition.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getId().getName());
 
@@ -127,7 +127,7 @@ public class CounterHandler {
                          response = ApiError.class) })
     public Response getCounter(@PathParam("id") String id) {
         try {
-            return metricsService.findMetric(tenantId, COUNTER, new MetricId(id))
+            return metricsService.findMetric(new MetricId(tenantId, COUNTER, id))
                 .map(MetricDefinition::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(ApiUtils.noContent()))
@@ -170,7 +170,7 @@ public class CounterHandler {
             @ApiParam(value = "List of data points containing timestamp and value", required = true)
             List<CounterDataPoint> data
     ) {
-        Metric<Long> metric = new Metric<>(tenantId, COUNTER, new MetricId(id), requestToCounterDataPoints(data));
+        Metric<Long> metric = new Metric<>(new MetricId(tenantId, COUNTER, id), requestToCounterDataPoints(data));
         try {
             return metricsService.addCounterData(Observable.just(metric)).map(ApiUtils::simpleOKResponse).toBlocking()
                 .last();
@@ -199,7 +199,7 @@ public class CounterHandler {
         long endTime = end == null ? now : end;
 
         try {
-            return metricsService.findCounterData(tenantId, new MetricId(id), startTime, endTime)
+            return metricsService.findCounterData(new MetricId(tenantId, COUNTER, id), startTime, endTime)
                 .map(CounterDataPoint::new)
                 .toList()
                 .map(ApiUtils::collectionToResponse).toBlocking().last();
@@ -232,7 +232,7 @@ public class CounterHandler {
         long endTime = end == null ? now : end;
 
         try  {
-            return metricsService.findRateData(tenantId, new MetricId(id), startTime, endTime)
+            return metricsService.findRateData(new MetricId(tenantId, COUNTER, id), startTime, endTime)
                 .map(GaugeDataPoint::new)
                 .toList()
                 .map(ApiUtils::collectionToResponse)
