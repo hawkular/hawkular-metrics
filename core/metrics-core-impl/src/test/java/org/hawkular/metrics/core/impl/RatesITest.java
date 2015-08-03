@@ -188,7 +188,7 @@ public class RatesITest extends MetricsITest {
 //                start.plusSeconds(25).getMillis()).toBlocking().last();
 //        expected = new DataPoint<>(start.plusSeconds(20).getMillis(), calculateRate(69, start.plusSeconds(20),
 //                start.plusSeconds(25)));
-//        assertEquals(actual, expected, "The rate for " + start.plusSeconds(20) + " does not match the expected value.");
+//     assertEquals(actual, expected, "The rate for " + start.plusSeconds(20) + " does not match the expected value.");
     }
 
     private void insertBlocking(Supplier<Observable<Void>> fn) {

@@ -40,7 +40,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import com.codahale.metrics.Meter;
@@ -77,7 +76,6 @@ import org.hawkular.metrics.core.impl.transformers.ItemsToSetTransformer;
 import org.hawkular.metrics.core.impl.transformers.TagsIndexRowTransformer;
 import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.metrics.tasks.api.RepeatingTrigger;
-import org.hawkular.metrics.tasks.api.Task;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.hawkular.metrics.tasks.api.Trigger;
 import org.hawkular.rx.cassandra.driver.RxUtil;
@@ -426,8 +424,6 @@ public class MetricsServiceImpl implements MetricsService {
                 }
 
                 if (metric.getType() == COUNTER) {
-                    Task task = TaskTypes.COMPUTE_RATE.createTask(metric.getTenantId(), metric.getId().getName() +
-                            "$rate", metric.getId().getName());
                     Trigger trigger = new RepeatingTrigger.Builder()
                             .withDelay(1, TimeUnit.MINUTES)
                             .withInterval(1, TimeUnit.MINUTES)
@@ -852,4 +848,5 @@ public class MetricsServiceImpl implements MetricsService {
             throw new RuntimeException("There was an error during a timed event", e);
         }
     }
+
 }
