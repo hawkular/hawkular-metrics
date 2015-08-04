@@ -42,6 +42,8 @@ public interface TaskScheduler {
 
     void shutdown();
 
+    Observable<Long> getFinishedTimeSlices();
 
+    boolean isRunning();
 
 }

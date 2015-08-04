@@ -16,9 +16,11 @@
  */
 package org.hawkular.metrics.api.jaxrs.handler;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -27,12 +29,18 @@ import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.util.VirtualClock;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import rx.observers.TestSubscriber;
+import rx.schedulers.Schedulers;
 
 
 /**
@@ -45,13 +53,12 @@ public class VirtualClockHandler {
 
     public static final String PATH = "/clock";
 
-    @Inject
+    private static Logger logger = LoggerFactory.getLogger(VirtualClockHandler.class);
+    
     private VirtualClock virtualClock;
 
     @Inject
     private TaskScheduler taskScheduler;
-
-    private static boolean started;
 
     @GET
     public Response getTime() {
@@ -62,9 +69,8 @@ public class VirtualClockHandler {
     public Response setTime(Map<String, Object> params) {
         Long time = (Long) params.get("time");
         virtualClock.advanceTimeTo(time);
-        if (!started) {
+        if (!taskScheduler.isRunning()) {
             taskScheduler.start();
-            started = true;
         }
         return Response.ok().build();
     }
@@ -73,6 +79,29 @@ public class VirtualClockHandler {
     public Response incrementTime(Duration duration) {
         virtualClock.advanceTimeBy(duration.getValue(), duration.getTimeUnit());
         return Response.ok().build();
+    }
+
+    @GET
+    @Path("/wait")
+    public Response waitForDuration(@QueryParam("duration") Duration duration) {
+        int numMinutes = (int) TimeUnit.MINUTES.convert(duration.getValue(), duration.getTimeUnit());
+        TestSubscriber<Long> timeSlicesSubscriber = new TestSubscriber<>();
+        taskScheduler.getFinishedTimeSlices()
+                .take(numMinutes)
+                .observeOn(Schedulers.immediate())
+                .subscribe(timeSlicesSubscriber);
+
+        try {
+            timeSlicesSubscriber.awaitTerminalEvent(10, SECONDS);
+            timeSlicesSubscriber.assertNoErrors();
+            timeSlicesSubscriber.assertTerminalEvent();
+
+            return Response.ok().build();
+        } catch (Exception e) {
+            logger.warn("Failed to wait " + numMinutes + " minutes for task scheduler to complete work", e);
+            return Response.serverError().entity(ImmutableMap.of("errorMsg", Throwables.getStackTraceAsString(e)))
+                    .build();
+        }
     }
 
 }

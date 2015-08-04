@@ -336,7 +336,9 @@ class CountersITest extends RESTTest {
     assertEquals(200, response.status)
 
     setTime(start.plusMinutes(4))
-    Thread.sleep(2500)
+
+    response = hawkularMetrics.get(path: "clock/wait", query: [duration: "4mn"])
+    assertEquals("There was an error waiting: $response.data", 200, response.status)
 
     response = hawkularMetrics.get(
         path: "counters/$counter/rate",
