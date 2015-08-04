@@ -19,102 +19,70 @@ package org.hawkular.metrics.core.api;
 import static java.lang.Double.NaN;
 import static java.lang.Double.isNaN;
 
+import java.util.List;
+import java.util.Map;
+
 /**
- * Statistics for availability data in a time range.
+ * {@link BucketPoint} for availability metrics.
  *
  * @author Thomas Segismont
  */
-public class AvailabilityBucketDataPoint {
-    private long start;
-    private long end;
-    private long downtimeDuration;
-    private long lastDowntime;
-    private double uptimeRatio;
-    private long downtimeCount;
+public final class AvailabilityBucketPoint extends BucketPoint {
+    private final long downtimeDuration;
+    private final long lastDowntime;
+    private final double uptimeRatio;
+    private final long downtimeCount;
 
-    public AvailabilityBucketDataPoint(
-            long start,
-            long end,
-            long downtimeDuration,
-            long lastDowntime,
-            double uptimeRatio,
-            long downtimeCount
-    ) {
-        this.start = start;
-        this.end = end;
+    protected AvailabilityBucketPoint(long start, long end, long downtimeDuration, long lastDowntime, double
+            uptimeRatio, long downtimeCount) {
+        super(start, end);
         this.downtimeDuration = downtimeDuration;
         this.lastDowntime = lastDowntime;
         this.uptimeRatio = uptimeRatio;
         this.downtimeCount = downtimeCount;
-    }
-
-    public long getStart() {
-        return start;
-    }
-
-    public void setStart(long start) {
-        this.start = start;
-    }
-
-    public long getEnd() {
-        return end;
-    }
-
-    public void setEnd(long end) {
-        this.end = end;
     }
 
     public long getDowntimeDuration() {
         return downtimeDuration;
     }
 
-    public void setDowntimeDuration(long downtimeDuration) {
-        this.downtimeDuration = downtimeDuration;
-    }
-
     public long getLastDowntime() {
         return lastDowntime;
-    }
-
-    public void setLastDowntime(long lastDowntime) {
-        this.lastDowntime = lastDowntime;
     }
 
     public double getUptimeRatio() {
         return uptimeRatio;
     }
 
-    public void setUptimeRatio(double uptimeRatio) {
-        this.uptimeRatio = uptimeRatio;
-    }
-
     public long getDowntimeCount() {
         return downtimeCount;
     }
 
-    public void setDowntimeCount(long downtimeCount) {
-        this.downtimeCount = downtimeCount;
-    }
-
+    @Override
     public boolean isEmpty() {
         return isNaN(uptimeRatio);
     }
 
     @Override
     public String toString() {
-        return "AvailabilityBucketDataPoint[" +
-               "start=" + start +
-               ", end=" + end +
-               ", downtimeDuration=" + downtimeDuration +
-               ", lastDowntime=" + lastDowntime +
-               ", uptimeRatio=" + uptimeRatio +
-               ", downtimeCount=" + downtimeCount +
-               ']';
+        return "AvailabilityBucketPoint[" +
+                "start=" + getStart() +
+                ", end=" + getEnd() +
+                ", downtimeDuration=" + downtimeDuration +
+                ", lastDowntime=" + lastDowntime +
+                ", uptimeRatio=" + uptimeRatio +
+                ", downtimeCount=" + downtimeCount +
+                ", isEmpty=" + isEmpty() +
+                ']';
     }
 
     /**
-     * Create {@link AvailabilityBucketDataPoint} instances following the builder pattern.
+     * @see BucketPoint#toList(Map, Buckets, java.util.function.BiFunction)
      */
+    public static List<AvailabilityBucketPoint> toList(Map<Long, AvailabilityBucketPoint> pointMap, Buckets buckets) {
+        return BucketPoint.toList(pointMap, buckets, (start, end) -> new Builder(start, end).build());
+    }
+
     public static class Builder {
         private final long start;
         private final long end;
@@ -126,8 +94,8 @@ public class AvailabilityBucketDataPoint {
         /**
          * Creates a builder for an initially empty instance, configurable with the builder setters.
          *
-         * @param start the start timestamp of this bucket data point
-         * @param end   the end timestamp of this bucket data point
+         * @param start the start timestamp of this bucket point
+         * @param end   the end timestamp of this bucket point
          */
         public Builder(long start, long end) {
             this.start = start;
@@ -154,15 +122,8 @@ public class AvailabilityBucketDataPoint {
             return this;
         }
 
-        public AvailabilityBucketDataPoint build() {
-            return new AvailabilityBucketDataPoint(
-                    start,
-                    end,
-                    downtimeDuration,
-                    lastDowntime,
-                    uptimeRatio,
-                    downtimeCount
-            );
+        public AvailabilityBucketPoint build() {
+            return new AvailabilityBucketPoint(start, end, downtimeDuration, lastDowntime, uptimeRatio, downtimeCount);
         }
     }
 }

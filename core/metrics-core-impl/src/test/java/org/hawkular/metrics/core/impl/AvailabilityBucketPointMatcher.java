@@ -20,22 +20,22 @@ import org.hamcrest.Description;
 import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
+import org.hawkular.metrics.core.api.AvailabilityBucketPoint;
 
 import com.google.common.math.DoubleMath;
 
 /**
  * @author Thomas Segismont
  */
-public class AvailabilityBucketDataPointMatcher extends TypeSafeMatcher<AvailabilityBucketDataPoint> {
-    private final AvailabilityBucketDataPoint expected;
+public class AvailabilityBucketPointMatcher extends TypeSafeMatcher<AvailabilityBucketPoint> {
+    private final AvailabilityBucketPoint expected;
 
-    public AvailabilityBucketDataPointMatcher(AvailabilityBucketDataPoint expected) {
+    public AvailabilityBucketPointMatcher(AvailabilityBucketPoint expected) {
         this.expected = expected;
     }
 
     @Override
-    protected boolean matchesSafely(AvailabilityBucketDataPoint item) {
+    protected boolean matchesSafely(AvailabilityBucketPoint item) {
         return item.getStart() == expected.getStart()
                && item.getEnd() == expected.getEnd()
                && item.getDowntimeCount() == expected.getDowntimeCount()
@@ -50,9 +50,9 @@ public class AvailabilityBucketDataPointMatcher extends TypeSafeMatcher<Availabi
     }
 
     @Factory
-    public static Matcher<AvailabilityBucketDataPoint> matchesAvailabilityBucketDataPoint(
-            AvailabilityBucketDataPoint expected
+    public static Matcher<AvailabilityBucketPoint> matchesAvailabilityBucketPoint(
+            AvailabilityBucketPoint expected
     ) {
-        return new AvailabilityBucketDataPointMatcher(expected);
+        return new AvailabilityBucketPointMatcher(expected);
     }
 }

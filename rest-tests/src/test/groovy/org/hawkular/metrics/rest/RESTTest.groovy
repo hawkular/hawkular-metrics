@@ -57,15 +57,19 @@ class RESTTest {
   }
 
   static void assertDoubleEquals(expected, actual) {
+    assertDoubleEquals(null, expected, actual)
+  }
+
+  static void assertDoubleEquals(msg, expected, actual) {
     // If a bucket does not contain any data points, then the server returns
     // Double.NaN for max/min/avg. NaN is returned on the client and parsed as
     // a string. If the bucket contains data points, then the returned values
     // will be numeric.
 
     if (actual instanceof String) {
-      assertEquals((Double) expected, Double.parseDouble(actual), DELTA)
+      assertEquals((String) msg, (Double) expected, Double.parseDouble(actual), DELTA)
     } else {
-      assertEquals((Double) expected, (Double) actual, DELTA)
+      assertEquals((String) msg, (Double) expected, (Double) actual, DELTA)
     }
   }
 

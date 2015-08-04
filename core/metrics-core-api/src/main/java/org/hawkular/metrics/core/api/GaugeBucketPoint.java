@@ -19,34 +19,24 @@ package org.hawkular.metrics.core.api;
 import static java.lang.Double.NaN;
 import static java.lang.Double.isNaN;
 
-/**
- * Statistics for gauge data in a time range.
- *
- * @author Heiko W. Rupp
- */
-public class GaugeBucketDataPoint {
-    private long start;
-    private long end;
-    private double value;
-    private double min;
-    private double avg;
-    private double median;
-    private double max;
-    private double percentile95th;
+import java.util.List;
+import java.util.Map;
 
-    public GaugeBucketDataPoint(
-            long start,
-            long end,
-            double value,
-            double min,
-            double avg,
-            double median,
-            double max,
-            double percentile95th
-    ) {
-        this.start = start;
-        this.end = end;
-        this.value = value;
+/**
+ * {@link BucketPoint} for gauge metrics.
+ *
+ * @author Thomas Segismont
+ */
+public final class GaugeBucketPoint extends BucketPoint {
+    private final double min;
+    private final double avg;
+    private final double median;
+    private final double max;
+    private final double percentile95th;
+
+    private GaugeBucketPoint(long start, long end, double min, double avg, double median, double max, double
+            percentile95th) {
+        super(start, end);
         this.min = min;
         this.avg = avg;
         this.median = median;
@@ -54,24 +44,8 @@ public class GaugeBucketDataPoint {
         this.percentile95th = percentile95th;
     }
 
-    public long getStart() {
-        return start;
-    }
-
-    public long getEnd() {
-        return end;
-    }
-
-    public double getValue() {
-        return value;
-    }
-
     public double getMin() {
         return min;
-    }
-
-    public double getMax() {
-        return max;
     }
 
     public double getAvg() {
@@ -82,34 +56,43 @@ public class GaugeBucketDataPoint {
         return median;
     }
 
+    public double getMax() {
+        return max;
+    }
+
     public double getPercentile95th() {
         return percentile95th;
     }
 
+    @Override
     public boolean isEmpty() {
         return isNaN(min) || isNaN(avg) || isNaN(median) || isNaN(max) || isNaN(percentile95th);
     }
 
     @Override
     public String toString() {
-        return "GuageBucketDataPoint[" +
-               "start=" + start +
-               ", end=" + end +
-               ", min=" + min +
-               ", avg=" + avg +
-               ", median=" + median +
-               ", max=" + max +
-               ", percentile95th=" + percentile95th +
-               ']';
+        return "GaugeBucketPoint[" +
+                "start=" + getStart() +
+                ", end=" + getEnd() +
+                ", min=" + min +
+                ", avg=" + avg +
+                ", median=" + median +
+                ", max=" + max +
+                ", percentile95th=" + percentile95th +
+                ", isEmpty=" + isEmpty() +
+                ']';
     }
 
     /**
-     * Create {@link GaugeBucketDataPoint} instances following the builder pattern.
+     * @see BucketPoint#toList(Map, Buckets, java.util.function.BiFunction)
      */
+    public static List<GaugeBucketPoint> toList(Map<Long, GaugeBucketPoint> pointMap, Buckets buckets) {
+        return BucketPoint.toList(pointMap, buckets, (start, end) -> new Builder(start, end).build());
+    }
+
     public static class Builder {
         private final long start;
         private final long end;
-        private double value = NaN;
         private double min = NaN;
         private double avg = NaN;
         private double median = NaN;
@@ -119,17 +102,12 @@ public class GaugeBucketDataPoint {
         /**
          * Creates a builder for an initially empty instance, configurable with the builder setters.
          *
-         * @param start the start timestamp of this bucket data point
-         * @param end   the end timestamp of this bucket data point
+         * @param start the start timestamp of this bucket point
+         * @param end   the end timestamp of this bucket point
          */
         public Builder(long start, long end) {
             this.start = start;
             this.end = end;
-        }
-
-        public Builder setValue(double value) {
-            this.value = value;
-            return this;
         }
 
         public Builder setMin(double min) {
@@ -157,8 +135,9 @@ public class GaugeBucketDataPoint {
             return this;
         }
 
-        public GaugeBucketDataPoint build() {
-            return new GaugeBucketDataPoint(start, end, value, min, avg, median, max, percentile95th);
+        public GaugeBucketPoint build() {
+            return new GaugeBucketPoint(start, end, min, avg, median, max, percentile95th);
         }
     }
+
 }
