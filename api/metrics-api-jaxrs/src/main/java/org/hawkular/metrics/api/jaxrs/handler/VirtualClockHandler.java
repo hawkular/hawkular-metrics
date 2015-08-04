@@ -54,7 +54,7 @@ public class VirtualClockHandler {
     public static final String PATH = "/clock";
 
     private static Logger logger = LoggerFactory.getLogger(VirtualClockHandler.class);
-    
+
     private VirtualClock virtualClock;
 
     @Inject
