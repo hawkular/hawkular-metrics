@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import java.util.regex.PatternSyntaxException;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -96,21 +97,27 @@ public class MetricHandler {
                     required = false,
                       allowableValues = "[gauge, availability, counter]")
             @QueryParam("type") MetricType metricType,
-            @ApiParam(value = "List of tags", required = false) @QueryParam("tags") Tags tags) {
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags) {
 
         if (metricType != null && !MetricType.userTypes().contains(metricType)) {
-            asyncResponse.resume(badRequest(new ApiError("Incorrect type param")));
+            asyncResponse.resume(badRequest(new ApiError("Incorrect type param " + metricType.toString())));
             return;
         }
 
         Observable<Metric> metricObservable = (tags == null) ? metricsService.findMetrics(tenantId, metricType)
-                : metricsService.findMetricsWithTags(tenantId, tags.getTags(), metricType);
+                : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), metricType);
 
         metricObservable
                 .map(MetricDefinition::new)
                 .toList()
                 .map(ApiUtils::collectionToResponse)
-                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+                .subscribe(asyncResponse::resume, t -> {
+                    if(t instanceof PatternSyntaxException) {
+                        asyncResponse.resume(ApiUtils.badRequest(t));
+                    } else {
+                        asyncResponse.resume(ApiUtils.serverError(t));
+                    }
+                });
     }
 
     @POST

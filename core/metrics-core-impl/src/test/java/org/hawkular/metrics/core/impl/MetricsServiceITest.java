@@ -33,6 +33,7 @@ import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Days.days;
 import static org.joda.time.Hours.hours;
+import static org.junit.Assert.fail;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
@@ -47,6 +48,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import java.util.regex.PatternSyntaxException;
 import org.hawkular.metrics.core.api.Aggregate;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
@@ -189,14 +191,6 @@ public class MetricsServiceITest extends MetricsITest {
                 ImmutableMap.of("a3", "3", "a4", "3"), null);
         metricsService.createMetric(gm2).toBlocking().lastOrDefault(null);
 
-        List<Metric> metrics = metricsService.findMetricsWithTags("t1", tagMap, null)
-                .toList().toBlocking().lastOrDefault(null);
-        assertEquals(metrics.size(), 3, "The returned size does not match expected");
-
-        metrics = metricsService.findMetricsWithTags("t1", tagMap, AVAILABILITY).toList().toBlocking()
-                .lastOrDefault(null);
-        assertEquals(metrics.size(), 1, "The returned size does not match expected, only m2 is expected");
-
         Metric actualAvail = metricsService.findMetric(m2.getId()).toBlocking()
                 .last();
         assertEquals(actualAvail, m2, "The metric does not match the expected value");
@@ -232,6 +226,132 @@ public class MetricsServiceITest extends MetricsITest {
                 new MetricsTagsIndexEntry("1", GAUGE, m1.getId()),
                 new MetricsTagsIndexEntry("A", GAUGE, m4.getId())
         ));
+    }
+
+    @Test
+    public void createAndFindMetricsWithTags() throws Exception {
+
+        String tenantId = "t1";
+
+        // Create the gauges
+        Metric<Double> m1 = new Metric<>(new MetricId(tenantId, GAUGE, "m1"), ImmutableMap.of("a1","1"), 24);
+        Metric<Double> m2 = new Metric<>(new MetricId(tenantId, GAUGE, "m2"), ImmutableMap.of("a1","2","a3","3"), 24);
+        Metric<Double> m3 = new Metric<>(new MetricId(tenantId, GAUGE, "m3"), ImmutableMap.of("a1","2","a2","2"), 24);
+        Metric<Double> m4 = new Metric<>(new MetricId(tenantId, GAUGE, "m4"), ImmutableMap.of("a1","2","a2","3"), 24);
+        Metric<Double> m5 = new Metric<>(new MetricId(tenantId, GAUGE, "m5"), ImmutableMap.of("a1","2","a2","4"), 24);
+        Metric<Double> m6 = new Metric<>(new MetricId(tenantId, GAUGE, "m6"), ImmutableMap.of("a2","4"), 24);
+
+        Metric<Double> mA = new Metric<>(new MetricId(tenantId, GAUGE, "mA"), ImmutableMap.of("hostname","webfin01"),
+                                         24);
+        Metric<Double> mB = new Metric<>(new MetricId(tenantId, GAUGE, "mB"), ImmutableMap.of("hostname","webswe02"),
+                                         24);
+        Metric<Double> mC = new Metric<>(new MetricId(tenantId, GAUGE, "mC"), ImmutableMap.of("hostname",
+                                                                                              "backendfin01"),
+                                         24);
+        Metric<Double> mD = new Metric<>(new MetricId(tenantId, GAUGE, "mD"), ImmutableMap.of("hostname",
+                                                                                              "backendswe02"),
+                                         24);
+        Metric<Double> mE = new Metric<>(new MetricId(tenantId, GAUGE, "mE"), ImmutableMap.of("owner","hede"),
+                                         24);
+        Metric<Double> mF = new Metric<>(new MetricId(tenantId, GAUGE, "mF"), ImmutableMap.of("owner","hades"),
+                                         24);
+        Metric<Double> mG = new Metric<>(new MetricId(tenantId, GAUGE, "mG"), ImmutableMap.of("owner","had"),
+                                         24);
+
+
+        // Create the availabilities
+        Metric<AvailabilityType> a1 = new Metric<>(new MetricId(tenantId, AVAILABILITY, "a1"),
+                                                   ImmutableMap.of("a1","4"), 24);
+
+        // Insert metrics
+        metricsService.createMetric(m1).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(m2).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(m3).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(m5).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(m6).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(a1).toBlocking().lastOrDefault(null);
+
+        metricsService.createMetric(mA).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(mB).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(mC).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(mD).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(mE).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(mF).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(mG).toBlocking().lastOrDefault(null);
+
+        // Check different scenarios..
+        List<Metric> metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("a1", "*"), GAUGE).toList()
+                .toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 5, "Metrics m1-m5 should have been returned");
+
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("a1","*","a2","2"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 1, "Only metric m3 should have been returned");
+
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("a1", "*", "a2", "2|3"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 2, "Metrics m3-m4 should have been returned");
+
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("a2", "2|3"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 2, "Metrics m3-m4 should have been returned");
+
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("a1", "*", "a2", "*"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 3, "Metrics m3-m5 should have been returned");
+
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("a1", "*", "a5", "*"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 0, "No metrics should have been returned");
+
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("a4", "*", "a5", "none"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 0, "No metrics should have been returned");
+
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("a1", "*"), null).toList()
+                .toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 6, "Metrics m1-m5 and a1 should have been returned");
+
+        // Test that we actually get correct metrics also, not just correct size
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("a1","2","a2","2"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 1, "Only metric m3 should have been returned");
+        assertEquals(metrics.get(0), m3, "m3 did not match the original inserted metric");
+
+        // Test for NOT operator
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("a2","!4"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 2, "Only metrics m3-m4 should have been returned");
+
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("a1", "2", "a2","!4"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 2, "Only metrics m3-m4 should have been returned");
+
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("a2","!4|3"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 1, "Only metrics m3 should have been returned");
+        assertEquals(metrics.get(0), m3, "m3 did not match the original inserted metric");
+
+        // What about incorrect query?
+        try {
+            metricsService.findMetricsWithFilters("t1", ImmutableMap.of("a2","**"), GAUGE)
+                    .toList().toBlocking().lastOrDefault(null);
+            fail("Should have thrown an PatternSyntaxException");
+        } catch(PatternSyntaxException e) { }
+
+        // More regexp tests
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("hostname","web.*"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 2, "Only websrv01 and websrv02 should have been returned");
+
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("hostname",".*01"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 2, "Only websrv01 and backend01 should have been returned");
+
+        metrics = metricsService.findMetricsWithFilters("t1", ImmutableMap.of("owner","h[e|a]de(s?)"), GAUGE)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(metrics.size(), 2, "Both hede and hades should have been returned, but not 'had'");
     }
 
     @Test
@@ -1109,13 +1229,13 @@ public class MetricsServiceITest extends MetricsITest {
 
     private void assertMetricsTagsIndexMatches(String tenantId, String tag, List<MetricsTagsIndexEntry> expected)
         throws Exception {
-        ResultSet resultSet = dataAccess.findMetricsByTag(tenantId, tag).toBlocking().first();
+        ResultSet resultSet = dataAccess.findMetricsByTagName(tenantId, tag).toBlocking().first();
         List<MetricsTagsIndexEntry> actual = new ArrayList<>();
 
         for (Row row : resultSet) {
-            MetricType type = MetricType.fromCode(row.getInt(1));
-            MetricId id = new MetricId(tenantId, type, row.getString(2), Interval.parse(row.getString(3)));
-            actual.add(new MetricsTagsIndexEntry(row.getString(0), type, id));
+            MetricType type = MetricType.fromCode(row.getInt(0));
+            MetricId id = new MetricId(tenantId, type, row.getString(1), Interval.parse(row.getString(2)));
+            actual.add(new MetricsTagsIndexEntry(row.getString(3), type, id)); // Need value here.. pff.
         }
 
         assertEquals(actual, expected, "The metrics tags index entries do not match");

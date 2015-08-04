@@ -42,6 +42,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 
+import java.util.regex.Pattern;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.BucketedOutput;
@@ -59,6 +60,8 @@ import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.RetentionSettings;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
+import org.hawkular.metrics.core.impl.transformers.ItemsToSetTransformer;
+import org.hawkular.metrics.core.impl.transformers.TagsIndexRowTransformer;
 import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.metrics.tasks.api.Task;
 import org.hawkular.metrics.tasks.api.TaskService;
@@ -457,18 +460,53 @@ public class MetricsServiceImpl implements MetricsService {
         return typeObservable.flatMap(t -> dataAccess.findMetricsInMetricsIndex(tenantId, t))
                 .flatMap(Observable::from)
                 .map(row -> new Metric(new MetricId(tenantId, type, row.getString(0), Interval.parse(row.getString(1))),
-                        row.getMap(2, String.class, String.class), row.getInt(3)));
+                                       row.getMap(2, String.class, String.class), row.getInt(3)));
     }
 
     @Override
-    public Observable<Metric> findMetricsWithTags(String tenantId, Map<String, String> tags, MetricType type) {
-        return dataAccess.findMetricsFromTagsIndex(tenantId, tags)
+    public Observable<Metric> findMetricsWithFilters(String tenantId, Map<String, String> tagsQueries, MetricType
+            type) {
+
+        // Fetch everything from the tagsQueries
+        return Observable.from(tagsQueries.entrySet())
+                .flatMap(entry -> {
+                    // Special case "*" allowed and ! indicates match shouldn't happen
+                    boolean positive = (!entry.getValue().startsWith("!"));
+                    Pattern p = filterPattern(entry.getValue());
+
+                    return Observable.just(entry)
+                            .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
+                                    .flatMap(Observable::from)
+                                    .filter(r -> positive == p.matcher(r.getString(3)).matches()) // XNOR
+                                    .compose(new TagsIndexRowTransformer(tenantId, type))
+                                    .compose(new ItemsToSetTransformer<MetricId>())
+                                    .reduce((s1, s2) -> {
+                                        s1.addAll(s2);
+                                        return s1;
+                                    }));
+                })
+                .reduce((s1, s2) -> {
+                    s1.retainAll(s2);
+                    return s1;
+                })
                 .flatMap(Observable::from)
-                .filter(r -> (type == null && MetricType.userTypes().contains(MetricType.fromCode(r.getInt(0))))
-                        || MetricType.fromCode(r.getInt(0)) == type)
-                .distinct(r -> Integer.valueOf(r.getInt(0)).toString() + r.getString(1) + r.getString(2))
-                .flatMap(r -> findMetric(new MetricId(tenantId, MetricType.fromCode(r.getInt(0)), r.getString
-                        (1), Interval.parse(r.getString(2))))); // We'll need to fetch type here from the Cassandra..
+                .flatMap(this::findMetric);
+    }
+
+    /**
+     * Allow special cases to Pattern matching, such as "*" -> ".*" and ! indicating the match shouldn't
+     * happen. The first ! indicates the rest of the pattern should not match.
+     *
+     * @param inputRegexp Regexp given by the user
+     * @return Pattern modified to allow special cases in the query language
+     */
+    private Pattern filterPattern(String inputRegexp) {
+        if (inputRegexp.equals("*")) {
+            inputRegexp = ".*";
+        } else if(inputRegexp.startsWith("!")) {
+            inputRegexp = inputRegexp.substring(1);
+        }
+        return Pattern.compile(inputRegexp); // Catch incorrect patterns..
     }
 
     @Override

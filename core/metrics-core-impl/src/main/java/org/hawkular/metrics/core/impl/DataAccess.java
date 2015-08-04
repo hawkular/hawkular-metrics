@@ -117,7 +117,7 @@ public interface DataAccess {
 
     Observable<ResultSet> deleteFromMetricsTagsIndex(Metric metric, Map<String, String> tags);
 
-    Observable<ResultSet> findMetricsByTag(String tenantId, String tag);
+    Observable<ResultSet> findMetricsByTagName(String tenantId, String tag);
 
-    Observable<ResultSet> findMetricsFromTagsIndex(String tenantId, Map<String, String> tags);
+    Observable<ResultSet> findMetricsByTagNameValue(String tenantId, String tag, String tvalue);
 }
