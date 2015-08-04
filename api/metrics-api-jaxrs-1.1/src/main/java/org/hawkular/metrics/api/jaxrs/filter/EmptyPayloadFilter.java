@@ -23,6 +23,7 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.ext.Provider;
 
+import org.jboss.resteasy.annotations.interception.ServerInterceptor;
 import org.jboss.resteasy.core.ResourceMethod;
 import org.jboss.resteasy.core.ServerResponse;
 import org.jboss.resteasy.spi.Failure;
@@ -37,6 +38,7 @@ import org.jboss.resteasy.spi.interception.PreProcessInterceptor;
  * @author Stefan Negrea
  */
 @Provider
+@ServerInterceptor
 public class EmptyPayloadFilter implements PreProcessInterceptor {
     public static final String EMPTY_PAYLOAD = EmptyPayloadFilter.class.getName();
 
@@ -48,7 +50,7 @@ public class EmptyPayloadFilter implements PreProcessInterceptor {
             ResourceMethod resourceMethod) throws Failure,
             WebApplicationException {
 
-        if (!HttpMethod.POST.equals(resourceMethod.getMethod())) {
+        if (!HttpMethod.POST.equals(request.getHttpMethod())) {
             return null;
         }
 
