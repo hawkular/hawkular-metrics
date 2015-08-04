@@ -57,4 +57,14 @@ public class FakeTaskScheduler implements TaskScheduler {
     public Subscription subscribe(Subscriber<Task2> subscriber) {
             return Subscribers.empty();
     }
+
+    @Override
+    public Observable<Long> getFinishedTimeSlices() {
+        return Observable.empty();
+    }
+
+    @Override
+    public boolean isRunning() {
+        return false;
+    }
 }
