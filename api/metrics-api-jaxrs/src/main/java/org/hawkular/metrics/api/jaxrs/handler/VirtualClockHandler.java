@@ -55,6 +55,7 @@ public class VirtualClockHandler {
 
     private static Logger logger = LoggerFactory.getLogger(VirtualClockHandler.class);
 
+    @Inject
     private VirtualClock virtualClock;
 
     @Inject
