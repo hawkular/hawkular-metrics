@@ -112,12 +112,23 @@
       <artifactId>swagger-core_2.10</artifactId>
       <scope>provided</scope>
     </dependency>
-
   </dependencies>
 
   <build>
     <finalName>hawkular-metrics-api-jaxrs-1.1</finalName>
     <plugins>
+      <plugin>
+        <groupId>org.jboss.as.plugins</groupId>
+        <artifactId>jboss-as-maven-plugin</artifactId>
+        <version>7.7.Final</version>
+        <configuration>
+          <version>7.1.1.Final</version>
+          <server-args>
+            <server-arg>-b=0.0.0.0</server-arg>
+            <port>6789</port>
+          </server-args>
+        </configuration>
+      </plugin>
       <plugin>
         <artifactId>maven-war-plugin</artifactId>
         <configuration>
