@@ -58,6 +58,13 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>hawkular-metrics-api-jaxrs-1.1</artifactId>
+      <version>${project.version}</version>
+      <type>war</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>joda-time</groupId>
       <artifactId>joda-time</artifactId>
       <version>${joda.time.version}</version>
@@ -196,7 +203,7 @@
                 </goals>
                 <configuration>
                   <groupId>${project.groupId}</groupId>
-                  <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+                  <artifactId>hawkular-metrics-api-jaxrs-1.1</artifactId>
                   <name>hawkular-metric-rest.war</name>
                 </configuration>
               </execution>

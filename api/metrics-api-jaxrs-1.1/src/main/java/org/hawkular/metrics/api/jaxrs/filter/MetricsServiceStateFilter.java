@@ -65,6 +65,7 @@ public class MetricsServiceStateFilter implements Filter {
 
         if (path.startsWith(StatusHandler.PATH)) {
             // The status page does not require the MetricsService to be up and running.
+            chain.doFilter(request, response);
             return;
         }
 
@@ -108,6 +109,8 @@ public class MetricsServiceStateFilter implements Filter {
             out.println(new ApiError(STOPPED).toString());
             return;
         }
+
+        chain.doFilter(request, response);
     }
 
     @Override
