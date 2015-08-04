@@ -101,9 +101,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
 
     private DateTimeService dateTimeService;
 
-    private boolean shutdown;
-
-    private boolean started;
+    private boolean running;
 
     /**
      * A subject to broadcast tasks that are to be executed. Other task scheduling libraries
@@ -193,6 +191,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
         return taskSubject.subscribe(new SubscriberWrapper(subscriber));
     }
 
+    @Override
     public Observable<Long> getFinishedTimeSlices() {
         return tickSubject;
     }
@@ -281,6 +280,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
         // primary motivation for having this method return a hot observable.
         PublishSubject<Lease> leasesSubject = PublishSubject.create();
         processedLeases.subscribe(leasesSubject);
+        running = true;
         return leasesSubject;
     }
 
@@ -305,7 +305,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
         // figure something out.
         return Observable.timer(0, 1, TimeUnit.MINUTES, tickScheduler)
                 .map(tick -> currentTimeSlice())
-                .takeUntil(d -> shutdown)
+                .takeUntil(d -> !running)
                 .doOnNext(tick -> logger.debug("Tick {}", tick))
                 .observeOn(leaseScheduler);
     }
@@ -427,7 +427,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
     public void shutdown() {
         try {
             logger.debug("shutting down");
-            shutdown = true;
+            running = false;
 
             if (leasesSubscription != null) {
                 leasesSubscription.unsubscribe();
