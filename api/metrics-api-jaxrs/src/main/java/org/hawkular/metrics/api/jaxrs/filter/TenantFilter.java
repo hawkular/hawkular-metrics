@@ -30,6 +30,7 @@ import javax.ws.rs.ext.Provider;
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.BaseHandler;
 import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
+import org.hawkular.metrics.api.jaxrs.handler.VirtualClockHandler;
 
 /**
  * @author Stefan Negrea
@@ -52,7 +53,7 @@ public class TenantFilter implements ContainerRequestFilter {
         String path = uriInfo.getPath();
 
         if (path.startsWith("/tenants") || path.startsWith("/db") || path.startsWith(StatusHandler.PATH)
-            || path.equals(BaseHandler.PATH)) {
+            || path.equals(BaseHandler.PATH) || path.startsWith(VirtualClockHandler.PATH)) {
             // Tenants, Influx and status handlers do not check the tenant header
             return;
         }

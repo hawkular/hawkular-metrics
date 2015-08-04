@@ -22,7 +22,6 @@ import org.junit.Test
 
 import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
-
 /**
  * @author John Sanda
  */
@@ -305,13 +304,16 @@ class CountersITest extends RESTTest {
     assertEquals(204, response.status)
   }
 
-//  @Test
+  @Test
   void findRate() {
     String tenantId = nextTenantId()
     String counter = "C1"
     DateTimeService dateTimeService = new DateTimeService()
-    DateTime start = dateTimeService.getTimeSlice(now(), Duration.standardSeconds(5)).plusSeconds(5)
+    DateTime start = dateTimeService.getTimeSlice(now(), Duration.standardMinutes(1)).minusMinutes(10)
 
+    setTime(start)
+
+    // Create the counter metric
     def response = hawkularMetrics.post(
         path: "counters",
         headers: [(tenantHeaderName): tenantId],
@@ -323,41 +325,50 @@ class CountersITest extends RESTTest {
         path: "counters/$counter/data",
         headers: [(tenantHeaderName): tenantId],
         body: [
-            [timestamp: start.millis, value: 100],
-            [timestamp: start.plusSeconds(1).millis, value : 200],
-            [timestamp: start.plusSeconds(3).millis, value : 345],
-            [timestamp: start.plusSeconds(5).millis, value : 515],
-            [timestamp: start.plusSeconds(7).millis, value : 595],
-            [timestamp: start.plusSeconds(9).millis, value : 747]
+            [timestamp: start.plusMinutes(1).millis, value: 100],
+            [timestamp: start.plusMinutes(1).plusSeconds(31).millis, value : 200],
+            [timestamp: start.plusMinutes(2).plusMillis(10).millis, value : 345],
+            [timestamp: start.plusMinutes(2).plusSeconds(30).millis, value : 515],
+            [timestamp: start.plusMinutes(3).millis, value : 595],
+            [timestamp: start.plusMinutes(3).plusSeconds(30).millis, value : 747]
         ]
     )
     assertEquals(200, response.status)
 
-    while (now().isBefore(start.plusSeconds(20))) {
-      Thread.sleep(100)
-    }
+    setTime(start.plusMinutes(4))
+    Thread.sleep(2500)
 
     response = hawkularMetrics.get(
         path: "counters/$counter/rate",
         headers: [(tenantHeaderName): tenantId],
-        query: [start: start.millis, end: start.plusSeconds(10).millis]
+        query: [start: start.plusMinutes(1).millis, end: start.plusMinutes(4).millis]
     )
     assertEquals(200, response.status)
 
     def expectedData = [
         [
-            timestamp: start.plusSeconds(5).millis,
-            value: calculateRate(747, start.plusSeconds(5), start.plusSeconds(10))
+            timestamp: start.plusMinutes(3).millis,
+            value: calculateRate(747, start.plusMinutes(3), start.plusMinutes(4))
         ],
         [
-            timestamp: start.millis,
-            value: calculateRate(345, start, start.plusSeconds(5))
+            timestamp: start.plusMinutes(2).millis,
+            value: calculateRate(515, start.plusMinutes(2), start.plusMinutes(3))
+        ],
+        [
+            timestamp: start.plusMinutes(1).millis,
+            value: calculateRate(200, start.plusMinutes(1), start.plusMinutes(2))
         ],
     ]
 
-    assertEquals("Expected to get back two data points", 2, response.data.size())
+    assertEquals("Expected to get back three data points", 3, response.data.size())
     assertRateEquals(expectedData[0], response.data[0])
     assertRateEquals(expectedData[1], response.data[1])
+    assertRateEquals(expectedData[2], response.data[2])
+  }
+
+  static void setTime(DateTime time) {
+    def response = hawkularMetrics.put(path: "clock", body: [time: time.millis])
+    assertEquals(200, response.status)
   }
 
   static double calculateRate(double value, DateTime start, DateTime end) {

@@ -197,6 +197,9 @@ public class MetricsServiceImpl implements MetricsService {
 
         this.metricRegistry = metricRegistry;
         initMetrics();
+
+        GenerateRate generateRates = new GenerateRate(this);
+        taskScheduler.subscribe(generateRates);
     }
 
     void loadDataRetentions() {

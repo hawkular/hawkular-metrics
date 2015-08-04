@@ -103,6 +103,8 @@ public class TaskSchedulerImpl implements TaskScheduler {
 
     private boolean shutdown;
 
+    private boolean started;
+
     /**
      * A subject to broadcast tasks that are to be executed. Other task scheduling libraries
      * and frameworks have a more tight coupling with the objects that perform the actual
@@ -175,6 +177,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
      * @param onNext The task execution callback
      * @return A subscription which can be used to stop receiving task notifications.
      */
+    @Override
     public Subscription subscribe(Action1<Task2> onNext) {
         return taskSubject.subscribe(onNext);
     }
@@ -185,6 +188,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
      * @param subscriber The callback
      * @return A subscription which can be used to stop receiving task notifications.
      */
+    @Override
     public Subscription subscribe(Subscriber<Task2> subscriber) {
         return taskSubject.subscribe(new SubscriberWrapper(subscriber));
     }
@@ -277,7 +281,6 @@ public class TaskSchedulerImpl implements TaskScheduler {
         // primary motivation for having this method return a hot observable.
         PublishSubject<Lease> leasesSubject = PublishSubject.create();
         processedLeases.subscribe(leasesSubject);
-
         return leasesSubject;
     }
 
