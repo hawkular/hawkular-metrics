@@ -50,16 +50,37 @@ public final class Buckets {
         this.count = count;
     }
 
+    /**
+     * @return TODO
+     */
     public long getStart() {
         return start;
     }
 
+    /**
+     * @return TODO
+     */
     public long getStep() {
         return step;
     }
 
+    /**
+     * @return TODO
+     */
     public int getCount() {
         return count;
+    }
+
+    /**
+     * TODO
+     *
+     * @param index TODO
+     *
+     * @return TODO
+     */
+    public long getRangeStart(int index) {
+        checkArgument(index >= 0 && index < count, "index out of range");
+        return start + index * step;
     }
 
     @Override

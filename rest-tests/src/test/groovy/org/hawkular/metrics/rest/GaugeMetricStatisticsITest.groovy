@@ -17,20 +17,23 @@
 package org.hawkular.metrics.rest
 
 import static java.lang.Double.NaN
-import static org.apache.commons.math3.stat.StatUtils.percentile
+
 import static org.joda.time.Seconds.seconds
 import static org.junit.Assert.assertEquals
 
+import org.apache.commons.math3.stat.descriptive.moment.Mean
+import org.apache.commons.math3.stat.descriptive.rank.Max
+import org.apache.commons.math3.stat.descriptive.rank.Min
+import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile
 import org.hawkular.metrics.core.impl.DateTimeService
 import org.joda.time.DateTime
+import org.joda.time.Duration
 import org.junit.Test
 
 /**
  * @author Thomas Segismont
  */
 class GaugeMetricStatisticsITest extends RESTTest {
-  private static final int SAMPLE_SIZE = 200
-  private static final int NUMBER_OF_BUCKETS = 10
 
   @Test
   void shouldNotAcceptInvalidParams() {
@@ -47,14 +50,16 @@ class GaugeMetricStatisticsITest extends RESTTest {
       assertEquals(400, exception.response.status)
     }
 
-    badGet(path: "gauges/$metric/data", query: [buckets: Integer.MAX_VALUE], headers: [(tenantHeaderName): tenantId]) { exception ->
+    badGet(path: "gauges/$metric/data",
+        query: [buckets: Integer.MAX_VALUE], headers: [(tenantHeaderName): tenantId]) { exception ->
       // Bucket size = zero
       assertEquals(400, exception.response.status)
     }
 
-    badGet(path: "gauges/$metric/data", query: [bucketDuration: "1w"], headers: [(tenantHeaderName): tenantId]) { exception ->
-      // Illegal duration
-      assertEquals(400, exception.response.status)
+    badGet(path: "gauges/$metric/data", query: [bucketDuration: "1w"], headers: [(tenantHeaderName): tenantId]) {
+      exception ->
+        // Illegal duration
+        assertEquals(400, exception.response.status)
     }
 
     badGet(path: "gauges/$metric/data",
@@ -64,7 +69,8 @@ class GaugeMetricStatisticsITest extends RESTTest {
         assertEquals(400, exception.response.status)
     }
 
-    badGet(path: "gauges/$metric/data", query: [buckets: 1, bucketDuration: "1d"], headers: [(tenantHeaderName): tenantId]) { exception ->
+    badGet(path: "gauges/$metric/data",
+        query: [buckets: 1, bucketDuration: "1d"], headers: [(tenantHeaderName): tenantId]) { exception ->
       // Both buckets and bucketDuration parameters provided
       assertEquals(400, exception.response.status)
     }
@@ -85,7 +91,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
 
     def response = hawkularMetrics.post(path: "gauges/$metric/data", body: [
         [timestamp: buckets[0], value: 12.22],
-        [timestamp: buckets[0] + seconds(10).toStandardDuration().millis, value: 12.37],
+        [timestamp: buckets[0] + seconds(10).toStandardDuration().millis, value: 15.37],
         [timestamp: buckets[4], value: 25],
         [timestamp: buckets[4] + seconds(15).toStandardDuration().millis, value: 25],
         [timestamp: buckets[9], value: 18.367],
@@ -97,13 +103,24 @@ class GaugeMetricStatisticsITest extends RESTTest {
         query: [start: start.millis, end: end.millis, buckets: 10], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
 
-    def avg0 = (12.22 + 12.37) / 2
-    def avg9 = (18.367 + 19.01) / 2
+    def avg0 = new Mean(), med0 = new PSquarePercentile(50.0), perc95th0 = new PSquarePercentile(95.0)
+    [12.22, 15.37].each { value ->
+      avg0.increment(value)
+      med0.increment(value)
+      perc95th0.increment(value)
+    }
+
+    def avg9 = new Mean(), med9 = new PSquarePercentile(50.0), perc95th9 = new PSquarePercentile(95.0)
+    [18.367, 19.01].each { value ->
+      avg9.increment(value)
+      med9.increment(value)
+      perc95th9.increment(value)
+    }
 
     def expectedData = [
         [
             start: buckets[0], end: buckets[0] + bucketSize, empty: false, min: 12.22,
-            avg  : avg0, median: avg0, max: 12.37, percentile95th: 12.37
+            avg: avg0.getResult(), median: med0.getResult(), max: 15.37, percentile95th: perc95th0.getResult()
         ], [
             start: buckets[1], end: buckets[1] + bucketSize, empty: true, min: NaN,
             avg  : NaN, median: NaN, max: NaN, percentile95th: NaN
@@ -130,75 +147,91 @@ class GaugeMetricStatisticsITest extends RESTTest {
             avg  : NaN, median: NaN, max: NaN, percentile95th: NaN
         ], [
             start: buckets[9], end: buckets[9] + bucketSize, empty: false, min: 18.367,
-            avg  : avg9, median: avg9, max: 19.01, percentile95th: 19.01
+            avg: avg9.getResult(), median: med9.getResult(), max: 19.01, percentile95th: perc95th9.getResult()
         ]
     ]
 
     assertEquals('The number of bucketed data points is wrong', expectedData.size(), response.data.size())
-    expectedData.size().times { assertBucketEquals(expectedData[it], response.data[it]) }
+    expectedData.size().times { assertBucketEquals(it, expectedData[it], response.data[it]) }
   }
 
   @Test
   void largeDataSetTest() {
     String tenantId = nextTenantId()
     String metric = "test"
+    int nbOfBuckets = 10
+    long bucketSize = Duration.standardDays(1).millis
+    int interval = Duration.standardMinutes(1).millis
+    int sampleSize = (bucketSize / interval) - 1
 
-    def start = new DateTimeService().currentHour().minusHours(24)
+    def start = new DateTimeService().currentHour().minus(3 * nbOfBuckets * bucketSize)
 
-    for (step in 1..NUMBER_OF_BUCKETS) {
-      def hour = start.plusHours(step - 1)
+    def expectedData = []
 
-      def values = createSample(step)
-      values = Arrays.asList(values)
-      Collections.shuffle(values);
+    for (step in 0..nbOfBuckets - 1) {
+      def bucketStart = start.plus(step * bucketSize)
+
+      def sample = createSample(sampleSize)
 
       def data = [];
-      for (i in 1..values.size()) {
-        data.add([timestamp: hour.plusMillis(i).millis, value: values[i - 1]])
+      def min = new Min(), avg = new Mean(), median = new PSquarePercentile(50.0), max = new Max(),
+          perc95th = new PSquarePercentile(95.0)
+
+      for (int i in 0..sample.size() - 1) {
+        data.add([timestamp: bucketStart.plus(i * interval).millis, value: sample[i]])
       }
 
-      def response = hawkularMetrics.post(path: "gauges/$metric/data", body: data, headers: [(tenantHeaderName): tenantId])
+      sample.reverse().each { value ->
+        min.increment(value);
+        avg.increment(value);
+        median.increment(value);
+        max.increment(value);
+        perc95th.increment(value);
+      }
+
+      def response = hawkularMetrics.post(path: "gauges/$metric/data",
+          body: data, headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
+
+      expectedData.add([
+          start         : bucketStart.millis,
+          end           : bucketStart.plus(bucketSize).millis,
+          min           : min.getResult(),
+          avg           : avg.getResult(),
+          median        : median.getResult(),
+          max           : max.getResult(),
+          percentile95th: perc95th.getResult(),
+          empty         : false
+      ])
     }
 
     def response = hawkularMetrics.get(path: "gauges/$metric/data",
-        query: [start: start.millis, end: start.plusHours(NUMBER_OF_BUCKETS).millis, bucketDuration: "1h"],
+        query: [
+            start: start.millis, end: start.plus(nbOfBuckets * bucketSize).millis, bucketDuration: "${bucketSize}ms"
+        ],
         headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
 
-    def percentileBase = percentile(createSample(1), 95.0);
-    def expectedData = []
-    for (step in 1..NUMBER_OF_BUCKETS) {
-      expectedData.add([
-          start         : start.plusHours(step - 1).millis,
-          end           : start.plusHours(step).millis,
-          min           : step,
-          avg           : step - 1 + (SAMPLE_SIZE + 1) / 2,
-          median        : step - 1 + (SAMPLE_SIZE + 1) / 2,
-          max           : step - 1 + SAMPLE_SIZE,
-          percentile95th: step - 1 + percentileBase,
-          empty         : false]
-      )
-    }
-
     assertEquals('The number of bucketed data points is wrong', expectedData.size(), response.data.size())
-    expectedData.size().times { assertBucketEquals(expectedData[it], response.data[it]) }
+    expectedData.size().times { assertBucketEquals(it, expectedData[it], response.data[it]) }
   }
 
-  private static double[] createSample(def step) {
-    def values = new double[SAMPLE_SIZE];
-    Arrays.setAll(values, { i -> (double) (i + step) })
+  private static List<Double> createSample(int sampleSize) {
+    def values = new double[sampleSize];
+    def random = new Random()
+    Arrays.setAll(values, { i -> random.nextDouble() * 1000D })
     return values;
   }
 
-  private static void assertBucketEquals(def expected, def actual) {
-    assertEquals(expected.start, actual.start)
-    assertEquals(expected.end, actual.end)
-    assertEquals(expected.empty, actual.empty)
-    assertDoubleEquals(expected.min, actual.min)
-    assertDoubleEquals(expected.avg, actual.avg)
-    assertDoubleEquals(expected.median, actual.median)
-    assertDoubleEquals(expected.max, actual.max)
-    assertDoubleEquals(expected.percentile95th, actual.percentile95th)
+  private static void assertBucketEquals(def index, def expected, def actual) {
+    def msg = "Index ${index}, expected ${expected}, actual ${actual}"
+    assertEquals(msg, expected.start, actual.start)
+    assertEquals(msg, expected.end, actual.end)
+    assertEquals(msg, expected.empty, actual.empty)
+    assertDoubleEquals(msg, expected.min, actual.min)
+    assertDoubleEquals(msg, expected.avg, actual.avg)
+    assertDoubleEquals(msg, expected.median, actual.median)
+    assertDoubleEquals(msg, expected.max, actual.max)
+    assertDoubleEquals(msg, expected.percentile95th, actual.percentile95th)
   }
 }

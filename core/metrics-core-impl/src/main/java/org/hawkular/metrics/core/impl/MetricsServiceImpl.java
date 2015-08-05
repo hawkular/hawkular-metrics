@@ -42,6 +42,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 
+import org.apache.commons.math3.stat.descriptive.moment.Mean;
+import org.apache.commons.math3.stat.descriptive.rank.Max;
+import org.apache.commons.math3.stat.descriptive.rank.Min;
+import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.BucketedOutput;
@@ -75,7 +79,6 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -83,6 +86,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import rx.Observable;
+import rx.Observer;
 import rx.functions.Func1;
 import rx.subjects.PublishSubject;
 
@@ -610,15 +614,58 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<BucketedOutput<GaugeBucketDataPoint>> findGaugeStats(
             Metric<Double> metric, long start, long end, Buckets buckets
     ) {
-        // When we implement date partitioning, dpart will have to be determined based on
-        // the start and end params. And it is possible the the date range spans multiple
-        // date partitions.
-        return dataAccess.findData(metric.getId(), start, end)
-                .flatMap(Observable::from)
-                .map(Functions::getGaugeDataPoint)
-                .lift(new GaugeBucketedOutputOperator(buckets))
-                .toList()
-                .map(Lists::reverse) // Buckets are emitted in time descending order
+        return Observable.range(0, buckets.getCount())
+                .map(index -> {
+                    long from = buckets.getRangeStart(index);
+                    long to = Math.min(end, from + buckets.getStep());
+                    Observable<DataPoint<Double>> gaugeData = findGaugeData(metric.getId(), from, to);
+                    return new BucketData<>(index, gaugeData);
+                })
+                .flatMap(bucketData -> {
+                    return Observable.<GaugeBucketDataPoint>create(subscriber -> {
+                        bucketData.getDataPoints().subscribe(new Observer<DataPoint<Double>>() {
+                            volatile boolean isEmpty = true;
+                            Min min = new Min();
+                            Mean average = new Mean();
+                            PSquarePercentile median = new PSquarePercentile(50.0);
+                            Max max = new Max();
+                            PSquarePercentile percentile95th = new PSquarePercentile(95.0);
+
+                            @Override
+                            public void onCompleted() {
+                                long from = buckets.getRangeStart(bucketData.getIndex());
+                                long to = Math.min(end, from + buckets.getStep());
+                                GaugeBucketDataPoint.Builder builder = new GaugeBucketDataPoint.Builder(from, to);
+                                if (!isEmpty) {
+                                    builder.setMin(min.getResult())
+                                            .setAvg(average.getResult())
+                                            .setMedian(median.getResult())
+                                            .setMax(max.getResult())
+                                            .setPercentile95th(percentile95th.getResult());
+                                }
+                                subscriber.onNext(builder.build());
+                                subscriber.onCompleted();
+                            }
+
+                            @Override
+                            public void onError(Throwable t) {
+                                subscriber.onError(t);
+                            }
+
+                            @Override
+                            public void onNext(DataPoint<Double> doubleDataPoint) {
+                                isEmpty = false;
+                                Double value = doubleDataPoint.getValue();
+                                min.increment(value);
+                                average.increment(value);
+                                median.increment(value);
+                                max.increment(value);
+                                percentile95th.increment(value);
+                            }
+                        });
+                    });
+                })
+                .toSortedList((b1, b2) -> Long.compare(b1.getStart(), b2.getStart()), buckets.getCount())
                 .map(data -> new BucketedOutput<>(metric.getId().getTenantId(), metric.getId().getName(), data));
     }
 

@@ -17,6 +17,7 @@
 package org.hawkular.metrics.api.jaxrs.util;
 
 import static java.util.stream.Collectors.toList;
+
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
@@ -27,7 +28,6 @@ import java.util.Optional;
 
 import javax.ws.rs.core.Response;
 
-import com.google.common.base.Throwables;
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
@@ -39,12 +39,18 @@ import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Throwables;
+
 import rx.Observable;
 
 /**
  * @author jsanda
  */
 public class ApiUtils {
+    private static final Logger LOG = LoggerFactory.getLogger(ApiUtils.class);
 
     private ApiUtils() {
     }
@@ -54,6 +60,7 @@ public class ApiUtils {
     }
 
     public static Response serverError(Throwable t, String message) {
+        LOG.trace("Server error response", t);
         String errorMsg = message + ": " + Throwables.getRootCause(t).getMessage();
         return Response.serverError().entity(new ApiError(errorMsg)).build();
     }
