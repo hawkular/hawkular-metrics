@@ -32,7 +32,7 @@ import com.codahale.metrics.MetricRegistry;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.tasks.api.RepeatingTrigger;
+import org.hawkular.metrics.tasks.api.AbstractTrigger;
 import org.hawkular.metrics.tasks.impl.Queries;
 import org.hawkular.metrics.tasks.impl.TaskSchedulerImpl;
 import org.joda.time.DateTime;
@@ -81,7 +81,7 @@ public class RatesITest extends MetricsITest {
         taskScheduler = new TaskSchedulerImpl(rxSession, new Queries(session));
         taskScheduler.setTickScheduler(tickScheduler);
 
-        RepeatingTrigger.now = tickScheduler::now;
+        AbstractTrigger.now = tickScheduler::now;
 
         metricsService = new MetricsServiceImpl();
         metricsService.setTaskScheduler(taskScheduler);

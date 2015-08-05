@@ -19,21 +19,16 @@ package org.hawkular.metrics.tasks.api;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-import org.joda.time.DateTime;
-import org.joda.time.Duration;
-import org.joda.time.Period;
-
 /**
  * @author jsanda
  */
-public class SingleExecutionTrigger implements Trigger {
+public class SingleExecutionTrigger extends AbstractTrigger {
 
-    private long triggerTime;
+    private Long triggerTime;
 
     public static class Builder {
 
-        private long delay;
-
+        private Long delay;
         private Long triggerTime;
 
         public Builder withDelay(long delay, TimeUnit timeUnit) {
@@ -47,20 +42,25 @@ public class SingleExecutionTrigger implements Trigger {
         }
 
         public SingleExecutionTrigger build() {
-            SingleExecutionTrigger trigger = new SingleExecutionTrigger();
-            if (triggerTime == null) {
-                trigger.triggerTime = getExecutionDateTime(System.currentTimeMillis()).getMillis();
-            }
-            trigger.triggerTime += delay;
-            return trigger;
+            return new SingleExecutionTrigger(delay, triggerTime);
         }
     }
 
-    private SingleExecutionTrigger() {
+    private SingleExecutionTrigger(Long delay, Long triggerTime) {
+        if (delay == null && triggerTime == null) {
+            throw new IllegalArgumentException("Both [delay] and [triggerTime] cannot be null");
+        }
+        if (triggerTime != null) {
+            this.triggerTime = getExecutionTime(triggerTime).getMillis();
+        } else {
+            this.triggerTime = getExecutionTime(now.get() + delay).getMillis();
+        }
     }
 
+    // TODO reduce visibility?
+    // This is for internal use by TaskSchedulerImpl.
     public SingleExecutionTrigger(long triggerTime) {
-        this.triggerTime = getExecutionDateTime(triggerTime).getMillis();
+        this.triggerTime = triggerTime;
     }
 
     @Override
@@ -71,29 +71,6 @@ public class SingleExecutionTrigger implements Trigger {
     @Override
     public Trigger nextTrigger() {
         return null;
-    }
-
-    private static DateTime getExecutionDateTime(long time) {
-        DateTime dt = new DateTime(time);
-        Duration duration = Duration.standardMinutes(1);
-        Period p = duration.toPeriod();
-
-        if (p.getYears() != 0) {
-            return dt.yearOfEra().roundFloorCopy().minusYears(dt.getYearOfEra() % p.getYears());
-        } else if (p.getMonths() != 0) {
-            return dt.monthOfYear().roundFloorCopy().minusMonths((dt.getMonthOfYear() - 1) % p.getMonths());
-        } else if (p.getWeeks() != 0) {
-            return dt.weekOfWeekyear().roundFloorCopy().minusWeeks((dt.getWeekOfWeekyear() - 1) % p.getWeeks());
-        } else if (p.getDays() != 0) {
-            return dt.dayOfMonth().roundFloorCopy().minusDays((dt.getDayOfMonth() - 1) % p.getDays());
-        } else if (p.getHours() != 0) {
-            return dt.hourOfDay().roundFloorCopy().minusHours(dt.getHourOfDay() % p.getHours());
-        } else if (p.getMinutes() != 0) {
-            return dt.minuteOfHour().roundFloorCopy().minusMinutes(dt.getMinuteOfHour() % p.getMinutes());
-        } else if (p.getSeconds() != 0) {
-            return dt.secondOfMinute().roundFloorCopy().minusSeconds(dt.getSecondOfMinute() % p.getSeconds());
-        }
-        return dt.millisOfSecond().roundCeilingCopy().minusMillis(dt.getMillisOfSecond() % p.getMillis());
     }
 
     @Override

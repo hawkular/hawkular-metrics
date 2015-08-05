@@ -18,52 +18,45 @@ package org.hawkular.metrics.tasks.api;
 
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
-import org.joda.time.DateTime;
-import org.joda.time.Duration;
-import org.joda.time.Period;
 
 /**
  * @author jsanda
  */
-public class RepeatingTrigger implements Trigger {
+public class RepeatingTrigger extends AbstractTrigger {
 
-    public static Supplier<Long> now = System::currentTimeMillis;
+    private Long triggerTime;
 
-    private long triggerTime;
+    private Long interval;
 
-    private long interval;
-
-    private long delay;
+    private Long delay;
 
     private Integer repeatCount;
 
-    private int executionCount;
+    private Integer executionCount;
 
     public static class Builder {
 
-        private RepeatingTrigger trigger = new RepeatingTrigger();
+        private Long interval;
+        private Long delay;
+        private Integer repeatCount;
 
         public Builder withInterval(int interval, TimeUnit timeUnit) {
-            trigger.interval = TimeUnit.MILLISECONDS.convert(interval, timeUnit);
+            this.interval = TimeUnit.MILLISECONDS.convert(interval, timeUnit);
             return this;
         }
 
         public Builder withDelay(int delay, TimeUnit timeUnit) {
-            trigger.delay = TimeUnit.MILLISECONDS.convert(delay, timeUnit);
+            this.delay = TimeUnit.MILLISECONDS.convert(delay, timeUnit);
             return this;
         }
 
         public Builder withRepeatCount(int count) {
-            trigger.repeatCount = count;
+            this.repeatCount = count;
             return this;
         }
 
         public RepeatingTrigger build() {
-            trigger.triggerTime = trigger.getExecutionDateTime().getMillis() + trigger.delay;
-            trigger.executionCount = 1;
-            return trigger;
+            return new RepeatingTrigger(interval, delay, repeatCount);
         }
 
     }
@@ -71,26 +64,22 @@ public class RepeatingTrigger implements Trigger {
     private RepeatingTrigger() {
     }
 
-    public RepeatingTrigger(long interval) {
-        this.interval = interval;
-    }
-
-    public RepeatingTrigger(long interval, long delay, long triggerTime) {
-        this.interval = interval;
-        this.delay = delay;
-        this.triggerTime = triggerTime;
-    }
-
-    // TODO shoud this constructor be exposed in the client API?
-    // We need this constructor for use by the scheduler when creating a trigger from a row
-    // in the database.
-    public RepeatingTrigger(long interval, long delay, long triggerTime, int executionCount) {
+    private RepeatingTrigger(Long interval, Long delay, Integer repeatCount) {
+        if (interval == null && delay == null) {
+            throw new IllegalArgumentException("Both [interval] and [delay] cannot be null");
+        }
         this.interval = interval;
         this.delay = delay;
-        this.triggerTime = triggerTime;
-        this.executionCount = executionCount;
+        this.repeatCount = repeatCount;
+        this.executionCount = 1;
+
+        if (delay != null) {
+            triggerTime = getExecutionTime(now.get() + delay).getMillis();
+        }
     }
 
+    // TODO reduce visibility?
+    // This is for internal use by TaskSchedulerImpl.
     public RepeatingTrigger(long interval, long delay, long triggerTime, int repeatCount, int executionCount) {
         this.interval = interval;
         this.delay = delay;
@@ -123,6 +112,8 @@ public class RepeatingTrigger implements Trigger {
 
     @Override
     public Trigger nextTrigger() {
+        // TODO what should we do if interval is null?
+
         if (repeatCount != null && executionCount + 1 > repeatCount) {
             return null;
         }
@@ -134,29 +125,6 @@ public class RepeatingTrigger implements Trigger {
         next.executionCount = executionCount + 1;
 
         return next;
-    }
-
-    private DateTime getExecutionDateTime() {
-        DateTime dt = new DateTime(now.get());
-        Duration duration = Duration.standardMinutes(1);
-        Period p = duration.toPeriod();
-
-        if (p.getYears() != 0) {
-            return dt.yearOfEra().roundFloorCopy().minusYears(dt.getYearOfEra() % p.getYears());
-        } else if (p.getMonths() != 0) {
-            return dt.monthOfYear().roundFloorCopy().minusMonths((dt.getMonthOfYear() - 1) % p.getMonths());
-        } else if (p.getWeeks() != 0) {
-            return dt.weekOfWeekyear().roundFloorCopy().minusWeeks((dt.getWeekOfWeekyear() - 1) % p.getWeeks());
-        } else if (p.getDays() != 0) {
-            return dt.dayOfMonth().roundFloorCopy().minusDays((dt.getDayOfMonth() - 1) % p.getDays());
-        } else if (p.getHours() != 0) {
-            return dt.hourOfDay().roundFloorCopy().minusHours(dt.getHourOfDay() % p.getHours());
-        } else if (p.getMinutes() != 0) {
-            return dt.minuteOfHour().roundFloorCopy().minusMinutes(dt.getMinuteOfHour() % p.getMinutes());
-        } else if (p.getSeconds() != 0) {
-            return dt.secondOfMinute().roundFloorCopy().minusSeconds(dt.getSecondOfMinute() % p.getSeconds());
-        }
-        return dt.millisOfSecond().roundCeilingCopy().minusMillis(dt.getMillisOfSecond() % p.getMillis());
     }
 
     @Override

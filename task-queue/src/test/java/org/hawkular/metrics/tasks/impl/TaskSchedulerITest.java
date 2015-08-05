@@ -38,6 +38,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.google.common.collect.ImmutableMap;
 import org.hawkular.metrics.tasks.BaseITest;
+import org.hawkular.metrics.tasks.api.AbstractTrigger;
 import org.hawkular.metrics.tasks.api.RepeatingTrigger;
 import org.hawkular.metrics.tasks.api.SingleExecutionTrigger;
 import org.hawkular.metrics.tasks.api.Task2;
@@ -106,7 +107,7 @@ public class TaskSchedulerITest extends BaseITest {
         finishedTimeSlices = scheduler.getFinishedTimeSlices();
         leaseObservable = scheduler.start();
 
-        RepeatingTrigger.now = tickScheduler::now;
+        AbstractTrigger.now = tickScheduler::now;
     }
 
     @AfterClass
@@ -127,7 +128,7 @@ public class TaskSchedulerITest extends BaseITest {
     public void executeSingleTask() {
         String group = "group-1";
         int order = 100;
-        SingleExecutionTrigger trigger = new SingleExecutionTrigger(tickScheduler.now() + MINUTES.toMillis(1));
+        SingleExecutionTrigger trigger = new SingleExecutionTrigger.Builder().withDelay(1, MINUTES).build();
         Date timeSlice = new Date(trigger.getTriggerTime());
         Task2Impl task = new Task2Impl(randomUUID(), group, order, "task1", emptyMap(), trigger);
 
@@ -245,7 +246,7 @@ public class TaskSchedulerITest extends BaseITest {
     public void executeMultipleTasksFromSameGroup() {
         int numTasks = 10;
         String group = "group-1";
-        SingleExecutionTrigger trigger = new SingleExecutionTrigger(tickScheduler.now() + MINUTES.toMillis(1));
+        SingleExecutionTrigger trigger = new SingleExecutionTrigger.Builder().withDelay(1, MINUTES).build();
 
         Observable<Task2> tasks = createTasks(numTasks, group, trigger).cache();
         setUpTasksForExecution(tasks);
@@ -280,7 +281,7 @@ public class TaskSchedulerITest extends BaseITest {
         int numTasks = 10;
         final String group1 = "group-one";
         final String group2 = "group-two";
-        SingleExecutionTrigger trigger = new SingleExecutionTrigger(tickScheduler.now() + MINUTES.toMillis(1));
+        SingleExecutionTrigger trigger = new SingleExecutionTrigger.Builder().withDelay(1, MINUTES).build();
 
         scheduler.setComputeShardFn(group -> {
             switch (group) {
@@ -332,7 +333,7 @@ public class TaskSchedulerITest extends BaseITest {
         final String group1 = "group-one";
         final String group2 = "group-two";
         final int shard = 1;
-        SingleExecutionTrigger trigger = new SingleExecutionTrigger(tickScheduler.now() + MINUTES.toMillis(1));
+        SingleExecutionTrigger trigger = new SingleExecutionTrigger.Builder().withDelay(1, MINUTES).build();
 
         scheduler.setComputeShardFn(group -> shard);
 
