@@ -37,7 +37,7 @@ public class GaugeBucketedOutputOperator extends BucketedOutputOperator<Double, 
      * @param buckets the bucket configuration
      */
     public GaugeBucketedOutputOperator(Buckets buckets) {
-        super(buckets);
+        super(buckets, true);
     }
 
     @Override

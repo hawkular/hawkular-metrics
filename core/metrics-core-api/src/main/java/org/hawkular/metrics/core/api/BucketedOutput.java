@@ -35,6 +35,12 @@ public class BucketedOutput<POINT> {
     public BucketedOutput() {
     }
 
+    public BucketedOutput(String tenantId, String id, List<POINT> data) {
+        this.tenantId = tenantId;
+        this.id = id;
+        this.data = data;
+    }
+
     public BucketedOutput(String tenantId, String id, Map<String, String> metadata) {
         this.tenantId = tenantId;
         this.id = id;

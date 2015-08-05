@@ -75,6 +75,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -615,8 +616,10 @@ public class MetricsServiceImpl implements MetricsService {
         return dataAccess.findData(metric.getId(), start, end)
                 .flatMap(Observable::from)
                 .map(Functions::getGaugeDataPoint)
+                .lift(new GaugeBucketedOutputOperator(buckets))
                 .toList()
-                .map(new GaugeBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets));
+                .map(Lists::reverse) // Buckets are emitted in time descending order
+                .map(data -> new BucketedOutput<>(metric.getId().getTenantId(), metric.getId().getName(), data));
     }
 
     @Override
@@ -647,8 +650,9 @@ public class MetricsServiceImpl implements MetricsService {
         return dataAccess.findAvailabilityData(metric.getId(), start, end)
                 .flatMap(Observable::from)
                 .map(Functions::getAvailabilityDataPoint)
+                .lift(new AvailabilityBucketedOutputOperator(buckets))
                 .toList()
-                .map(new AvailabilityBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets));
+                .map(data -> new BucketedOutput<>(metric.getId().getTenantId(), metric.getId().getName(), data));
     }
 
     @Override

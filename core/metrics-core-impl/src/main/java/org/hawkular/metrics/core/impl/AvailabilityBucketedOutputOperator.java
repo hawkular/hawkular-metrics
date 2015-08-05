@@ -36,7 +36,7 @@ public class AvailabilityBucketedOutputOperator extends BucketedOutputOperator<A
      * @param buckets the bucket configuration
      */
     public AvailabilityBucketedOutputOperator(Buckets buckets) {
-        super(buckets);
+        super(buckets, false);
     }
 
     @Override

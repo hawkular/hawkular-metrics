@@ -23,6 +23,8 @@ import java.util.List;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.DataPoint;
 
+import com.google.common.collect.Lists;
+
 import rx.Observable.Operator;
 import rx.Subscriber;
 
@@ -31,8 +33,6 @@ import rx.Subscriber;
  * data.
  * <p>
  * The number of buckets emitted is determined by the {@link Buckets} configuration specified in the constructor.
- * <p>
- * <strong>The source observable is expected to emit data ordered by timestamp.</strong>
  *
  * @param <T>     type of metric value
  * @param <POINT> type of bucket points, like {@link org.hawkular.metrics.core.api.GaugeBucketDataPoint}
@@ -41,12 +41,19 @@ import rx.Subscriber;
  */
 public abstract class BucketedOutputOperator<T, POINT> implements Operator<POINT, DataPoint<T>> {
     protected final Buckets buckets;
+    /**
+     * Availability queries have been refactored to return data is ascending order,
+     * but some gauge data queries return data in descending order.
+     */
+    private final boolean descending;
 
     /**
-     * @param buckets the bucket configuration
+     * @param buckets    the bucket configuration
+     * @param descending whether the source observable emits points in descending order
      */
-    protected BucketedOutputOperator(Buckets buckets) {
+    protected BucketedOutputOperator(Buckets buckets, boolean descending) {
         this.buckets = buckets;
+        this.descending = descending;
     }
 
     @Override
@@ -57,10 +64,12 @@ public abstract class BucketedOutputOperator<T, POINT> implements Operator<POINT
 
             @Override
             public void onNext(DataPoint<T> dataPoint) {
-                while (dataPoint.getTimestamp() - getFrom() > buckets.getStep()) {
-                    // Data point does not belong to the current bucket
+                while (pointIsNotInCurrentBucket(dataPoint)) {
                     if (buffer != null) {
                         // The current bucket has data
+                        if (descending) {
+                            buffer = Lists.reverse(buffer);
+                        }
                         POINT point = newPointInstance(getFrom(), getTo(), buffer);
                         buffer = null;
                         emitBucket(point);
@@ -75,6 +84,13 @@ public abstract class BucketedOutputOperator<T, POINT> implements Operator<POINT
                 buffer.add(dataPoint);
             }
 
+            private boolean pointIsNotInCurrentBucket(DataPoint<T> dataPoint) {
+                if (descending) {
+                    return getTo() - dataPoint.getTimestamp() > buckets.getStep();
+                }
+                return dataPoint.getTimestamp() - getFrom() >= buckets.getStep();
+            }
+
             @Override
             public void onCompleted() {
                 List<DataPoint<T>> oldBuffer = buffer;
@@ -82,6 +98,9 @@ public abstract class BucketedOutputOperator<T, POINT> implements Operator<POINT
                 try {
                     // First emit the last bucket with data
                     if (oldBuffer != null) {
+                        if (descending) {
+                            oldBuffer = Lists.reverse(oldBuffer);
+                        }
                         emitBucket(newPointInstance(getFrom(), getTo(), oldBuffer));
                     }
                     // Then emit missing buckets
@@ -107,6 +126,9 @@ public abstract class BucketedOutputOperator<T, POINT> implements Operator<POINT
             }
 
             private long getFrom() {
+                if (descending) {
+                    return buckets.getStart() + (buckets.getCount() - emittedBuckets - 1) * buckets.getStep();
+                }
                 return buckets.getStart() + emittedBuckets * buckets.getStep();
             }
 
