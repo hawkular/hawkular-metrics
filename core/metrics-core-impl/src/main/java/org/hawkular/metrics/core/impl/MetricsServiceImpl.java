@@ -17,7 +17,6 @@
 package org.hawkular.metrics.core.impl;
 
 import static java.util.Comparator.comparingLong;
-
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
@@ -41,6 +40,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
