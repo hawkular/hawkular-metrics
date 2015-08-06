@@ -46,7 +46,6 @@ import org.hawkular.metrics.tasks.api.Trigger;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -110,10 +109,10 @@ public class TaskSchedulerITest extends BaseITest {
         AbstractTrigger.now = tickScheduler::now;
     }
 
-    @AfterClass
-    public void shutdown() {
-        scheduler.shutdown();
-    }
+//    @AfterClass
+//    public void shutdown() {
+//        scheduler.shutdown();
+//    }
 
     @BeforeMethod
     public void initMethod() {
@@ -325,6 +324,67 @@ public class TaskSchedulerITest extends BaseITest {
         assertLeasesDoNotExist(trigger.getTriggerTime());
         assertQueueDoesNotExist(trigger.getTriggerTime(), group1);
         assertQueueDoesNotExist(trigger.getTriggerTime(), group2);
+    }
+
+    @Test
+    public void executeTasksFromMultipleGroupsMultipleTimes() {
+        int numTasks = 3;
+        final String group1 = "group-ONE";
+        final String group2 = "group-TWO";
+        Trigger trigger = new RepeatingTrigger.Builder()
+                .withDelay(1, MINUTES)
+                .withInterval(1, MINUTES)
+                .build();
+
+        scheduler.setComputeShardFn(group -> {
+            switch (group) {
+                case group1:
+                    return 1;
+                case group2:
+                    return 2;
+                default:
+                    throw new IllegalArgumentException(group + " is not a recognized group key");
+            }
+        });
+
+        TaskSubscriber taskSubscriber = new TaskSubscriber();
+        taskSubscriber.setOnNext(task -> {
+            if (task.getGroupKey().equals(group1) && task.getName().equals("task-2")) {
+                int count = 0;
+                while (count++ < 3) {
+                    tickScheduler.advanceTimeBy(1, MINUTES);
+                }
+            }
+        });
+
+        Observable<Task2> group1Tasks = createTasks(numTasks, group1, trigger).cache();
+        Observable<Task2> group2Tasks = createTasks(numTasks, group2, trigger).cache();
+
+        setUpTasksForExecution(group1Tasks.concatWith(group2Tasks));
+
+        scheduler.getTasks().take(12).subscribe(taskSubscriber);
+
+        tickScheduler.advanceTimeBy(4, MINUTES);
+
+        taskSubscriber.awaitTerminalEvent(5, SECONDS);
+        taskSubscriber.assertNoErrors();
+        taskSubscriber.assertCompleted();
+
+        taskSubscriber.assertValueCount(numTasks * 4);
+
+        List<Task2> actualTasks = taskSubscriber.getOnNextEvents();
+
+        Observable<Task2> nextGroup1Tasks = group1Tasks.map(task -> new Task2Impl(task.getId(), group1,
+                task.getOrder(), task.getName(), task.getParameters(), trigger.nextTrigger()));
+
+        Observable<Task2> nextGroup2Tasks = group2Tasks.map(task -> new Task2Impl(task.getId(), group2,
+                task.getOrder(), task.getName(), task.getParameters(), trigger.nextTrigger()));
+        List<Task2> expectedTasks = Observable.concat(group1Tasks, group2Tasks, nextGroup1Tasks, nextGroup2Tasks)
+                .toList()
+                .toBlocking()
+                .first();
+
+        assertEquals(actualTasks, expectedTasks, "The tasks do not match");
     }
 
     @Test

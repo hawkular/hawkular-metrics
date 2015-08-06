@@ -193,6 +193,10 @@ public class TaskSchedulerImpl implements TaskScheduler {
         return tickSubject;
     }
 
+    public Observable<Task2> getTasks() {
+        return taskSubject;
+    }
+
     /**
      * Starts the scheduler so that it starts emitting tasks for execution.
      *
@@ -361,7 +365,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
         return session.execute(queries.findLeases.bind(timeSlice))
                 .flatMap(Observable::from)
                 .map(row -> new Lease(timeSlice.getTime(), row.getInt(0), row.getString(1), row.getBool(2)))
-                .filter(lease -> !lease.isFinished())
+                .filter(lease -> !lease.isFinished() && lease.getOwner() == null)
                 .toList()
                 .toBlocking()
                 .firstOrDefault(Collections.<Lease>emptyList());
