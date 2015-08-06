@@ -65,6 +65,7 @@ public abstract class BaseITest {
 
     @BeforeMethod
     protected void resetDB() {
+        session.execute("TRUNCATE tasks");
         session.execute("TRUNCATE task_queue");
         session.execute("TRUNCATE leases");
     }

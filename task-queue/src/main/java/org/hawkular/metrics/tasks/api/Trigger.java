@@ -19,16 +19,10 @@ package org.hawkular.metrics.tasks.api;
 /**
  * @author jsanda
  */
-public class TaskExecutionException extends RuntimeException {
+public interface Trigger {
 
-    private final Task failedTask;
+    long getTriggerTime();
 
-    public TaskExecutionException(Task failedTask, Throwable cause) {
-        super(cause);
-        this.failedTask = failedTask;
-    }
+    Trigger nextTrigger();
 
-    public Task getFailedTask() {
-        return failedTask;
-    }
 }

@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.api.jaxrs;
 
-import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -25,7 +24,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_K
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_NODES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_RESETDB;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_USESSL;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.TASK_SCHEDULER_TIME_UNITS;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.USE_VIRTUAL_CLOCK;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
 import java.util.Arrays;
@@ -34,7 +33,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -51,15 +49,19 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
+import org.hawkular.metrics.api.jaxrs.util.VirtualClock;
 import org.hawkular.metrics.core.api.MetricsService;
-import org.hawkular.metrics.core.impl.GenerateRate;
 import org.hawkular.metrics.core.impl.MetricsServiceImpl;
-import org.hawkular.metrics.core.impl.TaskTypes;
 import org.hawkular.metrics.schema.SchemaManager;
-import org.hawkular.metrics.tasks.api.TaskService;
-import org.hawkular.metrics.tasks.api.TaskServiceBuilder;
+import org.hawkular.metrics.tasks.api.RepeatingTrigger;
+import org.hawkular.metrics.tasks.api.TaskScheduler;
+import org.hawkular.metrics.tasks.impl.Queries;
+import org.hawkular.metrics.tasks.impl.TaskSchedulerImpl;
+import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.schedulers.Schedulers;
+import rx.schedulers.TestScheduler;
 
 /**
  * Bean created on startup to manage the lifecycle of the {@link MetricsService} instance shared in application scope.
@@ -81,9 +83,11 @@ public class MetricsServiceLifecycle {
 
     private MetricsServiceImpl metricsService;
 
-    private TaskService taskService;
+    private TaskScheduler taskScheduler;
 
     private final ScheduledExecutorService lifecycleExecutor;
+
+    private VirtualClock virtualClock;
 
     @Inject
     @Configurable
@@ -112,8 +116,8 @@ public class MetricsServiceLifecycle {
 
     @Inject
     @Configurable
-    @ConfigurationProperty(TASK_SCHEDULER_TIME_UNITS)
-    private String timeUnits;
+    @ConfigurationProperty(USE_VIRTUAL_CLOCK)
+    private String useVirtualClock;
 
     @Inject
     @Configurable
@@ -125,6 +129,7 @@ public class MetricsServiceLifecycle {
     private Session session;
 
     MetricsServiceLifecycle() {
+        // Create the shared instance now and initialize it with the C* session when ready
         ThreadFactory threadFactory = r -> {
             Thread thread = Executors.defaultThreadFactory().newThread(r);
             thread.setName(MetricsService.class.getSimpleName().toLowerCase(Locale.ROOT) + "-lifecycle-thread");
@@ -191,11 +196,11 @@ public class MetricsServiceLifecycle {
             // will change at some point though because the task scheduling service will
             // probably move to the hawkular-commons repo.
             initSchema();
-            initTaskService();
+
+            initTaskScheduler();
 
             metricsService = new MetricsServiceImpl();
-            metricsService.setTaskService(taskService);
-            taskService.subscribe(TaskTypes.COMPUTE_RATE, new GenerateRate(metricsService));
+            metricsService.setTaskScheduler(taskScheduler);
 
             // TODO Set up a managed metric registry
             // We want a managed registry that can be shared by the JAX-RS endpoint and the core. Then we can expose
@@ -257,21 +262,19 @@ public class MetricsServiceLifecycle {
         session.execute("USE " + keyspace);
     }
 
-    private void initTaskService() {
-        LOG.info("Initializing {}", TaskService.class.getSimpleName());
-        taskService = new TaskServiceBuilder()
-                .withSession(session)
-                .withTimeUnit(getTimeUnit())
-                .withTaskTypes(singletonList(TaskTypes.COMPUTE_RATE))
-                .build();
-        taskService.start();
-    }
-
-    private TimeUnit getTimeUnit() {
-        if ("seconds".equals(timeUnits)) {
-            return SECONDS;
+    private void initTaskScheduler() {
+        taskScheduler = new TaskSchedulerImpl(new RxSessionImpl(session), new Queries(session));
+        if (Boolean.valueOf(useVirtualClock.toLowerCase())) {
+            // We do not want to start the task scheduler when we are using the virtual
+            // clock. Instead we want to wait to start it until a client sets the virtual
+            // clock; otherwise, we will get a MissingBackpressureException.
+            TestScheduler scheduler = Schedulers.test();
+            virtualClock = new VirtualClock(scheduler);
+            RepeatingTrigger.now = scheduler::now;
+            ((TaskSchedulerImpl) taskScheduler).setTickScheduler(scheduler);
+        } else {
+            taskScheduler.start();
         }
-        return MINUTES;
     }
 
     /**
@@ -281,6 +284,18 @@ public class MetricsServiceLifecycle {
     @ApplicationScoped
     public MetricsService getMetricsService() {
         return metricsService;
+    }
+
+    @Produces
+    @ApplicationScoped
+    public VirtualClock getVirtualClock() {
+        return virtualClock;
+    }
+
+    @Produces
+    @ApplicationScoped
+    public TaskScheduler getTaskScheduler() {
+        return taskScheduler;
     }
 
     @PreDestroy
@@ -297,7 +312,7 @@ public class MetricsServiceLifecycle {
     private void stopMetricsService() {
         state = State.STOPPING;
         metricsService.shutdown();
-        taskService.shutdown();
+        taskScheduler.shutdown();
         if (session != null) {
             try {
                 session.close();

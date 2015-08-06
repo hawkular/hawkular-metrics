@@ -17,14 +17,12 @@
 package org.hawkular.metrics.core.impl;
 
 import static java.util.Comparator.comparingLong;
-
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.Functions.getTTLAvailabilityDataPoint;
 import static org.hawkular.metrics.core.impl.Functions.getTTLGaugeDataPoint;
-import static org.joda.time.DateTime.now;
 import static org.joda.time.Hours.hours;
 
 import java.util.ArrayList;
@@ -40,9 +38,23 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
-
 import java.util.regex.Pattern;
+
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Session;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.BucketedOutput;
@@ -63,27 +75,14 @@ import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
 import org.hawkular.metrics.core.impl.transformers.ItemsToSetTransformer;
 import org.hawkular.metrics.core.impl.transformers.TagsIndexRowTransformer;
 import org.hawkular.metrics.schema.SchemaManager;
-import org.hawkular.metrics.tasks.api.Task;
-import org.hawkular.metrics.tasks.api.TaskService;
+import org.hawkular.metrics.tasks.api.RepeatingTrigger;
+import org.hawkular.metrics.tasks.api.TaskScheduler;
+import org.hawkular.metrics.tasks.api.Trigger;
 import org.hawkular.rx.cassandra.driver.RxUtil;
 import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Session;
-import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-
 import rx.Observable;
 import rx.functions.Func1;
 import rx.subjects.PublishSubject;
@@ -140,7 +139,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     private DataAccess dataAccess;
 
-    private TaskService taskService;
+    private TaskScheduler taskScheduler;
 
     private MetricRegistry metricRegistry;
 
@@ -196,6 +195,9 @@ public class MetricsServiceImpl implements MetricsService {
 
         this.metricRegistry = metricRegistry;
         initMetrics();
+
+        GenerateRate generateRates = new GenerateRate(this);
+        taskScheduler.subscribe(generateRates);
     }
 
     void loadDataRetentions() {
@@ -310,8 +312,8 @@ public class MetricsServiceImpl implements MetricsService {
         this.dataAccess = dataAccess;
     }
 
-    public void setTaskService(TaskService taskService) {
-        this.taskService = taskService;
+    public void setTaskScheduler(TaskScheduler taskScheduler) {
+        this.taskScheduler = taskScheduler;
     }
 
     @Override
@@ -425,9 +427,15 @@ public class MetricsServiceImpl implements MetricsService {
                 }
 
                 if (metric.getType() == COUNTER) {
-                    Task task = TaskTypes.COMPUTE_RATE.createTask(metric.getTenantId(), metric.getId().getName() +
-                            "$rate", metric.getId().getName());
-                    taskService.scheduleTask(now(), task);
+                    Trigger trigger = new RepeatingTrigger.Builder()
+                            .withDelay(1, TimeUnit.MINUTES)
+                            .withInterval(1, TimeUnit.MINUTES)
+                            .build();
+                    Map<String, String> params = ImmutableMap.of(
+                            "metricId", metric.getId().getName(),
+                            "tenantId", metric.getTenantId()
+                    );
+                    taskScheduler.scheduleTask("compute-rate", metric.getTenantId(), 1000, params, trigger);
                 }
 
                 Observable.merge(updates).subscribe(new VoidSubscriber<>(subscriber));
@@ -843,4 +851,5 @@ public class MetricsServiceImpl implements MetricsService {
             throw new RuntimeException("There was an error during a timed event", e);
         }
     }
+
 }
