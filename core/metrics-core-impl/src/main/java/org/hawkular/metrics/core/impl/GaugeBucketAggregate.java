@@ -25,13 +25,14 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.GaugeBucketDataPoint;
 
 /**
+ * Accumulates gauge data points to produce a {@link GaugeBucketDataPoint}.
+ *
  * @author Thomas Segismont
  */
 final class GaugeBucketAggregate {
     private final Buckets buckets;
     private final int bucketIndex;
 
-    private boolean isEmpty = true;
     private Min min = new Min();
     private Mean average = new Mean();
     private PSquarePercentile median = new PSquarePercentile(50.0);
@@ -44,7 +45,6 @@ final class GaugeBucketAggregate {
     }
 
     public void increment(DataPoint<Double> dataPoint) {
-        isEmpty = false;
         Double value = dataPoint.getValue();
         min.increment(value);
         average.increment(value);
@@ -54,16 +54,14 @@ final class GaugeBucketAggregate {
     }
 
     public GaugeBucketDataPoint toBucketPoint() {
-        long from = buckets.getRangeStart(bucketIndex);
+        long from = buckets.getBucketStart(bucketIndex);
         long to = from + buckets.getStep();
-        GaugeBucketDataPoint.Builder builder = new GaugeBucketDataPoint.Builder(from, to);
-        if (!isEmpty) {
-            builder.setMin(min.getResult())
-                    .setAvg(average.getResult())
-                    .setMedian(median.getResult())
-                    .setMax(max.getResult())
-                    .setPercentile95th(percentile95th.getResult());
-        }
-        return builder.build();
+        return new GaugeBucketDataPoint.Builder(from, to)
+                .setMin(min.getResult())
+                .setAvg(average.getResult())
+                .setMedian(median.getResult())
+                .setMax(max.getResult())
+                .setPercentile95th(percentile95th.getResult())
+                .build();
     }
 }

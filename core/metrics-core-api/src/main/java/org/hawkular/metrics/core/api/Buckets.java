@@ -51,34 +51,38 @@ public final class Buckets {
     }
 
     /**
-     * @return TODO
+     * @return start timestamp of the first bucket
      */
     public long getStart() {
         return start;
     }
 
     /**
-     * @return TODO
+     * @return size (in time) of a bucket
      */
     public long getStep() {
         return step;
     }
 
     /**
-     * @return TODO
+     * @return number of buckets
      */
     public int getCount() {
         return count;
     }
 
     /**
-     * TODO
-     *
-     * @param index TODO
-     *
-     * @return TODO
+     * @return the index (starting from zero) of the bucket which the specified {@code timestamp} belongs to
      */
-    public long getRangeStart(int index) {
+    public int getIndex(long timestamp) {
+        checkArgument(timestamp >= start && timestamp < start + count * step, "timestamp out of range");
+        return (int) ((timestamp - start) / step);
+    }
+
+    /**
+     * @return start timestamp of the bucket which position is specified by {@code index}
+     */
+    public long getBucketStart(int index) {
         checkArgument(index >= 0 && index < count, "index out of range");
         return start + index * step;
     }

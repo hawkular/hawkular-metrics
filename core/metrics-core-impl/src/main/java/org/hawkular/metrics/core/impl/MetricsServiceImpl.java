@@ -609,20 +609,26 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<BucketedOutput<GaugeBucketDataPoint>> findGaugeStats(
             Metric<Double> metric, long start, long end, Buckets buckets
     ) {
-        return Observable.range(0, buckets.getCount())
-                .map(index -> {
-                    long from = buckets.getRangeStart(index);
-                    long to = Math.min(end, from + buckets.getStep());
-                    Observable<DataPoint<Double>> gaugeData = findGaugeData(metric.getId(), from, to);
-                    return new BucketData<>(index, gaugeData);
-                })
-                .flatMap(bucketData -> {
-                    Observable<DataPoint<Double>> dataPoints = bucketData.getDataPoints();
-                    return dataPoints.collect(() -> new GaugeBucketAggregate(buckets, bucketData.getIndex()),
-                            GaugeBucketAggregate::increment);
-                })
+        return findGaugeData(metric.getId(), start, end)
+                .groupBy(dataPoint -> buckets.getIndex(dataPoint.getTimestamp()))
+                .flatMap(group -> group.collect(() -> new GaugeBucketAggregate(buckets, group.getKey()),
+                        GaugeBucketAggregate::increment))
                 .map(GaugeBucketAggregate::toBucketPoint)
-                .toSortedList((b1, b2) -> Long.compare(b1.getStart(), b2.getStart()), buckets.getCount())
+                .toMap(GaugeBucketDataPoint::getStart)
+                .map(pointsMap -> {
+                    // Create the bucket list and fill the blanks
+                    List<GaugeBucketDataPoint> result = new ArrayList<>(buckets.getCount());
+                    for (int index = 0; index < buckets.getCount(); index++) {
+                        long from = buckets.getBucketStart(index);
+                        GaugeBucketDataPoint bucketDataPoint = pointsMap.get(from);
+                        if (bucketDataPoint == null) {
+                            // Empty bucket point
+                            bucketDataPoint = new GaugeBucketDataPoint.Builder(from, from + buckets.getStep()).build();
+                        }
+                        result.add(bucketDataPoint);
+                    }
+                    return result;
+                })
                 .map(data -> new BucketedOutput<>(metric.getId().getTenantId(), metric.getId().getName(), data));
     }
 
