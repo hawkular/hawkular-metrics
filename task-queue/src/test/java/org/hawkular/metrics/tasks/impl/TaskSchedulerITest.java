@@ -110,6 +110,11 @@ public class TaskSchedulerITest extends BaseITest {
         AbstractTrigger.now = tickScheduler::now;
     }
 
+    @AfterClass
+    public void shutdown() {
+        scheduler.shutdown();
+    }
+
     @BeforeMethod
     public void initMethod() {
         scheduler.resetComputeShardFn();
