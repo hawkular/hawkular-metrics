@@ -660,9 +660,8 @@ public class MetricsServiceImpl implements MetricsService {
         return dataAccess.findAvailabilityData(metric.getId(), start, end)
                 .flatMap(Observable::from)
                 .map(Functions::getAvailabilityDataPoint)
-                .lift(new AvailabilityBucketedOutputOperator(buckets))
                 .toList()
-                .map(data -> new BucketedOutput<>(metric.getId().getTenantId(), metric.getId().getName(), data));
+                .map(new AvailabilityBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets));
     }
 
     @Override
