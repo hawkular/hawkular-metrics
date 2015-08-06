@@ -196,6 +196,11 @@ public class TaskSchedulerImpl implements TaskScheduler {
         return tickSubject;
     }
 
+    @Override
+    public boolean isRunning() {
+        return running;
+    }
+
     public Observable<Task2> getTasks() {
         return taskSubject;
     }
