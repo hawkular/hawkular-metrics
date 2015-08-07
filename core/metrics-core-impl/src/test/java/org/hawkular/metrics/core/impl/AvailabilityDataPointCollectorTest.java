@@ -21,7 +21,6 @@ import static org.hawkular.metrics.core.api.AvailabilityType.UP;
 import static org.hawkular.metrics.core.impl.AvailabilityBucketDataPointMatcher.matchesAvailabilityBucketDataPoint;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
@@ -30,29 +29,23 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
-
 /**
  * @author Thomas Segismont
  */
-public class AvailabilityBucketedOutputMapperTest {
-    private AvailabilityBucketedOutputMapper mapper;
+public class AvailabilityDataPointCollectorTest {
+    private AvailabilityDataPointCollector collector;
 
     @Before
     public void setup() {
-        Buckets buckets = new Buckets(1, 10, 10);
-        mapper = new AvailabilityBucketedOutputMapper(null, null, buckets);
-    }
-
-    @Test
-    public void newEmptyPointInstance() throws Exception {
-        assertTrue("Expected an empty instance", mapper.newEmptyPointInstance(1, 100).isEmpty());
+        Buckets buckets = new Buckets(10, 10, 10);
+        collector = new AvailabilityDataPointCollector(buckets, 0);
     }
 
     @Test
     public void testWithOneUp() throws Exception {
         DataPoint<AvailabilityType> a1 = new DataPoint<>(15, UP);
-        AvailabilityBucketDataPoint actual = mapper.newPointInstance(10, 20, ImmutableList.of(a1));
+        collector.increment(a1);
+        AvailabilityBucketDataPoint actual = collector.toBucketPoint();
         AvailabilityBucketDataPoint expected = new AvailabilityBucketDataPoint.Builder(10, 20)
                 .setUptimeRatio(1.0)
                 .build();
@@ -63,7 +56,8 @@ public class AvailabilityBucketedOutputMapperTest {
     @Test
     public void testWithOneDown() throws Exception {
         DataPoint<AvailabilityType> a1 = new DataPoint<>(15, DOWN);
-        AvailabilityBucketDataPoint actual = mapper.newPointInstance(10, 20, ImmutableList.of(a1));
+        collector.increment(a1);
+        AvailabilityBucketDataPoint actual = collector.toBucketPoint();
         AvailabilityBucketDataPoint expected = new AvailabilityBucketDataPoint.Builder(10, 20)
                 .setDowntimeCount(1)
                 .setDowntimeDuration(10)
@@ -78,7 +72,9 @@ public class AvailabilityBucketedOutputMapperTest {
     public void testWithOneDownOneUp() throws Exception {
         DataPoint<AvailabilityType> a1 = new DataPoint<>(12, DOWN);
         DataPoint<AvailabilityType> a2 = new DataPoint<>(18, UP);
-        AvailabilityBucketDataPoint actual = mapper.newPointInstance(10, 20, ImmutableList.of(a1, a2));
+        collector.increment(a1);
+        collector.increment(a2);
+        AvailabilityBucketDataPoint actual = collector.toBucketPoint();
         AvailabilityBucketDataPoint expected = new AvailabilityBucketDataPoint.Builder(10, 20)
                 .setDowntimeCount(1)
                 .setDowntimeDuration(8)
@@ -93,12 +89,48 @@ public class AvailabilityBucketedOutputMapperTest {
     public void testWithOneUpOneDown() throws Exception {
         DataPoint<AvailabilityType> a1 = new DataPoint<>(13, UP);
         DataPoint<AvailabilityType> a2 = new DataPoint<>(17, DOWN);
-        AvailabilityBucketDataPoint actual = mapper.newPointInstance(10, 20, ImmutableList.of(a1, a2));
+        collector.increment(a1);
+        collector.increment(a2);
+        AvailabilityBucketDataPoint actual = collector.toBucketPoint();
         AvailabilityBucketDataPoint expected = new AvailabilityBucketDataPoint.Builder(10, 20)
                 .setDowntimeCount(1)
                 .setDowntimeDuration(3)
                 .setLastDowntime(20)
                 .setUptimeRatio(0.7)
+                .build();
+        assertFalse("Expected non empty instance", actual.isEmpty());
+        assertThat(actual, matchesAvailabilityBucketDataPoint(expected));
+    }
+
+    @Test
+    public void testWithTwoDown() throws Exception {
+        DataPoint<AvailabilityType> a1 = new DataPoint<>(13, DOWN);
+        DataPoint<AvailabilityType> a2 = new DataPoint<>(17, DOWN);
+        collector.increment(a1);
+        collector.increment(a2);
+        AvailabilityBucketDataPoint actual = collector.toBucketPoint();
+        AvailabilityBucketDataPoint expected = new AvailabilityBucketDataPoint.Builder(10, 20)
+                .setDowntimeCount(1)
+                .setDowntimeDuration(10)
+                .setLastDowntime(20)
+                .setUptimeRatio(0.0)
+                .build();
+        assertFalse("Expected non empty instance", actual.isEmpty());
+        assertThat(actual, matchesAvailabilityBucketDataPoint(expected));
+    }
+
+    @Test
+    public void testWithTwoUp() throws Exception {
+        DataPoint<AvailabilityType> a1 = new DataPoint<>(13, UP);
+        DataPoint<AvailabilityType> a2 = new DataPoint<>(17, UP);
+        collector.increment(a1);
+        collector.increment(a2);
+        AvailabilityBucketDataPoint actual = collector.toBucketPoint();
+        AvailabilityBucketDataPoint expected = new AvailabilityBucketDataPoint.Builder(10, 20)
+                .setDowntimeCount(0)
+                .setDowntimeDuration(0)
+                .setLastDowntime(0)
+                .setUptimeRatio(1.0)
                 .build();
         assertFalse("Expected non empty instance", actual.isEmpty());
         assertThat(actual, matchesAvailabilityBucketDataPoint(expected));

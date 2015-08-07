@@ -29,7 +29,7 @@ import org.hawkular.metrics.core.api.GaugeBucketDataPoint;
  *
  * @author Thomas Segismont
  */
-final class GaugeBucketAggregate {
+final class GaugeDataPointCollector {
     private final Buckets buckets;
     private final int bucketIndex;
 
@@ -39,12 +39,12 @@ final class GaugeBucketAggregate {
     private Max max = new Max();
     private PSquarePercentile percentile95th = new PSquarePercentile(95.0);
 
-    GaugeBucketAggregate(Buckets buckets, int bucketIndex) {
+    GaugeDataPointCollector(Buckets buckets, int bucketIndex) {
         this.buckets = buckets;
         this.bucketIndex = bucketIndex;
     }
 
-    public void increment(DataPoint<Double> dataPoint) {
+    void increment(DataPoint<Double> dataPoint) {
         Double value = dataPoint.getValue();
         min.increment(value);
         average.increment(value);
@@ -53,7 +53,7 @@ final class GaugeBucketAggregate {
         percentile95th.increment(value);
     }
 
-    public GaugeBucketDataPoint toBucketPoint() {
+    GaugeBucketDataPoint toBucketPoint() {
         long from = buckets.getBucketStart(bucketIndex);
         long to = from + buckets.getStep();
         return new GaugeBucketDataPoint.Builder(from, to)

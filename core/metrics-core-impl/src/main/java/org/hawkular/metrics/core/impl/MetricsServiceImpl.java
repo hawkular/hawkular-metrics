@@ -40,6 +40,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
@@ -611,9 +612,9 @@ public class MetricsServiceImpl implements MetricsService {
     ) {
         return findGaugeData(metric.getId(), start, end)
                 .groupBy(dataPoint -> buckets.getIndex(dataPoint.getTimestamp()))
-                .flatMap(group -> group.collect(() -> new GaugeBucketAggregate(buckets, group.getKey()),
-                        GaugeBucketAggregate::increment))
-                .map(GaugeBucketAggregate::toBucketPoint)
+                .flatMap(group -> group.collect(() -> new GaugeDataPointCollector(buckets, group.getKey()),
+                        GaugeDataPointCollector::increment))
+                .map(GaugeDataPointCollector::toBucketPoint)
                 .toMap(GaugeBucketDataPoint::getStart)
                 .map(pointsMap -> {
                     // Create the bucket list and fill the blanks
@@ -657,11 +658,35 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public Observable<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(
             Metric<AvailabilityType> metric, long start, long end, Buckets buckets) {
-        return dataAccess.findAvailabilityData(metric.getId(), start, end)
-                .flatMap(Observable::from)
-                .map(Functions::getAvailabilityDataPoint)
-                .toList()
-                .map(new AvailabilityBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets));
+        return findAvailabilityData(metric.getId(), start, end)
+                .groupBy(dataPoint -> buckets.getIndex(dataPoint.getTimestamp()))
+                .flatMap(group -> group.collect(() -> new AvailabilityDataPointCollector(buckets, group.getKey()),
+                        AvailabilityDataPointCollector::increment))
+                .map(AvailabilityDataPointCollector::toBucketPoint)
+                .toMap(AvailabilityBucketDataPoint::getStart)
+                .map(pointsMap -> {
+                    return bucketPointsMapToList(
+                            from -> new AvailabilityBucketDataPoint.Builder(from, from + buckets.getStep()).build(),
+                            pointsMap,
+                            buckets);
+                })
+                .map(data -> new BucketedOutput<>(metric.getId().getTenantId(), metric.getId().getName(), data));
+    }
+
+    private static <T> List<T> bucketPointsMapToList(Function<Long, T> emptyBucket, Map<Long, T> pointsMap, Buckets
+            buckets) {
+        // Create the bucket list and fill the blanks
+        List<T> result = new ArrayList<>(buckets.getCount());
+        for (int index = 0; index < buckets.getCount(); index++) {
+            long from = buckets.getBucketStart(index);
+            T bucketDataPoint = pointsMap.get(from);
+            if (bucketDataPoint == null) {
+                // Empty bucket point
+                bucketDataPoint = emptyBucket.apply(from);
+            }
+            result.add(bucketDataPoint);
+        }
+        return result;
     }
 
     @Override
