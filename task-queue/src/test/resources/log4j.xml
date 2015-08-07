@@ -27,7 +27,7 @@
     <param name="Target" value="System.out" />
     <param name="Threshold" value="DEBUG" />
     <layout class="org.apache.log4j.PatternLayout">
-      <param name="ConversionPattern" value="%-5p %d{dd-MM HH:mm:ss,SSS} (%F:%M:%L) - %m%n" />
+      <param name="ConversionPattern" value="%-5p %d{dd-MM HH:mm:ss,SSS} [%t] (%F:%M:%L) - %m%n" />
     </layout>
   </appender>
 
@@ -36,7 +36,7 @@
     <param name="Append:q" value="false" />
     <param name="Threshold" value="DEBUG" />
     <layout class="org.apache.log4j.PatternLayout">
-      <param name="ConversionPattern" value="%-5p %d{dd-MM HH:mm:ss,SSS} (%F:%M:%L) - %m%n" />
+      <param name="ConversionPattern" value="%-5p %d{dd-MM HH:mm:ss,SSS} [%t] (%F:%M:%L) - %m%n" />
     </layout>
   </appender>
 
