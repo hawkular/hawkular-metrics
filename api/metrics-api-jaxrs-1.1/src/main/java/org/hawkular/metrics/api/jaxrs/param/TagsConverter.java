@@ -16,16 +16,17 @@
  */
 package org.hawkular.metrics.api.jaxrs.param;
 
-import static java.util.stream.Collectors.joining;
-
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.stream.Collectors.joining;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
 
-import javax.ws.rs.ext.ParamConverter;
+import javax.ws.rs.ext.Provider;
+
+import org.jboss.resteasy.spi.StringConverter;
 
 /**
  * A JAX-RS {@link ParamConverter} for {@link Tags} parameters. The string format is a list of tags in the {@code
@@ -33,7 +34,8 @@ import javax.ws.rs.ext.ParamConverter;
  *
  * @author Thomas Segismont
  */
-public class TagsConverter implements ParamConverter<Tags> {
+@Provider
+public class TagsConverter implements StringConverter<Tags> {
 
     @Override
     public Tags fromString(String value) {

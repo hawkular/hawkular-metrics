@@ -16,15 +16,16 @@
  */
 package org.hawkular.metrics.api.jaxrs.param;
 
-import static java.util.stream.Collectors.joining;
-
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.stream.Collectors.joining;
 
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.ws.rs.ext.ParamConverter;
+import javax.ws.rs.ext.Provider;
+
+import org.jboss.resteasy.spi.StringConverter;
 
 import com.google.common.collect.ImmutableBiMap;
 
@@ -33,7 +34,8 @@ import com.google.common.collect.ImmutableBiMap;
  *
  * @author Thomas Segismont
  */
-public class DurationConverter implements ParamConverter<Duration> {
+@Provider
+public class DurationConverter implements StringConverter<Duration> {
     private static final ImmutableBiMap<String, TimeUnit> STRING_UNITS = Duration.UNITS.inverse();
     private static final Pattern REGEXP = Pattern.compile(
             "(\\d+)"

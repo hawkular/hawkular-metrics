@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
@@ -52,12 +53,12 @@ public class ApiUtils {
     }
 
     public static Response collectionToResponse(Collection<?> collection) {
-        return collection.isEmpty() ? noContent() : Response.ok(collection).build();
+        return collection.isEmpty() ? noContent() : Response.ok(collection).type(MediaType.APPLICATION_JSON).build();
     }
 
     public static Response serverError(Throwable t, String message) {
         String errorMsg = message + ": " + Throwables.getRootCause(t).getMessage();
-        return Response.serverError().entity(new ApiError(errorMsg)).build();
+        return Response.serverError().type(MediaType.APPLICATION_JSON).entity(new ApiError(errorMsg)).build();
     }
 
     public static Response serverError(Throwable t) {
