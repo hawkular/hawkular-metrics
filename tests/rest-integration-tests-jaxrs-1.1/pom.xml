@@ -27,14 +27,14 @@
     <version>0.6.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>hawkular-metrics-rest-tests</artifactId>
+  <artifactId>hawkular-metrics-rest-integration-tests-jax-rs-1.1</artifactId>
 
-  <name>Hawkular Metrics Rest Tests</name>
+  <name>Hawkular Metrics - Rest Integration Tests for JAX-RS 1.1</name>
 
   <properties>
-    <wildfly-maven-plugin.skip>true</wildfly-maven-plugin.skip>
     <cassandra.keyspace>hawkular_metrics_rest_tests</cassandra.keyspace>
     <scheduler.units>seconds</scheduler.units>
+    <enforcer.skip>true</enforcer.skip>
   </properties>
 
   <dependencies>
@@ -52,11 +52,19 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+      <artifactId>hawkular-metrics-api-jaxrs-1.1</artifactId>
       <version>${project.version}</version>
       <type>war</type>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>hawkular-metrics-rest-tests</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+
     <dependency>
       <groupId>joda-time</groupId>
       <artifactId>joda-time</artifactId>
@@ -83,43 +91,43 @@
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-client</artifactId>
-      <version>3.0.11.Final</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- commons-io required by resteasy-client -->
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-jackson2-provider</artifactId>
-      <version>3.0.11.Final</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <repositories>
+    <repository>
+      <id>eap_6_early_access</id>
+      <url>https://maven.repository.redhat.com/earlyaccess/all/</url>
+    </repository>
+  </repositories>
 
   <build>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>2.6</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>test-jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <skipTests>true</skipTests>
+         
         </configuration>
       </plugin>
     </plugins>
   </build>
 
   <profiles>
-
     <profile>
       <id>test.debug</id>
       <activation>
@@ -147,6 +155,12 @@
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-failsafe-plugin</artifactId>
             <configuration>
+              <dependenciesToScan>
+                <dependency>${project.groupId}:hawkular-metrics-rest-tests</dependency>
+              </dependenciesToScan>
+              <excludes>
+                <exclude>**/*Influx*</exclude>
+              </excludes>
               <includes>
                 <include>**/*ITest*</include>
               </includes>
@@ -166,21 +180,20 @@
             </executions>
           </plugin>
           <plugin>
-            <groupId>org.wildfly.plugins</groupId>
-            <artifactId>wildfly-maven-plugin</artifactId>
+            <groupId>org.jboss.as.plugins</groupId>
+            <artifactId>jboss-as-maven-plugin</artifactId>
+            <version>7.7.Final</version>
             <configuration>
-              <skip>${wildfly-maven-plugin.skip}</skip>
-              <port>${wildfly.management.port}</port>
+              <version>7.5.0.Final-redhat-15</version>
             </configuration>
             <executions>
               <execution>
-                <id>start-wildfly</id>
+                <id>start-server</id>
                 <phase>pre-integration-test</phase>
                 <goals>
                   <goal>start</goal>
                 </goals>
                 <configuration>
-                  <serverConfig>standalone-test.xml</serverConfig>
                   <javaOpts>
                     <javaOpt>-Xms64m</javaOpt>
                     <javaOpt>-Xmx512m</javaOpt>
@@ -189,11 +202,9 @@
                     <javaOpt>-Dsun.rmi.dgc.client.gcInterval=3600000</javaOpt>
                     <javaOpt>-Dsun.rmi.dgc.server.gcInterval=3600000</javaOpt>
                     <javaOpt>-Djboss.socket.binding.port-offset=${wildfly.port.offset}</javaOpt>
-                    <javaOpt>-Djboss.server.config.dir=${project.build.directory}/wildfly-configuration</javaOpt>
                     <javaOpt>-Dcassandra.keyspace=${cassandra.keyspace}</javaOpt>
                     <javaOpt>-Dcassandra.resetdb</javaOpt>
                     <javaOpt>-Dhawkular.metrics.waitForService</javaOpt>
-                    <javaOpt>-Dhawkular.metrics.use-virtual-clock=true</javaOpt>
                     <javaOpt>-Dhawkular.scheduler.time-units=${scheduler.units}</javaOpt>
                     <javaOpt>-Xdebug</javaOpt>
                     <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
@@ -208,12 +219,12 @@
                 </goals>
                 <configuration>
                   <groupId>${project.groupId}</groupId>
-                  <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+                  <artifactId>hawkular-metrics-api-jaxrs-1.1</artifactId>
                   <name>hawkular-metric-rest.war</name>
                 </configuration>
               </execution>
               <execution>
-                <id>stop-wildfly</id>
+                <id>stop-server</id>
                 <phase>post-integration-test</phase>
                 <goals>
                   <goal>shutdown</goal>
@@ -235,7 +246,7 @@
       <properties>
         <wildfly-maven-plugin.skip>false</wildfly-maven-plugin.skip>
         <!-- IMPORTANT: The port must be the port offset + 8080. -->
-        <base-uri>127.0.0.1:55977/hawkular/metrics</base-uri>
+        <base-uri>127.0.0.1:8080/hawkular/metrics</base-uri>
         <wildfly.port.offset>47897</wildfly.port.offset>
         <!-- IMPORTANT: The management port must be the port offset + 9990. -->
         <wildfly.management.port>57887</wildfly.management.port>
@@ -282,6 +293,5 @@
         </plugins>
       </build>
     </profile>
-
   </profiles>
 </project>

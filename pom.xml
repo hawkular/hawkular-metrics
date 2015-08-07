@@ -84,8 +84,9 @@
     <module>core/metrics-core-impl</module>
     <module>api/metrics-api-common</module>
     <module>api/metrics-api-jaxrs</module>
-    <module>api/metrics-api-jaxrs-1.1</module>
     <module>rest-tests</module>
+    <module>api/metrics-api-jaxrs-1.1</module>
+    <module>tests/rest-integration-tests-jaxrs-1.1</module>
     <module>clients</module>
     <module>containers</module>
     <module>load-tests</module>
