@@ -35,6 +35,7 @@
   <description>Hawkular Metrics JAX-RS 1.1 API Implementation</description>
 
   <properties>
+    <enforcer.skip>true</enforcer.skip>
   </properties>
 
   <dependencies>
@@ -122,6 +123,13 @@
       <scope>provided</scope>
     </dependency>
   </dependencies>
+
+  <repositories>
+    <repository>
+      <id>eap_6_early_access</id>
+      <url>https://maven.repository.redhat.com/earlyaccess/all/</url>
+    </repository>
+  </repositories>
 
   <build>
     <finalName>hawkular-metrics-api-jaxrs-1.1</finalName>
