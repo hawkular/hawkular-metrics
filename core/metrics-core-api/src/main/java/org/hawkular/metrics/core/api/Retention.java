@@ -19,6 +19,8 @@ package org.hawkular.metrics.core.api;
 import com.google.common.base.Objects;
 
 /**
+ * The retention is stored in days.
+ *
  * @author John Sanda
  */
 public class Retention {

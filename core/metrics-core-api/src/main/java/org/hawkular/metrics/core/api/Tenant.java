@@ -16,10 +16,11 @@
  */
 package org.hawkular.metrics.core.api;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collections;
+import java.util.Map;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Hawkular Metrics provides multi-tenancy support. This means that all data is implicitly partitioned by tenant. Tags,
@@ -32,50 +33,24 @@ public class Tenant {
 
     private String id;
 
-//    @JsonInclude(Include.NON_EMPTY)
-    private List<AggregationTemplate> aggregationTemplates = new ArrayList<>();
-
-//    @JsonIgnore
-    private RetentionSettings retentionSettings = new RetentionSettings();
+    private Map<MetricType, Integer> retentionSettings = Collections.emptyMap();
 
     public Tenant(String id) {
         this.id = id;
+    }
+
+    public Tenant(String id, Map<MetricType, Integer> retentionSettings) {
+        this.id = id;
+        this.retentionSettings = ImmutableMap.copyOf(retentionSettings);
     }
 
     public String getId() {
         return id;
     }
 
-    /**
-     * The configured {@link org.hawkular.metrics.core.api.AggregationTemplate aggregation templates} for the tenant
-     */
-    public List<AggregationTemplate> getAggregationTemplates() {
-        return aggregationTemplates;
-    }
-
-    public Tenant addAggregationTemplate(AggregationTemplate template) {
-        aggregationTemplates.add(template);
-        return this;
-    }
-
-    /**
-     * The {@link org.hawkular.metrics.core.api.RetentionSettings data retention settings} for both
-     * raw and aggregated data of all metric types
-     */
-    public RetentionSettings getRetentionSettings() {
+    public Map<MetricType, Integer> getRetentionSettings() {
         return retentionSettings;
     }
-
-    public Tenant setRetention(MetricType type, int hours) {
-        retentionSettings.put(type, hours);
-        return this;
-    }
-
-    public Tenant setRetention(MetricType type, Interval interval, int hours) {
-        retentionSettings.put(type, interval, hours);
-        return this;
-    }
-
 
     @Override
     public boolean equals(Object o) {
@@ -98,7 +73,6 @@ public class Tenant {
     public String toString() {
         return Objects.toStringHelper(getClass())
             .add("id", id)
-            .add("aggregationTemplates", aggregationTemplates)
             .add("retentionSettings", retentionSettings)
             .toString();
     }

@@ -24,7 +24,6 @@ import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.Functions.getTTLAvailabilityDataPoint;
 import static org.hawkular.metrics.core.impl.Functions.getTTLGaugeDataPoint;
-import static org.joda.time.Hours.hours;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,7 +55,6 @@ import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.MetricsThreadFactory;
 import org.hawkular.metrics.core.api.Retention;
-import org.hawkular.metrics.core.api.RetentionSettings;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
 import org.hawkular.metrics.core.impl.transformers.ItemsToSetTransformer;
@@ -67,7 +65,6 @@ import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.hawkular.metrics.tasks.api.Trigger;
 import org.hawkular.rx.cassandra.driver.RxUtil;
 import org.joda.time.Duration;
-import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,7 +102,7 @@ public class MetricsServiceImpl implements MetricsService {
         private final MetricId metricId;
 
         public DataRetentionKey(String tenantId, MetricType type) {
-            metricId = new MetricId(tenantId, type, "[" + type.getText() + "]");
+            metricId = new MetricId(tenantId, type, "$" + type.getText());
         }
 
         public DataRetentionKey(MetricId metricId) {
@@ -320,62 +317,17 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<Void> createTenant(final Tenant tenant) {
-        return dataAccess.insertTenant(tenant)
-//                .filter(ResultSet::wasApplied)
-                .flatMap(
-                        resultSet -> {
-                            if (!resultSet.wasApplied()) {
-                                throw new TenantAlreadyExistsException(tenant.getId());
-                            }
-                            Map<MetricType, Set<Retention>> retentionsMap = new HashMap<>();
-                            for (RetentionSettings.RetentionKey key : tenant.getRetentionSettings().keySet()) {
-                                Set<Retention> retentions = retentionsMap.get(key.metricType);
-                                if (retentions == null) {
-                                    retentions = new HashSet<>();
-                                }
-                                Interval interval = key.interval == null ? Interval.NONE : key.interval;
-                                Hours hours = hours(tenant.getRetentionSettings().get(key));
-                                retentions.add(
-                                        new Retention(
-                                                new MetricId(tenant.getId(), key.metricType,
-                                                        "[" + key.metricType.getText() + "]", interval),
-                                                hours.toStandardSeconds().getSeconds()
-                                        )
-                                );
-                                retentionsMap.put(key.metricType, retentions);
-                            }
-                            if (retentionsMap.isEmpty()) {
-                                return Observable.from(Collections.singleton(null));
-                            }
-                            List<ResultSetFuture> updateRetentionFutures = new ArrayList<>();
-
-                            for (Map.Entry<MetricType, Set<Retention>> metricTypeSetEntry : retentionsMap.entrySet()) {
-                                updateRetentionFutures.add(
-                                        dataAccess.updateRetentionsIndex(
-                                                tenant.getId(),
-                                                metricTypeSetEntry.getKey(),
-                                                metricTypeSetEntry.getValue()
-                                        )
-                                );
-
-                                for (Retention r : metricTypeSetEntry.getValue()) {
-                                    dataRetentions.put(
-                                            new DataRetentionKey(tenant.getId(), metricTypeSetEntry.getKey()),
-                                            r.getValue()
-                                    );
-                                }
-                            }
-
-                            ListenableFuture<List<ResultSet>> updateRetentionsFuture = Futures
-                                    .allAsList(updateRetentionFutures);
-                            ListenableFuture<Void> transform = Futures.transform(
-                                    updateRetentionsFuture,
-                                    Functions.TO_VOID,
-                                    metricsTasks
-                            );
-                            return RxUtil.from(transform, metricsTasks);
-                        }
-                );
+        return Observable.create(subscriber -> {
+            Observable<ResultSet> updates = dataAccess.insertTenant(tenant).flatMap(resultSet -> {
+                if (!resultSet.wasApplied()) {
+                    throw new TenantAlreadyExistsException(tenant.getId());
+                }
+                return Observable.from(tenant.getRetentionSettings().entrySet())
+                        .flatMap(entry -> dataAccess.updateRetentionsIndex(tenant.getId(), entry.getKey(),
+                                ImmutableMap.of("$" + entry.getKey().getText(), entry.getValue())));
+            });
+            updates.subscribe(resultSet -> {}, subscriber::onError, subscriber::onCompleted);
+        });
     }
 
     @Override

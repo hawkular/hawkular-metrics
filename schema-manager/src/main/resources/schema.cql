@@ -37,12 +37,12 @@ CREATE TYPE ${keyspace}.aggregation_template (
 
 -- #
 
--- The retentions map entries are <metric_type, interval> --> retention
+-- The retentions map entries are {metric type, retention} key/value pairs
+-- where retention is specified in days.
 
 CREATE TABLE ${keyspace}.tenants (
     id text PRIMARY KEY,
-    retentions map<frozen<tuple<int, text>>, int>,
-    aggregation_templates list<frozen<aggregation_template>>
+    retentions map<text, int>
 );
 
 -- #
@@ -132,23 +132,16 @@ CREATE TABLE ${keyspace}.metrics_idx (
 
 -- #
 
--- For the retentions_idx table a partial metric id is used as clustering
--- columns. Remember that a metric id consists of the type, the metric name,
--- and the interval. The type is used in the partition key, while the name and
--- interval are used as clustering columns. We also store tenant-level
--- retentions in this table. They will be stored using some special, reserved
--- names, e.g., [gauge], [availability]. Square brackets are reserved
--- characters, so we can safely use these.
---
--- The retention is stored in seconds.
+-- We also store tenant-level retentions in this table. They will be stored using
+-- reserved characters, e.g., $gauge, $availability. The retention is stored in
+-- days.
 
 CREATE TABLE ${keyspace}.retentions_idx (
     tenant_id text,
     type int,
-    interval text,
     metric text,
     retention int,
-    PRIMARY KEY ((tenant_id, type), interval, metric)
+    PRIMARY KEY ((tenant_id, type), metric)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' };
 
 -- #

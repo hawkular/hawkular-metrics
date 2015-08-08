@@ -22,8 +22,6 @@ import java.util.Set;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.google.common.base.Function;
-
-import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Retention;
@@ -45,9 +43,7 @@ public class DataRetentionsMapper implements Function<ResultSet, Set<Retention>>
     public Set<Retention> apply(ResultSet resultSet) {
         Set<Retention> dataRetentions = new HashSet<>();
         for (Row row : resultSet) {
-            dataRetentions.add(new Retention(new MetricId(tenantId, type, row.getString(3), Interval.parse(row.getString
-                    (2))),
-                row.getInt(4)));
+            dataRetentions.add(new Retention(new MetricId(tenantId, type, row.getString(2)), row.getInt(3)));
         }
         return dataRetentions;
     }

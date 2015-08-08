@@ -20,18 +20,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
-
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-
 import rx.Observable;
 
 /**
@@ -109,7 +106,7 @@ public interface DataAccess {
 
     ResultSetFuture findDataRetentions(String tenantId, MetricType type);
 
-    ResultSetFuture updateRetentionsIndex(String tenantId, MetricType type, Set<Retention> retentions);
+    Observable<ResultSet> updateRetentionsIndex(String tenantId, MetricType type, Map<String, Integer> retentions);
 
     ResultSetFuture updateRetentionsIndex(Metric metric);
 
