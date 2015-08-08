@@ -157,7 +157,8 @@ public class MetricsServiceITest extends MetricsITest {
         assertDataRetentionsIndexMatches(t1.getId(), GAUGE, ImmutableSet.of(new Retention(
                 new MetricId(t1.getId(), GAUGE, makeSafe(GAUGE.getText())), 1)));
         assertDataRetentionsIndexMatches(t1.getId(), AVAILABILITY, ImmutableSet.of(new Retention(
-                new MetricId(t1.getId(), AVAILABILITY, makeSafe(AVAILABILITY.getText())), 1)));
+                new MetricId(t1.getId(), AVAILABILITY, "[" + AVAILABILITY.getText() + "]"),
+                hours(24).toStandardSeconds().getSeconds())));
     }
 
     @Test

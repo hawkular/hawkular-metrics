@@ -23,8 +23,6 @@ import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
 
-import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
-
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Set;
