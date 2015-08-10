@@ -328,10 +328,9 @@ public class MetricsServiceImpl implements MetricsService {
                         .withInterval(1, TimeUnit.MINUTES)
                         .build();
                 Map<String, String> params = ImmutableMap.of("tenant", tenant.getId());
-                Observable<Void> ratesScheduled = taskScheduler.scheduleTask("generate-rates", tenant.getId(),
-                        100, params, trigger).map(task -> null);
+                taskScheduler.scheduleTask("generate-rates", tenant.getId(), 100, params, trigger);
 
-                Observable<Void> retentionUpdates = Observable.from(tenant.getRetentionSettings().entrySet())
+                return Observable.from(tenant.getRetentionSettings().entrySet())
                         .flatMap(entry -> dataAccess.updateRetentionsIndex(tenant.getId(), entry.getKey(),
                                 ImmutableMap.of(makeSafe(entry.getKey().getText()), entry.getValue())))
                         .map(rs -> null);

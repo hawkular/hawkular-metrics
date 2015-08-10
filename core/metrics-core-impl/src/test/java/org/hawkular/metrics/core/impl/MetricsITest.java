@@ -17,7 +17,6 @@
 package org.hawkular.metrics.core.impl;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-
 import static org.joda.time.DateTime.now;
 
 import java.util.List;
@@ -26,10 +25,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
-import org.hawkular.rx.cassandra.driver.RxSession;
-import org.hawkular.rx.cassandra.driver.RxSessionImpl;
-import org.joda.time.DateTime;
-
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ProtocolVersion;
@@ -37,6 +32,9 @@ import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
 
+import org.hawkular.rx.cassandra.driver.RxSession;
+import org.hawkular.rx.cassandra.driver.RxSessionImpl;
+import org.joda.time.DateTime;
 import rx.Observable;
 import rx.observers.TestSubscriber;
 
