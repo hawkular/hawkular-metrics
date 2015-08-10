@@ -19,7 +19,6 @@ package org.hawkular.metrics.api.jaxrs.filter;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 
 import javax.inject.Inject;
 import javax.servlet.Filter;
@@ -76,23 +75,20 @@ public class MetricsServiceStateFilter implements Filter {
             final HttpServletResponse httpResponse = (HttpServletResponse) response;
             httpResponse.setStatus(Status.SERVICE_UNAVAILABLE.getStatusCode());
             httpResponse.setContentType(APPLICATION_JSON_TYPE.toString());
-            PrintWriter out = response.getWriter();
-            mapper.writeValue(out, new ApiError(STARTING));
+            mapper.writeValue(response.getWriter(), new ApiError(STARTING));
             return;
         } else if (metricsServiceLifecycle.getState() == State.FAILED) {
             final HttpServletResponse httpResponse = (HttpServletResponse) response;
             httpResponse.setStatus(Status.INTERNAL_SERVER_ERROR.getStatusCode());
             httpResponse.setContentType(APPLICATION_JSON_TYPE.toString());
-            PrintWriter out = response.getWriter();
-            mapper.writeValue(out, new ApiError(FAILED));
+            mapper.writeValue(response.getWriter(), new ApiError(FAILED));
             return;
         } else if (metricsServiceLifecycle.getState() == State.STOPPED
                 || metricsServiceLifecycle.getState() == State.STOPPING) {
             final HttpServletResponse httpResponse = (HttpServletResponse) response;
             httpResponse.setStatus(Status.SERVICE_UNAVAILABLE.getStatusCode());
             httpResponse.setContentType(APPLICATION_JSON_TYPE.toString());
-            PrintWriter out = response.getWriter();
-            mapper.writeValue(out, new ApiError(STOPPED));
+            mapper.writeValue(response.getWriter(), new ApiError(STOPPED));
             return;
         }
 

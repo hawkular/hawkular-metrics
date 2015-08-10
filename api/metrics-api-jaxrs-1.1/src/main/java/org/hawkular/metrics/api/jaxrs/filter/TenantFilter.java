@@ -19,7 +19,6 @@ package org.hawkular.metrics.api.jaxrs.filter;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -34,6 +33,8 @@ import javax.ws.rs.core.Response.Status;
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.BaseHandler;
 import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * @author Stefan Negrea
@@ -71,11 +72,11 @@ public class TenantFilter implements Filter {
         }
 
         // Fail on missing tenant info
+        ObjectMapper mapper = new ObjectMapper();
         final HttpServletResponse httpResponse = (HttpServletResponse) response;
         httpResponse.setStatus(Status.BAD_REQUEST.getStatusCode());
         httpResponse.setContentType(APPLICATION_JSON_TYPE.toString());
-        PrintWriter out = response.getWriter();
-        out.println(new ApiError(MISSING_TENANT_MSG).toString());
+        mapper.writeValue(response.getWriter(), new ApiError(MISSING_TENANT_MSG));
     }
 
     @Override
