@@ -47,6 +47,9 @@ public class MetricDefinition {
     @JsonProperty
     private Integer dataRetention;
 
+    public MetricDefinition() {
+    }
+
     @JsonCreator
     public MetricDefinition(
             @JsonProperty("id") String id,

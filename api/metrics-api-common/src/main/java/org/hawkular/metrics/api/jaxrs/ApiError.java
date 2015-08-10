@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.api.jaxrs;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.wordnik.swagger.annotations.ApiModel;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
@@ -25,6 +26,8 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
  */
 @ApiModel(description = "If REST-call returns other than success, detailed error is returned.")
 public class ApiError {
+
+    @JsonProperty
     private final String errorMsg;
 
     public ApiError(String errorMsg) {
