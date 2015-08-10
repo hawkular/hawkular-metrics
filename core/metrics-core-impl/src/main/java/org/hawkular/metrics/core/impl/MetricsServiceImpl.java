@@ -17,6 +17,7 @@
 package org.hawkular.metrics.core.impl;
 
 import static java.util.Comparator.comparingLong;
+
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
@@ -42,25 +43,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Session;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
+import org.hawkular.metrics.core.api.AvailabilityBucketPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.GaugeBucketDataPoint;
+import org.hawkular.metrics.core.api.GaugeBucketPoint;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
@@ -83,6 +70,21 @@ import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Session;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+
 import rx.Observable;
 import rx.functions.Func1;
 import rx.subjects.PublishSubject;
@@ -333,7 +335,7 @@ public class MetricsServiceImpl implements MetricsService {
                                 retentions.add(
                                         new Retention(
                                                 new MetricId(tenant.getId(), key.metricType,
-                                                             "[" + key.metricType.getText() + "]", interval),
+                                                        "[" + key.metricType.getText() + "]", interval),
                                                 hours.toStandardSeconds().getSeconds()
                                         )
                                 );
@@ -635,9 +637,9 @@ public class MetricsServiceImpl implements MetricsService {
         // the start and end params. And it is possible the the date range spans multiple
         // date partitions.
         return time(gaugeReadLatency, () ->
-            dataAccess.findData(id, start, end)
-                    .flatMap(Observable::from)
-                    .map(Functions::getGaugeDataPoint));
+                dataAccess.findData(id, start, end)
+                        .flatMap(Observable::from)
+                        .map(Functions::getGaugeDataPoint));
     }
 
     @Override
@@ -649,17 +651,14 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<BucketedOutput<GaugeBucketDataPoint>> findGaugeStats(
-            Metric<Double> metric, long start, long end, Buckets buckets
-    ) {
-        // When we implement date partitioning, dpart will have to be determined based on
-        // the start and end params. And it is possible the the date range spans multiple
-        // date partitions.
-        return dataAccess.findData(metric.getId(), start, end)
-                .flatMap(Observable::from)
-                .map(Functions::getGaugeDataPoint)
-                .toList()
-                .map(new GaugeBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets));
+    public Observable<List<GaugeBucketPoint>> findGaugeStats(MetricId metricId, long start, long end, Buckets buckets) {
+        return findGaugeData(metricId, start, end)
+                .groupBy(dataPoint -> buckets.getIndex(dataPoint.getTimestamp()))
+                .flatMap(group -> group.collect(() -> new GaugeDataPointCollector(buckets, group.getKey()),
+                        GaugeDataPointCollector::increment))
+                .map(GaugeDataPointCollector::toBucketPoint)
+                .toMap(GaugeBucketPoint::getStart)
+                .map(pointMap -> GaugeBucketPoint.toList(pointMap, buckets));
     }
 
     @Override
@@ -685,13 +684,15 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(
-            Metric<AvailabilityType> metric, long start, long end, Buckets buckets) {
-        return dataAccess.findAvailabilityData(metric.getId(), start, end)
-                .flatMap(Observable::from)
-                .map(Functions::getAvailabilityDataPoint)
-                .toList()
-                .map(new AvailabilityBucketedOutputMapper(metric.getTenantId(), metric.getId(), buckets));
+    public Observable<List<AvailabilityBucketPoint>> findAvailabilityStats(MetricId metricId, long start, long end,
+                                                                           Buckets buckets) {
+        return findAvailabilityData(metricId, start, end)
+                .groupBy(dataPoint -> buckets.getIndex(dataPoint.getTimestamp()))
+                .flatMap(group -> group.collect(() -> new AvailabilityDataPointCollector(buckets, group.getKey()),
+                        AvailabilityDataPointCollector::increment))
+                .map(AvailabilityDataPointCollector::toBucketPoint)
+                .toMap(AvailabilityBucketPoint::getStart)
+                .map(pointMap -> AvailabilityBucketPoint.toList(pointMap, buckets));
     }
 
     @Override

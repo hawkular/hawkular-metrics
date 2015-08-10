@@ -138,8 +138,7 @@ public interface MetricsService {
     <T> Observable<T> findGaugeData(MetricId id, Long start, Long end,
                                     Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs);
 
-    Observable<BucketedOutput<GaugeBucketDataPoint>> findGaugeStats(Metric<Double> metric, long start, long end,
-            Buckets buckets);
+    Observable<List<GaugeBucketPoint>> findGaugeStats(MetricId metricId, long start, long end, Buckets buckets);
 
     Observable<Void> addAvailabilityData(Observable<Metric<AvailabilityType>> availabilities);
 
@@ -148,8 +147,8 @@ public interface MetricsService {
     Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId id, long start, long end,
                                                                  boolean distinct);
 
-    Observable<BucketedOutput<AvailabilityBucketDataPoint>> findAvailabilityStats(Metric<AvailabilityType> metric,
-            long start, long end, Buckets buckets);
+    Observable<List<AvailabilityBucketPoint>> findAvailabilityStats(MetricId metricId, long start, long end, Buckets
+            buckets);
 
     /** Check if a metric with the passed {id} has been stored in the system */
     Observable<Boolean> idExists(String id);

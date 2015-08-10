@@ -59,7 +59,6 @@ import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.request.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.request.TagRequest;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
-import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
@@ -265,30 +264,20 @@ public class GaugeHandler {
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration) {
 
-        if (bucketsCount == null && bucketDuration == null) {
-            long now = System.currentTimeMillis();
-            long startTime = start == null ? now - EIGHT_HOURS : start;
-            long endTime = end == null ? now : end;
+        long now = System.currentTimeMillis();
+        long startTime = start == null ? now - EIGHT_HOURS : start;
+        long endTime = end == null ? now : end;
 
-            metricsService.findGaugeData(new MetricId(tenantId, GAUGE, id), startTime, endTime)
+        MetricId metricId = new MetricId(tenantId, GAUGE, id);
+
+        if (bucketsCount == null && bucketDuration == null) {
+            metricsService.findGaugeData(metricId, startTime, endTime)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         } else if (bucketsCount != null && bucketDuration != null) {
-                asyncResponse.resume(
-                        badRequest(
-                                new ApiError(
-                                        "Both buckets and bucketDuration parameters are used"
-                                )
-                        )
-                );
+            asyncResponse.resume(badRequest(new ApiError("Both buckets and bucketDuration parameters are used")));
         } else {
-            long now = System.currentTimeMillis();
-            long startTime = start == null ? now - EIGHT_HOURS : start;
-            long endTime = end == null ? now : end;
-
-            Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id));
-
             Buckets buckets;
             try {
                 if (bucketsCount != null) {
@@ -301,8 +290,7 @@ public class GaugeHandler {
                 return;
             }
 
-            metricsService.findGaugeStats(metric, startTime, endTime, buckets)
-                    .map(BucketedOutput::getData)
+            metricsService.findGaugeStats(metricId, startTime, endTime, buckets)
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         }
