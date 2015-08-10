@@ -87,6 +87,7 @@ public class GaugeHandler {
     private String tenantId;
 
     @POST
+    @Produces(APPLICATION_JSON)
     @Path("/")
     @ApiOperation(value = "Create gauge metric definition.", notes = "Clients are not required to explicitly create "
             + "a metric before storing data. Doing so however allows clients to prevent naming collisions and to "
@@ -119,6 +120,7 @@ public class GaugeHandler {
     }
 
     @GET
+    @Produces(APPLICATION_JSON)
     @Path("/{id}")
     @ApiOperation(value = "Retrieve single metric definition.", response = MetricDefinition.class)
     @ApiResponses(value = {
@@ -139,6 +141,7 @@ public class GaugeHandler {
     }
 
     @GET
+    @Produces(APPLICATION_JSON)
     @Path("/{id}/tags")
     @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = String.class,
                   responseContainer = "Map")
@@ -157,6 +160,7 @@ public class GaugeHandler {
     }
 
     @PUT
+    @Produces(APPLICATION_JSON)
     @Path("/{id}/tags")
     @ApiOperation(value = "Update tags associated with the metric definition.")
     @ApiResponses(value = {
@@ -176,6 +180,7 @@ public class GaugeHandler {
     }
 
     @DELETE
+    @Produces(APPLICATION_JSON)
     @Path("/{id}/tags/{tags}")
     @ApiOperation(value = "Delete tags associated with the metric definition.")
     @ApiResponses(value = {
@@ -197,6 +202,7 @@ public class GaugeHandler {
     }
 
     @POST
+    @Produces(APPLICATION_JSON)
     @Path("/{id}/data")
     @ApiOperation(value = "Add data for a single gauge metric.")
     @ApiResponses(value = {
@@ -220,6 +226,7 @@ public class GaugeHandler {
     }
 
     @POST
+    @Produces(APPLICATION_JSON)
     @Path("/data")
     @ApiOperation(value = "Add data for multiple gauge metrics in a single call.")
     @ApiResponses(value = {
@@ -241,6 +248,7 @@ public class GaugeHandler {
     }
 
     @GET
+    @Produces(APPLICATION_JSON)
     @Path("/")
     @ApiOperation(value = "Find gauge metrics data by their tags.", response = Map.class, responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched data."),
@@ -267,6 +275,7 @@ public class GaugeHandler {
 
     @GET
     @Path("/{id}/data")
+    @Produces(APPLICATION_JSON)
     @ApiOperation(value = "Retrieve gauge data. When buckets or bucketDuration query parameter is used, the time "
             + "range between start and end will be divided in buckets of equal duration, and metric "
             + "statistics will be computed for each bucket.", response = List.class)
@@ -327,6 +336,7 @@ public class GaugeHandler {
     }
 
     @GET
+    @Produces(APPLICATION_JSON)
     @Path("/{id}/periods")
     @ApiOperation(value = "Retrieve periods for which the condition holds true for each consecutive data point.",
         response = List.class)
@@ -383,8 +393,7 @@ public class GaugeHandler {
                     new ApiError("Invalid value for op parameter. Supported values are lt, lte, eq, gt, gte."));
         } else {
             try {
-                return metricsService
-.getPeriods(new MetricId(tenantId, GAUGE, id), predicate, startTime, endTime)
+                return metricsService.getPeriods(new MetricId(tenantId, GAUGE, id), predicate, startTime, endTime)
                         .map(ApiUtils::collectionToResponse).toBlocking().last();
             } catch (Exception e) {
                 return ApiUtils.serverError(e);
@@ -393,6 +402,7 @@ public class GaugeHandler {
     }
 
     @GET
+    @Produces(APPLICATION_JSON)
     @Path("/tags/{tags}")
     @ApiOperation(value = "Find metric data with given tags.", response = Map.class, responseContainer = "List")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Me values fetched successfully"),
@@ -417,6 +427,7 @@ public class GaugeHandler {
     }
 
     @POST
+    @Produces(APPLICATION_JSON)
     @Path("/{id}/tag")
     @ApiOperation(value = "Add or update gauge metric's tags.")
     @ApiResponses(value = {
