@@ -50,7 +50,7 @@ public interface DataAccess {
 
     Observable<ResultSet> addTagsAndDataRetention(Metric metric);
 
-    Observable<ResultSet> getMetricTags(MetricId id, long dpart);
+    Observable<ResultSet> getMetricTags(MetricId id);
 
     Observable<ResultSet> addTags(Metric metric, Map<String, String> tags);
 
@@ -91,11 +91,11 @@ public interface DataAccess {
 
     Observable<ResultSet> findAllGaugeMetrics();
 
-    Observable<ResultSet> insertGaugeTag(String tag, String tagValue, Metric<Double> metric,
-            Observable<TTLDataPoint<Double>> data);
-
-    Observable<ResultSet> insertAvailabilityTag(String tag, String tagValue,
-            Metric<AvailabilityType> metric, Observable<TTLDataPoint<AvailabilityType>> data);
+//    Observable<ResultSet> insertGaugeTag(String tag, String tagValue, Metric<Double> metric,
+//            Observable<TTLDataPoint<Double>> data);
+//
+//    Observable<ResultSet> insertAvailabilityTag(String tag, String tagValue,
+//            Metric<AvailabilityType> metric, Observable<TTLDataPoint<AvailabilityType>> data);
 
     Observable<ResultSet> updateDataWithTag(Metric metric, DataPoint dataPoint, Map<String, String> tags);
 

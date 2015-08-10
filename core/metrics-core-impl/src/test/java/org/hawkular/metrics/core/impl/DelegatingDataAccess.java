@@ -71,8 +71,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> getMetricTags(MetricId id, long dpart) {
-        return delegate.getMetricTags(id, dpart);
+    public Observable<ResultSet> getMetricTags(MetricId id) {
+        return delegate.getMetricTags(id);
     }
 
     @Override
@@ -176,17 +176,17 @@ public class DelegatingDataAccess implements DataAccess {
         return delegate.findAllGaugeMetrics();
     }
 
-    @Override
-    public Observable<ResultSet> insertGaugeTag(String tag, String tagValue, Metric<Double> metric,
-            Observable<TTLDataPoint<Double>> data) {
-        return delegate.insertGaugeTag(tag, tagValue, metric, data);
-    }
-
-    @Override
-    public Observable<ResultSet> insertAvailabilityTag(String tag, String tagValue,
-            Metric<AvailabilityType> metric, Observable<TTLDataPoint<AvailabilityType>> data) {
-        return delegate.insertAvailabilityTag(tag, tagValue, metric, data);
-    }
+//    @Override
+//    public Observable<ResultSet> insertGaugeTag(String tag, String tagValue, Metric<Double> metric,
+//            Observable<TTLDataPoint<Double>> data) {
+//        return delegate.insertGaugeTag(tag, tagValue, metric, data);
+//    }
+//
+//    @Override
+//    public Observable<ResultSet> insertAvailabilityTag(String tag, String tagValue,
+//            Metric<AvailabilityType> metric, Observable<TTLDataPoint<AvailabilityType>> data) {
+//        return delegate.insertAvailabilityTag(tag, tagValue, metric, data);
+//    }
 
     @Override
     public Observable<ResultSet> updateDataWithTag(Metric metric, DataPoint dataPoint, Map<String, String> tags) {

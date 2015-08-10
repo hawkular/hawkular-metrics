@@ -154,14 +154,14 @@ public interface MetricsService {
     /** Check if a metric with the passed {id} has been stored in the system */
     Observable<Boolean> idExists(String id);
 
-    Observable<Void> tagGaugeData(Metric<Double> metric, Map<String, String> tags, long start, long end);
-
-    Observable<Void> tagAvailabilityData(Metric<AvailabilityType> metric, Map<String, String> tags, long start,
-            long end);
-
-    Observable<Void> tagGaugeData(Metric<Double> metric, Map<String, String> tags, long timestamp);
-
-    Observable<Void> tagAvailabilityData(Metric<AvailabilityType> metric, Map<String, String> tags, long timestamp);
+//    Observable<Void> tagGaugeData(Metric<Double> metric, Map<String, String> tags, long start, long end);
+//
+//    Observable<Void> tagAvailabilityData(Metric<AvailabilityType> metric, Map<String, String> tags, long start,
+//            long end);
+//
+//    Observable<Void> tagGaugeData(Metric<Double> metric, Map<String, String> tags, long timestamp);
+//
+//    Observable<Void> tagAvailabilityData(Metric<AvailabilityType> metric, Map<String, String> tags, long timestamp);
 
     Observable<Map<MetricId, Set<DataPoint<Double>>>> findGaugeDataByTags(String tenantId, Map<String, String> tags);
 

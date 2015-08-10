@@ -44,7 +44,6 @@ public class Functions {
     private enum GAUGE_COLS {
         TIME,
         METRIC_TAGS,
-        DATA_RETENTION,
         VALUE,
         TAGS,
         WRITE_TIME
@@ -53,7 +52,6 @@ public class Functions {
     private enum COUNTER_COLS {
         TIME,
         METRIC_TAGS,
-        DATA_RETENTION,
         VALUE,
         TAGS,
         WRITE_TIME
@@ -62,7 +60,6 @@ public class Functions {
     private enum AVAILABILITY_COLS {
         TIME,
         METRIC_TAGS,
-        DATA_RETENTION,
         AVAILABILITY,
         TAGS,
         WRITE_TIME
@@ -89,21 +86,21 @@ public class Functions {
         );
     }
 
-    public static TTLDataPoint<Double> getTTLGaugeDataPoint(Row row, int originalTTL) {
-        long writeTime = row.getLong(GAUGE_COLS.WRITE_TIME.ordinal()) / 1000;
-        DataPoint<Double> dataPoint = getGaugeDataPoint(row);
-        Duration duration = new Duration(now().minus(writeTime).getMillis());
-        int newTTL = originalTTL - duration.toStandardSeconds().getSeconds();
-        return new TTLDataPoint<>(dataPoint, newTTL);
-    }
-
-    public static TTLDataPoint<AvailabilityType> getTTLAvailabilityDataPoint(Row row, int originalTTL) {
-        long writeTime = row.getLong(GAUGE_COLS.WRITE_TIME.ordinal()) / 1000;
-        DataPoint<AvailabilityType> dataPoint = getAvailabilityDataPoint(row);
-        Duration duration = new Duration(now().minus(writeTime).getMillis());
-        int newTTL = originalTTL - duration.toStandardSeconds().getSeconds();
-        return new TTLDataPoint<>(dataPoint, newTTL);
-    }
+//    public static TTLDataPoint<Double> getTTLGaugeDataPoint(Row row, int originalTTL) {
+//        long writeTime = row.getLong(GAUGE_COLS.WRITE_TIME.ordinal()) / 1000;
+//        DataPoint<Double> dataPoint = getGaugeDataPoint(row);
+//        Duration duration = new Duration(now().minus(writeTime).getMillis());
+//        int newTTL = originalTTL - duration.toStandardSeconds().getSeconds();
+//        return new TTLDataPoint<>(dataPoint, newTTL);
+//    }
+//
+//    public static TTLDataPoint<AvailabilityType> getTTLAvailabilityDataPoint(Row row, int originalTTL) {
+//        long writeTime = row.getLong(GAUGE_COLS.WRITE_TIME.ordinal()) / 1000;
+//        DataPoint<AvailabilityType> dataPoint = getAvailabilityDataPoint(row);
+//        Duration duration = new Duration(now().minus(writeTime).getMillis());
+//        int newTTL = originalTTL - duration.toStandardSeconds().getSeconds();
+//        return new TTLDataPoint<>(dataPoint, newTTL);
+//    }
 
     public static DataPoint<AvailabilityType> getAvailabilityDataPoint(Row row) {
         return new DataPoint<>(
