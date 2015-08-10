@@ -121,4 +121,9 @@ public class ApiUtils {
     public static Response badRequest(ApiError error) {
         return Response.status(Response.Status.BAD_REQUEST).entity(error).build();
     }
+
+    public static Response badRequest(Throwable t) {
+        ApiError error = new ApiError(t.getLocalizedMessage());
+        return badRequest(error);
+    }
 }
