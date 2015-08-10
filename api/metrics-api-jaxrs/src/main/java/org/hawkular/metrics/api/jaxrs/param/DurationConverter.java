@@ -24,7 +24,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.ws.rs.ext.ParamConverter;
-import javax.ws.rs.ext.Provider;
 
 import com.google.common.collect.ImmutableBiMap;
 

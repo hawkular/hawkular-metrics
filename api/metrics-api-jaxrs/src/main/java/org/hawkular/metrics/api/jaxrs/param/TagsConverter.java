@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.StringTokenizer;
 
 import javax.ws.rs.ext.ParamConverter;
-import javax.ws.rs.ext.Provider;
 
 /**
  * A JAX-RS {@link ParamConverter} for {@link Tags} parameters. The string format is a list of tags in the {@code
