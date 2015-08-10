@@ -30,7 +30,6 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.ext.Provider;
 
@@ -38,6 +37,8 @@ import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle;
 import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle.State;
 import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * @author Matt Wringe
@@ -69,44 +70,29 @@ public class MetricsServiceStateFilter implements Filter {
             return;
         }
 
-        if (metricsServiceLifecycle.getState() == State.STARTING) {
-            // Fail since the Cassandra cluster is not yet up yet.
-            Response actualResponse = Response.status(Status.SERVICE_UNAVAILABLE)
-                    .type(APPLICATION_JSON_TYPE)
-                    .entity(new ApiError(STARTING))
-                    .build();
+        ObjectMapper mapper = new ObjectMapper();
 
+        if (metricsServiceLifecycle.getState() == State.STARTING) {
             final HttpServletResponse httpResponse = (HttpServletResponse) response;
-            httpResponse.setStatus(actualResponse.getStatus());
+            httpResponse.setStatus(Status.SERVICE_UNAVAILABLE.getStatusCode());
             httpResponse.setContentType(APPLICATION_JSON_TYPE.toString());
             PrintWriter out = response.getWriter();
-            out.println(new ApiError(STARTING).toString());
+            mapper.writeValue(out, new ApiError(STARTING));
             return;
         } else if (metricsServiceLifecycle.getState() == State.FAILED) {
-            // Fail since an error has occured trying to start the Metrics service
-            Response actualResponse = Response.status(Status.INTERNAL_SERVER_ERROR)
-                    .type(APPLICATION_JSON_TYPE)
-                    .entity(new ApiError(FAILED))
-                    .build();
-
             final HttpServletResponse httpResponse = (HttpServletResponse) response;
-            httpResponse.setStatus(actualResponse.getStatus());
+            httpResponse.setStatus(Status.INTERNAL_SERVER_ERROR.getStatusCode());
             httpResponse.setContentType(APPLICATION_JSON_TYPE.toString());
             PrintWriter out = response.getWriter();
-            out.println(new ApiError(FAILED).toString());
+            mapper.writeValue(out, new ApiError(FAILED));
             return;
         } else if (metricsServiceLifecycle.getState() == State.STOPPED
                 || metricsServiceLifecycle.getState() == State.STOPPING) {
-            Response actualResponse = Response.status(Status.SERVICE_UNAVAILABLE)
-                    .type(APPLICATION_JSON_TYPE)
-                    .entity(new ApiError(STOPPED))
-                    .build();
-
             final HttpServletResponse httpResponse = (HttpServletResponse) response;
-            httpResponse.setStatus(actualResponse.getStatus());
+            httpResponse.setStatus(Status.SERVICE_UNAVAILABLE.getStatusCode());
             httpResponse.setContentType(APPLICATION_JSON_TYPE.toString());
             PrintWriter out = response.getWriter();
-            out.println(new ApiError(STOPPED).toString());
+            mapper.writeValue(out, new ApiError(STOPPED));
             return;
         }
 
