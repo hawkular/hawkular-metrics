@@ -16,57 +16,42 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import com.codahale.metrics.MetricRegistry;
-import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.Tenant;
-import org.hawkular.metrics.tasks.api.AbstractTrigger;
-import org.hawkular.metrics.tasks.impl.Queries;
-import org.hawkular.metrics.tasks.impl.TaskSchedulerImpl;
-import org.joda.time.DateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
-
-import com.codahale.metrics.MetricRegistry;
-
-import rx.Observable;
-import rx.observers.TestSubscriber;
-import rx.schedulers.Schedulers;
-import rx.schedulers.TestScheduler;
-
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.UUID.randomUUID;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.joda.time.Duration.standardMinutes;
 import static org.testng.Assert.assertEquals;
 
-/**
- * This class tests counter rates indirectly by running the task scheduler with a virtual
- * clock. {@link GenerateRateITest} tests directly without running a task scheduler.
- */
-public class RatesITest extends MetricsITest {
+import java.util.List;
 
-    private static Logger logger = LoggerFactory.getLogger(RatesITest.class);
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableMap;
+import org.hawkular.metrics.core.api.DataPoint;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.tasks.api.SingleExecutionTrigger;
+import org.hawkular.metrics.tasks.api.Trigger;
+import org.hawkular.metrics.tasks.impl.Task2Impl;
+import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import rx.Observable;
+
+/**
+ * This class tests counter rates by directly calling {@link GenerateRate}. There is no
+ * task scheduler running for these tests.
+ */
+public class GenerateRateITest extends MetricsITest {
+
+    private static Logger logger = LoggerFactory.getLogger(GenerateRateITest.class);
 
     private MetricsServiceImpl metricsService;
 
-    private TaskSchedulerImpl taskScheduler;
-
     private DateTimeService dateTimeService;
-
-    private TestScheduler tickScheduler;
-
-    private Observable<Long> finishedTimeSlices;
 
     @BeforeClass
     public void initClass() {
@@ -74,55 +59,26 @@ public class RatesITest extends MetricsITest {
 
         dateTimeService = new DateTimeService();
 
-        DateTime startTime = dateTimeService.getTimeSlice(DateTime.now(), standardMinutes(1)).minusMinutes(20);
-
-        tickScheduler = Schedulers.test();
-        tickScheduler.advanceTimeTo(startTime.getMillis(), TimeUnit.MILLISECONDS);
-
-        taskScheduler = new TaskSchedulerImpl(rxSession, new Queries(session));
-        taskScheduler.setTickScheduler(tickScheduler);
-
-        AbstractTrigger.now = tickScheduler::now;
-
         metricsService = new MetricsServiceImpl();
-        metricsService.setTaskScheduler(taskScheduler);
+        metricsService.setTaskScheduler(new FakeTaskScheduler());
 
-        String keyspace = "hawkulartest";
-        System.setProperty("keyspace", keyspace);
-
-        finishedTimeSlices = taskScheduler.getFinishedTimeSlices();
-        taskScheduler.start();
-
-        GenerateRate generateRate = new GenerateRate(metricsService);
-        taskScheduler.subscribe(generateRate);
-
-        metricsService.startUp(session, keyspace, false, new MetricRegistry());
+        metricsService.startUp(session, getKeyspace(), false, new MetricRegistry());
     }
 
     @BeforeMethod
     public void initMethod() {
-        session.execute("TRUNCATE tenants");
         session.execute("TRUNCATE metrics_idx");
         session.execute("TRUNCATE data");
-        session.execute("TRUNCATE leases");
-        session.execute("TRUNCATE task_queue");
-    }
-
-    @AfterClass
-    public void shutdown() {
-//        taskScheduler.shutdown();
     }
 
     @Test
     public void generateRates() {
+        DateTime start = dateTimeService.getTimeSlice(DateTime.now(), standardMinutes(1)).minusMinutes(5);
         String tenant = "rates-test";
-        DateTime start = new DateTime(tickScheduler.now()).plusMinutes(1);
 
         Metric<Long> c1 = new Metric<>(new MetricId(tenant, COUNTER, "C1"));
         Metric<Long> c2 = new Metric<>(new MetricId(tenant, COUNTER, "C2"));
         Metric<Long> c3 = new Metric<>(new MetricId(tenant, COUNTER, "C3"));
-
-        doAction(() -> metricsService.createTenant(new Tenant(tenant)));
 
         doAction(() -> metricsService.createMetric(c1));
         doAction(() -> metricsService.createMetric(c2));
@@ -137,14 +93,13 @@ public class RatesITest extends MetricsITest {
                         new DataPoint<>(start.plusSeconds(30).getMillis(), 77L)))
         ))));
 
-        TestSubscriber<Long> subscriber = new TestSubscriber<>();
-        finishedTimeSlices.take(2).observeOn(Schedulers.immediate()).subscribe(subscriber);
+        GenerateRate generateRate = new GenerateRate(metricsService);
 
-        tickScheduler.advanceTimeBy(2, MINUTES);
+        Trigger trigger = new SingleExecutionTrigger(start.getMillis());
+        Task2Impl task = new Task2Impl(randomUUID(), tenant, 0, "generate-rates", ImmutableMap.of("tenant", tenant),
+                trigger);
 
-        subscriber.awaitTerminalEvent(5, SECONDS);
-        subscriber.assertNoErrors();
-        subscriber.assertTerminalEvent();
+        generateRate.call(task);
 
         List<DataPoint<Double>> c1Rate = getOnNextEvents(() -> metricsService.findRateData(c1.getId(),
                 start.getMillis(), start.plusMinutes(1).getMillis()));

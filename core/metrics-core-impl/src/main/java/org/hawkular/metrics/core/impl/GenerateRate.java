@@ -35,6 +35,13 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.functions.Action1;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+import static java.util.Collections.singletonList;
+import static org.hawkular.metrics.core.api.MetricType.COUNTER;
+import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
+
 /**
  * @author jsanda
  */
@@ -51,32 +58,34 @@ public class GenerateRate implements Action1<Task2> {
     @Override
     public void call(Task2 task) {
         logger.info("Generating rate for {}", task);
-        MetricId id = new MetricId(task.getParameters().get("tenantId"), COUNTER, task.getParameters().get("metricId"));
+        String tenant = task.getParameters().get("tenant");
         long start = task.getTrigger().getTriggerTime();
         long end = start + TimeUnit.MINUTES.toMillis(1);
 
+        Observable<Metric<Double>> rates = metricsService.findMetrics(tenant, COUNTER)
+                .flatMap(counter -> metricsService.findCounterData(counter.getId(), start, end)
+                        .take(1)
+                        .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
+                        .map(rate -> new Metric<>(new MetricId(tenant, COUNTER_RATE, counter.getId().getName()),
+                                singletonList(new DataPoint<>(start, rate)))));
+        Observable<Void> updates = metricsService.addGaugeData(rates);
+
         CountDownLatch latch = new CountDownLatch(1);
 
-        logger.debug("start = {}, end = {}", start, end);
-        metricsService.findCounterData(id, start, end)
-                .take(1)
-                .doOnNext(dataPoint -> logger.debug("Data Point = {}", dataPoint))
-                .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
-                .map(rate -> new Metric<>(new MetricId(id.getTenantId(), COUNTER_RATE, id.getName()),
-                        singletonList(new DataPoint<>(start, rate))))
-                .flatMap(metric -> metricsService.addGaugeData(Observable.just(metric)))
-                .subscribe(
-                        aVoid -> {
-                        },
-                        t -> {
-                            logger.warn("Failed to persist rate data", t);
-                            latch.countDown();
-                        },
-                        () -> {
-                            logger.debug("Successfully persisted rate data");
-                            latch.countDown();
-                        }
-                );
+        updates.subscribe(
+                aVoid -> {},
+                t -> {
+                    logger.warn("There was an error persisting rates for {tenant= " + tenant + ", start= " +
+                        start + ", end= " + end + "}", t);
+                    latch.countDown();
+                },
+                () -> {
+                    logger.debug("Successfully persisted rate data for {tenant= " + tenant + ", start= " +
+                        start + ", end= " + end + "}");
+                    latch.countDown();
+                }
+        );
+
         try {
             latch.await();
         } catch (InterruptedException e) {

@@ -19,7 +19,6 @@ package org.hawkular.metrics.core.impl;
 import static java.util.Comparator.comparingLong;
 
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
-import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.Functions.getTTLAvailabilityDataPoint;
@@ -323,6 +322,14 @@ public class MetricsServiceImpl implements MetricsService {
                 if (!resultSet.wasApplied()) {
                     throw new TenantAlreadyExistsException(tenant.getId());
                 }
+
+                Trigger trigger = new RepeatingTrigger.Builder()
+                        .withDelay(1, TimeUnit.MINUTES)
+                        .withInterval(1, TimeUnit.MINUTES)
+                        .build();
+                Map<String, String> params = ImmutableMap.of("tenant", tenant.getId());
+                taskScheduler.scheduleTask("generate-rates", tenant.getId(), 100, params, trigger);
+
                 return Observable.from(tenant.getRetentionSettings().entrySet())
                         .flatMap(entry -> dataAccess.updateRetentionsIndex(tenant.getId(), entry.getKey(),
                                 ImmutableMap.of(makeSafe(entry.getKey().getText()), entry.getValue())));
@@ -380,18 +387,6 @@ public class MetricsServiceImpl implements MetricsService {
 
                 if (metric.getDataRetention() != null) {
                     updates.add(updateRetentionsIndex(metric));
-                }
-
-                if (metric.getType() == COUNTER) {
-                    Trigger trigger = new RepeatingTrigger.Builder()
-                            .withDelay(1, TimeUnit.MINUTES)
-                            .withInterval(1, TimeUnit.MINUTES)
-                            .build();
-                    Map<String, String> params = ImmutableMap.of(
-                            "metricId", metric.getId().getName(),
-                            "tenantId", metric.getTenantId()
-                    );
-                    taskScheduler.scheduleTask("compute-rate", metric.getTenantId(), 1000, params, trigger);
                 }
 
                 Observable.merge(updates).subscribe(new VoidSubscriber<>(subscriber));
