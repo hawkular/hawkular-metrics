@@ -93,14 +93,14 @@ public class MetricHandler {
                     required = false,
                       allowableValues = "[gauge, availability, counter]")
             @QueryParam("type") MetricType metricType,
-            @ApiParam(value = "List of tags", required = false) @QueryParam("tags") Tags tags) {
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags) {
 
         if (metricType != null && !MetricType.userTypes().contains(metricType)) {
             return badRequest(new ApiError("Incorrect type param"));
         }
 
         Observable<Metric> metricObservable = (tags == null) ? metricsService.findMetrics(tenantId, metricType)
-                : metricsService.findMetricsWithTags(tenantId, tags.getTags(), metricType);
+                : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), metricType);
 
         try {
             return metricObservable

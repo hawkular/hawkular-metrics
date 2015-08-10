@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.api.jaxrs;
 
-import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -24,16 +23,17 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_C
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_KEYSPACE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_NODES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_RESETDB;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_USESSL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.TASK_SCHEDULER_TIME_UNITS;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -41,23 +41,26 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 
+import org.hawkular.metrics.api.jaxrs.config.Configurable;
+import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
+import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.impl.MetricsServiceImpl;
+import org.hawkular.metrics.schema.SchemaManager;
+import org.hawkular.metrics.tasks.api.Task2;
+import org.hawkular.metrics.tasks.api.TaskScheduler;
+import org.hawkular.metrics.tasks.api.Trigger;
+import org.hawkular.metrics.tasks.impl.Lease;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.Uninterruptibles;
-import org.hawkular.metrics.api.jaxrs.config.Configurable;
-import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
-import org.hawkular.metrics.core.api.MetricsService;
-import org.hawkular.metrics.core.impl.GenerateRate;
-import org.hawkular.metrics.core.impl.MetricsServiceImpl;
-import org.hawkular.metrics.core.impl.TaskTypes;
-import org.hawkular.metrics.schema.SchemaManager;
-import org.hawkular.metrics.tasks.api.TaskService;
-import org.hawkular.metrics.tasks.api.TaskServiceBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import rx.Observable;
 
 /**
  * Bean created on startup to manage the lifecycle of the {@link MetricsService} instance shared in application scope.
@@ -78,7 +81,7 @@ public class MetricsServiceLifecycle {
 
     private MetricsServiceImpl metricsService;
 
-    private TaskService taskService;
+    private TaskScheduler taskScheduler;
 
     private final ScheduledExecutorService lifecycleExecutor;
 
@@ -111,6 +114,11 @@ public class MetricsServiceLifecycle {
     @Configurable
     @ConfigurationProperty(TASK_SCHEDULER_TIME_UNITS)
     private String timeUnits;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(CASSANDRA_USESSL)
+    private String cassandraUseSSL;
 
     private volatile State state;
     private int connectionAttempts;
@@ -166,7 +174,8 @@ public class MetricsServiceLifecycle {
             session = createSession();
         } catch (Exception t) {
             Throwable rootCause = Throwables.getRootCause(t);
-            LOG.warn("Could not connect to Cassandra cluster - assuming its not up yet", rootCause);
+            LOG.warn("Could not connect to Cassandra cluster - assuming its not up yet: ",
+                    rootCause.getLocalizedMessage());
             // cycle between original and more wait time - avoid waiting huge amounts of time
             long delay = 1L + ((connectionAttempts - 1L) % 4L);
             LOG.warn("[{}] Retrying connecting to Cassandra cluster in [{}]s...", connectionAttempts, delay);
@@ -182,11 +191,29 @@ public class MetricsServiceLifecycle {
             // will change at some point though because the task scheduling service will
             // probably move to the hawkular-commons repo.
             initSchema();
-            initTaskService();
+
+            taskScheduler = new TaskScheduler() {
+                @Override
+                public Observable<Lease> start() {
+                    LOG.warn("Task scheduling is not yet supported");
+                    return Observable.empty();
+                }
+
+                @Override
+                public Observable<Task2> scheduleTask(String name, String groupKey, int executionOrder,
+                        Map<String, String> parameters, Trigger trigger) {
+                    LOG.warn("Task scheduling is not yet supported");
+                    return Observable.empty();
+                }
+
+                @Override
+                public void shutdown() {
+
+                }
+            };
 
             metricsService = new MetricsServiceImpl();
-            metricsService.setTaskService(taskService);
-            taskService.subscribe(TaskTypes.COMPUTE_RATE, new GenerateRate(metricsService));
+            metricsService.setTaskScheduler(taskScheduler);
 
             // TODO Set up a managed metric registry
             // We want a managed registry that can be shared by the JAX-RS endpoint and the core. Then we can expose
@@ -222,6 +249,10 @@ public class MetricsServiceLifecycle {
         clusterBuilder.withPort(port);
         Arrays.stream(nodes.split(",")).forEach(clusterBuilder::addContactPoint);
 
+        if (Boolean.parseBoolean(cassandraUseSSL)) {
+            clusterBuilder.withSSL();
+        }
+
         Cluster cluster = null;
         Session createdSession = null;
         try {
@@ -242,23 +273,6 @@ public class MetricsServiceLifecycle {
         }
         schemaManager.createSchema(keyspace);
         session.execute("USE " + keyspace);
-    }
-
-    private void initTaskService() {
-        LOG.info("Initializing {}", TaskService.class.getSimpleName());
-        taskService = new TaskServiceBuilder()
-                .withSession(session)
-                .withTimeUnit(getTimeUnit())
-                .withTaskTypes(singletonList(TaskTypes.COMPUTE_RATE))
-                .build();
-        taskService.start();
-    }
-
-    private TimeUnit getTimeUnit() {
-        if ("seconds".equals(timeUnits)) {
-            return SECONDS;
-        }
-        return MINUTES;
     }
 
     /**
@@ -284,7 +298,7 @@ public class MetricsServiceLifecycle {
     private void stopMetricsService() {
         state = State.STOPPING;
         metricsService.shutdown();
-        taskService.shutdown();
+        taskScheduler.shutdown();
         if (session != null) {
             try {
                 session.close();
