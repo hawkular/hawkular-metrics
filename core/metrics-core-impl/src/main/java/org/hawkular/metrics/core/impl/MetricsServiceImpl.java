@@ -86,6 +86,17 @@ import rx.Observable;
 import rx.functions.Func1;
 import rx.subjects.PublishSubject;
 
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+
+import static java.util.Comparator.comparingLong;
+import static org.hawkular.metrics.core.api.MetricType.*;
+import static org.hawkular.metrics.core.impl.Functions.getTTLAvailabilityDataPoint;
+import static org.hawkular.metrics.core.impl.Functions.getTTLGaugeDataPoint;
+import static org.hawkular.metrics.core.impl.Functions.makeSafe;
+
 /**
  * @author John Sanda
  */
@@ -102,7 +113,7 @@ public class MetricsServiceImpl implements MetricsService {
         private final MetricId metricId;
 
         public DataRetentionKey(String tenantId, MetricType type) {
-            metricId = new MetricId(tenantId, type, "$" + type.getText());
+            metricId = new MetricId(tenantId, type, makeSafe(type.getText()));
         }
 
         public DataRetentionKey(MetricId metricId) {
@@ -208,7 +219,7 @@ public class MetricsServiceImpl implements MetricsService {
             ResultSetFuture gaugeFuture = dataAccess.findDataRetentions(tenantId, GAUGE);
             ResultSetFuture availabilityFuture = dataAccess.findDataRetentions(tenantId, MetricType.AVAILABILITY);
             ListenableFuture<Set<Retention>> gaugeRetentions = Futures.transform(gaugeFuture, gaugeMapper,
-                                                                                 metricsTasks);
+                    metricsTasks);
             ListenableFuture<Set<Retention>> availabilityRetentions = Futures.transform(availabilityFuture, availMapper,
                     metricsTasks);
             Futures.addCallback(gaugeRetentions,
@@ -324,7 +335,7 @@ public class MetricsServiceImpl implements MetricsService {
                 }
                 return Observable.from(tenant.getRetentionSettings().entrySet())
                         .flatMap(entry -> dataAccess.updateRetentionsIndex(tenant.getId(), entry.getKey(),
-                                ImmutableMap.of("$" + entry.getKey().getText(), entry.getValue())));
+                                ImmutableMap.of(makeSafe(entry.getKey().getText()), entry.getValue())));
             });
             updates.subscribe(resultSet -> {}, subscriber::onError, subscriber::onCompleted);
         });
@@ -333,19 +344,19 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public Observable<Tenant> getTenants() {
         return dataAccess.findAllTenantIds()
-                         .flatMap(Observable::from)
-                         .map(row -> row.getString(0))
-                         .flatMap(dataAccess::findTenant)
-                         .flatMap(Observable::from)
-                         .map(Functions::getTenant);
+                .flatMap(Observable::from)
+                .map(row -> row.getString(0))
+                .flatMap(dataAccess::findTenant)
+                .flatMap(Observable::from)
+                .map(Functions::getTenant);
     }
 
     private List<String> loadTenantIds() {
         Iterable<String> tenantIds = dataAccess.findAllTenantIds()
-                                               .flatMap(Observable::from)
-                                               .map(row -> row.getString(0))
-                                               .toBlocking()
-                                               .toIterable();
+                .flatMap(Observable::from)
+                .map(row -> row.getString(0))
+                .toBlocking()
+                .toIterable();
         return ImmutableList.copyOf(tenantIds);
     }
 
@@ -353,7 +364,7 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<Void> createMetric(Metric<?> metric) {
         if (metric.getType() == COUNTER_RATE) {
             throw new IllegalArgumentException(metric + " cannot be created. " + COUNTER_RATE + " metrics are " +
-                "internally generated metrics and cannot be created by clients.");
+                    "internally generated metrics and cannot be created by clients.");
         }
 
         ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric);
@@ -422,7 +433,7 @@ public class MetricsServiceImpl implements MetricsService {
         return typeObservable.flatMap(t -> dataAccess.findMetricsInMetricsIndex(tenantId, t))
                 .flatMap(Observable::from)
                 .map(row -> new Metric(new MetricId(tenantId, type, row.getString(0), Interval.parse(row.getString(1))),
-                                       row.getMap(2, String.class, String.class), row.getInt(3)));
+                        row.getMap(2, String.class, String.class), row.getInt(3)));
     }
 
     @Override
@@ -465,7 +476,7 @@ public class MetricsServiceImpl implements MetricsService {
     private Pattern filterPattern(String inputRegexp) {
         if (inputRegexp.equals("*")) {
             inputRegexp = ".*";
-        } else if(inputRegexp.startsWith("!")) {
+        } else if (inputRegexp.startsWith("!")) {
             inputRegexp = inputRegexp.substring(1);
         }
         return Pattern.compile(inputRegexp); // Catch incorrect patterns..
@@ -599,7 +610,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public <T> Observable<T> findGaugeData(MetricId id, Long start, Long end,
-                                           Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs) {
+            Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs) {
 
         Observable<DataPoint<Double>> dataCache = findGaugeData(id, start, end).cache();
         return Observable.from(funcs).flatMap(fn -> fn.call(dataCache));
@@ -618,13 +629,13 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId id, long start,
-                                                                        long end) {
+            long end) {
         return findAvailabilityData(id, start, end, false);
     }
 
     @Override
     public Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId id, long start,
-                                                                        long end, boolean distinct) {
+            long end, boolean distinct) {
         return time(availabilityReadLatency, () -> {
             Observable<DataPoint<AvailabilityType>> availabilityData = dataAccess.findAvailabilityData(id,
                     start, end)
@@ -748,7 +759,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<List<long[]>> getPeriods(MetricId id, Predicate<Double> predicate,
-                                               long start, long end) {
+            long start, long end) {
         return dataAccess.findData(new Metric<>(id), start, end,
                 Order.ASC)
                 .flatMap(Observable::from)

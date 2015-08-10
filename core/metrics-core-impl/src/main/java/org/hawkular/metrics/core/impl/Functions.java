@@ -16,12 +16,6 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import static java.util.stream.Collectors.toMap;
-import static org.joda.time.DateTime.now;
-
-import java.util.List;
-import java.util.Map;
-
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.utils.UUIDs;
@@ -31,6 +25,12 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Tenant;
 import org.joda.time.Duration;
+
+import java.util.List;
+import java.util.Map;
+
+import static java.util.stream.Collectors.toMap;
+import static org.joda.time.DateTime.now;
 
 /**
  * @author jsanda
@@ -115,6 +115,17 @@ public class Functions {
                 toMap(entry -> MetricType.fromTextCode(entry.getKey()), Map.Entry::getValue));
 
         return new Tenant(tenantId, retentions);
+    }
+
+    /**
+     * Makes the string safe by prepending it with a reserved character that is not allowed
+     * in user-defined names for things such as tenant names, metric names, and tag names.
+     *
+     * @param s The string to wrap.*
+     * @return The string prepended with a $
+     */
+    public static String makeSafe(String s) {
+        return "$" + s;
     }
 
 }

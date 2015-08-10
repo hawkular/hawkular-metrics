@@ -16,68 +16,42 @@
  */
 package org.hawkular.metrics.core.impl;
 
+import com.codahale.metrics.MetricRegistry;
+import com.datastax.driver.core.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import org.hawkular.metrics.core.api.*;
+import org.joda.time.DateTime;
+import org.joda.time.Duration;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import rx.Observable;
+
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.PatternSyntaxException;
+
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
-
-import static org.hawkular.metrics.core.api.AvailabilityType.DOWN;
-import static org.hawkular.metrics.core.api.AvailabilityType.UNKNOWN;
-import static org.hawkular.metrics.core.api.AvailabilityType.UP;
-import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
-import static org.hawkular.metrics.core.api.MetricType.COUNTER;
-import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
-import static org.hawkular.metrics.core.api.MetricType.GAUGE;
+import static org.hawkular.metrics.core.api.AvailabilityType.*;
+import static org.hawkular.metrics.core.api.MetricType.*;
 import static org.hawkular.metrics.core.impl.DataAccessImpl.DPART;
+import static org.hawkular.metrics.core.impl.Functions.makeSafe;
 import static org.hawkular.metrics.core.impl.MetricsServiceImpl.DEFAULT_TTL;
 import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Days.days;
 import static org.joda.time.Hours.hours;
 import static org.junit.Assert.fail;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
-import static org.testng.Assert.assertTrue;
-
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
-import java.util.regex.PatternSyntaxException;
-import org.hawkular.metrics.core.api.Aggregate;
-import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.Retention;
-import org.hawkular.metrics.core.api.Tenant;
-import org.joda.time.DateTime;
-import org.joda.time.Duration;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
-
-import com.codahale.metrics.MetricRegistry;
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-
-import rx.Observable;
+import static org.testng.Assert.*;
 
 /**
  * @author John Sanda
@@ -154,9 +128,9 @@ public class MetricsServiceITest extends MetricsITest {
         }
 
         assertDataRetentionsIndexMatches(t1.getId(), GAUGE, ImmutableSet.of(new Retention(
-                new MetricId(t1.getId(), GAUGE, "$" + GAUGE.getText()), 1)));
+                new MetricId(t1.getId(), GAUGE, makeSafe(GAUGE.getText())), 1)));
         assertDataRetentionsIndexMatches(t1.getId(), AVAILABILITY, ImmutableSet.of(new Retention(
-                new MetricId(t1.getId(), AVAILABILITY, "$" + AVAILABILITY.getText()), 1)));
+                new MetricId(t1.getId(), AVAILABILITY, makeSafe(AVAILABILITY.getText())), 1)));
     }
 
     @Test

@@ -16,10 +16,12 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
-import static java.util.stream.Collectors.toMap;
-import static org.hawkular.metrics.core.api.MetricType.COUNTER;
-import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
+import com.datastax.driver.core.*;
+import com.datastax.driver.core.utils.UUIDs;
+import org.hawkular.metrics.core.api.*;
+import org.hawkular.rx.cassandra.driver.RxSession;
+import org.hawkular.rx.cassandra.driver.RxSessionImpl;
+import rx.Observable;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -27,24 +29,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.KeyspaceMetadata;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.utils.UUIDs;
-import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.Tenant;
-import org.hawkular.rx.cassandra.driver.RxSession;
-import org.hawkular.rx.cassandra.driver.RxSessionImpl;
-import rx.Observable;
+import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
+import static java.util.stream.Collectors.toMap;
+import static org.hawkular.metrics.core.api.MetricType.COUNTER;
+import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
 
 /**
  *
