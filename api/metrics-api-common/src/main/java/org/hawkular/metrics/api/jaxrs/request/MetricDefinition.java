@@ -16,17 +16,16 @@
  */
 package org.hawkular.metrics.api.jaxrs.request;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.unmodifiableMap;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.wordnik.swagger.annotations.ApiModel;
+import org.hawkular.metrics.core.api.Metric;
 
 import java.util.Map;
 import java.util.Objects;
 
-import org.hawkular.metrics.core.api.Metric;
-
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.wordnik.swagger.annotations.ApiModel;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableMap;
 
 /**
  * @author jsanda
@@ -69,6 +68,9 @@ public class MetricDefinition {
     }
 
     public Map<String, String> getTags() {
+        if (tags == null) {
+            return emptyMap();
+        }
         return tags;
     }
 
