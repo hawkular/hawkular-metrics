@@ -50,6 +50,8 @@ public class TenantFilter implements Filter {
                              + "' header.";
     }
 
+    private static final String BASE_URL = "/hawkular/metrics/";
+
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
@@ -57,8 +59,8 @@ public class TenantFilter implements Filter {
         final HttpServletRequest httpRequest = (HttpServletRequest) request;
         String path = httpRequest.getRequestURI();
 
-        if (path.startsWith("/tenants") || path.startsWith("/db") || path.startsWith(StatusHandler.PATH)
-            || path.equals(BaseHandler.PATH)) {
+        if (path.startsWith(BASE_URL + "tenants") || path.startsWith(BASE_URL + "db")
+                || path.startsWith(BASE_URL + StatusHandler.PATH) || path.equals(BASE_URL + BaseHandler.PATH)) {
             // Tenants, Influx and status handlers do not check the tenant header
             chain.doFilter(request, response);
             return;
