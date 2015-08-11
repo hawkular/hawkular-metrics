@@ -23,6 +23,10 @@ import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.hawkular.metrics.tasks.api.Trigger;
 import org.hawkular.metrics.tasks.impl.Lease;
 import rx.Observable;
+import rx.Subscriber;
+import rx.Subscription;
+import rx.functions.Action1;
+import rx.observers.Subscribers;
 
 /**
  * @author jsanda
@@ -42,5 +46,25 @@ public class FakeTaskScheduler implements TaskScheduler {
 
     @Override
     public void shutdown() {
+    }
+
+    @Override
+    public Subscription subscribe(Action1<Task2> onNext) {
+        return Subscribers.empty();
+    }
+
+    @Override
+    public Subscription subscribe(Subscriber<Task2> subscriber) {
+            return Subscribers.empty();
+    }
+
+    @Override
+    public Observable<Long> getFinishedTimeSlices() {
+        return Observable.empty();
+    }
+
+    @Override
+    public boolean isRunning() {
+        return false;
     }
 }

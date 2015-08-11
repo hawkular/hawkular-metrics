@@ -19,17 +19,17 @@ package org.hawkular.metrics.api.jaxrs;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_CQL_PORT;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_KEYSPACE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_NODES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_RESETDB;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_USESSL;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.TASK_SCHEDULER_TIME_UNITS;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.USE_VIRTUAL_CLOCK;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
 import java.util.Arrays;
 import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -41,25 +41,30 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 
+import org.hawkular.metrics.api.jaxrs.config.Configurable;
+import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
+import org.hawkular.metrics.api.jaxrs.util.Eager;
+import org.hawkular.metrics.api.jaxrs.util.VirtualClock;
+import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.impl.MetricsServiceImpl;
+import org.hawkular.metrics.schema.SchemaManager;
+import org.hawkular.metrics.tasks.api.RepeatingTrigger;
+import org.hawkular.metrics.tasks.api.TaskScheduler;
+import org.hawkular.metrics.tasks.impl.Queries;
+import org.hawkular.metrics.tasks.impl.TaskSchedulerImpl;
+import org.hawkular.rx.cassandra.driver.RxSessionImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.Uninterruptibles;
-import org.hawkular.metrics.api.jaxrs.config.Configurable;
-import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
-import org.hawkular.metrics.api.jaxrs.util.Eager;
-import org.hawkular.metrics.core.api.MetricsService;
-import org.hawkular.metrics.core.impl.MetricsServiceImpl;
-import org.hawkular.metrics.schema.SchemaManager;
-import org.hawkular.metrics.tasks.api.Task2;
-import org.hawkular.metrics.tasks.api.TaskScheduler;
-import org.hawkular.metrics.tasks.api.Trigger;
-import org.hawkular.metrics.tasks.impl.Lease;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import rx.Observable;
+
+import rx.schedulers.Schedulers;
+import rx.schedulers.TestScheduler;
 
 /**
  * Bean created on startup to manage the lifecycle of the {@link MetricsService} instance shared in application scope.
@@ -84,6 +89,8 @@ public class MetricsServiceLifecycle {
     private TaskScheduler taskScheduler;
 
     private final ScheduledExecutorService lifecycleExecutor;
+
+    private VirtualClock virtualClock;
 
     @Inject
     @Configurable
@@ -112,8 +119,8 @@ public class MetricsServiceLifecycle {
 
     @Inject
     @Configurable
-    @ConfigurationProperty(TASK_SCHEDULER_TIME_UNITS)
-    private String timeUnits;
+    @ConfigurationProperty(USE_VIRTUAL_CLOCK)
+    private String useVirtualClock;
 
     @Inject
     @Configurable
@@ -192,25 +199,7 @@ public class MetricsServiceLifecycle {
             // probably move to the hawkular-commons repo.
             initSchema();
 
-            taskScheduler = new TaskScheduler() {
-                @Override
-                public Observable<Lease> start() {
-                    LOG.warn("Task scheduling is not yet supported");
-                    return Observable.empty();
-                }
-
-                @Override
-                public Observable<Task2> scheduleTask(String name, String groupKey, int executionOrder,
-                        Map<String, String> parameters, Trigger trigger) {
-                    LOG.warn("Task scheduling is not yet supported");
-                    return Observable.empty();
-                }
-
-                @Override
-                public void shutdown() {
-
-                }
-            };
+            initTaskScheduler();
 
             metricsService = new MetricsServiceImpl();
             metricsService.setTaskScheduler(taskScheduler);
@@ -275,6 +264,21 @@ public class MetricsServiceLifecycle {
         session.execute("USE " + keyspace);
     }
 
+    private void initTaskScheduler() {
+        taskScheduler = new TaskSchedulerImpl(new RxSessionImpl(session), new Queries(session));
+        if (Boolean.valueOf(useVirtualClock.toLowerCase())) {
+            // We do not want to start the task scheduler when we are using the virtual
+            // clock. Instead we want to wait to start it until a client sets the virtual
+            // clock; otherwise, we will get a MissingBackpressureException.
+            TestScheduler scheduler = Schedulers.test();
+            virtualClock = new VirtualClock(scheduler);
+            RepeatingTrigger.now = scheduler::now;
+            ((TaskSchedulerImpl) taskScheduler).setTickScheduler(scheduler);
+        } else {
+            taskScheduler.start();
+        }
+    }
+
     /**
      * @return a {@link MetricsService} instance to share in application scope
      */
@@ -282,6 +286,18 @@ public class MetricsServiceLifecycle {
     @ApplicationScoped
     public MetricsService getMetricsService() {
         return metricsService;
+    }
+
+    @Produces
+    @ApplicationScoped
+    public VirtualClock getVirtualClock() {
+        return virtualClock;
+    }
+
+    @Produces
+    @ApplicationScoped
+    public TaskScheduler getTaskScheduler() {
+        return taskScheduler;
     }
 
     @PreDestroy

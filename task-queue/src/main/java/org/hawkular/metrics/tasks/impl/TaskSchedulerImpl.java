@@ -27,14 +27,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.datastax.driver.core.KeyspaceMetadata;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.UDTValue;
-import com.datastax.driver.core.UserType;
-import com.google.common.hash.HashCode;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hashing;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.hawkular.metrics.tasks.DateTimeService;
 import org.hawkular.metrics.tasks.api.RepeatingTrigger;
 import org.hawkular.metrics.tasks.api.SingleExecutionTrigger;
@@ -46,6 +38,16 @@ import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.UDTValue;
+import com.datastax.driver.core.UserType;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscriber;
@@ -101,7 +103,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
 
     private DateTimeService dateTimeService;
 
-    private boolean shutdown;
+    private boolean running;
 
     /**
      * A subject to broadcast tasks that are to be executed. Other task scheduling libraries
@@ -175,6 +177,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
      * @param onNext The task execution callback
      * @return A subscription which can be used to stop receiving task notifications.
      */
+    @Override
     public Subscription subscribe(Action1<Task2> onNext) {
         return taskSubject.subscribe(onNext);
     }
@@ -185,12 +188,19 @@ public class TaskSchedulerImpl implements TaskScheduler {
      * @param subscriber The callback
      * @return A subscription which can be used to stop receiving task notifications.
      */
+    @Override
     public Subscription subscribe(Subscriber<Task2> subscriber) {
         return taskSubject.subscribe(new SubscriberWrapper(subscriber));
     }
 
+    @Override
     public Observable<Long> getFinishedTimeSlices() {
         return tickSubject;
+    }
+
+    @Override
+    public boolean isRunning() {
+        return running;
     }
 
     public Observable<Task2> getTasks() {
@@ -277,7 +287,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
         // primary motivation for having this method return a hot observable.
         PublishSubject<Lease> leasesSubject = PublishSubject.create();
         processedLeases.subscribe(leasesSubject);
-
+        running = true;
         return leasesSubject;
     }
 
@@ -302,7 +312,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
         // figure something out.
         return Observable.timer(0, 1, TimeUnit.MINUTES, tickScheduler)
                 .map(tick -> currentTimeSlice())
-                .takeUntil(d -> shutdown)
+                .takeUntil(d -> !running)
                 .doOnNext(tick -> logger.debug("Tick {}", tick))
                 .observeOn(leaseScheduler);
     }
@@ -424,7 +434,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
     public void shutdown() {
         try {
             logger.debug("shutting down");
-            shutdown = true;
+            running = false;
 
             if (leasesSubscription != null) {
                 leasesSubscription.unsubscribe();

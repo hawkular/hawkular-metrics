@@ -14,37 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.tasks.api;
+package org.hawkular.metrics.api.jaxrs.util;
 
-import java.util.Map;
+import rx.schedulers.TestScheduler;
 
-import org.hawkular.metrics.tasks.impl.Lease;
-
-import rx.Observable;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.functions.Action1;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author jsanda
  */
-public interface TaskScheduler {
+public class VirtualClock {
 
-    Subscription subscribe(Action1<Task2> onNext);
+    private TestScheduler scheduler;
 
-    Subscription subscribe(Subscriber<Task2> subscriber);
+    public VirtualClock() {
+    }
 
-    Observable<Lease> start();
+    public VirtualClock(TestScheduler scheduler) {
+        this.scheduler = scheduler;
+    }
 
-//    Observable<Task2> createTask(String name, Map<String, String> parameters, Trigger trigger);
+    public long now() {
+        return scheduler.now();
+    }
 
-    Observable<Task2> scheduleTask(String name, String groupKey, int executionOrder, Map<String, String> parameters,
-            Trigger trigger);
+    public void advanceTimeTo(long time) {
+        scheduler.advanceTimeTo(time, TimeUnit.MILLISECONDS);
+    }
 
-    void shutdown();
-
-    Observable<Long> getFinishedTimeSlices();
-
-    boolean isRunning();
+    public void advanceTimeBy(long duration, TimeUnit timeUnit) {
+        scheduler.advanceTimeBy(duration, timeUnit);
+    }
 
 }
