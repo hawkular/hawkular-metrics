@@ -24,6 +24,7 @@ import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.Functions.getTTLAvailabilityDataPoint;
 import static org.hawkular.metrics.core.impl.Functions.getTTLGaugeDataPoint;
+import static org.hawkular.metrics.core.impl.Functions.makeSafe;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -85,17 +86,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import rx.Observable;
 import rx.functions.Func1;
 import rx.subjects.PublishSubject;
-
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
-
-import static java.util.Comparator.comparingLong;
-import static org.hawkular.metrics.core.api.MetricType.*;
-import static org.hawkular.metrics.core.impl.Functions.getTTLAvailabilityDataPoint;
-import static org.hawkular.metrics.core.impl.Functions.getTTLGaugeDataPoint;
-import static org.hawkular.metrics.core.impl.Functions.makeSafe;
 
 /**
  * @author John Sanda
@@ -337,7 +327,8 @@ public class MetricsServiceImpl implements MetricsService {
                         .flatMap(entry -> dataAccess.updateRetentionsIndex(tenant.getId(), entry.getKey(),
                                 ImmutableMap.of(makeSafe(entry.getKey().getText()), entry.getValue())));
             });
-            updates.subscribe(resultSet -> {}, subscriber::onError, subscriber::onCompleted);
+            updates.subscribe(resultSet -> {
+            }, subscriber::onError, subscriber::onCompleted);
         });
     }
 
