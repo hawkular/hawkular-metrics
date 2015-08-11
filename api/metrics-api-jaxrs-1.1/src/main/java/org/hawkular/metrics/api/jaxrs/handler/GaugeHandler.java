@@ -16,7 +16,35 @@
  */
 package org.hawkular.metrics.api.jaxrs.handler;
 
-import com.wordnik.swagger.annotations.*;
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGaugeDataPoints;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGauges;
+import static org.hawkular.metrics.core.api.MetricType.GAUGE;
+
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
+
+import javax.inject.Inject;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
+
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.observer.EntityCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
@@ -27,25 +55,19 @@ import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.request.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.request.TagRequest;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
-import org.hawkular.metrics.core.api.*;
+import org.hawkular.metrics.core.api.BucketedOutput;
+import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricsService;
+
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+
 import rx.Observable;
-
-import javax.inject.Inject;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Predicate;
-
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.*;
-import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 /**
  * @author Stefan Negrea
