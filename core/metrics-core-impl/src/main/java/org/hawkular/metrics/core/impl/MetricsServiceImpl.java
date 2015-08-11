@@ -89,17 +89,6 @@ import rx.Observable;
 import rx.functions.Func1;
 import rx.subjects.PublishSubject;
 
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
-
-import static java.util.Comparator.comparingLong;
-import static org.hawkular.metrics.core.api.MetricType.*;
-import static org.hawkular.metrics.core.impl.Functions.getTTLAvailabilityDataPoint;
-import static org.hawkular.metrics.core.impl.Functions.getTTLGaugeDataPoint;
-import static org.joda.time.Hours.hours;
-
 /**
  * @author John Sanda
  */
