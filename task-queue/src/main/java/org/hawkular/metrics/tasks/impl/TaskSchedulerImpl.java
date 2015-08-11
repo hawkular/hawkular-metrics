@@ -16,17 +16,6 @@
  */
 package org.hawkular.metrics.tasks.impl;
 
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.UDTValue;
@@ -36,11 +25,7 @@ import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.hawkular.metrics.tasks.DateTimeService;
-import org.hawkular.metrics.tasks.api.RepeatingTrigger;
-import org.hawkular.metrics.tasks.api.SingleExecutionTrigger;
-import org.hawkular.metrics.tasks.api.Task2;
-import org.hawkular.metrics.tasks.api.TaskScheduler;
-import org.hawkular.metrics.tasks.api.Trigger;
+import org.hawkular.metrics.tasks.api.*;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
@@ -53,6 +38,9 @@ import rx.Subscription;
 import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
+
+import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * @author jsanda

@@ -16,13 +16,13 @@
  */
 package org.hawkular.metrics.tasks.api;
 
-import java.util.Map;
-
 import org.hawkular.metrics.tasks.impl.Lease;
 import rx.Observable;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.functions.Action1;
+
+import java.util.Map;
 
 /**
  * @author jsanda

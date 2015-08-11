@@ -16,9 +16,9 @@
  */
 package org.hawkular.metrics.api.jaxrs.util;
 
-import java.util.concurrent.TimeUnit;
-
 import rx.schedulers.TestScheduler;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author jsanda
