@@ -61,9 +61,18 @@ public class HawkularMetricsRestApp extends Application {
         logger.info("Hawkular Metrics starting ..");
     }
 
+    /**
+     * The default implementation returns an empty set, which means the JAX-RS runtime will scan the classpath for
+     * resources, providers, and filters. When this method is overridden, you have to explicitly include each class.
+     * There is no way to simply exclude classes, which is unfortunate because it would make things much easier. We
+     * override the method to provide support for testing with a virtual clock through the REST API. The virtual clock
+     * endpoint is included and enabled when the hawkular.metrics.use-virtual-clock system property is set to true.
+     */
     @Override
     public Set<Class<?>> getClasses() {
         Set<Class<?>> classes = new HashSet<>();
+
+        // Add endpoint handlers
         classes.add(MetricHandler.class);
         classes.add(AvailabilityHandler.class);
         classes.add(InfluxSeriesHandler.class);
@@ -89,6 +98,7 @@ public class HawkularMetricsRestApp extends Application {
             logger.info("Virtual clock is disabled");
         }
 
+        // Add exception mapper providers
         classes.add(BadRequestExceptionMapper.class);
         classes.add(NotAcceptableExceptionMapper.class);
         classes.add(NotAllowedExceptionMapper.class);
@@ -96,11 +106,13 @@ public class HawkularMetricsRestApp extends Application {
         classes.add(ReaderExceptionMapper.class);
         classes.add(NotSupportedExceptionMapper.class);
 
+        // Add filters
         classes.add(EmptyPayloadFilter.class);
         classes.add(TenantFilter.class);
         classes.add(MetricsServiceStateFilter.class);
         classes.add(CorsFilter.class);
 
+        // Add interceptors and other miscellaneous providers
         classes.add(EmptyPayloadInterceptor.class);
         classes.add(ConvertersProvider.class);
         classes.add(JacksonConfig.class);
