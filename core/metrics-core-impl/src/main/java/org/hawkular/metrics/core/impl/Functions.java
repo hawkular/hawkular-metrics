@@ -16,8 +16,6 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import static org.joda.time.DateTime.now;
-
 import java.util.List;
 import java.util.Map;
 
@@ -27,7 +25,6 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Tenant;
-import org.joda.time.Duration;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;

@@ -17,6 +17,7 @@
 package org.hawkular.metrics.core.impl;
 
 import static java.util.Comparator.comparingLong;
+
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
@@ -40,19 +41,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Session;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 import org.hawkular.metrics.core.api.AvailabilityBucketDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.BucketedOutput;
@@ -81,6 +69,21 @@ import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Session;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+
 import rx.Observable;
 import rx.functions.Func1;
 import rx.subjects.PublishSubject;
@@ -451,8 +454,8 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<Metric> findMetric(final MetricId id) {
         return dataAccess.findMetric(id)
                 .flatMap(Observable::from)
-                .map(row -> new Metric(id, row.getMap(2, String.class, String.class),
-                        row.getInt(3)));
+                .map(row -> new Metric(id, row.getMap(1, String.class, String.class),
+                        row.getInt(2)));
     }
 
     @Override
@@ -462,8 +465,8 @@ public class MetricsServiceImpl implements MetricsService {
 
         return typeObservable.flatMap(t -> dataAccess.findMetricsInMetricsIndex(tenantId, t))
                 .flatMap(Observable::from)
-                .map(row -> new Metric(new MetricId(tenantId, type, row.getString(0), Interval.parse(row.getString(1))),
-                                       row.getMap(2, String.class, String.class), row.getInt(3)));
+                .map(row -> new Metric(new MetricId(tenantId, type, row.getString(0)), row.getMap(1, String.class,
+                        String.class), row.getInt(2)));
     }
 
     @Override
@@ -480,7 +483,7 @@ public class MetricsServiceImpl implements MetricsService {
                     return Observable.just(entry)
                             .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
                                     .flatMap(Observable::from)
-                                    .filter(r -> positive == p.matcher(r.getString(3)).matches()) // XNOR
+                                    .filter(r -> positive == p.matcher(r.getString(2)).matches()) // XNOR
                                     .compose(new TagsIndexRowTransformer(tenantId, type))
                                     .compose(new ItemsToSetTransformer<MetricId>())
                                     .reduce((s1, s2) -> {
@@ -557,7 +560,7 @@ public class MetricsServiceImpl implements MetricsService {
         //      explicitly created, just not necessarily right away.
 
         PublishSubject<Void> results = PublishSubject.create();
-        Observable<Integer> updates = gaugeObservable.flatMap(g -> dataAccess.insertData(g, getTTL(g)));
+        Observable<Integer> updates = gaugeObservable.flatMap(dataAccess::insertData);
         // I am intentionally return zero for the number index updates because I want to measure and compare the
         // throughput inserting data with and without the index updates. This will give us a better idea of how much
         // over there is with the index updates.
@@ -577,7 +580,7 @@ public class MetricsServiceImpl implements MetricsService {
         PublishSubject<Void> results = PublishSubject.create();
         Observable<Integer> updates = availabilities
                 .filter(a -> !a.getDataPoints().isEmpty())
-                .flatMap(a -> dataAccess.insertAvailabilityData(a, getTTL(a)));
+                .flatMap(dataAccess::insertAvailabilityData);
         // I am intentionally return zero for the number index updates because I want to measure and compare the
         // throughput inserting data with and without the index updates. This will give us a better idea of how much
         // over there is with the index updates.
@@ -595,7 +598,7 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public Observable<Void> addCounterData(Observable<Metric<Long>> counters) {
         PublishSubject<Void> results = PublishSubject.create();
-        Observable<Integer> updates = counters.flatMap(c -> dataAccess.insertCounterData(c, getTTL(c)));
+        Observable<Integer> updates = counters.flatMap(dataAccess::insertCounterData);
         // I am intentionally return zero for the number index updates because I want to measure and compare the
         // throughput inserting data with and without the index updates. This will give us a better idea of how much
         // over there is with the index updates.
@@ -821,16 +824,16 @@ public class MetricsServiceImpl implements MetricsService {
                 });
     }
 
-    private int getTTL(Metric metric) {
-        Integer ttl = dataRetentions.get(new DataRetentionKey(metric.getId()));
-        if (ttl == null) {
-            ttl = dataRetentions.get(new DataRetentionKey(metric.getTenantId(), metric.getType()));
-            if (ttl == null) {
-                ttl = DEFAULT_TTL;
-            }
-        }
-        return ttl;
-    }
+//    private int getTTL(Metric metric) {
+//        Integer ttl = dataRetentions.get(new DataRetentionKey(metric.getId()));
+//        if (ttl == null) {
+//            ttl = dataRetentions.get(new DataRetentionKey(metric.getTenantId(), metric.getType()));
+//            if (ttl == null) {
+//                ttl = DEFAULT_TTL;
+//            }
+//        }
+//        return ttl;
+//    }
 
     public void shutdown() {
         metricsTasks.shutdown();

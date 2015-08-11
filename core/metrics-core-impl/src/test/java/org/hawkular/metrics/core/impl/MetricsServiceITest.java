@@ -28,9 +28,7 @@ import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.MetricsServiceImpl.DEFAULT_TTL;
-import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
 import static org.joda.time.DateTime.now;
-import static org.joda.time.Days.days;
 import static org.joda.time.Hours.hours;
 import static org.junit.Assert.fail;
 import static org.testng.Assert.assertEquals;
@@ -46,12 +44,11 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 import java.util.regex.PatternSyntaxException;
+
 import org.hawkular.metrics.core.api.Aggregate;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
@@ -59,14 +56,11 @@ import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
 import org.joda.time.DateTime;
-import org.joda.time.Duration;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.codahale.metrics.MetricRegistry;
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
@@ -604,7 +598,8 @@ public class MetricsServiceITest extends MetricsITest {
 //        Map<String, String> tags = ImmutableMap.of("tag1", "");
 //
 //        verifyTTLDataAccess.availabilityTagTLLLessThanEqualTo(DEFAULT_TTL - days(2).toStandardSeconds().getSeconds());
-//        metricsService.tagAvailabilityData(m1, tags, start.getMillis(), start.plusMinutes(2).getMillis()).toBlocking();
+//        metricsService.tagAvailabilityData(m1, tags, start.getMillis(), start.plusMinutes(2).getMillis())
+// .toBlocking();
 //
 //        verifyTTLDataAccess.setAvailabilityTTL(days(14).toStandardSeconds().getSeconds());
 //        Metric<AvailabilityType> m2 = new Metric<>(new MetricId("t2", AVAILABILITY, "m2"),
@@ -1233,8 +1228,8 @@ public class MetricsServiceITest extends MetricsITest {
 
         for (Row row : resultSet) {
             MetricType type = MetricType.fromCode(row.getInt(0));
-            MetricId id = new MetricId(tenantId, type, row.getString(1), Interval.parse(row.getString(2)));
-            actual.add(new MetricsTagsIndexEntry(row.getString(3), type, id)); // Need value here.. pff.
+            MetricId id = new MetricId(tenantId, type, row.getString(1));
+            actual.add(new MetricsTagsIndexEntry(row.getString(2), type, id)); // Need value here.. pff.
         }
 
         assertEquals(actual, expected, "The metrics tags index entries do not match");

@@ -112,13 +112,13 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<Integer> insertData(Metric<Double> gauge, int ttl) {
-        return delegate.insertData(gauge, ttl);
+    public Observable<Integer> insertData(Metric<Double> gauge) {
+        return delegate.insertData(gauge);
     }
 
     @Override
-    public Observable<Integer> insertCounterData(Metric<Long> counter, int ttl) {
-        return delegate.insertCounterData(counter, ttl);
+    public Observable<Integer> insertCounterData(Metric<Long> counter) {
+        return delegate.insertCounterData(counter);
     }
 
     @Override
@@ -204,8 +204,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
-        return delegate.insertAvailabilityData(metric, ttl);
+    public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric) {
+        return delegate.insertAvailabilityData(metric);
     }
 
     @Override

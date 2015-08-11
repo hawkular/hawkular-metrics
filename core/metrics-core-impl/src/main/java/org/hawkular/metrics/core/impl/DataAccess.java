@@ -65,9 +65,9 @@ public interface DataAccess {
 
     Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType type);
 
-    Observable<Integer> insertData(Metric<Double> metric, int ttl);
+    Observable<Integer> insertData(Metric<Double> metric);
 
-    Observable<Integer> insertCounterData(Metric<Long> counter, int ttl);
+    Observable<Integer> insertCounterData(Metric<Long> counter);
 
     Observable<ResultSet> findCounterData(MetricId id, long startTime, long endTime);
 
@@ -103,7 +103,7 @@ public interface DataAccess {
 
     Observable<ResultSet> findAvailabilityByTag(String tenantId, String tag, String tagValue);
 
-    Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl);
+    Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric);
 
     Observable<ResultSet> findAvailabilityData(MetricId id, long startTime, long endTime);
 

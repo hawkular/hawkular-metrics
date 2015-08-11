@@ -18,21 +18,16 @@ package org.hawkular.metrics.core.impl;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+
 import static org.hawkular.metrics.core.api.AvailabilityType.UP;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
-import static org.hawkular.metrics.core.impl.MetricsServiceImpl.DEFAULT_TTL;
 import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
 import java.util.List;
 
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import org.hawkular.metrics.core.api.AggregationTemplate;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
@@ -45,6 +40,12 @@ import org.joda.time.Days;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+
 import rx.Observable;
 
 /**
@@ -125,7 +126,7 @@ public class DataAccessITest extends MetricsITest {
                 new DataPoint<>(end.getMillis(), 1.234)
         ));
 
-        dataAccess.insertData(metric, DEFAULT_TTL).toBlocking().last();
+        dataAccess.insertData(metric).toBlocking().last();
 
         Observable<ResultSet> observable = dataAccess.findData(new MetricId("tenant-1", GAUGE, "metric-1"),
                 start.getMillis(), end.getMillis());
@@ -150,19 +151,19 @@ public class DataAccessITest extends MetricsITest {
         DateTime end = start.plusMinutes(6);
         String tenantId = "tenant-1";
 
-        Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, "metric-1"),
-                ImmutableMap.of("units", "KB", "env", "test"), DEFAULT_TTL);
+//        Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, "metric-1"),
+//                ImmutableMap.of("units", "KB", "env", "test"), DEFAULT_TTL);
 
-        dataAccess.addTagsAndDataRetention(metric).toBlocking().last();
+//        dataAccess.addTagsAndDataRetention(metric).toBlocking().last();
 
-        metric = new Metric<>(new MetricId(tenantId, GAUGE, "metric-1"), asList(
+        Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, "metric-1"), asList(
                 new DataPoint<>(start.getMillis(), 1.23),
                 new DataPoint<>(start.plusMinutes(2).getMillis(), 1.234),
                 new DataPoint<>(start.plusMinutes(4).getMillis(), 1.234),
                 new DataPoint<>(end.getMillis(), 1.234)
         ));
 
-        dataAccess.insertData(metric, DEFAULT_TTL).toBlocking().last();
+        dataAccess.insertData(metric).toBlocking().last();
 
         Observable<ResultSet> observable = dataAccess.findData(new MetricId("tenant-1", GAUGE, "metric-1"),
                 start.getMillis(), end.getMillis());
@@ -189,7 +190,7 @@ public class DataAccessITest extends MetricsITest {
         Metric<AvailabilityType> metric = new Metric<>(new MetricId(tenantId, AVAILABILITY, "m1"),
                 singletonList(new DataPoint<>(start.getMillis(), UP)));
 
-        dataAccess.insertAvailabilityData(metric, 360).toBlocking().lastOrDefault(null);
+        dataAccess.insertAvailabilityData(metric).toBlocking().lastOrDefault(null);
 
         List<DataPoint<AvailabilityType>> actual = dataAccess
             .findAvailabilityData(new MetricId(tenantId, AVAILABILITY, "m1"), start.getMillis(), end.getMillis())

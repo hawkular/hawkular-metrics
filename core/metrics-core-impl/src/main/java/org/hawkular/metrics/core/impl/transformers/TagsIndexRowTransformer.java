@@ -16,10 +16,11 @@
  */
 package org.hawkular.metrics.core.impl.transformers;
 
-import com.datastax.driver.core.Row;
-import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
+
+import com.datastax.driver.core.Row;
+
 import rx.Observable;
 
 /**
@@ -45,7 +46,6 @@ public class TagsIndexRowTransformer implements Observable.Transformer<Row, Metr
                 .filter(r -> (type == null
                         && MetricType.userTypes().contains(MetricType.fromCode(r.getInt(0))))
                         || MetricType.fromCode(r.getInt(0)) == type)
-                .map(r -> new MetricId(tenantId, MetricType.fromCode(r.getInt(0)), r.getString
-                        (1), Interval.parse(r.getString(2))));
+                .map(r -> new MetricId(tenantId, MetricType.fromCode(r.getInt(0)), r.getString(1)));
     }
 }
