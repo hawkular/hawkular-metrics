@@ -35,12 +35,21 @@ import com.wordnik.swagger.annotations.ApiModel;
 public class AvailabilityDataPoint {
 
     @JsonProperty
+    @org.codehaus.jackson.annotate.JsonProperty
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     private long timestamp;
 
     @JsonProperty
+    @org.codehaus.jackson.annotate.JsonProperty
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     private String value;
 
     @JsonProperty
+    @org.codehaus.jackson.annotate.JsonProperty
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     private Map<String, String> tags = emptyMap();
 
     /**

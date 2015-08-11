@@ -32,12 +32,21 @@ import org.hawkular.metrics.core.api.DataPoint;
 public class CounterDataPoint {
 
     @JsonProperty
+    @org.codehaus.jackson.annotate.JsonProperty
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     private long timestamp;
 
     @JsonProperty
+    @org.codehaus.jackson.annotate.JsonProperty
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     private Long value;
 
     @JsonProperty
+    @org.codehaus.jackson.annotate.JsonProperty
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     private Map<String, String> tags = Collections.emptyMap();
 
     /**

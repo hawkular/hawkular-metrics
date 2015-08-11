@@ -22,6 +22,8 @@ import java.util.Objects;
 
 import org.hawkular.metrics.core.api.DataPoint;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.wordnik.swagger.annotations.ApiModel;
@@ -33,13 +35,20 @@ import com.wordnik.swagger.annotations.ApiModel;
 public class GaugeDataPoint {
 
     @JsonProperty
+    @org.codehaus.jackson.annotate.JsonProperty
     private long timestamp;
 
     @JsonProperty
+    @org.codehaus.jackson.annotate.JsonProperty
     private Double value;
 
     @JsonProperty
+    @JsonInclude(Include.NON_EMPTY)
+    @org.codehaus.jackson.annotate.JsonProperty
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     private Map<String, String> tags = Collections.emptyMap();
+
 
     /**
      * Used by JAX-RS/Jackson to deserialize HTTP request data

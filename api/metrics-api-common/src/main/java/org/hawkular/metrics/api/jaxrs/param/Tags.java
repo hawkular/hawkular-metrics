@@ -29,6 +29,8 @@ import com.google.common.collect.ImmutableMap;
  * @author Thomas Segismont
  * @see TagsConverter
  */
+@org.codehaus.jackson.map.annotate.JsonSerialize(
+        include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
 public class Tags {
     public static final String LIST_DELIMITER = ",";
     public static final String TAG_DELIMITER = ":";
