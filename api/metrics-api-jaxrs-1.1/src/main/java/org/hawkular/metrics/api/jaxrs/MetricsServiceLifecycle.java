@@ -43,6 +43,7 @@ import javax.inject.Inject;
 
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
+import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.impl.MetricsServiceImpl;
 import org.hawkular.metrics.schema.SchemaManager;
@@ -69,6 +70,7 @@ import rx.Observable;
  * @author Thomas Segismont
  */
 @ApplicationScoped
+@Eager
 public class MetricsServiceLifecycle {
     private static final Logger LOG = LoggerFactory.getLogger(MetricsServiceLifecycle.class);
 
