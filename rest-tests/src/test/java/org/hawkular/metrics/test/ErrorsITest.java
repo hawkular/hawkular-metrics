@@ -16,11 +16,12 @@
  */
 package org.hawkular.metrics.test;
 
+import static org.junit.Assert.assertEquals;
+
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -44,10 +45,9 @@ public class ErrorsITest extends RESTTest {
                 .request(MediaType.APPLICATION_JSON_TYPE)
                 .header(TENANT_HEADER_NAME, "test")
                 .post(null);
-        Assert.assertEquals(405, response.getStatus());
+        assertEquals(405, response.getStatus());
         ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
-        Assert.assertEquals("No resource method found for POST, return 405 with Allow header",
-                apiErrorJson.getErrorMsg());
+        assertEquals("No resource method found for POST, return 405 with Allow header", apiErrorJson.getErrorMsg());
     }
 
     @Test
@@ -58,11 +58,7 @@ public class ErrorsITest extends RESTTest {
                 .request(MediaType.APPLICATION_JSON_TYPE)
                 .header(TENANT_HEADER_NAME, "test")
                 .get();
-        Assert.assertEquals(404, response.getStatus());
-        ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
-        Assert.assertEquals("Could not find resource for full path: http://"+baseURI
-                + "/gaugesssss/test/data?buckets=999",
-                apiErrorJson.getErrorMsg());
+        assertEquals(404, response.getStatus());
     }
 
     @Test
@@ -73,10 +69,9 @@ public class ErrorsITest extends RESTTest {
                 .request(MediaType.APPLICATION_JSON_TYPE)
                 .header(TENANT_HEADER_NAME, "test")
                 .get();
-        Assert.assertEquals(400, response.getStatus());
+        assertEquals(400, response.getStatus());
         ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
-        Assert.assertEquals("For input string: \"999999999999999999999999\"",
-                apiErrorJson.getErrorMsg());
+        assertEquals("For input string: \"999999999999999999999999\"", apiErrorJson.getErrorMsg());
     }
 
     @Test
@@ -86,10 +81,7 @@ public class ErrorsITest extends RESTTest {
                 .request(MediaType.TEXT_PLAIN)
                 .header(TENANT_HEADER_NAME, "test")
                 .get();
-        Assert.assertEquals(406, response.getStatus());
-        ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
-        Assert.assertEquals("No match for accept header",
-                apiErrorJson.getErrorMsg());
+        assertEquals(406, response.getStatus());
     }
 
     @Test
@@ -99,9 +91,8 @@ public class ErrorsITest extends RESTTest {
                 .request(MediaType.TEXT_PLAIN)
                 .header(TENANT_HEADER_NAME, "test")
                 .post(null);
-        Assert.assertEquals(415, response.getStatus());
+        assertEquals(415, response.getStatus());
         ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
-        Assert.assertEquals("Cannot consume content type",
-                apiErrorJson.getErrorMsg());
+        assertEquals("Cannot consume content type", apiErrorJson.getErrorMsg());
     }
 }
