@@ -54,7 +54,7 @@ public class EmptyPayloadFilter implements PreProcessInterceptor {
             return null;
         }
 
-        servletRequest.getServletContext().setAttribute(EMPTY_PAYLOAD, Boolean.TRUE);
+        servletRequest.setAttribute(EMPTY_PAYLOAD, Boolean.TRUE);
         return null;
     }
 }
