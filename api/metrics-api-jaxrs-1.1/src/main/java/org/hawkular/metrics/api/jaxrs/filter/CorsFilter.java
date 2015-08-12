@@ -16,49 +16,39 @@
  */
 package org.hawkular.metrics.api.jaxrs.filter;
 
-import java.io.IOException;
-
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.Provider;
+
+import org.jboss.resteasy.annotations.interception.ServerInterceptor;
+import org.jboss.resteasy.core.ServerResponse;
+import org.jboss.resteasy.spi.interception.PostProcessInterceptor;
 
 /**
  * @author Stefan Negrea
  *
  */
 @Provider
-public class CorsFilter implements Filter {
+@ServerInterceptor
+public class CorsFilter implements PostProcessInterceptor {
 
     public static final String DEFAULT_ALLOWED_METHODS = "GET, POST, PUT, DELETE, OPTIONS, HEAD";
     public static final String DEFAULT_ALLOWED_HEADERS = "origin,accept,content-type,hawkular-tenant";
 
     @Override
-    public void destroy() {
-    }
-
-    @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
-
-        final HttpServletResponse httpResponse = (HttpServletResponse) response;
+    public void postProcess(ServerResponse response) {
+        final MultivaluedMap<String, Object> headers = response.getMetadata();
 
         String origin = "*";
-        httpResponse.addHeader("Access-Control-Allow-Origin", origin);
+        if (headers.get("origin") != null && headers.get("origin").size() == 1
+                && headers.get("origin").get(0) != null
+                && !headers.get("origin").get(0).equals("null")) {
+            origin = headers.get("origin").get(0).toString();
+        }
+        headers.add("Access-Control-Allow-Origin", origin);
 
-        httpResponse.addHeader("Access-Control-Allow-Credentials", "true");
-        httpResponse.addHeader("Access-Control-Allow-Methods", DEFAULT_ALLOWED_METHODS);
-        httpResponse.addHeader("Access-Control-Max-Age", (72 * 60 * 60) + "");
-        httpResponse.addHeader("Access-Control-Allow-Headers", DEFAULT_ALLOWED_HEADERS);
-
-        chain.doFilter(request, response);
-    }
-
-    @Override
-    public void init(FilterConfig arg0) throws ServletException {
+        headers.add("Access-Control-Allow-Credentials", "true");
+        headers.add("Access-Control-Allow-Methods", DEFAULT_ALLOWED_METHODS);
+        headers.add("Access-Control-Max-Age", 72 * 60 * 60);
+        headers.add("Access-Control-Allow-Headers", DEFAULT_ALLOWED_HEADERS);
     }
 }
