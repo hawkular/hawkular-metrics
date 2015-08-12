@@ -27,6 +27,7 @@ import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGauges;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.regex.PatternSyntaxException;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -105,11 +106,13 @@ public class MetricHandler {
 
         try {
             return metricObservable
-                .map(MetricDefinition::new)
-                .toList()
-                .map(ApiUtils::collectionToResponse)
-                .toBlocking()
-                .lastOrDefault(null);
+                    .map(MetricDefinition::new)
+                    .toList()
+                    .map(ApiUtils::collectionToResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
+        } catch (PatternSyntaxException e) {
+            return ApiUtils.badRequest(e);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
