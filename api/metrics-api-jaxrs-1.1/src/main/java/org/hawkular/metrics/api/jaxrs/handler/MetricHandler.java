@@ -155,11 +155,8 @@ public class MetricHandler {
         }
 
         try {
-            return Observable
-                    .merge(observables)
-                    .map(ApiUtils::simpleOKResponse)
-                    .toBlocking()
-                    .lastOrDefault(null);
+            Observable.merge(observables).toBlocking().lastOrDefault(null);
+            return Response.ok().build();
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }

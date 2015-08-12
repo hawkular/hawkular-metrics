@@ -174,8 +174,8 @@ public class GaugeHandler {
     ) {
         Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id));
         try {
-            return metricsService.addTags(metric, tags).map(ApiUtils::simpleOKResponse).toBlocking()
-                    .lastOrDefault(null);
+            metricsService.addTags(metric, tags).toBlocking().lastOrDefault(null);
+            return Response.ok().build();
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -195,9 +195,9 @@ public class GaugeHandler {
             @ApiParam("Tag list") @PathParam("tags") Tags tags
     ) {
         try {
-        Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id));
-            return metricsService.deleteTags(metric, tags.getTags()).map(ApiUtils::simpleOKResponse).toBlocking()
-                    .lastOrDefault(null);
+            Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id));
+            metricsService.deleteTags(metric, tags.getTags()).toBlocking().lastOrDefault(null);
+            return Response.ok().build();
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -220,8 +220,8 @@ public class GaugeHandler {
     ) {
         Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id), requestToGaugeDataPoints(data));
         try {
-        Observable<Void> observable = metricsService.addGaugeData(Observable.just(metric));
-            return observable.map(ApiUtils::simpleOKResponse).toBlocking().lastOrDefault(null);
+            metricsService.addGaugeData(Observable.just(metric)).toBlocking().lastOrDefault(null);
+            return Response.ok().build();
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -240,10 +240,9 @@ public class GaugeHandler {
     public Response addGaugeData(@ApiParam(value = "List of metrics", required = true) List<Gauge> gauges
     ) {
         Observable<Metric<Double>> metrics = requestToGauges(tenantId, gauges);
-
         try {
-            Observable<Void> observable = metricsService.addGaugeData(metrics);
-            return observable.map(ApiUtils::simpleOKResponse).toBlocking().lastOrDefault(null);
+            metricsService.addGaugeData(metrics).toBlocking().lastOrDefault(null);
+            return Response.ok().build();
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -446,9 +445,9 @@ public class GaugeHandler {
             resultSetObservable = metricsService.tagGaugeData(metric, params.getTags(), params.getStart(), params
                     .getEnd());
         }
-
         try {
-            return resultSetObservable.map(ApiUtils::simpleOKResponse).toBlocking().lastOrDefault(null);
+            resultSetObservable.toBlocking().lastOrDefault(null);
+            return Response.ok().build();
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
