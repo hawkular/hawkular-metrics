@@ -41,9 +41,17 @@
     <param-value>org.hawkular.metrics.api.jaxrs.util.JacksonContextResolver</param-value>
   </context-param>
 
-  <context-param>
-    <param-name>resteasy.scan.providers</param-name>
-    <param-value>true</param-value>
-  </context-param>
+  <servlet>
+    <servlet-name>staticContent</servlet-name>
+    <servlet-class>org.apache.catalina.servlets.DefaultServlet</servlet-class>
+    <init-param>
+      <param-name>listings</param-name>
+      <param-value>false</param-value>
+    </init-param>
+  </servlet>
 
+  <servlet-mapping>
+    <servlet-name>staticContent</servlet-name>
+    <url-pattern>/static/*</url-pattern>
+  </servlet-mapping>
 </web-app>

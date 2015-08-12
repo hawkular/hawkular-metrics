@@ -148,10 +148,10 @@
           </server-args>
         </configuration>
       </plugin>
+
       <plugin>
         <artifactId>maven-war-plugin</artifactId>
         <configuration>
-          <failOnMissingWebXml>false</failOnMissingWebXml>
           <archive>
             <manifest>
               <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
@@ -160,6 +160,24 @@
             <!-- <manifestEntries> <Build-Number>${buildNumber}</Build-Number>
               </manifestEntries> -->
           </archive>
+          <webResources>
+            <resource>
+              <filtering>false</filtering>
+              <directory>${basedir}/src/main/webapp</directory>
+              <excludes>
+                <exclude>WEB-INF/web.xml</exclude>
+                <exclude>static/index.html</exclude>
+              </excludes>
+            </resource>
+            <resource>
+              <filtering>true</filtering>
+              <directory>${basedir}/src/main/webapp</directory>
+              <includes>
+                <include>WEB-INF/web.xml</include>
+                <include>static/index.html</include>
+              </includes>
+            </resource>
+          </webResources>
         </configuration>
       </plugin>
 
