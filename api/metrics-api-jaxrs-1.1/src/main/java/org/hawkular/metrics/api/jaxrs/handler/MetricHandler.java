@@ -17,6 +17,7 @@
 package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilities;
@@ -96,7 +97,7 @@ public class MetricHandler {
             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags) {
 
         if (metricType != null && !MetricType.userTypes().contains(metricType)) {
-            return badRequest(new ApiError("Incorrect type param"));
+            return badRequest(new ApiError("Incorrect type param " + metricType.toString()));
         }
 
         Observable<Metric> metricObservable = (tags == null) ? metricsService.findMetrics(tenantId, metricType)
