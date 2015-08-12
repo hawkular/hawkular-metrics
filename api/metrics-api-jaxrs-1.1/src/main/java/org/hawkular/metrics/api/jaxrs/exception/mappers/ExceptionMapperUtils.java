@@ -18,6 +18,7 @@ package org.hawkular.metrics.api.jaxrs.exception.mappers;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
@@ -31,15 +32,26 @@ import com.google.common.base.Throwables;
  */
 public class ExceptionMapperUtils {
     private static final Logger LOG = LoggerFactory.getLogger(ExceptionMapperUtils.class);
-    private ExceptionMapperUtils(){
 
+    public static Response buildResponse(Throwable exception, int statusCode) {
+        ResponseBuilder responseBuilder = Response.status(statusCode);
+        return buildErrorResponse(exception, responseBuilder);
     }
 
-    public static Response buildResponse(Throwable exception, Status status){
+    public static Response buildResponse(Throwable exception, Status status) {
+        ResponseBuilder responseBuilder = Response.status(status);
+        return buildErrorResponse(exception, responseBuilder);
+    }
+
+    private static Response buildErrorResponse(Throwable exception, ResponseBuilder responseBuilder) {
         LOG.trace("RestEasy exception,", exception);
-        return Response.status(status)
+        return responseBuilder
                 .entity(new ApiError(Throwables.getRootCause(exception).getMessage()))
                 .type(MediaType.APPLICATION_JSON_TYPE)
                 .build();
+    }
+
+    private ExceptionMapperUtils() {
+        // Utility class
     }
 }

@@ -47,8 +47,6 @@ public class ErrorsITest extends RESTTest {
                 .header(TENANT_HEADER_NAME, "test")
                 .post(null);
         assertEquals(405, response.getStatus());
-        ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
-        assertEquals("No resource method found for POST, return 405 with Allow header", apiErrorJson.getErrorMsg());
     }
 
     @Test
@@ -71,8 +69,6 @@ public class ErrorsITest extends RESTTest {
                 .header(TENANT_HEADER_NAME, "test")
                 .get();
         assertEquals(400, response.getStatus());
-        ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
-        assertEquals("For input string: \"999999999999999999999999\"", apiErrorJson.getErrorMsg());
     }
 
     @Test

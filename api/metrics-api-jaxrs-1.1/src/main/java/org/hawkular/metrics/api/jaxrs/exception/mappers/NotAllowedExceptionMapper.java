@@ -35,7 +35,7 @@ public class NotAllowedExceptionMapper implements ExceptionMapper<MethodNotAllow
 
     @Override
     public Response toResponse(MethodNotAllowedException exception) {
-        return ExceptionMapperUtils.buildResponse(exception, Response.Status.BAD_REQUEST);
+        return ExceptionMapperUtils.buildResponse(exception, 405);
     }
 
 }
