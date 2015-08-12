@@ -18,7 +18,9 @@ package org.hawkular.metrics.api.jaxrs.handler;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounterDataPoints;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounters;
@@ -41,14 +43,13 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
-import org.hawkular.metrics.api.jaxrs.handler.observer.EntityCreatedObserver;
-import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.model.Counter;
 import org.hawkular.metrics.api.jaxrs.model.CounterDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.request.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.slf4j.Logger;
@@ -105,13 +106,13 @@ public class CounterHandler {
         Metric<Double> metric = new Metric<>(new MetricId(tenantId, COUNTER, metricDefinition.getId()),
                 metricDefinition.getTags(), metricDefinition.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getId().getName());
-
         try {
-            EntityCreatedObserver<?> observer = new MetricCreatedObserver(location);
             Observable<Void> observable = metricsService.createMetric(metric);
-            observable.subscribe(observer);
             observable.toBlocking().lastOrDefault(null);
-            return observer.getResponse();
+            return Response.created(location).build();
+        } catch (MetricAlreadyExistsException e) {
+            String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
+            return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }

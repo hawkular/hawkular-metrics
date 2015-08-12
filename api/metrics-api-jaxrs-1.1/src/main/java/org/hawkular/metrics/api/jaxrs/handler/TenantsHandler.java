@@ -31,12 +31,11 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
-import org.hawkular.metrics.api.jaxrs.handler.observer.EntityCreatedObserver;
-import org.hawkular.metrics.api.jaxrs.handler.observer.TenantCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.request.TenantParam;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.Tenant;
+import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
 
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
@@ -75,15 +74,15 @@ public class TenantsHandler {
             @Context UriInfo uriInfo
     ) {
         URI location = uriInfo.getBaseUriBuilder().path("/tenants").build();
-        EntityCreatedObserver<?> observer = new TenantCreatedObserver(location);
         try {
             Observable<Void> observable = metricsService.createTenant(new Tenant(params.getId()));
-            observable.subscribe(observer);
             observable.toBlocking().lastOrDefault(null);
-            return observer.getResponse();
+            return Response.created(location).build();
+        } catch (TenantAlreadyExistsException e) {
+            String message = "A tenant with id [" + e.getTenantId() + "] already exists";
+            return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
         } catch (Exception e) {
-            Response response = observer.getResponse();
-            return response != null ? response : ApiUtils.serverError(e);
+            return ApiUtils.serverError(e);
         }
     }
 
