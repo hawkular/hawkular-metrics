@@ -18,17 +18,9 @@ package org.hawkular.metrics.api.jaxrs.filter;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 
-import java.io.IOException;
-
 import javax.inject.Inject;
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.ext.Provider;
 
@@ -36,14 +28,19 @@ import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle;
 import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle.State;
 import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.jboss.resteasy.annotations.interception.ServerInterceptor;
+import org.jboss.resteasy.core.ResourceMethod;
+import org.jboss.resteasy.core.ServerResponse;
+import org.jboss.resteasy.spi.Failure;
+import org.jboss.resteasy.spi.HttpRequest;
+import org.jboss.resteasy.spi.interception.PreProcessInterceptor;
 
 /**
  * @author Matt Wringe
  */
 @Provider
-public class MetricsServiceStateFilter implements Filter {
+@ServerInterceptor
+public class MetricsServiceStateFilter implements PreProcessInterceptor {
 
     private static final String STARTING = "Service unavailable while initializing.";
     private static final String FAILED = "Internal server error.";
@@ -53,49 +50,38 @@ public class MetricsServiceStateFilter implements Filter {
     private MetricsServiceLifecycle metricsServiceLifecycle;
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
-    }
-
-    @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
-
-        final HttpServletRequest httpRequest = (HttpServletRequest) request;
-        String path = httpRequest.getRequestURI();
+    public ServerResponse preProcess(HttpRequest request, ResourceMethod method) throws Failure,
+            WebApplicationException {
+        String path = request.getUri().getPath();
 
         if (path.startsWith(StatusHandler.PATH)) {
             // The status page does not require the MetricsService to be up and running.
-            chain.doFilter(request, response);
-            return;
+            return null;
         }
-
-        ObjectMapper mapper = new ObjectMapper();
 
         if (metricsServiceLifecycle.getState() == State.STARTING) {
-            final HttpServletResponse httpResponse = (HttpServletResponse) response;
-            httpResponse.setStatus(Status.SERVICE_UNAVAILABLE.getStatusCode());
-            httpResponse.setContentType(APPLICATION_JSON_TYPE.toString());
-            mapper.writeValue(response.getWriter(), new ApiError(STARTING));
-            return;
+            // Fail since the Cassandra cluster is not yet up yet.
+            Response response = Response.status(Status.SERVICE_UNAVAILABLE)
+                    .type(APPLICATION_JSON_TYPE)
+                    .entity(new ApiError(STARTING))
+                    .build();
+            return ServerResponse.copyIfNotServerResponse(response);
         } else if (metricsServiceLifecycle.getState() == State.FAILED) {
-            final HttpServletResponse httpResponse = (HttpServletResponse) response;
-            httpResponse.setStatus(Status.INTERNAL_SERVER_ERROR.getStatusCode());
-            httpResponse.setContentType(APPLICATION_JSON_TYPE.toString());
-            mapper.writeValue(response.getWriter(), new ApiError(FAILED));
-            return;
-        } else if (metricsServiceLifecycle.getState() == State.STOPPED
-                || metricsServiceLifecycle.getState() == State.STOPPING) {
-            final HttpServletResponse httpResponse = (HttpServletResponse) response;
-            httpResponse.setStatus(Status.SERVICE_UNAVAILABLE.getStatusCode());
-            httpResponse.setContentType(APPLICATION_JSON_TYPE.toString());
-            mapper.writeValue(response.getWriter(), new ApiError(STOPPED));
-            return;
+            // Fail since an error has occured trying to start the Metrics service
+            Response response = Response.status(Status.INTERNAL_SERVER_ERROR)
+                    .type(APPLICATION_JSON_TYPE)
+                    .entity(new ApiError(FAILED))
+                    .build();
+            return ServerResponse.copyIfNotServerResponse(response);
+        } else if (metricsServiceLifecycle.getState() == State.STOPPED ||
+                metricsServiceLifecycle.getState() == State.STOPPING) {
+            Response response = Response.status(Status.SERVICE_UNAVAILABLE)
+                    .type(APPLICATION_JSON_TYPE)
+                    .entity(new ApiError(STOPPED))
+                    .build();
+            return ServerResponse.copyIfNotServerResponse(response);
         }
 
-        chain.doFilter(request, response);
-    }
-
-    @Override
-    public void destroy() {
+        return null;
     }
 }
