@@ -181,28 +181,6 @@
         </configuration>
       </plugin>
 
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>1.3.2</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <executable>java</executable>
-          <arguments>
-            <!-- argument>-Dssl</argument-->
-            <argument>-classpath</argument>
-            <classpath/>
-            <argument>org.hawkular.metrics.api.undertow.MainServer</argument>
-          </arguments>
-        </configuration>
-      </plugin>
-
     </plugins>
   </build>
 
