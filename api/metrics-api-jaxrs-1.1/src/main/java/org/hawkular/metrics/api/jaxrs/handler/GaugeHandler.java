@@ -18,9 +18,7 @@ package org.hawkular.metrics.api.jaxrs.handler;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGaugeDataPoints;
@@ -300,9 +298,13 @@ public class GaugeHandler {
             long endTime = end == null ? now : end;
 
             try {
-                return metricsService.findGaugeData(new MetricId(tenantId, GAUGE, id), startTime, endTime)
-                    .toList()
-                        .map(ApiUtils::collectionToResponse).toBlocking().lastOrDefault(null);
+                return metricsService
+                        .findGaugeData(new MetricId(tenantId, GAUGE, id), startTime, endTime)
+                        .map(GaugeDataPoint::new)
+                        .toList()
+                        .map(ApiUtils::collectionToResponse)
+                        .toBlocking()
+                        .lastOrDefault(null);
             } catch (Exception e) {
                 return ApiUtils.serverError(e);
             }

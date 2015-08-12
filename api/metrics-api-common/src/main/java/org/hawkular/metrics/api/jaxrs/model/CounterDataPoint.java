@@ -29,6 +29,8 @@ import org.hawkular.metrics.core.api.DataPoint;
  * @author jsanda
  */
 @ApiModel(description = "A timestamp and a value where the value is interpreted as a signed 64 bit integer")
+@org.codehaus.jackson.map.annotate.JsonSerialize(
+        include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
 public class CounterDataPoint {
 
     @JsonProperty

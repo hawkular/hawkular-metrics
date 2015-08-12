@@ -32,6 +32,8 @@ import com.wordnik.swagger.annotations.ApiModel;
  * @author jsanda
  */
 @ApiModel(description = "Consists of a timestamp and a value where supported values are \"up\" and \"down\"")
+@org.codehaus.jackson.map.annotate.JsonSerialize(
+        include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
 public class AvailabilityDataPoint {
 
     @JsonProperty
