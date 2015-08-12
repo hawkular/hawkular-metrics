@@ -34,12 +34,13 @@ public class Metric<T> {
     private Map<String, String> tags = Collections.emptyMap();
     private Integer dataRetention;
     private List<DataPoint<T>> dataPoints = new ArrayList<>();
+    private Integer bucketSize = null;
 
     public Metric(MetricId id) {
         this.id = id;
     }
 
-    public Metric(MetricId id, Map<String, String> tags, Integer dataRetention) {
+    public Metric(MetricId id, Map<String, String> tags, Integer dataRetention, Integer bucketSize) {
         this.id = id;
         this.tags = unmodifiableMap(tags);
         // If the data_retention column is not set, the driver returns zero instead of null.
@@ -57,7 +58,7 @@ public class Metric<T> {
         this.dataPoints = unmodifiableList(dataPoints);
     }
 
-    public Metric(MetricId id, Map<String, String> tags, Integer dataRetention,
+    public Metric(MetricId id, Map<String, String> tags, Integer dataRetention, Integer bucketSize,
             List<DataPoint<T>> dataPoints) {
         this.id = id;
         this.tags = unmodifiableMap(tags);
@@ -69,6 +70,7 @@ public class Metric<T> {
         } else {
             this.dataRetention = dataRetention;
         }
+        setBucketSize(bucketSize);
         this.dataPoints = unmodifiableList(dataPoints);
     }
 
@@ -96,6 +98,16 @@ public class Metric<T> {
 
     public List<DataPoint<T>> getDataPoints() {
         return dataPoints;
+    }
+
+    public Integer getBucketSize() {
+        return bucketSize;
+    }
+
+    private void setBucketSize(Integer bucketSize) {
+        if(bucketSize != null && bucketSize != 0) {
+            this.bucketSize = bucketSize;
+        }
     }
 
     @Override

@@ -26,6 +26,7 @@ import static org.joda.time.Hours.hours;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -86,6 +87,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 
 import rx.Observable;
 import rx.functions.Func1;
+import rx.functions.Func2;
 import rx.subjects.PublishSubject;
 
 /**
@@ -455,7 +457,7 @@ public class MetricsServiceImpl implements MetricsService {
         return dataAccess.findMetric(id)
                 .flatMap(Observable::from)
                 .map(row -> new Metric(id, row.getMap(1, String.class, String.class),
-                        row.getInt(2)));
+                        row.getInt(2), row.getInt(3)));
     }
 
     @Override
@@ -466,7 +468,7 @@ public class MetricsServiceImpl implements MetricsService {
         return typeObservable.flatMap(t -> dataAccess.findMetricsInMetricsIndex(tenantId, t))
                 .flatMap(Observable::from)
                 .map(row -> new Metric(new MetricId(tenantId, type, row.getString(0)), row.getMap(1, String.class,
-                        String.class), row.getInt(2)));
+                        String.class), row.getInt(2), row.getInt(3)));
     }
 
     @Override
@@ -617,7 +619,7 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<DataPoint<Long>> findCounterData(MetricId id, long start, long end) {
         return time(counterReadLatency, () ->
                 dataAccess.findCounterData(id, start, end)
-                        .flatMap(Observable::from)
+                        .concatMap(Observable::from)
                         .map(Functions::getCounterDataPoint));
     }
 
@@ -626,19 +628,16 @@ public class MetricsServiceImpl implements MetricsService {
         MetricId rateId = new MetricId(id.getTenantId(), COUNTER_RATE, id.getName(), id.getInterval());
         return time(gaugeReadLatency, () ->
                 dataAccess.findData(rateId, start, end)
-                        .flatMap(Observable::from)
+                        .concatMap(Observable::from)
                         .map(Functions::getGaugeDataPoint));
     }
 
     @Override
     public Observable<DataPoint<Double>> findGaugeData(MetricId id, Long start, Long end) {
-        // When we implement date partitioning, dpart will have to be determined based on
-        // the start and end params. And it is possible the the date range spans multiple
-        // date partitions.
         return time(gaugeReadLatency, () ->
-            dataAccess.findData(id, start, end)
-                    .flatMap(Observable::from)
-                    .map(Functions::getGaugeDataPoint));
+                dataAccess.findData(id, start, end)
+                        .flatMap(Observable::from)
+                        .map(Functions::getGaugeDataPoint));
     }
 
     @Override
@@ -653,9 +652,6 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<BucketedOutput<GaugeBucketDataPoint>> findGaugeStats(
             Metric<Double> metric, long start, long end, Buckets buckets
     ) {
-        // When we implement date partitioning, dpart will have to be determined based on
-        // the start and end params. And it is possible the the date range spans multiple
-        // date partitions.
         return dataAccess.findData(metric.getId(), start, end)
                 .flatMap(Observable::from)
                 .map(Functions::getGaugeDataPoint)
@@ -675,7 +671,7 @@ public class MetricsServiceImpl implements MetricsService {
         return time(availabilityReadLatency, () -> {
             Observable<DataPoint<AvailabilityType>> availabilityData = dataAccess.findAvailabilityData(id,
                     start, end)
-                    .flatMap(Observable::from)
+                    .concatMap(Observable::from)
                     .map(Functions::getAvailabilityDataPoint);
             if (distinct) {
                 return availabilityData.distinctUntilChanged(DataPoint::getValue);

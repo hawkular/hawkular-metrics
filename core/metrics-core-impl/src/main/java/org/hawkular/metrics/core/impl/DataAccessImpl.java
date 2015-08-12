@@ -24,6 +24,7 @@ import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,7 @@ import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.joda.time.Duration;
+import org.joda.time.convert.DurationConverter;
 
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
@@ -58,6 +60,8 @@ import com.datastax.driver.core.TupleValue;
 import com.datastax.driver.core.UDTValue;
 import com.datastax.driver.core.UserType;
 import com.datastax.driver.core.utils.UUIDs;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
 
 import rx.Observable;
 
@@ -167,7 +171,7 @@ public class DataAccessImpl implements DataAccess {
         findTenant = session.prepare("SELECT id, retentions, aggregation_templates FROM tenants WHERE id = ?");
 
         findMetric = session.prepare(
-            "SELECT metric, tags, data_retention " +
+            "SELECT metric, tags, data_retention, bucket_size " +
             "FROM metrics_idx " +
             "WHERE tenant_id = ? AND type = ? AND metric = ?");
 
@@ -195,8 +199,8 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ?");
 
         insertIntoMetricsIndex = session.prepare(
-            "INSERT INTO metrics_idx (tenant_id, type, metric, data_retention, tags) " +
-            "VALUES (?, ?, ?, ?, ?) " +
+            "INSERT INTO metrics_idx (tenant_id, type, metric, data_retention, bucket_size, tags) " +
+            "VALUES (?, ?, ?, ?, ?, ?) " +
             "IF NOT EXISTS");
 
         updateMetricsIndex = session.prepare(
@@ -213,7 +217,7 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ?");
 
         readMetricsIndex = session.prepare(
-            "SELECT metric, tags, data_retention " +
+            "SELECT metric, tags, data_retention, bucket_size " +
             "FROM metrics_idx " +
             "WHERE tenant_id = ? AND type = ?");
 
@@ -379,7 +383,7 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public ResultSetFuture insertMetricInMetricsIndex(Metric metric) {
         return session.executeAsync(insertIntoMetricsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
-                metric.getId().getName(), metric.getDataRetention(),
+                metric.getId().getName(), metric.getDataRetention(), metric.getBucketSize(),
                 metric.getTags()));
     }
 
@@ -410,7 +414,6 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<ResultSet> addTags(Metric metric, Map<String, String> tags) {
-//        return Observable.empty();
         BatchStatement batch = new BatchStatement(UNLOGGED);
 //        batch.add(addMetricTagsToDataTable.bind(tags, metric.getTenantId(), metric.getType().getCode(),
 //            metric.getId().getName(), metric.getId().getInterval().toString(), getCurrentBucket(metric.getId())));
@@ -421,7 +424,6 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<ResultSet> deleteTags(Metric metric, Set<String> tags) {
-//        return Observable.empty();
         BatchStatement batch = new BatchStatement(UNLOGGED);
 //        batch.add(deleteMetricTagsFromDataTable.bind(tags, metric.getTenantId(), metric.getType().getCode(),
 //            metric.getId().getName(), metric.getId().getInterval().toString(), getCurrentBucket(metric.getId()))); //
@@ -526,9 +528,10 @@ public class DataAccessImpl implements DataAccess {
                     id.getType().getCode(), id.getName(),
                     b, getTimeUUID(startTime), getTimeUUID(endTime))));
         } else {
-            return buckets.flatMap(b -> rxSession.execute(findGaugeDataByDateRangeExclusive.bind(id.getTenantId(),
-                                     id.getType().getCode(), id.getName(),
-                                     b, getTimeUUID(startTime), getTimeUUID(endTime))));
+            return buckets
+                    .flatMap(b -> rxSession.execute(findGaugeDataByDateRangeExclusive.bind(id.getTenantId(),
+                            id.getType().getCode(), id.getName(),
+                            b, getTimeUUID(startTime), getTimeUUID(endTime))));
         }
     }
 
@@ -536,7 +539,6 @@ public class DataAccessImpl implements DataAccess {
     public Observable<ResultSet> findData(Metric<Double> metric, long timestamp,
             boolean includeWriteTime) {
         if (includeWriteTime) {
-            // TODO Would need to fetch all the buckets here?
             return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeInclusive.bind(metric.getTenantId(),
                     metric.getType().getCode(), metric.getId().getName(),
                     getCurrentBucket(metric.getId(), timestamp), UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
@@ -714,19 +716,29 @@ public class DataAccessImpl implements DataAccess {
         return dateTimeService.getCurrentDpart(timestamp, getBucketSize(id));
     }
 
-    private Observable<Long> getBuckets(MetricId id, long starTime, long endTime) {
-        Stream<Long> longStream = Arrays.stream(dateTimeService.getDparts(starTime, endTime, getBucketSize(id)))
-                .mapToObj(Long::valueOf);
+    private Observable<Long> getBuckets(MetricId id, long startTime, long endTime) {
+        return getBuckets(id, startTime, endTime, false);
+    }
+
+    private Observable<Long> getBuckets(MetricId id, long startTime, long endTime, boolean reverse) {
+        // TODO These have to take into account the storage time, otherwise we might do fetches to a bucket
+        //      that does not exist anymore
+        Comparator<Long> sortComparator = reverse ? Comparator.reverseOrder() : Comparator.naturalOrder();
+
+        Stream<Long> longStream = Arrays.stream(dateTimeService.getDparts(startTime, endTime, getBucketSize(id)))
+                .mapToObj(Long::valueOf).sorted(sortComparator);
 
         return Observable.from(() -> longStream.iterator());
     }
 
-//    private long[] getAllBuckets(MetricId) {
-//        return new long[]{}; // TODO Implement, should fetch the retentionTime and buckets for that period until now..
-//    }
-
     private Duration getBucketSize(MetricId id) {
         // Implement logic here..
-        return DateTimeService.DEFAULT_SLICE;
+        Metric metric = findMetric(id).flatMap(Observable::from)
+                .map(row -> new Metric(id, row.getMap(1, String.class, String.class),
+                        row.getInt(2), row.getInt(3)))
+                .toBlocking().lastOrDefault(null);
+
+        return (metric != null && metric.getBucketSize() != null) ? Duration.standardSeconds(metric.getBucketSize()) :
+                DateTimeService.DEFAULT_SLICE;
     }
 }

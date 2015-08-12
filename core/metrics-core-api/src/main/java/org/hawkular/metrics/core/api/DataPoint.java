@@ -30,7 +30,7 @@ import com.google.common.collect.ImmutableMap;
  *
  * @author jsanda
  */
-public class DataPoint<T> {
+public class DataPoint<T> implements Comparable {
 
     public static final Comparator<DataPoint> TIMESTAMP_COMPARATOR = Comparator.comparing(DataPoint::getTimestamp);
 
@@ -84,5 +84,9 @@ public class DataPoint<T> {
                 .add("value", value)
                 .add("tags", tags)
                 .toString();
+    }
+
+    @Override public int compareTo(Object o) {
+        return ((DataPoint) o).getTimestamp() > getTimestamp() ? 1 : 0;
     }
 }
