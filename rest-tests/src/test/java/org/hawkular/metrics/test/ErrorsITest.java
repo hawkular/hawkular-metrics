@@ -18,6 +18,7 @@ package org.hawkular.metrics.test;
 
 import static org.junit.Assert.assertEquals;
 
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -88,11 +89,10 @@ public class ErrorsITest extends RESTTest {
     public void testNotSupportedException() {
         response = target.clone()
                 .path("/gauges/test/data")
-                .request(MediaType.TEXT_PLAIN)
+                .request(MediaType.APPLICATION_JSON_TYPE)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_PLAIN)
                 .header(TENANT_HEADER_NAME, "test")
                 .post(null);
         assertEquals(415, response.getStatus());
-        ApiErrorJson apiErrorJson = response.readEntity(ApiErrorJson.class);
-        assertEquals("Cannot consume content type", apiErrorJson.getErrorMsg());
     }
 }
