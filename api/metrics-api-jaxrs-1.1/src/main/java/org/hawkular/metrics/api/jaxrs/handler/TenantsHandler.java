@@ -75,14 +75,15 @@ public class TenantsHandler {
             @Context UriInfo uriInfo
     ) {
         URI location = uriInfo.getBaseUriBuilder().path("/tenants").build();
+        EntityCreatedObserver<?> observer = new TenantCreatedObserver(location);
         try {
-            EntityCreatedObserver<?> observer = new TenantCreatedObserver(location);
             Observable<Void> observable = metricsService.createTenant(new Tenant(params.getId()));
             observable.subscribe(observer);
             observable.toBlocking().last();
             return observer.getResponse();
         } catch (Exception e) {
-            return ApiUtils.serverError(e);
+            Response response = observer.getResponse();
+            return response != null ? response : ApiUtils.serverError(e);
         }
     }
 
