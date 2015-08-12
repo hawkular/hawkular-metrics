@@ -110,7 +110,7 @@ public class CounterHandler {
             EntityCreatedObserver<?> observer = new MetricCreatedObserver(location);
             Observable<Void> observable = metricsService.createMetric(metric);
             observable.subscribe(observer);
-            observable.toBlocking().last();
+            observable.toBlocking().lastOrDefault(null);
             return observer.getResponse();
         } catch (Exception e) {
             return ApiUtils.serverError(e);
@@ -131,7 +131,7 @@ public class CounterHandler {
                 .map(MetricDefinition::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(ApiUtils.noContent()))
-                .toBlocking().last();
+                .toBlocking().lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -150,7 +150,11 @@ public class CounterHandler {
     ) {
         Observable<Metric<Long>> metrics = requestToCounters(tenantId, counters);
         try {
-            return metricsService.addCounterData(metrics).map(ApiUtils::simpleOKResponse).toBlocking().last();
+            return metricsService
+                    .addCounterData(metrics)
+                    .map(ApiUtils::simpleOKResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -172,8 +176,11 @@ public class CounterHandler {
     ) {
         Metric<Long> metric = new Metric<>(new MetricId(tenantId, COUNTER, id), requestToCounterDataPoints(data));
         try {
-            return metricsService.addCounterData(Observable.just(metric)).map(ApiUtils::simpleOKResponse).toBlocking()
-                .last();
+            return metricsService
+                    .addCounterData(Observable.just(metric))
+                    .map(ApiUtils::simpleOKResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -202,7 +209,9 @@ public class CounterHandler {
             return metricsService.findCounterData(new MetricId(tenantId, COUNTER, id), startTime, endTime)
                 .map(CounterDataPoint::new)
                 .toList()
-                .map(ApiUtils::collectionToResponse).toBlocking().last();
+                .map(ApiUtils::collectionToResponse)
+                .toBlocking()
+                .lastOrDefault(null);
         } catch (Exception e) {
             logger.warn("Failed to fetch counter data", e);
             return ApiUtils.serverError(e);
@@ -236,7 +245,8 @@ public class CounterHandler {
                 .map(GaugeDataPoint::new)
                 .toList()
                 .map(ApiUtils::collectionToResponse)
-                .toBlocking().last();
+                .toBlocking()
+                .lastOrDefault(null);
         } catch (Exception e) {
             logger.warn("Failed to fetch counter rate data", e);
             return ApiUtils.serverError(e);

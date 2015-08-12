@@ -108,7 +108,7 @@ public class MetricHandler {
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .toBlocking()
-                .last();
+                .lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -154,7 +154,11 @@ public class MetricHandler {
         }
 
         try {
-            return Observable.merge(observables).map(ApiUtils::simpleOKResponse).toBlocking().last();
+            return Observable
+                    .merge(observables)
+                    .map(ApiUtils::simpleOKResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }

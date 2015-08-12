@@ -133,8 +133,7 @@ public class GaugeHandler {
             return metricsService.findMetric(new MetricId(tenantId, GAUGE, id))
                 .map(MetricDefinition::new)
                 .map(metricDef -> Response.ok(metricDef).build())
-                .switchIfEmpty(Observable.just(ApiUtils.noContent()))
-                .toBlocking().last();
+                .switchIfEmpty(Observable.just(ApiUtils.noContent())).toBlocking().lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -153,7 +152,8 @@ public class GaugeHandler {
     public Response getGaugeMetricTags(@PathParam("id") String id) {
         try {
             return metricsService.getMetricTags(new MetricId(tenantId, GAUGE, id))
-                .map(ApiUtils::valueToResponse).toBlocking().last();
+                    .map(ApiUtils::valueToResponse)
+                    .toBlocking().lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -173,7 +173,8 @@ public class GaugeHandler {
     ) {
         Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id));
         try {
-            return metricsService.addTags(metric, tags).map(ApiUtils::simpleOKResponse).toBlocking().last();
+            return metricsService.addTags(metric, tags).map(ApiUtils::simpleOKResponse).toBlocking()
+                    .lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -195,7 +196,7 @@ public class GaugeHandler {
         try {
         Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id));
             return metricsService.deleteTags(metric, tags.getTags()).map(ApiUtils::simpleOKResponse).toBlocking()
-                    .last();
+                    .lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -219,7 +220,7 @@ public class GaugeHandler {
         Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id), requestToGaugeDataPoints(data));
         try {
         Observable<Void> observable = metricsService.addGaugeData(Observable.just(metric));
-            return observable.map(ApiUtils::simpleOKResponse).toBlocking().last();
+            return observable.map(ApiUtils::simpleOKResponse).toBlocking().lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -241,7 +242,7 @@ public class GaugeHandler {
 
         try {
             Observable<Void> observable = metricsService.addGaugeData(metrics);
-            return observable.map(ApiUtils::simpleOKResponse).toBlocking().last();
+            return observable.map(ApiUtils::simpleOKResponse).toBlocking().lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -266,7 +267,7 @@ public class GaugeHandler {
                     } else {
                         return Response.ok(m).build();
                     }
-                }).toBlocking().last();
+                }).toBlocking().lastOrDefault(null);
             } catch (Exception e) {
                 return Response.serverError().entity(new ApiError(e.getMessage())).build();
             }
@@ -301,7 +302,7 @@ public class GaugeHandler {
             try {
                 return metricsService.findGaugeData(new MetricId(tenantId, GAUGE, id), startTime, endTime)
                     .toList()
-                        .map(ApiUtils::collectionToResponse).toBlocking().last();
+                        .map(ApiUtils::collectionToResponse).toBlocking().lastOrDefault(null);
             } catch (Exception e) {
                 return ApiUtils.serverError(e);
             }
@@ -328,7 +329,7 @@ public class GaugeHandler {
             try {
             return metricsService.findGaugeStats(metric, startTime, endTime, buckets)
                     .map(BucketedOutput::getData)
-                    .map(ApiUtils::collectionToResponse).toBlocking().last();
+                        .map(ApiUtils::collectionToResponse).toBlocking().lastOrDefault(null);
             } catch (Exception e) {
                 return ApiUtils.serverError(e);
             }
@@ -394,7 +395,7 @@ public class GaugeHandler {
         } else {
             try {
                 return metricsService.getPeriods(new MetricId(tenantId, GAUGE, id), predicate, startTime, endTime)
-                        .map(ApiUtils::collectionToResponse).toBlocking().last();
+                        .map(ApiUtils::collectionToResponse).toBlocking().lastOrDefault(null);
             } catch (Exception e) {
                 return ApiUtils.serverError(e);
             }
@@ -420,7 +421,7 @@ public class GaugeHandler {
                         } else {
                             return Response.ok(m).build();
                         }
-                    }).toBlocking().last();
+                    }).toBlocking().lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -446,7 +447,7 @@ public class GaugeHandler {
         }
 
         try {
-            return resultSetObservable.map(ApiUtils::simpleOKResponse).toBlocking().last();
+            return resultSetObservable.map(ApiUtils::simpleOKResponse).toBlocking().lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }

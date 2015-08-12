@@ -79,7 +79,7 @@ public class TenantsHandler {
         try {
             Observable<Void> observable = metricsService.createTenant(new Tenant(params.getId()));
             observable.subscribe(observer);
-            observable.toBlocking().last();
+            observable.toBlocking().lastOrDefault(null);
             return observer.getResponse();
         } catch (Exception e) {
             Response response = observer.getResponse();
@@ -103,7 +103,7 @@ public class TenantsHandler {
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .toBlocking()
-                .last();
+                .lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }

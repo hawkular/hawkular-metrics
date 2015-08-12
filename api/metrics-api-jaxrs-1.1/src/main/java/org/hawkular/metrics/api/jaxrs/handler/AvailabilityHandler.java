@@ -138,7 +138,8 @@ public class AvailabilityHandler {
                 .map(MetricDefinition::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(noContent()))
-                .toBlocking().first();
+                .toBlocking()
+                .firstOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -159,7 +160,10 @@ public class AvailabilityHandler {
         Observable<Optional<Map<String, String>>> something = metricsService
                 .getMetricTags(new MetricId(tenantId, AVAILABILITY, id));
         try {
-            return something.map(optional -> valueToResponse(optional)).toBlocking().last();
+            return something
+                    .map(optional -> valueToResponse(optional))
+                    .toBlocking()
+                    .lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -179,7 +183,11 @@ public class AvailabilityHandler {
     ) {
         Metric<AvailabilityType> metric = new Metric<>(new MetricId(tenantId, AVAILABILITY, id));
         try {
-            return metricsService.addTags(metric, tags).map(ApiUtils::simpleOKResponse).toBlocking().last();
+            return metricsService
+                    .addTags(metric, tags)
+                    .map(ApiUtils::simpleOKResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -200,8 +208,11 @@ public class AvailabilityHandler {
         Metric<AvailabilityType> metric = new Metric<>(new MetricId(tenantId, AVAILABILITY, id));
 
         try {
-            return metricsService.deleteTags(metric, tags.getTags()).map(ApiUtils::simpleOKResponse).toBlocking()
-                    .last();
+            return metricsService
+                    .deleteTags(metric, tags.getTags())
+                    .map(ApiUtils::simpleOKResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -224,8 +235,11 @@ public class AvailabilityHandler {
                 requestToAvailabilityDataPoints(data));
 
         try {
-            return metricsService.addAvailabilityData(Observable.just(metric)).map(ApiUtils::simpleOKResponse)
-                    .toBlocking().last();
+            return metricsService
+                    .addAvailabilityData(Observable.just(metric))
+                    .map(ApiUtils::simpleOKResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -245,8 +259,11 @@ public class AvailabilityHandler {
             List<Availability> availabilities
     ) {
         try {
-            return metricsService.addAvailabilityData(requestToAvailabilities(tenantId, availabilities))
-                    .map(ApiUtils::simpleOKResponse).toBlocking().last();
+            return metricsService
+                    .addAvailabilityData(requestToAvailabilities(tenantId, availabilities))
+                    .map(ApiUtils::simpleOKResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -273,7 +290,9 @@ public class AvailabilityHandler {
                     } else {
                         return Response.ok(m).build();
                     }
-                }).toBlocking().last();
+                })
+                        .toBlocking()
+                        .lastOrDefault(null);
             } catch (Exception e) {
                 return Response.serverError().entity(new ApiError(e.getMessage())).build();
             }
@@ -311,7 +330,9 @@ public class AvailabilityHandler {
                 return metricsService.findAvailabilityData(metric.getId(), startTime, endTime, distinct)
                     .map(AvailabilityDataPoint::new)
                     .toList()
-                    .map(ApiUtils::collectionToResponse).toBlocking().last();
+                    .map(ApiUtils::collectionToResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
             } catch (Exception e) {
                 logger.warn("Failed to fetch availability data", e);
                 return ApiUtils.serverError(e);
@@ -331,7 +352,8 @@ public class AvailabilityHandler {
             }
             try {
                 return metricsService.findAvailabilityStats(metric, startTime, endTime, buckets)
-                        .map(BucketedOutput::getData).map(ApiUtils::collectionToResponse).toBlocking().last();
+                        .map(BucketedOutput::getData).map(ApiUtils::collectionToResponse).toBlocking()
+                        .lastOrDefault(null);
             } catch (Exception e) {
                 return ApiUtils.serverError(e);
             }
@@ -359,7 +381,10 @@ public class AvailabilityHandler {
         }
 
         try {
-            return resultSetObservable.map(ApiUtils::simpleOKResponse).toBlocking().last();
+            return resultSetObservable
+                    .map(ApiUtils::simpleOKResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
@@ -383,7 +408,7 @@ public class AvailabilityHandler {
             } else {
                 return Response.ok(m).build();
             }
-        }).toBlocking().last();
+            }).toBlocking().lastOrDefault(null);
         } catch (Exception e) {
             return Response.serverError().entity(new ApiError(e.getMessage())).build();
         }
