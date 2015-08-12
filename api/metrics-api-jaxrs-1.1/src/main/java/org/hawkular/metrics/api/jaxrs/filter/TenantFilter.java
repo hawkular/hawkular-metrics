@@ -18,28 +18,29 @@ package org.hawkular.metrics.api.jaxrs.filter;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 
-import java.io.IOException;
+import java.util.List;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.ext.Provider;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.BaseHandler;
 import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.jboss.resteasy.annotations.interception.ServerInterceptor;
+import org.jboss.resteasy.core.ResourceMethod;
+import org.jboss.resteasy.core.ServerResponse;
+import org.jboss.resteasy.spi.Failure;
+import org.jboss.resteasy.spi.HttpRequest;
+import org.jboss.resteasy.spi.interception.PreProcessInterceptor;
 
 /**
  * @author Stefan Negrea
  */
-public class TenantFilter implements Filter {
+@Provider
+@ServerInterceptor
+public class TenantFilter implements PreProcessInterceptor {
     public static final String TENANT_HEADER_NAME = "Hawkular-Tenant";
 
     private static final String MISSING_TENANT_MSG;
@@ -50,43 +51,29 @@ public class TenantFilter implements Filter {
                              + "' header.";
     }
 
-    private static final String BASE_URL = "/hawkular/metrics/";
-
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
+    public ServerResponse preProcess(HttpRequest request, ResourceMethod method) throws Failure,
+            WebApplicationException {
+        String path = request.getUri().getPath();
 
-        final HttpServletRequest httpRequest = (HttpServletRequest) request;
-        String path = httpRequest.getRequestURI();
-
-        if (path.startsWith(BASE_URL + "tenants") || path.startsWith(BASE_URL + "db")
-                || path.startsWith(BASE_URL + StatusHandler.PATH) || path.equals(BASE_URL + BaseHandler.PATH)) {
+        if (path.startsWith("/tenants") || path.startsWith("/db") || path.startsWith(StatusHandler.PATH)
+                || path.equals(BaseHandler.PATH)) {
             // Tenants, Influx and status handlers do not check the tenant header
-            chain.doFilter(request, response);
-            return;
+            return null;
         }
 
-        String tenant = httpRequest.getHeader(TENANT_HEADER_NAME);
+        List<String> requestHeader = request.getHttpHeaders().getRequestHeader(TENANT_HEADER_NAME);
+        String tenant = requestHeader != null && !requestHeader.isEmpty() ? requestHeader.get(0) : null;
         if (tenant != null && !tenant.trim().isEmpty()) {
             // We're good already
-            chain.doFilter(request, response);
-            return;
+            return null;
         }
 
         // Fail on missing tenant info
-        ObjectMapper mapper = new ObjectMapper();
-        final HttpServletResponse httpResponse = (HttpServletResponse) response;
-        httpResponse.setStatus(Status.BAD_REQUEST.getStatusCode());
-        httpResponse.setContentType(APPLICATION_JSON_TYPE.toString());
-        mapper.writeValue(response.getWriter(), new ApiError(MISSING_TENANT_MSG));
-    }
-
-    @Override
-    public void destroy() {
-
-    }
-
-    @Override
-    public void init(FilterConfig arg0) throws ServletException {
+        Response response = Response.status(Status.BAD_REQUEST)
+                .type(APPLICATION_JSON_TYPE)
+                .entity(new ApiError(MISSING_TENANT_MSG))
+                .build();
+        return ServerResponse.copyIfNotServerResponse(response);
     }
 }
