@@ -16,44 +16,36 @@
  */
 package org.hawkular.metrics.core.impl;
 
+import static java.util.stream.Collectors.toMap;
+
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
 
 import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-import org.hawkular.metrics.core.api.AggregationTemplate;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.Retention;
-import org.hawkular.metrics.core.api.RetentionSettings;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.TupleType;
-import com.datastax.driver.core.TupleValue;
-import com.datastax.driver.core.UDTValue;
-import com.datastax.driver.core.UserType;
 import com.datastax.driver.core.utils.UUIDs;
 
 import rx.Observable;
@@ -153,13 +145,11 @@ public class DataAccessImpl implements DataAccess {
 
     protected void initPreparedStatements() {
         insertTenant = session.prepare(
-            "INSERT INTO tenants (id, retentions, aggregation_templates) " +
-            "VALUES (?, ?, ?) " +
-            "IF NOT EXISTS");
+            "INSERT INTO tenants (id, retentions) VALUES (?, ?) IF NOT EXISTS");
 
         findAllTenantIds = session.prepare("SELECT DISTINCT id FROM tenants");
 
-        findTenant = session.prepare("SELECT id, retentions, aggregation_templates FROM tenants WHERE id = ?");
+        findTenant = session.prepare("SELECT id, retentions  FROM tenants WHERE id = ?");
 
         findMetric = session.prepare(
             "SELECT metric, interval, tags, data_retention " +
@@ -310,10 +300,10 @@ public class DataAccessImpl implements DataAccess {
                     " AND time < ?");
 
         updateRetentionsIndex = session.prepare(
-            "INSERT INTO retentions_idx (tenant_id, type, interval, metric, retention) VALUES (?, ?, ?, ?, ?)");
+            "INSERT INTO retentions_idx (tenant_id, type, metric, retention) VALUES (?, ?, ?, ?)");
 
         findDataRetentions = session.prepare(
-            "SELECT tenant_id, type, interval, metric, retention " +
+            "SELECT tenant_id, type, metric, retention " +
             "FROM retentions_idx " +
             "WHERE tenant_id = ? AND type = ?");
 
@@ -338,30 +328,9 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<ResultSet> insertTenant(Tenant tenant) {
-        UserType aggregationTemplateType = getKeyspace().getUserType("aggregation_template");
-        List<UDTValue> templateValues = new ArrayList<>(tenant.getAggregationTemplates().size());
-        for (AggregationTemplate template : tenant.getAggregationTemplates()) {
-            UDTValue value = aggregationTemplateType.newValue();
-            value.setInt("type", template.getType().getCode());
-            value.setString("interval", template.getInterval().toString());
-            value.setSet("fns", template.getFunctions());
-            templateValues.add(value);
-        }
-
-        Map<TupleValue, Integer> retentions = new HashMap<>();
-        for (RetentionSettings.RetentionKey key : tenant.getRetentionSettings().keySet()) {
-            TupleType metricType = TupleType.of(DataType.cint(), DataType.text());
-            TupleValue tuple = metricType.newValue();
-            tuple.setInt(0, key.metricType.getCode());
-            if (key.interval == null) {
-                tuple.setString(1, null);
-            } else {
-                tuple.setString(1, key.interval.toString());
-            }
-            retentions.put(tuple, tenant.getRetentionSettings().get(key));
-        }
-
-        return rxSession.execute(insertTenant.bind(tenant.getId(), retentions, templateValues));
+        Map<String, Integer> retentions = tenant.getRetentionSettings().entrySet().stream()
+                .collect(toMap(entry -> entry.getKey().getText(), Map.Entry::getValue));
+        return rxSession.execute(insertTenant.bind(tenant.getId(), retentions));
     }
 
     @Override
@@ -638,7 +607,7 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<ResultSet> findAvailabilityData(MetricId id, long startTime, long endTime) {
         return rxSession.execute(findAvailabilities.bind(id.getTenantId(), MetricType.AVAILABILITY.getCode(),
-               id.getName(), id.getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+                id.getName(), id.getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
     }
 
     @Override
@@ -647,13 +616,16 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture updateRetentionsIndex(String tenantId, MetricType type, Set<Retention> retentions) {
-        BatchStatement batchStatement = new BatchStatement(UNLOGGED);
-        for (Retention r : retentions) {
-            batchStatement.add(updateRetentionsIndex.bind(tenantId, type.getCode(), r.getId().getInterval().toString(),
-                r.getId().getName(), r.getValue()));
-        }
-        return session.executeAsync(batchStatement);
+    public Observable<ResultSet> updateRetentionsIndex(String tenantId, MetricType type,
+            Map<String, Integer> retentions) {
+
+        return Observable.from(retentions.entrySet())
+                .reduce(new BatchStatement(UNLOGGED), (batchStatement, entry) -> {
+                    batchStatement.add(updateRetentionsIndex.bind(tenantId, type.getCode(), entry.getKey(),
+                            entry.getValue()));
+                    return batchStatement;
+                })
+                .flatMap(rxSession::execute);
     }
 
     @Override
@@ -687,8 +659,8 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public ResultSetFuture updateRetentionsIndex(Metric metric) {
-        return session.executeAsync(updateRetentionsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
-                metric.getId().getInterval().toString(), metric.getId().getName(), metric.getDataRetention()));
+        return session.executeAsync(updateRetentionsIndex.bind(metric.getId().getTenantId(),
+                metric.getId().getType().getCode(), metric.getId().getName(), metric.getDataRetention()));
     }
 
     private KeyspaceMetadata getKeyspace() {

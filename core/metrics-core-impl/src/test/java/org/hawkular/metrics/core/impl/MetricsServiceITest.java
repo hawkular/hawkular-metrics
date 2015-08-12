@@ -28,6 +28,7 @@ import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.DataAccessImpl.DPART;
+import static org.hawkular.metrics.core.impl.Functions.makeSafe;
 import static org.hawkular.metrics.core.impl.MetricsServiceImpl.DEFAULT_TTL;
 import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
 import static org.joda.time.DateTime.now;
@@ -47,8 +48,8 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 import java.util.regex.PatternSyntaxException;
+
 import org.hawkular.metrics.core.api.Aggregate;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
@@ -127,9 +128,9 @@ public class MetricsServiceITest extends MetricsITest {
 
     @Test
     public void createTenants() throws Exception {
-        Tenant t1 = new Tenant("t1").setRetention(GAUGE, 24).setRetention(AVAILABILITY, 24);
-        Tenant t2 = new Tenant("t2").setRetention(GAUGE, 72);
-        Tenant t3 = new Tenant("t3").setRetention(AVAILABILITY, 48);
+        Tenant t1 = new Tenant("t1", ImmutableMap.of(GAUGE, 1, AVAILABILITY, 1));
+        Tenant t2 = new Tenant("t2", ImmutableMap.of(GAUGE, 7));
+        Tenant t3 = new Tenant("t3", ImmutableMap.of(AVAILABILITY, 2));
         Tenant t4 = new Tenant("t4");
 
         Observable.concat(
@@ -154,11 +155,9 @@ public class MetricsServiceITest extends MetricsITest {
         }
 
         assertDataRetentionsIndexMatches(t1.getId(), GAUGE, ImmutableSet.of(new Retention(
-                new MetricId(t1.getId(), GAUGE, "[" + GAUGE.getText() + "]"),
-                hours(24).toStandardSeconds().getSeconds())));
+                new MetricId(t1.getId(), GAUGE, makeSafe(GAUGE.getText())), 1)));
         assertDataRetentionsIndexMatches(t1.getId(), AVAILABILITY, ImmutableSet.of(new Retention(
-                new MetricId(t1.getId(), AVAILABILITY, "[" + AVAILABILITY.getText() + "]"),
-                hours(24).toStandardSeconds().getSeconds())));
+                new MetricId(t1.getId(), AVAILABILITY, makeSafe(AVAILABILITY.getText())), 1)));
     }
 
     @Test
@@ -522,69 +521,12 @@ public class MetricsServiceITest extends MetricsITest {
     }
 
     @Test
-    public void verifyTTLsSetOnGaugeData() throws Exception {
-        DateTime start = now().minusMinutes(10);
-
-        metricsService.createTenant(new Tenant("t1")).toBlocking().lastOrDefault(null);
-        metricsService.createTenant(new Tenant("t2").setRetention(GAUGE, days(14).toStandardHours()
-                .getHours()))
-                      .toBlocking()
-                      .lastOrDefault(null);
-
-        VerifyTTLDataAccess verifyTTLDataAccess = new VerifyTTLDataAccess(dataAccess);
-
-        metricsService.unloadDataRetentions();
-        metricsService.loadDataRetentions();
-        metricsService.setDataAccess(verifyTTLDataAccess);
-
-        Metric<Double> m1 = new Metric<>(new MetricId("t1", GAUGE, "m1"), asList(
-                new DataPoint<>(start.getMillis(), 1.01),
-                new DataPoint<>(start.plusMinutes(1).getMillis(), 1.02),
-                new DataPoint<>(start.plusMinutes(2).getMillis(), 1.03)
-        ));
-
-        addGaugeDataInThePast(m1, days(2).toStandardDuration());
-
-        Map<String, String> tags = ImmutableMap.of("tag1", "");
-
-        verifyTTLDataAccess.gaugeTagTTLLessThanEqualTo(DEFAULT_TTL - days(2).toStandardSeconds().getSeconds());
-        metricsService.tagGaugeData(m1, tags, start.getMillis(),
-            start.plusMinutes(2).getMillis()).toBlocking();
-
-        verifyTTLDataAccess.setGaugeTTL(days(14).toStandardSeconds().getSeconds());
-        Metric<Double> m2 = new Metric<>(new MetricId("t2", GAUGE, "m2"),
-                singletonList(new DataPoint<>(start.plusMinutes(5).getMillis(), 2.02)));
-        addGaugeDataInThePast(m2, days(3).toStandardDuration());
-
-        verifyTTLDataAccess.gaugeTagTTLLessThanEqualTo(days(14).minus(3).toStandardSeconds().getSeconds());
-        metricsService.tagGaugeData(m2, tags, start.plusMinutes(5).getMillis()).toBlocking().last();
-
-        metricsService.createTenant(new Tenant("t3").setRetention(GAUGE, 24))
-                      .toBlocking()
-                      .lastOrDefault(null);
-        verifyTTLDataAccess.setGaugeTTL(hours(24).toStandardSeconds().getSeconds());
-        Metric<Double> m3 = new Metric<>(new MetricId("t3", GAUGE, "m3"),
-                singletonList(new DataPoint<>(start.getMillis(), 3.03)));
-        metricsService.addGaugeData(Observable.just(m3)).toBlocking().lastOrDefault(null);
-
-        Metric<Double> m4 = new Metric<>(new MetricId("t2", GAUGE, "m4"), emptyMap(), 28, asList(
-                new DataPoint<>(start.plusMinutes(3).getMillis(), 4.1),
-                new DataPoint<>(start.plusMinutes(4).getMillis(), 4.2)
-        ));
-        metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
-
-        verifyTTLDataAccess.setGaugeTTL(28);
-        metricsService.addGaugeData(Observable.just(m4)).toBlocking().lastOrDefault(null);
-    }
-
-    @Test
     public void verifyTTLsSetOnAvailabilityData() throws Exception {
         DateTime start = now().minusMinutes(10);
 
         metricsService.createTenant(new Tenant("t1")).toBlocking().lastOrDefault(null);
         metricsService.createTenant(
-                new Tenant("t2").setRetention(AVAILABILITY, days(14).toStandardHours().getHours())
-        ).toBlocking().lastOrDefault(null);
+                new Tenant("t2", ImmutableMap.of(AVAILABILITY, 14))).toBlocking().lastOrDefault(null);
 
         VerifyTTLDataAccess verifyTTLDataAccess = new VerifyTTLDataAccess(dataAccess);
 
@@ -616,7 +558,7 @@ public class MetricsServiceITest extends MetricsITest {
         verifyTTLDataAccess.availabilityTagTLLLessThanEqualTo(days(14).minus(5).toStandardSeconds().getSeconds());
         metricsService.tagAvailabilityData(m2, tags, start.plusMinutes(5).getMillis()).toBlocking();
 
-        metricsService.createTenant(new Tenant("t3").setRetention(AVAILABILITY, 24))
+        metricsService.createTenant(new Tenant("t3", ImmutableMap.of(AVAILABILITY, 24)))
                       .toBlocking()
                       .lastOrDefault(null);
         verifyTTLDataAccess.setAvailabilityTTL(hours(24).toStandardSeconds().getSeconds());
@@ -1245,7 +1187,7 @@ public class MetricsServiceITest extends MetricsITest {
         throws Exception {
         ResultSetFuture queryFuture = dataAccess.findDataRetentions(tenantId, type);
         ListenableFuture<Set<Retention>> retentionsFuture = Futures.transform(queryFuture,
-                                                                              new DataRetentionsMapper(tenantId, type));
+                new DataRetentionsMapper(tenantId, type));
         Set<Retention> actual = getUninterruptibly(retentionsFuture);
 
         assertEquals(actual, expected, "The data retentions are wrong");

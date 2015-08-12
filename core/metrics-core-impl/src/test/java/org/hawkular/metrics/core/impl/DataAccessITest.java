@@ -18,6 +18,7 @@ package org.hawkular.metrics.core.impl;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+
 import static org.hawkular.metrics.core.api.AvailabilityType.UP;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
@@ -28,23 +29,21 @@ import static org.testng.Assert.assertFalse;
 
 import java.util.List;
 
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import org.hawkular.metrics.core.api.AggregationTemplate;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.Tenant;
 import org.joda.time.DateTime;
-import org.joda.time.Days;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
 import rx.Observable;
 
 /**
@@ -76,21 +75,8 @@ public class DataAccessITest extends MetricsITest {
 
     @Test
     public void insertAndFindTenant() throws Exception {
-        Tenant tenant1 = new Tenant("tenant-1")
-            .addAggregationTemplate(new AggregationTemplate()
-                    .setType(GAUGE)
-                    .setInterval(new Interval(5, Interval.Units.MINUTES))
-                    .setFunctions(ImmutableSet.of("max", "min", "avg")))
-            .setRetention(GAUGE, Days.days(31).toStandardHours().getHours())
-            .setRetention(GAUGE, new Interval(5, Interval.Units.MINUTES),
-                Days.days(100).toStandardHours().getHours());
-
-        Tenant tenant2 = new Tenant("tenant-2")
-            .setRetention(GAUGE, Days.days(14).toStandardHours().getHours())
-            .addAggregationTemplate(new AggregationTemplate()
-                .setType(GAUGE)
-                .setInterval(new Interval(5, Interval.Units.HOURS))
-                .setFunctions(ImmutableSet.of("sum", "count")));
+        Tenant tenant1 = new Tenant("tenant-1", ImmutableMap.of(GAUGE, 31));
+        Tenant tenant2 = new Tenant("tenant-2", ImmutableMap.of(GAUGE, 14));
 
 
         dataAccess.insertTenant(tenant1).toBlocking().lastOrDefault(null);

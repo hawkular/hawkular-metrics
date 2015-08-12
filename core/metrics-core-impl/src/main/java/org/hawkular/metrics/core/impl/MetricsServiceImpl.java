@@ -24,7 +24,7 @@ import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.Functions.getTTLAvailabilityDataPoint;
 import static org.hawkular.metrics.core.impl.Functions.getTTLGaugeDataPoint;
-import static org.joda.time.Hours.hours;
+import static org.hawkular.metrics.core.impl.Functions.makeSafe;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,7 +56,6 @@ import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.MetricsThreadFactory;
 import org.hawkular.metrics.core.api.Retention;
-import org.hawkular.metrics.core.api.RetentionSettings;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
 import org.hawkular.metrics.core.impl.transformers.ItemsToSetTransformer;
@@ -67,7 +66,6 @@ import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.hawkular.metrics.tasks.api.Trigger;
 import org.hawkular.rx.cassandra.driver.RxUtil;
 import org.joda.time.Duration;
-import org.joda.time.Hours;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,7 +103,7 @@ public class MetricsServiceImpl implements MetricsService {
         private final MetricId metricId;
 
         public DataRetentionKey(String tenantId, MetricType type) {
-            metricId = new MetricId(tenantId, type, "[" + type.getText() + "]");
+            metricId = new MetricId(tenantId, type, makeSafe(type.getText()));
         }
 
         public DataRetentionKey(MetricId metricId) {
@@ -211,7 +209,7 @@ public class MetricsServiceImpl implements MetricsService {
             ResultSetFuture gaugeFuture = dataAccess.findDataRetentions(tenantId, GAUGE);
             ResultSetFuture availabilityFuture = dataAccess.findDataRetentions(tenantId, MetricType.AVAILABILITY);
             ListenableFuture<Set<Retention>> gaugeRetentions = Futures.transform(gaugeFuture, gaugeMapper,
-                                                                                 metricsTasks);
+                    metricsTasks);
             ListenableFuture<Set<Retention>> availabilityRetentions = Futures.transform(availabilityFuture, availMapper,
                     metricsTasks);
             Futures.addCallback(gaugeRetentions,
@@ -320,80 +318,36 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<Void> createTenant(final Tenant tenant) {
-        return dataAccess.insertTenant(tenant)
-//                .filter(ResultSet::wasApplied)
-                .flatMap(
-                        resultSet -> {
-                            if (!resultSet.wasApplied()) {
-                                throw new TenantAlreadyExistsException(tenant.getId());
-                            }
-                            Map<MetricType, Set<Retention>> retentionsMap = new HashMap<>();
-                            for (RetentionSettings.RetentionKey key : tenant.getRetentionSettings().keySet()) {
-                                Set<Retention> retentions = retentionsMap.get(key.metricType);
-                                if (retentions == null) {
-                                    retentions = new HashSet<>();
-                                }
-                                Interval interval = key.interval == null ? Interval.NONE : key.interval;
-                                Hours hours = hours(tenant.getRetentionSettings().get(key));
-                                retentions.add(
-                                        new Retention(
-                                                new MetricId(tenant.getId(), key.metricType,
-                                                        "[" + key.metricType.getText() + "]", interval),
-                                                hours.toStandardSeconds().getSeconds()
-                                        )
-                                );
-                                retentionsMap.put(key.metricType, retentions);
-                            }
-                            if (retentionsMap.isEmpty()) {
-                                return Observable.from(Collections.singleton(null));
-                            }
-                            List<ResultSetFuture> updateRetentionFutures = new ArrayList<>();
-
-                            for (Map.Entry<MetricType, Set<Retention>> metricTypeSetEntry : retentionsMap.entrySet()) {
-                                updateRetentionFutures.add(
-                                        dataAccess.updateRetentionsIndex(
-                                                tenant.getId(),
-                                                metricTypeSetEntry.getKey(),
-                                                metricTypeSetEntry.getValue()
-                                        )
-                                );
-
-                                for (Retention r : metricTypeSetEntry.getValue()) {
-                                    dataRetentions.put(
-                                            new DataRetentionKey(tenant.getId(), metricTypeSetEntry.getKey()),
-                                            r.getValue()
-                                    );
-                                }
-                            }
-
-                            ListenableFuture<List<ResultSet>> updateRetentionsFuture = Futures
-                                    .allAsList(updateRetentionFutures);
-                            ListenableFuture<Void> transform = Futures.transform(
-                                    updateRetentionsFuture,
-                                    Functions.TO_VOID,
-                                    metricsTasks
-                            );
-                            return RxUtil.from(transform, metricsTasks);
-                        }
-                );
+        return Observable.create(subscriber -> {
+            Observable<ResultSet> updates = dataAccess.insertTenant(tenant).flatMap(resultSet -> {
+                if (!resultSet.wasApplied()) {
+                    throw new TenantAlreadyExistsException(tenant.getId());
+                }
+                return Observable.from(tenant.getRetentionSettings().entrySet())
+                        .flatMap(entry -> dataAccess.updateRetentionsIndex(tenant.getId(), entry.getKey(),
+                                ImmutableMap.of(makeSafe(entry.getKey().getText()), entry.getValue())));
+            });
+            updates.subscribe(resultSet -> {
+            }, subscriber::onError, subscriber::onCompleted);
+        });
     }
 
     @Override
     public Observable<Tenant> getTenants() {
         return dataAccess.findAllTenantIds()
-                         .flatMap(Observable::from)
-                         .map(row -> row.getString(0))
-                         .flatMap(dataAccess::findTenant)
-                         .flatMap(Observable::from)
-                         .map(Functions::getTenant);
+                .flatMap(Observable::from)
+                .map(row -> row.getString(0))
+                .flatMap(dataAccess::findTenant)
+                .flatMap(Observable::from)
+                .map(Functions::getTenant);
     }
 
     private List<String> loadTenantIds() {
         Iterable<String> tenantIds = dataAccess.findAllTenantIds()
-                                               .flatMap(Observable::from)
-                                               .map(row -> row.getString(0))
-                                               .toBlocking()
-                                               .toIterable();
+                .flatMap(Observable::from)
+                .map(row -> row.getString(0))
+                .toBlocking()
+                .toIterable();
         return ImmutableList.copyOf(tenantIds);
     }
 
@@ -401,7 +355,7 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<Void> createMetric(Metric<?> metric) {
         if (metric.getType() == COUNTER_RATE) {
             throw new IllegalArgumentException(metric + " cannot be created. " + COUNTER_RATE + " metrics are " +
-                "internally generated metrics and cannot be created by clients.");
+                    "internally generated metrics and cannot be created by clients.");
         }
 
         ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric);
@@ -470,7 +424,7 @@ public class MetricsServiceImpl implements MetricsService {
         return typeObservable.flatMap(t -> dataAccess.findMetricsInMetricsIndex(tenantId, t))
                 .flatMap(Observable::from)
                 .map(row -> new Metric(new MetricId(tenantId, type, row.getString(0), Interval.parse(row.getString(1))),
-                                       row.getMap(2, String.class, String.class), row.getInt(3)));
+                        row.getMap(2, String.class, String.class), row.getInt(3)));
     }
 
     @Override
@@ -513,7 +467,7 @@ public class MetricsServiceImpl implements MetricsService {
     private Pattern filterPattern(String inputRegexp) {
         if (inputRegexp.equals("*")) {
             inputRegexp = ".*";
-        } else if(inputRegexp.startsWith("!")) {
+        } else if (inputRegexp.startsWith("!")) {
             inputRegexp = inputRegexp.substring(1);
         }
         return Pattern.compile(inputRegexp); // Catch incorrect patterns..
@@ -647,7 +601,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public <T> Observable<T> findGaugeData(MetricId id, Long start, Long end,
-                                           Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs) {
+            Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs) {
 
         Observable<DataPoint<Double>> dataCache = findGaugeData(id, start, end).cache();
         return Observable.from(funcs).flatMap(fn -> fn.call(dataCache));
@@ -666,13 +620,13 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId id, long start,
-                                                                        long end) {
+            long end) {
         return findAvailabilityData(id, start, end, false);
     }
 
     @Override
     public Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId id, long start,
-                                                                        long end, boolean distinct) {
+            long end, boolean distinct) {
         return time(availabilityReadLatency, () -> {
             Observable<DataPoint<AvailabilityType>> availabilityData = dataAccess.findAvailabilityData(id,
                     start, end)
@@ -796,7 +750,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<List<long[]>> getPeriods(MetricId id, Predicate<Double> predicate,
-                                               long start, long end) {
+            long start, long end) {
         return dataAccess.findData(new Metric<>(id), start, end,
                 Order.ASC)
                 .flatMap(Observable::from)

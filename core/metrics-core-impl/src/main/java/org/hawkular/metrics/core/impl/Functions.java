@@ -16,25 +16,21 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import static org.joda.time.DateTime.now;
-
-import java.util.List;
-import java.util.Map;
-
-import org.hawkular.metrics.core.api.AggregationTemplate;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.utils.UUIDs;
+import com.google.common.base.Function;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Tenant;
 import org.joda.time.Duration;
 
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.TupleValue;
-import com.datastax.driver.core.UDTValue;
-import com.datastax.driver.core.utils.UUIDs;
-import com.google.common.base.Function;
+import java.util.List;
+import java.util.Map;
+
+import static java.util.stream.Collectors.toMap;
+import static org.joda.time.DateTime.now;
 
 /**
  * @author jsanda
@@ -114,27 +110,22 @@ public class Functions {
     }
 
     public static Tenant getTenant(Row row) {
-        Tenant tenant = new Tenant(row.getString(0));
-        Map<TupleValue, Integer> retentions = row.getMap(1, TupleValue.class, Integer.class);
-        for (Map.Entry<TupleValue, Integer> entry : retentions.entrySet()) {
-            MetricType metricType = MetricType.fromCode(entry.getKey().getInt(0));
-            if (entry.getKey().isNull(1)) {
-                tenant.setRetention(metricType, entry.getValue());
-            } else {
-                Interval interval = Interval.parse(entry.getKey().getString(1));
-                tenant.setRetention(metricType, interval, entry.getValue());
-            }
-        }
+        String tenantId = row.getString(0);
+        Map<MetricType, Integer> retentions = row.getMap(1, String.class, Integer.class).entrySet().stream().collect(
+                toMap(entry -> MetricType.fromTextCode(entry.getKey()), Map.Entry::getValue));
 
-        List<UDTValue> templateValues = row.getList(2, UDTValue.class);
-        for (UDTValue value : templateValues) {
-            tenant.addAggregationTemplate(new AggregationTemplate()
-                    .setType(MetricType.fromCode(value.getInt("type")))
-                    .setInterval(Interval.parse(value.getString("interval")))
-                    .setFunctions(value.getSet("fns", String.class)));
-        }
+        return new Tenant(tenantId, retentions);
+    }
 
-        return tenant;
+    /**
+     * Makes the string safe by prepending it with a reserved character that is not allowed
+     * in user-defined names for things such as tenant names, metric names, and tag names.
+     *
+     * @param s The string to wrap.*
+     * @return The string prepended with a $
+     */
+    public static String makeSafe(String s) {
+        return "$" + s;
     }
 
 }
