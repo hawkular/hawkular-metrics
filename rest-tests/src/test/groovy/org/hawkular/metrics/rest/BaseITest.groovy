@@ -35,8 +35,6 @@ class BaseITest extends RESTTest {
     response = hawkularMetrics.get(path: "gauges/$metric/data", query: [start: start, end: end], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
 
-    println "response = $response.data"
-
     assertEquals(start + 10, response.data[0].timestamp)
   }
 }
