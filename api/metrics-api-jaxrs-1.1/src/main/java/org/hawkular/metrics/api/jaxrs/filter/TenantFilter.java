@@ -28,6 +28,7 @@ import javax.ws.rs.ext.Provider;
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.BaseHandler;
 import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
+import org.hawkular.metrics.api.jaxrs.handler.VirtualClockHandler;
 import org.jboss.resteasy.annotations.interception.ServerInterceptor;
 import org.jboss.resteasy.core.ResourceMethod;
 import org.jboss.resteasy.core.ServerResponse;
@@ -57,7 +58,7 @@ public class TenantFilter implements PreProcessInterceptor {
         String path = request.getUri().getPath();
 
         if (path.startsWith("/tenants") || path.startsWith("/db") || path.startsWith(StatusHandler.PATH)
-                || path.equals(BaseHandler.PATH)) {
+                || path.equals(BaseHandler.PATH) || path.startsWith(VirtualClockHandler.PATH)) {
             // Tenants, Influx and status handlers do not check the tenant header
             return null;
         }

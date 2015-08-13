@@ -224,8 +224,8 @@
                     -Djboss.socket.binding.port-offset=${jboss-as.port.offset}
                     -Djboss.server.config.dir=${project.build.directory}/jboss-as-configuration
                     -Dcassandra.keyspace=${cassandra.keyspace} -Dcassandra.resetdb -Dhawkular.metrics.waitForService
-                    -Dhawkular.scheduler.time-units=${scheduler.units} -Xdebug
-                    -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787
+                    -Dhawkular.metrics.use-virtual-clock=true -Dhawkular.scheduler.time-units=${scheduler.units}
+                    -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787
                   </jvmArgs>
                 </configuration>
               </execution>
