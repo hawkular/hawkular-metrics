@@ -16,8 +16,9 @@
  */
 package org.hawkular.metrics.api.jaxrs.param;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.stream.Collectors.joining;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Collections;
 import java.util.HashMap;

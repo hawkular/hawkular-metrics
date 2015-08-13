@@ -84,14 +84,9 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.influxdb</groupId>
-      <artifactId>influxdb-java</artifactId>
-      <version>1.5</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-client</artifactId>
+      <version>3.0.11.Final</version>
       <scope>test</scope>
     </dependency>
     <!-- commons-io required by resteasy-client -->
@@ -99,11 +94,6 @@
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
       <version>2.1</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-jackson2-provider</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

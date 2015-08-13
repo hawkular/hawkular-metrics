@@ -18,6 +18,7 @@
 package org.hawkular.metrics.api.jaxrs.interceptor;
 
 import static java.lang.Boolean.TRUE;
+
 import static org.hawkular.metrics.api.jaxrs.filter.EmptyPayloadFilter.EMPTY_PAYLOAD;
 
 import java.io.IOException;

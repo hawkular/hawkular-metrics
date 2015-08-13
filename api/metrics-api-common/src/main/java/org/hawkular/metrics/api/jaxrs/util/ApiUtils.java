@@ -17,6 +17,7 @@
 package org.hawkular.metrics.api.jaxrs.util;
 
 import static java.util.stream.Collectors.toList;
+
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
