@@ -19,6 +19,7 @@ package org.hawkular.rx.cassandra.driver;
 import java.util.concurrent.Executor;
 
 import com.google.common.util.concurrent.ListenableFuture;
+
 import rx.Observable;
 import rx.Observer;
 import rx.Scheduler;

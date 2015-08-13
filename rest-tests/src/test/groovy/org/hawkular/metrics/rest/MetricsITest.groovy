@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
@@ -16,10 +16,10 @@
  */
 package org.hawkular.metrics.rest
 
+import static org.junit.Assert.assertEquals
+
 import org.joda.time.DateTime
 import org.junit.Test
-
-import static org.junit.Assert.assertEquals
 
 /**
  * @author jsanda

@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import org.hawkular.metrics.tasks.api.Task2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import rx.functions.Action1;
 import rx.observers.TestSubscriber;
 

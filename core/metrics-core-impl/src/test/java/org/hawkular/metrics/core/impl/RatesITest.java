@@ -19,6 +19,7 @@ package org.hawkular.metrics.core.impl;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
+
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.joda.time.Duration.standardMinutes;
 import static org.testng.Assert.assertEquals;
@@ -28,7 +29,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-import com.codahale.metrics.MetricRegistry;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
@@ -42,6 +42,9 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import com.codahale.metrics.MetricRegistry;
+
 import rx.Observable;
 import rx.Observer;
 import rx.observers.TestSubscriber;

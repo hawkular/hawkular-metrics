@@ -18,6 +18,7 @@ package org.hawkular.metrics.api.undertow;
 
 
 import static io.undertow.Handlers.path;
+
 import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.server.RoutingHandler;

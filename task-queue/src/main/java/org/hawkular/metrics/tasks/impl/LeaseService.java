@@ -24,6 +24,7 @@ import org.hawkular.rx.cassandra.driver.RxSession;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import rx.Observable;
 
 /**

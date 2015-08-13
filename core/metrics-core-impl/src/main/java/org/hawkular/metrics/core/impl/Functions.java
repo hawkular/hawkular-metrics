@@ -16,21 +16,23 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.utils.UUIDs;
-import com.google.common.base.Function;
+import static java.util.stream.Collectors.toMap;
+
+import static org.joda.time.DateTime.now;
+
+import java.util.List;
+import java.util.Map;
+
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Tenant;
 import org.joda.time.Duration;
 
-import java.util.List;
-import java.util.Map;
-
-import static java.util.stream.Collectors.toMap;
-import static org.joda.time.DateTime.now;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.utils.UUIDs;
+import com.google.common.base.Function;
 
 /**
  * @author jsanda

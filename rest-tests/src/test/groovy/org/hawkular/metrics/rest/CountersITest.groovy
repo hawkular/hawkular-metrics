@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
@@ -15,13 +15,15 @@
  * limitations under the License.
  */
 package org.hawkular.metrics.rest
+
+import static org.joda.time.DateTime.now
+import static org.junit.Assert.assertEquals
+
 import org.hawkular.metrics.core.impl.DateTimeService
 import org.joda.time.DateTime
 import org.joda.time.Duration
 import org.junit.Test
 
-import static org.joda.time.DateTime.now
-import static org.junit.Assert.assertEquals
 /**
  * @author John Sanda
  */

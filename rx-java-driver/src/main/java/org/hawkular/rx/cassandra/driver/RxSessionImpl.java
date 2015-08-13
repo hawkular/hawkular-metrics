@@ -24,6 +24,7 @@ import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.google.common.util.concurrent.ListenableFuture;
+
 import rx.Observable;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;

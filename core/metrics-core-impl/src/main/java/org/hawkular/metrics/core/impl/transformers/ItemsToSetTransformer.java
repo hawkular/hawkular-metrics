@@ -19,6 +19,7 @@ package org.hawkular.metrics.core.impl.transformers;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import rx.Observable;
 import rx.functions.Func1;
 

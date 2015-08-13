@@ -22,6 +22,7 @@ import org.hawkular.metrics.tasks.api.Task2;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.hawkular.metrics.tasks.api.Trigger;
 import org.hawkular.metrics.tasks.impl.Lease;
+
 import rx.Observable;
 import rx.Subscriber;
 import rx.Subscription;

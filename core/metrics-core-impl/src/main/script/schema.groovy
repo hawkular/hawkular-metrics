@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
@@ -14,9 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import org.hawkular.metrics.schema.SchemaManager
+
 import com.datastax.driver.core.Cluster
 import com.datastax.driver.core.Session
-import org.hawkular.metrics.schema.SchemaManager
 
 Cluster cluster = new Cluster.Builder()
         .addContactPoint("127.0.0.1")

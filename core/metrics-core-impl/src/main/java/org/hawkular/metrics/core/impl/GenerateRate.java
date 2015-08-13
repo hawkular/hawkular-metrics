@@ -17,6 +17,7 @@
 package org.hawkular.metrics.core.impl;
 
 import static java.util.Collections.singletonList;
+
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 
@@ -30,6 +31,7 @@ import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.tasks.api.Task2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import rx.Observable;
 import rx.functions.Action1;
 

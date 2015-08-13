@@ -16,11 +16,6 @@
  */
 package org.hawkular.metrics.api.undertow;
 
-import io.undertow.server.HttpHandler;
-import io.undertow.server.HttpServerExchange;
-import io.undertow.server.RoutingHandler;
-import io.undertow.util.Methods;
-
 import java.nio.channels.Channels;
 import java.util.Deque;
 import java.util.List;
@@ -39,6 +34,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+
+import io.undertow.server.HttpHandler;
+import io.undertow.server.HttpServerExchange;
+import io.undertow.server.RoutingHandler;
+import io.undertow.util.Methods;
 
 public class MetricsHandlers {
     private final MetricsService metricsService;
