@@ -43,7 +43,15 @@ CREATE TYPE ${keyspace}.aggregation_template (
 CREATE TABLE ${keyspace}.tenants (
     id text PRIMARY KEY,
     retentions map<text, int>
-);
+) WITH compaction = { 'class': 'LeveledCompactionStrategy' };
+
+-- #
+
+CREATE TABLE ${keyspace}.tenants_by_time (
+    bucket timestamp,
+    tenant text,
+    PRIMARY KEY (bucket)
+) WITH compaction = { 'class': 'LeveledCompactionStrategy' };
 
 -- #
 

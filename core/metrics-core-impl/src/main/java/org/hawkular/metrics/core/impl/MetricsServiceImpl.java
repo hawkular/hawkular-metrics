@@ -337,8 +337,30 @@ public class MetricsServiceImpl implements MetricsService {
 
                 return ratesScheduled.concatWith(retentionUpdates);
             });
-            updates.subscribe(resultSet -> {}, subscriber::onError, subscriber::onCompleted);
+            updates.subscribe(resultSet -> {
+            }, subscriber::onError, subscriber::onCompleted);
         });
+    }
+
+    @Override public Observable<Void> createTenants(Observable<Tenant> tenants) {
+        return tenants.flatMap(tenant -> dataAccess.insertTenant(tenant).flatMap(resultSet -> {
+            if (!resultSet.wasApplied()) {
+                throw new TenantAlreadyExistsException(tenant.getId());
+            }
+            Trigger trigger = new RepeatingTrigger.Builder()
+                    .withDelay(1, TimeUnit.MINUTES)
+                    .withInterval(1, TimeUnit.MINUTES)
+                    .build();
+            Map<String, String> params = ImmutableMap.of("tenant", tenant.getId());
+            Observable<Void> ratesScheduled = taskScheduler.scheduleTask("generate-rates", tenant.getId(),
+                    100, params, trigger).map(task -> null);
+            Observable<Void> retentionUpdates = Observable.from(tenant.getRetentionSettings().entrySet())
+                    .flatMap(entry -> dataAccess.updateRetentionsIndex(tenant.getId(), entry.getKey(),
+                            ImmutableMap.of(makeSafe(entry.getKey().getText()), entry.getValue())))
+                    .map(rs -> null);
+
+            return ratesScheduled.concatWith(retentionUpdates);
+        }));
     }
 
     @Override

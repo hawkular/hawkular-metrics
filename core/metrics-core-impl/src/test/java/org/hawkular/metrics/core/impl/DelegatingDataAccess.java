@@ -58,6 +58,14 @@ public class DelegatingDataAccess implements DataAccess {
         return delegate.findTenant(id);
     }
 
+    @Override public Observable<ResultSet> findTenantIds(long time) {
+        return delegate.findTenantIds(time);
+    }
+
+    @Override public Observable<ResultSet> deleteTenantsBucket(long time) {
+        return delegate.deleteTenantsBucket(time);
+    }
+
     @Override
     public ResultSetFuture insertMetricInMetricsIndex(Metric metric) {
         return delegate.insertMetricInMetricsIndex(metric);

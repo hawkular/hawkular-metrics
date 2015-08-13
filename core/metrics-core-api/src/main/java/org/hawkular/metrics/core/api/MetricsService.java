@@ -51,6 +51,8 @@ public interface MetricsService {
      */
     Observable<Void> createTenant(Tenant tenant);
 
+    Observable<Void> createTenants(Observable<Tenant> tenants);
+
     Observable<Tenant> getTenants();
 
     /**
