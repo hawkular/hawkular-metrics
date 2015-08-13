@@ -18,9 +18,7 @@ package org.hawkular.metrics.api.jaxrs.handler;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilities;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilityDataPoints;
@@ -58,7 +56,6 @@ import org.hawkular.metrics.api.jaxrs.request.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.request.TagRequest;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.BucketedOutput;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
@@ -310,14 +307,15 @@ public class AvailabilityHandler {
             @ApiParam(value = "Set to true to return only distinct, contiguous values")
             @QueryParam("distinct") @DefaultValue("false") Boolean distinct
     ) {
+
         long now = System.currentTimeMillis();
         Long startTime = start == null ? now - EIGHT_HOURS : start;
         Long endTime = end == null ? now : end;
 
-        Metric<AvailabilityType> metric = new Metric<>(new MetricId(tenantId, AVAILABILITY, id));
+        MetricId metricId = new MetricId(tenantId, AVAILABILITY, id);
         if (bucketsCount == null && bucketDuration == null) {
             try {
-                return metricsService.findAvailabilityData(metric.getId(), startTime, endTime, distinct)
+                return metricsService.findAvailabilityData(metricId, startTime, endTime, distinct)
                     .map(AvailabilityDataPoint::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
@@ -341,8 +339,8 @@ public class AvailabilityHandler {
                 return ApiUtils.badRequest(new ApiError("Bucket: " + e.getMessage()));
             }
             try {
-                return metricsService.findAvailabilityStats(metric, startTime, endTime, buckets)
-                        .map(BucketedOutput::getData).map(ApiUtils::collectionToResponse).toBlocking()
+                return metricsService.findAvailabilityStats(metricId, startTime, endTime, buckets)
+                        .map(ApiUtils::collectionToResponse).toBlocking()
                         .lastOrDefault(null);
             } catch (Exception e) {
                 return ApiUtils.serverError(e);
