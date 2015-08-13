@@ -41,7 +41,8 @@ public class Gauge {
 
     @JsonProperty
     @org.codehaus.jackson.annotate.JsonProperty
-    @org.codehaus.jackson.map.annotate.JsonSerialize(include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     private List<GaugeDataPoint> data;
 
     public String getId() {
