@@ -42,13 +42,19 @@ class RESTTest {
     hawkularMetrics = new RESTClient("http://$baseURI/", ContentType.JSON)
     defaultFailureHandler = hawkularMetrics.handler.failure
     hawkularMetrics.handler.failure = { resp ->
+      def msg = "Got error response: ${resp.statusLine}"
       if (resp.entity != null && resp.entity.contentLength != 0) {
-        println "Got error response: ${resp.statusLine}"
         def baos = new ByteArrayOutputStream()
         resp.entity.writeTo(baos)
-        println new String(baos.toByteArray(), Charsets.UTF_8)
+        def entity = new String(baos.toByteArray(), Charsets.UTF_8)
+        msg = """${msg}
+=== Response body
+${entity}
+===
+"""
       }
-      defaultFailureHandler(resp)
+      System.err.println(msg)
+      return resp
     }
   }
 
