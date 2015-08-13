@@ -50,7 +50,7 @@ CREATE TABLE ${keyspace}.tenants (
 CREATE TABLE ${keyspace}.tenants_by_time (
     bucket timestamp,
     tenant text,
-    PRIMARY KEY (bucket)
+    PRIMARY KEY (bucket, tenant)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' };
 
 -- #

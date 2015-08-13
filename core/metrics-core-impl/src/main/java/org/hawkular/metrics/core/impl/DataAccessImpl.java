@@ -66,7 +66,11 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement insertTenant;
 
+    private PreparedStatement insertTenantId;
+
     private PreparedStatement findAllTenantIds;
+
+    private PreparedStatement insertTenantIdIntoBucket;
 
     private PreparedStatement findTenantIdsByTime;
 
@@ -151,12 +155,16 @@ public class DataAccessImpl implements DataAccess {
     }
 
     protected void initPreparedStatements() {
+        insertTenantId = session.prepare("INSERT INTO tenants (id) VALUES (?)");
+
         insertTenant = session.prepare(
             "INSERT INTO tenants (id, retentions) VALUES (?, ?) IF NOT EXISTS");
 
         findAllTenantIds = session.prepare("SELECT DISTINCT id FROM tenants");
 
         findTenantIdsByTime = session.prepare("SELECT tenant FROM tenants_by_time WHERE bucket = ?");
+
+        insertTenantIdIntoBucket = session.prepare("INSERT into tenants_by_time (bucket, tenant) VALUES (?, ?)");
 
         findTenant = session.prepare("SELECT id, retentions FROM tenants WHERE id = ?");
 
@@ -337,6 +345,10 @@ public class DataAccessImpl implements DataAccess {
                         "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
     }
 
+    @Override public Observable<ResultSet> insertTenant(String tenantId) {
+        return rxSession.execute(insertTenantId.bind(tenantId));
+    }
+
     @Override
     public Observable<ResultSet> insertTenant(Tenant tenant) {
         Map<String, Integer> retentions = tenant.getRetentionSettings().entrySet().stream()
@@ -351,6 +363,10 @@ public class DataAccessImpl implements DataAccess {
 
     @Override public Observable<ResultSet> findTenantIds(long time) {
         return rxSession.execute(findTenantIdsByTime.bind(new Date(time)));
+    }
+
+    @Override public Observable<ResultSet> insertTenantId(long time, String id) {
+        return rxSession.execute(insertTenantIdIntoBucket.bind(new Date(time), id));
     }
 
     @Override

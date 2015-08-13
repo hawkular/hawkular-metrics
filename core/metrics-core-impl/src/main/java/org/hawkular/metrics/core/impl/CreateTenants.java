@@ -18,11 +18,12 @@ package org.hawkular.metrics.core.impl;
 
 import java.util.concurrent.CountDownLatch;
 
-import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.tasks.api.Task2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.datastax.driver.core.ResultSet;
 
 import rx.Observable;
 import rx.functions.Action1;
@@ -34,47 +35,51 @@ public class CreateTenants implements Action1<Task2> {
 
     private static final Logger logger = LoggerFactory.getLogger(CreateTenants.class);
 
-    private MetricsService metricsService;
+    private TenantsService tenantsService;
 
     private DataAccess dataAccess;
 
-    public CreateTenants(MetricsService metricsService, DataAccess dataAccess) {
-        this.metricsService = metricsService;
+    public CreateTenants(TenantsService tenantsService, DataAccess dataAccess) {
+        this.tenantsService = tenantsService;
         this.dataAccess = dataAccess;
     }
 
-    @Override public void call(Task2 task) {
+    @Override
+    public void call(Task2 task) {
         long bucket = task.getTrigger().getTriggerTime();
         CountDownLatch latch = new CountDownLatch(1);
 
-        Observable<Tenant> tenants = dataAccess.findTenantIds(bucket)
+        Observable<String> tenantIds = dataAccess.findTenantIds(bucket)
                 .flatMap(Observable::from)
                 .map(row -> row.getString(0))
-                .flatMap(tenantId -> getTenant(tenantId).map(tenant -> tenant == null ? tenantId : tenant.getId()))
-                .filter(tenantId -> tenantId != null)
-                .map(Tenant::new);
+                .flatMap(tenantId -> tenantDoesNotExist(tenantId).map(doesNotExist -> doesNotExist ? tenantId : ""))
+                .filter(tenantId -> !tenantId.isEmpty());
+//                .flatMap(tenantId -> getTenant(tenantId).map(tenant -> tenant == null ? tenantId : tenant.getId()))
+//                .filter(tenantId -> tenantId != null);
 
-        metricsService.createTenants(tenants).subscribe(
+        tenantsService.createTenants(bucket, tenantIds).subscribe(
                 aVoid -> {},
                 t -> {
                     logger.warn("Tenant creation failed", t);
                     latch.countDown();
                 },
-                () -> {
-                    dataAccess.deleteTenantsBucket(bucket).subscribe(
-                            resultSet -> {},
-                            t -> {
-                                logger.warn("Failed to delete tenants bucket [" + bucket + "]", t);
-                                latch.countDown();
-                            },
-                            latch::countDown
-                    );
-                }
+                () -> dataAccess.deleteTenantsBucket(bucket).subscribe(
+                        resultSet -> {},
+                        t -> {
+                            logger.warn("Failed to delete tenants bucket [" + bucket + "]", t);
+                            latch.countDown();
+                        },
+                        latch::countDown
+                )
         );
         try {
             latch.await();
         } catch (InterruptedException e) {
         }
+    }
+
+    private Observable<Boolean> tenantDoesNotExist(String tenantId) {
+        return dataAccess.findTenant(tenantId).map(ResultSet::isExhausted);
     }
 
     private Observable<Tenant> getTenant(String tenantId) {

@@ -89,7 +89,7 @@ import rx.subjects.PublishSubject;
 /**
  * @author John Sanda
  */
-public class MetricsServiceImpl implements MetricsService {
+public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     private static final Logger logger = LoggerFactory.getLogger(MetricsServiceImpl.class);
 
@@ -337,29 +337,22 @@ public class MetricsServiceImpl implements MetricsService {
 
                 return ratesScheduled.concatWith(retentionUpdates);
             });
-            updates.subscribe(resultSet -> {
-            }, subscriber::onError, subscriber::onCompleted);
+            updates.subscribe(resultSet -> {}, subscriber::onError, subscriber::onCompleted);
         });
     }
 
-    @Override public Observable<Void> createTenants(Observable<Tenant> tenants) {
-        return tenants.flatMap(tenant -> dataAccess.insertTenant(tenant).flatMap(resultSet -> {
-            if (!resultSet.wasApplied()) {
-                throw new TenantAlreadyExistsException(tenant.getId());
-            }
+    @Override
+    public Observable<Void> createTenants(long creationTime, Observable<String> tenantIds) {
+        return tenantIds.flatMap(tenantId -> dataAccess.insertTenant(tenantId).flatMap(resultSet -> {
             Trigger trigger = new RepeatingTrigger.Builder()
                     .withDelay(1, TimeUnit.MINUTES)
                     .withInterval(1, TimeUnit.MINUTES)
                     .build();
-            Map<String, String> params = ImmutableMap.of("tenant", tenant.getId());
-            Observable<Void> ratesScheduled = taskScheduler.scheduleTask("generate-rates", tenant.getId(),
-                    100, params, trigger).map(task -> null);
-            Observable<Void> retentionUpdates = Observable.from(tenant.getRetentionSettings().entrySet())
-                    .flatMap(entry -> dataAccess.updateRetentionsIndex(tenant.getId(), entry.getKey(),
-                            ImmutableMap.of(makeSafe(entry.getKey().getText()), entry.getValue())))
-                    .map(rs -> null);
+            Map<String, String> params = ImmutableMap.of(
+                    "tenant", tenantId,
+                    "creationTime", Long.toString(creationTime));
 
-            return ratesScheduled.concatWith(retentionUpdates);
+            return taskScheduler.scheduleTask("generate-rates", tenantId, 100, params, trigger).map(task -> null);
         }));
     }
 

@@ -23,6 +23,7 @@ import static org.joda.time.Duration.standardMinutes;
 import static org.testng.Assert.assertEquals;
 
 import java.util.List;
+import java.util.Set;
 
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.tasks.api.SingleExecutionTrigger;
@@ -35,6 +36,7 @@ import org.testng.annotations.Test;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * @author jsanda
@@ -44,6 +46,8 @@ public class CreateTenantsITest extends MetricsITest {
     private MetricsServiceImpl metricsService;
 
     private DateTimeService dateTimeService;
+
+    private DataAccess dataAccess;
 
     @BeforeClass
     public void initClass() {
@@ -55,6 +59,8 @@ public class CreateTenantsITest extends MetricsITest {
         metricsService.setTaskScheduler(new FakeTaskScheduler());
 
         metricsService.startUp(session, getKeyspace(), false, new MetricRegistry());
+
+        dataAccess = metricsService.getDataAccess();
     }
 
     @BeforeMethod
@@ -64,7 +70,7 @@ public class CreateTenantsITest extends MetricsITest {
     }
 
     @Test
-    public void executeWhenThereAreNoTenantsForBucket() {
+    public void executeWhenThereAreNoTenantsInBucket() {
         DateTime bucket = dateTimeService.getTimeSlice(DateTime.now(), standardMinutes(1));
 
         Tenant t1 = new Tenant("T1");
@@ -80,5 +86,26 @@ public class CreateTenantsITest extends MetricsITest {
         List<Tenant> expected = ImmutableList.of(t1);
 
         assertEquals(actual, expected, "No new tenants should have been created.");
+    }
+
+    @Test
+    public void executeWhenThereAreTenantsInBucket() {
+        DateTime bucket = dateTimeService.getTimeSlice(DateTime.now(), standardMinutes(1));
+
+        Tenant t1 = new Tenant("T1");
+        doAction(() -> metricsService.createTenant(t1));
+        doAction(() -> dataAccess.insertTenantId(bucket.getMillis(), "T2").flatMap(resultSet -> null));
+        doAction(() -> dataAccess.insertTenantId(bucket.getMillis(), "T3").flatMap(resultSet -> null));
+
+        Trigger trigger = new SingleExecutionTrigger(bucket.getMillis());
+        Task2Impl taskDetails = new Task2Impl(randomUUID(), "$system", 0, "create-tenants", emptyMap(), trigger);
+
+        CreateTenants task = new CreateTenants(metricsService, metricsService.getDataAccess());
+        task.call(taskDetails);
+
+        Set<Tenant> actual = ImmutableSet.copyOf(getOnNextEvents(metricsService::getTenants));
+        Set<Tenant> expected = ImmutableSet.of(t1, new Tenant("T2"), new Tenant("T3"));
+
+        assertEquals(actual, expected, "Expected tenants T2 and T3 to be created");
     }
 }

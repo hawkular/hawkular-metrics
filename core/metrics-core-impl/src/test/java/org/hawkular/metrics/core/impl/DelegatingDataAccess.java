@@ -44,8 +44,17 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
+    public Observable<ResultSet> insertTenant(String tenantId) {
+        return delegate.insertTenant(tenantId);
+    }
+
+    @Override
     public Observable<ResultSet> insertTenant(Tenant tenant) {
         return delegate.insertTenant(tenant);
+    }
+
+    @Override public Observable<ResultSet> insertTenantId(long time, String id) {
+        return delegate.insertTenantId(time, id);
     }
 
     @Override
