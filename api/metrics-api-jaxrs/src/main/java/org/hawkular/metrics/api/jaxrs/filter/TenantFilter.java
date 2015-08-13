@@ -16,10 +16,9 @@
  */
 package org.hawkular.metrics.api.jaxrs.filter;
 
-import org.hawkular.metrics.api.jaxrs.ApiError;
-import org.hawkular.metrics.api.jaxrs.handler.BaseHandler;
-import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
-import org.hawkular.metrics.api.jaxrs.handler.VirtualClockHandler;
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
+
+import java.io.IOException;
 
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
@@ -27,9 +26,11 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.ext.Provider;
-import java.io.IOException;
 
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
+import org.hawkular.metrics.api.jaxrs.ApiError;
+import org.hawkular.metrics.api.jaxrs.handler.BaseHandler;
+import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
+import org.hawkular.metrics.api.jaxrs.handler.VirtualClockHandler;
 
 /**
  * @author Stefan Negrea

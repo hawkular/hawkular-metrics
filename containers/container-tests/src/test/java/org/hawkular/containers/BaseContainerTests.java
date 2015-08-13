@@ -20,14 +20,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.fabric8.arquillian.kubernetes.Session;
-import io.fabric8.kubernetes.api.KubernetesClient;
-import io.fabric8.kubernetes.api.model.Service;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
@@ -35,6 +31,13 @@ import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
 import org.jboss.resteasy.util.HttpResponseCodes;
 import org.junit.Assert;
 import org.junit.Before;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.fabric8.arquillian.kubernetes.Session;
+import io.fabric8.kubernetes.api.KubernetesClient;
+import io.fabric8.kubernetes.api.model.Service;
 
 /**
  * @author mwringe

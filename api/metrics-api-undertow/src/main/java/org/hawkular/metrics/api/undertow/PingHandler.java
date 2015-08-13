@@ -16,10 +16,10 @@
  */
 package org.hawkular.metrics.api.undertow;
 
+import java.util.Date;
+
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
-
-import java.util.Date;
 
 class PingHandler implements HttpHandler {
     @Override

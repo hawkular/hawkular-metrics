@@ -19,11 +19,11 @@ package org.hawkular.metrics.core.impl;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hawkular.metrics.core.api.Counter;
+
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.google.common.base.Function;
-
-import org.hawkular.metrics.core.api.Counter;
 
 /**
  * @author John Sanda

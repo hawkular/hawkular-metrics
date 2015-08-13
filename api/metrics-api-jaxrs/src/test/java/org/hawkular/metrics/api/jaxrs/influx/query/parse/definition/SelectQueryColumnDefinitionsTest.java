@@ -16,12 +16,13 @@
  */
 package org.hawkular.metrics.api.jaxrs.influx.query.parse.definition;
 
-import static com.google.common.collect.FluentIterable.from;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+
+import static com.google.common.collect.FluentIterable.from;
 
 import java.util.List;
 

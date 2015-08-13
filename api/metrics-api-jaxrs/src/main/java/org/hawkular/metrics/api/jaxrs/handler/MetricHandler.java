@@ -28,8 +28,8 @@ import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGauges;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
 import java.util.regex.PatternSyntaxException;
+
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;

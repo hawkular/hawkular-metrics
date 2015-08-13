@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
@@ -16,16 +16,17 @@
  */
 package org.hawkular.metrics.rest
 
-import org.apache.http.util.EntityUtils
-import org.joda.time.DateTime
-import org.junit.Test
-
-import javax.ws.rs.core.MediaType
-
-import static groovyx.net.http.Method.POST
 import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.fail
+
+import static groovyx.net.http.Method.POST
+
+import javax.ws.rs.core.MediaType
+
+import org.apache.http.util.EntityUtils
+import org.joda.time.DateTime
+import org.junit.Test
 
 /**
  * @author Thomas Segismont

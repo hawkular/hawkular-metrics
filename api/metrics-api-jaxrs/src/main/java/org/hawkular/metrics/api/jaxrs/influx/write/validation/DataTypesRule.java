@@ -25,9 +25,9 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.ListIterator;
 
-import com.google.common.base.Predicate;
-
 import org.hawkular.metrics.api.jaxrs.influx.InfluxObject;
+
+import com.google.common.base.Predicate;
 
 /**
  * @author Thomas Segismont

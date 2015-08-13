@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
@@ -17,6 +17,7 @@
 package org.hawkular.metrics.rest
 
 import static java.lang.Double.NaN
+
 import static org.joda.time.Minutes.minutes
 import static org.joda.time.Seconds.seconds
 import static org.junit.Assert.assertEquals

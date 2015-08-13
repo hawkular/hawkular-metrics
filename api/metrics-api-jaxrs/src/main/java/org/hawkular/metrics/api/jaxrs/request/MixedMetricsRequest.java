@@ -18,11 +18,12 @@ package org.hawkular.metrics.api.jaxrs.request;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.wordnik.swagger.annotations.ApiModel;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.Counter;
 import org.hawkular.metrics.api.jaxrs.model.Gauge;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.wordnik.swagger.annotations.ApiModel;
 
 /**
  * @author Stefan Negrea

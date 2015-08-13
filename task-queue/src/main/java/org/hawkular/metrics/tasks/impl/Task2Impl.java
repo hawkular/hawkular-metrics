@@ -20,9 +20,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-import com.google.common.collect.ImmutableMap;
 import org.hawkular.metrics.tasks.api.Task2;
 import org.hawkular.metrics.tasks.api.Trigger;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * @author jsanda
