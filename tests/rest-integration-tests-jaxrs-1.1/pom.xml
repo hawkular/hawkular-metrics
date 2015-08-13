@@ -32,6 +32,7 @@
   <name>Hawkular Metrics - Rest Integration Tests for JAX-RS 1.1</name>
 
   <properties>
+    <jboss-as-maven-plugin.skip>true</jboss-as-maven-plugin.skip>
     <cassandra.keyspace>hawkular_metrics_rest_tests</cassandra.keyspace>
     <scheduler.units>seconds</scheduler.units>
     <enforcer.skip>true</enforcer.skip>
@@ -127,6 +128,7 @@
   </build>
 
   <profiles>
+
     <profile>
       <id>test.debug</id>
       <activation>
@@ -206,6 +208,8 @@
             <version>7.7.Final</version>
             <configuration>
               <version>7.5.0.Final-redhat-15</version>
+              <skip>${jboss-as-maven-plugin.skip}</skip>
+              <port>${jboss-as.management.port}</port>
             </configuration>
             <executions>
               <execution>
@@ -215,22 +219,14 @@
                   <goal>start</goal>
                 </goals>
                 <configuration>
-                  <jvmArgs>-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787 -Dhawkular.metrics.waitForService -Dcassandra.resetdb -Dcassandra.keyspace=${cassandra.keyspace}</jvmArgs>
-                  <!--<javaOpts>-->
-                    <!--<javaOpt>-Xms64m</javaOpt>-->
-                    <!--<javaOpt>-Xmx512m</javaOpt>-->
-                    <!--<javaOpt>-Xss256k</javaOpt>-->
-                    <!--<javaOpt>-Djava.net.preferIPv4Stack=true</javaOpt>-->
-                    <!--<javaOpt>-Dsun.rmi.dgc.client.gcInterval=3600000</javaOpt>-->
-                    <!--<javaOpt>-Dsun.rmi.dgc.server.gcInterval=3600000</javaOpt>-->
-                    <!--<javaOpt>-Djboss.socket.binding.port-offset=${wildfly.port.offset}</javaOpt>-->
-                    <!--<javaOpt>-Dcassandra.keyspace=${cassandra.keyspace}</javaOpt>-->
-                    <!--<javaOpt>-Dcassandra.resetdb</javaOpt>-->
-                    <!--<javaOpt>-Dhawkular.metrics.waitForService</javaOpt>-->
-                    <!--<javaOpt>-Dhawkular.scheduler.time-units=${scheduler.units}</javaOpt>-->
-                    <!--<javaOpt>-Xdebug</javaOpt>-->
-                    <!--<javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>-->
-                  <!--</javaOpts>-->
+                  <jvmArgs>-Xms64m -Xmx512m -Xss256k -Djava.net.preferIPv4Stack=true
+                    -Dsun.rmi.dgc.client.gcInterval=3600000 -Dsun.rmi.dgc.server.gcInterval=3600000
+                    -Djboss.socket.binding.port-offset=${jboss-as.port.offset}
+                    -Djboss.server.config.dir=${project.build.directory}/jboss-as-configuration
+                    -Dcassandra.keyspace=${cassandra.keyspace} -Dcassandra.resetdb -Dhawkular.metrics.waitForService
+                    -Dhawkular.scheduler.time-units=${scheduler.units} -Xdebug
+                    -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787
+                  </jvmArgs>
                 </configuration>
               </execution>
               <execution>
@@ -259,21 +255,21 @@
     </profile>
 
     <profile>
-      <id>wildfly.deployment</id>
+      <id>jboss-as.deployment</id>
       <activation>
         <property>
           <name>!running.service</name>
         </property>
       </activation>
       <properties>
-        <wildfly-maven-plugin.skip>false</wildfly-maven-plugin.skip>
+        <jboss-as-maven-plugin.skip>false</jboss-as-maven-plugin.skip>
         <!-- IMPORTANT: The port must be the port offset + 8080. -->
-        <base-uri>127.0.0.1:8080/hawkular/metrics</base-uri>
-        <wildfly.port.offset>47897</wildfly.port.offset>
-        <!-- IMPORTANT: The management port must be the port offset + 9990. -->
-        <wildfly.management.port>57887</wildfly.management.port>
-        <wildfly.logging.console.level>ERROR</wildfly.logging.console.level>
-        <wildfly.logging.file.level>DEBUG</wildfly.logging.file.level>
+        <base-uri>127.0.0.1:35977/hawkular/metrics</base-uri>
+        <jboss-as.port.offset>27897</jboss-as.port.offset>
+        <!-- IMPORTANT: The management port must be the port offset + 9999. -->
+        <jboss-as.management.port>37896</jboss-as.management.port>
+        <jboss-as.logging.console.level>ERROR</jboss-as.logging.console.level>
+        <jboss-as.logging.file.level>DEBUG</jboss-as.logging.file.level>
       </properties>
       <build>
         <plugins>
@@ -288,12 +284,7 @@
                   <goal>copy-resources</goal>
                 </goals>
                 <configuration>
-                  <!--
-                    We cannot specify an arbitrary path to standalone-test.xml, so we include the necessary
-                    configuration files and override the default configuration directory. See
-                    https://issues.jboss.org/browse/JBASMP-75 for details.
-                  -->
-                  <outputDirectory>${project.build.directory}/wildfly-configuration</outputDirectory>
+                  <outputDirectory>${project.build.directory}/jboss-as-configuration</outputDirectory>
                   <overwrite>true</overwrite>
                   <useDefaultDelimiters>false</useDefaultDelimiters>
                   <delimiters>
@@ -301,7 +292,7 @@
                   </delimiters>
                   <resources>
                     <resource>
-                      <directory>${project.basedir}/src/test/wildfly-configuration</directory>
+                      <directory>${project.basedir}/src/test/jboss-as-configuration</directory>
                       <includes>
                         <include>*</include>
                       </includes>
@@ -315,5 +306,6 @@
         </plugins>
       </build>
     </profile>
+
   </profiles>
 </project>
