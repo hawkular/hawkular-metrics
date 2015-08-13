@@ -35,15 +35,8 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.functions.Action1;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
-import static java.util.Collections.singletonList;
-import static org.hawkular.metrics.core.api.MetricType.COUNTER;
-import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
-
 /**
- * @author jsanda
+ * Calculates and persists rates for all counter metrics of a single tenant.
  */
 public class GenerateRate implements Action1<Task2> {
 
@@ -57,6 +50,7 @@ public class GenerateRate implements Action1<Task2> {
 
     @Override
     public void call(Task2 task) {
+        // TODO We need to make this fault tolerant. See HWKMETRICS-213 for details.
         logger.info("Generating rate for {}", task);
         String tenant = task.getParameters().get("tenant");
         long start = task.getTrigger().getTriggerTime();
@@ -73,19 +67,21 @@ public class GenerateRate implements Action1<Task2> {
         CountDownLatch latch = new CountDownLatch(1);
 
         updates.subscribe(
-                aVoid -> {},
+                aVoid -> {
+                },
                 t -> {
                     logger.warn("There was an error persisting rates for {tenant= " + tenant + ", start= " +
-                        start + ", end= " + end + "}", t);
+                            start + ", end= " + end + "}", t);
                     latch.countDown();
                 },
                 () -> {
                     logger.debug("Successfully persisted rate data for {tenant= " + tenant + ", start= " +
-                        start + ", end= " + end + "}");
+                            start + ", end= " + end + "}");
                     latch.countDown();
                 }
         );
 
+        // TODO We do not want to block but have to for now. See HWKMETRICS-214 for details.
         try {
             latch.await();
         } catch (InterruptedException e) {
