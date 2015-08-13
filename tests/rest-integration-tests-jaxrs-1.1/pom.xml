@@ -151,13 +151,34 @@
       <build>
         <plugins>
           <plugin>
+            <!-- Work around https://jira.codehaus.org/browse/SUREFIRE-1024 -->
+            <!-- Unpack the tests, so that failsafe plugins found them -->
+            <!-- Remove when Maven Failsafe plugin 2.19 is out -->
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>unpack-tests</id>
+                <goals>
+                  <goal>unpack-dependencies</goal>
+                </goals>
+                <configuration>
+                  <includeArtifactIds>hawkular-metrics-rest-tests</includeArtifactIds>
+                  <excludes>**/*Influx*</excludes>
+                  <includes>**/*ITest*</includes>
+                  <outputDirectory>${project.build.testOutputDirectory}</outputDirectory>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-failsafe-plugin</artifactId>
             <configuration>
-              <testFailureIgnore>false</testFailureIgnore>
-              <dependenciesToScan>
-                <dependency>${project.groupId}:hawkular-metrics-rest-tests</dependency>
-              </dependenciesToScan>
+              <!-- Uncomment when Maven Failsafe plugin 2.19 is out (see above) -->
+              <!--<dependenciesToScan>-->
+              <!--<dependency>${project.groupId}:hawkular-metrics-rest-tests</dependency>-->
+              <!--</dependenciesToScan>-->
               <excludes>
                 <exclude>**/*Influx*</exclude>
               </excludes>
