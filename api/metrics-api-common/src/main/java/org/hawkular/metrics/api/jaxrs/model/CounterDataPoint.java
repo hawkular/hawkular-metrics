@@ -30,14 +30,10 @@ import com.wordnik.swagger.annotations.ApiModel;
  * @author jsanda
  */
 @ApiModel(description = "A timestamp and a value where the value is interpreted as a signed 64 bit integer")
-@org.codehaus.jackson.map.annotate.JsonSerialize(
-        include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
 public class CounterDataPoint {
 
     @JsonProperty
     @org.codehaus.jackson.annotate.JsonProperty
-    @org.codehaus.jackson.map.annotate.JsonSerialize(
-            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     private long timestamp;
 
     @JsonProperty

@@ -31,13 +31,22 @@ import com.wordnik.swagger.annotations.ApiModel;
 @ApiModel
 public class MixedMetricsRequest {
 
-    @JsonProperty("gauges")
+    @JsonProperty
+    @org.codehaus.jackson.annotate.JsonProperty
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     private List<Gauge> gauges;
 
-    @JsonProperty("availabilities")
+    @JsonProperty
+    @org.codehaus.jackson.annotate.JsonProperty
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     private List<Availability> availabilities;
 
-    @JsonProperty("counters")
+    @JsonProperty
+    @org.codehaus.jackson.annotate.JsonProperty
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     private List<Counter> counters;
 
     public List<Gauge> getGauges() {

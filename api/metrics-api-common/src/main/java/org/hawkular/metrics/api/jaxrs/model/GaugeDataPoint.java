@@ -32,8 +32,6 @@ import com.wordnik.swagger.annotations.ApiModel;
  * @author jsanda
  */
 @ApiModel(description = "A timestamp and a value where the value is interpreted as a floating point number")
-@org.codehaus.jackson.map.annotate.JsonSerialize(
-        include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
 public class GaugeDataPoint {
 
     @JsonProperty
@@ -42,6 +40,7 @@ public class GaugeDataPoint {
 
     @JsonProperty
     @org.codehaus.jackson.annotate.JsonProperty
+    @org.codehaus.jackson.map.annotate.JsonSerialize(include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     private Double value;
 
     @JsonProperty
@@ -55,6 +54,7 @@ public class GaugeDataPoint {
     /**
      * Used by JAX-RS/Jackson to deserialize HTTP request data
      */
+    @SuppressWarnings("unused")
     private GaugeDataPoint() {
     }
 

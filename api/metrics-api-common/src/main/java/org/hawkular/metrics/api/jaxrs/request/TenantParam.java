@@ -28,6 +28,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class TenantParam {
 
     @JsonProperty
+    @org.codehaus.jackson.annotate.JsonProperty
     private String id;
 
     public TenantParam() {

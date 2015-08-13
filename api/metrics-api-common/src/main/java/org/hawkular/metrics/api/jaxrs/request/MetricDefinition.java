@@ -32,8 +32,6 @@ import com.wordnik.swagger.annotations.ApiModel;
  * @author jsanda
  */
 @ApiModel(description = "The definition of a metric to create")
-@org.codehaus.jackson.map.annotate.JsonSerialize(
-        include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
 public class MetricDefinition {
 
     // TODO Do we need this?

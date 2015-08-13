@@ -22,14 +22,14 @@ import java.util.List;
 import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.wordnik.swagger.annotations.ApiModel;
 
 /**
  * A container for data points for a single counter metric.
  *
  * @author jsanda
  */
-@org.codehaus.jackson.map.annotate.JsonSerialize(
-        include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
+@ApiModel(description = "An counter metric with one or more data points")
 public class Counter {
 
     @JsonProperty
