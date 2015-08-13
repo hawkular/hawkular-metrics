@@ -241,7 +241,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                 .subscribe(
                         task -> logger.debug("Scheduled {}", task),
                         t -> {
-                            logger.error("Failed to initialize system tenant", t)
+                            logger.error("Failed to initialize system tenant", t);
                             latch.countDown();
                         },
                         () -> {
