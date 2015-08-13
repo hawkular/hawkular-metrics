@@ -31,86 +31,67 @@
   <artifactId>hawkular-metrics-api-jaxrs-1.1</artifactId>
   <packaging>war</packaging>
 
-  <name>Hawkular Metrics JAX-RS 1.1 API Implementation</name>
-  <description>Hawkular Metrics JAX-RS 1.1 API Implementation</description>
+  <name>Hawkular Metrics JAX-RS 1.1 API</name>
+  <description>JAX-RS 1.1 REST API Implementation</description>
 
   <properties>
     <enforcer.skip>true</enforcer.skip>
   </properties>
 
   <dependencies>
-    <dependency>
-      <groupId>org.hawkular.metrics</groupId>
-      <artifactId>hawkular-metrics-core-impl</artifactId>
-      <version>${project.version}</version>
-    </dependency>
 
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
       <artifactId>hawkular-metrics-core-api</artifactId>
       <version>${project.version}</version>
     </dependency>
-
+    <dependency>
+      <groupId>org.hawkular.metrics</groupId>
+      <artifactId>hawkular-metrics-core-impl</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
       <artifactId>hawkular-metrics-api-common</artifactId>
       <version>${project.version}</version>
     </dependency>
 
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-core</artifactId>
-      <version>2.3.0.redhat-4</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <version>2.3.0.redhat-4</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-annotations</artifactId>
-      <version>2.3.0.redhat-4</version>
-    </dependency>
-
+    <!-- AS7 provided -->
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-jaxrs</artifactId>
       <version>2.3.10.Final</version>
       <scope>provided</scope>
     </dependency>
-
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+      <version>2.3.0.redhat-4</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>2.3.0.redhat-4</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+      <version>2.3.0.redhat-4</version>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>org.jboss.spec.javax.servlet</groupId>
       <artifactId>jboss-servlet-api_3.0_spec</artifactId>
       <version>1.0.2.Final</version>
       <scope>provided</scope>
     </dependency>
-
-    <dependency>
-      <groupId>javax.inject</groupId>
-      <artifactId>javax.inject</artifactId>
-      <version>1</version>
-      <scope>provided</scope>
-    </dependency>
-
     <dependency>
       <groupId>javax.enterprise</groupId>
       <artifactId>cdi-api</artifactId>
       <version>1.0-SP4</version>
       <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>io.reactivex</groupId>
-      <artifactId>rxjava</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>io.reactivex</groupId>
-      <artifactId>rxjava-math</artifactId>
     </dependency>
 
     <!-- documentation -->
@@ -134,20 +115,8 @@
   </repositories>
 
   <build>
-    <finalName>hawkular-metrics-api-jaxrs-1.1</finalName>
+    <finalName>hawkular-metrics-api-rest-1.1</finalName>
     <plugins>
-      <plugin>
-        <groupId>org.jboss.as.plugins</groupId>
-        <artifactId>jboss-as-maven-plugin</artifactId>
-        <version>7.7.Final</version>
-        <configuration>
-          <version>7.1.1.Final</version>
-          <server-args>
-            <server-arg>-b=0.0.0.0</server-arg>
-            <port>6789</port>
-          </server-args>
-        </configuration>
-      </plugin>
 
       <plugin>
         <artifactId>maven-war-plugin</artifactId>

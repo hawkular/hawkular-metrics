@@ -31,8 +31,8 @@
   <artifactId>hawkular-metrics-api-jaxrs</artifactId>
   <packaging>war</packaging>
 
-  <name>Hawkular Metrics JAXRS API</name>
-  <description>The REST-api of Hawkular-Metrics implemented via JAXRS archive</description>
+  <name>Hawkular Metrics JAX-RS 2.0 API</name>
+  <description>JAX-RS 2.0 REST API Implementation</description>
 
   <dependencyManagement>
     <dependencies>
@@ -62,7 +62,6 @@
       <artifactId>hawkular-metrics-core-impl</artifactId>
       <version>${project.version}</version>
     </dependency>
-
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
       <artifactId>hawkular-metrics-api-common</artifactId>
