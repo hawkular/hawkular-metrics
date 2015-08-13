@@ -16,7 +16,9 @@
  */
 package org.hawkular.metrics.core.impl;
 
+import static java.util.Collections.emptyMap;
 import static java.util.Comparator.comparingLong;
+import static java.util.concurrent.TimeUnit.MINUTES;
 
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
@@ -26,7 +28,6 @@ import static org.hawkular.metrics.core.impl.Functions.getTTLGaugeDataPoint;
 import static org.hawkular.metrics.core.impl.Functions.makeSafe;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -38,7 +39,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -97,6 +97,8 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
      * In seconds.
      */
     public static final int DEFAULT_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
+
+    public static final String SYSTEM_TENANT_ID = makeSafe("system");
 
     private static class DataRetentionKey {
         private final MetricId metricId;
@@ -195,6 +197,8 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         this.metricRegistry = metricRegistry;
         initMetrics();
 
+        initSystemTenant();
+
         GenerateRate generateRates = new GenerateRate(this);
         taskScheduler.subscribe(generateRates);
     }
@@ -227,6 +231,30 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         dataRetentions.clear();
     }
 
+    private void initSystemTenant() {
+        CountDownLatch latch = new CountDownLatch(1);
+        Trigger trigger = new RepeatingTrigger.Builder().withDelay(1, MINUTES).withInterval(30, MINUTES).build();
+        dataAccess.insertTenant(new Tenant(SYSTEM_TENANT_ID))
+                .filter(ResultSet::wasApplied)
+                .map(row -> taskScheduler.scheduleTask(CreateTenants.TASK_NAME, SYSTEM_TENANT_ID, 100, emptyMap(),
+                        trigger))
+                .subscribe(
+                        task -> logger.debug("Scheduled {}", task),
+                        t -> {
+                            logger.error("Failed to initialize system tenant", t)
+                            latch.countDown();
+                        },
+                        () -> {
+                            logger.debug("Successfully initialized system tenant");
+                            latch.countDown();
+                        }
+                );
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+        }
+    }
+
     private void initMetrics() {
         gaugeInserts = metricRegistry.meter("gauge-inserts");
         availabilityInserts = metricRegistry.meter("availability-inserts");
@@ -242,7 +270,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         @Override
         public Map<MetricId, Set<T>> call(List<Map<MetricId, Set<T>>> taggedDataMaps) {
             if (taggedDataMaps.isEmpty()) {
-                return Collections.emptyMap();
+                return emptyMap();
             }
             if (taggedDataMaps.size() == 1) {
                 return taggedDataMaps.get(0);
@@ -324,8 +352,8 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                 }
 
                 Trigger trigger = new RepeatingTrigger.Builder()
-                        .withDelay(1, TimeUnit.MINUTES)
-                        .withInterval(1, TimeUnit.MINUTES)
+                        .withDelay(1, MINUTES)
+                        .withInterval(1, MINUTES)
                         .build();
                 Map<String, String> params = ImmutableMap.of("tenant", tenant.getId());
                 taskScheduler.scheduleTask("generate-rates", tenant.getId(), 100, params, trigger);
@@ -337,7 +365,8 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
                 return ratesScheduled.concatWith(retentionUpdates);
             });
-            updates.subscribe(resultSet -> {}, subscriber::onError, subscriber::onCompleted);
+            updates.subscribe(resultSet -> {
+            }, subscriber::onError, subscriber::onCompleted);
         });
     }
 
@@ -345,8 +374,8 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     public Observable<Void> createTenants(long creationTime, Observable<String> tenantIds) {
         return tenantIds.flatMap(tenantId -> dataAccess.insertTenant(tenantId).flatMap(resultSet -> {
             Trigger trigger = new RepeatingTrigger.Builder()
-                    .withDelay(1, TimeUnit.MINUTES)
-                    .withInterval(1, TimeUnit.MINUTES)
+                    .withDelay(1, MINUTES)
+                    .withInterval(1, MINUTES)
                     .build();
             Map<String, String> params = ImmutableMap.of(
                     "tenant", tenantId,

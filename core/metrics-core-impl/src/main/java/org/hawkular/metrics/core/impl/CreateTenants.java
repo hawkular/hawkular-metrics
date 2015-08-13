@@ -35,6 +35,8 @@ public class CreateTenants implements Action1<Task2> {
 
     private static final Logger logger = LoggerFactory.getLogger(CreateTenants.class);
 
+    public static final String TASK_NAME = "create-tenants";
+
     private TenantsService tenantsService;
 
     private DataAccess dataAccess;
