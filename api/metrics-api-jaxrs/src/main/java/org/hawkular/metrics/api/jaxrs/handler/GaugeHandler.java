@@ -272,6 +272,7 @@ public class GaugeHandler {
 
         if (bucketsCount == null && bucketDuration == null) {
             metricsService.findGaugeData(metricId, startTime, endTime)
+                    .map(GaugeDataPoint::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
