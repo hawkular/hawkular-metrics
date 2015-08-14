@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.core.impl.transformers;
 
+import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.datastax.driver.core.BatchStatement;
@@ -32,16 +33,21 @@ import rx.functions.Func0;
  */
 public class BatchStatementTransformer implements Transformer<Statement, BatchStatement> {
     // Max batch size is 0xFFFF (greatest unsigned short)
-    private static final int MAX_BATCH_SIZE = 0xFFFF;
+    public static final int MAX_BATCH_SIZE = 0xFFFF;
+
+    /**
+     * Creates {@link com.datastax.driver.core.BatchStatement.Type#UNLOGGED} batch statements.
+     */
+    public static final Func0<BatchStatement> DEFAULT_BATCH_STATEMENT_FACTORY = () -> new BatchStatement(UNLOGGED);
 
     private final Func0<BatchStatement> batchStatementFactory;
     private final int batchSize;
 
     /**
-     * @param batchStatementFactory function used to initiliaze a new {@link BatchStatement}
+     * Creates a new transformer using the {@link #DEFAULT_BATCH_STATEMENT_FACTORY}.
      */
-    public BatchStatementTransformer(Func0<BatchStatement> batchStatementFactory) {
-        this(batchStatementFactory, MAX_BATCH_SIZE);
+    public BatchStatementTransformer() {
+        this(DEFAULT_BATCH_STATEMENT_FACTORY, MAX_BATCH_SIZE);
     }
 
     /**
