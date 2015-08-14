@@ -68,4 +68,9 @@ public class FakeTaskScheduler implements TaskScheduler {
     public boolean isRunning() {
         return false;
     }
+
+    @Override
+    public Observable<Task2> getTasks() {
+        return Observable.empty();
+    }
 }
