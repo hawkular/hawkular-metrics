@@ -443,7 +443,7 @@ public class MetricsServiceImpl implements MetricsService {
                                     .flatMap(Observable::from)
                                     .filter(r -> positive == p.matcher(r.getString(3)).matches()) // XNOR
                                     .compose(new TagsIndexRowTransformer(tenantId, type))
-                                    .compose(new ItemsToSetTransformer<MetricId>())
+                                    .compose(new ItemsToSetTransformer<>())
                                     .reduce((s1, s2) -> {
                                         s1.addAll(s2);
                                         return s1;
@@ -518,11 +518,11 @@ public class MetricsServiceImpl implements MetricsService {
         //      explicitly created, just not necessarily right away.
 
         PublishSubject<Void> results = PublishSubject.create();
-        Observable<Integer> updates = gaugeObservable.flatMap(g -> dataAccess.insertData(g, getTTL(g)));
+        Observable<Integer> updates = gaugeObservable.flatMap(g -> dataAccess.insertGaugeData(g, getTTL(g)));
         // I am intentionally return zero for the number index updates because I want to measure and compare the
         // throughput inserting data with and without the index updates. This will give us a better idea of how much
         // over there is with the index updates.
-        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndexRx(gaugeObservable).map(count -> 0);
+        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(gaugeObservable).map(count -> 0);
         updates.concatWith(indexUpdates).subscribe(
                 gaugeInserts::mark,
                 results::onError,
@@ -542,7 +542,7 @@ public class MetricsServiceImpl implements MetricsService {
         // I am intentionally return zero for the number index updates because I want to measure and compare the
         // throughput inserting data with and without the index updates. This will give us a better idea of how much
         // over there is with the index updates.
-        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndexRx(availabilities).map(count -> 0);
+        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(availabilities).map(count -> 0);
         updates.concatWith(indexUpdates).subscribe(
                 availabilityInserts::mark,
                 results::onError,
@@ -560,7 +560,7 @@ public class MetricsServiceImpl implements MetricsService {
         // I am intentionally return zero for the number index updates because I want to measure and compare the
         // throughput inserting data with and without the index updates. This will give us a better idea of how much
         // over there is with the index updates.
-        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndexRx(counters).map(count -> 0);
+        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(counters).map(count -> 0);
         updates.concatWith(indexUpdates).subscribe(
                 counterInserts::mark,
                 results::onError,

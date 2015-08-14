@@ -574,7 +574,7 @@ public class MetricsServiceITest extends MetricsITest {
             metricsService.setDataAccess(new DelegatingDataAccess(dataAccess) {
 
                 @Override
-                public Observable<Integer> insertData(Metric<Double> gauge, int ttl) {
+                public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
                     return Observable.from(insertDataWithNewWriteTime(gauge, ttl))
                             .map(resultSet -> gauge.getDataPoints().size());
                 }
@@ -1228,9 +1228,9 @@ public class MetricsServiceITest extends MetricsITest {
         }
 
         @Override
-        public Observable<Integer> insertData(Metric<Double> gauge, int ttl) {
+        public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
             assertEquals(ttl, gaugeTTL, "The gauge TTL does not match the expected value when inserting data");
-            return super.insertData(gauge, ttl);
+            return super.insertGaugeData(gauge, ttl);
         }
 
         @Override

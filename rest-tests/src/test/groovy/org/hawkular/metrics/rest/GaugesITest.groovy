@@ -74,4 +74,16 @@ class GaugesITest extends RESTTest {
     }
   }
 
+  @Test
+  void shouldStoreLargePayloadSize() {
+    def tenantId = nextTenantId()
+
+    def points = []
+    for (i in 0..LARGE_PAYLOAD_SIZE + 10) {
+      points.push(['timestamp': i, 'value': (double) i])
+    }
+
+    def response = hawkularMetrics.post(path: "gauges/test/data", headers: [(tenantHeaderName): tenantId], body: points)
+    assertEquals(200, response.status)
+  }
 }

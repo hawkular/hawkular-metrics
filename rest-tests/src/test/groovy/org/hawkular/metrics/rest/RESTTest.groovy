@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals
 
 import java.util.concurrent.atomic.AtomicInteger
 
+import org.hawkular.metrics.core.impl.transformers.BatchStatementTransformer
 import org.junit.BeforeClass
 
 import com.google.common.base.Charsets
@@ -33,6 +34,7 @@ class RESTTest {
   static final double DELTA = 0.001
   static final String TENANT_PREFIX = UUID.randomUUID().toString()
   static final AtomicInteger TENANT_ID_COUNTER = new AtomicInteger(0)
+  static final int LARGE_PAYLOAD_SIZE = BatchStatementTransformer.MAX_BATCH_SIZE
   static String tenantHeaderName = "Hawkular-Tenant";
   static RESTClient hawkularMetrics
   static defaultFailureHandler

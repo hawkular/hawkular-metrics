@@ -18,6 +18,7 @@ package org.hawkular.metrics.rest
 
 import static org.junit.Assert.assertEquals
 
+import org.hawkular.metrics.core.api.AvailabilityType
 import org.junit.Test
 
 /**
@@ -74,4 +75,19 @@ class AvailabilityITest extends RESTTest {
     }
   }
 
+
+  @Test
+  void shouldStoreLargePayloadSize() {
+    def tenantId = nextTenantId()
+
+    def points = []
+    def availabilityTypes = AvailabilityType.values()
+    for (i in 0..LARGE_PAYLOAD_SIZE + 10) {
+      points.push(['timestamp': i, 'value': availabilityTypes[i % availabilityTypes.length]])
+    }
+
+    def response = hawkularMetrics.post(path: "availability/test/data", headers: [(tenantHeaderName): tenantId],
+        body: points)
+    assertEquals(200, response.status)
+  }
 }

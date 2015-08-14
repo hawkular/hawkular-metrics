@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -58,13 +57,11 @@ public interface DataAccess {
     Observable<ResultSet> updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
             Set<String> deletions);
 
-    <T> ResultSetFuture updateMetricsIndex(List<Metric<T>> metrics);
-
-    <T> Observable<Integer> updateMetricsIndexRx(Observable<Metric<T>> metrics);
+    <T> Observable<Integer> updateMetricsIndex(Observable<Metric<T>> metrics);
 
     Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType type);
 
-    Observable<Integer> insertData(Metric<Double> metric, int ttl);
+    Observable<Integer> insertGaugeData(Metric<Double> metric, int ttl);
 
     Observable<Integer> insertCounterData(Metric<Long> counter, int ttl);
 
