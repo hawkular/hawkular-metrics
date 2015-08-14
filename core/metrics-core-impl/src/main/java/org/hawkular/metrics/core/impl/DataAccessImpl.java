@@ -430,7 +430,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<Integer> insertData(Metric<Double> gauge, int ttl) {
+    public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
         return Observable.from(gauge.getDataPoints())
                 .map(dataPoint -> bindDataPoint(insertGaugeData, gauge, dataPoint, ttl))
                 .reduce(new BatchStatement(UNLOGGED), BatchStatement::add)

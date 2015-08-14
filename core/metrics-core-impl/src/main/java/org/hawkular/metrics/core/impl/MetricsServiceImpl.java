@@ -518,7 +518,7 @@ public class MetricsServiceImpl implements MetricsService {
         //      explicitly created, just not necessarily right away.
 
         PublishSubject<Void> results = PublishSubject.create();
-        Observable<Integer> updates = gaugeObservable.flatMap(g -> dataAccess.insertData(g, getTTL(g)));
+        Observable<Integer> updates = gaugeObservable.flatMap(g -> dataAccess.insertGaugeData(g, getTTL(g)));
         // I am intentionally return zero for the number index updates because I want to measure and compare the
         // throughput inserting data with and without the index updates. This will give us a better idea of how much
         // over there is with the index updates.
