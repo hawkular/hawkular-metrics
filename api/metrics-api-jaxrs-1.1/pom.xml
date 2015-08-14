@@ -28,18 +28,23 @@
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
-  <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+  <artifactId>hawkular-metrics-api-jaxrs-1.1</artifactId>
   <packaging>war</packaging>
 
-  <name>Hawkular Metrics JAX-RS 2.0 API</name>
-  <description>JAX-RS 2.0 REST API Implementation</description>
+  <name>Hawkular Metrics JAX-RS 1.1 API</name>
+  <description>JAX-RS 1.1 REST API Implementation</description>
+
+  <properties>
+    <enforcer.skip>true</enforcer.skip>
+    <container.bom.version>6.4.0.Beta1</container.bom.version>
+  </properties>
 
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>org.wildfly.bom</groupId>
-        <artifactId>jboss-javaee-7.0-wildfly</artifactId>
-        <version>${version.org.wildfly}</version>
+        <groupId>org.jboss.bom.eap</groupId>
+        <version>${container.bom.version}</version>
+        <artifactId>jboss-javaee-6.0-with-resteasy</artifactId>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -48,10 +53,6 @@
 
   <dependencies>
 
-    <dependency>
-      <groupId>org.antlr</groupId>
-      <artifactId>antlr4-runtime</artifactId>
-    </dependency>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
       <artifactId>hawkular-metrics-core-api</artifactId>
@@ -68,20 +69,30 @@
       <version>${project.version}</version>
     </dependency>
 
-    <!-- Wildfly provided -->
+    <!-- AS7 provided -->
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-jaxrs</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-jackson2-provider</artifactId>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.jboss.spec.javax.servlet</groupId>
-      <artifactId>jboss-servlet-api_3.1_spec</artifactId>
+      <artifactId>jboss-servlet-api_3.0_spec</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -101,41 +112,18 @@
       <artifactId>swagger-core_2.10</artifactId>
       <scope>provided</scope>
     </dependency>
-
-    <!-- test -->
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
-  <build>
-    <finalName>hawkular-metric-rest</finalName>
-    <plugins>
+  <repositories>
+    <repository>
+      <id>eap_6_early_access</id>
+      <url>https://maven.repository.redhat.com/earlyaccess/all/</url>
+    </repository>
+  </repositories>
 
-      <plugin>
-        <groupId>org.antlr</groupId>
-        <artifactId>antlr4-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>antlr4</id>
-            <goals>
-              <goal>antlr4</goal>
-            </goals>
-            <phase>generate-sources</phase>
-            <configuration>
-              <listener>true</listener>
-              <visitor>true</visitor>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
+  <build>
+    <finalName>hawkular-metrics-api-rest-1.1</finalName>
+    <plugins>
 
       <plugin>
         <artifactId>maven-war-plugin</artifactId>
@@ -172,65 +160,4 @@
     </plugins>
   </build>
 
-  <profiles>
-    <profile>
-      <id>docgen</id>
-
-      <build>
-        <!-- Document generation from the Swagger annotations on the REST-API. -->
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-dependency-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>unpack</id>
-                <phase>process-resources</phase>
-                <goals>
-                  <goal>unpack</goal>
-                </goals>
-                <configuration>
-                  <artifactItems>
-                    <artifactItem>
-                      <groupId>org.hawkular</groupId>
-                      <artifactId>hawkular-build-tools</artifactId>
-                      <version>${version.org.hawkular.hawkular-build-tools}</version>
-                      <type>jar</type>
-                      <includes>**/*.mustache</includes>
-                    </artifactItem>
-                  </artifactItems>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <groupId>com.github.kongchen</groupId>
-            <artifactId>swagger-maven-plugin</artifactId>
-            <configuration>
-              <apiSources>
-                <apiSource>
-                  <locations>org.hawkular.metrics.api.jaxrs</locations>
-                  <apiVersion>1.0</apiVersion>
-                  <basePath>http://localhost:8080/hawkular/metrics/</basePath>
-                  <outputTemplate>${project.build.directory}/dependency/hawkular-documentation/asciidoc.mustache</outputTemplate>
-                  <swaggerDirectory>${project.build.directory}/generated/swagger-ui</swaggerDirectory>
-                  <swaggerInternalFilter>org.hawkular.metrics.api.jaxrs.swagger.filter.JaxRsFilter</swaggerInternalFilter>
-                  <swaggerApiReader>com.wordnik.swagger.jaxrs.reader.DefaultJaxrsApiReader</swaggerApiReader>
-                  <outputPath>${project.build.directory}/generated/rest-metrics.adoc</outputPath>
-                </apiSource>
-              </apiSources>
-            </configuration>
-            <executions>
-              <execution>
-                <phase>compile</phase>
-                <goals>
-                  <goal>generate</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 </project>

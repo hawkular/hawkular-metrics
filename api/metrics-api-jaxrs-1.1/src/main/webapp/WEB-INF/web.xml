@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+    and other contributors as indicated by the @author tags.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+         version="3.1">
+
+  <display-name>Hawkular Metrics Rest interface - JAX-RS 1.1</display-name>
+
+  <context-param>
+    <param-name>hawkular.metrics.version</param-name>
+    <param-value>${project.version}</param-value>
+  </context-param>
+
+  <context-param>
+    <param-name>resteasy.media.type.mappings</param-name>
+    <param-value>html : text/html, json : application/json, xml : application/xml, csv : text/csv, txt: text/plain,
+      yaml: application/yaml, jsonw: application/vnd.hawkular.wrapped+json
+    </param-value>
+  </context-param>
+
+  <context-param>
+    <param-name>resteasy.providers</param-name>
+    <param-value>org.hawkular.metrics.api.jaxrs.util.JacksonContextResolver</param-value>
+  </context-param>
+
+  <servlet>
+    <servlet-name>staticContent</servlet-name>
+    <servlet-class>org.apache.catalina.servlets.DefaultServlet</servlet-class>
+    <init-param>
+      <param-name>listings</param-name>
+      <param-value>false</param-value>
+    </init-param>
+  </servlet>
+
+  <servlet-mapping>
+    <servlet-name>staticContent</servlet-name>
+    <url-pattern>/static/*</url-pattern>
+  </servlet-mapping>
+</web-app>

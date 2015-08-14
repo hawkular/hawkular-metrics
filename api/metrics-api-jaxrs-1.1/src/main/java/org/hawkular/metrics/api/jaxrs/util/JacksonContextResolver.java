@@ -22,32 +22,32 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import org.codehaus.jackson.JsonParser;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.SerializationConfig;
+import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 
-/**
- * @author Stefan Negrea
- */
+
 @Provider
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public class JacksonConfig implements ContextResolver<ObjectMapper> {
-    private final ObjectMapper mapper;
+public class JacksonContextResolver implements ContextResolver<ObjectMapper> {
 
-    public JacksonConfig() throws Exception {
+    private ObjectMapper mapper;
+
+    public JacksonContextResolver() {
         mapper = new ObjectMapper();
+
         mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
         mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        mapper.configure(SerializationFeature.WRITE_EMPTY_JSON_ARRAYS, false);
-        mapper.configure(SerializationFeature.WRITE_NULL_MAP_VALUES, false);
+        mapper.setSerializationInclusion(Inclusion.NON_EMPTY);
+        mapper.setSerializationInclusion(Inclusion.NON_NULL);
+        mapper.configure(SerializationConfig.Feature.WRITE_EMPTY_JSON_ARRAYS, false);
+        mapper.configure(SerializationConfig.Feature.WRITE_NULL_MAP_VALUES, false);
     }
 
     @Override
-    public ObjectMapper getContext(Class<?> arg0) {
+    public ObjectMapper getContext(Class<?> type) {
         return mapper;
     }
 }

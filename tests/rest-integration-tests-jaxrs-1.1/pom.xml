@@ -27,14 +27,15 @@
     <version>0.6.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>hawkular-metrics-rest-tests</artifactId>
+  <artifactId>hawkular-metrics-rest-integration-tests-jax-rs-1.1</artifactId>
 
-  <name>Hawkular Metrics Rest Tests</name>
+  <name>Hawkular Metrics - Rest Integration Tests for JAX-RS 1.1</name>
 
   <properties>
-    <wildfly-maven-plugin.skip>true</wildfly-maven-plugin.skip>
+    <jboss-as-maven-plugin.skip>true</jboss-as-maven-plugin.skip>
     <cassandra.keyspace>hawkular_metrics_rest_tests</cassandra.keyspace>
     <scheduler.units>seconds</scheduler.units>
+    <enforcer.skip>true</enforcer.skip>
   </properties>
 
   <dependencies>
@@ -45,16 +46,24 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.codehaus.groovy</groupId>
-      <artifactId>groovy-all</artifactId>
-      <version>2.3.8</version>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>hawkular-metrics-api-jaxrs-1.1</artifactId>
+      <version>${project.version}</version>
+      <type>war</type>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+      <artifactId>hawkular-metrics-rest-tests</artifactId>
       <version>${project.version}</version>
-      <type>war</type>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.codehaus.groovy</groupId>
+      <artifactId>groovy-all</artifactId>
+      <version>2.3.8</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -75,39 +84,29 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.influxdb</groupId>
-      <artifactId>influxdb-java</artifactId>
-      <version>1.5</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-client</artifactId>
       <version>3.0.11.Final</version>
       <scope>test</scope>
     </dependency>
+    <!-- commons-io required by resteasy-client -->
     <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-jackson2-provider</artifactId>
-      <version>3.0.11.Final</version>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.1</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
 
+  <repositories>
+    <repository>
+      <id>eap_6_early_access</id>
+      <url>https://maven.repository.redhat.com/earlyaccess/all/</url>
+    </repository>
+  </repositories>
+
   <build>
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>2.6</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>test-jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
@@ -144,9 +143,37 @@
       <build>
         <plugins>
           <plugin>
+            <!-- Work around https://jira.codehaus.org/browse/SUREFIRE-1024 -->
+            <!-- Unpack the tests, so that failsafe plugins found them -->
+            <!-- Remove when Maven Failsafe plugin 2.19 is out -->
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>unpack-tests</id>
+                <goals>
+                  <goal>unpack-dependencies</goal>
+                </goals>
+                <configuration>
+                  <includeArtifactIds>hawkular-metrics-rest-tests</includeArtifactIds>
+                  <excludes>**/*Influx*</excludes>
+                  <includes>**/*ITest*</includes>
+                  <outputDirectory>${project.build.testOutputDirectory}</outputDirectory>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-failsafe-plugin</artifactId>
             <configuration>
+              <!-- Uncomment when Maven Failsafe plugin 2.19 is out (see above) -->
+              <!--<dependenciesToScan>-->
+              <!--<dependency>${project.groupId}:hawkular-metrics-rest-tests</dependency>-->
+              <!--</dependenciesToScan>-->
+              <excludes>
+                <exclude>**/*Influx*</exclude>
+              </excludes>
               <includes>
                 <include>**/*ITest*</include>
               </includes>
@@ -166,38 +193,30 @@
             </executions>
           </plugin>
           <plugin>
-            <groupId>org.wildfly.plugins</groupId>
-            <artifactId>wildfly-maven-plugin</artifactId>
+            <groupId>org.jboss.as.plugins</groupId>
+            <artifactId>jboss-as-maven-plugin</artifactId>
+            <version>7.7.Final</version>
             <configuration>
-              <skip>${wildfly-maven-plugin.skip}</skip>
-              <port>${wildfly.management.port}</port>
+              <version>7.5.0.Final-redhat-15</version>
+              <skip>${jboss-as-maven-plugin.skip}</skip>
+              <port>${jboss-as.management.port}</port>
             </configuration>
             <executions>
               <execution>
-                <id>start-wildfly</id>
+                <id>start-server</id>
                 <phase>pre-integration-test</phase>
                 <goals>
                   <goal>start</goal>
                 </goals>
                 <configuration>
-                  <serverConfig>standalone-test.xml</serverConfig>
-                  <javaOpts>
-                    <javaOpt>-Xms64m</javaOpt>
-                    <javaOpt>-Xmx512m</javaOpt>
-                    <javaOpt>-Xss256k</javaOpt>
-                    <javaOpt>-Djava.net.preferIPv4Stack=true</javaOpt>
-                    <javaOpt>-Dsun.rmi.dgc.client.gcInterval=3600000</javaOpt>
-                    <javaOpt>-Dsun.rmi.dgc.server.gcInterval=3600000</javaOpt>
-                    <javaOpt>-Djboss.socket.binding.port-offset=${wildfly.port.offset}</javaOpt>
-                    <javaOpt>-Djboss.server.config.dir=${project.build.directory}/wildfly-configuration</javaOpt>
-                    <javaOpt>-Dcassandra.keyspace=${cassandra.keyspace}</javaOpt>
-                    <javaOpt>-Dcassandra.resetdb</javaOpt>
-                    <javaOpt>-Dhawkular.metrics.waitForService</javaOpt>
-                    <javaOpt>-Dhawkular.metrics.use-virtual-clock=true</javaOpt>
-                    <javaOpt>-Dhawkular.scheduler.time-units=${scheduler.units}</javaOpt>
-                    <javaOpt>-Xdebug</javaOpt>
-                    <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
-                  </javaOpts>
+                  <jvmArgs>-Xms64m -Xmx512m -Xss256k -Djava.net.preferIPv4Stack=true
+                    -Dsun.rmi.dgc.client.gcInterval=3600000 -Dsun.rmi.dgc.server.gcInterval=3600000
+                    -Djboss.socket.binding.port-offset=${jboss-as.port.offset}
+                    -Djboss.server.config.dir=${project.build.directory}/jboss-as-configuration
+                    -Dcassandra.keyspace=${cassandra.keyspace} -Dcassandra.resetdb -Dhawkular.metrics.waitForService
+                    -Dhawkular.metrics.use-virtual-clock=true -Dhawkular.scheduler.time-units=${scheduler.units}
+                    -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787
+                  </jvmArgs>
                 </configuration>
               </execution>
               <execution>
@@ -208,12 +227,12 @@
                 </goals>
                 <configuration>
                   <groupId>${project.groupId}</groupId>
-                  <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+                  <artifactId>hawkular-metrics-api-jaxrs-1.1</artifactId>
                   <name>hawkular-metric-rest.war</name>
                 </configuration>
               </execution>
               <execution>
-                <id>stop-wildfly</id>
+                <id>stop-server</id>
                 <phase>post-integration-test</phase>
                 <goals>
                   <goal>shutdown</goal>
@@ -226,21 +245,21 @@
     </profile>
 
     <profile>
-      <id>wildfly.deployment</id>
+      <id>jboss-as.deployment</id>
       <activation>
         <property>
           <name>!running.service</name>
         </property>
       </activation>
       <properties>
-        <wildfly-maven-plugin.skip>false</wildfly-maven-plugin.skip>
+        <jboss-as-maven-plugin.skip>false</jboss-as-maven-plugin.skip>
         <!-- IMPORTANT: The port must be the port offset + 8080. -->
-        <base-uri>127.0.0.1:55977/hawkular/metrics</base-uri>
-        <wildfly.port.offset>47897</wildfly.port.offset>
-        <!-- IMPORTANT: The management port must be the port offset + 9990. -->
-        <wildfly.management.port>57887</wildfly.management.port>
-        <wildfly.logging.console.level>ERROR</wildfly.logging.console.level>
-        <wildfly.logging.file.level>DEBUG</wildfly.logging.file.level>
+        <base-uri>127.0.0.1:35977/hawkular/metrics</base-uri>
+        <jboss-as.port.offset>27897</jboss-as.port.offset>
+        <!-- IMPORTANT: The management port must be the port offset + 9999. -->
+        <jboss-as.management.port>37896</jboss-as.management.port>
+        <jboss-as.logging.console.level>ERROR</jboss-as.logging.console.level>
+        <jboss-as.logging.file.level>DEBUG</jboss-as.logging.file.level>
       </properties>
       <build>
         <plugins>
@@ -255,12 +274,7 @@
                   <goal>copy-resources</goal>
                 </goals>
                 <configuration>
-                  <!--
-                    We cannot specify an arbitrary path to standalone-test.xml, so we include the necessary
-                    configuration files and override the default configuration directory. See
-                    https://issues.jboss.org/browse/JBASMP-75 for details.
-                  -->
-                  <outputDirectory>${project.build.directory}/wildfly-configuration</outputDirectory>
+                  <outputDirectory>${project.build.directory}/jboss-as-configuration</outputDirectory>
                   <overwrite>true</overwrite>
                   <useDefaultDelimiters>false</useDefaultDelimiters>
                   <delimiters>
@@ -268,7 +282,7 @@
                   </delimiters>
                   <resources>
                     <resource>
-                      <directory>${project.basedir}/src/test/wildfly-configuration</directory>
+                      <directory>${project.basedir}/src/test/jboss-as-configuration</directory>
                       <includes>
                         <include>*</include>
                       </includes>
