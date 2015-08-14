@@ -198,9 +198,6 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         initMetrics();
 
         initSystemTenant();
-
-        GenerateRate generateRates = new GenerateRate(this);
-        taskScheduler.subscribe(generateRates);
     }
 
     void loadDataRetentions() {

@@ -56,8 +56,6 @@ public class CreateTenants implements Action1<Task2> {
                 .map(row -> row.getString(0))
                 .flatMap(tenantId -> tenantDoesNotExist(tenantId).map(doesNotExist -> doesNotExist ? tenantId : ""))
                 .filter(tenantId -> !tenantId.isEmpty());
-//                .flatMap(tenantId -> getTenant(tenantId).map(tenant -> tenant == null ? tenantId : tenant.getId()))
-//                .filter(tenantId -> tenantId != null);
 
         tenantsService.createTenants(bucket, tenantIds).subscribe(
                 aVoid -> {},
