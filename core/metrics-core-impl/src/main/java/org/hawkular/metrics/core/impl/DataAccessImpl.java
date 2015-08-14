@@ -36,12 +36,12 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Tenant;
+import org.hawkular.metrics.core.impl.transformers.BatchStatementTransformer;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
@@ -55,9 +55,6 @@ import rx.Observable;
  * @author John Sanda
  */
 public class DataAccessImpl implements DataAccess {
-    // Max batch size is 0xFFFF (greatest unsigned short)
-    private static final int MAX_BATCH_SIZE = Short.MAX_VALUE - Short.MIN_VALUE;
-
     public static final long DPART = 0;
 
     private Session session;
@@ -437,8 +434,7 @@ public class DataAccessImpl implements DataAccess {
         return Observable.from(gauge.getDataPoints())
                 .map(dataPoint -> bindDataPoint(insertGaugeData, gauge, dataPoint.getValue(),
                         dataPoint.getTimestamp(), ttl))
-                .window(MAX_BATCH_SIZE)
-                .flatMap(window -> window.collect(() -> new BatchStatement(UNLOGGED), BatchStatement::add))
+                .compose(new BatchStatementTransformer(() -> new BatchStatement(UNLOGGED)))
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
 
@@ -447,8 +443,7 @@ public class DataAccessImpl implements DataAccess {
         return Observable.from(counter.getDataPoints())
                 .map(dataPoint -> bindDataPoint(insertCounterData, counter, dataPoint.getValue(),
                         dataPoint.getTimestamp(), ttl))
-                .window(MAX_BATCH_SIZE)
-                .flatMap(window -> window.collect(() -> new BatchStatement(UNLOGGED), BatchStatement::add))
+                .compose(new BatchStatementTransformer(() -> new BatchStatement(UNLOGGED)))
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
 
@@ -602,8 +597,7 @@ public class DataAccessImpl implements DataAccess {
         return Observable.from(metric.getDataPoints())
                 .map(dataPoint -> bindDataPoint(insertAvailability, metric, getBytes(dataPoint),
                         dataPoint.getTimestamp(), ttl))
-                .window(MAX_BATCH_SIZE)
-                .flatMap(window -> window.collect(() -> new BatchStatement(UNLOGGED), BatchStatement::add))
+                .compose(new BatchStatementTransformer(() -> new BatchStatement(UNLOGGED)))
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
 
@@ -669,9 +663,4 @@ public class DataAccessImpl implements DataAccess {
         return session.executeAsync(updateRetentionsIndex.bind(metric.getId().getTenantId(),
                 metric.getId().getType().getCode(), metric.getId().getName(), metric.getDataRetention()));
     }
-
-    private KeyspaceMetadata getKeyspace() {
-        return session.getCluster().getMetadata().getKeyspace(session.getLoggedKeyspace());
-    }
-
 }
