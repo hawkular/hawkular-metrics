@@ -26,7 +26,6 @@ import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
 import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
 
 import java.nio.ByteBuffer;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -408,17 +407,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public <T> ResultSetFuture updateMetricsIndex(List<Metric<T>> metrics) {
-        BatchStatement batchStatement = new BatchStatement(UNLOGGED);
-        for (Metric metric : metrics) {
-            batchStatement.add(updateMetricsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
-                    metric.getId().getInterval().toString(), metric.getId().getName()));
-        }
-        return session.executeAsync(batchStatement);
-    }
-
-    @Override
-    public <T> Observable<Integer> updateMetricsIndexRx(Observable<Metric<T>> metrics) {
+    public <T> Observable<Integer> updateMetricsIndex(Observable<Metric<T>> metrics) {
         return metrics.map(Metric::getId)
                 .map(id -> updateMetricsIndex.bind(id.getTenantId(), id.getType().getCode(),
                         id.getInterval().toString(), id.getName()))

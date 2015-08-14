@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -96,13 +95,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public <T> ResultSetFuture updateMetricsIndex(List<Metric<T>> metrics) {
+    public <T> Observable<Integer> updateMetricsIndex(Observable<Metric<T>> metrics) {
         return delegate.updateMetricsIndex(metrics);
-    }
-
-    @Override
-    public <T> Observable<Integer> updateMetricsIndexRx(Observable<Metric<T>> metrics) {
-        return delegate.updateMetricsIndexRx(metrics);
     }
 
     @Override
