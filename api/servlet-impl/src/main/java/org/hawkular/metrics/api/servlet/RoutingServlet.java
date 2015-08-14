@@ -6,7 +6,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.PrintWriter;
 
 /**
  * Created by miburman on 8/13/15.
@@ -19,9 +18,9 @@ public class RoutingServlet extends HttpServlet {
 
         System.out.println("Servlet ==> Requested PATH: " + req.getPathInfo());
 
-        req.getRequestDispatcher("/tenantHandler").forward(req, resp);
+        req.getRequestDispatcher("/tenantHandler").include(req, resp);
 
-        System.out.println("Servlet ==> We never got back..");
+        System.out.println("Servlet ==> We got back.. use forward if you don't want that");
 
 //        super.doGet(req, resp);
     }

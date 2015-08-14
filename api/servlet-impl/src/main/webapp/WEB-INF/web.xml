@@ -29,4 +29,8 @@
     <param-value>${project.version}</param-value>
   </context-param>
 
+    <error-page>
+        <exception-type>java.lang.Throwable</exception-type>
+        <location>/ExceptionHandler</location>
+    </error-page>
 </web-app>
