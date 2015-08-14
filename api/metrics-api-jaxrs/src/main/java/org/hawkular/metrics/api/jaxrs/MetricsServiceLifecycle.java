@@ -29,7 +29,9 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.USE_VIRTUAL
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -46,9 +48,14 @@ import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.api.jaxrs.util.VirtualClock;
 import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.impl.CreateTenants;
+import org.hawkular.metrics.core.impl.DataAccess;
+import org.hawkular.metrics.core.impl.DataAccessImpl;
+import org.hawkular.metrics.core.impl.GenerateRate;
 import org.hawkular.metrics.core.impl.MetricsServiceImpl;
 import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.metrics.tasks.api.RepeatingTrigger;
+import org.hawkular.metrics.tasks.api.Task2;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.hawkular.metrics.tasks.impl.Queries;
 import org.hawkular.metrics.tasks.impl.TaskSchedulerImpl;
@@ -63,6 +70,8 @@ import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.Uninterruptibles;
 
+import rx.Subscription;
+import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
@@ -131,6 +140,10 @@ public class MetricsServiceLifecycle {
     private int connectionAttempts;
     private Session session;
 
+    private DataAccess dataAcces;
+
+    private Map<? super Action1<Task2>, Subscription> jobs = new HashMap<>();
+
     MetricsServiceLifecycle() {
         ThreadFactory threadFactory = r -> {
             Thread thread = Executors.defaultThreadFactory().newThread(r);
@@ -198,10 +211,11 @@ public class MetricsServiceLifecycle {
             // will change at some point though because the task scheduling service will
             // probably move to the hawkular-commons repo.
             initSchema();
-
+            dataAcces = new DataAccessImpl(session);
             initTaskScheduler();
 
             metricsService = new MetricsServiceImpl();
+            metricsService.setDataAccess(dataAcces);
             metricsService.setTaskScheduler(taskScheduler);
 
             // TODO Set up a managed metric registry
@@ -210,6 +224,9 @@ public class MetricsServiceLifecycle {
             // com.codahale.metrics.Reporter instances.
             metricsService.startUp(session, keyspace, false, false, new MetricRegistry());
             LOG.info("Metrics service started");
+
+            initJobs();
+
             state = State.STARTED;
         } catch (Exception t) {
             LOG.error("An error occurred trying to connect to the Cassandra cluster", t);
@@ -279,6 +296,16 @@ public class MetricsServiceLifecycle {
         }
     }
 
+    private void initJobs() {
+        GenerateRate generateRates = new GenerateRate(metricsService);
+        CreateTenants createTenants = new CreateTenants(metricsService, dataAcces);
+
+        jobs.put(generateRates, taskScheduler.getTasks().filter(task -> task.getName().equals(GenerateRate.TASK_NAME))
+                .subscribe(generateRates));
+        jobs.put(createTenants, taskScheduler.getTasks().filter(task -> task.getName().equals(CreateTenants.TASK_NAME))
+                .subscribe(createTenants));
+    }
+
     /**
      * @return a {@link MetricsService} instance to share in application scope
      */
@@ -315,6 +342,7 @@ public class MetricsServiceLifecycle {
         state = State.STOPPING;
         metricsService.shutdown();
         taskScheduler.shutdown();
+        jobs.values().forEach(Subscription::unsubscribe);
         if (session != null) {
             try {
                 session.close();

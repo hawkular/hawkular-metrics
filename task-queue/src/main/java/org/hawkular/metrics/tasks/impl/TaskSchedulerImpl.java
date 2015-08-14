@@ -203,6 +203,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
         return running;
     }
 
+    @Override
     public Observable<Task2> getTasks() {
         return taskSubject;
     }

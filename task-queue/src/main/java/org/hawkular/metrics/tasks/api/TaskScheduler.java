@@ -34,6 +34,8 @@ public interface TaskScheduler {
 
     Subscription subscribe(Subscriber<Task2> subscriber);
 
+    Observable<Task2> getTasks();
+
     Observable<Lease> start();
 
 //    Observable<Task2> createTask(String name, Map<String, String> parameters, Trigger trigger);

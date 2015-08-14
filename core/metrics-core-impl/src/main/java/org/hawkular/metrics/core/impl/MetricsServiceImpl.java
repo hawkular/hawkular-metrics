@@ -191,7 +191,6 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         session.execute("USE " + keyspace);
         logger.info("Using a key space of '{}'", keyspace);
         metricsTasks = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
-        dataAccess = new DataAccessImpl(session);
         loadDataRetentions();
 
         this.metricRegistry = metricRegistry;
@@ -332,7 +331,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     /**
      * This is a test hook.
      */
-    void setDataAccess(DataAccess dataAccess) {
+    public void setDataAccess(DataAccess dataAccess) {
         this.dataAccess = dataAccess;
     }
 

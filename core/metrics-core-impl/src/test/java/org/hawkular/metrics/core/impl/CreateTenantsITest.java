@@ -53,14 +53,14 @@ public class CreateTenantsITest extends MetricsITest {
     public void initClass() {
         initSession();
 
+        dataAccess = new DataAccessImpl(session);
         dateTimeService = new DateTimeService();
 
         metricsService = new MetricsServiceImpl();
         metricsService.setTaskScheduler(new FakeTaskScheduler());
+        metricsService.setDataAccess(dataAccess);
 
         metricsService.startUp(session, getKeyspace(), false, new MetricRegistry());
-
-        dataAccess = metricsService.getDataAccess();
     }
 
     @BeforeMethod

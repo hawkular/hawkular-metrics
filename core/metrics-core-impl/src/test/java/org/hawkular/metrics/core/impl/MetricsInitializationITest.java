@@ -45,6 +45,8 @@ import rx.schedulers.TestScheduler;
  */
 public class MetricsInitializationITest extends MetricsITest {
 
+    private DataAccess dataAccess;
+
     private MetricsServiceImpl metricsService;
 
     private TaskSchedulerImpl taskScheduler;
@@ -58,8 +60,9 @@ public class MetricsInitializationITest extends MetricsITest {
     @BeforeClass
     public void initClass() {
         initSession();
-
         resetDB();
+
+        dataAccess = new DataAccessImpl(session);
 
         dateTimeService = new DateTimeService();
         DateTime startTime = dateTimeService.getTimeSlice(DateTime.now(), standardMinutes(1)).minusMinutes(20);
@@ -74,6 +77,7 @@ public class MetricsInitializationITest extends MetricsITest {
 
         metricsService = new MetricsServiceImpl();
         metricsService.setTaskScheduler(taskScheduler);
+        metricsService.setDataAccess(dataAccess);
 
         taskScheduler.start();
 
@@ -111,6 +115,7 @@ public class MetricsInitializationITest extends MetricsITest {
     public void doSystemInitializationOnlyOnce() {
         MetricsServiceImpl service = new MetricsServiceImpl();
         service.setTaskScheduler(taskScheduler);
+        service.setDataAccess(dataAccess);
         service.startUp(session, keyspace, false, new MetricRegistry());
 
         List<Tenant> actual = getOnNextEvents(() ->

@@ -97,10 +97,13 @@ public class MetricsServiceITest extends MetricsITest {
     public void initClass() {
         initSession();
 
+        dataAccess = new DataAccessImpl(session);
+
         metricsService = new MetricsServiceImpl();
+        metricsService.setDataAccess(dataAccess);
         metricsService.setTaskScheduler(new FakeTaskScheduler());
         metricsService.startUp(session, getKeyspace(), false, new MetricRegistry());
-        dataAccess = metricsService.getDataAccess();
+
 
         insertGaugeDataWithTimestamp = session
                 .prepare(

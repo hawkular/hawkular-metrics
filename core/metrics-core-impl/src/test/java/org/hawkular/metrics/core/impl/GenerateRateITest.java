@@ -19,14 +19,13 @@ package org.hawkular.metrics.core.impl;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.UUID.randomUUID;
+
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.joda.time.Duration.standardMinutes;
 import static org.testng.Assert.assertEquals;
 
 import java.util.List;
 
-import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.ImmutableMap;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
@@ -39,6 +38,10 @@ import org.slf4j.LoggerFactory;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableMap;
+
 import rx.Observable;
 
 /**
@@ -57,9 +60,11 @@ public class GenerateRateITest extends MetricsITest {
     public void initClass() {
         initSession();
 
+        DataAccess dataAccess = new DataAccessImpl(session);
         dateTimeService = new DateTimeService();
 
         metricsService = new MetricsServiceImpl();
+        metricsService.setDataAccess(dataAccess);
         metricsService.setTaskScheduler(new FakeTaskScheduler());
 
         metricsService.startUp(session, getKeyspace(), false, new MetricRegistry());

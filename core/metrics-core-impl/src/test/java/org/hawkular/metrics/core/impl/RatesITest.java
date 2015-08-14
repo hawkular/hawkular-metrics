@@ -50,17 +50,6 @@ import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.hawkular.metrics.core.api.MetricType.COUNTER;
-import static org.joda.time.Duration.standardMinutes;
-import static org.testng.Assert.assertEquals;
-
 /**
  * This class tests counter rates indirectly by running the task scheduler with a virtual
  * clock. {@link GenerateRateITest} tests directly without running a task scheduler.
@@ -97,6 +86,7 @@ public class RatesITest extends MetricsITest {
 
         metricsService = new MetricsServiceImpl();
         metricsService.setTaskScheduler(taskScheduler);
+        metricsService.setDataAccess(new DataAccessImpl(session));
 
         String keyspace = "hawkulartest";
         System.setProperty("keyspace", keyspace);

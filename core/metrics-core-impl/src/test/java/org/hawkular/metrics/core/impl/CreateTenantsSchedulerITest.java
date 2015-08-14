@@ -62,9 +62,9 @@ public class CreateTenantsSchedulerITest extends MetricsITest {
     @BeforeClass
     public void initClass() {
         initSession();
-
         resetDB();
 
+        dataAccess = new DataAccessImpl(session);
         dateTimeService = new DateTimeService();
 
         DateTime startTime = dateTimeService.getTimeSlice(DateTime.now(), standardMinutes(1)).minusMinutes(20);
@@ -79,22 +79,16 @@ public class CreateTenantsSchedulerITest extends MetricsITest {
 
         metricsService = new MetricsServiceImpl();
         metricsService.setTaskScheduler(taskScheduler);
+        metricsService.setDataAccess(dataAccess);
 
         finishedTimeSlices = taskScheduler.getFinishedTimeSlices();
         taskScheduler.start();
 
         metricsService.startUp(session, getKeyspace(), false, new MetricRegistry());
 
-        dataAccess = metricsService.getDataAccess();
-
-        CreateTenants job = new CreateTenants(metricsService, metricsService.getDataAccess());
+        CreateTenants job = new CreateTenants(metricsService, dataAccess);
         taskScheduler.getTasks().filter(task -> task.getName().equals(CreateTenants.TASK_NAME)).subscribe(job);
     }
-
-//    @BeforeMethod
-//    public void initMethod() {
-//        resetDB();
-//    }
 
     protected void resetDB() {
         session.execute("TRUNCATE tenants");
