@@ -55,8 +55,11 @@ import rx.Observable;
  * @author John Sanda
  */
 public class DataAccessImpl implements DataAccess {
+    // Max batch size is 0xFFFF (greatest unsigned short)
+    private static final int MAX_BATCH_SIZE = Short.MAX_VALUE - Short.MIN_VALUE;
 
     public static final long DPART = 0;
+
     private Session session;
 
     private RxSession rxSession;
@@ -432,24 +435,30 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
         return Observable.from(gauge.getDataPoints())
-                .map(dataPoint -> bindDataPoint(insertGaugeData, gauge, dataPoint, ttl))
-                .reduce(new BatchStatement(UNLOGGED), BatchStatement::add)
+                .map(dataPoint -> bindDataPoint(insertGaugeData, gauge, dataPoint.getValue(),
+                        dataPoint.getTimestamp(), ttl))
+                .window(MAX_BATCH_SIZE)
+                .flatMap(window -> window.collect(() -> new BatchStatement(UNLOGGED), BatchStatement::add))
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
 
     @Override
     public Observable<Integer> insertCounterData(Metric<Long> counter, int ttl) {
         return Observable.from(counter.getDataPoints())
-                .map(dataPoint -> bindDataPoint(insertCounterData, counter, dataPoint, ttl))
-                .reduce(new BatchStatement(UNLOGGED), BatchStatement::add)
+                .map(dataPoint -> bindDataPoint(insertCounterData, counter, dataPoint.getValue(),
+                        dataPoint.getTimestamp(), ttl))
+                .window(MAX_BATCH_SIZE)
+                .flatMap(window -> window.collect(() -> new BatchStatement(UNLOGGED), BatchStatement::add))
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
 
-    private BoundStatement bindDataPoint(PreparedStatement statement, Metric<?> metric, DataPoint<?> dataPoint,
-            int ttl) {
-        return statement.bind(ttl, metric.getTags(), dataPoint.getValue(), metric.getTenantId(),
-                metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(), DPART,
-                getTimeUUID(dataPoint.getTimestamp()));
+    private BoundStatement bindDataPoint(
+            PreparedStatement statement, Metric<?> metric, Object value, long timestamp, int ttl
+    ) {
+        MetricId metricId = metric.getId();
+        return statement.bind(ttl, metric.getTags(), value, metricId.getTenantId(),
+                metricId.getType().getCode(), metricId.getName(), metricId.getInterval().toString(), DPART,
+                getTimeUUID(timestamp));
     }
 
     @Override
@@ -591,12 +600,10 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
         return Observable.from(metric.getDataPoints())
-                .reduce(new BatchStatement(UNLOGGED), (batchStatement, a) -> {
-                    batchStatement.add(insertAvailability.bind(ttl, metric.getTags(), getBytes(a),
-                        metric.getTenantId(), metric.getType().getCode(), metric.getId().getName(), metric.getId()
-                            .getInterval().toString(), DPART, getTimeUUID(a.getTimestamp())));
-                    return batchStatement;
-                })
+                .map(dataPoint -> bindDataPoint(insertAvailability, metric, getBytes(dataPoint),
+                        dataPoint.getTimestamp(), ttl))
+                .window(MAX_BATCH_SIZE)
+                .flatMap(window -> window.collect(() -> new BatchStatement(UNLOGGED), BatchStatement::add))
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
 
