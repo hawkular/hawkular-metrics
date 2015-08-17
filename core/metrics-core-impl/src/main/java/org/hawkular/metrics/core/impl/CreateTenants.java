@@ -20,6 +20,8 @@ import java.util.concurrent.CountDownLatch;
 
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.tasks.api.Task2;
+import org.hawkular.metrics.tasks.api.Trigger;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +50,7 @@ public class CreateTenants implements Action1<Task2> {
 
     @Override
     public void call(Task2 task) {
-        long bucket = task.getTrigger().getTriggerTime();
+        long bucket = getBucket(task.getTrigger());
         CountDownLatch latch = new CountDownLatch(1);
 
         Observable<String> tenantIds = dataAccess.findTenantIds(bucket)
@@ -76,6 +78,11 @@ public class CreateTenants implements Action1<Task2> {
             latch.await();
         } catch (InterruptedException e) {
         }
+    }
+
+    private long getBucket(Trigger trigger) {
+        DateTime end = new DateTime(trigger.getTriggerTime());
+        return end.minusMinutes(30).getMillis();
     }
 
     private Observable<Boolean> tenantDoesNotExist(String tenantId) {

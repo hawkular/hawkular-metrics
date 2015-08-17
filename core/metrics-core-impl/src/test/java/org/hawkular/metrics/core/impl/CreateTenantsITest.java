@@ -71,12 +71,12 @@ public class CreateTenantsITest extends MetricsITest {
 
     @Test
     public void executeWhenThereAreNoTenantsInBucket() {
-        DateTime bucket = dateTimeService.getTimeSlice(DateTime.now(), standardMinutes(1));
+        DateTime bucket = dateTimeService.getTimeSlice(DateTime.now(), standardMinutes(30));
 
         Tenant t1 = new Tenant("T1");
         doAction(() -> metricsService.createTenant(t1));
 
-        Trigger trigger = new SingleExecutionTrigger(bucket.getMillis());
+        Trigger trigger = new SingleExecutionTrigger(bucket.plusMinutes(30).getMillis());
         Task2Impl taskDetails = new Task2Impl(randomUUID(), "$system", 0, "create-tenants", emptyMap(), trigger);
 
         CreateTenants task = new CreateTenants(metricsService, metricsService.getDataAccess());
@@ -90,14 +90,14 @@ public class CreateTenantsITest extends MetricsITest {
 
     @Test
     public void executeWhenThereAreTenantsInBucket() {
-        DateTime bucket = dateTimeService.getTimeSlice(DateTime.now(), standardMinutes(1));
+        DateTime bucket = dateTimeService.getTimeSlice(DateTime.now(), standardMinutes(30));
 
         Tenant t1 = new Tenant("T1");
         doAction(() -> metricsService.createTenant(t1));
         doAction(() -> dataAccess.insertTenantId(bucket.getMillis(), "T2").flatMap(resultSet -> null));
         doAction(() -> dataAccess.insertTenantId(bucket.getMillis(), "T3").flatMap(resultSet -> null));
 
-        Trigger trigger = new SingleExecutionTrigger(bucket.getMillis());
+        Trigger trigger = new SingleExecutionTrigger(bucket.plusMinutes(30).getMillis());
         Task2Impl taskDetails = new Task2Impl(randomUUID(), "$system", 0, "create-tenants", emptyMap(), trigger);
 
         CreateTenants task = new CreateTenants(metricsService, metricsService.getDataAccess());
