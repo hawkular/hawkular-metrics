@@ -93,15 +93,19 @@ public class MetricsServiceITest extends MetricsITest {
 
     private PreparedStatement insertAvailabilityDateWithTimestamp;
 
+    private DateTimeService dateTimeService;
+
     @BeforeClass
     public void initClass() {
         initSession();
 
         dataAccess = new DataAccessImpl(session);
+        dateTimeService = new DateTimeService();
 
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
         metricsService.setTaskScheduler(new FakeTaskScheduler());
+        metricsService.setDateTimeService(dateTimeService);
         metricsService.startUp(session, getKeyspace(), false, new MetricRegistry());
 
 
@@ -126,6 +130,7 @@ public class MetricsServiceITest extends MetricsITest {
         session.execute("TRUNCATE metrics_idx");
         session.execute("TRUNCATE retentions_idx");
         session.execute("TRUNCATE metrics_tags_idx");
+        session.execute("TRUNCATE tenants_by_time");
         metricsService.setDataAccess(dataAccess);
     }
 
@@ -944,9 +949,9 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.tagAvailabilityData(m2, tags1, start.getMillis(), start.plusMinutes(6).getMillis()).toBlocking
                 ().lastOrDefault(null);
         metricsService.tagAvailabilityData(m1, tags2, start.plusMinutes(4).getMillis(),
-            start.plusMinutes(8).getMillis()).toBlocking().lastOrDefault(null);
+                start.plusMinutes(8).getMillis()).toBlocking().lastOrDefault(null);
         metricsService.tagAvailabilityData(m2, tags2, start.plusMinutes(4).getMillis(),
-            start.plusMinutes(8).getMillis()).toBlocking().lastOrDefault(null);
+                start.plusMinutes(8).getMillis()).toBlocking().lastOrDefault(null);
         metricsService.tagAvailabilityData(m3, tags2, start.plusMinutes(4).getMillis(),
             start.plusMinutes(8).getMillis()).toBlocking().lastOrDefault(null);
 
@@ -1109,6 +1114,75 @@ public class MetricsServiceITest extends MetricsITest {
         for (int i = 0; i < expected.size(); ++i) {
             assertArrayEquals(actual.get(i), expected.get(i), "The period does not match the expected value");
         }
+    }
+
+    @Test
+    public void updateTenantsBucketsWhenAddingGaugeData() {
+        String tenant1 = "GaugesTenantBucketsTest-1";
+        String tenant2 = "GaugesTenantBucketsTest-1";
+        DateTime bucket1 = dateTimeService.getTimeSlice(now(), Duration.standardMinutes(30));
+        DateTime bucket2 = bucket1.minusMinutes(30);
+
+        Metric<Double> m1 = new Metric<>(new MetricId(tenant1, GAUGE, "M1"),
+                singletonList(new DataPoint<>(bucket1.plusMinutes(1).getMillis(), 21.22)));
+        Metric<Double> m2 = new Metric<>(new MetricId(tenant2, GAUGE, "M2"),
+                singletonList(new DataPoint<>(bucket2.plusMinutes(4).getMillis(), 33.44)));
+
+        doAction(() -> metricsService.addGaugeData(Observable.from(asList(m1, m2))));
+
+        List<String> bucket1Tenants = getTenantsInBucket(bucket1.getMillis());
+        List<String> bucket2Tenants = getTenantsInBucket(bucket2.getMillis());
+
+        assertEquals(bucket1Tenants, singletonList(tenant1), "The tenants for bucket " + bucket1 + " do not match");
+        assertEquals(bucket2Tenants, singletonList(tenant2), "The tenants for bucket " + bucket1 + " do not match");
+    }
+
+    @Test
+    public void updateTenantsWhenAddingCounterData() {
+        String tenant1 = "CounterTenantBucketTest-1";
+        String tenant2 = "CounterTenantBucketTest-2";
+        DateTime bucket1 = dateTimeService.getTimeSlice(now(), Duration.standardMinutes(30));
+        DateTime bucket2 = bucket1.minusMinutes(30);
+
+        Metric<Long> m1 = new Metric<>(new MetricId(tenant1, COUNTER, "C1"),
+                singletonList(new DataPoint<>(bucket1.plusMinutes(5).getMillis(), 100L)));
+        Metric<Long> m2 = new Metric<>(new MetricId(tenant2, COUNTER, "C2"),
+                singletonList(new DataPoint<>(bucket2.plusMinutes(10).getMillis(), 250L)));
+
+        doAction(() -> metricsService.addCounterData(Observable.from(asList(m1, m2))));
+
+        List<String> bucket1Tenants = getTenantsInBucket(bucket1.getMillis());
+        List<String> bucket2Tenants = getTenantsInBucket(bucket2.getMillis());
+
+        assertEquals(bucket1Tenants, singletonList(tenant1), "The tenants for bucket " + bucket1 + " do not match");
+        assertEquals(bucket2Tenants, singletonList(tenant2), "The tenants for bucket " + bucket1 + " do not match");
+    }
+
+    @Test
+    public void updateTenantsWhenAddingAvailabilityData() {
+        String tenant1 = "AvailabilityTenantBucketTest-1";
+        String tenant2 = "AvailabilityTenantBucketTest-2";
+        DateTime bucket1 = dateTimeService.getTimeSlice(now(), Duration.standardMinutes(30));
+        DateTime bucket2 = bucket1.minusMinutes(30);
+
+        Metric<AvailabilityType> m1 = new Metric<>(new MetricId(tenant1, AVAILABILITY, "A1"),
+                singletonList(new DataPoint<>(bucket1.plusMinutes(5).getMillis(), UP)));
+        Metric<AvailabilityType> m2 = new Metric<>(new MetricId(tenant2, COUNTER, "A2"),
+                singletonList(new DataPoint<>(bucket2.plusMinutes(10).getMillis(), DOWN)));
+
+        doAction(() -> metricsService.addAvailabilityData(Observable.from(asList(m1, m2))));
+
+        List<String> bucket1Tenants = getTenantsInBucket(bucket1.getMillis());
+        List<String> bucket2Tenants = getTenantsInBucket(bucket2.getMillis());
+
+        assertEquals(bucket1Tenants, singletonList(tenant1), "The tenants for bucket " + bucket1 + " do not match");
+        assertEquals(bucket2Tenants, singletonList(tenant2), "The tenants for bucket " + bucket1 + " do not match");
+    }
+
+    private List<String> getTenantsInBucket(long bucket) {
+        return getOnNextEvents(() -> dataAccess.findTenantIds(bucket)
+                .flatMap(Observable::from)
+                .map(row -> row.getString(0)));
     }
 
     private <T> List<T> toList(Observable<T> observable) {

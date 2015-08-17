@@ -86,6 +86,8 @@ public class CreateTenantsITest extends MetricsITest {
         List<Tenant> expected = ImmutableList.of(t1);
 
         assertEquals(actual, expected, "No new tenants should have been created.");
+        assertIsEmpty("The " + bucket.toDate() + " bucket should not exist",
+                dataAccess.findTenantIds(bucket.getMillis()));
     }
 
     @Test
@@ -107,5 +109,7 @@ public class CreateTenantsITest extends MetricsITest {
         Set<Tenant> expected = ImmutableSet.of(t1, new Tenant("T2"), new Tenant("T3"));
 
         assertEquals(actual, expected, "Expected tenants T2 and T3 to be created");
+        assertIsEmpty("The " + bucket.toDate() + " bucket should have been deleted",
+                dataAccess.findTenantIds(bucket.getMillis()));
     }
 }

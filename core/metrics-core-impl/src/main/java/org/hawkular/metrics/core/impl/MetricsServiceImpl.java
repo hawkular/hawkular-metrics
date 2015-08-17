@@ -543,7 +543,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public Observable<Void> addGaugeData(Observable<Metric<Double>> gaugeObservable) {
+    public Observable<Void> addGaugeData(Observable<Metric<Double>> gauges) {
         // We write to both the data and the metrics_idx tables. Each Gauge can have one or more data points. We
         // currently write a separate batch statement for each gauge.
         //
@@ -563,21 +563,14 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         //      explicitly created, just not necessarily right away.
 
         PublishSubject<Void> results = PublishSubject.create();
-        Observable<Integer> updates = gaugeObservable.flatMap(g -> dataAccess.insertData(g, getTTL(g)));
+        Observable<Integer> updates = gauges.flatMap(g -> dataAccess.insertData(g, getTTL(g)));
 
-        Observable<TenantBucket> tenantBuckets = gaugeObservable
-                .flatMap(metric -> Observable.from(metric.getDataPoints())
-                        .map(dataPoint -> new TenantBucket(metric.getId().getTenantId(),
-                                dateTimeService.getTimeSlice(dataPoint.getTimestamp(), standardMinutes(30)))))
-                .distinct();
-        Observable<Integer> tenantUpdates = tenantBuckets.flatMap(tenantBucket ->
-                dataAccess.insertTenantId(tenantBucket.getBucket(), tenantBucket.getTenant())).map(resultSet -> 0);
-
+        Observable<Integer> tenantUpdates = updateTenantBuckets(gauges);
 
         // I am intentionally return zero for the number index updates because I want to measure and compare the
         // throughput inserting data with and without the index updates. This will give us a better idea of how much
         // over there is with the index updates.
-        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndexRx(gaugeObservable).map(count -> 0);
+        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndexRx(gauges).map(count -> 0);
         Observable.concat(updates, indexUpdates, tenantUpdates).subscribe(
                 gaugeInserts::mark,
                 results::onError,
@@ -594,11 +587,14 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         Observable<Integer> updates = availabilities
                 .filter(a -> !a.getDataPoints().isEmpty())
                 .flatMap(a -> dataAccess.insertAvailabilityData(a, getTTL(a)));
+
+        Observable<Integer> tenantUpdates = updateTenantBuckets(availabilities);
+
         // I am intentionally return zero for the number index updates because I want to measure and compare the
         // throughput inserting data with and without the index updates. This will give us a better idea of how much
         // over there is with the index updates.
-        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(availabilities).map(count -> 0);
-        updates.concatWith(indexUpdates).subscribe(
+        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndexRx(availabilities).map(count -> 0);
+        Observable.concat(updates, indexUpdates, tenantUpdates).subscribe(
                 availabilityInserts::mark,
                 results::onError,
                 () -> {
@@ -612,11 +608,14 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     public Observable<Void> addCounterData(Observable<Metric<Long>> counters) {
         PublishSubject<Void> results = PublishSubject.create();
         Observable<Integer> updates = counters.flatMap(c -> dataAccess.insertCounterData(c, getTTL(c)));
+
+        Observable<Integer> tenantUpdates = updateTenantBuckets(counters);
+
         // I am intentionally return zero for the number index updates because I want to measure and compare the
         // throughput inserting data with and without the index updates. This will give us a better idea of how much
         // over there is with the index updates.
-        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(counters).map(count -> 0);
-        updates.concatWith(indexUpdates).subscribe(
+        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndexRx(counters).map(count -> 0);
+        Observable.concat(updates, indexUpdates, tenantUpdates).subscribe(
                 counterInserts::mark,
                 results::onError,
                 () -> {
@@ -624,6 +623,16 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                     results.onCompleted();
                 });
         return results;
+    }
+
+    private Observable<Integer> updateTenantBuckets(Observable<? extends Metric<?>> metrics) {
+        Observable<TenantBucket> tenantBuckets = metrics
+                .flatMap(metric -> Observable.from(metric.getDataPoints())
+                        .map(dataPoint -> new TenantBucket(metric.getId().getTenantId(),
+                                dateTimeService.getTimeSlice(dataPoint.getTimestamp(), standardMinutes(30)))))
+                .distinct();
+        return tenantBuckets.flatMap(tenantBucket ->
+                dataAccess.insertTenantId(tenantBucket.getBucket(), tenantBucket.getTenant())).map(resultSet -> 0);
     }
 
     @Override

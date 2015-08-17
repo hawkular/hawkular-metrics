@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.joda.time.Duration.standardMinutes;
 import static org.testng.Assert.assertEquals;
 
+import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -100,12 +101,12 @@ public class CreateTenantsSchedulerITest extends MetricsITest {
 
     @Test
     public void executeJob() {
-        DateTime start = new DateTime(tickScheduler.now()).plusMinutes(1);
+        long bucket = dateTimeService.getTimeSlice(tickScheduler.now(), standardMinutes(30));
 
         Tenant t1 = new Tenant("T1");
         doAction(() -> metricsService.createTenant(t1));
-        doAction(() -> dataAccess.insertTenantId(start.getMillis(), "T2").flatMap(resultSet -> null));
-        doAction(() -> dataAccess.insertTenantId(start.getMillis(), "T3").flatMap(resultSet -> null));
+        doAction(() -> dataAccess.insertTenantId(bucket, "T2").flatMap(resultSet -> null));
+        doAction(() -> dataAccess.insertTenantId(bucket, "T3").flatMap(resultSet -> null));
 
         TestSubscriber<Long> subscriber = new TestSubscriber<>();
         finishedTimeSlices.take(31).observeOn(Schedulers.immediate()).subscribe(subscriber);
@@ -120,6 +121,8 @@ public class CreateTenantsSchedulerITest extends MetricsITest {
         Set<Tenant> expected = ImmutableSet.of(t1, new Tenant("T2"), new Tenant("T3"), new Tenant("$system"));
 
         assertEquals(actual, expected, "The tenants do not match");
+        assertIsEmpty("The " + new Date(bucket) + " bucket should have been deleted",
+                dataAccess.findTenantIds(bucket));
     }
 
 }
