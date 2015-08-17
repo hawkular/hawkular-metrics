@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.api.jaxrs;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -51,15 +52,17 @@ import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.impl.CreateTenants;
 import org.hawkular.metrics.core.impl.DataAccess;
 import org.hawkular.metrics.core.impl.DataAccessImpl;
+import org.hawkular.metrics.core.impl.DateTimeService;
 import org.hawkular.metrics.core.impl.GenerateRate;
 import org.hawkular.metrics.core.impl.MetricsServiceImpl;
 import org.hawkular.metrics.schema.SchemaManager;
-import org.hawkular.metrics.tasks.api.RepeatingTrigger;
+import org.hawkular.metrics.tasks.api.AbstractTrigger;
 import org.hawkular.metrics.tasks.api.Task2;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.hawkular.metrics.tasks.impl.Queries;
 import org.hawkular.metrics.tasks.impl.TaskSchedulerImpl;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -217,6 +220,7 @@ public class MetricsServiceLifecycle {
             metricsService = new MetricsServiceImpl();
             metricsService.setDataAccess(dataAcces);
             metricsService.setTaskScheduler(taskScheduler);
+            metricsService.setDateTimeService(createDateTimeService());
 
             // TODO Set up a managed metric registry
             // We want a managed registry that can be shared by the JAX-RS endpoint and the core. Then we can expose
@@ -288,8 +292,9 @@ public class MetricsServiceLifecycle {
             // clock. Instead we want to wait to start it until a client sets the virtual
             // clock; otherwise, we will get a MissingBackpressureException.
             TestScheduler scheduler = Schedulers.test();
+            scheduler.advanceTimeTo(System.currentTimeMillis(), MILLISECONDS);
             virtualClock = new VirtualClock(scheduler);
-            RepeatingTrigger.now = scheduler::now;
+            AbstractTrigger.now = scheduler::now;
             ((TaskSchedulerImpl) taskScheduler).setTickScheduler(scheduler);
         } else {
             taskScheduler.start();
@@ -304,6 +309,14 @@ public class MetricsServiceLifecycle {
                 .subscribe(generateRates));
         jobs.put(createTenants, taskScheduler.getTasks().filter(task -> task.getName().equals(CreateTenants.TASK_NAME))
                 .subscribe(createTenants));
+    }
+
+    private DateTimeService createDateTimeService() {
+        DateTimeService dateTimeService = new DateTimeService();
+        if (Boolean.valueOf(useVirtualClock.toLowerCase())) {
+            dateTimeService.now = () -> new DateTime(virtualClock.now());
+        }
+        return dateTimeService;
     }
 
     /**

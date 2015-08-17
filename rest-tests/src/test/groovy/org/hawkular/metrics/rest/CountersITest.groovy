@@ -369,10 +369,6 @@ class CountersITest extends RESTTest {
     assertRateEquals(expectedData[2], response.data[2])
   }
 
-  static void setTime(DateTime time) {
-    def response = hawkularMetrics.put(path: "clock", body: [time: time.millis])
-    assertEquals(200, response.status)
-  }
 
   static double calculateRate(double value, DateTime start, DateTime end) {
     return (value / (end.millis - start.millis)) * 1000.0

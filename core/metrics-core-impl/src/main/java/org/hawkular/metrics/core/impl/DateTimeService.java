@@ -16,7 +16,7 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import static org.joda.time.DateTime.now;
+import java.util.function.Supplier;
 
 import org.joda.time.DateTime;
 import org.joda.time.Days;
@@ -29,12 +29,14 @@ import org.joda.time.Period;
  */
 public class DateTimeService {
 
+    public Supplier<DateTime> now = DateTime::now;
+
     /**
      * @return A DateTime object rounded down to the start of the current hour. For example, if the current time is
      * 17:21:09, then 17:00:00 is returned.
      */
     public DateTime currentHour() {
-        return getTimeSlice(now(), Hours.ONE.toStandardDuration());
+        return getTimeSlice(now.get(), Hours.ONE.toStandardDuration());
     }
 
     /**
@@ -58,6 +60,10 @@ public class DateTimeService {
         return getTimeSlice(time, Days.ONE.toStandardDuration());
     }
 
+    public long getTimeSlice(long time, Duration duration) {
+        return getTimeSlice(new DateTime(time), duration).getMillis();
+    }
+
     public DateTime getTimeSlice(DateTime dt, Duration duration) {
         Period p = duration.toPeriod();
 
@@ -78,5 +84,6 @@ public class DateTimeService {
         }
         return dt.millisOfSecond().roundCeilingCopy().minusMillis(dt.getMillisOfSecond() % p.getMillis());
     }
+
 
 }

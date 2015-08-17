@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.tasks.api;
 
+import static org.joda.time.Duration.standardMinutes;
+
 import java.util.function.Supplier;
 
 import org.joda.time.DateTime;
@@ -31,8 +33,11 @@ public abstract class AbstractTrigger implements Trigger {
     public static Supplier<Long> now = System::currentTimeMillis;
 
     protected DateTime getExecutionTime(long time) {
+        return getExecutionTime(time, standardMinutes(1));
+    }
+
+    protected DateTime getExecutionTime(long time, Duration duration) {
         DateTime dt = new DateTime(time);
-        Duration duration = Duration.standardMinutes(1);
         Period p = duration.toPeriod();
 
         if (p.getYears() != 0) {

@@ -18,7 +18,6 @@ package org.hawkular.metrics.core.impl;
 
 import java.util.concurrent.CountDownLatch;
 
-import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.tasks.api.Task2;
 import org.hawkular.metrics.tasks.api.Trigger;
 import org.joda.time.DateTime;
@@ -89,9 +88,4 @@ public class CreateTenants implements Action1<Task2> {
         return dataAccess.findTenant(tenantId).map(ResultSet::isExhausted);
     }
 
-    private Observable<Tenant> getTenant(String tenantId) {
-        return dataAccess.findTenant(tenantId)
-                .flatMap(Observable::from)
-                .map(Functions::getTenant);
-    }
 }

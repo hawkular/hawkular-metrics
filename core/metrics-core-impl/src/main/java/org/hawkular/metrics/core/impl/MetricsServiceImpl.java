@@ -26,12 +26,14 @@ import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.Functions.getTTLAvailabilityDataPoint;
 import static org.hawkular.metrics.core.impl.Functions.getTTLGaugeDataPoint;
 import static org.hawkular.metrics.core.impl.Functions.makeSafe;
+import static org.joda.time.Duration.standardMinutes;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -142,6 +144,8 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     private TaskScheduler taskScheduler;
 
+    private DateTimeService dateTimeService;
+
     private MetricRegistry metricRegistry;
 
     /**
@@ -229,7 +233,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     private void initSystemTenant() {
         CountDownLatch latch = new CountDownLatch(1);
-        Trigger trigger = new RepeatingTrigger.Builder().withDelay(1, MINUTES).withInterval(30, MINUTES).build();
+        Trigger trigger = new RepeatingTrigger.Builder().withInterval(30, MINUTES).withDelay(30, MINUTES).build();
         dataAccess.insertTenant(new Tenant(SYSTEM_TENANT_ID))
                 .filter(ResultSet::wasApplied)
                 .map(row -> taskScheduler.scheduleTask(CreateTenants.TASK_NAME, SYSTEM_TENANT_ID, 100, emptyMap(),
@@ -337,6 +341,10 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     public void setTaskScheduler(TaskScheduler taskScheduler) {
         this.taskScheduler = taskScheduler;
+    }
+
+    public void setDateTimeService(DateTimeService dateTimeService) {
+        this.dateTimeService = dateTimeService;
     }
 
     @Override
@@ -555,12 +563,22 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         //      explicitly created, just not necessarily right away.
 
         PublishSubject<Void> results = PublishSubject.create();
-        Observable<Integer> updates = gaugeObservable.flatMap(g -> dataAccess.insertGaugeData(g, getTTL(g)));
+        Observable<Integer> updates = gaugeObservable.flatMap(g -> dataAccess.insertData(g, getTTL(g)));
+
+        Observable<TenantBucket> tenantBuckets = gaugeObservable
+                .flatMap(metric -> Observable.from(metric.getDataPoints())
+                        .map(dataPoint -> new TenantBucket(metric.getId().getTenantId(),
+                                dateTimeService.getTimeSlice(dataPoint.getTimestamp(), standardMinutes(30)))))
+                .distinct();
+        Observable<Integer> tenantUpdates = tenantBuckets.flatMap(tenantBucket ->
+                dataAccess.insertTenantId(tenantBucket.getBucket(), tenantBucket.getTenant())).map(resultSet -> 0);
+
+
         // I am intentionally return zero for the number index updates because I want to measure and compare the
         // throughput inserting data with and without the index updates. This will give us a better idea of how much
         // over there is with the index updates.
-        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(gaugeObservable).map(count -> 0);
-        updates.concatWith(indexUpdates).subscribe(
+        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndexRx(gaugeObservable).map(count -> 0);
+        Observable.concat(updates, indexUpdates, tenantUpdates).subscribe(
                 gaugeInserts::mark,
                 results::onError,
                 () -> {
@@ -841,6 +859,36 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
             return timer.time(callable);
         } catch (Exception e) {
             throw new RuntimeException("There was an error during a timed event", e);
+        }
+    }
+
+    private static class TenantBucket {
+        String tenant;
+        long bucket;
+
+        public TenantBucket(String tenant, long bucket) {
+            this.tenant = tenant;
+            this.bucket = bucket;
+        }
+
+        public String getTenant() {
+            return tenant;
+        }
+
+        public long getBucket() {
+            return bucket;
+        }
+
+        @Override public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            TenantBucket that = (TenantBucket) o;
+            return Objects.equals(bucket, that.bucket) &&
+                    Objects.equals(tenant, that.tenant);
+        }
+
+        @Override public int hashCode() {
+            return Objects.hash(tenant, bucket);
         }
     }
 

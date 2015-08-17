@@ -19,6 +19,8 @@ package org.hawkular.metrics.tasks.api;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import org.joda.time.Duration;
+
 /**
  * @author jsanda
  */
@@ -69,13 +71,11 @@ public class RepeatingTrigger extends AbstractTrigger {
             throw new IllegalArgumentException("Both [interval] and [delay] cannot be null");
         }
         this.interval = interval;
-        this.delay = delay;
+        this.delay = delay == null ? 0 : delay;
         this.repeatCount = repeatCount;
         this.executionCount = 1;
 
-        if (delay != null) {
-            triggerTime = getExecutionTime(now.get() + delay).getMillis();
-        }
+        triggerTime = getExecutionTime(now.get() + this.delay, new Duration(interval)).getMillis();
     }
 
     // TODO reduce visibility?
