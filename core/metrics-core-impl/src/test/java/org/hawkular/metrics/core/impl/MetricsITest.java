@@ -16,11 +16,15 @@
  */
 package org.hawkular.metrics.core.impl;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import static org.joda.time.DateTime.now;
 
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
@@ -32,6 +36,9 @@ import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
+
+import rx.Observable;
+import rx.observers.TestSubscriber;
 
 /**
  * @author John Sanda
@@ -75,7 +82,7 @@ public class MetricsITest {
     protected DateTime hour0() {
         DateTime rightNow = now();
         return rightNow.hourOfDay().roundFloorCopy().minusHours(
-            rightNow.hourOfDay().roundFloorCopy().hourOfDay().get());
+                rightNow.hourOfDay().roundFloorCopy().hourOfDay().get());
     }
 
     protected DateTime hour(int hourOfDay) {
@@ -86,4 +93,44 @@ public class MetricsITest {
         return Uninterruptibles.getUninterruptibly(future, FUTURE_TIMEOUT, TimeUnit.SECONDS);
     }
 
+    /**
+     * This method take a function that produces an Observable that has side effects, like
+     * inserting rows into the database. A {@link TestSubscriber} is subscribed to the
+     * Observable. The subscriber blocks up to five seconds waiting for a terminal event
+     * from the Observable.
+     *
+     * @param fn A function that produces an Observable with side effects
+     */
+    protected void doAction(Supplier<Observable<Void>> fn) {
+        TestSubscriber<Void> subscriber = new TestSubscriber<>();
+        Observable<Void> observable = fn.get();
+        observable.subscribe(subscriber);
+        subscriber.awaitTerminalEvent(5, TimeUnit.SECONDS);
+        subscriber.assertNoErrors();
+        subscriber.assertCompleted();
+    }
+
+    /**
+     * This method takes a function that produces an Observable. The method blocks up to
+     * five seconds until the Observable emits a terminal event. The items that the
+     * Observable emits are then returned.
+     *
+     * @param fn A function that produces an Observable
+     * @param <T> The type of items emitted by the Observable
+     * @return A list of the items emitted by the Observable
+     */
+    protected <T> List<T> getOnNextEvents(Supplier<Observable<T>> fn) {
+        TestSubscriber<T> subscriber = new TestSubscriber<>();
+        Observable<T> observable = fn.get();
+        observable.subscribe(subscriber);
+        subscriber.awaitTerminalEvent(5, SECONDS);
+        subscriber.assertNoErrors();
+        subscriber.assertCompleted();
+
+        return subscriber.getOnNextEvents();
+    }
+
+    protected double calculateRate(double value, DateTime startTime, DateTime endTime) {
+        return (value / (endTime.getMillis() - startTime.getMillis())) * 1000;
+    }
 }

@@ -36,7 +36,7 @@ import rx.Observable;
 import rx.functions.Action1;
 
 /**
- * @author jsanda
+ * Calculates and persists rates for all counter metrics of a single tenant.
  */
 public class GenerateRate implements Action1<Task2> {
 
@@ -50,33 +50,38 @@ public class GenerateRate implements Action1<Task2> {
 
     @Override
     public void call(Task2 task) {
+        // TODO We need to make this fault tolerant. See HWKMETRICS-213 for details.
         logger.info("Generating rate for {}", task);
-        MetricId id = new MetricId(task.getParameters().get("tenantId"), COUNTER, task.getParameters().get("metricId"));
+        String tenant = task.getParameters().get("tenant");
         long start = task.getTrigger().getTriggerTime();
         long end = start + TimeUnit.MINUTES.toMillis(1);
 
+        Observable<Metric<Double>> rates = metricsService.findMetrics(tenant, COUNTER)
+                .flatMap(counter -> metricsService.findCounterData(counter.getId(), start, end)
+                        .take(1)
+                        .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
+                        .map(rate -> new Metric<>(new MetricId(tenant, COUNTER_RATE, counter.getId().getName()),
+                                singletonList(new DataPoint<>(start, rate)))));
+        Observable<Void> updates = metricsService.addGaugeData(rates);
+
         CountDownLatch latch = new CountDownLatch(1);
 
-        logger.debug("start = {}, end = {}", start, end);
-        metricsService.findCounterData(id, start, end)
-                .take(1)
-                .doOnNext(dataPoint -> logger.debug("Data Point = {}", dataPoint))
-                .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
-                .map(rate -> new Metric<>(new MetricId(id.getTenantId(), COUNTER_RATE, id.getName()),
-                        singletonList(new DataPoint<>(start, rate))))
-                .flatMap(metric -> metricsService.addGaugeData(Observable.just(metric)))
-                .subscribe(
-                        aVoid -> {
-                        },
-                        t -> {
-                            logger.warn("Failed to persist rate data", t);
-                            latch.countDown();
-                        },
-                        () -> {
-                            logger.debug("Successfully persisted rate data");
-                            latch.countDown();
-                        }
-                );
+        updates.subscribe(
+                aVoid -> {
+                },
+                t -> {
+                    logger.warn("There was an error persisting rates for {tenant= " + tenant + ", start= " +
+                            start + ", end= " + end + "}", t);
+                    latch.countDown();
+                },
+                () -> {
+                    logger.debug("Successfully persisted rate data for {tenant= " + tenant + ", start= " +
+                            start + ", end= " + end + "}");
+                    latch.countDown();
+                }
+        );
+
+        // TODO We do not want to block but have to for now. See HWKMETRICS-214 for details.
         try {
             latch.await();
         } catch (InterruptedException e) {
