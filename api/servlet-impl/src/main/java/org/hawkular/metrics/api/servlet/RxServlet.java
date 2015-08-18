@@ -12,8 +12,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.CharsetEncoder;
-import java.util.Arrays;
 
 /**
  * Created by miburman on 8/13/15.
@@ -29,7 +27,7 @@ public class RxServlet extends HttpServlet {
                 .map(s -> ByteBuffer.wrap(s.getBytes()));
 
         // Start async part
-        final AsyncContext asyncContext = req.startAsync();
+        AsyncContext asyncContext = getAsyncContext(req);
 
         // Write it to the outputStream (ignore errors for now)
         ObservableServlet.write(fakeDataSource, resp.getOutputStream())
@@ -41,23 +39,39 @@ public class RxServlet extends HttpServlet {
                         });
     }
 
+    private AsyncContext getAsyncContext(HttpServletRequest req) {
+        if(req.isAsyncStarted()) {
+            return req.getAsyncContext();
+        } else {
+            return req.startAsync();
+        }
+    }
+
+    /**
+     * From http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+     * @param v
+     * @return
+     */
+    private int getNextPowerOf2(int v) {
+        v--;
+        v |= v >> 1;
+        v |= v >> 2;
+        v |= v >> 4;
+        v |= v >> 8;
+        v |= v >> 16;
+        return ++v;
+    }
+
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         // Fetch the input buffer
         // Lets gather up all the ByteBuffers for simpler prototype and transform to String..
+
+        // We know each Observed ByteBuffer is going to be max. 4096 bytes
+        int bufferSize = getNextPowerOf2(req.getContentLength());
+
         Observable<ByteBuffer> byteBufferObservable = ObservableServlet.create(req.getInputStream())
-                .reduce((byteBuffer, byteBuffer2) -> {
-                    ByteBuffer backingBuffer;
-
-                    if (byteBuffer2.remaining() > (byteBuffer.capacity() - byteBuffer.limit())) {
-                        backingBuffer = ByteBuffer.allocate(byteBuffer.capacity() + byteBuffer2.remaining() * 2); // It's virtual memory anyway..
-                        backingBuffer.put(byteBuffer).put(byteBuffer2);
-                    } else {
-                        backingBuffer = byteBuffer.put(byteBuffer2);
-                    }
-
-                    return backingBuffer;
-                });
+                .reduce(ByteBuffer.allocate(bufferSize), ByteBuffer::put);
 
         // Start the async, nothing is coming until we subscribe to byteBufferObservable
         final AsyncContext asyncContext = req.startAsync();
@@ -68,9 +82,10 @@ public class RxServlet extends HttpServlet {
             Observable<ByteBuffer> fakeDataSource = byteBufferObservable
                     .map(bb -> {
                         StringBuilder sb = new StringBuilder();
-                        sb.append("=== START OF THE PAYLOAD ===");
+                        sb.append("=== START OF THE PAYLOAD ===\n");
                         sb.append("InputFileSize: " + bb.remaining());
-                        sb.append("=== END OF THE PAYLOAD ===");
+                        sb.append('\n')
+                        sb.append("=== END OF THE PAYLOAD ===\n");
                         return sb.toString();
                     })
                     .map(s -> ByteBuffer.wrap(s.getBytes()));
@@ -85,8 +100,10 @@ public class RxServlet extends HttpServlet {
                             });
         } else {
             byteBufferObservable
-                    .subscribe(v -> {},
-                            t -> {},
+                    .subscribe(v -> {
+                            },
+                            t -> {
+                            },
                             () -> {
                                 resp.setStatus(HttpServletResponse.SC_CREATED);
                                 asyncContext.complete();
