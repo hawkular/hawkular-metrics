@@ -17,6 +17,7 @@
 package org.hawkular.metrics.core.impl;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+
 import static org.joda.time.DateTime.now;
 
 import java.util.List;
@@ -36,9 +37,6 @@ import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
 
-import org.hawkular.rx.cassandra.driver.RxSession;
-import org.hawkular.rx.cassandra.driver.RxSessionImpl;
-import org.joda.time.DateTime;
 import rx.Observable;
 import rx.observers.TestSubscriber;
 
@@ -84,7 +82,7 @@ public class MetricsITest {
     protected DateTime hour0() {
         DateTime rightNow = now();
         return rightNow.hourOfDay().roundFloorCopy().minusHours(
-            rightNow.hourOfDay().roundFloorCopy().hourOfDay().get());
+                rightNow.hourOfDay().roundFloorCopy().hourOfDay().get());
     }
 
     protected DateTime hour(int hourOfDay) {
