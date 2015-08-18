@@ -90,7 +90,7 @@ public class HeapsterTest extends BaseContainerTests {
         // check that the result returned by heapster includes some metrics:
         String metrics_phrase = "Known metrics: ";
         int subInt = responseString.lastIndexOf(metrics_phrase) + metrics_phrase.length();
-        String metrics = responseString.substring(subInt);
+        String metrics = responseString.substring(subInt).trim();
 
         assertTrue(Integer.parseInt(metrics) > 0);
     }

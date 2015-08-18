@@ -48,7 +48,7 @@
     <hawkular-metrics.image>${docker.user}/hawkular-metrics:${project.version}</hawkular-metrics.image>
     <cassandra.build>devel</cassandra.build>
     <cassandra.image>${docker.user}/hawkular-cassandra:${cassandra.version}-${cassandra.build}</cassandra.image>
-    <heapster.image>kubernetes/heapster:v0.14.3</heapster.image>
+    <heapster.image>kubernetes/heapster:v0.17.0</heapster.image>
   </properties>
 
   <dependencyManagement>

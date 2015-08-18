@@ -239,7 +239,7 @@
                 { "name": "http-endpoint", "containerPort": 8082}
               ],
               "command" : ["./heapster",
-                "--source=kubernetes:https://kubernetes.default:443?useServiceAccount=true&insecure=true&kubeletHttps=false&kubeletPort=10266&auth=",
+                "--source=kubernetes:https://kubernetes.default.svc.cluster.local:443?useServiceAccount=true&kubeletHttps=false&kubeletPort=10266&auth=",
                 "--sink=hawkular:http://hawkular-metrics:80",
                 "--logtostderr=true",
                 "--vmodule=*=4"]
