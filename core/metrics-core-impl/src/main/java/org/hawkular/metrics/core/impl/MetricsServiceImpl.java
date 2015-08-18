@@ -360,9 +360,10 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                         .withInterval(1, MINUTES)
                         .build();
                 Map<String, String> params = ImmutableMap.of("tenant", tenant.getId());
-                taskScheduler.scheduleTask("generate-rates", tenant.getId(), 100, params, trigger);
+                Observable<Void> ratesScheduled = taskScheduler.scheduleTask("generate-rates", tenant.getId(),
+                        100, params, trigger).map(task -> null);
 
-                return Observable.from(tenant.getRetentionSettings().entrySet())
+                Observable<Void> retentionUpdates = Observable.from(tenant.getRetentionSettings().entrySet())
                         .flatMap(entry -> dataAccess.updateRetentionsIndex(tenant.getId(), entry.getKey(),
                                 ImmutableMap.of(makeSafe(entry.getKey().getText()), entry.getValue())))
                         .map(rs -> null);
@@ -563,14 +564,14 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         //      explicitly created, just not necessarily right away.
 
         PublishSubject<Void> results = PublishSubject.create();
-        Observable<Integer> updates = gauges.flatMap(g -> dataAccess.insertData(g, getTTL(g)));
+        Observable<Integer> updates = gauges.flatMap(g -> dataAccess.insertGaugeData(g, getTTL(g)));
 
         Observable<Integer> tenantUpdates = updateTenantBuckets(gauges);
 
         // I am intentionally return zero for the number index updates because I want to measure and compare the
         // throughput inserting data with and without the index updates. This will give us a better idea of how much
         // over there is with the index updates.
-        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndexRx(gauges).map(count -> 0);
+        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(gauges).map(count -> 0);
         Observable.concat(updates, indexUpdates, tenantUpdates).subscribe(
                 gaugeInserts::mark,
                 results::onError,
@@ -593,7 +594,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         // I am intentionally return zero for the number index updates because I want to measure and compare the
         // throughput inserting data with and without the index updates. This will give us a better idea of how much
         // over there is with the index updates.
-        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndexRx(availabilities).map(count -> 0);
+        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(availabilities).map(count -> 0);
         Observable.concat(updates, indexUpdates, tenantUpdates).subscribe(
                 availabilityInserts::mark,
                 results::onError,
@@ -614,7 +615,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         // I am intentionally return zero for the number index updates because I want to measure and compare the
         // throughput inserting data with and without the index updates. This will give us a better idea of how much
         // over there is with the index updates.
-        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndexRx(counters).map(count -> 0);
+        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(counters).map(count -> 0);
         Observable.concat(updates, indexUpdates, tenantUpdates).subscribe(
                 counterInserts::mark,
                 results::onError,

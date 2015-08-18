@@ -17,6 +17,7 @@
 package org.hawkular.metrics.rest
 
 import static org.joda.time.DateTime.now
+import static org.joda.time.Duration.standardMinutes
 import static org.junit.Assert.assertEquals
 
 import org.hawkular.metrics.core.impl.DateTimeService

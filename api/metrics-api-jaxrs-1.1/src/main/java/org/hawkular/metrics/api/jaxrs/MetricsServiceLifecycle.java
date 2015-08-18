@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.api.jaxrs;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -29,7 +30,9 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.USE_VIRTUAL
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -46,13 +49,20 @@ import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.api.jaxrs.util.VirtualClock;
 import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.impl.CreateTenants;
+import org.hawkular.metrics.core.impl.DataAccess;
+import org.hawkular.metrics.core.impl.DataAccessImpl;
+import org.hawkular.metrics.core.impl.DateTimeService;
+import org.hawkular.metrics.core.impl.GenerateRate;
 import org.hawkular.metrics.core.impl.MetricsServiceImpl;
 import org.hawkular.metrics.schema.SchemaManager;
-import org.hawkular.metrics.tasks.api.RepeatingTrigger;
+import org.hawkular.metrics.tasks.api.AbstractTrigger;
+import org.hawkular.metrics.tasks.api.Task2;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.hawkular.metrics.tasks.impl.Queries;
 import org.hawkular.metrics.tasks.impl.TaskSchedulerImpl;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,6 +73,8 @@ import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.Uninterruptibles;
 
+import rx.Subscription;
+import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
@@ -131,6 +143,10 @@ public class MetricsServiceLifecycle {
     private int connectionAttempts;
     private Session session;
 
+    private DataAccess dataAcces;
+
+    private Map<? super Action1<Task2>, Subscription> jobs = new HashMap<>();
+
     MetricsServiceLifecycle() {
         ThreadFactory threadFactory = r -> {
             Thread thread = Executors.defaultThreadFactory().newThread(r);
@@ -198,11 +214,13 @@ public class MetricsServiceLifecycle {
             // will change at some point though because the task scheduling service will
             // probably move to the hawkular-commons repo.
             initSchema();
-
+            dataAcces = new DataAccessImpl(session);
             initTaskScheduler();
 
             metricsService = new MetricsServiceImpl();
+            metricsService.setDataAccess(dataAcces);
             metricsService.setTaskScheduler(taskScheduler);
+            metricsService.setDateTimeService(createDateTimeService());
 
             // TODO Set up a managed metric registry
             // We want a managed registry that can be shared by the JAX-RS endpoint and the core. Then we can expose
@@ -210,6 +228,9 @@ public class MetricsServiceLifecycle {
             // com.codahale.metrics.Reporter instances.
             metricsService.startUp(session, keyspace, false, false, new MetricRegistry());
             LOG.info("Metrics service started");
+
+            initJobs();
+
             state = State.STARTED;
         } catch (Exception t) {
             LOG.error("An error occurred trying to connect to the Cassandra cluster", t);
@@ -267,16 +288,32 @@ public class MetricsServiceLifecycle {
     private void initTaskScheduler() {
         taskScheduler = new TaskSchedulerImpl(new RxSessionImpl(session), new Queries(session));
         if (Boolean.valueOf(useVirtualClock.toLowerCase())) {
-            // We do not want to start the task scheduler when we are using the virtual
-            // clock. Instead we want to wait to start it until a client sets the virtual
-            // clock; otherwise, we will get a MissingBackpressureException.
             TestScheduler scheduler = Schedulers.test();
+            scheduler.advanceTimeTo(System.currentTimeMillis(), MILLISECONDS);
             virtualClock = new VirtualClock(scheduler);
-            RepeatingTrigger.now = scheduler::now;
+            AbstractTrigger.now = scheduler::now;
             ((TaskSchedulerImpl) taskScheduler).setTickScheduler(scheduler);
-        } else {
-            taskScheduler.start();
+
         }
+        taskScheduler.start();
+    }
+
+    private void initJobs() {
+        GenerateRate generateRates = new GenerateRate(metricsService);
+        CreateTenants createTenants = new CreateTenants(metricsService, dataAcces);
+
+        jobs.put(generateRates, taskScheduler.getTasks().filter(task -> task.getName().equals(GenerateRate.TASK_NAME))
+                .subscribe(generateRates));
+        jobs.put(createTenants, taskScheduler.getTasks().filter(task -> task.getName().equals(CreateTenants.TASK_NAME))
+                .subscribe(createTenants));
+    }
+
+    private DateTimeService createDateTimeService() {
+        DateTimeService dateTimeService = new DateTimeService();
+        if (Boolean.valueOf(useVirtualClock.toLowerCase())) {
+            dateTimeService.now = () -> new DateTime(virtualClock.now());
+        }
+        return dateTimeService;
     }
 
     /**

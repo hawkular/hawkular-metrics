@@ -15,12 +15,14 @@
  * limitations under the License.
  */
 package org.hawkular.metrics.rest
-
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertTrue
-
+import org.hawkular.metrics.core.impl.DateTimeService
+import org.joda.time.DateTime
 import org.junit.Test
 
+import static org.joda.time.Duration.standardMinutes
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertTrue
 /**
  * @author Thomas Segismont
  */
@@ -82,7 +84,7 @@ class TenantITest extends RESTTest {
   void createImplicitTenantWhenInsertingGaugeDataPoints() {
     String tenantId = nextTenantId()
     DateTimeService dateTimeService = new DateTimeService()
-    DateTime start = dateTimeService.getTimeSlice(getTime(), Duration.standardMinutes(1))
+    DateTime start = dateTimeService.getTimeSlice(getTime(), standardMinutes(1))
 
     def response = hawkularMetrics.post(
         path: "gauges/G1/data",
@@ -106,7 +108,7 @@ class TenantITest extends RESTTest {
   void createImplicitTenantWhenInsertingCounterDataPoints() {
     String tenantId = nextTenantId()
     DateTimeService dateTimeService = new DateTimeService()
-    DateTime start = dateTimeService.getTimeSlice(getTime(), Duration.standardMinutes(1))
+    DateTime start = dateTimeService.getTimeSlice(getTime(), standardMinutes(1))
 
     def response = hawkularMetrics.post(
         path: 'counters/C1/data',
@@ -130,7 +132,7 @@ class TenantITest extends RESTTest {
   void createImplicitTenantWhenInsertingAvailabilityDataPoints() {
     String tenantId = nextTenantId()
     DateTimeService dateTimeService = new DateTimeService()
-    DateTime start = dateTimeService.getTimeSlice(getTime(), Duration.standardMinutes(1))
+    DateTime start = dateTimeService.getTimeSlice(getTime(), standardMinutes(1))
 
     def response = hawkularMetrics.post(
         path: 'availability/A1/data',
