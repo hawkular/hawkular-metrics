@@ -66,6 +66,7 @@ public class GenerateRateITest extends MetricsITest {
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
         metricsService.setTaskScheduler(new FakeTaskScheduler());
+        metricsService.setDateTimeService(dateTimeService);
 
         metricsService.startUp(session, getKeyspace(), false, new MetricRegistry());
     }

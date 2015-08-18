@@ -288,17 +288,14 @@ public class MetricsServiceLifecycle {
     private void initTaskScheduler() {
         taskScheduler = new TaskSchedulerImpl(new RxSessionImpl(session), new Queries(session));
         if (Boolean.valueOf(useVirtualClock.toLowerCase())) {
-            // We do not want to start the task scheduler when we are using the virtual
-            // clock. Instead we want to wait to start it until a client sets the virtual
-            // clock; otherwise, we will get a MissingBackpressureException.
             TestScheduler scheduler = Schedulers.test();
             scheduler.advanceTimeTo(System.currentTimeMillis(), MILLISECONDS);
             virtualClock = new VirtualClock(scheduler);
             AbstractTrigger.now = scheduler::now;
             ((TaskSchedulerImpl) taskScheduler).setTickScheduler(scheduler);
-        } else {
-            taskScheduler.start();
+
         }
+        taskScheduler.start();
     }
 
     private void initJobs() {

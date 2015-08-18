@@ -21,7 +21,6 @@ import static org.junit.Assert.assertEquals
 
 import org.hawkular.metrics.core.impl.DateTimeService
 import org.joda.time.DateTime
-import org.joda.time.Duration
 import org.junit.Test
 
 /**
@@ -311,9 +310,7 @@ class CountersITest extends RESTTest {
     String tenantId = nextTenantId()
     String counter = "C1"
     DateTimeService dateTimeService = new DateTimeService()
-    DateTime start = dateTimeService.getTimeSlice(now(), Duration.standardMinutes(1)).minusMinutes(10)
-
-    setTime(start)
+    DateTime start = dateTimeService.getTimeSlice(getTime(), standardMinutes(1))//.plusMinutes(1)
 
     // Create the tenant
     def response = hawkularMetrics.post(
@@ -335,8 +332,6 @@ class CountersITest extends RESTTest {
         ]
     )
     assertEquals(200, response.status)
-
-    setTime(start.plusMinutes(4))
 
     response = hawkularMetrics.get(path: "clock/wait", query: [duration: "4mn"])
     assertEquals("There was an error waiting: $response.data", 200, response.status)
