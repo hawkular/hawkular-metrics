@@ -58,7 +58,7 @@ export BINDING_ADDRESS=<INSERT-YOUR-BINDING-ADDRESS-HERE>
 
 [source,bash]
 ----
-./openshift start -write-config=openshift.local.config -hostname=$BINDING_ADDRESS -public-master=$BINDING_ADDRESS
+./openshift start --write-config=openshift.local.config --hostname=$BINDING_ADDRESS --public-master=$BINDING_ADDRESS
 ----
 
 === Temporary fix for heapster
@@ -84,7 +84,7 @@ IMPORTANT: You must start Openshift as `root`.
 
 [source,bash]
 ----
-openshift start -master-config=openshift.local.config/master/master-config.yaml -node-config=openshift.local.config/node-$BINDING_ADDRESS/node-config.yaml
+openshift start --master-config=openshift.local.config/master/master-config.yaml --node-config=openshift.local.config/node-$BINDING_ADDRESS/node-config.yaml
 ----
 
 NOTE: make sure that the logs say that the DNS server has been started properly
@@ -109,7 +109,7 @@ By default, the user who logs in will not have any permissions. To give your `ad
 
 [source,bash]
 ----
-oadm -config=`pwd`/openshift.local.config/master/admin.kubeconfig policy add-cluster-role-to-user cluster-admin admin
+oadm --config=`pwd`/openshift.local.config/master/admin.kubeconfig policy add-cluster-role-to-user cluster-admin admin
 ----
 
 === Firewall setup
@@ -120,7 +120,7 @@ accessible.
 If you're on Fedora, change your firewall, runtime configuration
 [source,bash]
 ----
-firewall-cmd -zone=trusted -change-interface=docker0
+firewall-cmd --zone=trusted --change-interface=docker0
 ----
 
 Also, enable the DNS service in the `FedoraWorkstation` zone.
@@ -168,7 +168,7 @@ from Heapster will be written into Hawkular Metrics automatically.
 
 [source, bash]
 ----
-oc create -f ./containers/kubernetes/target/generated-app/hawkular-metrics-kubernetes-app/kubernetes.json
+oc create -f ./kubernetes/target/generated-app/hawkular-metrics-kubernetes-app/kubernetes.json
 ----
 
 === Running the Tests
