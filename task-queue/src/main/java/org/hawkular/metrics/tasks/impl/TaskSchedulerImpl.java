@@ -437,6 +437,8 @@ public class TaskSchedulerImpl implements TaskScheduler {
             logger.debug("shutting down");
             running = false;
 
+            taskSubject.onCompleted();
+
             if (leasesSubscription != null) {
                 leasesSubscription.unsubscribe();
             }
