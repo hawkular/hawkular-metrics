@@ -87,17 +87,18 @@ public class ApiUtils {
 
     public static Observable<Metric<Double>> requestToGauges(String tenantId, List<Gauge> gauges) {
         return Observable.from(gauges).map(
-                g -> new Metric<>(new MetricId(tenantId, GAUGE, g.getId()), requestToGaugeDataPoints(g.getData())));
+                g -> new Metric<>(new MetricId<>(tenantId, GAUGE, g.getId()), requestToGaugeDataPoints(g.getData())));
     }
 
     public static Observable<Metric<Long>> requestToCounters(String tenantId, List<Counter> counters) {
         return Observable.from(counters).map(
-                c -> new Metric<>(new MetricId(tenantId, COUNTER, c.getId()), requestToCounterDataPoints(c.getData())));
+                c -> new Metric<>(new MetricId<>(tenantId, COUNTER, c.getId()),
+                        requestToCounterDataPoints(c.getData())));
     }
 
     public static Observable<Metric<AvailabilityType>> requestToAvailabilities(String tenantId,
             List<Availability> avails) {
-        return Observable.from(avails).map(a -> new Metric<>(new MetricId(tenantId, AVAILABILITY, a.getId()),
+        return Observable.from(avails).map(a -> new Metric<>(new MetricId<>(tenantId, AVAILABILITY, a.getId()),
                 requestToAvailabilityDataPoints(a.getData())));
     }
 

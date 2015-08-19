@@ -16,30 +16,40 @@
  */
 package org.hawkular.metrics.core.api;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Objects;
 
 /**
  * @author John Sanda
  */
-public class MetricId {
+public class MetricId<T> {
+    private final String tenantId;
+    private final MetricType<T> type;
+    private final String name;
+    private final Interval interval;
 
-    private String tenantId;
-
-    private MetricType type;
-
-    private String name;
-
-    private Interval interval;
-
-    public MetricId(String tenantId, MetricType type, String name) {
+    public MetricId(String tenantId, MetricType<T> type, String name) {
         this(tenantId, type, name, Interval.NONE);
     }
 
-    public MetricId(String tenantId, MetricType type, String name, Interval interval) {
+    public MetricId(String tenantId, MetricType<T> type, String name, Interval interval) {
+        checkArgument(tenantId != null, "tenantId is null");
+        checkArgument(type != null, "type is null");
+        checkArgument(name != null, "name is null");
+        checkArgument(interval != null, "interval is null");
         this.tenantId = tenantId;
         this.type = type;
         this.name = name;
         this.interval = interval;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public MetricType<T> getType() {
+        return type;
     }
 
     public String getName() {
@@ -54,19 +64,11 @@ public class MetricId {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        MetricId metricId = (MetricId) o;
+        MetricId<?> metricId = (MetricId<?>) o;
         return java.util.Objects.equals(name, metricId.name) &&
                 java.util.Objects.equals(interval, metricId.interval) &&
                 java.util.Objects.equals(tenantId, metricId.tenantId) &&
                 java.util.Objects.equals(type, metricId.type);
-    }
-
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    public MetricType getType() {
-        return type;
     }
 
     @Override
@@ -78,7 +80,7 @@ public class MetricId {
     public String toString() {
         return Objects.toStringHelper(this)
                 .add("tenantId", tenantId)
-                .add("type", type.toString())
+                .add("type", type)
                 .add("name", name)
                 .add("interval", interval)
                 .omitNullValues()

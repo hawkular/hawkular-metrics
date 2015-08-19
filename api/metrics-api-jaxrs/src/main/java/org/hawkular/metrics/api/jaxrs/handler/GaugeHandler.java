@@ -107,7 +107,7 @@ public class GaugeHandler {
             @ApiParam(required = true) MetricDefinition metricDefinition,
             @Context UriInfo uriInfo
     ) {
-        Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, metricDefinition.getId()),
+        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metricDefinition.getId()),
                 metricDefinition.getTags(), metricDefinition.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getId().getName());
         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
@@ -122,8 +122,7 @@ public class GaugeHandler {
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.",
                          response = ApiError.class) })
     public void getGaugeMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
-
-        metricsService.findMetric(new MetricId(tenantId, GAUGE, id))
+        metricsService.findMetric(new MetricId<>(tenantId, GAUGE, id))
                 .map(MetricDefinition::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(ApiUtils.noContent()))
@@ -143,7 +142,7 @@ public class GaugeHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id
     ) {
-        metricsService.getMetricTags(new MetricId(tenantId, GAUGE, id))
+        metricsService.getMetricTags(new MetricId<>(tenantId, GAUGE, id))
                 .subscribe(
                         optional -> asyncResponse.resume(ApiUtils.valueToResponse(optional)),
                         t ->asyncResponse.resume(ApiUtils.serverError(t))
@@ -162,7 +161,7 @@ public class GaugeHandler {
             @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags
     ) {
-        Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id));
+        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
         metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -179,7 +178,7 @@ public class GaugeHandler {
             @PathParam("id") String id,
             @ApiParam("Tag list") @PathParam("tags") Tags tags
     ) {
-        Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id));
+        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
         metricsService.deleteTags(metric, tags.getTags()).subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -198,8 +197,8 @@ public class GaugeHandler {
             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
             List<GaugeDataPoint> data
     ) {
-        Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id), requestToGaugeDataPoints(data));
-        Observable<Void> observable = metricsService.addGaugeData(Observable.just(metric));
+        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id), requestToGaugeDataPoints(data));
+        Observable<Void> observable = metricsService.addDataPoints(Observable.just(metric));
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -216,7 +215,7 @@ public class GaugeHandler {
                              @ApiParam(value = "List of metrics", required = true) List<Gauge> gauges
     ) {
         Observable<Metric<Double>> metrics = requestToGauges(tenantId, gauges);
-        Observable<Void> observable = metricsService.addGaugeData(metrics);
+        Observable<Void> observable = metricsService.addDataPoints(metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -268,10 +267,10 @@ public class GaugeHandler {
         long startTime = start == null ? now - EIGHT_HOURS : start;
         long endTime = end == null ? now : end;
 
-        MetricId metricId = new MetricId(tenantId, GAUGE, id);
+        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
 
         if (bucketsCount == null && bucketDuration == null) {
-            metricsService.findGaugeData(metricId, startTime, endTime)
+            metricsService.findDataPoints(metricId, startTime, endTime)
                     .map(GaugeDataPoint::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
@@ -358,7 +357,7 @@ public class GaugeHandler {
                     )
             ));
         } else {
-            metricsService.getPeriods(new MetricId(tenantId, GAUGE, id), predicate, startTime, endTime)
+            metricsService.getPeriods(new MetricId<>(tenantId, GAUGE, id), predicate, startTime, endTime)
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         }
@@ -376,8 +375,9 @@ public class GaugeHandler {
             @ApiParam("Tag list") @PathParam("tags") Tags tags
     ) {
         metricsService.findGaugeDataByTags(tenantId, tags.getTags())
-            .flatMap(input -> Observable.from(input.entrySet())).toMap(e -> e.getKey().getName(), e2 -> e2.getValue())
-            .subscribe(m -> { // @TODO Repeated code
+                .flatMap(input -> Observable.from(input.entrySet()))
+                .toMap(e -> e.getKey().getName(), Map.Entry::getValue)
+                .subscribe(m -> { // @TODO Repeated code
                     if (m.isEmpty()) {
                         asyncResponse.resume(Response.noContent().build());
                     } else {
@@ -399,7 +399,7 @@ public class GaugeHandler {
             @PathParam("id") final String id, @ApiParam(required = true) TagRequest params
     ) {
         Observable<Void> resultSetObservable;
-        Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id));
+        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
         if (params.getTimestamp() != null) {
             resultSetObservable = metricsService.tagGaugeData(metric, params.getTags(), params.getTimestamp());
         } else {

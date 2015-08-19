@@ -20,6 +20,7 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilities;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounters;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGauges;
@@ -90,18 +91,19 @@ public class MetricHandler {
             @ApiResponse(code = 500, message = "Failed to retrieve metrics due to unexpected error.",
                          response = ApiError.class)
     })
-    public Response findMetrics(
+    public <T> Response findMetrics(
             @ApiParam(value = "Queried metric type",
                     required = false,
-                      allowableValues = "[gauge, availability, counter]")
-            @QueryParam("type") MetricType metricType,
+                    allowableValues = "[gauge, availability, counter]")
+            @QueryParam("type") MetricType<T> metricType,
             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags) {
 
-        if (metricType != null && !MetricType.userTypes().contains(metricType)) {
+        if (metricType != null && !metricType.isUserType()) {
             return badRequest(new ApiError("Incorrect type param " + metricType.toString()));
         }
 
-        Observable<Metric> metricObservable = (tags == null) ? metricsService.findMetrics(tenantId, metricType)
+        Observable<Metric<T>> metricObservable = (tags == null)
+                ? metricsService.findMetrics(tenantId, metricType)
                 : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), metricType);
 
         try {
@@ -136,24 +138,24 @@ public class MetricHandler {
 
         if ((gauges == null || gauges.isEmpty()) && (availabilities == null || availabilities.isEmpty())
                 && (counters == null || counters.isEmpty())) {
-            return ApiUtils.emptyPayload();
+            return emptyPayload();
         }
 
         Collection<Observable<Void>> observables = new ArrayList<>();
         if (gauges != null && !gauges.isEmpty()) {
             gauges = ImmutableList.copyOf(gauges);
             observables.add(metricsService
-                    .addGaugeData(requestToGauges(tenantId, gauges).subscribeOn(Schedulers.computation())));
+                    .addDataPoints(requestToGauges(tenantId, gauges).subscribeOn(Schedulers.computation())));
         }
         if (counters != null && !counters.isEmpty()) {
             counters = ImmutableList.copyOf(counters);
             observables.add(metricsService
-                    .addCounterData(requestToCounters(tenantId, counters).subscribeOn(Schedulers.computation())));
+                    .addDataPoints(requestToCounters(tenantId, counters).subscribeOn(Schedulers.computation())));
         }
         if (availabilities != null && !availabilities.isEmpty()) {
             availabilities = ImmutableList.copyOf(availabilities);
             observables.add(metricsService
-                    .addAvailabilityData(requestToAvailabilities(tenantId, ImmutableList.copyOf(availabilities))
+                    .addDataPoints(requestToAvailabilities(tenantId, ImmutableList.copyOf(availabilities))
                             .subscribeOn(Schedulers.computation())));
         }
 

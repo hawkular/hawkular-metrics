@@ -59,12 +59,12 @@ public class GenerateRate implements Action1<Task2> {
         long end = start + TimeUnit.MINUTES.toMillis(1);
 
         Observable<Metric<Double>> rates = metricsService.findMetrics(tenant, COUNTER)
-                .flatMap(counter -> metricsService.findCounterData(counter.getId(), start, end)
+                .flatMap(counter -> metricsService.findDataPoints(counter.getId(), start, end)
                         .take(1)
                         .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
-                        .map(rate -> new Metric<>(new MetricId(tenant, COUNTER_RATE, counter.getId().getName()),
+                        .map(rate -> new Metric<>(new MetricId<>(tenant, COUNTER_RATE, counter.getId().getName()),
                                 singletonList(new DataPoint<>(start, rate)))));
-        Observable<Void> updates = metricsService.addGaugeData(rates);
+        Observable<Void> updates = metricsService.addDataPoints(rates);
 
         CountDownLatch latch = new CountDownLatch(1);
 
@@ -86,7 +86,7 @@ public class GenerateRate implements Action1<Task2> {
         // TODO We do not want to block but have to for now. See HWKMETRICS-214 for details.
         try {
             latch.await();
-        } catch (InterruptedException e) {
+        } catch (InterruptedException ignored) {
         }
     }
 

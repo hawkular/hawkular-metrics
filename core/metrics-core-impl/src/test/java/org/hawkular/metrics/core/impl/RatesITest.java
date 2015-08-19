@@ -36,8 +36,6 @@ import org.hawkular.metrics.tasks.api.AbstractTrigger;
 import org.hawkular.metrics.tasks.impl.Queries;
 import org.hawkular.metrics.tasks.impl.TaskSchedulerImpl;
 import org.joda.time.DateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -55,8 +53,6 @@ import rx.schedulers.TestScheduler;
  * clock. {@link GenerateRateITest} tests directly without running a task scheduler.
  */
 public class RatesITest extends MetricsITest {
-
-    private static Logger logger = LoggerFactory.getLogger(RatesITest.class);
 
     private MetricsServiceImpl metricsService;
 
@@ -120,9 +116,9 @@ public class RatesITest extends MetricsITest {
         String tenant = "rates-test";
         DateTime start = new DateTime(tickScheduler.now()).plusMinutes(1);
 
-        Metric<Long> c1 = new Metric<>(new MetricId(tenant, COUNTER, "C1"));
-        Metric<Long> c2 = new Metric<>(new MetricId(tenant, COUNTER, "C2"));
-        Metric<Long> c3 = new Metric<>(new MetricId(tenant, COUNTER, "C3"));
+        Metric<Long> c1 = new Metric<>(new MetricId<>(tenant, COUNTER, "C1"));
+        Metric<Long> c2 = new Metric<>(new MetricId<>(tenant, COUNTER, "C2"));
+        Metric<Long> c3 = new Metric<>(new MetricId<>(tenant, COUNTER, "C3"));
 
         doAction(() -> metricsService.createTenant(new Tenant(tenant)));
 
@@ -130,7 +126,7 @@ public class RatesITest extends MetricsITest {
         doAction(() -> metricsService.createMetric(c2));
         doAction(() -> metricsService.createMetric(c3));
 
-        doAction(() -> metricsService.addCounterData(Observable.from(asList(
+        doAction(() -> metricsService.addDataPoints(Observable.from(asList(
                 new Metric<>(c1.getId(), asList(new DataPoint<>(start.getMillis(), 10L),
                         new DataPoint<>(start.plusSeconds(30).getMillis(), 25L))),
                 new Metric<>(c2.getId(), asList(new DataPoint<>(start.getMillis(), 100L),

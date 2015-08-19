@@ -104,7 +104,7 @@ public class GaugeHandler {
             @ApiParam(required = true) MetricDefinition metricDefinition,
             @Context UriInfo uriInfo
     ) {
-        Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, metricDefinition.getId()),
+        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metricDefinition.getId()),
                 metricDefinition.getTags(), metricDefinition.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getId().getName());
         try {
@@ -130,7 +130,7 @@ public class GaugeHandler {
                          response = ApiError.class) })
     public Response getGaugeMetric(@PathParam("id") String id) {
         try {
-            return metricsService.findMetric(new MetricId(tenantId, GAUGE, id))
+            return metricsService.findMetric(new MetricId<>(tenantId, GAUGE, id))
                 .map(MetricDefinition::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(ApiUtils.noContent())).toBlocking().lastOrDefault(null);
@@ -151,7 +151,7 @@ public class GaugeHandler {
                 response = ApiError.class) })
     public Response getGaugeMetricTags(@PathParam("id") String id) {
         try {
-            return metricsService.getMetricTags(new MetricId(tenantId, GAUGE, id))
+            return metricsService.getMetricTags(new MetricId<>(tenantId, GAUGE, id))
                     .map(ApiUtils::valueToResponse)
                     .toBlocking().lastOrDefault(null);
         } catch (Exception e) {
@@ -171,7 +171,7 @@ public class GaugeHandler {
             @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags
     ) {
-        Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id));
+        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
         try {
             metricsService.addTags(metric, tags).toBlocking().lastOrDefault(null);
             return Response.ok().build();
@@ -194,7 +194,7 @@ public class GaugeHandler {
             @ApiParam("Tag list") @PathParam("tags") Tags tags
     ) {
         try {
-            Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id));
+            Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
             metricsService.deleteTags(metric, tags.getTags()).toBlocking().lastOrDefault(null);
             return Response.ok().build();
         } catch (Exception e) {
@@ -217,9 +217,9 @@ public class GaugeHandler {
             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
             List<GaugeDataPoint> data
     ) {
-        Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id), requestToGaugeDataPoints(data));
+        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id), requestToGaugeDataPoints(data));
         try {
-            metricsService.addGaugeData(Observable.just(metric)).toBlocking().lastOrDefault(null);
+            metricsService.addDataPoints(Observable.just(metric)).toBlocking().lastOrDefault(null);
             return Response.ok().build();
         } catch (Exception e) {
             return ApiUtils.serverError(e);
@@ -240,7 +240,7 @@ public class GaugeHandler {
     ) {
         Observable<Metric<Double>> metrics = requestToGauges(tenantId, gauges);
         try {
-            metricsService.addGaugeData(metrics).toBlocking().lastOrDefault(null);
+            metricsService.addDataPoints(metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
         } catch (Exception e) {
             return ApiUtils.serverError(e);
@@ -297,12 +297,12 @@ public class GaugeHandler {
         long startTime = start == null ? now - EIGHT_HOURS : start;
         long endTime = end == null ? now : end;
 
-        MetricId metricId = new MetricId(tenantId, GAUGE, id);
+        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
 
         if (bucketsCount == null && bucketDuration == null) {
             try {
                 return metricsService
-                        .findGaugeData(metricId, startTime, endTime)
+                        .findDataPoints(metricId, startTime, endTime)
                         .map(GaugeDataPoint::new)
                         .toList()
                         .map(ApiUtils::collectionToResponse)
@@ -395,7 +395,7 @@ public class GaugeHandler {
                     new ApiError("Invalid value for op parameter. Supported values are lt, lte, eq, gt, gte."));
         } else {
             try {
-                return metricsService.getPeriods(new MetricId(tenantId, GAUGE, id), predicate, startTime, endTime)
+                return metricsService.getPeriods(new MetricId<>(tenantId, GAUGE, id), predicate, startTime, endTime)
                         .map(ApiUtils::collectionToResponse).toBlocking().lastOrDefault(null);
             } catch (Exception e) {
                 return ApiUtils.serverError(e);
@@ -415,7 +415,7 @@ public class GaugeHandler {
         try {
             return metricsService.findGaugeDataByTags(tenantId, tags.getTags())
                     .flatMap(input -> Observable.from(input.entrySet()))
-                    .toMap(e -> e.getKey().getName(), e2 -> e2.getValue())
+                    .toMap(e -> e.getKey().getName(), Map.Entry::getValue)
                     .map(m -> {
                         if (m.isEmpty()) {
                         return ApiUtils.noContent();
@@ -439,7 +439,7 @@ public class GaugeHandler {
     })
     public Response tagGaugeData(@PathParam("id") final String id, @ApiParam(required = true) TagRequest params) {
         Observable<Void> resultSetObservable;
-        Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id));
+        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
         if (params.getTimestamp() != null) {
             resultSetObservable = metricsService.tagGaugeData(metric, params.getTags(), params.getTimestamp());
         } else {

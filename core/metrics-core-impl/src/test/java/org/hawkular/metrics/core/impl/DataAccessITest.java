@@ -104,7 +104,7 @@ public class DataAccessITest extends MetricsITest {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);
 
-        Metric<Double> metric = new Metric<>(new MetricId("tenant-1", GAUGE, "metric-1"), asList(
+        Metric<Double> metric = new Metric<>(new MetricId<>("tenant-1", GAUGE, "metric-1"), asList(
                 new DataPoint<>(start.getMillis(), 1.23),
                 new DataPoint<>(start.plusMinutes(1).getMillis(), 1.234),
                 new DataPoint<>(start.plusMinutes(2).getMillis(), 1.234),
@@ -113,7 +113,7 @@ public class DataAccessITest extends MetricsITest {
 
         dataAccess.insertGaugeData(metric, DEFAULT_TTL).toBlocking().last();
 
-        Observable<ResultSet> observable = dataAccess.findData(new MetricId("tenant-1", GAUGE, "metric-1"),
+        Observable<ResultSet> observable = dataAccess.findData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
                 start.getMillis(), end.getMillis());
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
                 .flatMap(Observable::from)
@@ -136,12 +136,12 @@ public class DataAccessITest extends MetricsITest {
         DateTime end = start.plusMinutes(6);
         String tenantId = "tenant-1";
 
-        Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, "metric-1"),
+        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, "metric-1"),
                 ImmutableMap.of("units", "KB", "env", "test"), DEFAULT_TTL);
 
         dataAccess.addTagsAndDataRetention(metric).toBlocking().last();
 
-        metric = new Metric<>(new MetricId(tenantId, GAUGE, "metric-1"), asList(
+        metric = new Metric<>(new MetricId<>(tenantId, GAUGE, "metric-1"), asList(
                 new DataPoint<>(start.getMillis(), 1.23),
                 new DataPoint<>(start.plusMinutes(2).getMillis(), 1.234),
                 new DataPoint<>(start.plusMinutes(4).getMillis(), 1.234),
@@ -150,7 +150,7 @@ public class DataAccessITest extends MetricsITest {
 
         dataAccess.insertGaugeData(metric, DEFAULT_TTL).toBlocking().last();
 
-        Observable<ResultSet> observable = dataAccess.findData(new MetricId("tenant-1", GAUGE, "metric-1"),
+        Observable<ResultSet> observable = dataAccess.findData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
                 start.getMillis(), end.getMillis());
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
                 .flatMap(Observable::from)
@@ -172,13 +172,13 @@ public class DataAccessITest extends MetricsITest {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(6);
         String tenantId = "avail-test";
-        Metric<AvailabilityType> metric = new Metric<>(new MetricId(tenantId, AVAILABILITY, "m1"),
+        Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, "m1"),
                 singletonList(new DataPoint<>(start.getMillis(), UP)));
 
         dataAccess.insertAvailabilityData(metric, 360).toBlocking().lastOrDefault(null);
 
         List<DataPoint<AvailabilityType>> actual = dataAccess
-            .findAvailabilityData(new MetricId(tenantId, AVAILABILITY, "m1"), start.getMillis(), end.getMillis())
+                .findAvailabilityData(new MetricId<>(tenantId, AVAILABILITY, "m1"), start.getMillis(), end.getMillis())
                 .flatMap(Observable::from)
                 .map(Functions::getAvailabilityDataPoint)
                 .toList().toBlocking().lastOrDefault(null);

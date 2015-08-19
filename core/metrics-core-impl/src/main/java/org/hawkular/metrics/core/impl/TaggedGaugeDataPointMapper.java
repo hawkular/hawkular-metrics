@@ -36,8 +36,8 @@ import com.datastax.driver.core.utils.UUIDs;
  */
 public class TaggedGaugeDataPointMapper {
 
-    public static Map<MetricId, Set<DataPoint<Double>>> apply(ResultSet resultSet) {
-        Map<MetricId, Set<DataPoint<Double>>> taggedData = new HashMap<>();
+    public static Map<MetricId<Double>, Set<DataPoint<Double>>> apply(ResultSet resultSet) {
+        Map<MetricId<Double>, Set<DataPoint<Double>>> taggedData = new HashMap<>();
         Metric<Double> metric = null;
         LinkedHashSet<DataPoint<Double>> set = new LinkedHashSet<>();
         for (Row row : resultSet) {
@@ -63,7 +63,7 @@ public class TaggedGaugeDataPointMapper {
     }
 
     private static Metric<Double> createMetric(Row row) {
-        return new Metric<>(new MetricId(row.getString(0), MetricType.GAUGE, row.getString(4),
+        return new Metric<>(new MetricId<>(row.getString(0), MetricType.GAUGE, row.getString(4),
                 Interval.parse(row.getString(5))));
     }
 

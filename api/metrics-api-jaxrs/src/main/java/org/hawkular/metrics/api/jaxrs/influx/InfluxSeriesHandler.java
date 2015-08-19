@@ -137,7 +137,7 @@ public class InfluxSeriesHandler {
 
         Observable<Metric<Double>> input = Observable.from(influxObjects)
                 .map(influxObject -> influxToGauge(tenantId, influxObject));
-        metricsService.addGaugeData(input).subscribe(new WriteObserver(asyncResponse));
+        metricsService.addDataPoints(input).subscribe(new WriteObserver(asyncResponse));
     }
 
     private static Metric<Double> influxToGauge(String tenantId, InfluxObject influxObject) {
@@ -157,7 +157,7 @@ public class InfluxSeriesHandler {
             }
             dataPoints.add(new DataPoint<>(timestamp, value));
         }
-        return new Metric<>(new MetricId(tenantId, GAUGE, influxObject.getName()), dataPoints);
+        return new Metric<>(new MetricId<>(tenantId, GAUGE, influxObject.getName()), dataPoints);
     }
 
     @GET
@@ -265,8 +265,8 @@ public class InfluxSeriesHandler {
                               if (idExists != Boolean.TRUE) {
                                   return Observable.just(null);
                               }
-                              return metricsService.findGaugeData(
-                                      new MetricId(tenantId, GAUGE, metric),
+                              return metricsService.findDataPoints(
+                                      new MetricId<>(tenantId, GAUGE, metric),
                                       timeInterval.getStartMillis(), timeInterval.getEndMillis()
                               ).toList();
                           }
