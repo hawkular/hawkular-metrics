@@ -16,6 +16,16 @@
  */
 package org.hawkular.metrics.api.jaxrs.filter;
 
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_CREDENTIALS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_HEADERS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_METHODS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_ORIGIN;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_MAX_AGE;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_REQUEST_METHOD;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ORIGIN;
+
 import java.io.IOException;
 import java.util.Enumeration;
 
@@ -36,15 +46,6 @@ import javax.ws.rs.ext.Provider;
 @Provider
 public class CorsFilter implements Filter {
 
-    public static final String ACCESS_CONTROL_ALLOW_CREDENTIALS = "Access-Control-Allow-Credentials";
-    public static final String ACCESS_CONTROL_ALLOW_HEADERS = "Access-Control-Allow-Headers";
-    public static final String ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods";
-    public static final String ACCESS_CONTROL_ALLOW_ORIGIN = "Access-Control-Allow-Origin";
-    public static final String ACCESS_CONTROL_MAX_AGE = "Access-Control-Max-Age";
-    public static final String ACCESS_CONTROL_REQUEST_METHOD = "Access-Control-Request-Method";
-
-    public static final String DEFAULT_ALLOWED_METHODS = "GET, POST, PUT, DELETE, OPTIONS, HEAD";
-    public static final String DEFAULT_ALLOWED_HEADERS = "origin,accept,content-type,hawkular-tenant";
     public static final String PREFLIGHT_METHOD = "OPTIONS";
 
     @Override
@@ -59,7 +60,7 @@ public class CorsFilter implements Filter {
         final HttpServletResponse httpResponse = (HttpServletResponse) response;
 
         String origin = "*";
-        Enumeration<String> originHeaders = httpRequest.getHeaders("origin");
+        Enumeration<String> originHeaders = httpRequest.getHeaders(ORIGIN);
         if (originHeaders != null && originHeaders.hasMoreElements()) {
             String originHeaderValue = originHeaders.nextElement();
             if (originHeaderValue != null && !originHeaderValue.equals("null")) {
@@ -69,9 +70,9 @@ public class CorsFilter implements Filter {
         httpResponse.addHeader(ACCESS_CONTROL_ALLOW_ORIGIN, origin);
 
         httpResponse.addHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
-        httpResponse.addHeader(ACCESS_CONTROL_ALLOW_METHODS, DEFAULT_ALLOWED_METHODS);
+        httpResponse.addHeader(ACCESS_CONTROL_ALLOW_METHODS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS);
         httpResponse.addHeader(ACCESS_CONTROL_MAX_AGE, (72 * 60 * 60) + "");
-        httpResponse.addHeader(ACCESS_CONTROL_ALLOW_HEADERS, DEFAULT_ALLOWED_HEADERS);
+        httpResponse.addHeader(ACCESS_CONTROL_ALLOW_HEADERS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS);
 
         if (!isPreflightRequest((HttpServletRequest) request)) {
             chain.doFilter(request, response);

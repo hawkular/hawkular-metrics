@@ -16,6 +16,15 @@
  */
 package org.hawkular.metrics.api.jaxrs.filter;
 
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_CREDENTIALS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_HEADERS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_METHODS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_ORIGIN;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_MAX_AGE;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ORIGIN;
+
 import java.io.IOException;
 
 import javax.ws.rs.container.ContainerRequestContext;
@@ -33,9 +42,6 @@ import javax.ws.rs.ext.Provider;
 @PreMatching
 public class CorsResponseFilter implements ContainerResponseFilter {
 
-    public static final String DEFAULT_ALLOWED_METHODS = "GET, POST, PUT, DELETE, OPTIONS, HEAD";
-    public static final String DEFAULT_ALLOWED_HEADERS = "origin,accept,content-type,hawkular-tenant";
-
     @Override
     public void filter(ContainerRequestContext requestContext,
             ContainerResponseContext responseContext) throws IOException {
@@ -43,16 +49,15 @@ public class CorsResponseFilter implements ContainerResponseFilter {
                 .getHeaders();
 
         String origin = "*";
-        if (headers.get("origin") != null && headers.get("origin").size() == 1
-                && headers.get("origin").get(0) != null
-                && !headers.get("origin").get(0).equals("null")) {
-            origin = headers.get("origin").get(0).toString();
+        if (headers.get(ORIGIN) != null && headers.get(ORIGIN).size() != 0
+                && headers.get(ORIGIN).get(0) != null
+                && !headers.get(ORIGIN).get(0).equals("null")) {
+            origin = headers.get(ORIGIN).get(0).toString();
         }
-        headers.add("Access-Control-Allow-Origin", origin);
-
-        headers.add("Access-Control-Allow-Credentials", "true");
-        headers.add("Access-Control-Allow-Methods", DEFAULT_ALLOWED_METHODS);
-        headers.add("Access-Control-Max-Age", 72 * 60 * 60);
-        headers.add("Access-Control-Allow-Headers", DEFAULT_ALLOWED_HEADERS);
+        headers.add(ACCESS_CONTROL_ALLOW_ORIGIN, origin);
+        headers.add(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+        headers.add(ACCESS_CONTROL_ALLOW_METHODS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS);
+        headers.add(ACCESS_CONTROL_MAX_AGE, 72 * 60 * 60);
+        headers.add(ACCESS_CONTROL_ALLOW_HEADERS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS);
     }
 }
