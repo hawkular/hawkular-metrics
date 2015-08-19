@@ -16,39 +16,79 @@
  */
 package org.hawkular.metrics.api.jaxrs.filter;
 
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.ext.Provider;
+import java.io.IOException;
+import java.util.Enumeration;
 
-import org.jboss.resteasy.annotations.interception.ServerInterceptor;
-import org.jboss.resteasy.core.ServerResponse;
-import org.jboss.resteasy.spi.interception.PostProcessInterceptor;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.ext.Provider;
 
 /**
  * @author Stefan Negrea
  *
  */
 @Provider
-@ServerInterceptor
-public class CorsFilter implements PostProcessInterceptor {
+public class CorsFilter implements Filter {
+
+    public static final String ACCESS_CONTROL_ALLOW_CREDENTIALS = "Access-Control-Allow-Credentials";
+    public static final String ACCESS_CONTROL_ALLOW_HEADERS = "Access-Control-Allow-Headers";
+    public static final String ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods";
+    public static final String ACCESS_CONTROL_ALLOW_ORIGIN = "Access-Control-Allow-Origin";
+    public static final String ACCESS_CONTROL_MAX_AGE = "Access-Control-Max-Age";
+    public static final String ACCESS_CONTROL_REQUEST_METHOD = "Access-Control-Request-Method";
 
     public static final String DEFAULT_ALLOWED_METHODS = "GET, POST, PUT, DELETE, OPTIONS, HEAD";
     public static final String DEFAULT_ALLOWED_HEADERS = "origin,accept,content-type,hawkular-tenant";
+    public static final String PREFLIGHT_METHOD = "OPTIONS";
 
     @Override
-    public void postProcess(ServerResponse response) {
-        final MultivaluedMap<String, Object> headers = response.getMetadata();
+    public void destroy() {
+    }
+
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
+
+        final HttpServletRequest httpRequest = (HttpServletRequest) request;
+        final HttpServletResponse httpResponse = (HttpServletResponse) response;
 
         String origin = "*";
-        if (headers.get("origin") != null && headers.get("origin").size() == 1
-                && headers.get("origin").get(0) != null
-                && !headers.get("origin").get(0).equals("null")) {
-            origin = headers.get("origin").get(0).toString();
+        Enumeration<String> originHeaders = httpRequest.getHeaders("origin");
+        if (originHeaders != null && originHeaders.hasMoreElements()) {
+            String originHeaderValue = originHeaders.nextElement();
+            if (originHeaderValue != null && !originHeaderValue.equals("null")) {
+                origin = originHeaderValue;
+            }
         }
-        headers.add("Access-Control-Allow-Origin", origin);
+        httpResponse.addHeader(ACCESS_CONTROL_ALLOW_ORIGIN, origin);
 
-        headers.add("Access-Control-Allow-Credentials", "true");
-        headers.add("Access-Control-Allow-Methods", DEFAULT_ALLOWED_METHODS);
-        headers.add("Access-Control-Max-Age", 72 * 60 * 60);
-        headers.add("Access-Control-Allow-Headers", DEFAULT_ALLOWED_HEADERS);
+        httpResponse.addHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+        httpResponse.addHeader(ACCESS_CONTROL_ALLOW_METHODS, DEFAULT_ALLOWED_METHODS);
+        httpResponse.addHeader(ACCESS_CONTROL_MAX_AGE, (72 * 60 * 60) + "");
+        httpResponse.addHeader(ACCESS_CONTROL_ALLOW_HEADERS, DEFAULT_ALLOWED_HEADERS);
+
+        if (!isPreflightRequest((HttpServletRequest) request)) {
+            chain.doFilter(request, response);
+        }
+    }
+
+    @Override
+    public void init(FilterConfig arg0) throws ServletException {
+    }
+
+    private boolean isPreflightRequest(final HttpServletRequest request) {
+        if (request.getHeader(ACCESS_CONTROL_REQUEST_METHOD) != null &&
+                request.getMethod() != null &&
+                request.getMethod().equalsIgnoreCase(PREFLIGHT_METHOD)) {
+            return true;
+        }
+
+        return false;
     }
 }
