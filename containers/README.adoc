@@ -28,14 +28,14 @@ mvn clean install -Pdocker-build -Ddocker.host=tcp://127.0.0.1:2375
 
 == Running the Container Tests
 
-The container tests are meant to be run on OpenShift v3 1.0.3
+The container tests are meant to be run on OpenShift v3 1.0.4
 
 === Download OpenShift and extract it
 
 [source,bash]
 ----
-wget https://github.com/openshift/origin/releases/download/v1.0.3/openshift-origin-v1.0.3-1695461-linux-amd64.tar.gz[https://github.com/openshift/origin/releases/download/v1.0.3/openshift-origin-v1.0.3-1695461-linux-amd64.tar.gz]
-tar zxvf openshift-origin-v1.0.3-1695461-linux-amd64.tar.gz
+wget https://github.com/openshift/origin/releases/download/v1.0.4/openshift-origin-v1.0.4-757efd9-linux-amd64.tar.gz[https://github.com/openshift/origin/releases/download/v1.0.4/openshift-origin-v1.0.4-757efd9-linux-amd64.tar.gz]
+tar zxvf openshift-origin-v1.0.4-757efd9-linux-amd64.tar.gz
 ----
 
 === Expose the OpenShift binaries to $PATH
@@ -63,7 +63,7 @@ export BINDING_ADDRESS=<INSERT-YOUR-BINDING-ADDRESS-HERE>
 
 === Temporary fix for heapster
 
-For 1.0.3 heapster will not function properly due to it requring an non-secured `/stats` endpoint
+For 1.0.4 heapster will not function properly due to it requring an non-secured `/stats` endpoint
 
 You will need to configure OpenShift to expose the RO endpoint as being unsecured
 
