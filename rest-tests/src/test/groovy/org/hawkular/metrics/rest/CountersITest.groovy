@@ -17,11 +17,11 @@
 package org.hawkular.metrics.rest
 
 import static org.joda.time.DateTime.now
+import static org.joda.time.Duration.standardMinutes
 import static org.junit.Assert.assertEquals
 
 import org.hawkular.metrics.core.impl.DateTimeService
 import org.joda.time.DateTime
-import org.joda.time.Duration
 import org.junit.Test
 
 /**
@@ -311,9 +311,7 @@ class CountersITest extends RESTTest {
     String tenantId = nextTenantId()
     String counter = "C1"
     DateTimeService dateTimeService = new DateTimeService()
-    DateTime start = dateTimeService.getTimeSlice(now(), Duration.standardMinutes(1)).minusMinutes(10)
-
-    setTime(start)
+    DateTime start = dateTimeService.getTimeSlice(getTime(), standardMinutes(1))//.plusMinutes(1)
 
     // Create the tenant
     def response = hawkularMetrics.post(
@@ -335,8 +333,6 @@ class CountersITest extends RESTTest {
         ]
     )
     assertEquals(200, response.status)
-
-    setTime(start.plusMinutes(4))
 
     response = hawkularMetrics.get(path: "clock/wait", query: [duration: "4mn"])
     assertEquals("There was an error waiting: $response.data", 200, response.status)
@@ -369,10 +365,6 @@ class CountersITest extends RESTTest {
     assertRateEquals(expectedData[2], response.data[2])
   }
 
-  static void setTime(DateTime time) {
-    def response = hawkularMetrics.put(path: "clock", body: [time: time.millis])
-    assertEquals(200, response.status)
-  }
 
   static double calculateRate(double value, DateTime start, DateTime end) {
     return (value / (end.millis - start.millis)) * 1000.0

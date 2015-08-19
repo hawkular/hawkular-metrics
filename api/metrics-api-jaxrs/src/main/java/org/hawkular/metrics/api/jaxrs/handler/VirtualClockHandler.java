@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.api.jaxrs.handler;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -73,9 +74,6 @@ public class VirtualClockHandler {
     public Response setTime(Map<String, Object> params) {
         Long time = (Long) params.get("time");
         virtualClock.advanceTimeTo(time);
-        if (!taskScheduler.isRunning()) {
-            taskScheduler.start();
-        }
         return Response.ok().build();
     }
 
@@ -96,6 +94,8 @@ public class VirtualClockHandler {
                 .subscribe(timeSlicesSubscriber);
 
         try {
+            virtualClock.advanceTimeBy(numMinutes, MINUTES);
+
             timeSlicesSubscriber.awaitTerminalEvent(10, SECONDS);
             timeSlicesSubscriber.assertNoErrors();
             timeSlicesSubscriber.assertTerminalEvent();

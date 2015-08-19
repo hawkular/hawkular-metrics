@@ -14,39 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.tasks.api;
-
-import java.util.Map;
-
-import org.hawkular.metrics.tasks.impl.Lease;
+package org.hawkular.metrics.core.impl;
 
 import rx.Observable;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.functions.Action1;
 
 /**
  * @author jsanda
  */
-public interface TaskScheduler {
+public interface TenantsService {
 
-    Subscription subscribe(Action1<Task2> onNext);
-
-    Subscription subscribe(Subscriber<Task2> subscriber);
-
-    Observable<Task2> getTasks();
-
-    Observable<Lease> start();
-
-//    Observable<Task2> createTask(String name, Map<String, String> parameters, Trigger trigger);
-
-    Observable<Task2> scheduleTask(String name, String groupKey, int executionOrder, Map<String, String> parameters,
-            Trigger trigger);
-
-    void shutdown();
-
-    Observable<Long> getFinishedTimeSlices();
-
-    boolean isRunning();
+    Observable<Void> createTenants(long creationTime, Observable<String> tenantIds);
 
 }

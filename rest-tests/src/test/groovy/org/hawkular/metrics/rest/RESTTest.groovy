@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.rest
 
+import org.joda.time.DateTime
+
 import static org.junit.Assert.assertEquals
 
 import java.util.concurrent.atomic.AtomicInteger
@@ -106,4 +108,13 @@ ${entity}
     }
   }
 
+  static DateTime getTime() {
+    def response = hawkularMetrics.get(path: "clock")
+    return new DateTime((Long) response.data.now)
+  }
+
+  static void setTime(DateTime time) {
+    def response = hawkularMetrics.put(path: "clock", body: [time: time.millis])
+    assertEquals(200, response.status)
+  }
 }

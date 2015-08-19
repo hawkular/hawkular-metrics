@@ -16,7 +16,9 @@
  */
 package org.hawkular.metrics.core.impl;
 
+import static java.util.Collections.emptyMap;
 import static java.util.Comparator.comparingLong;
+import static java.util.concurrent.TimeUnit.MINUTES;
 
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
@@ -24,13 +26,14 @@ import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.Functions.getTTLAvailabilityDataPoint;
 import static org.hawkular.metrics.core.impl.Functions.getTTLGaugeDataPoint;
 import static org.hawkular.metrics.core.impl.Functions.makeSafe;
+import static org.joda.time.Duration.standardMinutes;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -38,7 +41,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -89,7 +91,7 @@ import rx.subjects.PublishSubject;
 /**
  * @author John Sanda
  */
-public class MetricsServiceImpl implements MetricsService {
+public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     private static final Logger logger = LoggerFactory.getLogger(MetricsServiceImpl.class);
 
@@ -97,6 +99,8 @@ public class MetricsServiceImpl implements MetricsService {
      * In seconds.
      */
     public static final int DEFAULT_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
+
+    public static final String SYSTEM_TENANT_ID = makeSafe("system");
 
     private static class DataRetentionKey {
         private final MetricId metricId;
@@ -139,6 +143,8 @@ public class MetricsServiceImpl implements MetricsService {
     private DataAccess dataAccess;
 
     private TaskScheduler taskScheduler;
+
+    private DateTimeService dateTimeService;
 
     private MetricRegistry metricRegistry;
 
@@ -189,14 +195,12 @@ public class MetricsServiceImpl implements MetricsService {
         session.execute("USE " + keyspace);
         logger.info("Using a key space of '{}'", keyspace);
         metricsTasks = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
-        dataAccess = new DataAccessImpl(session);
         loadDataRetentions();
 
         this.metricRegistry = metricRegistry;
         initMetrics();
 
-        GenerateRate generateRates = new GenerateRate(this);
-        taskScheduler.subscribe(generateRates);
+        initSystemTenant();
     }
 
     void loadDataRetentions() {
@@ -227,6 +231,30 @@ public class MetricsServiceImpl implements MetricsService {
         dataRetentions.clear();
     }
 
+    private void initSystemTenant() {
+        CountDownLatch latch = new CountDownLatch(1);
+        Trigger trigger = new RepeatingTrigger.Builder().withInterval(30, MINUTES).withDelay(30, MINUTES).build();
+        dataAccess.insertTenant(new Tenant(SYSTEM_TENANT_ID))
+                .filter(ResultSet::wasApplied)
+                .map(row -> taskScheduler.scheduleTask(CreateTenants.TASK_NAME, SYSTEM_TENANT_ID, 100, emptyMap(),
+                        trigger))
+                .subscribe(
+                        task -> logger.debug("Scheduled {}", task),
+                        t -> {
+                            logger.error("Failed to initialize system tenant", t);
+                            latch.countDown();
+                        },
+                        () -> {
+                            logger.debug("Successfully initialized system tenant");
+                            latch.countDown();
+                        }
+                );
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+        }
+    }
+
     private void initMetrics() {
         gaugeInserts = metricRegistry.meter("gauge-inserts");
         availabilityInserts = metricRegistry.meter("availability-inserts");
@@ -242,7 +270,7 @@ public class MetricsServiceImpl implements MetricsService {
         @Override
         public Map<MetricId, Set<T>> call(List<Map<MetricId, Set<T>>> taggedDataMaps) {
             if (taggedDataMaps.isEmpty()) {
-                return Collections.emptyMap();
+                return emptyMap();
             }
             if (taggedDataMaps.size() == 1) {
                 return taggedDataMaps.get(0);
@@ -307,12 +335,16 @@ public class MetricsServiceImpl implements MetricsService {
     /**
      * This is a test hook.
      */
-    void setDataAccess(DataAccess dataAccess) {
+    public void setDataAccess(DataAccess dataAccess) {
         this.dataAccess = dataAccess;
     }
 
     public void setTaskScheduler(TaskScheduler taskScheduler) {
         this.taskScheduler = taskScheduler;
+    }
+
+    public void setDateTimeService(DateTimeService dateTimeService) {
+        this.dateTimeService = dateTimeService;
     }
 
     @Override
@@ -324,8 +356,8 @@ public class MetricsServiceImpl implements MetricsService {
                 }
 
                 Trigger trigger = new RepeatingTrigger.Builder()
-                        .withDelay(1, TimeUnit.MINUTES)
-                        .withInterval(1, TimeUnit.MINUTES)
+                        .withDelay(1, MINUTES)
+                        .withInterval(1, MINUTES)
                         .build();
                 Map<String, String> params = ImmutableMap.of("tenant", tenant.getId());
                 Observable<Void> ratesScheduled = taskScheduler.scheduleTask("generate-rates", tenant.getId(),
@@ -338,8 +370,24 @@ public class MetricsServiceImpl implements MetricsService {
 
                 return ratesScheduled.concatWith(retentionUpdates);
             });
-            updates.subscribe(resultSet -> {}, subscriber::onError, subscriber::onCompleted);
+            updates.subscribe(resultSet -> {
+            }, subscriber::onError, subscriber::onCompleted);
         });
+    }
+
+    @Override
+    public Observable<Void> createTenants(long creationTime, Observable<String> tenantIds) {
+        return tenantIds.flatMap(tenantId -> dataAccess.insertTenant(tenantId).flatMap(resultSet -> {
+            Trigger trigger = new RepeatingTrigger.Builder()
+                    .withDelay(1, MINUTES)
+                    .withInterval(1, MINUTES)
+                    .build();
+            Map<String, String> params = ImmutableMap.of(
+                    "tenant", tenantId,
+                    "creationTime", Long.toString(creationTime));
+
+            return taskScheduler.scheduleTask("generate-rates", tenantId, 100, params, trigger).map(task -> null);
+        }));
     }
 
     @Override
@@ -496,7 +544,7 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<Void> addGaugeData(Observable<Metric<Double>> gaugeObservable) {
+    public Observable<Void> addGaugeData(Observable<Metric<Double>> gauges) {
         // We write to both the data and the metrics_idx tables. Each Gauge can have one or more data points. We
         // currently write a separate batch statement for each gauge.
         //
@@ -516,12 +564,15 @@ public class MetricsServiceImpl implements MetricsService {
         //      explicitly created, just not necessarily right away.
 
         PublishSubject<Void> results = PublishSubject.create();
-        Observable<Integer> updates = gaugeObservable.flatMap(g -> dataAccess.insertGaugeData(g, getTTL(g)));
+        Observable<Integer> updates = gauges.flatMap(g -> dataAccess.insertGaugeData(g, getTTL(g)));
+
+        Observable<Integer> tenantUpdates = updateTenantBuckets(gauges);
+
         // I am intentionally return zero for the number index updates because I want to measure and compare the
         // throughput inserting data with and without the index updates. This will give us a better idea of how much
         // over there is with the index updates.
-        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(gaugeObservable).map(count -> 0);
-        updates.concatWith(indexUpdates).subscribe(
+        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(gauges).map(count -> 0);
+        Observable.concat(updates, indexUpdates, tenantUpdates).subscribe(
                 gaugeInserts::mark,
                 results::onError,
                 () -> {
@@ -537,11 +588,14 @@ public class MetricsServiceImpl implements MetricsService {
         Observable<Integer> updates = availabilities
                 .filter(a -> !a.getDataPoints().isEmpty())
                 .flatMap(a -> dataAccess.insertAvailabilityData(a, getTTL(a)));
+
+        Observable<Integer> tenantUpdates = updateTenantBuckets(availabilities);
+
         // I am intentionally return zero for the number index updates because I want to measure and compare the
         // throughput inserting data with and without the index updates. This will give us a better idea of how much
         // over there is with the index updates.
         Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(availabilities).map(count -> 0);
-        updates.concatWith(indexUpdates).subscribe(
+        Observable.concat(updates, indexUpdates, tenantUpdates).subscribe(
                 availabilityInserts::mark,
                 results::onError,
                 () -> {
@@ -555,11 +609,14 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<Void> addCounterData(Observable<Metric<Long>> counters) {
         PublishSubject<Void> results = PublishSubject.create();
         Observable<Integer> updates = counters.flatMap(c -> dataAccess.insertCounterData(c, getTTL(c)));
+
+        Observable<Integer> tenantUpdates = updateTenantBuckets(counters);
+
         // I am intentionally return zero for the number index updates because I want to measure and compare the
         // throughput inserting data with and without the index updates. This will give us a better idea of how much
         // over there is with the index updates.
         Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(counters).map(count -> 0);
-        updates.concatWith(indexUpdates).subscribe(
+        Observable.concat(updates, indexUpdates, tenantUpdates).subscribe(
                 counterInserts::mark,
                 results::onError,
                 () -> {
@@ -567,6 +624,16 @@ public class MetricsServiceImpl implements MetricsService {
                     results.onCompleted();
                 });
         return results;
+    }
+
+    private Observable<Integer> updateTenantBuckets(Observable<? extends Metric<?>> metrics) {
+        Observable<TenantBucket> tenantBuckets = metrics
+                .flatMap(metric -> Observable.from(metric.getDataPoints())
+                        .map(dataPoint -> new TenantBucket(metric.getId().getTenantId(),
+                                dateTimeService.getTimeSlice(dataPoint.getTimestamp(), standardMinutes(30)))))
+                .distinct();
+        return tenantBuckets.flatMap(tenantBucket ->
+                dataAccess.insertTenantId(tenantBucket.getBucket(), tenantBucket.getTenant())).map(resultSet -> 0);
     }
 
     @Override
@@ -802,6 +869,36 @@ public class MetricsServiceImpl implements MetricsService {
             return timer.time(callable);
         } catch (Exception e) {
             throw new RuntimeException("There was an error during a timed event", e);
+        }
+    }
+
+    private static class TenantBucket {
+        String tenant;
+        long bucket;
+
+        public TenantBucket(String tenant, long bucket) {
+            this.tenant = tenant;
+            this.bucket = bucket;
+        }
+
+        public String getTenant() {
+            return tenant;
+        }
+
+        public long getBucket() {
+            return bucket;
+        }
+
+        @Override public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            TenantBucket that = (TenantBucket) o;
+            return Objects.equals(bucket, that.bucket) &&
+                    Objects.equals(tenant, that.tenant);
+        }
+
+        @Override public int hashCode() {
+            return Objects.hash(tenant, bucket);
         }
     }
 

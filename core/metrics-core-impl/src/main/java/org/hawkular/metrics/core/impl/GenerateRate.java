@@ -42,6 +42,8 @@ public class GenerateRate implements Action1<Task2> {
 
     private static final Logger logger = LoggerFactory.getLogger(GenerateRate.class);
 
+    public static final String TASK_NAME = "generate-rates";
+
     private MetricsService metricsService;
 
     public GenerateRate(MetricsService metricsService) {

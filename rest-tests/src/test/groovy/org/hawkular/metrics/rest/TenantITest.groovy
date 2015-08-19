@@ -15,12 +15,14 @@
  * limitations under the License.
  */
 package org.hawkular.metrics.rest
-
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertTrue
-
+import org.hawkular.metrics.core.impl.DateTimeService
+import org.joda.time.DateTime
 import org.junit.Test
 
+import static org.joda.time.Duration.standardMinutes
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertTrue
 /**
  * @author Thomas Segismont
  */
@@ -76,6 +78,78 @@ class TenantITest extends RESTTest {
       assertEquals(400, exception.response.status)
       assertTrue(exception.response.data.containsKey("errorMsg"))
     }
+  }
+
+  @Test
+  void createImplicitTenantWhenInsertingGaugeDataPoints() {
+    String tenantId = nextTenantId()
+    DateTimeService dateTimeService = new DateTimeService()
+    DateTime start = dateTimeService.getTimeSlice(getTime(), standardMinutes(1))
+
+    def response = hawkularMetrics.post(
+        path: "gauges/G1/data",
+        headers : [(tenantHeaderName): tenantId],
+        body: [
+            [timestamp: start.minusMinutes(1).millis, value: 3.14]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: "clock/wait", query: [duration: "31mn"])
+    assertEquals("There was an error waiting: $response.data", 200, response.status)
+
+    response = hawkularMetrics.get(path: "tenants")
+    assertEquals(200, response.status)
+
+    assertNotNull("tenantId = $tenantId, Response = $response.data", response.data.find { it.id == tenantId })
+  }
+
+  @Test
+  void createImplicitTenantWhenInsertingCounterDataPoints() {
+    String tenantId = nextTenantId()
+    DateTimeService dateTimeService = new DateTimeService()
+    DateTime start = dateTimeService.getTimeSlice(getTime(), standardMinutes(1))
+
+    def response = hawkularMetrics.post(
+        path: 'counters/C1/data',
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [timestamp: start.minusMinutes(1).millis, value: 100]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: 'clock/wait', query: [duration: '31mn'])
+    assertEquals("There was an error waiting: $response.data", 200, response.status)
+
+    response = hawkularMetrics.get(path: 'tenants')
+    assertEquals(200, response.status)
+
+    assertNotNull("tenantId = $tenantId, Response = $response.data", response.data.find { it.id == tenantId })
+  }
+
+  @Test
+  void createImplicitTenantWhenInsertingAvailabilityDataPoints() {
+    String tenantId = nextTenantId()
+    DateTimeService dateTimeService = new DateTimeService()
+    DateTime start = dateTimeService.getTimeSlice(getTime(), standardMinutes(1))
+
+    def response = hawkularMetrics.post(
+        path: 'availability/A1/data',
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [timestamp: start.minusMinutes(1).millis, value: 'up']
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: 'clock/wait', query: [duration: '31mn'])
+    assertEquals("There was an error waiting: $response.data", 200, response.status)
+
+    response = hawkularMetrics.get(path: 'tenants')
+    assertEquals(200, response.status)
+
+    assertNotNull("tenantId = $tenantId, Response = $response.data", response.data.find { it.id == tenantId })
   }
 
 }

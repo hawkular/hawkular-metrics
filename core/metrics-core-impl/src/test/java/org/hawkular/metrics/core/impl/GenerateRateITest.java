@@ -60,10 +60,13 @@ public class GenerateRateITest extends MetricsITest {
     public void initClass() {
         initSession();
 
+        DataAccess dataAccess = new DataAccessImpl(session);
         dateTimeService = new DateTimeService();
 
         metricsService = new MetricsServiceImpl();
+        metricsService.setDataAccess(dataAccess);
         metricsService.setTaskScheduler(new FakeTaskScheduler());
+        metricsService.setDateTimeService(dateTimeService);
 
         metricsService.startUp(session, getKeyspace(), false, new MetricRegistry());
     }

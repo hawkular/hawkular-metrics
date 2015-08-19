@@ -26,6 +26,7 @@ import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
 import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
 
 import java.nio.ByteBuffer;
+import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -64,9 +65,17 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement insertTenant;
 
+    private PreparedStatement insertTenantId;
+
     private PreparedStatement findAllTenantIds;
 
+    private PreparedStatement insertTenantIdIntoBucket;
+
+    private PreparedStatement findTenantIdsByTime;
+
     private PreparedStatement findTenant;
+
+    private PreparedStatement deleteTenantsBucket;
 
     private PreparedStatement insertIntoMetricsIndex;
 
@@ -145,12 +154,20 @@ public class DataAccessImpl implements DataAccess {
     }
 
     protected void initPreparedStatements() {
+        insertTenantId = session.prepare("INSERT INTO tenants (id) VALUES (?)");
+
         insertTenant = session.prepare(
             "INSERT INTO tenants (id, retentions) VALUES (?, ?) IF NOT EXISTS");
 
         findAllTenantIds = session.prepare("SELECT DISTINCT id FROM tenants");
 
-        findTenant = session.prepare("SELECT id, retentions  FROM tenants WHERE id = ?");
+        findTenantIdsByTime = session.prepare("SELECT tenant FROM tenants_by_time WHERE bucket = ?");
+
+        insertTenantIdIntoBucket = session.prepare("INSERT into tenants_by_time (bucket, tenant) VALUES (?, ?)");
+
+        findTenant = session.prepare("SELECT id, retentions FROM tenants WHERE id = ?");
+
+        deleteTenantsBucket = session.prepare("DELETE FROM tenants_by_time WHERE bucket = ?");
 
         findMetric = session.prepare(
             "SELECT metric, interval, tags, data_retention " +
@@ -327,6 +344,10 @@ public class DataAccessImpl implements DataAccess {
                         "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
     }
 
+    @Override public Observable<ResultSet> insertTenant(String tenantId) {
+        return rxSession.execute(insertTenantId.bind(tenantId));
+    }
+
     @Override
     public Observable<ResultSet> insertTenant(Tenant tenant) {
         Map<String, Integer> retentions = tenant.getRetentionSettings().entrySet().stream()
@@ -339,9 +360,21 @@ public class DataAccessImpl implements DataAccess {
         return rxSession.execute(findAllTenantIds.bind());
     }
 
+    @Override public Observable<ResultSet> findTenantIds(long time) {
+        return rxSession.execute(findTenantIdsByTime.bind(new Date(time)));
+    }
+
+    @Override public Observable<ResultSet> insertTenantId(long time, String id) {
+        return rxSession.execute(insertTenantIdIntoBucket.bind(new Date(time), id));
+    }
+
     @Override
     public Observable<ResultSet> findTenant(String id) {
         return rxSession.execute(findTenant.bind(id));
+    }
+
+    @Override public Observable<ResultSet> deleteTenantsBucket(long time) {
+        return rxSession.execute(deleteTenantsBucket.bind(new Date(time)));
     }
 
     @Override
