@@ -96,7 +96,7 @@ public class VirtualClockHandler {
         try {
             virtualClock.advanceTimeBy(numMinutes, MINUTES);
 
-            timeSlicesSubscriber.awaitTerminalEvent(10, SECONDS);
+            timeSlicesSubscriber.awaitTerminalEvent(25, SECONDS);
             timeSlicesSubscriber.assertNoErrors();
             timeSlicesSubscriber.assertTerminalEvent();
 
