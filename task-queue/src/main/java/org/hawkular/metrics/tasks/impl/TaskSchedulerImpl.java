@@ -437,11 +437,11 @@ public class TaskSchedulerImpl implements TaskScheduler {
             logger.debug("shutting down");
             running = false;
 
-            taskSubject.onCompleted();
-
             if (leasesSubscription != null) {
                 leasesSubscription.unsubscribe();
             }
+
+            taskSubject.onCompleted();
 
             tasksExecutor.shutdown();
             tasksExecutor.awaitTermination(5, TimeUnit.SECONDS);
