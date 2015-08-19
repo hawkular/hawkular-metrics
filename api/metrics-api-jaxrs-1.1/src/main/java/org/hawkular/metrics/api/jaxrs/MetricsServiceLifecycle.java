@@ -351,8 +351,8 @@ public class MetricsServiceLifecycle {
     private void stopMetricsService() {
         state = State.STOPPING;
         metricsService.shutdown();
+        jobs.values().forEach(Subscription::unsubscribe);
         taskScheduler.shutdown();
-//        jobs.values().forEach(Subscription::unsubscribe);
         if (session != null) {
             try {
                 session.close();
