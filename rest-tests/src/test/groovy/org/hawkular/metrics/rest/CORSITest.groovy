@@ -18,19 +18,52 @@ package org.hawkular.metrics.rest
 
 import static org.junit.Assert.assertEquals
 
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_CREDENTIALS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_HEADERS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_METHODS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_ORIGIN;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_MAX_AGE;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_REQUEST_METHOD;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ORIGIN;
+
 import org.junit.Test
 
 class CORSITest extends RESTTest {
 
     @Test
-    void testOptions() {
+    void testOptionsWithOrigin() {
+        def testOrigin = "TestOrigin123";
+
         def response = hawkularMetrics.options(path: "ping",
          headers: [
-            "Access-Control-Request-Method": "POST",
-            "origin": "test"
+            ACCESS_CONTROL_REQUEST_METHOD: "POST",
+            ORIGIN: testOrigin
          ]);
 
          //Expected a 200 because this is be a pre-flight call that should never reach the resource router
          assertEquals(200, response.status)
+         assertEquals(DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS, response.headers[ACCESS_CONTROL_ALLOW_METHODS].value);
+         assertEquals(DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS, response.headers[ACCESS_CONTROL_ALLOW_HEADERS].value);
+         assertEquals(testOrigin, response.headers[ACCESS_CONTROL_ALLOW_ORIGIN].value);
+         assertEquals("true", response.headers[ACCESS_CONTROL_ALLOW_CREDENTIALS].value);
+         assertEquals((72 * 60 * 60)+"", response.headers[ACCESS_CONTROL_MAX_AGE].value);
+    }
+
+    @Test
+    void testOptionsWithoutOrigin() {
+        def response = hawkularMetrics.options(path: "ping",
+         headers: [
+            ACCESS_CONTROL_REQUEST_METHOD: "GET",
+         ]);
+
+         //Expected a 200 because this is be a pre-flight call that should never reach the resource router
+         assertEquals(200, response.status)
+         assertEquals(DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS, response.headers[ACCESS_CONTROL_ALLOW_METHODS].value);
+         assertEquals(DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS, response.headers[ACCESS_CONTROL_ALLOW_HEADERS].value);
+         assertEquals("*", response.headers[ACCESS_CONTROL_ALLOW_ORIGIN].value);
+         assertEquals("true", response.headers[ACCESS_CONTROL_ALLOW_CREDENTIALS].value);
+         assertEquals((72 * 60 * 60)+"", response.headers[ACCESS_CONTROL_MAX_AGE].value);
     }
 }
