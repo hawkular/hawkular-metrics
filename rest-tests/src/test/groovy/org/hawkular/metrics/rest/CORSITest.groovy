@@ -36,14 +36,16 @@ class CORSITest extends RESTTest {
     void testOptionsWithOrigin() {
         def testOrigin = "TestOrigin123";
 
-        def response = hawkularMetrics.options(path: "ping",
+        def response = hawkularMetrics.options(path: "gauges/test/data",
          headers: [
             ACCESS_CONTROL_REQUEST_METHOD: "POST",
             ORIGIN: testOrigin
          ]);
 
          //print headers
+         println("==== Request Headers = Start  ====");
          response.headers.each { println "${it.name} : ${it.value}" }
+         println("==== Request Headers = End    ====");
 
          //Expected a 200 because this is be a pre-flight call that should never reach the resource router
          assertEquals(200, response.status)
@@ -56,13 +58,15 @@ class CORSITest extends RESTTest {
 
     @Test
     void testOptionsWithoutOrigin() {
-        def response = hawkularMetrics.options(path: "ping",
+        def response = hawkularMetrics.options(path: "gauges/test/data",
          headers: [
             ACCESS_CONTROL_REQUEST_METHOD: "GET",
          ]);
 
          //print headers
+         println("==== Request Headers = Start  ====");
          response.headers.each { println "${it.name} : ${it.value}" }
+         println("==== Request Headers = End    ====");
 
          //Expected a 200 because this is be a pre-flight call that should never reach the resource router
          assertEquals(200, response.status)
