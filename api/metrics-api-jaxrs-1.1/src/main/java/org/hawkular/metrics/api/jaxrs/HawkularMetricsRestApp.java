@@ -28,7 +28,6 @@ import org.hawkular.metrics.api.jaxrs.exception.mappers.NotAllowedExceptionMappe
 import org.hawkular.metrics.api.jaxrs.exception.mappers.NotFoundExceptionMapper;
 import org.hawkular.metrics.api.jaxrs.exception.mappers.NotSupportedExceptionMapper;
 import org.hawkular.metrics.api.jaxrs.exception.mappers.ReaderExceptionMapper;
-import org.hawkular.metrics.api.jaxrs.filter.CorsFilter;
 import org.hawkular.metrics.api.jaxrs.filter.EmptyPayloadFilter;
 import org.hawkular.metrics.api.jaxrs.filter.MetricsServiceStateFilter;
 import org.hawkular.metrics.api.jaxrs.filter.TenantFilter;
@@ -109,7 +108,6 @@ public class HawkularMetricsRestApp extends Application {
         classes.add(EmptyPayloadFilter.class);
         classes.add(TenantFilter.class);
         classes.add(MetricsServiceStateFilter.class);
-        classes.add(CorsFilter.class);
 
         // Add interceptors and other miscellaneous providers
         classes.add(EmptyPayloadInterceptor.class);
