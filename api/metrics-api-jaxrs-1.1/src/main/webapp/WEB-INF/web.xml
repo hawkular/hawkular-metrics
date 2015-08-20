@@ -30,16 +30,18 @@
   </context-param>
 
   <context-param>
-    <param-name>resteasy.media.type.mappings</param-name>
-    <param-value>html : text/html, json : application/json, xml : application/xml, csv : text/csv, txt: text/plain,
-      yaml: application/yaml, jsonw: application/vnd.hawkular.wrapped+json
-    </param-value>
-  </context-param>
-
-  <context-param>
     <param-name>resteasy.providers</param-name>
     <param-value>org.hawkular.metrics.api.jaxrs.util.JacksonContextResolver</param-value>
   </context-param>
+
+  <filter>
+    <filter-name>CorsFilter</filter-name>
+    <filter-class>org.hawkular.metrics.api.jaxrs.filter.CorsFilter</filter-class>
+  </filter>
+  <filter-mapping>
+    <filter-name>CorsFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
 
   <servlet>
     <servlet-name>staticContent</servlet-name>
@@ -54,4 +56,5 @@
     <servlet-name>staticContent</servlet-name>
     <url-pattern>/static/*</url-pattern>
   </servlet-mapping>
+
 </web-app>

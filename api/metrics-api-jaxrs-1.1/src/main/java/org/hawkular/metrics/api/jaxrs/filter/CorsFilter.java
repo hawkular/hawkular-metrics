@@ -16,39 +16,77 @@
  */
 package org.hawkular.metrics.api.jaxrs.filter;
 
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.ext.Provider;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_CREDENTIALS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_HEADERS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_METHODS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_ORIGIN;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_MAX_AGE;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_REQUEST_METHOD;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ORIGIN;
 
-import org.jboss.resteasy.annotations.interception.ServerInterceptor;
-import org.jboss.resteasy.core.ServerResponse;
-import org.jboss.resteasy.spi.interception.PostProcessInterceptor;
+import java.io.IOException;
+import java.util.Enumeration;
+
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * @author Stefan Negrea
  *
  */
-@Provider
-@ServerInterceptor
-public class CorsFilter implements PostProcessInterceptor {
+public class CorsFilter implements Filter {
 
-    public static final String DEFAULT_ALLOWED_METHODS = "GET, POST, PUT, DELETE, OPTIONS, HEAD";
-    public static final String DEFAULT_ALLOWED_HEADERS = "origin,accept,content-type,hawkular-tenant";
+    public static final String PREFLIGHT_METHOD = "OPTIONS";
 
     @Override
-    public void postProcess(ServerResponse response) {
-        final MultivaluedMap<String, Object> headers = response.getMetadata();
+    public void destroy() {
+    }
+
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
+        final HttpServletRequest httpRequest = (HttpServletRequest) request;
+        final HttpServletResponse httpResponse = (HttpServletResponse) response;
 
         String origin = "*";
-        if (headers.get("origin") != null && headers.get("origin").size() == 1
-                && headers.get("origin").get(0) != null
-                && !headers.get("origin").get(0).equals("null")) {
-            origin = headers.get("origin").get(0).toString();
+        Enumeration<String> originHeaders = httpRequest.getHeaders(ORIGIN);
+        if (originHeaders != null && originHeaders.hasMoreElements()) {
+            String originHeaderValue = originHeaders.nextElement();
+            if (originHeaderValue != null && !originHeaderValue.equals("null")) {
+                origin = originHeaderValue.split(",")[0];
+            }
         }
-        headers.add("Access-Control-Allow-Origin", origin);
+        httpResponse.addHeader(ACCESS_CONTROL_ALLOW_ORIGIN, origin);
 
-        headers.add("Access-Control-Allow-Credentials", "true");
-        headers.add("Access-Control-Allow-Methods", DEFAULT_ALLOWED_METHODS);
-        headers.add("Access-Control-Max-Age", 72 * 60 * 60);
-        headers.add("Access-Control-Allow-Headers", DEFAULT_ALLOWED_HEADERS);
+        httpResponse.addHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+        httpResponse.addHeader(ACCESS_CONTROL_ALLOW_METHODS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS);
+        httpResponse.addHeader(ACCESS_CONTROL_MAX_AGE, (72 * 60 * 60) + "");
+        httpResponse.addHeader(ACCESS_CONTROL_ALLOW_HEADERS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS);
+
+        if (!isPreflightRequest((HttpServletRequest) request)) {
+            chain.doFilter(request, response);
+        }
+    }
+
+    @Override
+    public void init(FilterConfig arg0) throws ServletException {
+    }
+
+    private boolean isPreflightRequest(final HttpServletRequest request) {
+        if (request.getHeader(ACCESS_CONTROL_REQUEST_METHOD) != null &&
+                request.getMethod() != null &&
+                request.getMethod().equalsIgnoreCase(PREFLIGHT_METHOD)) {
+            return true;
+        }
+
+        return false;
     }
 }
