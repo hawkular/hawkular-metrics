@@ -42,6 +42,9 @@ class CORSITest extends RESTTest {
             ORIGIN: testOrigin
          ]);
 
+         //print headers
+         response.headers.each { println "${it.name} : ${it.value}" }
+
          //Expected a 200 because this is be a pre-flight call that should never reach the resource router
          assertEquals(200, response.status)
          assertEquals(DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS, response.headers[ACCESS_CONTROL_ALLOW_METHODS].value);
@@ -57,6 +60,9 @@ class CORSITest extends RESTTest {
          headers: [
             ACCESS_CONTROL_REQUEST_METHOD: "GET",
          ]);
+
+         //print headers
+         response.headers.each { println "${it.name} : ${it.value}" }
 
          //Expected a 200 because this is be a pre-flight call that should never reach the resource router
          assertEquals(200, response.status)

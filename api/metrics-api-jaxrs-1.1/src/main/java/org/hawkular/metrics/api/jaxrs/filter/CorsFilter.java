@@ -37,13 +37,11 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.ext.Provider;
 
 /**
  * @author Stefan Negrea
  *
  */
-@Provider
 public class CorsFilter implements Filter {
 
     public static final String PREFLIGHT_METHOD = "OPTIONS";
@@ -64,7 +62,7 @@ public class CorsFilter implements Filter {
         if (originHeaders != null && originHeaders.hasMoreElements()) {
             String originHeaderValue = originHeaders.nextElement();
             if (originHeaderValue != null && !originHeaderValue.equals("null")) {
-                origin = originHeaderValue;
+                origin = originHeaderValue.split(",")[0];
             }
         }
         httpResponse.addHeader(ACCESS_CONTROL_ALLOW_ORIGIN, origin);
