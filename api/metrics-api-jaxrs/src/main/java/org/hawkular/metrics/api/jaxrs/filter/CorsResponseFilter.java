@@ -45,19 +45,21 @@ public class CorsResponseFilter implements ContainerResponseFilter {
     @Override
     public void filter(ContainerRequestContext requestContext,
             ContainerResponseContext responseContext) throws IOException {
-        final MultivaluedMap<String, Object> headers = responseContext
+        final MultivaluedMap<String, String> requestHeaders = requestContext.getHeaders();
+        final MultivaluedMap<String, Object> responseHeaders = responseContext
                 .getHeaders();
 
         String origin = "*";
-        if (headers.get(ORIGIN) != null && headers.get(ORIGIN).size() != 0
-                && headers.get(ORIGIN).get(0) != null
-                && !headers.get(ORIGIN).get(0).equals("null")) {
-            origin = headers.get(ORIGIN).get(0).toString();
+        if (requestHeaders.get(ORIGIN) != null && requestHeaders.get(ORIGIN).size() != 0
+                && requestHeaders.get(ORIGIN).get(0) != null
+                && !requestHeaders.get(ORIGIN).get(0).equals("null")) {
+            origin = requestHeaders.get(ORIGIN).get(0).toString();
         }
-        headers.add(ACCESS_CONTROL_ALLOW_ORIGIN, origin);
-        headers.add(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
-        headers.add(ACCESS_CONTROL_ALLOW_METHODS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS);
-        headers.add(ACCESS_CONTROL_MAX_AGE, 72 * 60 * 60);
-        headers.add(ACCESS_CONTROL_ALLOW_HEADERS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS);
+
+        responseHeaders.add(ACCESS_CONTROL_ALLOW_ORIGIN, origin);
+        responseHeaders.add(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+        responseHeaders.add(ACCESS_CONTROL_ALLOW_METHODS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS);
+        responseHeaders.add(ACCESS_CONTROL_MAX_AGE, 72 * 60 * 60);
+        responseHeaders.add(ACCESS_CONTROL_ALLOW_HEADERS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS);
     }
 }
