@@ -130,7 +130,6 @@
         <version>7.7.Final</version>
         <configuration>
           <version>7.5.0.Final-redhat-15</version>
-          <skip>${jboss-as-maven-plugin.skip}</skip>
           <port>${jboss-as.management.port}</port>
         </configuration>
       </plugin>
