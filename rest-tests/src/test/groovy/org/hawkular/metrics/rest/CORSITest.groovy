@@ -42,18 +42,17 @@ class CORSITest extends RESTTest {
             (ORIGIN): testOrigin,
          ]);
 
-         //print headers
-         println("==== Request Headers = Start  ====");
-         response.headers.each { println "${it.name} : ${it.value}" }
-         println("==== Request Headers = End    ====");
+         def responseHeaders = "==== Response Headers = Start  ====\n";
+         response.headers.each { responseHeaders += "${it.name} : ${it.value}\n" }
+         responseHeaders += "==== Response Headers = End ====\n";
 
          //Expected a 200 because this is be a pre-flight call that should never reach the resource router
          assertEquals(200, response.status)
-         assertEquals(DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS, response.headers[ACCESS_CONTROL_ALLOW_METHODS].value);
-         assertEquals(DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS, response.headers[ACCESS_CONTROL_ALLOW_HEADERS].value);
-         assertEquals(testOrigin, response.headers[ACCESS_CONTROL_ALLOW_ORIGIN].value);
-         assertEquals("true", response.headers[ACCESS_CONTROL_ALLOW_CREDENTIALS].value);
-         assertEquals((72 * 60 * 60)+"", response.headers[ACCESS_CONTROL_MAX_AGE].value);
+         assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS, response.headers[ACCESS_CONTROL_ALLOW_METHODS].value);
+         assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS, response.headers[ACCESS_CONTROL_ALLOW_HEADERS].value);
+         assertEquals(responseHeaders, testOrigin, response.headers[ACCESS_CONTROL_ALLOW_ORIGIN].value);
+         assertEquals(responseHeaders, "true", response.headers[ACCESS_CONTROL_ALLOW_CREDENTIALS].value);
+         assertEquals(responseHeaders, (72 * 60 * 60)+"", response.headers[ACCESS_CONTROL_MAX_AGE].value);
     }
 
     @Test
@@ -63,17 +62,16 @@ class CORSITest extends RESTTest {
             (ACCESS_CONTROL_REQUEST_METHOD): "GET"
          ]);
 
-         //print headers
-         println("==== Request Headers = Start  ====");
-         response.headers.each { println "${it.name} : ${it.value}" }
-         println("==== Request Headers = End    ====");
+         def responseHeaders = "==== Response Headers = Start  ====\n";
+         response.headers.each { responseHeaders += "${it.name} : ${it.value}\n" }
+         responseHeaders += "==== Response Headers = End ====\n";
 
          //Expected a 200 because this is be a pre-flight call that should never reach the resource router
          assertEquals(200, response.status)
-         assertEquals(DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS, response.headers[ACCESS_CONTROL_ALLOW_METHODS].value);
-         assertEquals(DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS, response.headers[ACCESS_CONTROL_ALLOW_HEADERS].value);
-         assertEquals("*", response.headers[ACCESS_CONTROL_ALLOW_ORIGIN].value);
-         assertEquals("true", response.headers[ACCESS_CONTROL_ALLOW_CREDENTIALS].value);
-         assertEquals((72 * 60 * 60)+"", response.headers[ACCESS_CONTROL_MAX_AGE].value);
+         assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS, response.headers[ACCESS_CONTROL_ALLOW_METHODS].value);
+         assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS, response.headers[ACCESS_CONTROL_ALLOW_HEADERS].value);
+         assertEquals(responseHeaders, "*", response.headers[ACCESS_CONTROL_ALLOW_ORIGIN].value);
+         assertEquals(responseHeaders, "true", response.headers[ACCESS_CONTROL_ALLOW_CREDENTIALS].value);
+         assertEquals(responseHeaders, (72 * 60 * 60)+"", response.headers[ACCESS_CONTROL_MAX_AGE].value);
     }
 }
