@@ -36,10 +36,10 @@ class CORSITest extends RESTTest {
     void testOptionsWithOrigin() {
         def testOrigin = "TestOrigin123";
 
-        def response = hawkularMetrics.options(path: "gauges/test/data",
+        def response = hawkularMetrics.options(path: "ping",
          headers: [
-            ACCESS_CONTROL_REQUEST_METHOD: "POST",
-            ORIGIN: testOrigin
+            (ACCESS_CONTROL_REQUEST_METHOD): "POST",
+            (ORIGIN): testOrigin,
          ]);
 
          //print headers
@@ -60,7 +60,7 @@ class CORSITest extends RESTTest {
     void testOptionsWithoutOrigin() {
         def response = hawkularMetrics.options(path: "gauges/test/data",
          headers: [
-            ACCESS_CONTROL_REQUEST_METHOD: "GET",
+            (ACCESS_CONTROL_REQUEST_METHOD): "GET"
          ]);
 
          //print headers
