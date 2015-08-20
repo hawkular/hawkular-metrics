@@ -194,7 +194,7 @@
                     <javaOpt>-Dcassandra.resetdb</javaOpt>
                     <javaOpt>-Dhawkular.metrics.waitForService</javaOpt>
                     <javaOpt>-Dhawkular.metrics.use-virtual-clock=true</javaOpt>
-                    <javaOpt>-Dhawkular.scheduler.time-units=${scheduler.units}</javaOpt>
+                    <javaOpt>-Dhawkular.terminal-event.timeout=${terminal-event.timeout}</javaOpt>
                     <javaOpt>-Xdebug</javaOpt>
                     <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
                   </javaOpts>
@@ -241,6 +241,7 @@
         <wildfly.management.port>57887</wildfly.management.port>
         <wildfly.logging.console.level>ERROR</wildfly.logging.console.level>
         <wildfly.logging.file.level>DEBUG</wildfly.logging.file.level>
+        <terminal-event.timeout>10</terminal-event.timeout>
       </properties>
       <build>
         <plugins>

@@ -95,8 +95,8 @@ public class VirtualClockHandler {
 
         try {
             virtualClock.advanceTimeBy(numMinutes, MINUTES);
-
-            timeSlicesSubscriber.awaitTerminalEvent(10, SECONDS);
+            long timeout = Long.parseLong(System.getProperty("hawkular.terminal-event.timeout", "10"));
+            timeSlicesSubscriber.awaitTerminalEvent(timeout, SECONDS);
             timeSlicesSubscriber.assertNoErrors();
             timeSlicesSubscriber.assertTerminalEvent();
 
