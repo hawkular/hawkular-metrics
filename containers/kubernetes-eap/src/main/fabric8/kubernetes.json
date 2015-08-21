@@ -1,0 +1,266 @@
+{
+  "id": "hawkular-metrics",
+  "kind": "List",
+  "apiVersion": "v1",
+  "name": "Hawkular Metrics",
+  "description": "Hawkular Metrics Kubernetes Application. Starts up the Hawkular Metrics web application and a cassandra cluster.",
+  "items": [
+    {
+      "apiVersion" : "v1",
+      "kind": "Service",
+      "metadata" : {
+        "name": "hawkular-cassandra-nodes",
+        "labels": {
+          "name": "hawkular-cassandra"
+        }
+      },
+      "spec" : {
+        "selector" : {
+          "name": "hawkular-cassandra"
+        },
+        "portalIp": "None",
+        "ports": [
+          { "name": "cql-port", "port": 9042, "targetPort": "cql-port" },
+          { "name": "thift-port", "port": 9160, "targetPort": "thift-port" },
+          { "name": "tcp-port", "port": 7000, "targetPort": "tcp-port" },
+          { "name": "ssl-port", "port": 7001, "targetPort": "ssl-port" }
+        ]
+      }
+    },
+    {
+      "apiVersion" : "v1",
+      "kind": "Service",
+      "metadata" : {
+        "name": "hawkular-cassandra",
+        "labels": {
+          "name": "hawkular-cassandra"
+        }
+      },
+      "spec" : {
+        "selector" : {
+          "name": "hawkular-cassandra"
+        },
+        "ports": [
+          { "name": "cql-port", "port": 9042, "targetPort": "cql-port" },
+          { "name": "thift-port", "port": 9160, "targetPort": "thift-port" },
+          { "name": "tcp-port", "port": 7000, "targetPort": "tcp-port" },
+          { "name": "ssl-port", "port": 7001, "targetPort": "ssl-port" }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ReplicationController",
+      "metadata": {
+        "name": "hawkular-cassandra",
+        "labels" : {
+          "name": "hawkular-cassandra"
+        }
+      },
+      "spec": {
+        "selector" : {
+          "name": "hawkular-cassandra"
+        },
+        "replicas": 1,
+        "template": {
+          "version": "v1",
+          "metadata": {
+            "labels" : {
+              "name": "hawkular-cassandra"
+            }
+          },
+          "spec": {
+            "serviceAccount": "hawkular",
+            "containers": [{
+              "image": "${cassandra.image}",
+              "name" : "hawkular-cassandra",
+              "ports": [
+                { "name": "cql-port", "containerPort": 9042},
+                { "name": "thift-port", "containerPort": 9160},
+                { "name": "tcp-port", "containerPort": 7000},
+                { "name": "ssl-port", "containerPort": 7001}
+              ],
+              "command" : ["/opt/apache-cassandra/bin/cassandra-docker.sh",
+                "--seed_provider_classname=org.hawkular.openshift.cassandra.OpenshiftSeedProvider",
+                "--cluster_name=hawkular-metrics",
+                "--data_volume=/cassandra_data",
+                "--internode_encryption=all",
+                "--require_node_auth=true",
+                "--enable_client_encryption=true",
+                "--require_client_auth=false",
+                "--keystore_file=/secret/cassandra.keystore",
+                "--keystore_password_file=/secret/cassandra.keystore.password",
+                "--truststore_file=/secret/cassandra.truststore",
+                "--truststore_password_file=/secret/cassandra.truststore.password"
+                ],
+              "volumeMounts": [
+                { "name": "cassandra-data", "mountPath": "/cassandra_data" },
+                { "name": "cassandra-secrets", "mountPath": "/secret"}
+              ],
+              "lifecycle": {
+                "preStop": {
+                  "exec": {
+                    "command": ["/opt/apache-cassandra/bin/cassandra-docker-pre-stop.sh"]
+                  }
+                }
+              }
+            }],
+            "volumes": [
+              { "name": "cassandra-data", "emptyDir":{} },
+              { "name": "cassandra-secrets", "secret": { "secretName": "cassandra-secrets"} }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "hawkular-metrics",
+        "labels": {
+          "name": "hawkular-metrics"
+        }
+      },
+      "spec": {
+        "selector": {
+          "name": "hawkular-metrics"
+        },
+        "ports": [
+          { "name": "http-endpoint", "port": 80, "targetPort": "http-endpoint" }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ReplicationController",
+      "metadata": {
+        "name": "hawkular-metrics",
+        "labels" : {
+          "name": "hawkular-metrics"
+        }
+      },
+      "spec": {
+        "selector" : {
+          "name": "hawkular-metrics"
+        },
+        "replicas": 1,
+        "template": {
+          "version": "v1",
+          "metadata": {
+            "labels" : {
+              "name": "hawkular-metrics"
+            }
+          },
+          "spec": {
+            "serviceAccount": "hawkular",
+            "containers": [{
+              "image": "${hawkular-metrics.image}",
+              "name" : "hawkular-metrics",
+              "command" : [ "/opt/eap/bin/standalone.sh",
+                "-b", "0.0.0.0",
+                "-Dhawkular-metrics.cassandra-nodes=hawkular-cassandra",
+                "-Dhawkular-metrics.cassandra-use-ssl",
+                "-Djavax.net.ssl.keyStore=/secrets/hawkular-metrics.keystore",
+                "-Djavax.net.ssl.keyStorePassword=hawkular",
+                "-Djavax.net.ssl.trustStore=/secrets/hawkular-metrics.truststore",
+                "-Djavax.net.ssl.trustStorePassword=hawkular",
+                "-Dorg.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH=true",
+                "-Dorg.apache.catalina.connector.CoyoteAdapter.ALLOW_BACKSLASH=true"
+              ],
+              "volumeMounts": [
+                { "name": "hawkular-metrics-secrets", "mountPath": "/secrets"}
+              ],
+              "ports": [
+                { "name": "http-endpoint", "containerPort": 8080}
+              ],
+              "lifecycle": {
+                "postStart": {
+                  "exec": {
+                    "command": ["/opt/hawkular/scripts/hawkular-metrics-poststart.sh"]
+                  }
+                }
+              },
+              "livenessProbe": {
+                "exec": {
+                  "command": ["/opt/hawkular/scripts/hawkular-metrics-liveness.sh"]
+                }
+              }
+            }],
+            "volumes": [
+              { "name": "hawkular-metrics-secrets", "secret": { "secretName": "hawkular-metrics-secrets"} }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "heapster",
+        "labels": {
+          "name": "heapster"
+        }
+      },
+      "spec": {
+        "selector": {
+          "name": "heapster"
+        },
+        "ports": [
+          { "name": "http-endpoint", "port": 80, "targetPort": "http-endpoint" }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ReplicationController",
+      "metadata": {
+        "name": "heapster",
+        "labels" : {
+          "name": "heapster"
+        }
+      },
+      "spec": {
+        "selector" : {
+          "name": "heapster"
+        },
+        "replicas": 1,
+        "template": {
+          "version": "v1",
+          "metadata": {
+            "labels" : {
+              "name": "heapster"
+            }
+          },
+          "spec": {
+            "containers": [{
+              "image": "${heapster.image}",
+              "name" : "heapster",
+              "ports": [
+                { "name": "http-endpoint", "containerPort": 8082}
+              ],
+              "command" : ["./heapster",
+                "--source=kubernetes:https://kubernetes.default.svc.cluster.local:443?useServiceAccount=true&kubeletHttps=false&kubeletPort=10266&auth=",
+                "--sink=hawkular:http://hawkular-metrics:80",
+                "--logtostderr=true",
+                "--vmodule=*=4"]
+            }],
+            "serviceAccount" : "hawkular"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ServiceAccount",
+      "metadata": {
+        "name": "hawkular"
+      },
+      "secrets": [
+        { "name": "cassandra-secrets" },
+        { "name": "hawkular-metrics-secrets" }
+      ]
+    }
+  ]
+}

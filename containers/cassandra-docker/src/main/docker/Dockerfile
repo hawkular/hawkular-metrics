@@ -33,7 +33,7 @@ EXPOSE 7000
 EXPOSE 7001
 
 # The Cassandra version
-ENV CASSANDRA_VERSION ${cassandra.version}
+ENV CASSANDRA_VERSION ${version.org.apache.cassandra}
 
 # The Cassandra home location
 ENV CASSANDRA_HOME /opt/apache-cassandra

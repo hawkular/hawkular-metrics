@@ -28,21 +28,23 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>cassandra-docker</artifactId>
+  <artifactId>hawkular-metrics-docker-eap</artifactId>
   <packaging>pom</packaging>
 
-  <name>Cassandra Docker Image</name>
+  <name>Hawkular Metrics Docker Image - EAP</name>
 
   <properties>
-    <docker.baseimage>jboss/base-jdk:8</docker.baseimage>
+    <docker.baseimage>registry.access.redhat.com/jboss-eap-6/eap-openshift</docker.baseimage>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
-      <artifactId>cassandra-seed-provider</artifactId>
+      <artifactId>hawkular-metrics-api-jaxrs-1.1</artifactId>
       <version>${project.version}</version>
+      <type>war</type>
     </dependency>
+
   </dependencies>
 
   <build>
@@ -53,10 +55,10 @@
         <configuration>
           <images>
             <image>
-              <name>${cassandra.image}</name>
+              <name>${hawkular-metrics.image}</name>
               <build>
                 <assembly>
-                  <dockerFileDir>${project.basedir}/target/docker/${docker.user}/hawkular-cassandra/${version.org.apache.cassandra}-${cassandra.build}/build/maven</dockerFileDir>
+                  <dockerFileDir>${project.basedir}/target/docker/${docker.user}/hawkular-metrics/${project.version}/build/maven</dockerFileDir>
                   <descriptor>../resources/assemblies/assemble-docker.xml</descriptor>
                 </assembly>
               </build>

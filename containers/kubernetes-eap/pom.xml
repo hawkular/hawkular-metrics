@@ -28,9 +28,9 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>hawkular-metrics-kubernetes-app</artifactId>
+  <artifactId>hawkular-metrics-eap-kubernetes-app</artifactId>
 
-  <name>Hawkular Metrics Kubernetes Application</name>
+  <name>Hawkular Metrics Kubernetes Application - EAP</name>
 
   <properties>
     <!-- Properties for the fabric8-maven-plugin -->
@@ -47,7 +47,7 @@
     </dependency>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
-      <artifactId>hawkular-metrics-docker</artifactId>
+      <artifactId>hawkular-metrics-docker-eap</artifactId>
       <type>pom</type>
       <version>${project.version}</version>
       <scope>test</scope>
