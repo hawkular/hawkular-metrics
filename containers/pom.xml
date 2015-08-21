@@ -41,13 +41,14 @@
   </modules>
 
   <properties>
-    <cassandra.version>2.1.6</cassandra.version>
+    <!-- Override version.org.apache.cassandra set in hawkular-parent -->
+    <version.org.apache.cassandra>2.1.6</version.org.apache.cassandra>
     <fabric8.version>2.2.16</fabric8.version>
     <docker-maven-plugin.version>0.12.0</docker-maven-plugin.version>
     <docker.user>hawkular</docker.user>
     <hawkular-metrics.image>${docker.user}/hawkular-metrics:${project.version}</hawkular-metrics.image>
     <cassandra.build>devel</cassandra.build>
-    <cassandra.image>${docker.user}/hawkular-cassandra:${cassandra.version}-${cassandra.build}</cassandra.image>
+    <cassandra.image>${docker.user}/hawkular-cassandra:${version.org.apache.cassandra}-${cassandra.build}</cassandra.image>
     <heapster.image>kubernetes/heapster:v0.17.0</heapster.image>
   </properties>
 
