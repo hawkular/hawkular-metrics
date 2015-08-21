@@ -92,7 +92,18 @@ public class MetricsInitializationITest extends MetricsITest {
         session.execute("TRUNCATE tasks");
     }
 
+
     @Test
+    public void testAll() {
+        // These tests depend on each other and the ordering
+        // Things like 'dependsOnMethods' and 'priority' do not currently work as expected and can
+        // interweave test methods from other classes. Strange test failure will result if these options are used.
+        // See HWKMETRICS-229
+        systemTenantShouldBeCreated();
+        tenantCreationJobShouldBeCreated();
+        doSystemInitializationOnlyOnce();
+    }
+
     public void systemTenantShouldBeCreated() {
         List<Tenant> actual = getOnNextEvents(() ->
                 metricsService.getTenants().filter(tenant -> tenant.getId().equals(SYSTEM_TENANT_ID)));
@@ -101,7 +112,6 @@ public class MetricsInitializationITest extends MetricsITest {
         assertEquals(actual, expected, "Expected to find only the system tenant");
     }
 
-    @Test(dependsOnMethods = "systemTenantShouldBeCreated")
     public void tenantCreationJobShouldBeCreated() {
         ResultSet resultSet = session.execute("select group_key, name from tasks");
         List<Row> rows = resultSet.all();
@@ -111,7 +121,6 @@ public class MetricsInitializationITest extends MetricsITest {
         assertEquals(rows.get(0).getString(1), CreateTenants.TASK_NAME, "The job name does not match");
     }
 
-    @Test(dependsOnMethods = "tenantCreationJobShouldBeCreated")
     public void doSystemInitializationOnlyOnce() {
         MetricsServiceImpl service = new MetricsServiceImpl();
         service.setTaskScheduler(taskScheduler);
