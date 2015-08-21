@@ -80,7 +80,7 @@ class TenantITest extends RESTTest {
     }
   }
 
-  @Test
+//  @Test
   void createImplicitTenantWhenInsertingGaugeDataPoints() {
     String tenantId = nextTenantId()
     DateTimeService dateTimeService = new DateTimeService()
@@ -104,7 +104,7 @@ class TenantITest extends RESTTest {
     assertNotNull("tenantId = $tenantId, Response = $response.data", response.data.find { it.id == tenantId })
   }
 
-  @Test
+//  @Test
   void createImplicitTenantWhenInsertingCounterDataPoints() {
     String tenantId = nextTenantId()
     DateTimeService dateTimeService = new DateTimeService()
@@ -128,7 +128,7 @@ class TenantITest extends RESTTest {
     assertNotNull("tenantId = $tenantId, Response = $response.data", response.data.find { it.id == tenantId })
   }
 
-  @Test
+//  @Test
   void createImplicitTenantWhenInsertingAvailabilityDataPoints() {
     String tenantId = nextTenantId()
     DateTimeService dateTimeService = new DateTimeService()

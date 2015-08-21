@@ -230,8 +230,8 @@ class CountersITest extends RESTTest {
     assertEquals(200, response.status)
 
     expectedData = [
-        [timestamp: start.plusMinutes(1).millis, value: 225],
-        [timestamp: start.millis, value: 150]
+        [timestamp: start.millis, value: 150],
+        [timestamp: start.plusMinutes(1).millis, value: 225]
     ]
     assertEquals(expectedData, response.data)
   }
@@ -261,8 +261,8 @@ class CountersITest extends RESTTest {
     assertEquals(200, response.status)
 
     def expectedData = [
-        [timestamp: start.plusHours(4).millis, value: 500],
-        [timestamp: start.plusHours(1).millis, value: 200]
+        [timestamp: start.plusHours(1).millis, value: 200],
+        [timestamp: start.plusHours(4).millis, value: 500]
     ]
     assertEquals(expectedData, response.data)
   }
@@ -334,8 +334,8 @@ class CountersITest extends RESTTest {
     )
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: "clock/wait", query: [duration: "4mn"])
-    assertEquals("There was an error waiting: $response.data", 200, response.status)
+//    response = hawkularMetrics.get(path: "clock/wait", query: [duration: "4mn"])
+//    assertEquals("There was an error waiting: $response.data", 200, response.status)
 
     response = hawkularMetrics.get(
         path: "counters/$counter/rate",
@@ -346,17 +346,17 @@ class CountersITest extends RESTTest {
 
     def expectedData = [
         [
-            timestamp: start.plusMinutes(3).millis,
-            value: calculateRate(747, start.plusMinutes(3), start.plusMinutes(4))
+            timestamp: start.plusMinutes(1).millis,
+            value: calculateRate(200 - 100, start.plusMinutes(1), start.plusMinutes(2))
         ],
         [
             timestamp: start.plusMinutes(2).millis,
-            value: calculateRate(515, start.plusMinutes(2), start.plusMinutes(3))
+            value: calculateRate(515 - 345, start.plusMinutes(2), start.plusMinutes(3))
         ],
         [
-            timestamp: start.plusMinutes(1).millis,
-            value: calculateRate(200, start.plusMinutes(1), start.plusMinutes(2))
-        ],
+            timestamp: start.plusMinutes(3).millis,
+            value: calculateRate(747 - 595, start.plusMinutes(3), start.plusMinutes(4))
+        ]
     ]
 
     assertEquals("Expected to get back three data points", 3, response.data.size())
@@ -367,7 +367,7 @@ class CountersITest extends RESTTest {
 
 
   static double calculateRate(double value, DateTime start, DateTime end) {
-    return (value / (end.millis - start.millis)) * 1000.0
+    return (value / (end.millis - start.millis)) * 60000.0
   }
 
   static void assertRateEquals(def expected, def actual) {

@@ -245,7 +245,8 @@ public class DataAccessImpl implements DataAccess {
         findCounterDataExclusive = session.prepare(
             "SELECT time, m_tags, data_retention, l_value, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? " +
-            "AND time < ?");
+            "AND time < ? " +
+            "ORDER BY time ASC");
 
         findGaugeDataWithWriteTimeByDateRangeExclusive = session.prepare(
             "SELECT time, m_tags, data_retention, n_value, tags, WRITETIME(n_value) FROM data " +

@@ -49,11 +49,9 @@ import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.api.jaxrs.util.VirtualClock;
 import org.hawkular.metrics.core.api.MetricsService;
-import org.hawkular.metrics.core.impl.CreateTenants;
 import org.hawkular.metrics.core.impl.DataAccess;
 import org.hawkular.metrics.core.impl.DataAccessImpl;
 import org.hawkular.metrics.core.impl.DateTimeService;
-import org.hawkular.metrics.core.impl.GenerateRate;
 import org.hawkular.metrics.core.impl.MetricsServiceImpl;
 import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.metrics.tasks.api.AbstractTrigger;
@@ -299,13 +297,13 @@ public class MetricsServiceLifecycle {
     }
 
     private void initJobs() {
-        GenerateRate generateRates = new GenerateRate(metricsService);
-        CreateTenants createTenants = new CreateTenants(metricsService, dataAcces);
-
-        jobs.put(generateRates, taskScheduler.getTasks().filter(task -> task.getName().equals(GenerateRate.TASK_NAME))
-                .subscribe(generateRates));
-        jobs.put(createTenants, taskScheduler.getTasks().filter(task -> task.getName().equals(CreateTenants.TASK_NAME))
-                .subscribe(createTenants));
+//        GenerateRate generateRates = new GenerateRate(metricsService);
+//        CreateTenants createTenants = new CreateTenants(metricsService, dataAcces);
+//
+//      jobs.put(generateRates, taskScheduler.getTasks().filter(task -> task.getName().equals(GenerateRate.TASK_NAME))
+//                .subscribe(generateRates));
+//      jobs.put(createTenants, taskScheduler.getTasks().filter(task -> task.getName().equals(CreateTenants.TASK_NAME))
+//                .subscribe(createTenants));
     }
 
     private DateTimeService createDateTimeService() {

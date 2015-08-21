@@ -134,7 +134,7 @@ public class MetricsITest {
     }
 
     protected double calculateRate(double value, DateTime startTime, DateTime endTime) {
-        return (value / (endTime.getMillis() - startTime.getMillis())) * 1000;
+        return (value / (endTime.getMillis() - startTime.getMillis())) * 60000;
     }
 
     protected void assertIsEmpty(String msg, Observable<ResultSet> observable) {

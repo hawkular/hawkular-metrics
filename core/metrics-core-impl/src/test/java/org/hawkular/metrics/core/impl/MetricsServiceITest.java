@@ -476,7 +476,7 @@ public class MetricsServiceITest extends MetricsITest {
         DateTime end = start.plusMinutes(20);
         String tenantId = "counters-tenant";
 
-        metricsService.createTenant(new Tenant(tenantId)).toBlocking().lastOrDefault(null);
+        doAction(() -> metricsService.createTenant(new Tenant(tenantId)));
 
         Metric<Long> counter = new Metric<>(new MetricId(tenantId, COUNTER, "c1"), asList(
                 new DataPoint<>(start.getMillis(), 10L),
@@ -485,15 +485,15 @@ public class MetricsServiceITest extends MetricsITest {
                 new DataPoint<>(end.getMillis(), 45L)
         ));
 
-        metricsService.addCounterData(Observable.just(counter)).toBlocking().lastOrDefault(null);
+        doAction(() -> metricsService.addCounterData(Observable.just(counter)));
 
         Observable<DataPoint<Long>> data = metricsService.findCounterData(new MetricId(tenantId, COUNTER, "c1"),
                 start.getMillis(), end.getMillis());
         List<DataPoint<Long>> actual = toList(data);
         List<DataPoint<Long>> expected = asList(
-                new DataPoint<>(start.plusMinutes(4).getMillis(), 25L),
+                new DataPoint<>(start.getMillis(), 10L),
                 new DataPoint<>(start.plusMinutes(2).getMillis(), 15L),
-                new DataPoint<>(start.getMillis(), 10L)
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 25L)
         );
 
         assertEquals(actual, expected, "The counter data does not match the expected values");
@@ -526,6 +526,61 @@ public class MetricsServiceITest extends MetricsITest {
 
         assertEquals(actual, expected, "The data does not match the expected values");
         assertMetricIndexMatches("t1", GAUGE, singletonList(m1));
+    }
+
+    @Test
+    public void findRates() {
+        DateTime start = dateTimeService.currentHour().minusHours(1);
+        String tenantId = "counter-rate-test";
+
+        Metric<Long> counter = new Metric<>(new MetricId(tenantId, COUNTER, "C1"), asList(
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 10L),
+                new DataPoint<>(start.plusMinutes(1).plusSeconds(45).getMillis(), 17L),
+                new DataPoint<>(start.plusMinutes(2).plusSeconds(10).getMillis(), 29L),
+                new DataPoint<>(start.plusMinutes(2).plusSeconds(39).getMillis(), 41L),
+                new DataPoint<>(start.plusMinutes(2).plusSeconds(57).getMillis(), 49L),
+                new DataPoint<>(start.plusMinutes(3).plusSeconds(8).getMillis(), 56L),
+                new DataPoint<>(start.plusMinutes(3).plusSeconds(36).getMillis(), 67L),
+                new DataPoint<>(start.plusMinutes(4).plusSeconds(29).getMillis(), 84L)
+        ));
+
+        doAction(() -> metricsService.addCounterData(Observable.just(counter)));
+
+        List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getId(),
+                start.getMillis(), start.plusMinutes(6).getMillis()));
+        List<DataPoint<Double>> expected = asList(
+                null,
+                new DataPoint<>(start.plusMinutes(1).getMillis(), calculateRate(17 - 10, start.plusMinutes(1),
+                        start.plusMinutes(2))),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), calculateRate(49 - 29, start.plusMinutes(2),
+                        start.plusMinutes(3))),
+                new DataPoint<>(start.plusMinutes(3).getMillis(), calculateRate(67 - 56, start.plusMinutes(3),
+                        start.plusMinutes(4))),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), calculateRate(84, start.plusMinutes(4),
+                        start.plusMinutes(5))),
+                null
+        );
+
+        assertEquals(actual, expected, "The rates do not match");
+    }
+
+    @Test
+    public void findRatesWhenNoDataIsFound() {
+        DateTime start = dateTimeService.currentHour().minusHours(1);
+        String tenantId = "counter-rate-test-no-data";
+
+        Metric<Long> counter = new Metric<>(new MetricId(tenantId, COUNTER, "C1"), asList(
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 10L),
+                new DataPoint<>(start.plusMinutes(1).plusSeconds(45).getMillis(), 17L),
+                new DataPoint<>(start.plusMinutes(2).plusSeconds(10).getMillis(), 29L)
+        ));
+
+        doAction(() -> metricsService.addCounterData(Observable.just(counter)));
+
+        List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getId(),
+                start.plusMinutes(3).getMillis(), start.plusMinutes(5).getMillis()));
+
+        assertEquals(actual, asList(null, null), "The rates do not match");
     }
 
     @Test

@@ -169,18 +169,27 @@ public interface MetricsService {
 
     Observable<Void> addCounterData(Observable<Metric<Long>> counters);
 
+    /**
+     * Queries for raw counter data points with the specified date range.
+     *
+     * @param id The counter id
+     * @param start The start time inclusive
+     * @param end The end time exclusive
+     * @return An observable that emits counter data points in ascending order
+     */
     Observable<DataPoint<Long>> findCounterData(MetricId id, long start, long end);
 
     /**
-     * Fetches counter rate data points which are automatically generated for counter metrics. Note that rate data is
-     * generated only if the metric has been explicitly created via the {@link #createMetric(Metric)} method.
+     * Fetches counter data points and calculates per-minute rates. The start and end time are rounded down to the
+     * nearest minutes in order to separate data points into one minute buckets.
      *
      * @param id This is the id of the counter metric
      * @param start The start time which is inclusive
      * @param end The end time which is exclusive
      *
-     * @return An Observable of {@link DataPoint data points} which are emitted in descending order. In other words,
-     * the most recent data is emitted first.
+     * @return An Observable of {@link DataPoint data points} which are emitted in ascending order. In other words,
+     * the most recent data is emitted first. If there are no data points for a particular bucket (i.e., minute), then
+     * null is emitted.
      */
     Observable<DataPoint<Double>> findRateData(MetricId id, long start, long end);
 
