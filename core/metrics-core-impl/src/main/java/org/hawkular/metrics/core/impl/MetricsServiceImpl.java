@@ -400,15 +400,20 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         return dataAccess.findAllTenantIds()
                 .flatMap(Observable::from)
                 .map(row -> row.getString(0))
-                .flatMap(dataAccess::findTenant)
-                .flatMap(Observable::from)
-                .map(Functions::getTenant);
+                .distinct()
+                .flatMap(id ->
+                                dataAccess.findTenant(id)
+                                        .flatMap(Observable::from)
+                                        .map(Functions::getTenant)
+                                        .switchIfEmpty(Observable.just(new Tenant(id)))
+                );
     }
 
     private List<String> loadTenantIds() {
         Iterable<String> tenantIds = dataAccess.findAllTenantIds()
                 .flatMap(Observable::from)
                 .map(row -> row.getString(0))
+                .distinct()
                 .toBlocking()
                 .toIterable();
         return ImmutableList.copyOf(tenantIds);
@@ -416,9 +421,9 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public Observable<Void> createMetric(Metric<?> metric) {
-        if (metric.getType() == COUNTER_RATE) {
-            throw new IllegalArgumentException(metric + " cannot be created. " + COUNTER_RATE + " metrics are " +
-                    "internally generated metrics and cannot be created by clients.");
+        if(!MetricType.userTypes().contains(metric.getId().getType())) {
+            throw new IllegalArgumentException(metric + " cannot be created. " + metric.getId().getType() +
+                    " metrics are internally generated metrics and cannot be created by clients.");
         }
 
         ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric);

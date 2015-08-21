@@ -68,6 +68,7 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement insertTenantId;
 
     private PreparedStatement findAllTenantIds;
+    private PreparedStatement findAllTenantIdsFromMetricsIdx;
 
     private PreparedStatement insertTenantIdIntoBucket;
 
@@ -160,6 +161,8 @@ public class DataAccessImpl implements DataAccess {
             "INSERT INTO tenants (id, retentions) VALUES (?, ?) IF NOT EXISTS");
 
         findAllTenantIds = session.prepare("SELECT DISTINCT id FROM tenants");
+
+        findAllTenantIdsFromMetricsIdx = session.prepare("SELECT DISTINCT tenant_id, type FROM metrics_idx");
 
         findTenantIdsByTime = session.prepare("SELECT tenant FROM tenants_by_time WHERE bucket = ?");
 
@@ -358,7 +361,8 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<ResultSet> findAllTenantIds() {
-        return rxSession.execute(findAllTenantIds.bind());
+        return rxSession.execute(findAllTenantIds.bind())
+                .concatWith(rxSession.execute(findAllTenantIdsFromMetricsIdx.bind()));
     }
 
     @Override public Observable<ResultSet> findTenantIds(long time) {

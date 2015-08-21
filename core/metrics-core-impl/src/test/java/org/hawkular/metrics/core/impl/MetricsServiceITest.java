@@ -170,6 +170,27 @@ public class MetricsServiceITest extends MetricsITest {
     }
 
     @Test
+    public void createMetricsIdxTenants() throws Exception {
+        Metric<Double> em1 = new Metric<>(new MetricId("t123", GAUGE, "em1"));
+        metricsService.createMetric(em1).toBlocking().lastOrDefault(null);
+
+        Metric actual = metricsService.findMetric(em1.getId())
+                .toBlocking()
+                .lastOrDefault(null);
+        assertNotNull(actual);
+        assertEquals(actual, em1, "The metric does not match the expected value");
+
+        Set<Tenant> actualTenants = ImmutableSet.copyOf(metricsService.getTenants().toBlocking().toIterable());
+        assertEquals(actualTenants.size(), 1);
+
+        Tenant t1 = new Tenant("t123", ImmutableMap.of(GAUGE, 1, AVAILABILITY, 1));
+        metricsService.createTenant(t1).toBlocking().lastOrDefault(null);
+
+        actualTenants = ImmutableSet.copyOf(metricsService.getTenants().toBlocking().toIterable());
+        assertEquals(actualTenants.size(), 1);
+    }
+
+    @Test
     public void createAndFindMetrics() throws Exception {
         Metric<Double> em1 = new Metric<>(new MetricId("t1", GAUGE, "em1"));
         metricsService.createMetric(em1).toBlocking().lastOrDefault(null);
