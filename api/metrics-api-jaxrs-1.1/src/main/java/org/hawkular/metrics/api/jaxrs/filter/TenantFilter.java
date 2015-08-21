@@ -58,7 +58,9 @@ public class TenantFilter implements PreProcessInterceptor {
         String path = request.getUri().getPath();
 
         if (path.startsWith("/tenants") || path.startsWith("/db") || path.startsWith(StatusHandler.PATH)
-                || path.equals(BaseHandler.PATH) || path.startsWith(VirtualClockHandler.PATH)) {
+                //On older version, the path value from localhost:8080/hawkular/metrics is an empty String instead of /
+                || path.equals(BaseHandler.PATH) || path.equals("")
+                || path.startsWith(VirtualClockHandler.PATH)) {
             // Tenants, Influx and status handlers do not check the tenant header
             return null;
         }
