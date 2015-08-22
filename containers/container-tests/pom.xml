@@ -64,12 +64,6 @@
     </dependency>
 
     <dependency>
-      <groupId>org.hawkular.metrics</groupId>
-      <artifactId>hawkular-metrics-kubernetes-app</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-client</artifactId>
       <scope>test</scope>
@@ -88,6 +82,36 @@
       <properties>
         <maven.test.skip>false</maven.test.skip>
       </properties>
+    </profile>
+    <profile>
+      <id>wildfly-containers</id>
+      <activation>
+        <property>
+          <name>wildfly-containers</name>
+        </property>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>org.hawkular.metrics</groupId>
+          <artifactId>hawkular-metrics-kubernetes-app</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>eap-containers</id>
+      <activation>
+        <property>
+          <name>!wildfly-containers</name>
+        </property>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>org.hawkular.metrics</groupId>
+          <artifactId>hawkular-metrics-eap-kubernetes-app</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+      </dependencies>
     </profile>
   </profiles>
 </project>
