@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.core.impl;
 
+import static java.lang.Double.NaN;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -549,7 +550,7 @@ public class MetricsServiceITest extends MetricsITest {
         List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getId(),
                 start.getMillis(), start.plusMinutes(6).getMillis()));
         List<DataPoint<Double>> expected = asList(
-                null,
+                new DataPoint<>(start.getMillis(), NaN),
                 new DataPoint<>(start.plusMinutes(1).getMillis(), calculateRate(17 - 10, start.plusMinutes(1),
                         start.plusMinutes(2))),
                 new DataPoint<>(start.plusMinutes(2).getMillis(), calculateRate(49 - 29, start.plusMinutes(2),
@@ -558,7 +559,7 @@ public class MetricsServiceITest extends MetricsITest {
                         start.plusMinutes(4))),
                 new DataPoint<>(start.plusMinutes(4).getMillis(), calculateRate(84, start.plusMinutes(4),
                         start.plusMinutes(5))),
-                null
+                new DataPoint<>(start.plusMinutes(5).getMillis(), NaN)
         );
 
         assertEquals(actual, expected, "The rates do not match");
@@ -580,7 +581,11 @@ public class MetricsServiceITest extends MetricsITest {
         List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getId(),
                 start.plusMinutes(3).getMillis(), start.plusMinutes(5).getMillis()));
 
-        assertEquals(actual, asList(null, null), "The rates do not match");
+        List<DataPoint<Double>> expected = asList(
+                new DataPoint<>(start.plusMinutes(3).getMillis(), NaN),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), NaN)
+        );
+        assertEquals(actual, expected, "The rates do not match");
     }
 
     @Test

@@ -16,14 +16,15 @@
  */
 package org.hawkular.metrics.rest
 
-import static org.joda.time.DateTime.now
-import static org.joda.time.Duration.standardMinutes
-import static org.junit.Assert.assertEquals
-
+import groovy.json.JsonOutput
 import org.hawkular.metrics.core.impl.DateTimeService
 import org.joda.time.DateTime
 import org.junit.Test
 
+import static java.lang.Double.NaN
+import static org.joda.time.DateTime.now
+import static org.joda.time.Duration.standardMinutes
+import static org.junit.Assert.assertEquals
 /**
  * @author John Sanda
  */
@@ -326,10 +327,10 @@ class CountersITest extends RESTTest {
         body: [
             [timestamp: start.plusMinutes(1).millis, value: 100],
             [timestamp: start.plusMinutes(1).plusSeconds(31).millis, value : 200],
-            [timestamp: start.plusMinutes(2).plusMillis(10).millis, value : 345],
-            [timestamp: start.plusMinutes(2).plusSeconds(30).millis, value : 515],
-            [timestamp: start.plusMinutes(3).millis, value : 595],
-            [timestamp: start.plusMinutes(3).plusSeconds(30).millis, value : 747]
+            [timestamp: start.plusMinutes(3).plusMillis(10).millis, value : 345],
+            [timestamp: start.plusMinutes(3).plusSeconds(30).millis, value : 515],
+            [timestamp: start.plusMinutes(4).millis, value : 595],
+            [timestamp: start.plusMinutes(4).plusSeconds(30).millis, value : 747]
         ]
     )
     assertEquals(200, response.status)
@@ -340,7 +341,7 @@ class CountersITest extends RESTTest {
     response = hawkularMetrics.get(
         path: "counters/$counter/rate",
         headers: [(tenantHeaderName): tenantId],
-        query: [start: start.plusMinutes(1).millis, end: start.plusMinutes(4).millis]
+        query: [start: start.plusMinutes(1).millis, end: start.plusMinutes(6).millis]
     )
     assertEquals(200, response.status)
 
@@ -351,15 +352,25 @@ class CountersITest extends RESTTest {
         ],
         [
             timestamp: start.plusMinutes(2).millis,
-            value: calculateRate(515 - 345, start.plusMinutes(2), start.plusMinutes(3))
+            value: NaN
         ],
         [
             timestamp: start.plusMinutes(3).millis,
-            value: calculateRate(747 - 595, start.plusMinutes(3), start.plusMinutes(4))
+            value: calculateRate(515 - 345, start.plusMinutes(3), start.plusMinutes(4))
+        ],
+        [
+            timestamp: start.plusMinutes(4).millis,
+            value: calculateRate(747 - 595, start.plusMinutes(4), start.plusMinutes(5))
+        ],
+        [
+            timestamp: start.plusMinutes(5).millis,
+            value: NaN
         ]
     ]
 
-    assertEquals("Expected to get back three data points", 3, response.data.size())
+    println "RESPONSE = ${JsonOutput.toJson(response.data)}"
+
+    assertEquals("Expected to get back three data points", 5, response.data.size())
     assertRateEquals(expectedData[0], response.data[0])
     assertRateEquals(expectedData[1], response.data[1])
     assertRateEquals(expectedData[2], response.data[2])

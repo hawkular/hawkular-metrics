@@ -657,7 +657,8 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         Observable<DataPoint<Long>> rawDataPoints = findCounterData(id, startTime.getMillis(), endTime.getMillis());
 
         return getCounterBuckets(rawDataPoints, startTime.getMillis(), endTime.getMillis())
-                .map(bucket -> bucket.isEmpty() ? null : new DataPoint<>(bucket.startTime, bucket.getDelta()));
+//                .map(bucket -> bucket.isEmpty() ? null : new DataPoint<>(bucket.startTime, bucket.getDelta()));
+                .map(bucket -> new DataPoint<>(bucket.startTime, bucket.getDelta()));
     }
 
     private Observable<CounterBucket> getCounterBuckets(Observable<DataPoint<Long>> dataPoints, long startTime,
@@ -715,6 +716,9 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         }
 
         public Double getDelta() {
+            if (isEmpty()) {
+                return Double.NaN;
+            }
             if (first == last) {
                 return ((double) first.getValue() / (endTime - startTime)) * 60000;
             }

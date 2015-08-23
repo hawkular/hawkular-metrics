@@ -189,7 +189,7 @@ public interface MetricsService {
      *
      * @return An Observable of {@link DataPoint data points} which are emitted in ascending order. In other words,
      * the most recent data is emitted first. If there are no data points for a particular bucket (i.e., minute), then
-     * null is emitted.
+     * the data point will have Double.NaN as its value.
      */
     Observable<DataPoint<Double>> findRateData(MetricId id, long start, long end);
 
