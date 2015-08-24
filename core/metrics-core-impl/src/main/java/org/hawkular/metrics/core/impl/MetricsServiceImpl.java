@@ -357,21 +357,10 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                     throw new TenantAlreadyExistsException(tenant.getId());
                 }
 
-//                Trigger trigger = new RepeatingTrigger.Builder()
-//                        .withDelay(1, MINUTES)
-//                        .withInterval(1, MINUTES)
-//                        .build();
-//                Map<String, String> params = ImmutableMap.of("tenant", tenant.getId());
-//                Observable<Void> ratesScheduled = taskScheduler.scheduleTask("generate-rates", tenant.getId(),
-//                        100, params, trigger).map(task -> null);
-
-                Observable<Void> retentionUpdates = Observable.from(tenant.getRetentionSettings().entrySet())
+                return Observable.from(tenant.getRetentionSettings().entrySet())
                         .flatMap(entry -> dataAccess.updateRetentionsIndex(tenant.getId(), entry.getKey(),
                                 ImmutableMap.of(makeSafe(entry.getKey().getText()), entry.getValue())))
                         .map(rs -> null);
-
-//                return ratesScheduled.concatWith(retentionUpdates);
-                return retentionUpdates;
             });
             updates.subscribe(resultSet -> {
             }, subscriber::onError, subscriber::onCompleted);
@@ -380,19 +369,17 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public Observable<Void> createTenants(long creationTime, Observable<String> tenantIds) {
-//        return tenantIds.flatMap(tenantId -> dataAccess.insertTenant(tenantId).flatMap(resultSet -> {
-//            Trigger trigger = new RepeatingTrigger.Builder()
-//                    .withDelay(1, MINUTES)
-//                    .withInterval(1, MINUTES)
-//                    .build();
-//            Map<String, String> params = ImmutableMap.of(
-//                    "tenant", tenantId,
-//                    "creationTime", Long.toString(creationTime));
-//
-//            return taskScheduler.scheduleTask("generate-rates", tenantId, 100, params, trigger).map(task -> null);
-//        }));
+        return tenantIds.flatMap(tenantId -> dataAccess.insertTenant(tenantId).flatMap(resultSet -> {
+            Trigger trigger = new RepeatingTrigger.Builder()
+                    .withDelay(1, MINUTES)
+                    .withInterval(1, MINUTES)
+                    .build();
+            Map<String, String> params = ImmutableMap.of(
+                    "tenant", tenantId,
+                    "creationTime", Long.toString(creationTime));
 
-        return tenantIds.flatMap(tenantId -> dataAccess.insertTenant(tenantId).map(resultSet -> null));
+            return taskScheduler.scheduleTask("generate-rates", tenantId, 100, params, trigger).map(task -> null);
+        }));
     }
 
     @Override
