@@ -196,6 +196,12 @@
               <includes>
                 <include>**/*ITest*</include>
               </includes>
+              <excludes>
+                <exclude>**/RatesITest.java</exclude>
+                <exclude>**/GenerateRateITest.java</exclude>
+                <exclude>**/CreateTenantsITest.java</exclude>
+                <exclude>**/CreateTenantsSchedulerITest.java</exclude>
+              </excludes>
               <systemPropertyVariables>
                 <keyspace>${test.keyspace}</keyspace>
                 <nodes>${nodes}</nodes>

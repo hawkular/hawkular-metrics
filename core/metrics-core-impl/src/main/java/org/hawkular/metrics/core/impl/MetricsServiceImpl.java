@@ -41,6 +41,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -66,6 +67,7 @@ import org.hawkular.metrics.tasks.api.RepeatingTrigger;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.hawkular.metrics.tasks.api.Trigger;
 import org.hawkular.rx.cassandra.driver.RxUtil;
+import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -355,20 +357,21 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                     throw new TenantAlreadyExistsException(tenant.getId());
                 }
 
-                Trigger trigger = new RepeatingTrigger.Builder()
-                        .withDelay(1, MINUTES)
-                        .withInterval(1, MINUTES)
-                        .build();
-                Map<String, String> params = ImmutableMap.of("tenant", tenant.getId());
-                Observable<Void> ratesScheduled = taskScheduler.scheduleTask("generate-rates", tenant.getId(),
-                        100, params, trigger).map(task -> null);
+//                Trigger trigger = new RepeatingTrigger.Builder()
+//                        .withDelay(1, MINUTES)
+//                        .withInterval(1, MINUTES)
+//                        .build();
+//                Map<String, String> params = ImmutableMap.of("tenant", tenant.getId());
+//                Observable<Void> ratesScheduled = taskScheduler.scheduleTask("generate-rates", tenant.getId(),
+//                        100, params, trigger).map(task -> null);
 
                 Observable<Void> retentionUpdates = Observable.from(tenant.getRetentionSettings().entrySet())
                         .flatMap(entry -> dataAccess.updateRetentionsIndex(tenant.getId(), entry.getKey(),
                                 ImmutableMap.of(makeSafe(entry.getKey().getText()), entry.getValue())))
                         .map(rs -> null);
 
-                return ratesScheduled.concatWith(retentionUpdates);
+//                return ratesScheduled.concatWith(retentionUpdates);
+                return retentionUpdates;
             });
             updates.subscribe(resultSet -> {
             }, subscriber::onError, subscriber::onCompleted);
@@ -377,17 +380,19 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public Observable<Void> createTenants(long creationTime, Observable<String> tenantIds) {
-        return tenantIds.flatMap(tenantId -> dataAccess.insertTenant(tenantId).flatMap(resultSet -> {
-            Trigger trigger = new RepeatingTrigger.Builder()
-                    .withDelay(1, MINUTES)
-                    .withInterval(1, MINUTES)
-                    .build();
-            Map<String, String> params = ImmutableMap.of(
-                    "tenant", tenantId,
-                    "creationTime", Long.toString(creationTime));
+//        return tenantIds.flatMap(tenantId -> dataAccess.insertTenant(tenantId).flatMap(resultSet -> {
+//            Trigger trigger = new RepeatingTrigger.Builder()
+//                    .withDelay(1, MINUTES)
+//                    .withInterval(1, MINUTES)
+//                    .build();
+//            Map<String, String> params = ImmutableMap.of(
+//                    "tenant", tenantId,
+//                    "creationTime", Long.toString(creationTime));
+//
+//            return taskScheduler.scheduleTask("generate-rates", tenantId, 100, params, trigger).map(task -> null);
+//        }));
 
-            return taskScheduler.scheduleTask("generate-rates", tenantId, 100, params, trigger).map(task -> null);
-        }));
+        return tenantIds.flatMap(tenantId -> dataAccess.insertTenant(tenantId).map(resultSet -> null));
     }
 
     @Override
@@ -646,11 +651,88 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public Observable<DataPoint<Double>> findRateData(MetricId id, long start, long end) {
-        MetricId rateId = new MetricId(id.getTenantId(), COUNTER_RATE, id.getName(), id.getInterval());
-        return time(gaugeReadLatency, () ->
-                dataAccess.findData(rateId, start, end)
-                        .flatMap(Observable::from)
-                        .map(Functions::getGaugeDataPoint));
+        DateTime startTime = dateTimeService.getTimeSlice(new DateTime(start), standardMinutes(1));
+        DateTime endTime = dateTimeService.getTimeSlice(new DateTime(end), standardMinutes(1));
+
+        Observable<DataPoint<Long>> rawDataPoints = findCounterData(id, startTime.getMillis(), endTime.getMillis());
+
+        return getCounterBuckets(rawDataPoints, startTime.getMillis(), endTime.getMillis())
+//                .map(bucket -> bucket.isEmpty() ? null : new DataPoint<>(bucket.startTime, bucket.getDelta()));
+                .map(bucket -> new DataPoint<>(bucket.startTime, bucket.getDelta()));
+    }
+
+    private Observable<CounterBucket> getCounterBuckets(Observable<DataPoint<Long>> dataPoints, long startTime,
+                                                        long endTime) {
+        return Observable.create(subscriber -> {
+            final AtomicReference<CounterBucket> bucketRef = new AtomicReference<>(new CounterBucket(startTime));
+            dataPoints.subscribe(
+                    dataPoint -> {
+                        while (!bucketRef.get().contains(dataPoint.getTimestamp())) {
+                            subscriber.onNext(bucketRef.get());
+                            bucketRef.set(new CounterBucket(bucketRef.get().endTime));
+                        }
+                        bucketRef.get().add(dataPoint);
+                    },
+                    subscriber::onError,
+                    () -> {
+                        subscriber.onNext(bucketRef.get());
+                        CounterBucket bucket = new CounterBucket(bucketRef.get().endTime);
+                        while (bucket.endTime <= endTime) {
+                            subscriber.onNext(bucket);
+                            bucket = new CounterBucket(bucket.endTime);
+                        }
+                        subscriber.onCompleted();
+                    }
+            );
+        });
+    }
+
+    private class CounterBucket {
+        DataPoint<Long> first;
+        DataPoint<Long> last;
+        long startTime;
+        long endTime;
+
+        public CounterBucket(long startTime) {
+            this.startTime = startTime;
+            this.endTime = startTime + 60000;
+        }
+
+        public void add(DataPoint<Long> dataPoint) {
+            if (first == null && dataPoint.getTimestamp() >= startTime) {
+                first = dataPoint;
+                last = dataPoint;
+            } else if (dataPoint.getTimestamp() >= startTime && dataPoint.getTimestamp() < endTime) {
+                last = dataPoint;
+            }
+        }
+
+        public boolean contains(long time) {
+            return time >= startTime && time < endTime;
+        }
+
+        public boolean isEmpty() {
+            return first == null && last == null;
+        }
+
+        public Double getDelta() {
+            if (isEmpty()) {
+                return Double.NaN;
+            }
+            if (first == last) {
+                return ((double) first.getValue() / (endTime - startTime)) * 60000;
+            }
+            return (((double) last.getValue() - (double) first.getValue()) / (endTime - startTime)) * 60000;
+        }
+
+        @Override public String toString() {
+            return "CounterBucket{" +
+                    "first=" + first +
+                    ", last=" + last +
+                    ", startTime=" + startTime +
+                    ", endTime=" + endTime +
+                    '}';
+        }
     }
 
     @Override

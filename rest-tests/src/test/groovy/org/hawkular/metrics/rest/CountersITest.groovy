@@ -16,14 +16,15 @@
  */
 package org.hawkular.metrics.rest
 
-import static org.joda.time.DateTime.now
-import static org.joda.time.Duration.standardMinutes
-import static org.junit.Assert.assertEquals
-
+import groovy.json.JsonOutput
 import org.hawkular.metrics.core.impl.DateTimeService
 import org.joda.time.DateTime
 import org.junit.Test
 
+import static java.lang.Double.NaN
+import static org.joda.time.DateTime.now
+import static org.joda.time.Duration.standardMinutes
+import static org.junit.Assert.assertEquals
 /**
  * @author John Sanda
  */
@@ -230,8 +231,8 @@ class CountersITest extends RESTTest {
     assertEquals(200, response.status)
 
     expectedData = [
-        [timestamp: start.plusMinutes(1).millis, value: 225],
-        [timestamp: start.millis, value: 150]
+        [timestamp: start.millis, value: 150],
+        [timestamp: start.plusMinutes(1).millis, value: 225]
     ]
     assertEquals(expectedData, response.data)
   }
@@ -261,8 +262,8 @@ class CountersITest extends RESTTest {
     assertEquals(200, response.status)
 
     def expectedData = [
-        [timestamp: start.plusHours(4).millis, value: 500],
-        [timestamp: start.plusHours(1).millis, value: 200]
+        [timestamp: start.plusHours(1).millis, value: 200],
+        [timestamp: start.plusHours(4).millis, value: 500]
     ]
     assertEquals(expectedData, response.data)
   }
@@ -326,40 +327,50 @@ class CountersITest extends RESTTest {
         body: [
             [timestamp: start.plusMinutes(1).millis, value: 100],
             [timestamp: start.plusMinutes(1).plusSeconds(31).millis, value : 200],
-            [timestamp: start.plusMinutes(2).plusMillis(10).millis, value : 345],
-            [timestamp: start.plusMinutes(2).plusSeconds(30).millis, value : 515],
-            [timestamp: start.plusMinutes(3).millis, value : 595],
-            [timestamp: start.plusMinutes(3).plusSeconds(30).millis, value : 747]
+            [timestamp: start.plusMinutes(3).plusMillis(10).millis, value : 345],
+            [timestamp: start.plusMinutes(3).plusSeconds(30).millis, value : 515],
+            [timestamp: start.plusMinutes(4).millis, value : 595],
+            [timestamp: start.plusMinutes(4).plusSeconds(30).millis, value : 747]
         ]
     )
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: "clock/wait", query: [duration: "4mn"])
-    assertEquals("There was an error waiting: $response.data", 200, response.status)
+//    response = hawkularMetrics.get(path: "clock/wait", query: [duration: "4mn"])
+//    assertEquals("There was an error waiting: $response.data", 200, response.status)
 
     response = hawkularMetrics.get(
         path: "counters/$counter/rate",
         headers: [(tenantHeaderName): tenantId],
-        query: [start: start.plusMinutes(1).millis, end: start.plusMinutes(4).millis]
+        query: [start: start.plusMinutes(1).millis, end: start.plusMinutes(6).millis]
     )
     assertEquals(200, response.status)
 
     def expectedData = [
         [
-            timestamp: start.plusMinutes(3).millis,
-            value: calculateRate(747, start.plusMinutes(3), start.plusMinutes(4))
+            timestamp: start.plusMinutes(1).millis,
+            value: calculateRate(200 - 100, start.plusMinutes(1), start.plusMinutes(2))
         ],
         [
             timestamp: start.plusMinutes(2).millis,
-            value: calculateRate(515, start.plusMinutes(2), start.plusMinutes(3))
+            value: NaN
         ],
         [
-            timestamp: start.plusMinutes(1).millis,
-            value: calculateRate(200, start.plusMinutes(1), start.plusMinutes(2))
+            timestamp: start.plusMinutes(3).millis,
+            value: calculateRate(515 - 345, start.plusMinutes(3), start.plusMinutes(4))
         ],
+        [
+            timestamp: start.plusMinutes(4).millis,
+            value: calculateRate(747 - 595, start.plusMinutes(4), start.plusMinutes(5))
+        ],
+        [
+            timestamp: start.plusMinutes(5).millis,
+            value: NaN
+        ]
     ]
 
-    assertEquals("Expected to get back three data points", 3, response.data.size())
+    println "RESPONSE = ${JsonOutput.toJson(response.data)}"
+
+    assertEquals("Expected to get back three data points", 5, response.data.size())
     assertRateEquals(expectedData[0], response.data[0])
     assertRateEquals(expectedData[1], response.data[1])
     assertRateEquals(expectedData[2], response.data[2])
@@ -367,7 +378,7 @@ class CountersITest extends RESTTest {
 
 
   static double calculateRate(double value, DateTime start, DateTime end) {
-    return (value / (end.millis - start.millis)) * 1000.0
+    return (value / (end.millis - start.millis)) * 60000.0
   }
 
   static void assertRateEquals(def expected, def actual) {
