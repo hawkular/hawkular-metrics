@@ -18,13 +18,18 @@ package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
 
 import javax.inject.Inject;
+import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle;
@@ -41,6 +46,9 @@ public class StatusHandler {
 
     public static final String PATH = "/status";
 
+    @Context
+    ServletContext servletContext;
+
     @Inject
     private MetricsServiceLifecycle metricsServiceLifecycle;
 
@@ -55,6 +63,20 @@ public class StatusHandler {
         State metricState = metricsServiceLifecycle.getState();
         status.put(METRICSSERVICE_NAME, metricState.toString());
 
+        this.getVersionInformation(status);
+
         return Response.ok(status).build();
+    }
+
+    private void getVersionInformation(Map<String, Object> status) {
+        try (InputStream inputStream = servletContext.getResourceAsStream("/META-INF/MANIFEST.MF")) {
+            Manifest manifest = new Manifest(inputStream);
+            Attributes attr = manifest.getMainAttributes();
+            status.put("Implementation-Version", attr.getValue("Implementation-Version"));
+            status.put("Built-From-Git-SHA1", attr.getValue("Built-From-Git-SHA1"));
+        } catch(Exception e){
+            status.put("Implementation-Version", "Unknown");
+            status.put("Built-From-Git-SHA1", "Unknown");
+        }
     }
 }

@@ -17,6 +17,8 @@
 package org.hawkular.metrics.rest
 
 import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertNotEquals
+import static org.junit.Assert.assertNotNull
 
 import org.junit.Test
 
@@ -30,8 +32,12 @@ class StatusITest extends RESTTest {
 
         assertEquals(200, response.status);
 
-        def expectedData = ["MetricsService" : "STARTED"];
+        def expectedState = ["MetricsService" : "STARTED"];
 
-        assertEquals(expectedData, response.data);
+        assertEquals(expectedState.MetricsService, response.data.MetricsService);
+        assertNotNull(response.data["Implementation-Version"]);
+        assertNotNull(response.data["Built-From-Git-SHA1"]);
+        assertNotEquals("Unknown", response.data["Implementation-Version"]);
+        assertNotEquals("Unknown", response.data["Built-From-Git-SHA1"]);
     }
 }
