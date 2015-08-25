@@ -35,6 +35,8 @@ function updateStatus() {
    if (httpRequest.status === 200) {
      statusJson = JSON.parse(httpRequest.responseText);
      document.getElementById("status").innerHTML = "Metrics Service :" + statusJson.MetricsService;
+     document.getElementById("implementation-version").innerHTML = statusJson["Implementation-Version"];
+     document.getElementById("built-from-git-sha1").innerHTML = "(" + statusJson["Built-From-Git-SHA1"] + ")";
    } else if (httpRequest.status === 404 || httpRequest.status === 503) {
      document.getElementById("status").innerHTML = "The server is not available";
    } else {

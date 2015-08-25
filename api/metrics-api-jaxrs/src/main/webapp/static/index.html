@@ -30,12 +30,17 @@
 
 <body>
   <div class="content">
-    <div class="logo"/>
+    <div class="logo">
       <img src="/hawkular/metrics/static/hawkular_logo.png" alt="Hawkular Logo"/>
     </div>
     <h1>Hawkular Metrics</h1>
     <h3>A time series metrics engine based on Cassandra</h3>
-    <p>${project.version}</p>
+
+    <p>
+      <span id="implementation-version"></span>
+      <span id="built-from-git-sha1"></span>
+    </p>
+
     <p id="status">Status: <i>Checking...</i></p>
   </div>
 </body>
