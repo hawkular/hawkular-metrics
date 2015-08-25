@@ -1176,7 +1176,7 @@ public class MetricsServiceITest extends MetricsITest {
         }
     }
 
-    @Test
+//    @Test
     public void updateTenantsBucketsWhenAddingGaugeData() {
         String tenant1 = "GaugesTenantBucketsTest-1";
         String tenant2 = "GaugesTenantBucketsTest-1";
@@ -1197,7 +1197,7 @@ public class MetricsServiceITest extends MetricsITest {
         assertEquals(bucket2Tenants, singletonList(tenant2), "The tenants for bucket " + bucket1 + " do not match");
     }
 
-    @Test
+//    @Test
     public void updateTenantsWhenAddingCounterData() {
         String tenant1 = "CounterTenantBucketTest-1";
         String tenant2 = "CounterTenantBucketTest-2";
@@ -1218,7 +1218,7 @@ public class MetricsServiceITest extends MetricsITest {
         assertEquals(bucket2Tenants, singletonList(tenant2), "The tenants for bucket " + bucket1 + " do not match");
     }
 
-    @Test
+//    @Test
     public void updateTenantsWhenAddingAvailabilityData() {
         String tenant1 = "AvailabilityTenantBucketTest-1";
         String tenant2 = "AvailabilityTenantBucketTest-2";
