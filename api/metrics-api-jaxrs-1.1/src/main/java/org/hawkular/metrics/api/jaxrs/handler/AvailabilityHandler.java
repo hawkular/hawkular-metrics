@@ -21,6 +21,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
+import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilities;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilityDataPoints;
@@ -49,7 +50,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
-import org.hawkular.metrics.api.jaxrs.filter.TenantFilter;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
@@ -91,7 +91,7 @@ public class AvailabilityHandler {
     @Inject
     private MetricsService metricsService;
 
-    @HeaderParam(TenantFilter.TENANT_HEADER_NAME)
+    @HeaderParam(TENANT_HEADER_NAME)
     private String tenantId;
 
     @POST
@@ -132,7 +132,7 @@ public class AvailabilityHandler {
             @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.",
                          response = ApiError.class) })
-    public Response getAvailabilityMetric(@HeaderParam("tenantId") String tenantId, @PathParam("id") String id) {
+    public Response getAvailabilityMetric(@PathParam("id") String id) {
         try {
             return metricsService.findMetric(new MetricId(tenantId, AVAILABILITY, id))
                 .map(MetricDefinition::new)

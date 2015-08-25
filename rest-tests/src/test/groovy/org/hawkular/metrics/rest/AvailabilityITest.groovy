@@ -16,9 +16,11 @@
  */
 package org.hawkular.metrics.rest
 
+import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
 
 import org.hawkular.metrics.core.api.AvailabilityType
+import org.joda.time.DateTime
 import org.junit.Test
 
 /**
@@ -89,5 +91,21 @@ class AvailabilityITest extends RESTTest {
     def response = hawkularMetrics.post(path: "availability/test/data", headers: [(tenantHeaderName): tenantId],
         body: points)
     assertEquals(200, response.status)
+  }
+
+  @Test
+  void testAvailabilityGet() {
+    DateTime start = now().minusMinutes(20)
+    String tenantId = nextTenantId()
+    String metric = 'A1'
+
+    def response = hawkularMetrics.post(path: "availability/$metric/data", body: [
+        [timestamp: start.millis, value: "up"]], headers: [(tenantHeaderName): tenantId])
+
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: "availability/$metric", headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(metric, response.data.id)
   }
 }
