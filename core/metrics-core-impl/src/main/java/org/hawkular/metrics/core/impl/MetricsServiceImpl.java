@@ -632,13 +632,16 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     private Observable<Integer> updateTenantBuckets(Observable<? extends Metric<?>> metrics) {
-        Observable<TenantBucket> tenantBuckets = metrics
-                .flatMap(metric -> Observable.from(metric.getDataPoints())
-                        .map(dataPoint -> new TenantBucket(metric.getId().getTenantId(),
-                                dateTimeService.getTimeSlice(dataPoint.getTimestamp(), standardMinutes(30)))))
-                .distinct();
-        return tenantBuckets.flatMap(tenantBucket ->
-                dataAccess.insertTenantId(tenantBucket.getBucket(), tenantBucket.getTenant())).map(resultSet -> 0);
+//        Observable<TenantBucket> tenantBuckets = metrics
+//                .flatMap(metric -> Observable.from(metric.getDataPoints())
+//                        .map(dataPoint -> new TenantBucket(metric.getId().getTenantId(),
+//                                dateTimeService.getTimeSlice(dataPoint.getTimestamp(), standardMinutes(30)))))
+//                .distinct();
+//        return tenantBuckets.flatMap(tenantBucket ->
+//                dataAccess.insertTenantId(tenantBucket.getBucket(), tenantBucket.getTenant())).map(resultSet -> 0);
+
+        long time = dateTimeService.getTimeSlice(System.currentTimeMillis(), standardMinutes(30));
+        return dataAccess.insertTenantId(time, "TEST").map(resultSet -> 0);
     }
 
     @Override
