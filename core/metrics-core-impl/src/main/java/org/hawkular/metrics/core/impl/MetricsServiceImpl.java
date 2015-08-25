@@ -29,6 +29,8 @@ import static org.hawkular.metrics.core.impl.Functions.getTTLGaugeDataPoint;
 import static org.hawkular.metrics.core.impl.Functions.makeSafe;
 import static org.joda.time.Duration.standardMinutes;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -90,6 +92,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 
 import rx.Observable;
 import rx.functions.Func1;
+import rx.functions.Func2;
 import rx.functions.Func3;
 
 /**
@@ -562,7 +565,9 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public <T> Observable<Void> addDataPoints(Observable<Metric<T>> metrics) {
+    public <T> Observable<Void> addDataPoints(MetricType<T> metricType, Observable<Metric<T>> metrics) {
+        checkArgument(metricType != null, "metricType is null");
+
         // We write to both the data and the metrics_idx tables. Each metric can have one or more data points. We
         // currently write a separate batch statement for each metric.
         //
@@ -581,38 +586,41 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         //      we periodically update it in the background, so we will still be aware of metrics that have not been
         //      explicitly created, just not necessarily right away.
 
+        Meter meter;
+        Func2<Metric<T>, Integer, Observable<Integer>> inserter;
+        if (metricType == GAUGE || metricType == COUNTER_RATE) {
+            meter = gaugeInserts;
+            inserter = (metric, ttl) -> {
+                @SuppressWarnings("unchecked")
+                Metric<Double> gauge = (Metric<Double>) metric;
+                return dataAccess.insertGaugeData(gauge, ttl);
+            };
+        } else if (metricType == AVAILABILITY) {
+            meter = availabilityInserts;
+            inserter = (metric, ttl) -> {
+                @SuppressWarnings("unchecked")
+                Metric<AvailabilityType> avail = (Metric<AvailabilityType>) metric;
+                return dataAccess.insertAvailabilityData(avail, ttl);
+            };
+        } else if (metricType == COUNTER) {
+            meter = counterInserts;
+            inserter = (metric, ttl) -> {
+                @SuppressWarnings("unchecked")
+                Metric<Long> counter = (Metric<Long>) metric;
+                return dataAccess.insertCounterData(counter, ttl);
+            };
+        } else {
+            throw new UnsupportedOperationException(metricType.getText());
+        }
+
         Observable<Integer> updates = metrics
                 .filter(metric -> !metric.getDataPoints().isEmpty())
-                .flatMap(metric -> {
-                    MetricType<T> metricType = metric.getId().getType();
-                    if (metricType == GAUGE || metricType == COUNTER_RATE) {
-                        @SuppressWarnings("unchecked")
-                        Metric<Double> gauge = (Metric<Double>) metric;
-                        return dataAccess.insertGaugeData(gauge, getTTL(gauge.getId()))
-                                .doOnNext(gaugeInserts::mark);
-                    }
-                    if (metricType == AVAILABILITY) {
-                        @SuppressWarnings("unchecked")
-                        Metric<AvailabilityType> avail = (Metric<AvailabilityType>) metric;
-                        return dataAccess.insertAvailabilityData(avail, getTTL(avail.getId()))
-                                .doOnNext(availabilityInserts::mark);
-                    }
-                    if (metricType == COUNTER) {
-                        @SuppressWarnings("unchecked")
-                        Metric<Long> counter = (Metric<Long>) metric;
-                        return dataAccess.insertCounterData(counter, getTTL(counter.getId()))
-                                .doOnNext(counterInserts::mark);
-                    } else {
-                        throw new UnsupportedOperationException(metricType.getText());
-                    }
-                });
+                .flatMap(metric -> inserter.call(metric, getTTL(metric.getId())))
+                .doOnNext(meter::mark);
 
         Observable<Integer> tenantUpdates = updateTenantBuckets(metrics);
 
-        // I am intentionally return zero for the number index updates because I want to measure and compare the
-        // throughput inserting data with and without the index updates. This will give us a better idea of how much
-        // over there is with the index updates.
-        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics).map(count -> 0);
+        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics);
         return Observable.concat(updates, indexUpdates, tenantUpdates)
                 .takeLast(1)
                 .map(count -> null);

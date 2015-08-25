@@ -198,7 +198,7 @@ public class GaugeHandler {
             List<GaugeDataPoint> data
     ) {
         Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id), requestToGaugeDataPoints(data));
-        Observable<Void> observable = metricsService.addDataPoints(Observable.just(metric));
+        Observable<Void> observable = metricsService.addDataPoints(GAUGE, Observable.just(metric));
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -215,7 +215,7 @@ public class GaugeHandler {
                              @ApiParam(value = "List of metrics", required = true) List<Gauge> gauges
     ) {
         Observable<Metric<Double>> metrics = requestToGauges(tenantId, gauges);
-        Observable<Void> observable = metricsService.addDataPoints(metrics);
+        Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 

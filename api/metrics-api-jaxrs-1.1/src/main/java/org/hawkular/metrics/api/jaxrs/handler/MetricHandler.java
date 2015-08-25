@@ -24,6 +24,9 @@ import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilities;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounters;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGauges;
+import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
+import static org.hawkular.metrics.core.api.MetricType.COUNTER;
+import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -144,18 +147,18 @@ public class MetricHandler {
         Collection<Observable<Void>> observables = new ArrayList<>();
         if (gauges != null && !gauges.isEmpty()) {
             gauges = ImmutableList.copyOf(gauges);
-            observables.add(metricsService
-                    .addDataPoints(requestToGauges(tenantId, gauges).subscribeOn(Schedulers.computation())));
+            observables.add(metricsService.addDataPoints(GAUGE, requestToGauges(tenantId, gauges)
+                    .subscribeOn(Schedulers.computation())));
         }
         if (counters != null && !counters.isEmpty()) {
             counters = ImmutableList.copyOf(counters);
-            observables.add(metricsService
-                    .addDataPoints(requestToCounters(tenantId, counters).subscribeOn(Schedulers.computation())));
+            observables.add(metricsService.addDataPoints(COUNTER, requestToCounters(tenantId, counters)
+                    .subscribeOn(Schedulers.computation())));
         }
         if (availabilities != null && !availabilities.isEmpty()) {
             availabilities = ImmutableList.copyOf(availabilities);
             observables.add(metricsService
-                    .addDataPoints(requestToAvailabilities(tenantId, ImmutableList.copyOf(availabilities))
+                    .addDataPoints(AVAILABILITY, requestToAvailabilities(tenantId, availabilities)
                             .subscribeOn(Schedulers.computation())));
         }
 

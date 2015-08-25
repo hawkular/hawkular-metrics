@@ -64,7 +64,7 @@ public class GenerateRate implements Action1<Task2> {
                         .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
                         .map(rate -> new Metric<>(new MetricId<>(tenant, COUNTER_RATE, counter.getId().getName()),
                                 singletonList(new DataPoint<>(start, rate)))));
-        Observable<Void> updates = metricsService.addDataPoints(rates);
+        Observable<Void> updates = metricsService.addDataPoints(COUNTER_RATE, rates);
 
         CountDownLatch latch = new CountDownLatch(1);
 

@@ -229,7 +229,7 @@ public class AvailabilityHandler {
                 requestToAvailabilityDataPoints(data));
 
         try {
-            metricsService.addDataPoints(Observable.just(metric)).toBlocking().lastOrDefault(null);
+            metricsService.addDataPoints(AVAILABILITY, Observable.just(metric)).toBlocking().lastOrDefault(null);
             return Response.ok().build();
         } catch (Exception e) {
             return serverError(e);
@@ -250,7 +250,7 @@ public class AvailabilityHandler {
             List<Availability> availabilities
     ) {
         try {
-            metricsService.addDataPoints(requestToAvailabilities(tenantId, availabilities)).toBlocking()
+            metricsService.addDataPoints(AVAILABILITY, requestToAvailabilities(tenantId, availabilities)).toBlocking()
                     .lastOrDefault(null);
             return Response.ok().build();
         } catch (Exception e) {

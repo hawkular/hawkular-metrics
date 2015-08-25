@@ -126,7 +126,7 @@ public class RatesITest extends MetricsITest {
         doAction(() -> metricsService.createMetric(c2));
         doAction(() -> metricsService.createMetric(c3));
 
-        doAction(() -> metricsService.addDataPoints(Observable.from(asList(
+        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.from(asList(
                 new Metric<>(c1.getId(), asList(new DataPoint<>(start.getMillis(), 10L),
                         new DataPoint<>(start.plusSeconds(30).getMillis(), 25L))),
                 new Metric<>(c2.getId(), asList(new DataPoint<>(start.getMillis(), 100L),

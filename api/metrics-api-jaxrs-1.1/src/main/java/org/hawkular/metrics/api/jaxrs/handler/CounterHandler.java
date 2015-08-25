@@ -151,7 +151,7 @@ public class CounterHandler {
     ) {
         Observable<Metric<Long>> metrics = requestToCounters(tenantId, counters);
         try {
-            metricsService.addDataPoints(metrics).toBlocking().lastOrDefault(null);
+            metricsService.addDataPoints(COUNTER, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
         } catch (Exception e) {
             return ApiUtils.serverError(e);
@@ -174,7 +174,7 @@ public class CounterHandler {
     ) {
         Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id), requestToCounterDataPoints(data));
         try {
-            metricsService.addDataPoints(Observable.just(metric)).toBlocking().lastOrDefault(null);
+            metricsService.addDataPoints(COUNTER, Observable.just(metric)).toBlocking().lastOrDefault(null);
             return Response.ok().build();
         } catch (Exception e) {
             return ApiUtils.serverError(e);

@@ -143,7 +143,7 @@ public class CounterHandler {
                         @ApiParam(value = "List of metrics", required = true) List<Counter> counters
     ) {
         Observable<Metric<Long>> metrics = requestToCounters(tenantId, counters);
-        Observable<Void> observable = metricsService.addDataPoints(metrics);
+        Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -164,7 +164,7 @@ public class CounterHandler {
     ) {
         Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id),
                                            requestToCounterDataPoints(data));
-        Observable<Void> observable = metricsService.addDataPoints(Observable.just(metric));
+        Observable<Void> observable = metricsService.addDataPoints(COUNTER, Observable.just(metric));
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 

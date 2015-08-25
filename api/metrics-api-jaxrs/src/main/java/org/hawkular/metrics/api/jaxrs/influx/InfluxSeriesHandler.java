@@ -137,7 +137,7 @@ public class InfluxSeriesHandler {
 
         Observable<Metric<Double>> input = Observable.from(influxObjects)
                 .map(influxObject -> influxToGauge(tenantId, influxObject));
-        metricsService.addDataPoints(input).subscribe(new WriteObserver(asyncResponse));
+        metricsService.addDataPoints(GAUGE, input).subscribe(new WriteObserver(asyncResponse));
     }
 
     private static Metric<Double> influxToGauge(String tenantId, InfluxObject influxObject) {

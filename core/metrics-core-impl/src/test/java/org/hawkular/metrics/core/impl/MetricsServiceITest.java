@@ -482,7 +482,7 @@ public class MetricsServiceITest extends MetricsITest {
                 new DataPoint<>(end.getMillis(), 4.4)
         ));
 
-        Observable<Void> insertObservable = metricsService.addDataPoints(Observable.just(m1));
+        Observable<Void> insertObservable = metricsService.addDataPoints(GAUGE, Observable.just(m1));
         insertObservable.toBlocking().lastOrDefault(null);
 
         Observable<DataPoint<Double>> observable = metricsService.findDataPoints(new MetricId<>(tenantId, GAUGE, "m1"),
@@ -513,7 +513,7 @@ public class MetricsServiceITest extends MetricsITest {
                 new DataPoint<>(end.getMillis(), 45L)
         ));
 
-        doAction(() -> metricsService.addDataPoints(Observable.just(counter)));
+        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
         Observable<DataPoint<Long>> data = metricsService.findDataPoints(new MetricId<>(tenantId, COUNTER, "c1"),
                 start.getMillis(), end.getMillis());
@@ -543,7 +543,7 @@ public class MetricsServiceITest extends MetricsITest {
                 new DataPoint<>(end.getMillis(), 40.0)
                 ));
 
-        Observable<Void> insertObservable = metricsService.addDataPoints(Observable.just(m1));
+        Observable<Void> insertObservable = metricsService.addDataPoints(GAUGE, Observable.just(m1));
         insertObservable.toBlocking().lastOrDefault(null);
 
         Observable<Double> observable = metricsService
@@ -572,7 +572,7 @@ public class MetricsServiceITest extends MetricsITest {
                 new DataPoint<>(start.plusMinutes(4).plusSeconds(29).getMillis(), 84L)
         ));
 
-        doAction(() -> metricsService.addDataPoints(Observable.just(counter)));
+        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
         List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getId(),
                 start.getMillis(), start.plusMinutes(6).getMillis()));
@@ -603,7 +603,7 @@ public class MetricsServiceITest extends MetricsITest {
                 new DataPoint<>(start.plusMinutes(2).plusSeconds(10).getMillis(), 29L)
         ));
 
-        doAction(() -> metricsService.addDataPoints(Observable.just(counter)));
+        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
         List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getId(),
                 start.plusMinutes(3).getMillis(), start.plusMinutes(5).getMillis()));
@@ -660,7 +660,7 @@ public class MetricsServiceITest extends MetricsITest {
         Metric<AvailabilityType> m3 = new Metric<>(new MetricId<>("t3", AVAILABILITY, "m3"),
                 singletonList(new DataPoint<>(start.getMillis(), UP)));
 
-        metricsService.addDataPoints(Observable.just(m3)).toBlocking();
+        metricsService.addDataPoints(AVAILABILITY, Observable.just(m3)).toBlocking();
     }
 
     private void addGaugeDataInThePast(Metric<Double> metric, final Duration duration) throws Exception {
@@ -686,7 +686,7 @@ public class MetricsServiceITest extends MetricsITest {
                     return session.executeAsync(batchStatement);
                 }
             });
-            metricsService.addDataPoints(Observable.just(metric));
+            metricsService.addDataPoints(GAUGE, Observable.just(metric));
         } finally {
             metricsService.setDataAccess(originalDataAccess);
         }
@@ -710,7 +710,7 @@ public class MetricsServiceITest extends MetricsITest {
                     return rxSession.execute(batchStatement).map(resultSet -> batchStatement.size());
                 }
             });
-            metricsService.addDataPoints(Observable.just(metric));
+            metricsService.addDataPoints(AVAILABILITY, Observable.just(metric));
         } finally {
             metricsService.setDataAccess(originalDataAccess);
         }
@@ -738,7 +738,7 @@ public class MetricsServiceITest extends MetricsITest {
         );
         Metric<Double> metric = new Metric<>(new MetricId<>("tenant1", GAUGE, "m1"), dataPoints);
 
-        metricsService.addDataPoints(Observable.just(metric)).toBlocking().lastOrDefault(null);
+        metricsService.addDataPoints(GAUGE, Observable.just(metric)).toBlocking().lastOrDefault(null);
 
         Map<String, String> tags1 = ImmutableMap.of("t1", "1", "t2", "");
         metricsService.tagGaugeData(metric, tags1, start.plusMinutes(2).getMillis()).toBlocking().lastOrDefault(null);
@@ -793,7 +793,7 @@ public class MetricsServiceITest extends MetricsITest {
         ));
         metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
 
-        metricsService.addDataPoints(Observable.just(m1, m2, m3, m4)).toBlocking().lastOrDefault(null);
+        metricsService.addDataPoints(GAUGE, Observable.just(m1, m2, m3, m4)).toBlocking().lastOrDefault(null);
 
         Observable<DataPoint<Double>> observable1 = metricsService.findDataPoints(m1.getId(),
                 start.getMillis(), end.getMillis());
@@ -835,7 +835,7 @@ public class MetricsServiceITest extends MetricsITest {
         ));
         Metric<AvailabilityType> m3 = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, "m3"));
 
-        metricsService.addDataPoints(Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
+        metricsService.addDataPoints(AVAILABILITY, Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
 
         List<DataPoint<AvailabilityType>> actual = metricsService.findDataPoints(m1.getId(),
                 start.getMillis(), end.getMillis()).toList().toBlocking().last();
@@ -854,7 +854,7 @@ public class MetricsServiceITest extends MetricsITest {
                 new DataPoint<>(end.plusMinutes(2).getMillis(), UP)));
         metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
 
-        metricsService.addDataPoints(Observable.just(m4)).toBlocking().lastOrDefault(null);
+        metricsService.addDataPoints(AVAILABILITY, Observable.just(m4)).toBlocking().lastOrDefault(null);
 
         actual = metricsService.findDataPoints(m4.getId(), start.getMillis(), end.getMillis())
                 .toList().toBlocking().last();
@@ -884,7 +884,7 @@ public class MetricsServiceITest extends MetricsITest {
         );
         Metric<AvailabilityType> metric = new Metric<>(new MetricId<>("tenant1", AVAILABILITY, "A1"), dataPoints);
 
-        metricsService.addDataPoints(Observable.just(metric)).toBlocking().lastOrDefault(null);
+        metricsService.addDataPoints(AVAILABILITY, Observable.just(metric)).toBlocking().lastOrDefault(null);
 
         Map<String, String> tags1 = ImmutableMap.of("t1", "1", "t2", "");
         metricsService.tagAvailabilityData(metric, tags1, start.plusMinutes(2).getMillis()).toBlocking()
@@ -936,7 +936,7 @@ public class MetricsServiceITest extends MetricsITest {
                 new DataPoint<>(start.plusMinutes(10).getMillis(), UP)
         ));
 
-        metricsService.addDataPoints(Observable.just(metric)).toBlocking().lastOrDefault(null);
+        metricsService.addDataPoints(AVAILABILITY, Observable.just(metric)).toBlocking().lastOrDefault(null);
 
         List<DataPoint<AvailabilityType>> actual = metricsService.findAvailabilityData(metricId,
                 start.getMillis(), end.getMillis(), true).toList().toBlocking().lastOrDefault(null);
@@ -978,7 +978,7 @@ public class MetricsServiceITest extends MetricsITest {
 
         Metric<Double> m3 = new Metric<>(new MetricId<>(tenant, GAUGE, "m3"), asList(d8, d9));
 
-        metricsService.addDataPoints(Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
+        metricsService.addDataPoints(GAUGE, Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
 
         Map<String, String> tags1 = ImmutableMap.of("t1", "1");
         Map<String, String> tags2 = ImmutableMap.of("t2", "2");
@@ -1026,7 +1026,7 @@ public class MetricsServiceITest extends MetricsITest {
                 asList(a3, a4, a5, a7));
         Metric<AvailabilityType> m3 = new Metric<>(new MetricId<>(tenant, AVAILABILITY, "m3"), asList(a8, a9));
 
-        metricsService.addDataPoints(Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
+        metricsService.addDataPoints(AVAILABILITY, Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
 
         Map<String, String> tags1 = ImmutableMap.of("t1", "1");
         Map<String, String> tags2 = ImmutableMap.of("t2", "2");
@@ -1076,7 +1076,7 @@ public class MetricsServiceITest extends MetricsITest {
 
         Metric<Double> m3 = new Metric<>(new MetricId<>(tenant, GAUGE, "m3"), asList(d8, d9));
 
-        metricsService.addDataPoints(Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
+        metricsService.addDataPoints(GAUGE, Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
 
         Map<String, String> tags1 = ImmutableMap.of("t1", "");
         metricsService.tagGaugeData(m1, tags1, d1.getTimestamp()).toBlocking().lastOrDefault(null);
@@ -1131,7 +1131,7 @@ public class MetricsServiceITest extends MetricsITest {
                 asList(a3, a4, a5, a7));
         Metric<AvailabilityType> m3 = new Metric<>(new MetricId<>(tenant, AVAILABILITY, "m3"), asList(a8, a9));
 
-        metricsService.addDataPoints(Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
+        metricsService.addDataPoints(AVAILABILITY, Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
 
         Map<String, String> tags1 = ImmutableMap.of("t1", "");
         metricsService.tagAvailabilityData(m1, tags1, a1.getTimestamp()).toBlocking().lastOrDefault(null);
@@ -1188,7 +1188,7 @@ public class MetricsServiceITest extends MetricsITest {
         );
         Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "m1"), dataPoints);
 
-        metricsService.addDataPoints(Observable.just(m1)).toBlocking().lastOrDefault(null);
+        metricsService.addDataPoints(GAUGE, Observable.just(m1)).toBlocking().lastOrDefault(null);
 
         List<long[]> actual = metricsService.getPeriods(m1.getId(),
             value -> value > threshold, start.getMillis(), now().getMillis()).toBlocking().lastOrDefault(null);
@@ -1216,7 +1216,7 @@ public class MetricsServiceITest extends MetricsITest {
         Metric<Double> m2 = new Metric<>(new MetricId<>(tenant2, GAUGE, "M2"),
                 singletonList(new DataPoint<>(bucket2.plusMinutes(4).getMillis(), 33.44)));
 
-        doAction(() -> metricsService.addDataPoints(Observable.from(asList(m1, m2))));
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.from(asList(m1, m2))));
 
         List<String> bucket1Tenants = getTenantsInBucket(bucket1.getMillis());
         List<String> bucket2Tenants = getTenantsInBucket(bucket2.getMillis());
@@ -1237,7 +1237,7 @@ public class MetricsServiceITest extends MetricsITest {
         Metric<Long> m2 = new Metric<>(new MetricId<>(tenant2, COUNTER, "C2"),
                 singletonList(new DataPoint<>(bucket2.plusMinutes(10).getMillis(), 250L)));
 
-        doAction(() -> metricsService.addDataPoints(Observable.from(asList(m1, m2))));
+        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.from(asList(m1, m2))));
 
         List<String> bucket1Tenants = getTenantsInBucket(bucket1.getMillis());
         List<String> bucket2Tenants = getTenantsInBucket(bucket2.getMillis());
@@ -1258,7 +1258,7 @@ public class MetricsServiceITest extends MetricsITest {
         Metric<AvailabilityType> m2 = new Metric<>(new MetricId<>(tenant2, AVAILABILITY, "A2"),
                 singletonList(new DataPoint<>(bucket2.plusMinutes(10).getMillis(), DOWN)));
 
-        doAction(() -> metricsService.addDataPoints(Observable.from(asList(m1, m2))));
+        doAction(() -> metricsService.addDataPoints(AVAILABILITY, Observable.from(asList(m1, m2))));
 
         List<String> bucket1Tenants = getTenantsInBucket(bucket1.getMillis());
         List<String> bucket2Tenants = getTenantsInBucket(bucket2.getMillis());

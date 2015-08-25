@@ -219,7 +219,7 @@ public class GaugeHandler {
     ) {
         Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id), requestToGaugeDataPoints(data));
         try {
-            metricsService.addDataPoints(Observable.just(metric)).toBlocking().lastOrDefault(null);
+            metricsService.addDataPoints(GAUGE, Observable.just(metric)).toBlocking().lastOrDefault(null);
             return Response.ok().build();
         } catch (Exception e) {
             return ApiUtils.serverError(e);
@@ -240,7 +240,7 @@ public class GaugeHandler {
     ) {
         Observable<Metric<Double>> metrics = requestToGauges(tenantId, gauges);
         try {
-            metricsService.addDataPoints(metrics).toBlocking().lastOrDefault(null);
+            metricsService.addDataPoints(GAUGE, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
         } catch (Exception e) {
             return ApiUtils.serverError(e);

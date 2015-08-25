@@ -202,7 +202,8 @@ public class AvailabilityHandler {
     ) {
         Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id),
                 requestToAvailabilityDataPoints(data));
-        metricsService.addDataPoints(Observable.just(metric)).subscribe(new ResultSetObserver(asyncResponse));
+        metricsService.addDataPoints(AVAILABILITY, Observable.just(metric))
+                .subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @POST
@@ -219,7 +220,7 @@ public class AvailabilityHandler {
             @ApiParam(value = "List of availability metrics", required = true)
             List<Availability> availabilities
     ) {
-        metricsService.addDataPoints(requestToAvailabilities(tenantId, availabilities))
+        metricsService.addDataPoints(AVAILABILITY, requestToAvailabilities(tenantId, availabilities))
                 .subscribe(new ResultSetObserver(asyncResponse));
     }
 

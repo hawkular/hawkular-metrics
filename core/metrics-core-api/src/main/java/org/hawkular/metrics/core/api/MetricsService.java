@@ -115,11 +115,13 @@ public interface MetricsService {
     /**
      * Insert data points for the specified {@code metrics}.
      *
+     *
+     * @param metricType type of all metrics emitted by {@code metrics}
      * @param metrics the sources of data points
      *
      * @return an {@link Observable} emitting just one item on complete
      */
-    <T> Observable<Void> addDataPoints(Observable<Metric<T>> metrics);
+    <T> Observable<Void> addDataPoints(MetricType<T> metricType, Observable<Metric<T>> metrics);
 
     /**
      * Fetch data points for a single metric.
