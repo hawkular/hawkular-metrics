@@ -33,13 +33,13 @@ public class Tenant {
 
     private String id;
 
-    private Map<MetricType, Integer> retentionSettings = Collections.emptyMap();
+    private Map<MetricType<?>, Integer> retentionSettings = Collections.emptyMap();
 
     public Tenant(String id) {
         this.id = id;
     }
 
-    public Tenant(String id, Map<MetricType, Integer> retentionSettings) {
+    public Tenant(String id, Map<MetricType<?>, Integer> retentionSettings) {
         this.id = id;
         this.retentionSettings = ImmutableMap.copyOf(retentionSettings);
     }
@@ -48,7 +48,7 @@ public class Tenant {
         return id;
     }
 
-    public Map<MetricType, Integer> getRetentionSettings() {
+    public Map<MetricType<?>, Integer> getRetentionSettings() {
         return retentionSettings;
     }
 

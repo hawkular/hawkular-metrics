@@ -19,7 +19,8 @@ package org.hawkular.metrics.core.api;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
 
-import java.util.ArrayList;
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -29,36 +30,27 @@ import java.util.Objects;
  * @author jsanda
  */
 public class Metric<T> {
+    private final MetricId<T> id;
+    private final Map<String, String> tags;
+    private final Integer dataRetention;
+    private final List<DataPoint<T>> dataPoints;
 
-    private MetricId id;
-    private Map<String, String> tags = Collections.emptyMap();
-    private Integer dataRetention;
-    private List<DataPoint<T>> dataPoints = new ArrayList<>();
-
-    public Metric(MetricId id) {
-        this.id = id;
+    public Metric(MetricId<T> id) {
+        this(id, Collections.emptyMap(), null, Collections.emptyList());
     }
 
-    public Metric(MetricId id, Map<String, String> tags, Integer dataRetention) {
-        this.id = id;
-        this.tags = unmodifiableMap(tags);
-        // If the data_retention column is not set, the driver returns zero instead of null.
-        // We are (at least for now) using null to indicate that the metric does not have
-        // the data retention set.
-        if (dataRetention == null || dataRetention == 0) {
-            this.dataRetention = null;
-        } else {
-            this.dataRetention = dataRetention;
-        }
+    public Metric(MetricId<T> id, Map<String, String> tags, Integer dataRetention) {
+        this(id, tags, dataRetention, Collections.emptyList());
     }
 
-    public Metric(MetricId id, List<DataPoint<T>> dataPoints) {
-        this.id = id;
-        this.dataPoints = unmodifiableList(dataPoints);
+    public Metric(MetricId<T> id, List<DataPoint<T>> dataPoints) {
+        this(id, Collections.emptyMap(), null, dataPoints);
     }
 
-    public Metric(MetricId id, Map<String, String> tags, Integer dataRetention,
-            List<DataPoint<T>> dataPoints) {
+    public Metric(MetricId<T> id, Map<String, String> tags, Integer dataRetention, List<DataPoint<T>> dataPoints) {
+        checkArgument(id != null, "id is null");
+        checkArgument(tags != null, "tags is null");
+        checkArgument(dataPoints != null, "dataPoints is null");
         this.id = id;
         this.tags = unmodifiableMap(tags);
         // If the data_retention column is not set, the driver returns zero instead of null.
@@ -78,11 +70,11 @@ public class Metric<T> {
     }
 
     @Deprecated
-    public MetricType getType() {
+    public MetricType<T> getType() {
         return getId().getType();
     }
 
-    public MetricId getId() {
+    public MetricId<T> getId() {
         return id;
     }
 

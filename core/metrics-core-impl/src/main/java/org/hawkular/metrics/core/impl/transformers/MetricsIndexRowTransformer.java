@@ -14,9 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.core.impl.transformers;
 
 import org.hawkular.metrics.core.api.Interval;
+import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 
@@ -26,29 +28,26 @@ import rx.Observable;
 import rx.Observable.Transformer;
 
 /**
- * Transforms {@link Row}s from metrics_tags_idx to a {@link MetricId}. Requires the following order on select:
- * {@code type, metric, interval}.
+ * Transforms {@link Row}s from metrics_idx to a {@link Metric}. Requires the following order on select:
+ * {@code metric, interval, tags, data_retention}.
  *
- * @author Michael Burman
+ * @author Thomas Segismont
  */
-public class TagsIndexRowTransformer<T> implements Transformer<Row, MetricId<T>> {
+public class MetricsIndexRowTransformer<T> implements Transformer<Row, Metric<T>> {
     private final MetricType<T> type;
     private final String tenantId;
 
-    public TagsIndexRowTransformer(String tenantId, MetricType<T> type) {
+    public MetricsIndexRowTransformer(String tenantId, MetricType<T> type) {
         this.type = type;
         this.tenantId = tenantId;
     }
 
     @Override
-    public Observable<MetricId<T>> call(Observable<Row> rows) {
-        return rows.filter(row -> {
-            MetricType<?> metricType = MetricType.fromCode(row.getInt(0));
-            return (type == null && metricType.isUserType()) || metricType == type;
-        }).map(row1 -> {
-            @SuppressWarnings("unchecked")
-            MetricType<T> metricType = (MetricType<T>) MetricType.fromCode(row1.getInt(0));
-            return new MetricId<>(tenantId, metricType, row1.getString(1), Interval.parse(row1.getString(2)));
+    public Observable<Metric<T>> call(Observable<Row> rows) {
+        return rows.map(row -> {
+            Interval interval = Interval.parse(row.getString(1));
+            MetricId<T> metricId = new MetricId<>(tenantId, type, row.getString(0), interval);
+            return new Metric<>(metricId, row.getMap(2, String.class, String.class), row.getInt(3));
         });
     }
 }

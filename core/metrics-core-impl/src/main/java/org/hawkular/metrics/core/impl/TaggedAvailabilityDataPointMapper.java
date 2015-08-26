@@ -38,8 +38,8 @@ import com.datastax.driver.core.utils.UUIDs;
  */
 public class TaggedAvailabilityDataPointMapper {
 
-    public static Map<MetricId, Set<DataPoint<AvailabilityType>>> apply(ResultSet resultSet) {
-        Map<MetricId, Set<DataPoint<AvailabilityType>>> taggedData = new HashMap<>();
+    public static Map<MetricId<AvailabilityType>, Set<DataPoint<AvailabilityType>>> apply(ResultSet resultSet) {
+        Map<MetricId<AvailabilityType>, Set<DataPoint<AvailabilityType>>> taggedData = new HashMap<>();
         Metric<AvailabilityType> metric = null;
         LinkedHashSet<DataPoint<AvailabilityType>> set = new LinkedHashSet<>();
         for (Row row : resultSet) {
@@ -65,7 +65,7 @@ public class TaggedAvailabilityDataPointMapper {
     }
 
     private static Metric<AvailabilityType> createMetric(Row row) {
-        return new Metric<>(new MetricId(row.getString(0), AVAILABILITY, row.getString(4),
+        return new Metric<>(new MetricId<>(row.getString(0), AVAILABILITY, row.getString(4),
                 Interval.parse(row.getString(5))));
     }
 

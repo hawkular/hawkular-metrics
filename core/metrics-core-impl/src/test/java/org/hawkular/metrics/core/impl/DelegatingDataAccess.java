@@ -81,12 +81,12 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findMetric(MetricId id) {
+    public Observable<ResultSet> findMetric(MetricId<?> id) {
         return delegate.findMetric(id);
     }
 
     @Override
-    public Observable<ResultSet> getMetricTags(MetricId id, long dpart) {
+    public Observable<ResultSet> getMetricTags(MetricId<?> id, long dpart) {
         return delegate.getMetricTags(id, dpart);
     }
 
@@ -117,7 +117,7 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType type) {
+    public Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType<?> type) {
         return delegate.findMetricsInMetricsIndex(tenantId, type);
     }
 
@@ -132,12 +132,12 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findCounterData(MetricId id, long startTime, long endTime) {
+    public Observable<ResultSet> findCounterData(MetricId<?> id, long startTime, long endTime) {
         return delegate.findCounterData(id, startTime, endTime);
     }
 
     @Override
-    public Observable<ResultSet> findData(MetricId id, long startTime, long endTime) {
+    public Observable<ResultSet> findData(MetricId<?> id, long startTime, long endTime) {
         return delegate.findData(id, startTime, endTime);
     }
 
@@ -148,7 +148,7 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findData(MetricId id, long startTime, long endTime,
+    public Observable<ResultSet> findData(MetricId<?> id, long startTime, long endTime,
             boolean includeWriteTime) {
         return delegate.findData(id, startTime, endTime, includeWriteTime);
     }
@@ -219,18 +219,18 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findAvailabilityData(MetricId id, long startTime, long endTime) {
+    public Observable<ResultSet> findAvailabilityData(MetricId<?> id, long startTime, long endTime) {
         return delegate.findAvailabilityData(id, startTime, endTime);
     }
 
     @Override
-    public ResultSetFuture findDataRetentions(String tenantId, MetricType type) {
+    public ResultSetFuture findDataRetentions(String tenantId, MetricType<?> type) {
         return delegate.findDataRetentions(tenantId, type);
     }
 
     @Override
-    public Observable<ResultSet> updateRetentionsIndex(String tenantId, MetricType type,
-            Map<String, Integer> retentions) {
+    public Observable<ResultSet> updateRetentionsIndex(String tenantId, MetricType<?> type,
+                                                       Map<String, Integer> retentions) {
         return delegate.updateRetentionsIndex(tenantId, type, retentions);
     }
 

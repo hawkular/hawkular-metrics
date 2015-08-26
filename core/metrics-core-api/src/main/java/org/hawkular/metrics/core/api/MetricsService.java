@@ -80,14 +80,14 @@ public interface MetricsService {
      */
     Observable<Void> createMetric(Metric<?> metric);
 
-    Observable<Metric> findMetric(MetricId id);
+    <T> Observable<Metric<T>> findMetric(MetricId<T> id);
 
     /**
      * Returns tenant's metric definitions. The results can be filtered using a type.
      *
      * @param type If type is null, all user definable metric definitions are returned.
      */
-    Observable<Metric> findMetrics(String tenantId, MetricType type);
+    <T> Observable<Metric<T>> findMetrics(String tenantId, MetricType<T> type);
 
     /**
      * Find tenant's metrics with filtering abilities. The filtering can take place at the type level or at the
@@ -103,26 +103,36 @@ public interface MetricsService {
      * @param type If type is null, no type filtering is used
      * @return Metric's that are filtered with given conditions
      */
-    Observable<Metric> findMetricsWithFilters(String tenantId, Map<String, String> tagsQueries, MetricType
-            type);
+    <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, Map<String, String> tagsQueries,
+                                                     MetricType<T> type);
 
-    Observable<Optional<Map<String, String>>> getMetricTags(MetricId id);
+    Observable<Optional<Map<String, String>>> getMetricTags(MetricId<?> id);
 
-    Observable<Void> addTags(Metric metric, Map<String, String> tags);
+    Observable<Void> addTags(Metric<?> metric, Map<String, String> tags);
 
-    Observable<Void> deleteTags(Metric metric, Map<String, String> tags);
-
-    Observable<Void> addGaugeData(Observable<Metric<Double>> gaugeObservable);
+    Observable<Void> deleteTags(Metric<?> metric, Map<String, String> tags);
 
     /**
-     * Fetches data points for a gauge metric.
+     * Insert data points for the specified {@code metrics}.
      *
-     * @param id The metric name
-     * @param start The start time inclusive as  aUnix timestamp in milliseconds
-     * @param end The end time exclusive as a Unix timestamp in milliseconds
+     *
+     * @param metricType type of all metrics emitted by {@code metrics}
+     * @param metrics the sources of data points
+     *
+     * @return an {@link Observable} emitting just one item on complete
+     */
+    <T> Observable<Void> addDataPoints(MetricType<T> metricType, Observable<Metric<T>> metrics);
+
+    /**
+     * Fetch data points for a single metric.
+     *
+     * @param id         identifier of the metric
+     * @param start      start time inclusive as a Unix timestamp in milliseconds
+     * @param end        end time exclusive as a Unix timestamp in milliseconds
+     *
      * @return an {@link Observable} that emits {@link DataPoint data points}
      */
-    Observable<DataPoint<Double>> findGaugeData(MetricId id, Long start, Long end);
+    <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> id, Long start, Long end);
 
     /**
      * This method applies one or more functions to an Observable that emits data points of a gauge metric. The data
@@ -135,20 +145,16 @@ public interface MetricsService {
      * @return An {@link Observable} that emits the results with the same ordering as funcs
      * @see Aggregate
      */
-    <T> Observable<T> findGaugeData(MetricId id, Long start, Long end,
+    <T> Observable<T> findGaugeData(MetricId<Double> id, Long start, Long end,
                                     Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs);
 
-    Observable<List<GaugeBucketPoint>> findGaugeStats(MetricId metricId, long start, long end, Buckets buckets);
+    Observable<List<GaugeBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end, Buckets buckets);
 
-    Observable<Void> addAvailabilityData(Observable<Metric<AvailabilityType>> availabilities);
-
-    Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId id, long start, long end);
-
-    Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId id, long start, long end,
+    Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId<AvailabilityType> id, long start, long end,
                                                                  boolean distinct);
 
-    Observable<List<AvailabilityBucketPoint>> findAvailabilityStats(MetricId metricId, long start, long end, Buckets
-            buckets);
+    Observable<List<AvailabilityBucketPoint>> findAvailabilityStats(MetricId<AvailabilityType> metricId, long start,
+                                                                    long end, Buckets buckets);
 
     /** Check if a metric with the passed {id} has been stored in the system */
     Observable<Boolean> idExists(String id);
@@ -162,22 +168,11 @@ public interface MetricsService {
 
     Observable<Void> tagAvailabilityData(Metric<AvailabilityType> metric, Map<String, String> tags, long timestamp);
 
-    Observable<Map<MetricId, Set<DataPoint<Double>>>> findGaugeDataByTags(String tenantId, Map<String, String> tags);
+    Observable<Map<MetricId<Double>, Set<DataPoint<Double>>>> findGaugeDataByTags(String tenantId, Map<String,
+            String> tags);
 
-    Observable<Map<MetricId, Set<DataPoint<AvailabilityType>>>> findAvailabilityByTags(String tenantId,
-            Map<String, String> tags);
-
-    Observable<Void> addCounterData(Observable<Metric<Long>> counters);
-
-    /**
-     * Queries for raw counter data points with the specified date range.
-     *
-     * @param id The counter id
-     * @param start The start time inclusive
-     * @param end The end time exclusive
-     * @return An observable that emits counter data points in ascending order
-     */
-    Observable<DataPoint<Long>> findCounterData(MetricId id, long start, long end);
+    Observable<Map<MetricId<AvailabilityType>, Set<DataPoint<AvailabilityType>>>> findAvailabilityByTags(
+            String tenantId, Map<String, String> tags);
 
     /**
      * Fetches counter data points and calculates per-minute rates. The start and end time are rounded down to the
@@ -191,7 +186,7 @@ public interface MetricsService {
      * the most recent data is emitted first. If there are no data points for a particular bucket (i.e., minute), then
      * the data point will have Double.NaN as its value.
      */
-    Observable<DataPoint<Double>> findRateData(MetricId id, long start, long end);
+    Observable<DataPoint<Double>> findRateData(MetricId<Long> id, long start, long end);
 
     /**
      * <p>
@@ -209,13 +204,11 @@ public interface MetricsService {
      * {start: 2, end: 3}, {start: 5, end: 5}, {start: 7, end: 7}
      * </p>
      *
-     * @param id
      * @param predicate A function applied to the value of each data point
      * @param start The start time inclusive
      * @param end The end time exclusive
      * @return Each element in the list is a two element array. The first element is the start time inclusive for which
      * the predicate matches, and the second element is the end time inclusive for which the predicate matches.
      */
-    Observable<List<long[]>> getPeriods(MetricId id, Predicate<Double> predicate, long start,
-                                        long end);
+    Observable<List<long[]>> getPeriods(MetricId<Double> id, Predicate<Double> predicate, long start, long end);
 }

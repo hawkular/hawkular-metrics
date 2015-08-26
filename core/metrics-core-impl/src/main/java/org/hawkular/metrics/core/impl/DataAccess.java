@@ -52,11 +52,11 @@ public interface DataAccess {
 
     ResultSetFuture insertMetricInMetricsIndex(Metric metric);
 
-    Observable<ResultSet> findMetric(MetricId id);
+    Observable<ResultSet> findMetric(MetricId<?> id);
 
     Observable<ResultSet> addTagsAndDataRetention(Metric metric);
 
-    Observable<ResultSet> getMetricTags(MetricId id, long dpart);
+    Observable<ResultSet> getMetricTags(MetricId<?> id, long dpart);
 
     Observable<ResultSet> addTags(Metric metric, Map<String, String> tags);
 
@@ -67,19 +67,19 @@ public interface DataAccess {
 
     <T> Observable<Integer> updateMetricsIndex(Observable<Metric<T>> metrics);
 
-    Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType type);
+    Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType<?> type);
 
     Observable<Integer> insertGaugeData(Metric<Double> metric, int ttl);
 
     Observable<Integer> insertCounterData(Metric<Long> counter, int ttl);
 
-    Observable<ResultSet> findCounterData(MetricId id, long startTime, long endTime);
+    Observable<ResultSet> findCounterData(MetricId<?> id, long startTime, long endTime);
 
-    Observable<ResultSet> findData(MetricId id, long startTime, long endTime);
+    Observable<ResultSet> findData(MetricId<?> id, long startTime, long endTime);
 
     Observable<ResultSet> findData(Metric<Double> metric, long startTime, long endTime, Order order);
 
-    Observable<ResultSet> findData(MetricId id, long startTime, long endTime,
+    Observable<ResultSet> findData(MetricId<?> id, long startTime, long endTime,
             boolean includeWriteTime);
 
     Observable<ResultSet> findData(Metric<Double> metric, long timestamp, boolean includeWriteTime);
@@ -109,11 +109,11 @@ public interface DataAccess {
 
     Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl);
 
-    Observable<ResultSet> findAvailabilityData(MetricId id, long startTime, long endTime);
+    Observable<ResultSet> findAvailabilityData(MetricId<?> id, long startTime, long endTime);
 
-    ResultSetFuture findDataRetentions(String tenantId, MetricType type);
+    ResultSetFuture findDataRetentions(String tenantId, MetricType<?> type);
 
-    Observable<ResultSet> updateRetentionsIndex(String tenantId, MetricType type, Map<String, Integer> retentions);
+    Observable<ResultSet> updateRetentionsIndex(String tenantId, MetricType<?> type, Map<String, Integer> retentions);
 
     ResultSetFuture updateRetentionsIndex(Metric metric);
 

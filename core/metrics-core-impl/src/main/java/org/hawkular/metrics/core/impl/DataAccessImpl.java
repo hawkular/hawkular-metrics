@@ -384,19 +384,20 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public ResultSetFuture insertMetricInMetricsIndex(Metric metric) {
-        return session.executeAsync(insertIntoMetricsIndex.bind(metric.getTenantId(), metric.getType().getCode(),
-                metric.getId().getInterval().toString(), metric.getId().getName(), metric.getDataRetention(),
+        MetricId<?> metricId = metric.getId();
+        return session.executeAsync(insertIntoMetricsIndex.bind(metricId.getTenantId(), metricId.getType().getCode(),
+                metricId.getInterval().toString(), metricId.getName(), metric.getDataRetention(),
                 metric.getTags()));
     }
 
     @Override
-    public Observable<ResultSet> findMetric(MetricId id) {
+    public Observable<ResultSet> findMetric(MetricId<?> id) {
         return rxSession.execute(findMetric.bind(id.getTenantId(), id.getType().getCode(), id.getName(),
                 id.getInterval().toString()));
     }
 
     @Override
-    public Observable<ResultSet> getMetricTags(MetricId id, long dpart) {
+    public Observable<ResultSet> getMetricTags(MetricId<?> id, long dpart) {
         return rxSession.execute(getMetricTags.bind(id.getTenantId(), id.getType().getCode(), id.getName(),
                                                     id.getInterval().toString(), dpart));
     }
@@ -408,39 +409,43 @@ public class DataAccessImpl implements DataAccess {
     // day, and then add the tags and retention to the new partition.
     @Override
     public Observable<ResultSet> addTagsAndDataRetention(Metric metric) {
+        MetricId<?> metricId = metric.getId();
         return rxSession.execute(addMetadataAndDataRetention.bind(metric.getTags(), metric.getDataRetention(),
-                metric.getTenantId(), metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval()
+                metricId.getTenantId(), metricId.getType().getCode(), metricId.getName(), metricId.getInterval()
                         .toString(), DPART));
     }
 
     @Override
     public Observable<ResultSet> addTags(Metric metric, Map<String, String> tags) {
         BatchStatement batch = new BatchStatement(UNLOGGED);
-        batch.add(addMetricTagsToDataTable.bind(tags, metric.getTenantId(), metric.getType().getCode(),
-            metric.getId().getName(), metric.getId().getInterval().toString(), DPART));
-        batch.add(addTagsToMetricsIndex.bind(tags, metric.getTenantId(), metric.getType().getCode(),
-            metric.getId().getInterval().toString(), metric.getId().getName()));
+        MetricId<?> metricId = metric.getId();
+        batch.add(addMetricTagsToDataTable.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
+                metricId.getName(), metricId.getInterval().toString(), DPART));
+        batch.add(addTagsToMetricsIndex.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
+                metricId.getInterval().toString(), metricId.getName()));
         return rxSession.execute(batch);
     }
 
     @Override
     public Observable<ResultSet> deleteTags(Metric metric, Set<String> tags) {
         BatchStatement batch = new BatchStatement(UNLOGGED);
-        batch.add(deleteMetricTagsFromDataTable.bind(tags, metric.getTenantId(), metric.getType().getCode(),
-            metric.getId().getName(), metric.getId().getInterval().toString(), DPART));
-        batch.add(deleteTagsFromMetricsIndex.bind(tags, metric.getTenantId(), metric.getType().getCode(),
-            metric.getId().getInterval().toString(), metric.getId().getName()));
+        MetricId<?> metricId = metric.getId();
+        batch.add(deleteMetricTagsFromDataTable.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
+                metricId.getName(), metricId.getInterval().toString(), DPART));
+        batch.add(deleteTagsFromMetricsIndex.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
+                metricId.getInterval().toString(), metricId.getName()));
         return rxSession.execute(batch);
     }
 
     @Override
     public Observable<ResultSet> updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
             Set<String> deletions) {
+        MetricId<?> metricId = metric.getId();
         BatchStatement batchStatement = new BatchStatement(UNLOGGED)
-            .add(addTagsToMetricsIndex.bind(additions, metric.getTenantId(),
-                metric.getType().getCode(), metric.getId().getInterval().toString(), metric.getId().getName()))
-            .add(deleteTagsFromMetricsIndex.bind(deletions, metric.getTenantId(), metric.getType().getCode(),
-                    metric.getId().getInterval().toString(), metric.getId().getName()));
+                .add(addTagsToMetricsIndex.bind(additions, metricId.getTenantId(),
+                        metricId.getType().getCode(), metricId.getInterval().toString(), metricId.getName()))
+                .add(deleteTagsFromMetricsIndex.bind(deletions, metricId.getTenantId(), metricId.getType().getCode(),
+                        metricId.getInterval().toString(), metricId.getName()));
         return rxSession.execute(batchStatement);
     }
 
@@ -454,7 +459,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType type) {
+    public Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType<?> type) {
         return rxSession.execute(readMetricsIndex.bind(tenantId, type.getCode()));
     }
 
@@ -479,19 +484,19 @@ public class DataAccessImpl implements DataAccess {
     private BoundStatement bindDataPoint(
             PreparedStatement statement, Metric<?> metric, Object value, long timestamp, int ttl
     ) {
-        MetricId metricId = metric.getId();
+        MetricId<?> metricId = metric.getId();
         return statement.bind(ttl, metric.getTags(), value, metricId.getTenantId(),
                 metricId.getType().getCode(), metricId.getName(), metricId.getInterval().toString(), DPART,
                 getTimeUUID(timestamp));
     }
 
     @Override
-    public Observable<ResultSet> findData(MetricId id, long startTime, long endTime) {
+    public Observable<ResultSet> findData(MetricId<?> id, long startTime, long endTime) {
         return findData(id, startTime, endTime, false);
     }
 
     @Override
-    public Observable<ResultSet> findCounterData(MetricId id, long startTime, long endTime) {
+    public Observable<ResultSet> findCounterData(MetricId<?> id, long startTime, long endTime) {
         return rxSession.execute(findCounterDataExclusive.bind(id.getTenantId(), COUNTER.getCode(), id.getName(),
                 id.getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
     }
@@ -499,19 +504,20 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<ResultSet> findData(Metric<Double> metric, long startTime, long endTime, Order
             order) {
+        MetricId<?> metricId = metric.getId();
         if (order == Order.ASC) {
-            return rxSession.execute(findGaugeDataByDateRangeExclusiveASC.bind(metric.getTenantId(),
-                    GAUGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+            return rxSession.execute(findGaugeDataByDateRangeExclusiveASC.bind(metricId.getTenantId(),
+                    GAUGE.getCode(), metricId.getName(), metricId.getInterval().toString(),
                     DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
         } else {
-            return rxSession.execute(findGaugeDataByDateRangeExclusive.bind(metric.getTenantId(),
-                    GAUGE.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+            return rxSession.execute(findGaugeDataByDateRangeExclusive.bind(metricId.getTenantId(),
+                    GAUGE.getCode(), metricId.getName(), metricId.getInterval().toString(),
                     DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
         }
     }
 
     @Override
-    public Observable<ResultSet> findData(MetricId id, long startTime, long endTime,
+    public Observable<ResultSet> findData(MetricId<?> id, long startTime, long endTime,
             boolean includeWriteTime) {
         if (includeWriteTime) {
             return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeExclusive.bind(id.getTenantId(),
@@ -527,13 +533,14 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<ResultSet> findData(Metric<Double> metric, long timestamp,
             boolean includeWriteTime) {
+        MetricId<?> metricId = metric.getId();
         if (includeWriteTime) {
-            return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeInclusive.bind(metric.getTenantId(),
-                    metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+            return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeInclusive.bind(metricId.getTenantId(),
+                    metricId.getType().getCode(), metricId.getName(), metricId.getInterval().toString(),
                     DPART, UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
         } else {
-            return rxSession.execute(findGaugeDataByDateRangeInclusive.bind(metric.getTenantId(),
-                    metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+            return rxSession.execute(findGaugeDataByDateRangeInclusive.bind(metricId.getTenantId(),
+                    metricId.getType().getCode(), metricId.getName(), metricId.getInterval().toString(),
                     DPART, UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
         }
     }
@@ -548,21 +555,23 @@ public class DataAccessImpl implements DataAccess {
     public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long startTime, long
             endTime, boolean
             includeWriteTime) {
+        MetricId<?> metricId = metric.getId();
         if (includeWriteTime) {
-            return rxSession.execute(findAvailabilitiesWithWriteTime.bind(metric.getTenantId(),
-                    AVAILABILITY.getCode(), metric.getId().getName(),
-                    metric.getId().getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+            return rxSession.execute(findAvailabilitiesWithWriteTime.bind(metricId.getTenantId(),
+                    AVAILABILITY.getCode(), metricId.getName(),
+                    metricId.getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
         } else {
-            return rxSession.execute(findAvailabilities.bind(metric.getTenantId(), AVAILABILITY.getCode(),
-                    metric.getId().getName(), metric.getId().getInterval().toString(), DPART, getTimeUUID(startTime),
+            return rxSession.execute(findAvailabilities.bind(metricId.getTenantId(), AVAILABILITY.getCode(),
+                    metricId.getName(), metricId.getInterval().toString(), DPART, getTimeUUID(startTime),
                     getTimeUUID(endTime)));
         }
     }
 
     @Override
     public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long timestamp) {
-        return rxSession.execute(findAvailabilityByDateRangeInclusive.bind(metric.getTenantId(),
-                AVAILABILITY.getCode(), metric.getId().getName(), metric.getId().getInterval().toString(),
+        MetricId<?> metricId = metric.getId();
+        return rxSession.execute(findAvailabilityByDateRangeInclusive.bind(metricId.getTenantId(),
+                AVAILABILITY.getCode(), metricId.getName(), metricId.getInterval().toString(),
                 DPART, UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
     }
 
@@ -580,7 +589,7 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<ResultSet> insertGaugeTag(String tag, String tagValue, Metric<Double> metric,
             Observable<TTLDataPoint<Double>> data) {
-        MetricId id = metric.getId();
+        MetricId<?> id = metric.getId();
         return data
                 .map(d -> insertGaugeTags.bind(id.getTenantId(), tag, tagValue, GAUGE.getCode(), id.getName(),
                         id.getInterval().toString(), getTimeUUID(d.getDataPoint().getTimestamp()),
@@ -592,7 +601,7 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<ResultSet> insertAvailabilityTag(String tag, String tagValue, Metric<AvailabilityType> metric,
                                                        Observable<TTLDataPoint<AvailabilityType>> data) {
-        MetricId id = metric.getId();
+        MetricId<?> id = metric.getId();
         return data
                 .map(a -> insertAvailabilityTags.bind(id.getTenantId(), tag, tagValue, AVAILABILITY.getCode(),
                         id.getName(), id.getInterval().toString(),
@@ -603,9 +612,9 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<ResultSet> updateDataWithTag(Metric metric, DataPoint dataPoint, Map<String, String> tags) {
-        return rxSession.execute(updateDataWithTags.bind(tags, metric.getTenantId(), metric.getType().getCode(), metric
-                        .getId().getName(), metric.getId().getInterval().toString(), DPART,
-                getTimeUUID(dataPoint.getTimestamp())));
+        MetricId<?> metricId = metric.getId();
+        return rxSession.execute(updateDataWithTags.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
+                metricId.getName(), metricId.getInterval().toString(), DPART, getTimeUUID(dataPoint.getTimestamp())));
     }
 
     @Override
@@ -632,19 +641,19 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findAvailabilityData(MetricId id, long startTime, long endTime) {
+    public Observable<ResultSet> findAvailabilityData(MetricId<?> id, long startTime, long endTime) {
         return rxSession.execute(findAvailabilities.bind(id.getTenantId(), AVAILABILITY.getCode(),
                 id.getName(), id.getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
     }
 
     @Override
-    public ResultSetFuture findDataRetentions(String tenantId, MetricType type) {
+    public ResultSetFuture findDataRetentions(String tenantId, MetricType<?> type) {
         return session.executeAsync(findDataRetentions.bind(tenantId, type.getCode()));
     }
 
     @Override
-    public Observable<ResultSet> updateRetentionsIndex(String tenantId, MetricType type,
-            Map<String, Integer> retentions) {
+    public Observable<ResultSet> updateRetentionsIndex(String tenantId, MetricType<?> type,
+                                                       Map<String, Integer> retentions) {
         return Observable.from(retentions.entrySet())
                 .map(entry -> updateRetentionsIndex.bind(tenantId, type.getCode(), entry.getKey(), entry.getValue()))
                 .compose(new BatchStatementTransformer())
@@ -653,14 +662,16 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<ResultSet> insertIntoMetricsTagsIndex(Metric metric, Map<String, String> tags) {
-        return executeTagsBatch(tags, (name, value) -> insertMetricsTagsIndex.bind(metric.getTenantId(), name, value,
-                metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString()));
+        MetricId<?> metricId = metric.getId();
+        return executeTagsBatch(tags, (name, value) -> insertMetricsTagsIndex.bind(metricId.getTenantId(), name, value,
+                metricId.getType().getCode(), metricId.getName(), metricId.getInterval().toString()));
     }
 
     @Override
     public Observable<ResultSet> deleteFromMetricsTagsIndex(Metric metric, Map<String, String> tags) {
-        return executeTagsBatch(tags, (name, value) -> deleteMetricsTagsIndex.bind(metric.getTenantId(), name, value,
-                metric.getType().getCode(), metric.getId().getName(), metric.getId().getInterval().toString()));
+        MetricId<?> metricId = metric.getId();
+        return executeTagsBatch(tags, (name, value) -> deleteMetricsTagsIndex.bind(metricId.getTenantId(), name, value,
+                metricId.getType().getCode(), metricId.getName(), metricId.getInterval().toString()));
     }
 
     private Observable<ResultSet> executeTagsBatch(Map<String, String> tags,

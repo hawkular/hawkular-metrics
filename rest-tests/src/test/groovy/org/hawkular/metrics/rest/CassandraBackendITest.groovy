@@ -355,7 +355,7 @@ class CassandraBackendITest extends RESTTest {
   void findMetricsShouldFailProperlyWhenTypeIsMissingOrInvalid() {
     def tenantId = nextTenantId()
 
-    def invalidType = MetricType.values().join('"')
+    def invalidType = MetricType.all().collect { it.text }.join("")
     badGet(path: "metrics", query: [type: invalidType],
         headers: [(tenantHeaderName): tenantId]) { exception ->
       // Invalid type

@@ -19,8 +19,6 @@ package org.hawkular.metrics.api.jaxrs.param;
 
 import static java.util.stream.Collectors.joining;
 
-import java.util.Arrays;
-
 import org.hawkular.metrics.core.api.MetricType;
 import org.junit.Rule;
 import org.junit.Test;
@@ -38,7 +36,7 @@ public class MetricTypeConverterTest {
     public void shouldThrowIllegalArgumentExceptionWithInvalidText() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
 
-        String invalidText = Arrays.stream(MetricType.values()).map(MetricType::getText).collect(joining("."));
+        String invalidText = MetricType.all().stream().map(MetricType::getText).collect(joining("."));
         new MetricTypeConverter().fromString(invalidText);
     }
 }

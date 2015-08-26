@@ -18,31 +18,56 @@ package org.hawkular.metrics.core.api;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.Arrays;
-import java.util.EnumSet;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * An enumeration of the supported metric types.
  *
  * @author John Sanda
  */
-public enum MetricType {
-    GAUGE(0, "gauge"),
-    AVAILABILITY(1, "availability"),
-    COUNTER(2, "counter"),
-    COUNTER_RATE(3, "counter_rate");
+public final class MetricType<T> {
+    public static final MetricType<Double> GAUGE = new MetricType<>(0, "gauge", true);
+    public static final MetricType<AvailabilityType> AVAILABILITY = new MetricType<>(1, "availability", true);
+    public static final MetricType<Long> COUNTER = new MetricType<>(2, "counter", true);
+    public static final MetricType<Double> COUNTER_RATE = new MetricType<>(3, "counter_rate", false);
+    // If you add a new type: don't forget to update the "all" and "userTypes" sets
 
-    private int code;
-    private String text;
+    private static final Set<MetricType<?>> all = ImmutableSet.of(GAUGE, AVAILABILITY, COUNTER, COUNTER_RATE);
 
-    private static EnumSet<MetricType> userDefinableTypes = EnumSet.range(GAUGE, COUNTER);
+    private static final Set<MetricType<?>> userTypes;
+    private static final Map<Integer, MetricType<?>> codes;
+    private static final Map<String, MetricType<?>> texts;
 
-    MetricType(int code, String text) {
+    static {
+        ImmutableSet.Builder<MetricType<?>> userTypesBuilder = ImmutableSet.builder();
+        ImmutableMap.Builder<Integer, MetricType<?>> codesBuilder = ImmutableMap.builder();
+        ImmutableMap.Builder<String, MetricType<?>> textsBuilder = ImmutableMap.builder();
+        all.forEach(type -> {
+            if (type.isUserType()) {
+                userTypesBuilder.add(type);
+            }
+            codesBuilder.put(type.code, type);
+            textsBuilder.put(type.text, type);
+        });
+        userTypes = userTypesBuilder.build();
+        codes = codesBuilder.build();
+        checkArgument(codes.size() == all.size(), "Some metric types have the same code");
+        texts = textsBuilder.build();
+        checkArgument(texts.size() == all.size(), "Some metric types have the same string value");
+    }
+
+    private final int code;
+    private final String text;
+    private final boolean userType;
+
+    private MetricType(int code, String text, boolean userType) {
         this.code = code;
         this.text = text;
+        this.userType = userType;
     }
 
     public int getCode() {
@@ -53,47 +78,37 @@ public enum MetricType {
         return text;
     }
 
+    public boolean isUserType() {
+        return userType;
+    }
+
     @Override
     public String toString() {
         return getText();
     }
 
-    private static final ImmutableMap<Integer, MetricType> codes;
-
-    static {
-        ImmutableMap.Builder<Integer, MetricType> builder = ImmutableMap.builder();
-        Arrays.stream(values()).forEach(type -> builder.put(type.code, type));
-        codes = builder.build();
-        checkArgument(codes.size() == values().length, "Some metric types have the same code");
-    }
-
-    private static final ImmutableMap<String, MetricType> texts;
-
-    static {
-        ImmutableMap.Builder<String, MetricType> builder = ImmutableMap.builder();
-        Arrays.stream(values()).forEach(type -> builder.put(type.text, type));
-        texts = builder.build();
-        checkArgument(texts.size() == values().length, "Some metric types have the same string value");
-    }
-
-    public static MetricType fromCode(int code) {
-        MetricType type = codes.get(code);
+    public static MetricType<?> fromCode(int code) {
+        MetricType<?> type = codes.get(code);
         if (type == null) {
             throw new IllegalArgumentException(code + " is not a recognized metric type");
         }
         return type;
     }
 
-    public static MetricType fromTextCode(String textCode) {
+    public static MetricType<?> fromTextCode(String textCode) {
         checkArgument(textCode != null, "textCode is null");
-        MetricType type = texts.get(textCode);
+        MetricType<?> type = texts.get(textCode);
         if (type == null) {
             throw new IllegalArgumentException(textCode + " is not a recognized metric type");
         }
         return type;
     }
 
-    public static Set<MetricType> userTypes() {
-        return userDefinableTypes;
+    public static Set<MetricType<?>> all() {
+        return all;
+    }
+
+    public static Set<MetricType<?>> userTypes() {
+        return userTypes;
     }
 }
