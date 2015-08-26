@@ -17,6 +17,8 @@
 package org.hawkular.metrics.rest
 
 import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertNotEquals
+import static org.junit.Assert.assertNotNull
 
 import org.junit.Test
 
@@ -24,16 +26,17 @@ import org.junit.Test
  * @author mwringe
  */
 class RootITest extends RESTTest {
+
     @Test
-    void getStatusTest() {
+    void getServiceInformation() {
         def response = hawkularMetrics.get(path: "");
 
         def version = System.properties.getProperty("project.version");
 
-        assertEquals(200, response.status);
-
-        def expectedData = ["name" : "Hawkular-Metrics", "version": version];
-
-        assertEquals(expectedData, response.data);
+        assertEquals(200, response.status)
+        assertEquals("Hawkular-Metrics", response.data.name)
+        assertEquals(version, response.data["Implementation-Version"])
+        assertNotNull(response.data["Built-From-Git-SHA1"])
+        assertNotEquals("Unknown", response.data["Built-From-Git-SHA1"])
     }
 }

@@ -18,8 +18,6 @@ package org.hawkular.metrics.rest
 
 import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertNotEquals
-import static org.junit.Assert.assertNotNull
 
 import org.junit.Test
 
@@ -38,17 +36,5 @@ class BaseITest extends RESTTest {
         assertEquals(200, response.status)
 
         assertEquals(start + 10, response.data[0].timestamp)
-    }
-
-    @Test
-    void getServiceInformation() {
-        def response = hawkularMetrics.get(path: "")
-
-        assertEquals(200, response.status)
-        assertEquals("Hawkular-Metrics", response.data.name)
-        assertNotNull(response.data["Implementation-Version"])
-        assertNotNull(response.data["Built-From-Git-SHA1"])
-        assertNotEquals("Unknown", response.data["Implementation-Version"])
-        assertNotEquals("Unknown", response.data["Built-From-Git-SHA1"])
     }
 }
