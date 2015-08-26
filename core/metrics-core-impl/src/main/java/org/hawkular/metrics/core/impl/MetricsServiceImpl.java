@@ -155,34 +155,29 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     private MetricRegistry metricRegistry;
 
     /**
-     * Measures the throughput of inserting gauge data points.
+     * Functions used to insert metric data points.
      */
-    private Meter gaugeInserts;
+    private Map<MetricType<?>, Func2<? extends Metric<?>, Integer, Observable<Integer>>> dataPointInserters;
 
     /**
-     * Measures the throughput of inserting availability data points.
+     * Measurements of the throughput of inserting data points.
      */
-    private Meter availabilityInserts;
+    private Map<MetricType<?>, Meter> dataPointInsertMeters;
 
     /**
-     * Measures the throughput of inserting counter data points.
+     * Measures the latency of queries for data points.
      */
-    private Meter counterInserts;
+    private Map<MetricType<?>, Timer> dataPointReadTimers;
 
     /**
-     * Measures the latency of queries for gauge (raw) data.
+     * Functions used to find metric data points.
      */
-    private Timer gaugeReadLatency;
+    private Map<MetricType<?>, Func3<? extends MetricId<?>, Long, Long, Observable<ResultSet>>> dataPointFinders;
 
     /**
-     * Measures the latency of queries for raw counter data.
+     * Functions used to transform a row into a data point object.
      */
-    private Timer counterReadLatency;
-
-    /**
-     * Measures the latency of queries for availability (raw) data.
-     */
-    private Timer availabilityReadLatency;
+    private Map<MetricType<?>, Func1<Row, ? extends DataPoint<?>>> dataPointMappers;
 
     public void startUp(Session session, String keyspace, boolean resetDb, MetricRegistry metricRegistry) {
         startUp(session, keyspace, resetDb, true, metricRegistry);
@@ -204,6 +199,44 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         loadDataRetentions();
 
         this.metricRegistry = metricRegistry;
+
+        dataPointInserters = ImmutableMap.<MetricType<?>, Func2<? extends Metric<?>, Integer,
+                Observable<Integer>>>builder()
+                .put(GAUGE, (metric, ttl) -> {
+                    @SuppressWarnings("unchecked")
+                    Metric<Double> gauge = (Metric<Double>) metric;
+                    return dataAccess.insertGaugeData(gauge, ttl);
+                })
+                .put(AVAILABILITY, (metric, ttl) -> {
+                    @SuppressWarnings("unchecked")
+                    Metric<AvailabilityType> avail = (Metric<AvailabilityType>) metric;
+                    return dataAccess.insertAvailabilityData(avail, ttl);
+                })
+                .put(COUNTER, (metric, ttl) -> {
+                    @SuppressWarnings("unchecked")
+                    Metric<Long> counter = (Metric<Long>) metric;
+                    return dataAccess.insertCounterData(counter, ttl);
+                })
+                .put(COUNTER_RATE, (metric, ttl) -> {
+                    @SuppressWarnings("unchecked")
+                    Metric<Double> gauge = (Metric<Double>) metric;
+                    return dataAccess.insertGaugeData(gauge, ttl);
+                })
+                .build();
+
+        dataPointFinders = ImmutableMap.<MetricType<?>, Func3<? extends MetricId<?>, Long, Long,
+                Observable<ResultSet>>>builder()
+                .put(GAUGE, dataAccess::findData)
+                .put(AVAILABILITY, dataAccess::findAvailabilityData)
+                .put(COUNTER, dataAccess::findCounterData)
+                .build();
+
+        dataPointMappers = ImmutableMap.<MetricType<?>, Func1<Row, ? extends DataPoint<?>>>builder()
+                .put(GAUGE, Functions::getGaugeDataPoint)
+                .put(AVAILABILITY, Functions::getAvailabilityDataPoint)
+                .put(COUNTER, Functions::getCounterDataPoint)
+                .build();
+
         initMetrics();
 
         initSystemTenant();
@@ -257,17 +290,22 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                 );
         try {
             latch.await();
-        } catch (InterruptedException e) {
+        } catch (InterruptedException ignored) {
         }
     }
 
     private void initMetrics() {
-        gaugeInserts = metricRegistry.meter("gauge-inserts");
-        availabilityInserts = metricRegistry.meter("availability-inserts");
-        counterInserts = metricRegistry.meter("counter-inserts");
-        gaugeReadLatency = metricRegistry.timer("gauge-read-latency");
-        availabilityReadLatency = metricRegistry.timer("availability-read-latency");
-        counterReadLatency = metricRegistry.timer("counter-read-latency");
+        dataPointInsertMeters = ImmutableMap.<MetricType<?>, Meter>builder()
+                .put(GAUGE, metricRegistry.meter("gauge-inserts"))
+                .put(AVAILABILITY, metricRegistry.meter("availability-inserts"))
+                .put(COUNTER, metricRegistry.meter("counter-inserts"))
+                .put(COUNTER_RATE, metricRegistry.meter("gauge-inserts"))
+                .build();
+        dataPointReadTimers = ImmutableMap.<MetricType<?>, Timer>builder()
+                .put(GAUGE, metricRegistry.timer("gauge-read-latency"))
+                .put(AVAILABILITY, metricRegistry.timer("availability-read-latency"))
+                .put(COUNTER, metricRegistry.timer("counter-read-latency"))
+                .build();
     }
 
     private static class MergeDataPointTagsFunction<T> implements
@@ -586,32 +624,8 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         //      we periodically update it in the background, so we will still be aware of metrics that have not been
         //      explicitly created, just not necessarily right away.
 
-        Meter meter;
-        Func2<Metric<T>, Integer, Observable<Integer>> inserter;
-        if (metricType == GAUGE || metricType == COUNTER_RATE) {
-            meter = gaugeInserts;
-            inserter = (metric, ttl) -> {
-                @SuppressWarnings("unchecked")
-                Metric<Double> gauge = (Metric<Double>) metric;
-                return dataAccess.insertGaugeData(gauge, ttl);
-            };
-        } else if (metricType == AVAILABILITY) {
-            meter = availabilityInserts;
-            inserter = (metric, ttl) -> {
-                @SuppressWarnings("unchecked")
-                Metric<AvailabilityType> avail = (Metric<AvailabilityType>) metric;
-                return dataAccess.insertAvailabilityData(avail, ttl);
-            };
-        } else if (metricType == COUNTER) {
-            meter = counterInserts;
-            inserter = (metric, ttl) -> {
-                @SuppressWarnings("unchecked")
-                Metric<Long> counter = (Metric<Long>) metric;
-                return dataAccess.insertCounterData(counter, ttl);
-            };
-        } else {
-            throw new UnsupportedOperationException(metricType.getText());
-        }
+        Meter meter = getInsertMeter(metricType);
+        Func2<Metric<T>, Integer, Observable<Integer>> inserter = getInserter(metricType);
 
         Observable<Integer> updates = metrics
                 .filter(metric -> !metric.getDataPoints().isEmpty())
@@ -624,6 +638,24 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         return Observable.concat(updates, indexUpdates, tenantUpdates)
                 .takeLast(1)
                 .map(count -> null);
+    }
+
+    private <T> Meter getInsertMeter(MetricType<T> metricType) {
+        Meter meter = dataPointInsertMeters.get(metricType);
+        if (meter == null) {
+            throw new UnsupportedOperationException(metricType.getText());
+        }
+        return meter;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> Func2<Metric<T>, Integer, Observable<Integer>> getInserter(MetricType<T> metricType) {
+        Func2<Metric<T>, Integer, Observable<Integer>> inserter;
+        inserter = (Func2<Metric<T>, Integer, Observable<Integer>>) dataPointInserters.get(metricType);
+        if (inserter == null) {
+            throw new UnsupportedOperationException(metricType.getText());
+        }
+        return inserter;
     }
 
     private Observable<Integer> updateTenantBuckets(Observable<? extends Metric<?>> metrics) {
@@ -639,33 +671,40 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> metricId, Long start, Long end) {
-        Timer timer;
-        Func3<MetricId<T>, Long, Long, Observable<ResultSet>> finder;
-        Func1<Row, DataPoint<?>> mapper;
         MetricType<T> metricType = metricId.getType();
-        if (metricType == GAUGE) {
-            timer = gaugeReadLatency;
-            finder = dataAccess::findData;
-            mapper = Functions::getGaugeDataPoint;
-        } else if (metricType == AVAILABILITY) {
-            timer = availabilityReadLatency;
-            finder = dataAccess::findAvailabilityData;
-            mapper = Functions::getAvailabilityDataPoint;
-        } else if (metricType == COUNTER) {
-            timer = counterReadLatency;
-            finder = dataAccess::findCounterData;
-            mapper = Functions::getCounterDataPoint;
-        } else {
-            throw new UnsupportedOperationException(metricType.getText());
-        }
+        Timer timer = getDataPointFindTimer(metricType);
+        Func3<MetricId<T>, Long, Long, Observable<ResultSet>> finder = getDataPointFinder(metricType);
+        Func1<Row, DataPoint<T>> mapper = getDataPointMapper(metricType);
         return time(timer, () -> finder.call(metricId, start, end)
                 .flatMap(Observable::from)
-                .map(mapper))
-                .map(dataPoint -> {
-                    @SuppressWarnings("unchecked")
-                    DataPoint<T> typedPoint = (DataPoint<T>) dataPoint;
-                    return typedPoint;
-                });
+                .map(mapper));
+    }
+
+    private <T> Timer getDataPointFindTimer(MetricType<T> metricType) {
+        Timer timer = dataPointReadTimers.get(metricType);
+        if (timer == null) {
+            throw new UnsupportedOperationException(metricType.getText());
+        }
+        return timer;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> Func3<MetricId<T>, Long, Long, Observable<ResultSet>> getDataPointFinder(MetricType<T> metricType) {
+        Func3<MetricId<T>, Long, Long, Observable<ResultSet>> finder;
+        finder = (Func3<MetricId<T>, Long, Long, Observable<ResultSet>>) dataPointFinders.get(metricType);
+        if (finder == null) {
+            throw new UnsupportedOperationException(metricType.getText());
+        }
+        return finder;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> Func1<Row, DataPoint<T>> getDataPointMapper(MetricType<T> metricType) {
+        Func1<Row, DataPoint<T>> mapper = (Func1<Row, DataPoint<T>>) dataPointMappers.get(metricType);
+        if (mapper == null) {
+            throw new UnsupportedOperationException(metricType.getText());
+        }
+        return mapper;
     }
 
     @Override
@@ -776,17 +815,12 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     @Override
     public Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId<AvailabilityType> id, long start,
             long end, boolean distinct) {
-        return time(availabilityReadLatency, () -> {
-            Observable<DataPoint<AvailabilityType>> availabilityData = dataAccess.findAvailabilityData(id,
-                    start, end)
-                    .flatMap(Observable::from)
-                    .map(Functions::getAvailabilityDataPoint);
-            if (distinct) {
-                return availabilityData.distinctUntilChanged(DataPoint::getValue);
-            } else {
-                return availabilityData;
-            }
-        });
+        Observable<DataPoint<AvailabilityType>> availabilityData = findDataPoints(id, start, end);
+        if (distinct) {
+            return availabilityData.distinctUntilChanged(DataPoint::getValue);
+        } else {
+            return availabilityData;
+        }
     }
 
     @Override
