@@ -91,7 +91,7 @@ class TagsITest extends RESTTest {
         tenantId: tenantId,
         id  : 'N1',
         tags: ['  a  1   ': '   A', 'bsq   d1': 'B   '],
-        type: 'GAUGE'
+        type: 'gauge'
     ], response.data)
 
     // Make sure we do not allow duplicates
@@ -217,14 +217,14 @@ class TagsITest extends RESTTest {
         tenantId: tenantId,
         id      : 'N1',
         tags    : ['a1': 'A', 'd1': 'B'],
-        type: 'GAUGE'
+        type: 'gauge'
     ]))
     assertTrue(response.data.contains([
         tenantId     : tenantId,
         id           : 'A2',
         tags         : [a1: 'A2', a22: '22', b22: '22'],
         dataRetention: 48,
-        type: 'AVAILABILITY'
+        type: 'availability'
     ]))
 
     // Fetch with tags & type
@@ -236,7 +236,7 @@ class TagsITest extends RESTTest {
                       tenantId: tenantId,
                       id      : 'N1',
                       tags    : ['a1': 'A', 'd1': 'B'],
-                      type: 'GAUGE'
+                      type: 'gauge'
                   ]], response.data)
 
     // Fetch with incorrect regexp

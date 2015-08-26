@@ -84,7 +84,7 @@ class CountersITest extends RESTTest {
     response = hawkularMetrics.get(path: "counters/$id", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
 
-    def expectedData = [tenantId: tenantId, id: id, type: 'COUNTER']
+    def expectedData = [tenantId: tenantId, id: id, type: 'counter']
     assertEquals(expectedData, response.data)
   }
 
@@ -129,7 +129,7 @@ class CountersITest extends RESTTest {
         id: id,
         tags: [tag1: 'one', tag2: 'two'],
         dataRetention: 100,
-        type: 'COUNTER'
+        type: 'counter'
     ]
     assertEquals(expectedData, response.data)
   }
@@ -168,7 +168,7 @@ class CountersITest extends RESTTest {
         [
             tenantId: tenantId,
             id: counter1,
-            type: 'COUNTER'
+            type: 'counter'
         ],
         [
             tenantId: tenantId,
@@ -177,7 +177,7 @@ class CountersITest extends RESTTest {
                 tag1: 'one',
                 tag2: 'two'
             ],
-            type: 'COUNTER'
+            type: 'counter'
         ]
     ]
     assertEquals(expectedData, response.data)

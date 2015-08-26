@@ -22,18 +22,22 @@ import static java.util.Collections.unmodifiableMap;
 import java.util.Map;
 import java.util.Objects;
 
+import org.hawkular.metrics.api.jaxrs.jackson.MetricTypeDeserializer;
+import org.hawkular.metrics.api.jaxrs.jackson.MetricTypeSerializer;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricType;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.wordnik.swagger.annotations.ApiModel;
 
 /**
  * @author jsanda
  */
 @ApiModel(description = "The definition of a metric to create")
-public class MetricDefinition {
+public class MetricDefinition<T> {
 
     // TODO Do we need this?
     @JsonProperty
@@ -64,17 +68,20 @@ public class MetricDefinition {
     @org.codehaus.jackson.annotate.JsonProperty
     @org.codehaus.jackson.map.annotate.JsonSerialize(
             include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
-    private MetricType type;
+    @JsonSerialize(using = MetricTypeSerializer.class)
+    @JsonDeserialize(using = MetricTypeDeserializer.class)
+    private MetricType<T> type;
 
     public MetricDefinition() {
     }
 
     @JsonCreator
     public MetricDefinition(
+
             @JsonProperty("id") String id,
             @JsonProperty(value = "tags") Map<String, String> tags,
             @JsonProperty("dataRetention") Integer dataRetention,
-            @JsonProperty("type") MetricType type) {
+            @JsonProperty("type") MetricType<T> type) {
         this.id = id;
         this.tags = tags == null ? emptyMap() : unmodifiableMap(tags);
         this.dataRetention = dataRetention;
@@ -100,7 +107,7 @@ public class MetricDefinition {
         return dataRetention;
     }
 
-    public MetricType getType() {
+    public MetricType<T> getType() {
         return type;
     }
 
@@ -117,7 +124,7 @@ public class MetricDefinition {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        MetricDefinition gauge = (MetricDefinition) o;
+        MetricDefinition<?> gauge = (MetricDefinition<?>) o;
         return Objects.equals(id, gauge.getId()) && Objects.equals(type, gauge.getType());
     }
 
