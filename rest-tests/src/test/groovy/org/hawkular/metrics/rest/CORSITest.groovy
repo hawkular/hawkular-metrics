@@ -109,8 +109,8 @@ class CORSITest extends RESTTest {
         assertEquals(200, response.status)
         assertEquals(
             [
-                [tenantId: tenantId, id: 'm11'],
-                [tenantId: tenantId, id: 'm12'],
+                [tenantId: tenantId, id: 'm11', type: 'GAUGE'],
+                [tenantId: tenantId, id: 'm12', type: 'GAUGE'],
             ],
             response.data
         )
@@ -145,8 +145,8 @@ class CORSITest extends RESTTest {
         assertEquals(200, response.status)
         assertEquals(
             [
-                [tenantId: tenantId, id: 'm11'],
-                [tenantId: tenantId, id: 'm12'],
+                [tenantId: tenantId, id: 'm11', type: 'GAUGE'],
+                [tenantId: tenantId, id: 'm12', type: 'GAUGE'],
             ],
             response.data
         )

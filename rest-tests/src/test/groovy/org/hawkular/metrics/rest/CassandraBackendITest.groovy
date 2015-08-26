@@ -414,9 +414,9 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            [tenantId: tenantId, id: 'm11'],
-            [tenantId: tenantId, id: 'm12'],
-            [tenantId: tenantId, id: 'm13', tags: [a1: 'A', B1: 'B'], dataRetention: 32]
+            [tenantId: tenantId, id: 'm11', type: 'GAUGE'],
+            [tenantId: tenantId, id: 'm12', type: 'GAUGE'],
+            [tenantId: tenantId, id: 'm13', tags: [a1: 'A', B1: 'B'], dataRetention: 32, type: 'GAUGE']
         ],
         response.data
     )
@@ -454,9 +454,9 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            [tenantId: tenantId, id: 'm14'],
-            [tenantId: tenantId, id: 'm15'],
-            [tenantId: tenantId, id: 'm16', tags: [a10: '10', a11: '11'], dataRetention: 7]
+            [tenantId: tenantId, id: 'm14', type: 'AVAILABILITY'],
+            [tenantId: tenantId, id: 'm15', type: 'AVAILABILITY'],
+            [tenantId: tenantId, id: 'm16', tags: [a10: '10', a11: '11'], dataRetention: 7, type: 'AVAILABILITY']
         ],
         response.data
     )
@@ -561,7 +561,8 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals([
             tenantId: tenantId,
-            id: 'Empty1'
+            id: 'Empty1',
+            type: 'GAUGE'
     ], response.data)
   }
 }

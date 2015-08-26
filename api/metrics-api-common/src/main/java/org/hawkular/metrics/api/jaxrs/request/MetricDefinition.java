@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricType;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -59,6 +60,12 @@ public class MetricDefinition {
             include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     private Integer dataRetention;
 
+    @JsonProperty
+    @org.codehaus.jackson.annotate.JsonProperty
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
+    private MetricType type;
+
     public MetricDefinition() {
     }
 
@@ -66,10 +73,12 @@ public class MetricDefinition {
     public MetricDefinition(
             @JsonProperty("id") String id,
             @JsonProperty(value = "tags") Map<String, String> tags,
-            @JsonProperty("dataRetention") Integer dataRetention) {
+            @JsonProperty("dataRetention") Integer dataRetention,
+            @JsonProperty("type") MetricType type) {
         this.id = id;
         this.tags = tags == null ? emptyMap() : unmodifiableMap(tags);
         this.dataRetention = dataRetention;
+        this.type = type;
     }
 
     public String getTenantId() {
@@ -91,10 +100,15 @@ public class MetricDefinition {
         return dataRetention;
     }
 
+    public MetricType getType() {
+        return type;
+    }
+
     @SuppressWarnings("unchecked")
     public MetricDefinition(Metric metric) {
-        this.tenantId = metric.getTenantId();
+        this.tenantId = metric.getId().getTenantId();
         this.id = metric.getId().getName();
+        this.type = metric.getId().getType();
         this.tags = metric.getTags();
         this.dataRetention = metric.getDataRetention();
     }
@@ -104,7 +118,7 @@ public class MetricDefinition {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         MetricDefinition gauge = (MetricDefinition) o;
-        return Objects.equals(id, gauge.id);
+        return Objects.equals(id, gauge.getId()) && Objects.equals(type, gauge.getType());
     }
 
     @Override
@@ -119,6 +133,7 @@ public class MetricDefinition {
                 ", id='" + id + '\'' +
                 ", tags=" + tags +
                 ", dataRetention=" + dataRetention +
+                ", type=" + type.toString() +
                 '}';
     }
 }
