@@ -22,54 +22,59 @@ import static java.util.Collections.unmodifiableMap;
 import java.util.Map;
 import java.util.Objects;
 
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.annotate.JsonDeserialize;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
+import org.hawkular.metrics.api.jaxrs.jackson.MetricTypeDeserializer;
+import org.hawkular.metrics.api.jaxrs.jackson.MetricTypeSerializer;
 import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricType;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.wordnik.swagger.annotations.ApiModel;
 
 /**
  * @author jsanda
  */
 @ApiModel(description = "The definition of a metric to create")
-public class MetricDefinition {
+public class MetricDefinition<T> {
 
     // TODO Do we need this?
     @JsonProperty
-    @org.codehaus.jackson.annotate.JsonProperty
-    @org.codehaus.jackson.map.annotate.JsonSerialize(
-            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
+    @JsonSerialize(include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     private String tenantId;
 
     @JsonProperty
-    @org.codehaus.jackson.annotate.JsonProperty
-    @org.codehaus.jackson.map.annotate.JsonSerialize(
-            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
+    @JsonSerialize(include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     private String id;
 
     @JsonProperty
-    @org.codehaus.jackson.annotate.JsonProperty
-    @org.codehaus.jackson.map.annotate.JsonSerialize(
-            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
+    @JsonSerialize(include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     private Map<String, String> tags;
 
     @JsonProperty
-    @org.codehaus.jackson.annotate.JsonProperty
-    @org.codehaus.jackson.map.annotate.JsonSerialize(
-            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
+    @JsonSerialize(include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     private Integer dataRetention;
+
+    @JsonProperty
+    @JsonSerialize(using = MetricTypeSerializer.class)
+    @JsonDeserialize(using = MetricTypeDeserializer.class)
+    private MetricType<T> type;
 
     public MetricDefinition() {
     }
 
     @JsonCreator
     public MetricDefinition(
+
             @JsonProperty("id") String id,
             @JsonProperty(value = "tags") Map<String, String> tags,
-            @JsonProperty("dataRetention") Integer dataRetention) {
+            @JsonProperty("dataRetention") Integer dataRetention,
+            @JsonProperty("type") MetricType<T> type) {
         this.id = id;
         this.tags = tags == null ? emptyMap() : unmodifiableMap(tags);
         this.dataRetention = dataRetention;
+        this.type = type;
     }
 
     public String getTenantId() {
@@ -91,10 +96,15 @@ public class MetricDefinition {
         return dataRetention;
     }
 
+    public MetricType<T> getType() {
+        return type;
+    }
+
     @SuppressWarnings("unchecked")
     public MetricDefinition(Metric metric) {
-        this.tenantId = metric.getTenantId();
+        this.tenantId = metric.getId().getTenantId();
         this.id = metric.getId().getName();
+        this.type = metric.getId().getType();
         this.tags = metric.getTags();
         this.dataRetention = metric.getDataRetention();
     }
@@ -103,8 +113,8 @@ public class MetricDefinition {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        MetricDefinition gauge = (MetricDefinition) o;
-        return Objects.equals(id, gauge.id);
+        MetricDefinition<?> gauge = (MetricDefinition<?>) o;
+        return Objects.equals(id, gauge.getId()) && Objects.equals(type, gauge.getType());
     }
 
     @Override
@@ -119,6 +129,7 @@ public class MetricDefinition {
                 ", id='" + id + '\'' +
                 ", tags=" + tags +
                 ", dataRetention=" + dataRetention +
+                ", type=" + type.toString() +
                 '}';
     }
 }

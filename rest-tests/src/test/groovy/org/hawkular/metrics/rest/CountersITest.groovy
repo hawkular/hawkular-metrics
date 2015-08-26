@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.rest
 
-import groovy.json.JsonOutput
 import org.hawkular.metrics.core.impl.DateTimeService
 import org.joda.time.DateTime
 import org.junit.Test
@@ -25,6 +24,7 @@ import static java.lang.Double.NaN
 import static org.joda.time.DateTime.now
 import static org.joda.time.Duration.standardMinutes
 import static org.junit.Assert.assertEquals
+
 /**
  * @author John Sanda
  */
@@ -84,7 +84,7 @@ class CountersITest extends RESTTest {
     response = hawkularMetrics.get(path: "counters/$id", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
 
-    def expectedData = [tenantId: tenantId, id: id]
+    def expectedData = [tenantId: tenantId, id: id, type: 'counter']
     assertEquals(expectedData, response.data)
   }
 
@@ -128,7 +128,8 @@ class CountersITest extends RESTTest {
         tenantId: tenantId,
         id: id,
         tags: [tag1: 'one', tag2: 'two'],
-        dataRetention: 100
+        dataRetention: 100,
+        type: 'counter'
     ]
     assertEquals(expectedData, response.data)
   }
@@ -166,7 +167,8 @@ class CountersITest extends RESTTest {
     def expectedData = [
         [
             tenantId: tenantId,
-            id: counter1
+            id: counter1,
+            type: 'counter'
         ],
         [
             tenantId: tenantId,
@@ -174,7 +176,8 @@ class CountersITest extends RESTTest {
             tags: [
                 tag1: 'one',
                 tag2: 'two'
-            ]
+            ],
+            type: 'counter'
         ]
     ]
     assertEquals(expectedData, response.data)
@@ -367,8 +370,6 @@ class CountersITest extends RESTTest {
             value: NaN
         ]
     ]
-
-    println "RESPONSE = ${JsonOutput.toJson(response.data)}"
 
     assertEquals("Expected to get back three data points", 5, response.data.size())
     assertRateEquals(expectedData[0], response.data[0])
