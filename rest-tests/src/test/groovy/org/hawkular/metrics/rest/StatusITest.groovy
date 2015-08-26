@@ -27,17 +27,17 @@ import org.junit.Test
  */
 class StatusITest extends RESTTest {
     @Test
-    void getStatusTest() {
-        def response = hawkularMetrics.get(path: "status");
+    void getStatus() {
+        def response = hawkularMetrics.get(path: "status")
 
-        assertEquals(200, response.status);
+        assertEquals(200, response.status)
 
-        def expectedState = ["MetricsService" : "STARTED"];
+        def expectedState = ["MetricsService" : "STARTED"]
 
-        assertEquals(expectedState.MetricsService, response.data.MetricsService);
-        assertNotNull(response.data["Implementation-Version"]);
-        assertNotNull(response.data["Built-From-Git-SHA1"]);
-        assertNotEquals("Unknown", response.data["Implementation-Version"]);
-        assertNotEquals("Unknown", response.data["Built-From-Git-SHA1"]);
+        assertEquals(expectedState.MetricsService, response.data.MetricsService)
+        assertNotNull(response.data["Implementation-Version"])
+        assertNotNull(response.data["Built-From-Git-SHA1"])
+        assertNotEquals("Unknown", response.data["Implementation-Version"])
+        assertNotEquals("Unknown", response.data["Built-From-Git-SHA1"])
     }
 }

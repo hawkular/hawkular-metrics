@@ -18,23 +18,37 @@ package org.hawkular.metrics.rest
 
 import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertNotEquals
+import static org.junit.Assert.assertNotNull
 
 import org.junit.Test
 
 class BaseITest extends RESTTest {
 
-  @Test
-  void addAndGetValue() {
-    def end = now().millis
-    def start = end - 100
-    def tenantId = 'test-tenant'
-    def metric = 'foo'
-    def response = hawkularMetrics.post(path: "gauges/$metric/data", body: [[timestamp: start + 10, value: 42]], headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
+    @Test
+    void addAndGetValue() {
+        def end = now().millis
+        def start = end - 100
+        def tenantId = 'test-tenant'
+        def metric = 'foo'
+        def response = hawkularMetrics.post(path: "gauges/$metric/data", body: [[timestamp: start + 10, value: 42]], headers: [(tenantHeaderName): tenantId])
+        assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: "gauges/$metric/data", query: [start: start, end: end], headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
+        response = hawkularMetrics.get(path: "gauges/$metric/data", query: [start: start, end: end], headers: [(tenantHeaderName): tenantId])
+        assertEquals(200, response.status)
 
-    assertEquals(start + 10, response.data[0].timestamp)
-  }
+        assertEquals(start + 10, response.data[0].timestamp)
+    }
+
+    @Test
+    void getServiceInformation() {
+        def response = hawkularMetrics.get(path: "")
+
+        assertEquals(200, response.status)
+        assertEquals("Hawkular-Metrics", response.data.name)
+        assertNotNull(response.data["Implementation-Version"])
+        assertNotNull(response.data["Built-From-Git-SHA1"])
+        assertNotEquals("Unknown", response.data["Implementation-Version"])
+        assertNotEquals("Unknown", response.data["Built-From-Git-SHA1"])
+    }
 }

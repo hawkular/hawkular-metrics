@@ -20,6 +20,9 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.APPLICATION_XHTML_XML;
 import static javax.ws.rs.core.MediaType.TEXT_HTML;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -29,6 +32,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
+import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
 
 import com.wordnik.swagger.annotations.ApiOperation;
@@ -45,17 +49,14 @@ public class BaseHandler {
     @Produces(APPLICATION_JSON)
     @ApiOperation(value = "Returns some basic information about the Hawkular Metrics service.",
                   response = String.class, responseContainer = "Map")
-    public Response baseJSON(@Context ServletContext context) {
+    public Response baseJSON(@Context ServletContext servletContext) {
+        Map<String, Object> hawkularMetricsProperties = new HashMap<>();
+        hawkularMetricsProperties.put("name", "Hawkular-Metrics");
 
-        String version = context.getInitParameter("hawkular.metrics.version");
-        if (version == null) {
-            version = "undefined";
-        }
+        hawkularMetricsProperties.putAll(
+                ManifestInformation.getManifestInformation(servletContext, ManifestInformation.VERSION_ATTRIBUTES));
 
-        HawkularMetricsBase hawkularMetrics = new HawkularMetricsBase();
-        hawkularMetrics.version = version;
-
-        return Response.ok(hawkularMetrics).build();
+        return Response.ok(hawkularMetricsProperties).build();
     }
 
     @GET
@@ -65,26 +66,5 @@ public class BaseHandler {
         HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
         HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
         request.getRequestDispatcher("/static/index.html").forward(request,response);
-    }
-
-    private class HawkularMetricsBase {
-
-        String name = "Hawkular-Metrics";
-        String version;
-
-        @SuppressWarnings("unused")
-        public String getName() {
-            return name;
-        }
-
-        @SuppressWarnings("unused")
-        public void setVersion(String version) {
-            this.version = version;
-        }
-
-        @SuppressWarnings("unused")
-        public String getVersion() {
-            return version;
-        }
     }
 }
