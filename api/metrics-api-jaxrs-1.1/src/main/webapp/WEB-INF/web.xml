@@ -25,11 +25,6 @@
   <display-name>Hawkular Metrics Rest interface - JAX-RS 1.1</display-name>
 
   <context-param>
-    <param-name>hawkular.metrics.version</param-name>
-    <param-value>${project.version}</param-value>
-  </context-param>
-
-  <context-param>
     <param-name>resteasy.providers</param-name>
     <param-value>org.hawkular.metrics.api.jaxrs.util.JacksonContextResolver</param-value>
   </context-param>
