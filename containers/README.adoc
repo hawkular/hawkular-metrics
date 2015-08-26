@@ -168,7 +168,7 @@ from Heapster will be written into Hawkular Metrics automatically.
 
 [source, bash]
 ----
-oc create -f ./kubernetes/target/generated-app/hawkular-metrics-kubernetes-app/kubernetes.json
+oc create -f ./kubernetes-eap/target/generated-app/hawkular-metrics-eap-kubernetes-app/kubernetes.json
 ----
 
 === Running the Tests
