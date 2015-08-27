@@ -19,8 +19,7 @@ package org.hawkular.metrics.api.jaxrs.util;
 import org.hawkular.metrics.core.api.MetricType;
 
 /**
- * Transforms from longForm of the metrics (such as gauges) used by the REST-interface to internal
- * shortForm and vice-versa
+ * Returns the longer path format used by the REST-interface from the given MetricType
  *
  * @author Michael Burman
  */
