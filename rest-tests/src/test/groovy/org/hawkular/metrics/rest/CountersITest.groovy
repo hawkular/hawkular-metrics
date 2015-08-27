@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.rest
 
-import groovy.json.JsonOutput
 import org.hawkular.metrics.core.impl.DateTimeService
 import org.joda.time.DateTime
 import org.junit.Test
@@ -181,7 +180,7 @@ class CountersITest extends RESTTest {
   }
 
   @Test
-  void addDataForMultipleCountersAndFindhWithDateRange() {
+  void addDataForMultipleCountersAndFindWithDateRange() {
     String tenantId = nextTenantId()
     String counter1 = "C1"
     String counter2 = "C2"
@@ -367,8 +366,6 @@ class CountersITest extends RESTTest {
             value: NaN
         ]
     ]
-
-    println "RESPONSE = ${JsonOutput.toJson(response.data)}"
 
     assertEquals("Expected to get back three data points", 5, response.data.size())
     assertRateEquals(expectedData[0], response.data[0])

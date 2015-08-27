@@ -17,7 +17,6 @@
 package org.hawkular.metrics.core.impl.transformers;
 
 import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
-import static com.google.common.base.Preconditions.checkArgument;
 
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.Statement;
@@ -33,7 +32,8 @@ import rx.functions.Func0;
  */
 public class BatchStatementTransformer implements Transformer<Statement, BatchStatement> {
     // Max batch size is 0xFFFF (greatest unsigned short)
-    public static final int MAX_BATCH_SIZE = 0xFFFF;
+//    public static final int MAX_BATCH_SIZE = 0xFFFF;
+    public static final int MAX_BATCH_SIZE = 1024;
 
     /**
      * Creates {@link com.datastax.driver.core.BatchStatement.Type#UNLOGGED} batch statements.
@@ -56,14 +56,15 @@ public class BatchStatementTransformer implements Transformer<Statement, BatchSt
      */
     public BatchStatementTransformer(Func0<BatchStatement> batchStatementFactory, int batchSize) {
         this.batchSize = batchSize;
-        checkArgument(batchSize <= MAX_BATCH_SIZE, "batchSize exceeds limit");
+//        checkArgument(batchSize <= MAX_BATCH_SIZE, "batchSize exceeds limit");
         this.batchStatementFactory = batchStatementFactory;
     }
 
     @Override
     public Observable<BatchStatement> call(Observable<Statement> statements) {
-        return statements
-                .window(batchSize)
-                .flatMap(window -> window.collect(batchStatementFactory, BatchStatement::add));
+//        return statements
+//                .window(batchSize)
+//                .flatMap(window -> window.collect(batchStatementFactory, BatchStatement::add));
+        return statements.collect(batchStatementFactory, BatchStatement::add);
     }
 }
