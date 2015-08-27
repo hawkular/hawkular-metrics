@@ -28,6 +28,7 @@ import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -41,7 +42,9 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
@@ -51,7 +54,10 @@ import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.request.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.request.MixedMetricsRequest;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.api.jaxrs.util.MetricTypeTextConverter;
 import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
+import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 
@@ -81,6 +87,41 @@ public class MetricHandler {
 
     @HeaderParam(TENANT_HEADER_NAME)
     private String tenantId;
+
+    @POST
+    @Path("/")
+    @ApiOperation(value = "Create metric definition.", notes = "Clients are not required to explicitly create "
+            + "a metric before storing data. Doing so however allows clients to prevent naming collisions and to "
+            + "specify tags and data retention.")
+    @ApiResponses(value = {
+            @ApiResponse(code = 201, message = "Metric definition created successfully"),
+            @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
+            @ApiResponse(code = 409, message = "Metric with given id already exists",
+                    response = ApiError.class),
+            @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
+                    response = ApiError.class)
+    })
+    public Response createMetric(
+            @ApiParam(required = true) MetricDefinition metricDefinition,
+            @Context UriInfo uriInfo
+    ) {
+        MetricId<?> id = new MetricId(tenantId, metricDefinition.getType(), metricDefinition.getId());
+        Metric<?> metric = new Metric<>(id, metricDefinition.getTags(), metricDefinition.getDataRetention());
+        URI location = uriInfo.getBaseUriBuilder().path("/{type}/{id}").build(MetricTypeTextConverter.getLongForm(id
+                .getType()), id.getName());
+
+        try {
+            Observable<Void> observable = metricsService.createMetric(metric);
+            observable.toBlocking().lastOrDefault(null);
+            return Response.created(location).build();
+        } catch (MetricAlreadyExistsException e) {
+            String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
+            return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
+        } catch (Exception e) {
+            return ApiUtils.serverError(e);
+        }
+    }
+
 
     @SuppressWarnings("rawtypes")
     @GET

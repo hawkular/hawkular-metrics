@@ -460,6 +460,26 @@ class CassandraBackendITest extends RESTTest {
         ],
         response.data
     )
+
+    // Explicitly create metrics with payload type
+    response = hawkularMetrics.post(path: "metrics", body: [
+        id: 'm17',
+        tags: [a10: '10', a11: '11'],
+        dataRetention: 7,
+        type: 'availability'
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    // Fetch the metric
+    response = hawkularMetrics.get(path: "availability/m17", headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals([
+        id: 'm17',
+        tags: [a10: '10', a11: '11'],
+        dataRetention: 7,
+        type: 'availability',
+        tenantId: tenantId
+    ], response.data)
   }
 
   @Test

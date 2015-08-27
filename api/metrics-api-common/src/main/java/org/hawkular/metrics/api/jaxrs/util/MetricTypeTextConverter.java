@@ -14,24 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.jackson;
+package org.hawkular.metrics.api.jaxrs.util;
 
-import java.io.IOException;
-
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonProcessingException;
-import org.codehaus.jackson.map.DeserializationContext;
-import org.codehaus.jackson.map.JsonDeserializer;
 import org.hawkular.metrics.core.api.MetricType;
 
-
 /**
+ * Transforms from longForm of the metrics (such as gauges) used by the REST-interface to internal
+ * shortForm and vice-versa
+ *
  * @author Michael Burman
  */
-public class MetricTypeDeserializer extends JsonDeserializer<MetricType<?>> {
+public class MetricTypeTextConverter {
+    public static String getLongForm(MetricType<?> mt) {
 
-    @Override public MetricType<?> deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
-            throws IOException, JsonProcessingException {
-        return MetricType.fromTextCode(jsonParser.getText());
+        if(mt == MetricType.GAUGE) {
+            return "gauges";
+        } else if(mt == MetricType.COUNTER) {
+            return "counters";
+        } else {
+            return mt.getText();
+        }
     }
 }

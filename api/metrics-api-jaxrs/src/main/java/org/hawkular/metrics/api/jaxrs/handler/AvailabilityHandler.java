@@ -66,6 +66,7 @@ import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,6 +114,10 @@ public class AvailabilityHandler {
             @ApiParam(required = true) MetricDefinition metricDefinition,
             @Context UriInfo uriInfo
     ) {
+        if(metricDefinition.getType() != null && metricDefinition.getType() != MetricType.AVAILABILITY) {
+            asyncResponse.resume(badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+                    .AVAILABILITY.getText())));
+        }
         URI location = uriInfo.getBaseUriBuilder().path("/availability/{id}").build(metricDefinition.getId());
         Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, metricDefinition.getId()),
                 metricDefinition.getTags(), metricDefinition.getDataRetention());
