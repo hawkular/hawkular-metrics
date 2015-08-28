@@ -19,6 +19,7 @@ package org.hawkular.metrics.rest
 import static org.joda.time.DateTime.now
 import static org.joda.time.Seconds.seconds
 import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertTrue
 
 import org.hawkular.metrics.core.api.MetricType
@@ -584,5 +585,38 @@ class CassandraBackendITest extends RESTTest {
             id: 'Empty1',
             type: 'gauge'
     ], response.data)
+  }
+
+  @Test
+  void testCreateTypeChecking() {
+    String tenantId = nextTenantId()
+
+    // Test gauges path
+    badPost(path: "gauges", body: [id: 'N1', type: 'availability'], headers: [(tenantHeaderName): tenantId]) {
+      exception ->
+      assertEquals(400, exception.response.status)
+      assertNotNull(exception.response.data['errorMsg'])
+    }
+
+    // Test availability path
+    badPost(path: "availability", body: [id: 'N1', type: 'gauge'], headers: [(tenantHeaderName): tenantId]) {
+      exception ->
+        assertEquals(400, exception.response.status)
+        assertNotNull(exception.response.data['errorMsg'])
+    }
+
+    // Test counter path
+    badPost(path: "counters", body: [id: 'N1', type: 'availability'], headers: [(tenantHeaderName): tenantId]) {
+      exception ->
+        assertEquals(400, exception.response.status)
+        assertNotNull(exception.response.data['errorMsg'])
+    }
+
+    // Test metrics path without given type
+    badPost(path: "metrics", body: [id: 'N1'], headers: [(tenantHeaderName): tenantId]) {
+      exception ->
+        assertEquals(400, exception.response.status)
+        assertNotNull(exception.response.data['errorMsg'])
+    }
   }
 }

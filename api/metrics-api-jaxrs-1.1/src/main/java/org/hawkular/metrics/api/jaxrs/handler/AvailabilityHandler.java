@@ -63,6 +63,7 @@ import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,19 +97,23 @@ public class AvailabilityHandler {
 
     @POST
     @Path("/")
-    @ApiOperation(value = "Create availability metric definition. Same notes as creating gauge metric apply.")
+    @ApiOperation(value = "Create availability metric. Same notes as creating gauge metric apply.")
     @ApiResponses(value = {
-            @ApiResponse(code = 201, message = "Metric definition created successfully"),
+            @ApiResponse(code = 201, message = "Metric created successfully"),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
             @ApiResponse(code = 409, message = "Availability metric with given id already exists",
                     response = ApiError.class),
-            @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
+            @ApiResponse(code = 500, message = "Metric creation failed due to an unexpected error",
                     response = ApiError.class)
     })
     public Response createAvailabilityMetric(
             @ApiParam(required = true) MetricDefinition metricDefinition,
             @Context UriInfo uriInfo
     ) {
+        if(metricDefinition.getType() != null && MetricType.AVAILABILITY != metricDefinition.getType()) {
+            return ApiUtils.badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+                    .AVAILABILITY.getText()));
+        }
         URI location = uriInfo.getBaseUriBuilder().path("/availability/{id}").build(metricDefinition.getId());
         Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, metricDefinition.getId()),
                 metricDefinition.getTags(), metricDefinition.getDataRetention());

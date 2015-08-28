@@ -91,15 +91,15 @@ public class MetricHandler {
 
     @POST
     @Path("/")
-    @ApiOperation(value = "Create metric definition.", notes = "Clients are not required to explicitly create "
+    @ApiOperation(value = "Create metric.", notes = "Clients are not required to explicitly create "
             + "a metric before storing data. Doing so however allows clients to prevent naming collisions and to "
             + "specify tags and data retention.")
     @ApiResponses(value = {
-            @ApiResponse(code = 201, message = "Metric definition created successfully"),
+            @ApiResponse(code = 201, message = "Metric created successfully"),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
             @ApiResponse(code = 409, message = "Metric with given id already exists",
                     response = ApiError.class),
-            @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
+            @ApiResponse(code = 500, message = "Metric creation failed due to an unexpected error",
                     response = ApiError.class)
     })
     public void createMetric(
@@ -107,6 +107,9 @@ public class MetricHandler {
             @ApiParam(required = true) MetricDefinition metricDefinition,
             @Context UriInfo uriInfo
     ) {
+        if(metricDefinition.getType() == null || !metricDefinition.getType().isUserType()) {
+            asyncResponse.resume(badRequest(new ApiError("MetricDefinition type is invalid")));
+        }
         MetricId<?> id = new MetricId(tenantId, metricDefinition.getType(), metricDefinition.getId());
         Metric<?> metric = new Metric<>(id, metricDefinition.getTags(), metricDefinition.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/{type}/{id}").build(MetricTypeTextConverter.getLongForm(id

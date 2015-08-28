@@ -24,6 +24,9 @@ import org.hawkular.metrics.core.api.MetricType;
  * @author Michael Burman
  */
 public class MetricTypeTextConverter {
+
+    private MetricTypeTextConverter() { }
+
     public static String getLongForm(MetricType<?> mt) {
 
         if(mt == MetricType.GAUGE) {
