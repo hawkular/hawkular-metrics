@@ -20,8 +20,8 @@
 # Check differences between JAX-RS implementations before commit. If any new difference is introduced, update the
 # diff file (thus it will show up on GitHub PR views).
 #
-# Metrics developers should install this file in <metrics-repo-local-copy>/.git/hooks and make sure the file is
-# executable.
+# Metrics developers should install this file in <metrics-repo-local-copy>/.git/hooks, rename it to 'pre-commit', and
+# make sure the file is executable.
 #
 
 diff -r --exclude=target api/metrics-api-jaxrs api/metrics-api-jaxrs-1.1 > api/diff.txt
