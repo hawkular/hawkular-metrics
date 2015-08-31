@@ -1357,24 +1357,20 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 > @Provider
 > public class TagsConverter implements StringConverter<Tags> {
 diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/request/MetricDefinition.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/request/MetricDefinition.java
-24a25,28
+21a22,23
+> import static org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
+> 
+24a27,30
 > import org.codehaus.jackson.annotate.JsonCreator;
 > import org.codehaus.jackson.annotate.JsonProperty;
 > import org.codehaus.jackson.map.annotate.JsonDeserialize;
 > import org.codehaus.jackson.map.annotate.JsonSerialize;
-30,33d33
+30,34d35
 < import com.fasterxml.jackson.annotation.JsonCreator;
 < import com.fasterxml.jackson.annotation.JsonProperty;
 < import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 < import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-43a44
->     @JsonSerialize(include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
-46a48
->     @JsonSerialize(include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
-49a52
->     @JsonSerialize(include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
-52a56
->     @JsonSerialize(include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
+< import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
 Seulement dans api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs: swagger
 Seulement dans api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/util: JacksonConfig.java
 Seulement dans api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/util: JacksonContextResolver.java

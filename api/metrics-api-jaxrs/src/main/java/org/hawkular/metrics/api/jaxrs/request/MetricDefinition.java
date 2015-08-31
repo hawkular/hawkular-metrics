@@ -31,6 +31,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
 import com.wordnik.swagger.annotations.ApiModel;
 
 /**
@@ -41,15 +42,19 @@ public class MetricDefinition<T> {
 
     // TODO Do we need this?
     @JsonProperty
+    @JsonSerialize(include = Inclusion.NON_EMPTY)
     private String tenantId;
 
     @JsonProperty
+    @JsonSerialize(include = Inclusion.NON_EMPTY)
     private String id;
 
     @JsonProperty
+    @JsonSerialize(include = Inclusion.NON_EMPTY)
     private Map<String, String> tags;
 
     @JsonProperty
+    @JsonSerialize(include = Inclusion.NON_EMPTY)
     private Integer dataRetention;
 
     @JsonProperty
