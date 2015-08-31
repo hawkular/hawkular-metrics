@@ -48,15 +48,16 @@ public class BatchStatementTransformerTest {
     @Test
     public void testCall() throws Exception {
         int expected = 6;
-        int numStatements = (expected - 1) * batchSize + 1;
         // Emit enough statements to get expected count of batches, with the last batch holding just one
-        List<BatchStatement> result = Observable.range(0, numStatements)
+        List<BatchStatement> result = Observable.range(0, (expected - 1) * batchSize + 1)
                 .map(i -> mock(Statement.class))
                 .compose(batchStatementTransformer)
                 .toList()
                 .toBlocking()
                 .single();
-        assertEquals(1, result.size());
-        assertEquals(numStatements, result.get(0).size());
+        assertEquals(expected, result.size());
+        for (int i = 0; i < result.size(); i++) {
+            assertEquals(i < (result.size() - 1) ? batchSize : 1, result.get(i).size());
+        }
     }
 }

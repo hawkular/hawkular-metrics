@@ -161,7 +161,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
     String metric = "test"
     int nbOfBuckets = 10
     long bucketSize = Duration.standardDays(1).millis
-    int interval = Duration.standardMinutes(10).millis
+    int interval = Duration.standardMinutes(1).millis
     int sampleSize = (bucketSize / interval) - 1
 
     def start = new DateTimeService().currentHour().minus(3 * nbOfBuckets * bucketSize)
