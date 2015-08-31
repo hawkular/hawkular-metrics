@@ -249,6 +249,8 @@
             <exclude>analysis-results.tgz</exclude>
             <!-- Exclude the cassandra.yaml file since modified from the Cassandra upstream project.-->
             <exclude>src/main/docker/cassandra.yaml</exclude>
+            <!-- Exclude JAX-RS impl diff file -->
+            <exclude>api/diff.txt</exclude>
           </excludes>
         </configuration>
       </plugin>
