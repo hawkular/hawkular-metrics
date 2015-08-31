@@ -21,6 +21,10 @@ import static java.util.Collections.unmodifiableList;
 import java.util.List;
 import java.util.Objects;
 
+import org.hawkular.metrics.api.jaxrs.validation.Validate;
+import org.hawkular.metrics.api.jaxrs.validation.Validator;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.wordnik.swagger.annotations.ApiModel;
 
@@ -31,7 +35,7 @@ import com.wordnik.swagger.annotations.ApiModel;
  * @author jsanda
  */
 @ApiModel(description = "An availability metric with one or more data points")
-public class Availability {
+public class Availability implements Validator {
 
     @JsonProperty
     private String id;
@@ -65,5 +69,12 @@ public class Availability {
         return "Availability{" +
                 "id='" + id + '\'' +
                 '}';
+    }
+
+    @Override
+    @JsonIgnore
+    @org.codehaus.jackson.annotate.JsonIgnore
+    public boolean isValid() {
+        return Validate.validate(this.getData()).toBlocking().lastOrDefault(false);
     }
 }

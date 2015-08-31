@@ -21,6 +21,10 @@ import static java.util.Collections.unmodifiableList;
 import java.util.List;
 import java.util.Objects;
 
+import org.hawkular.metrics.api.jaxrs.validation.Validate;
+import org.hawkular.metrics.api.jaxrs.validation.Validator;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.wordnik.swagger.annotations.ApiModel;
 
@@ -31,7 +35,7 @@ import com.wordnik.swagger.annotations.ApiModel;
  * @author jsanda
  */
 @ApiModel(description = "A gauge metric with one or more data points")
-public class Gauge {
+public class Gauge implements Validator {
 
     @JsonProperty
     @org.codehaus.jackson.annotate.JsonProperty
@@ -73,5 +77,12 @@ public class Gauge {
                 .add("id", id)
                 .add("data", data)
                 .toString();
+    }
+
+    @Override
+    @JsonIgnore
+    @org.codehaus.jackson.annotate.JsonIgnore
+    public boolean isValid() {
+        return Validate.validate(this.getData()).toBlocking().lastOrDefault(false);
     }
 }

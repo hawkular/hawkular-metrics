@@ -21,9 +21,11 @@ import static java.util.Collections.emptyMap;
 import java.util.Map;
 import java.util.Objects;
 
+import org.hawkular.metrics.api.jaxrs.validation.Validator;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.wordnik.swagger.annotations.ApiModel;
@@ -32,11 +34,11 @@ import com.wordnik.swagger.annotations.ApiModel;
  * @author jsanda
  */
 @ApiModel(description = "Consists of a timestamp and a value where supported values are \"up\" and \"down\"")
-public class AvailabilityDataPoint {
+public class AvailabilityDataPoint implements Validator {
 
     @JsonProperty
     @org.codehaus.jackson.annotate.JsonProperty
-    private long timestamp;
+    private Long timestamp;
 
     @JsonProperty
     @org.codehaus.jackson.annotate.JsonProperty
@@ -67,7 +69,7 @@ public class AvailabilityDataPoint {
         tags = dataPoint.getTags();
     }
 
-    public long getTimestamp() {
+    public Long getTimestamp() {
         return timestamp;
     }
 
@@ -100,5 +102,20 @@ public class AvailabilityDataPoint {
                 .add("value", value)
                 .add("tags", tags)
                 .toString();
+    }
+
+    @Override
+    @JsonIgnore
+    @org.codehaus.jackson.annotate.JsonIgnore
+    public boolean isValid() {
+        if (this.getValue() == null || this.getValue().trim().isEmpty()) {
+            return false;
+        }
+
+        if (this.getTimestamp() == null) {
+            return false;
+        }
+
+        return true;
     }
 }

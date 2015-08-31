@@ -108,4 +108,35 @@ class AvailabilityITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(metric, response.data.id)
   }
+
+  @Test
+  void shouldNotCreateMetricWithEmptyTimestamp() {
+    def tenantId = nextTenantId()
+
+    badPost(path: "availability/data", headers: [(tenantHeaderName): tenantId], body: [
+        [id: 'test1',
+         data: [
+            [timestamp: 123, value: "down"],
+            [timestamp: 124, value: "down"],
+            [timestamp: 125, value: "down"]
+        ]],
+        [id: 'test2',
+         data: [
+            [timestamp: 123, value: "down"],
+            [timestamp: 124, value: "down"],
+            [timestamp: 125, value: "down"],
+            [value: "up"]
+        ]]]) { exception ->
+      assertEquals(400, exception.response.status)
+    }
+
+    badPost(path: "availability/test3/data", headers: [(tenantHeaderName): tenantId], body: [
+            [timestamp: 123, value: "up"],
+            [timestamp: 124, value: "up"],
+            [timestamp: 125, value: "up"],
+            [value: "up"]
+        ]) { exception ->
+      assertEquals(400, exception.response.status)
+    }
+  }
 }

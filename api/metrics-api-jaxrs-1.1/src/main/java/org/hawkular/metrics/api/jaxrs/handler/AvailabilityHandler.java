@@ -27,6 +27,7 @@ import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilities;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilityDataPoints;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
+import static org.hawkular.metrics.api.jaxrs.validation.Validate.validate;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 
 import java.net.URI;
@@ -225,6 +226,10 @@ public class AvailabilityHandler {
             @PathParam("id") String id,
             @ApiParam(value = "List of availability datapoints", required = true) List<AvailabilityDataPoint> data
     ) {
+        if (!validate(data).toBlocking().lastOrDefault(false)) {
+            return badRequest(new ApiError("Timestamp not provided for data point"));
+        }
+
         Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id),
                 requestToAvailabilityDataPoints(data));
 
@@ -249,6 +254,10 @@ public class AvailabilityHandler {
             @ApiParam(value = "List of availability metrics", required = true)
             List<Availability> availabilities
     ) {
+        if (!validate(availabilities).toBlocking().lastOrDefault(false)) {
+            return badRequest(new ApiError("Timestamp not provided for data point"));
+        }
+
         try {
             metricsService.addDataPoints(AVAILABILITY, requestToAvailabilities(tenantId, availabilities)).toBlocking()
                     .lastOrDefault(null);
