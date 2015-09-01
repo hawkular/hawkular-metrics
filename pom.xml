@@ -120,7 +120,7 @@
     <log4j.version>1.2.17</log4j.version>
     <antlr.version>4.5</antlr.version>
     <rxjava.version>1.0.13</rxjava.version>
-    <dropwizard.metrics.version>3.1.2</dropwizard.metrics.version>
+    <codahale.metrics.version>3.0.2</codahale.metrics.version>
     <rxjava-math.version>1.0.0</rxjava-math.version>
 
     <findbugs.version>3.0.0</findbugs.version>
@@ -150,9 +150,9 @@
         <version>${antlr.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.dropwizard.metrics</groupId>
+        <groupId>com.codahale.metrics</groupId>
         <artifactId>metrics-core</artifactId>
-        <version>${dropwizard.metrics.version}</version>
+        <version>${codahale.metrics.version}</version>
       </dependency>
       <!-- Tests dependencies -->
       <!-- TestNG is not Hawkular default testing tool -->
