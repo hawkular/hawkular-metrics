@@ -1,0 +1,11 @@
+{
+  "name": "rhmap-poc",
+  "authors": [
+    "Red Hat"
+  ],
+  "dependencies": {
+    "hawkular-charts": "0.4.15",
+    "jquery-ui": "1.11.4",
+    "jqueryui-timepicker-addon": "1.5.5"
+  }
+}
