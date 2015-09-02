@@ -19,6 +19,8 @@ package org.hawkular.metrics.api.jaxrs.request;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableMap;
 
+import static org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
+
 import java.util.Map;
 import java.util.Objects;
 
@@ -41,19 +43,19 @@ public class MetricDefinition<T> {
 
     // TODO Do we need this?
     @JsonProperty
-    @JsonSerialize(include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
+    @JsonSerialize(include = Inclusion.NON_EMPTY)
     private String tenantId;
 
     @JsonProperty
-    @JsonSerialize(include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
+    @JsonSerialize(include = Inclusion.NON_EMPTY)
     private String id;
 
     @JsonProperty
-    @JsonSerialize(include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
+    @JsonSerialize(include = Inclusion.NON_EMPTY)
     private Map<String, String> tags;
 
     @JsonProperty
-    @JsonSerialize(include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
+    @JsonSerialize(include = Inclusion.NON_EMPTY)
     private Integer dataRetention;
 
     @JsonProperty
