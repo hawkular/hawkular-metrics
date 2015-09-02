@@ -1,5 +1,6 @@
-Seulement dans api/metrics-api-jaxrs-1.1: hawkular-metrics-api-jaxrs-1.1.iml
-Seulement dans api/metrics-api-jaxrs: hawkular-metrics-api-jaxrs.iml
+Only in api/metrics-api-jaxrs: README.adoc
+Only in api/metrics-api-jaxrs-1.1: hawkular-metrics-api-jaxrs-1.1.iml
+Only in api/metrics-api-jaxrs: hawkular-metrics-api-jaxrs.iml
 diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1.1/pom.xml
 31c31
 <   <artifactId>hawkular-metrics-api-jaxrs</artifactId>
@@ -174,8 +175,38 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 <       </build>
 <     </profile>
 <   </profiles>
-Seulement dans api/metrics-api-jaxrs: README.adoc
-Seulement dans api/metrics-api-jaxrs/src/main: antlr4
+Only in api/metrics-api-jaxrs/src/main: antlr4
+diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/HawkularMetricsRestApp.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/HawkularMetricsRestApp.java
+31,32d30
+< import org.hawkular.metrics.api.jaxrs.filter.CorsRequestFilter;
+< import org.hawkular.metrics.api.jaxrs.filter.CorsResponseFilter;
+45d42
+< import org.hawkular.metrics.api.jaxrs.influx.InfluxSeriesHandler;
+47,48c44,46
+< import org.hawkular.metrics.api.jaxrs.param.ConvertersProvider;
+< import org.hawkular.metrics.api.jaxrs.util.JacksonConfig;
+---
+> import org.hawkular.metrics.api.jaxrs.param.DurationConverter;
+> import org.hawkular.metrics.api.jaxrs.param.MetricTypeConverter;
+> import org.hawkular.metrics.api.jaxrs.param.TagsConverter;
+79d76
+<         classes.add(InfluxSeriesHandler.class);
+114,115d110
+<         classes.add(CorsResponseFilter.class);
+<         classes.add(CorsRequestFilter.class);
+119,120c114,116
+<         classes.add(ConvertersProvider.class);
+<         classes.add(JacksonConfig.class);
+---
+>         classes.add(DurationConverter.class);
+>         classes.add(MetricTypeConverter.class);
+>         classes.add(TagsConverter.class);
+diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/MetricsServiceLifecycle.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/MetricsServiceLifecycle.java
+363c363
+< }
+---
+> }
+\ No newline at end of file
 diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/config/ConfigurationKey.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/config/ConfigurationKey.java
 36a37
 > 
@@ -250,9 +281,9 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <     public Response toResponse(NotSupportedException exception) {
 ---
 >     public Response toResponse(UnsupportedMediaTypeException exception) {
-Seulement dans api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/filter: CorsFilter.java
-Seulement dans api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/filter: CorsRequestFilter.java
-Seulement dans api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/filter: CorsResponseFilter.java
+Only in api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/filter: CorsFilter.java
+Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/filter: CorsRequestFilter.java
+Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/filter: CorsResponseFilter.java
 diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/filter/EmptyPayloadFilter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/filter/EmptyPayloadFilter.java
 20,21c20
 < import java.io.IOException;
@@ -1169,7 +1200,6 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         } catch (Exception e) {
 >             return ApiUtils.serverError(e);
 >         }
-Seulement dans api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler: observer
 diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/StatusHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/StatusHandler.java
 66,67d65
 < 
@@ -1236,32 +1266,8 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         } catch (Exception e) {
 >             return ApiUtils.serverError(e);
 >         }
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/HawkularMetricsRestApp.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/HawkularMetricsRestApp.java
-31,32d30
-< import org.hawkular.metrics.api.jaxrs.filter.CorsRequestFilter;
-< import org.hawkular.metrics.api.jaxrs.filter.CorsResponseFilter;
-45d42
-< import org.hawkular.metrics.api.jaxrs.influx.InfluxSeriesHandler;
-47,48c44,46
-< import org.hawkular.metrics.api.jaxrs.param.ConvertersProvider;
-< import org.hawkular.metrics.api.jaxrs.util.JacksonConfig;
----
-> import org.hawkular.metrics.api.jaxrs.param.DurationConverter;
-> import org.hawkular.metrics.api.jaxrs.param.MetricTypeConverter;
-> import org.hawkular.metrics.api.jaxrs.param.TagsConverter;
-79d76
-<         classes.add(InfluxSeriesHandler.class);
-114,115d110
-<         classes.add(CorsResponseFilter.class);
-<         classes.add(CorsRequestFilter.class);
-119,120c114,116
-<         classes.add(ConvertersProvider.class);
-<         classes.add(JacksonConfig.class);
----
->         classes.add(DurationConverter.class);
->         classes.add(MetricTypeConverter.class);
->         classes.add(TagsConverter.class);
-Seulement dans api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs: influx
+Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler: observer
+Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs: influx
 diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/interceptor/EmptyPayloadInterceptor.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/interceptor/EmptyPayloadInterceptor.java
 30,31c30,33
 < import javax.ws.rs.ext.ReaderInterceptor;
@@ -1311,13 +1317,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 < import com.fasterxml.jackson.core.JsonProcessingException;
 < import com.fasterxml.jackson.databind.JsonSerializer;
 < import com.fasterxml.jackson.databind.SerializerProvider;
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/MetricsServiceLifecycle.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/MetricsServiceLifecycle.java
-363c363
-< }
----
-> }
-\ Pas de fin de ligne à la fin du fichier
-Seulement dans api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param: ConvertersProvider.java
+Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param: ConvertersProvider.java
 diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param/DurationConverter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/param/DurationConverter.java
 27c27,29
 < import javax.ws.rs.ext.ParamConverter;
@@ -1371,16 +1371,11 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 < import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 < import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 < import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
-Seulement dans api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs: swagger
-Seulement dans api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/util: JacksonConfig.java
-Seulement dans api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/util: JacksonContextResolver.java
-Seulement dans api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/util: SimpleLink.java
-Seulement dans api/metrics-api-jaxrs/src/main/resources: rest-doc
-Seulement dans api/metrics-api-jaxrs-1.1/src/main/webapp: favicon.ico
-Seulement dans api/metrics-api-jaxrs-1.1/src/main/webapp: hawkular_logo.png
-Seulement dans api/metrics-api-jaxrs-1.1/src/main/webapp: index.html
-Seulement dans api/metrics-api-jaxrs/src/main/webapp: static
-Seulement dans api/metrics-api-jaxrs-1.1/src/main/webapp: status.js
+Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs: swagger
+Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/util: JacksonConfig.java
+Only in api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/util: JacksonContextResolver.java
+Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/util: SimpleLink.java
+Only in api/metrics-api-jaxrs/src/main/resources: rest-doc
 diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/webapp/WEB-INF/jboss-deployment-structure.xml api/metrics-api-jaxrs-1.1/src/main/webapp/WEB-INF/jboss-deployment-structure.xml
 22,25d21
 <     <exclusions>
@@ -1423,6 +1418,11 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/webapp/WEB-INF/web.xml
 >       <param-value>false</param-value>
 44a54
 > 
-Seulement dans api/metrics-api-jaxrs-1.1/src/main/webapp: welcome.css
-Seulement dans api/metrics-api-jaxrs/src/main: xsl
-Seulement dans api/metrics-api-jaxrs/src: test
+Only in api/metrics-api-jaxrs-1.1/src/main/webapp: favicon.ico
+Only in api/metrics-api-jaxrs-1.1/src/main/webapp: hawkular_logo.png
+Only in api/metrics-api-jaxrs-1.1/src/main/webapp: index.html
+Only in api/metrics-api-jaxrs/src/main/webapp: static
+Only in api/metrics-api-jaxrs-1.1/src/main/webapp: status.js
+Only in api/metrics-api-jaxrs-1.1/src/main/webapp: welcome.css
+Only in api/metrics-api-jaxrs/src/main: xsl
+Only in api/metrics-api-jaxrs/src: test
