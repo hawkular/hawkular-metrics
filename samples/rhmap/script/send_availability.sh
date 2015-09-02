@@ -75,7 +75,7 @@ HAWKULAR_METRICS_URL="$1/availability/data"
 TENANT_ID=$2
 METRIC_ID=$3
 
-TIMESTAMP=`date +%s%3N`
+TIMESTAMP=$(date +%s%3N)
 read -r -d '' JSON <<- EOV
     [{"id":"${METRIC_ID}","data":[{"timestamp":${TIMESTAMP},"value":"${AVAIL}"}]}]
 EOV
