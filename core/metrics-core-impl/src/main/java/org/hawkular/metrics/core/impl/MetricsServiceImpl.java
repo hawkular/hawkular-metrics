@@ -18,7 +18,6 @@ package org.hawkular.metrics.core.impl;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Comparator.comparingLong;
-import static java.util.concurrent.TimeUnit.MINUTES;
 
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
@@ -66,9 +65,7 @@ import org.hawkular.metrics.core.impl.transformers.ItemsToSetTransformer;
 import org.hawkular.metrics.core.impl.transformers.MetricsIndexRowTransformer;
 import org.hawkular.metrics.core.impl.transformers.TagsIndexRowTransformer;
 import org.hawkular.metrics.schema.SchemaManager;
-import org.hawkular.metrics.tasks.api.RepeatingTrigger;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
-import org.hawkular.metrics.tasks.api.Trigger;
 import org.hawkular.rx.cassandra.driver.RxUtil;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
@@ -238,8 +235,6 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                 .build();
 
         initMetrics();
-
-        initSystemTenant();
     }
 
     void loadDataRetentions() {
@@ -268,30 +263,6 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     void unloadDataRetentions() {
         dataRetentions.clear();
-    }
-
-    private void initSystemTenant() {
-        CountDownLatch latch = new CountDownLatch(1);
-        Trigger trigger = new RepeatingTrigger.Builder().withInterval(30, MINUTES).withDelay(30, MINUTES).build();
-        dataAccess.insertTenant(new Tenant(SYSTEM_TENANT_ID))
-                .filter(ResultSet::wasApplied)
-                .map(row -> taskScheduler.scheduleTask(CreateTenants.TASK_NAME, SYSTEM_TENANT_ID, 100, emptyMap(),
-                        trigger))
-                .subscribe(
-                        task -> logger.debug("Scheduled {}", task),
-                        t -> {
-                            logger.error("Failed to initialize system tenant", t);
-                            latch.countDown();
-                        },
-                        () -> {
-                            logger.debug("Successfully initialized system tenant");
-                            latch.countDown();
-                        }
-                );
-        try {
-            latch.await();
-        } catch (InterruptedException ignored) {
-        }
     }
 
     private void initMetrics() {
