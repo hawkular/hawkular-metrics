@@ -32,8 +32,8 @@ import rx.functions.Func0;
  * @author Thomas Segismont
  */
 public class BatchStatementTransformer implements Transformer<Statement, BatchStatement> {
-    // Max batch size is 0xFFFF (greatest unsigned short)
-    public static final int MAX_BATCH_SIZE = 0xFFFF;
+
+    public static final int MAX_BATCH_SIZE = 1024;
 
     /**
      * Creates {@link com.datastax.driver.core.BatchStatement.Type#UNLOGGED} batch statements.
@@ -51,7 +51,7 @@ public class BatchStatementTransformer implements Transformer<Statement, BatchSt
     }
 
     /**
-     * @param batchStatementFactory function used to initiliaze a new {@link BatchStatement}
+     * @param batchStatementFactory function used to initialize a new {@link BatchStatement}
      * @param batchSize             maximum number of statements in the batch
      */
     public BatchStatementTransformer(Func0<BatchStatement> batchStatementFactory, int batchSize) {

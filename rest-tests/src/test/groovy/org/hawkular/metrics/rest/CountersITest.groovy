@@ -184,7 +184,7 @@ class CountersITest extends RESTTest {
   }
 
   @Test
-  void addDataForMultipleCountersAndFindhWithDateRange() {
+  void addDataForMultipleCountersAndFindWithDateRange() {
     String tenantId = nextTenantId()
     String counter1 = "C1"
     String counter2 = "C2"

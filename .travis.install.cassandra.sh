@@ -22,9 +22,9 @@ set -xe
 cd "${HOME}"
 
 wget -O datastax-releases "http://downloads.datastax.com/community/?C=M;O=D"
-LATEST_MICRO=`cat datastax-releases | grep -m 1 -o -E "dsc-cassandra-2\.1\.[0-9]+-bin\.tar.gz" | head -1 | cut -d '.' -f3 | cut -d '-' -f1`
+LATEST_MICRO=`cat datastax-releases | grep -m 1 -o -E "dsc-cassandra-2\.2\.[0-9]+-bin\.tar.gz" | head -1 | cut -d '.' -f3 | cut -d '-' -f1`
 
-CASSANDRA_VERSION="2.1.${LATEST_MICRO}"
+CASSANDRA_VERSION="2.2.${LATEST_MICRO}"
 CASSANDRA_BINARY="dsc-cassandra-${CASSANDRA_VERSION}-bin.tar.gz"
 CASSANDRA_DOWNLOADS="${HOME}/cassandra-downloads"
 
