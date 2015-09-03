@@ -247,7 +247,7 @@
         <!-- IMPORTANT: The management port must be the port offset + 9990. -->
         <wildfly.management.port>57887</wildfly.management.port>
         <wildfly.logging.console.level>ERROR</wildfly.logging.console.level>
-        <wildfly.logging.file.level>DEBUG</wildfly.logging.file.level>
+        <wildfly.logging.file.level>ERROR</wildfly.logging.file.level>
         <terminal-event.timeout>10</terminal-event.timeout>
       </properties>
       <build>
