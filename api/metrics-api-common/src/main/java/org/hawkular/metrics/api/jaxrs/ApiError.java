@@ -31,7 +31,7 @@ public class ApiError {
     private final String errorMsg;
 
     public ApiError(String errorMsg) {
-        this.errorMsg = errorMsg;
+        this.errorMsg = errorMsg != null && !errorMsg.trim().isEmpty() ? errorMsg : "No details";
     }
 
     @ApiModelProperty(value = "Detailed error message of what happened")

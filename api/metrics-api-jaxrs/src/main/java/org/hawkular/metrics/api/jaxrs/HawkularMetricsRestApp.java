@@ -22,6 +22,7 @@ import java.util.Set;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 
+import org.hawkular.metrics.api.jaxrs.exception.mappers.ApplicationExceptionMapper;
 import org.hawkular.metrics.api.jaxrs.exception.mappers.BadRequestExceptionMapper;
 import org.hawkular.metrics.api.jaxrs.exception.mappers.NotAcceptableExceptionMapper;
 import org.hawkular.metrics.api.jaxrs.exception.mappers.NotAllowedExceptionMapper;
@@ -106,6 +107,7 @@ public class HawkularMetricsRestApp extends Application {
         classes.add(NotFoundExceptionMapper.class);
         classes.add(ReaderExceptionMapper.class);
         classes.add(NotSupportedExceptionMapper.class);
+        classes.add(ApplicationExceptionMapper.class);
 
         // Add filters
         classes.add(EmptyPayloadFilter.class);
