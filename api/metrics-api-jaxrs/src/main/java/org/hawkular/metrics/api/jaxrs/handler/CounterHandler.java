@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounterDataPoints;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounters;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
@@ -54,6 +55,7 @@ import org.hawkular.metrics.api.jaxrs.request.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,16 +92,16 @@ public class CounterHandler {
     @POST
     @Path("/")
     @ApiOperation(
-            value = "Create counter metric definition. This operation also causes the rate to be calculated and " +
+            value = "Create counter metric. This operation also causes the rate to be calculated and " +
                     "persisted periodically after raw count data is persisted.",
             notes = "Clients are not required to explicitly create a metric before storing data. Doing so however " +
                     "allows clients to prevent naming collisions and to specify tags and data retention.")
     @ApiResponses(value = {
-            @ApiResponse(code = 201, message = "Metric definition created successfully"),
+            @ApiResponse(code = 201, message = "Metric created successfully"),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
             @ApiResponse(code = 409, message = "Counter metric with given id already exists", response = ApiError
                     .class),
-            @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
+            @ApiResponse(code = 500, message = "Metric creation failed due to an unexpected error",
                     response = ApiError.class)
     })
     public void createCounter(
@@ -107,6 +109,10 @@ public class CounterHandler {
             @ApiParam(required = true) MetricDefinition metricDefinition,
             @Context UriInfo uriInfo
     ) {
+        if(metricDefinition.getType() != null && MetricType.COUNTER != metricDefinition.getType()) {
+            asyncResponse.resume(badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+                    .COUNTER.getText())));
+        }
         Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, metricDefinition.getId()),
                 metricDefinition.getTags(), metricDefinition.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getId().getName());
