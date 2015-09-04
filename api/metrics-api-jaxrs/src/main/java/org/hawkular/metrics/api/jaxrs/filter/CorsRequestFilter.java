@@ -24,6 +24,8 @@ import javax.ws.rs.container.PreMatching;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 
+import org.hawkular.metrics.api.jaxrs.util.Headers;
+
 /**
  * @author Stefan Negrea
  *
@@ -34,6 +36,12 @@ public class CorsRequestFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
+        //NOT a CORS request
+        if (requestContext.getHeaderString(Headers.ORIGIN) == null) {
+            return;
+        }
+
+        //It is a CORS pre-flight request, there is no route for it, just return 200
         if (requestContext.getRequest().getMethod().equalsIgnoreCase("OPTIONS")) {
             requestContext.abortWith(Response.status(Response.Status.OK).build());
         }
