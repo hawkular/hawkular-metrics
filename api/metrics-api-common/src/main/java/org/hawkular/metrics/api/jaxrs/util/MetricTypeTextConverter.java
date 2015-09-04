@@ -33,8 +33,10 @@ public class MetricTypeTextConverter {
             return "gauges";
         } else if(mt == MetricType.COUNTER) {
             return "counters";
-        } else {
+        } else if(mt == MetricType.AVAILABILITY) {
             return mt.getText();
+        } else {
+            throw new RuntimeException("Unsupported type " + mt.getText());
         }
     }
 }
