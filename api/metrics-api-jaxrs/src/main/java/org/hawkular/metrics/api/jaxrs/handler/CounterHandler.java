@@ -25,6 +25,7 @@ import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_N
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounterDataPoints;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounters;
+import static org.hawkular.metrics.api.jaxrs.validation.Validate.validate;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 
 import java.net.URI;
@@ -148,9 +149,16 @@ public class CounterHandler {
     public void addData(@Suspended final AsyncResponse asyncResponse,
                         @ApiParam(value = "List of metrics", required = true) List<Counter> counters
     ) {
-        Observable<Metric<Long>> metrics = requestToCounters(tenantId, counters);
-        Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
-        observable.subscribe(new ResultSetObserver(asyncResponse));
+        validate(counters).lastOrDefault(false).subscribe(valid -> {
+            if (!valid) {
+                asyncResponse.resume(badRequest(new ApiError("Timestamp not provided for data point")));
+                return;
+            }
+
+            Observable<Metric<Long>> metrics = requestToCounters(tenantId, counters);
+            Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
+            observable.subscribe(new ResultSetObserver(asyncResponse));
+        });
     }
 
     @POST
@@ -168,10 +176,17 @@ public class CounterHandler {
             @ApiParam(value = "List of data points containing timestamp and value", required = true)
             List<CounterDataPoint> data
     ) {
-        Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id),
+        validate(data).lastOrDefault(false).subscribe(valid -> {
+            if (!valid) {
+                asyncResponse.resume(badRequest(new ApiError("Timestamp not provided for data point")));
+                return;
+            }
+
+            Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id),
                                            requestToCounterDataPoints(data));
-        Observable<Void> observable = metricsService.addDataPoints(COUNTER, Observable.just(metric));
-        observable.subscribe(new ResultSetObserver(asyncResponse));
+            Observable<Void> observable = metricsService.addDataPoints(COUNTER, Observable.just(metric));
+            observable.subscribe(new ResultSetObserver(asyncResponse));
+        });
     }
 
     @GET

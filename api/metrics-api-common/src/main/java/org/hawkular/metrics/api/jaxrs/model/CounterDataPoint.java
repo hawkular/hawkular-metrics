@@ -20,8 +20,10 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
+import org.hawkular.metrics.api.jaxrs.validation.Validator;
 import org.hawkular.metrics.core.api.DataPoint;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.wordnik.swagger.annotations.ApiModel;
@@ -30,11 +32,11 @@ import com.wordnik.swagger.annotations.ApiModel;
  * @author jsanda
  */
 @ApiModel(description = "A timestamp and a value where the value is interpreted as a signed 64 bit integer")
-public class CounterDataPoint {
+public class CounterDataPoint implements Validator {
 
     @JsonProperty
     @org.codehaus.jackson.annotate.JsonProperty
-    private long timestamp;
+    private Long timestamp;
 
     @JsonProperty
     @org.codehaus.jackson.annotate.JsonProperty
@@ -69,7 +71,7 @@ public class CounterDataPoint {
         return value;
     }
 
-    public long getTimestamp() {
+    public Long getTimestamp() {
         return timestamp;
     }
 
@@ -100,5 +102,20 @@ public class CounterDataPoint {
                 .add("value", value)
                 .add("tags", tags)
                 .toString();
+    }
+
+    @Override
+    @JsonIgnore
+    @org.codehaus.jackson.annotate.JsonIgnore
+    public boolean isValid() {
+        if (this.getValue() == null) {
+            return false;
+        }
+
+        if (this.getTimestamp() == null) {
+            return false;
+        }
+
+        return true;
     }
 }

@@ -25,6 +25,7 @@ import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_N
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGaugeDataPoints;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGauges;
+import static org.hawkular.metrics.api.jaxrs.validation.Validate.validate;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 import java.net.URI;
@@ -202,9 +203,16 @@ public class GaugeHandler {
             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
             List<GaugeDataPoint> data
     ) {
-        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id), requestToGaugeDataPoints(data));
-        Observable<Void> observable = metricsService.addDataPoints(GAUGE, Observable.just(metric));
-        observable.subscribe(new ResultSetObserver(asyncResponse));
+        validate(data).lastOrDefault(false).subscribe(valid -> {
+            if (!valid) {
+                asyncResponse.resume(badRequest(new ApiError("Timestamp not provided for data point")));
+                return;
+            }
+
+            Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id), requestToGaugeDataPoints(data));
+            Observable<Void> observable = metricsService.addDataPoints(GAUGE, Observable.just(metric));
+            observable.subscribe(new ResultSetObserver(asyncResponse));
+        });
     }
 
     @POST
@@ -219,9 +227,16 @@ public class GaugeHandler {
     public void addGaugeData(@Suspended final AsyncResponse asyncResponse,
                              @ApiParam(value = "List of metrics", required = true) List<Gauge> gauges
     ) {
-        Observable<Metric<Double>> metrics = requestToGauges(tenantId, gauges);
-        Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
-        observable.subscribe(new ResultSetObserver(asyncResponse));
+        validate(gauges).lastOrDefault(false).subscribe(valid -> {
+            if (!valid) {
+                asyncResponse.resume(badRequest(new ApiError("Timestamp not provided for data point")));
+                return;
+            }
+
+            Observable<Metric<Double>> metrics = requestToGauges(tenantId, gauges);
+            Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
+            observable.subscribe(new ResultSetObserver(asyncResponse));
+        });
     }
 
     @GET

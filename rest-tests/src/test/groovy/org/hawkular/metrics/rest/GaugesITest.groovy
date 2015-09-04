@@ -86,4 +86,35 @@ class GaugesITest extends RESTTest {
     def response = hawkularMetrics.post(path: "gauges/test/data", headers: [(tenantHeaderName): tenantId], body: points)
     assertEquals(200, response.status)
   }
+
+  @Test
+  void shouldNotCreateMetricWithEmptyTimestamp() {
+    def tenantId = nextTenantId()
+
+    badPost(path: "gauges/data", headers: [(tenantHeaderName): tenantId], body: [
+        [id: 'test1',
+         data: [
+            [timestamp: 123, value: 123],
+            [timestamp: 124, value: 124],
+            [timestamp: 125, value: 125]
+        ]],
+        [id: 'test2',
+         data: [
+            [timestamp: 123, value: 123],
+            [timestamp: 124, value: 124],
+            [timestamp: 125, value: 125],
+            [value: 125]
+        ]]]) { exception ->
+      assertEquals(400, exception.response.status)
+    }
+
+    badPost(path: "gauges/test3/data", headers: [(tenantHeaderName): tenantId], body: [
+            [timestamp: 123, value: 123],
+            [timestamp: 124, value: 124],
+            [timestamp: 125, value: 125],
+            [value: 126]
+        ]) { exception ->
+      assertEquals(400, exception.response.status)
+    }
+  }
 }

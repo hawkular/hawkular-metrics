@@ -22,8 +22,10 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounterDataPoints;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounters;
+import static org.hawkular.metrics.api.jaxrs.validation.Validate.validate;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 
 import java.net.URI;
@@ -154,6 +156,10 @@ public class CounterHandler {
     })
     public Response addData(@ApiParam(value = "List of metrics", required = true) List<Counter> counters
     ) {
+        if (!validate(counters).toBlocking().lastOrDefault(false)) {
+            return badRequest(new ApiError("Timestamp not provided for data point"));
+        }
+
         Observable<Metric<Long>> metrics = requestToCounters(tenantId, counters);
         try {
             metricsService.addDataPoints(COUNTER, metrics).toBlocking().lastOrDefault(null);
@@ -177,6 +183,10 @@ public class CounterHandler {
             @ApiParam(value = "List of data points containing timestamp and value", required = true)
             List<CounterDataPoint> data
     ) {
+        if (!validate(data).toBlocking().lastOrDefault(false)) {
+            return badRequest(new ApiError("Timestamp not provided for data point"));
+        }
+
         Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id), requestToCounterDataPoints(data));
         try {
             metricsService.addDataPoints(COUNTER, Observable.just(metric)).toBlocking().lastOrDefault(null);

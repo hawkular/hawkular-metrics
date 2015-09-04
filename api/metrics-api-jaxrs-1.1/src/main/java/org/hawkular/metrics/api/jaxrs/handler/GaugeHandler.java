@@ -25,6 +25,7 @@ import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_N
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGaugeDataPoints;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGauges;
+import static org.hawkular.metrics.api.jaxrs.validation.Validate.validate;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 import java.net.URI;
@@ -222,6 +223,10 @@ public class GaugeHandler {
             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
             List<GaugeDataPoint> data
     ) {
+        if (!validate(data).toBlocking().lastOrDefault(false)) {
+            return badRequest(new ApiError("Timestamp not provided for data point"));
+        }
+
         Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id), requestToGaugeDataPoints(data));
         try {
             metricsService.addDataPoints(GAUGE, Observable.just(metric)).toBlocking().lastOrDefault(null);
@@ -243,6 +248,10 @@ public class GaugeHandler {
     })
     public Response addGaugeData(@ApiParam(value = "List of metrics", required = true) List<Gauge> gauges
     ) {
+        if (!validate(gauges).toBlocking().lastOrDefault(false)) {
+            return badRequest(new ApiError("Timestamp not provided for data point"));
+        }
+
         Observable<Metric<Double>> metrics = requestToGauges(tenantId, gauges);
         try {
             metricsService.addDataPoints(GAUGE, metrics).toBlocking().lastOrDefault(null);

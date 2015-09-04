@@ -28,6 +28,7 @@ import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabiliti
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilityDataPoints;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.valueToResponse;
+import static org.hawkular.metrics.api.jaxrs.validation.Validate.validate;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 
 import java.net.URI;
@@ -205,10 +206,17 @@ public class AvailabilityHandler {
             @Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
             @ApiParam(value = "List of availability datapoints", required = true) List<AvailabilityDataPoint> data
     ) {
-        Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id),
-                requestToAvailabilityDataPoints(data));
-        metricsService.addDataPoints(AVAILABILITY, Observable.just(metric))
-                .subscribe(new ResultSetObserver(asyncResponse));
+        validate(data).lastOrDefault(false).subscribe(valid -> {
+            if (!valid) {
+                asyncResponse.resume(badRequest(new ApiError("Timestamp not provided for data point")));
+                return;
+            }
+
+            Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id),
+                    requestToAvailabilityDataPoints(data));
+            metricsService.addDataPoints(AVAILABILITY, Observable.just(metric))
+                    .subscribe(new ResultSetObserver(asyncResponse));
+        });
     }
 
     @POST
@@ -225,8 +233,15 @@ public class AvailabilityHandler {
             @ApiParam(value = "List of availability metrics", required = true)
             List<Availability> availabilities
     ) {
-        metricsService.addDataPoints(AVAILABILITY, requestToAvailabilities(tenantId, availabilities))
+        validate(availabilities).lastOrDefault(false).subscribe(valid -> {
+            if (!valid) {
+                asyncResponse.resume(badRequest(new ApiError("Timestamp not provided for data point")));
+                return;
+            }
+
+            metricsService.addDataPoints(AVAILABILITY, requestToAvailabilities(tenantId, availabilities))
                 .subscribe(new ResultSetObserver(asyncResponse));
+        });
     }
 
     @GET
