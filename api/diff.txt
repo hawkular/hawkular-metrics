@@ -177,24 +177,24 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 <   </profiles>
 Only in api/metrics-api-jaxrs/src/main: antlr4
 diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/HawkularMetricsRestApp.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/HawkularMetricsRestApp.java
-31,32d30
+32,33d31
 < import org.hawkular.metrics.api.jaxrs.filter.CorsRequestFilter;
 < import org.hawkular.metrics.api.jaxrs.filter.CorsResponseFilter;
-45d42
+46d43
 < import org.hawkular.metrics.api.jaxrs.influx.InfluxSeriesHandler;
-47,48c44,46
+48,49c45,47
 < import org.hawkular.metrics.api.jaxrs.param.ConvertersProvider;
 < import org.hawkular.metrics.api.jaxrs.util.JacksonConfig;
 ---
 > import org.hawkular.metrics.api.jaxrs.param.DurationConverter;
 > import org.hawkular.metrics.api.jaxrs.param.MetricTypeConverter;
 > import org.hawkular.metrics.api.jaxrs.param.TagsConverter;
-79d76
+80d77
 <         classes.add(InfluxSeriesHandler.class);
-114,115d110
+116,117d112
 <         classes.add(CorsResponseFilter.class);
 <         classes.add(CorsRequestFilter.class);
-119,120c114,116
+121,122c116,118
 <         classes.add(ConvertersProvider.class);
 <         classes.add(JacksonConfig.class);
 ---
@@ -210,6 +210,13 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/config/ConfigurationKey.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/config/ConfigurationKey.java
 36a37
 > 
+diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ApplicationExceptionMapper.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ApplicationExceptionMapper.java
+21d20
+< import javax.ws.rs.core.Response.Status;
+37c36
+<         return ExceptionMapperUtils.buildResponse(exception, Status.INTERNAL_SERVER_ERROR);
+---
+>         return ExceptionMapperUtils.buildResponse(exception, 500);
 diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ExceptionMapperUtils.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ExceptionMapperUtils.java
 20a21
 > import javax.ws.rs.core.Response.ResponseBuilder;
