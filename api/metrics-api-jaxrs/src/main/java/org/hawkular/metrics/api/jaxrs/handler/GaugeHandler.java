@@ -62,6 +62,7 @@ import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 
 import com.wordnik.swagger.annotations.Api;
@@ -91,15 +92,15 @@ public class GaugeHandler {
 
     @POST
     @Path("/")
-    @ApiOperation(value = "Create gauge metric definition.", notes = "Clients are not required to explicitly create "
+    @ApiOperation(value = "Create gauge metric.", notes = "Clients are not required to explicitly create "
             + "a metric before storing data. Doing so however allows clients to prevent naming collisions and to "
             + "specify tags and data retention.")
     @ApiResponses(value = {
-            @ApiResponse(code = 201, message = "Metric definition created successfully"),
+            @ApiResponse(code = 201, message = "Metric created successfully"),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
             @ApiResponse(code = 409, message = "Gauge metric with given id already exists",
                     response = ApiError.class),
-            @ApiResponse(code = 500, message = "Metric definition creation failed due to an unexpected error",
+            @ApiResponse(code = 500, message = "Metric creation failed due to an unexpected error",
                     response = ApiError.class)
     })
     public void createGaugeMetric(
@@ -107,6 +108,10 @@ public class GaugeHandler {
             @ApiParam(required = true) MetricDefinition metricDefinition,
             @Context UriInfo uriInfo
     ) {
+        if(metricDefinition.getType() != null && MetricType.GAUGE != metricDefinition.getType()) {
+            asyncResponse.resume(badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+                    .GAUGE.getText())));
+        }
         Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metricDefinition.getId()),
                 metricDefinition.getTags(), metricDefinition.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getId().getName());

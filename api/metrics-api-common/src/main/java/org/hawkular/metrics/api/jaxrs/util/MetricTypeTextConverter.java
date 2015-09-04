@@ -14,24 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.jackson;
+package org.hawkular.metrics.api.jaxrs.util;
 
-import java.io.IOException;
-
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonProcessingException;
-import org.codehaus.jackson.map.DeserializationContext;
-import org.codehaus.jackson.map.JsonDeserializer;
 import org.hawkular.metrics.core.api.MetricType;
 
-
 /**
+ * Returns the longer path format used by the REST-interface from the given MetricType
+ *
  * @author Michael Burman
  */
-public class MetricTypeDeserializer extends JsonDeserializer<MetricType<?>> {
+public class MetricTypeTextConverter {
 
-    @Override public MetricType<?> deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
-            throws IOException, JsonProcessingException {
-        return MetricType.fromTextCode(jsonParser.getText());
+    private MetricTypeTextConverter() { }
+
+    public static String getLongForm(MetricType<?> mt) {
+
+        if(mt == MetricType.GAUGE) {
+            return "gauges";
+        } else if(mt == MetricType.COUNTER) {
+            return "counters";
+        } else if(mt == MetricType.AVAILABILITY) {
+            return mt.getText();
+        } else {
+            throw new RuntimeException("Unsupported type " + mt.getText());
+        }
     }
 }
