@@ -38,7 +38,6 @@
   <properties>
     <wildfly-maven-plugin.skip>true</wildfly-maven-plugin.skip>
     <cassandra.keyspace>hawkular_metrics_ptrans_integration_tests</cassandra.keyspace>
-    <scheduler.units>seconds</scheduler.units>
     <!-- Configuration files used when starting a development ptrans instance with mvn exec:java -->
     <dev.log4j.configuration>${project.basedir}/log4j-dev.xml</dev.log4j.configuration>
     <dev.ptrans.conf>${project.basedir}/ptrans.conf</dev.ptrans.conf>
@@ -248,7 +247,6 @@
                     <javaOpt>-Dcassandra.keyspace=${cassandra.keyspace}</javaOpt>
                     <javaOpt>-Dcassandra.resetdb</javaOpt>
                     <javaOpt>-Dhawkular.metrics.waitForService</javaOpt>
-                    <javaOpt>-Dhawkular.scheduler.time-units=${scheduler.units}</javaOpt>
                     <javaOpt>-Xdebug</javaOpt>
                     <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
                   </javaOpts>
@@ -294,7 +292,7 @@
         <!-- IMPORTANT: The management port must be the port offset + 9990. -->
         <ptrans.wildfly.management.port>57898</ptrans.wildfly.management.port>
         <wildfly.logging.console.level>ERROR</wildfly.logging.console.level>
-        <wildfly.logging.file.level>DEBUG</wildfly.logging.file.level>
+        <wildfly.logging.file.level>ERROR</wildfly.logging.file.level>
       </properties>
       <build>
         <plugins>
