@@ -20,9 +20,8 @@ import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.fail
 
+import static groovyx.net.http.ContentType.TEXT
 import static groovyx.net.http.Method.POST
-
-import javax.ws.rs.core.MediaType
 
 import org.apache.http.util.EntityUtils
 import org.joda.time.DateTime
@@ -49,7 +48,7 @@ class InfluxITest extends RESTTest {
 
       response.failure = { response ->
         assertEquals(400, response.status)
-        assertEquals(MediaType.TEXT_PLAIN, response.contentType)
+        assertEquals(TEXT.toString(), response.contentType)
         assertEquals("Null objects", EntityUtils.toString(response.entity))
       }
     }
