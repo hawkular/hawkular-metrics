@@ -16,65 +16,40 @@
  */
 package org.hawkular.metrics.api.jaxrs.model;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.unmodifiableList;
-
-import static org.hawkular.metrics.core.api.MetricType.COUNTER;
-
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.List;
 import java.util.Objects;
 
-import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.Tenant;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonCreator.Mode;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
-import com.wordnik.swagger.annotations.ApiModel;
-
-import rx.Observable;
 
 /**
- * A container for data points for a single counter metric.
- *
  * @author John Sanda
  */
-@ApiModel(description = "A counter metric with one or more data points")
-public class Counter {
+public class TenantDefinition {
     private final String id;
-    private final List<CounterDataPoint> data;
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
     @SuppressWarnings("unused")
-    public Counter(
+    public TenantDefinition(
             @JsonProperty("id")
             @org.codehaus.jackson.annotate.JsonProperty("id")
-            String id,
-            @JsonProperty("data")
-            @org.codehaus.jackson.annotate.JsonProperty("data")
-            List<CounterDataPoint> data
+            String id
     ) {
-        checkArgument(id != null, "Counter id is null");
+        checkArgument(id != null, "Tenant id is null");
         this.id = id;
-        this.data = data == null || data.isEmpty() ? emptyList() : unmodifiableList(data);
+    }
+
+    public TenantDefinition(Tenant tenant) {
+        this.id = tenant.getId();
     }
 
     public String getId() {
         return id;
-    }
-
-    @JsonSerialize(include = Inclusion.NON_EMPTY)
-    @org.codehaus.jackson.map.annotate.JsonSerialize(
-            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY
-    )
-    public List<CounterDataPoint> getData() {
-        return data;
     }
 
     @Override
@@ -85,7 +60,7 @@ public class Counter {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        Counter that = (Counter) o;
+        TenantDefinition that = (TenantDefinition) o;
         return Objects.equals(id, that.id);
     }
 
@@ -98,15 +73,7 @@ public class Counter {
     public String toString() {
         return com.google.common.base.Objects.toStringHelper(this)
                 .add("id", id)
-                .add("data", data)
                 .omitNullValues()
                 .toString();
-    }
-
-    public static Observable<Metric<Long>> toObservable(String tenantId, List<Counter> counters) {
-        return Observable.from(counters).map(c -> {
-            List<DataPoint<Long>> dataPoints = CounterDataPoint.asDataPoints(c.getData());
-            return new Metric<>(new MetricId<>(tenantId, COUNTER, c.getId()), dataPoints);
-        });
     }
 }

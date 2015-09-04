@@ -17,53 +17,65 @@
 package org.hawkular.metrics.api.jaxrs.model;
 
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableMap;
 
+import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.hawkular.metrics.api.jaxrs.fasterxml.jackson.AvailabilityTypeSerializer;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonCreator.Mode;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableMap;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
+import com.google.common.collect.Lists;
 import com.wordnik.swagger.annotations.ApiModel;
 
+import rx.Observable;
+
 /**
- * @author jsanda
+ * @author John Sanda
  */
 @ApiModel(description = "Consists of a timestamp and a value where supported values are \"up\" and \"down\"")
 public class AvailabilityDataPoint {
+    private final long timestamp;
+    private final AvailabilityType value;
+    private final Map<String, String> tags;
 
-    @JsonProperty
-    @org.codehaus.jackson.annotate.JsonProperty
-    private long timestamp;
-
-    @JsonProperty
-    @org.codehaus.jackson.annotate.JsonProperty
-    @org.codehaus.jackson.map.annotate.JsonSerialize(
-            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
-    private String value;
-
-    @JsonProperty
-    @org.codehaus.jackson.annotate.JsonProperty
-    @org.codehaus.jackson.map.annotate.JsonSerialize(
-            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
-    private Map<String, String> tags = emptyMap();
-
-    /**
-     * Used by JAX-RS/Jackson to deserialize HTTP request data
-     */
-    private AvailabilityDataPoint() {
+    @JsonCreator(mode = Mode.PROPERTIES)
+    @org.codehaus.jackson.annotate.JsonCreator
+    @SuppressWarnings("unused")
+    public AvailabilityDataPoint(
+            @JsonProperty("timestamp")
+            @org.codehaus.jackson.annotate.JsonProperty("timestamp")
+            Long timestamp,
+            @JsonProperty("value")
+            @org.codehaus.jackson.annotate.JsonProperty("value")
+            String value,
+            @JsonProperty("tags")
+            @org.codehaus.jackson.annotate.JsonProperty("tags")
+            Map<String, String> tags
+    ) {
+        checkArgument(timestamp != null, "Data point timestamp is null");
+        checkArgument(value != null, "Data point value is null");
+        this.timestamp = timestamp;
+        this.value = AvailabilityType.fromString(value);
+        this.tags = tags == null ? emptyMap() : unmodifiableMap(tags);
     }
 
-    /**
-     * Used to prepared data for serialization into the HTTP response
-     *
-     * @param dataPoint
-     */
     public AvailabilityDataPoint(DataPoint<AvailabilityType> dataPoint) {
         timestamp = dataPoint.getTimestamp();
-        value = dataPoint.getValue().getText().toLowerCase();
+        value = dataPoint.getValue();
         tags = dataPoint.getTags();
     }
 
@@ -71,25 +83,38 @@ public class AvailabilityDataPoint {
         return timestamp;
     }
 
-    public String getValue() {
-        return value.toLowerCase();
+    @JsonSerialize(using = AvailabilityTypeSerializer.class)
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            using = org.hawkular.metrics.api.jaxrs.codehaus.jackson.AvailabilityTypeSerializer.class
+    )
+    public AvailabilityType getValue() {
+        return value;
     }
 
+    @JsonSerialize(include = Inclusion.NON_EMPTY)
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY
+    )
     public Map<String, String> getTags() {
-        return ImmutableMap.copyOf(tags);
+        return tags;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        AvailabilityDataPoint dataPoint = (AvailabilityDataPoint) o;
-        return Objects.equals(timestamp, dataPoint.timestamp) &&
-                Objects.equals(value, dataPoint.value);
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        AvailabilityDataPoint that = (AvailabilityDataPoint) o;
+        // TODO should tags be included in equals?
+        return Objects.equals(timestamp, that.timestamp) && Objects.equals(value, that.value);
     }
 
     @Override
     public int hashCode() {
+        // TODO should tags be included?
         return Objects.hash(timestamp, value);
     }
 
@@ -99,6 +124,18 @@ public class AvailabilityDataPoint {
                 .add("timestamp", timestamp)
                 .add("value", value)
                 .add("tags", tags)
+                .omitNullValues()
                 .toString();
+    }
+
+    public static List<DataPoint<AvailabilityType>> asDataPoints(List<AvailabilityDataPoint> points) {
+        return Lists.transform(points, p -> new DataPoint<>(p.getTimestamp(), p.getValue()));
+    }
+
+    public static Observable<Metric<AvailabilityType>> toObservable(String tenantId, String
+            metricId, List<AvailabilityDataPoint> points) {
+        List<DataPoint<AvailabilityType>> dataPoints = asDataPoints(points);
+        Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, metricId), dataPoints);
+        return Observable.just(metric);
     }
 }

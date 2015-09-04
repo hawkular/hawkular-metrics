@@ -23,8 +23,8 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounterDataPoints;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounters;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 
 import java.net.URI;
@@ -51,7 +51,7 @@ import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.model.Counter;
 import org.hawkular.metrics.api.jaxrs.model.CounterDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
-import org.hawkular.metrics.api.jaxrs.request.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
@@ -132,8 +132,8 @@ public class CounterHandler {
         metricsService.findMetric(new MetricId<>(tenantId, COUNTER, id))
                 .map(MetricDefinition::new)
                 .map(metricDef -> Response.ok(metricDef).build())
-                .switchIfEmpty(Observable.just(ApiUtils.noContent()))
-                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+                .switchIfEmpty(Observable.just(noContent()))
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
     }
 
     @POST
@@ -148,7 +148,7 @@ public class CounterHandler {
     public void addData(@Suspended final AsyncResponse asyncResponse,
                         @ApiParam(value = "List of metrics", required = true) List<Counter> counters
     ) {
-        Observable<Metric<Long>> metrics = requestToCounters(tenantId, counters);
+        Observable<Metric<Long>> metrics = Counter.toObservable(tenantId, counters);
         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
@@ -168,9 +168,8 @@ public class CounterHandler {
             @ApiParam(value = "List of data points containing timestamp and value", required = true)
             List<CounterDataPoint> data
     ) {
-        Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id),
-                                           requestToCounterDataPoints(data));
-        Observable<Void> observable = metricsService.addDataPoints(COUNTER, Observable.just(metric));
+        Observable<Metric<Long>> metrics = CounterDataPoint.toObservable(tenantId, id, data);
+        Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -202,7 +201,7 @@ public class CounterHandler {
                         asyncResponse::resume,
                         t -> {
                             logger.warn("Failed to fetch counter data", t);
-                            ApiUtils.serverError(t);
+                            serverError(t);
                         });
     }
 
@@ -237,7 +236,7 @@ public class CounterHandler {
                         asyncResponse::resume,
                         t -> {
                             logger.warn("Failed to fetch counter rate data", t);
-                            ApiUtils.serverError(t);
+                            serverError(t);
                         });
     }
 

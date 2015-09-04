@@ -16,36 +16,17 @@
  */
 package org.hawkular.metrics.api.jaxrs.util;
 
-import static java.util.stream.Collectors.toList;
-
-import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
-import static org.hawkular.metrics.core.api.MetricType.COUNTER;
-import static org.hawkular.metrics.core.api.MetricType.GAUGE;
-
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.hawkular.metrics.api.jaxrs.ApiError;
-import org.hawkular.metrics.api.jaxrs.model.Availability;
-import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
-import org.hawkular.metrics.api.jaxrs.model.Counter;
-import org.hawkular.metrics.api.jaxrs.model.CounterDataPoint;
-import org.hawkular.metrics.api.jaxrs.model.Gauge;
-import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
-import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
-
-import rx.Observable;
 
 /**
  * @author jsanda
@@ -70,50 +51,8 @@ public class ApiUtils {
         return serverError(t, "Failed to perform operation due to an error");
     }
 
-    public static <E> Response simpleOKResponse(E optional) {
-        return Response.ok().build();
-    }
-
     public static Response valueToResponse(Optional<?> optional) {
         return optional.map(value -> Response.ok(value).build()).orElse(noContent());
-    }
-
-    // TODO We probably want to return an Observable here
-    public static List<DataPoint<Double>> requestToGaugeDataPoints(List<GaugeDataPoint> gaugeDataPoints) {
-        return gaugeDataPoints.stream()
-                .map(p -> new DataPoint<>(p.getTimestamp(), p.getValue(), p.getTags()))
-                .collect(toList());
-    }
-
-    public static Observable<Metric<Double>> requestToGauges(String tenantId, List<Gauge> gauges) {
-        return Observable.from(gauges).map(
-                g -> new Metric<>(new MetricId<>(tenantId, GAUGE, g.getId()), requestToGaugeDataPoints(g.getData())));
-    }
-
-    public static Observable<Metric<Long>> requestToCounters(String tenantId, List<Counter> counters) {
-        return Observable.from(counters).map(
-                c -> new Metric<>(new MetricId<>(tenantId, COUNTER, c.getId()),
-                        requestToCounterDataPoints(c.getData())));
-    }
-
-    public static Observable<Metric<AvailabilityType>> requestToAvailabilities(String tenantId,
-            List<Availability> avails) {
-        return Observable.from(avails).map(a -> new Metric<>(new MetricId<>(tenantId, AVAILABILITY, a.getId()),
-                requestToAvailabilityDataPoints(a.getData())));
-    }
-
-    public static List<DataPoint<Long>> requestToCounterDataPoints(List<CounterDataPoint> dataPoints) {
-        return dataPoints.stream()
-                .map(p -> new DataPoint<>(p.getTimestamp(), p.getValue(), p.getTags()))
-                .collect(toList());
-    }
-
-    // TODO We probably want to return an Observable here
-    public static List<DataPoint<AvailabilityType>> requestToAvailabilityDataPoints(
-            List<AvailabilityDataPoint> dataPoints) {
-        return dataPoints.stream()
-                .map(p -> new DataPoint<>(p.getTimestamp(), AvailabilityType.fromString(p.getValue())))
-                .collect(toList());
     }
 
     public static Response noContent() {

@@ -15,16 +15,19 @@
  * limitations under the License.
  */
 package org.hawkular.metrics.rest
-import com.google.common.base.Charsets
-import groovyx.net.http.ContentType
-import groovyx.net.http.RESTClient
-import org.joda.time.DateTime
-import org.junit.BeforeClass
-
-import java.util.concurrent.atomic.AtomicInteger
 
 import static org.hawkular.metrics.core.impl.transformers.BatchStatementTransformer.MAX_BATCH_SIZE
 import static org.junit.Assert.assertEquals
+
+import java.util.concurrent.atomic.AtomicInteger
+
+import org.joda.time.DateTime
+import org.junit.BeforeClass
+
+import com.google.common.base.Charsets
+
+import groovyx.net.http.ContentType
+import groovyx.net.http.RESTClient
 
 class RESTTest {
 
@@ -112,5 +115,16 @@ ${entity}
   static void setTime(DateTime time) {
     def response = hawkularMetrics.put(path: "clock", body: [time: time.millis])
     assertEquals(200, response.status)
+  }
+
+  static void invalidPointCheck(String pathBase, String tenantId, def data) {
+    badPost(path: "${pathBase}/data", headers: [(tenantHeaderName): tenantId], body: [
+        [id: 'metric', data: data]
+    ]) { exception ->
+      assertEquals(400, exception.response.status)
+    }
+    badPost(path: "${pathBase}/metric/data", headers: [(tenantHeaderName): tenantId], body: data) { exception ->
+      assertEquals(400, exception.response.status)
+    }
   }
 }

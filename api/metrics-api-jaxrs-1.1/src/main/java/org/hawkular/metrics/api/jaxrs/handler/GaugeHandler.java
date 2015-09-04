@@ -23,8 +23,6 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGaugeDataPoints;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGauges;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 import java.net.URI;
@@ -50,10 +48,10 @@ import javax.ws.rs.core.UriInfo;
 import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Gauge;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
+import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.model.TagRequest;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
-import org.hawkular.metrics.api.jaxrs.request.MetricDefinition;
-import org.hawkular.metrics.api.jaxrs.request.TagRequest;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.Metric;
@@ -222,9 +220,9 @@ public class GaugeHandler {
             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
             List<GaugeDataPoint> data
     ) {
-        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id), requestToGaugeDataPoints(data));
+        Observable<Metric<Double>> metrics = GaugeDataPoint.toObservable(tenantId, id, data);
         try {
-            metricsService.addDataPoints(GAUGE, Observable.just(metric)).toBlocking().lastOrDefault(null);
+            metricsService.addDataPoints(GAUGE, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
         } catch (Exception e) {
             return ApiUtils.serverError(e);
@@ -241,9 +239,10 @@ public class GaugeHandler {
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
                     response = ApiError.class)
     })
-    public Response addGaugeData(@ApiParam(value = "List of metrics", required = true) List<Gauge> gauges
+    public Response addGaugeData(
+            @ApiParam(value = "List of metrics", required = true) List<Gauge> gauges
     ) {
-        Observable<Metric<Double>> metrics = requestToGauges(tenantId, gauges);
+        Observable<Metric<Double>> metrics = Gauge.toObservable(tenantId, gauges);
         try {
             metricsService.addDataPoints(GAUGE, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();

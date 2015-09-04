@@ -27,11 +27,10 @@ import org.junit.Test
  * @author Thomas Segismont
  */
 class AvailabilityITest extends RESTTest {
+  def tenantId = nextTenantId()
 
   @Test
   void shouldNotCreateMetricWithEmptyPayload() {
-    def tenantId = nextTenantId()
-
     badPost(path: "availability", headers: [(tenantHeaderName): tenantId], body: "" /* Empty Body */) { exception ->
       assertEquals(400, exception.response.status)
     }
@@ -39,8 +38,6 @@ class AvailabilityITest extends RESTTest {
 
   @Test
   void shouldNotAddAvailabilityForMetricWithEmptyPayload() {
-    def tenantId = nextTenantId()
-
     badPost(path: "availability/pimpo/data", headers: [(tenantHeaderName): tenantId],
         body: "" /* Empty Body */) { exception ->
       assertEquals(400, exception.response.status)
@@ -54,8 +51,6 @@ class AvailabilityITest extends RESTTest {
 
   @Test
   void shouldNotAddAvailabilityDataWithEmptyPayload() {
-    def tenantId = nextTenantId()
-
     badPost(path: "availability/data", headers: [(tenantHeaderName): tenantId],
         body: "" /* Empty Body */) { exception ->
       assertEquals(400, exception.response.status)
@@ -69,8 +64,6 @@ class AvailabilityITest extends RESTTest {
 
   @Test
   void shouldNotTagAvailabilityDataWithEmptyPayload() {
-    def tenantId = nextTenantId()
-
     badPost(path: "availability/pimpo/tag", headers: [(tenantHeaderName): tenantId],
         body: "" /* Empty Body */) { exception ->
       assertEquals(400, exception.response.status)
@@ -80,8 +73,6 @@ class AvailabilityITest extends RESTTest {
 
   @Test
   void shouldStoreLargePayloadSize() {
-    def tenantId = nextTenantId()
-
     def points = []
     def availabilityTypes = AvailabilityType.values()
     for (i in 0..LARGE_PAYLOAD_SIZE + 10) {
@@ -96,7 +87,6 @@ class AvailabilityITest extends RESTTest {
   @Test
   void testAvailabilityGet() {
     DateTime start = now().minusMinutes(20)
-    String tenantId = nextTenantId()
     String metric = 'A1'
 
     def response = hawkularMetrics.post(path: "availability/$metric/data", body: [
@@ -107,5 +97,35 @@ class AvailabilityITest extends RESTTest {
     response = hawkularMetrics.get(path: "availability/$metric", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertEquals(metric, response.data.id)
+  }
+
+  @Test
+  void shouldNotAcceptDataWithEmptyTimestamp() {
+    invalidPointCheck("availability", tenantId, [[value: "up"]])
+  }
+
+  @Test
+  void shouldNotAcceptDataWithNullTimestamp() {
+    invalidPointCheck("availability", tenantId, [[timestamp: null, value: "up"]])
+  }
+
+  @Test
+  void shouldNotAcceptDataWithInvalidTimestamp() {
+    invalidPointCheck("availability", tenantId, [[timestamp: "aaa", value: "up"]])
+  }
+
+  @Test
+  void shouldNotAcceptDataWithEmptyValue() {
+    invalidPointCheck("availability", tenantId, [[timestamp: 13]])
+  }
+
+  @Test
+  void shouldNotAcceptDataWithNullValue() {
+    invalidPointCheck("availability", tenantId, [[timestamp: 13, value: null]])
+  }
+
+  @Test
+  void shouldNotAcceptDataWithInvalidValue() {
+    invalidPointCheck("availability", tenantId, [[timestamp: 13, value: ["dsqdqs"]]])
   }
 }
