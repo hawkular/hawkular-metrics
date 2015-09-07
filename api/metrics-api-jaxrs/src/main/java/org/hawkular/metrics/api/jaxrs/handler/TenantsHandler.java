@@ -38,7 +38,6 @@ import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.observer.TenantCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.model.TenantDefinition;
 import org.hawkular.metrics.core.api.MetricsService;
-import org.hawkular.metrics.core.api.Tenant;
 
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
@@ -74,11 +73,12 @@ public class TenantsHandler {
                     response = ApiError.class)
     })
     public void createTenant(
-            @Suspended AsyncResponse asyncResponse, @ApiParam(required = true) TenantDefinition tenant,
+            @Suspended AsyncResponse asyncResponse,
+            @ApiParam(required = true) TenantDefinition tenantDefinition,
             @Context UriInfo uriInfo
     ) {
         URI location = uriInfo.getBaseUriBuilder().path("/tenants").build();
-        metricsService.createTenant(new Tenant(tenant.getId()))
+        metricsService.createTenant(tenantDefinition.toTenant())
                 .subscribe(new TenantCreatedObserver(asyncResponse, location));
     }
 

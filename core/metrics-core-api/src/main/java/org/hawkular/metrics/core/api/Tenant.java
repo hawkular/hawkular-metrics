@@ -16,32 +16,33 @@
  */
 package org.hawkular.metrics.core.api;
 
-import java.util.Collections;
-import java.util.Map;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableMap;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableMap;
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.Map;
 
 /**
  * Hawkular Metrics provides multi-tenancy support. This means that all data is implicitly partitioned by tenant. Tags,
- * data retention, and pre-computed aggregates are also per-tenant. Note that data retention and pre-computed aggregates
+ * data retention, and pre-computed aggregates are also per-tenant. Note that data retention and pre-computed
+ * aggregates
  * can be configured more narrowly, by tag and by individual metric.
  *
  * @author John Sanda
  */
 public class Tenant {
-
-    private String id;
-
-    private Map<MetricType<?>, Integer> retentionSettings = Collections.emptyMap();
+    private final String id;
+    private final Map<MetricType<?>, Integer> retentionSettings;
 
     public Tenant(String id) {
-        this.id = id;
+        this(id, null);
     }
 
     public Tenant(String id, Map<MetricType<?>, Integer> retentionSettings) {
+        checkArgument(id != null, "Tenant id is null");
         this.id = id;
-        this.retentionSettings = ImmutableMap.copyOf(retentionSettings);
+        this.retentionSettings = retentionSettings == null ? emptyMap() : unmodifiableMap(retentionSettings);
     }
 
     public String getId() {
@@ -54,14 +55,14 @@ public class Tenant {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         Tenant tenant = (Tenant) o;
-
-        if (!id.equals(tenant.id)) return false;
-
-        return true;
+        return id.equals(tenant.id);
     }
 
     @Override
@@ -71,9 +72,10 @@ public class Tenant {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(getClass())
-            .add("id", id)
-            .add("retentionSettings", retentionSettings)
-            .toString();
+        return com.google.common.base.Objects.toStringHelper(this)
+                .add("id", id)
+                .add("retentionSettings", retentionSettings)
+                .omitNullValues()
+                .toString();
     }
 }

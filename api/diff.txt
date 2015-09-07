@@ -1261,24 +1261,22 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 < import org.hawkular.metrics.api.jaxrs.handler.observer.TenantCreatedObserver;
 39a35
 > import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
-41a38
+40a37
 > import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
-58,59d54
+57,58d53
 <     // TODO: add back retention settings
 < 
-76,78c71,72
+75,76c70
 <     public void createTenant(
-<             @Suspended AsyncResponse asyncResponse, @ApiParam(required = true) TenantDefinition tenant,
-<             @Context UriInfo uriInfo
+<             @Suspended AsyncResponse asyncResponse,
 ---
->     public Response createTenant(@ApiParam(required = true) TenantDefinition tenant,
->                                  @Context UriInfo uriInfo
+>     public Response createTenant(
 81,82c75,84
-<         metricsService.createTenant(new Tenant(tenant.getId()))
+<         metricsService.createTenant(tenantDefinition.toTenant())
 <                 .subscribe(new TenantCreatedObserver(asyncResponse, location));
 ---
 >         try {
->             metricsService.createTenant(new Tenant(tenant.getId()))
+>             metricsService.createTenant(tenantDefinition.toTenant())
 >                     .toBlocking().lastOrDefault(null);
 >             return Response.created(location).build();
 >         } catch (TenantAlreadyExistsException e) {

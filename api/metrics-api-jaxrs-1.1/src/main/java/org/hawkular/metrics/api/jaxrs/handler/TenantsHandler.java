@@ -34,7 +34,6 @@ import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.TenantDefinition;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.MetricsService;
-import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
 
 import com.wordnik.swagger.annotations.Api;
@@ -68,12 +67,13 @@ public class TenantsHandler {
             @ApiResponse(code = 500, message = "An unexpected error occured while trying to create a tenant.",
                     response = ApiError.class)
     })
-    public Response createTenant(@ApiParam(required = true) TenantDefinition tenant,
-                                 @Context UriInfo uriInfo
+    public Response createTenant(
+            @ApiParam(required = true) TenantDefinition tenantDefinition,
+            @Context UriInfo uriInfo
     ) {
         URI location = uriInfo.getBaseUriBuilder().path("/tenants").build();
         try {
-            metricsService.createTenant(new Tenant(tenant.getId()))
+            metricsService.createTenant(tenantDefinition.toTenant())
                     .toBlocking().lastOrDefault(null);
             return Response.created(location).build();
         } catch (TenantAlreadyExistsException e) {
