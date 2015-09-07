@@ -373,15 +373,8 @@ class CountersITest extends RESTTest {
   }
 
   @Test
-  void shouldStoreLargePayloadSize() {
-    def points = []
-    for (i in 0..LARGE_PAYLOAD_SIZE + 10) {
-      points.push(['timestamp': i, 'value': i])
-    }
-
-    def response = hawkularMetrics.post(path: "counters/test/data", headers: [(tenantHeaderName): tenantId],
-        body: points)
-    assertEquals(200, response.status)
+  void shouldStoreLargePayload() {
+    checkLargePayload("counters", tenantId, { points, i -> points.push([timestamp: i, value: i]) })
   }
 
   @Test

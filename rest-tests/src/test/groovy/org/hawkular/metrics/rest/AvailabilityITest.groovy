@@ -73,15 +73,10 @@ class AvailabilityITest extends RESTTest {
 
   @Test
   void shouldStoreLargePayloadSize() {
-    def points = []
     def availabilityTypes = AvailabilityType.values()
-    for (i in 0..LARGE_PAYLOAD_SIZE + 10) {
-      points.push(['timestamp': i, 'value': availabilityTypes[i % availabilityTypes.length]])
-    }
-
-    def response = hawkularMetrics.post(path: "availability/test/data", headers: [(tenantHeaderName): tenantId],
-        body: points)
-    assertEquals(200, response.status)
+    checkLargePayload("availability", tenantId, { points, int i ->
+      points.push([timestamp: i, value: availabilityTypes[i % availabilityTypes.length]])
+    })
   }
 
   @Test
