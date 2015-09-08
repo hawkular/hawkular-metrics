@@ -16,12 +16,11 @@
  */
 package org.hawkular.metrics.core.api;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.unmodifiableMap;
-
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Map;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Hawkular Metrics provides multi-tenancy support. This means that all data is implicitly partitioned by tenant. Tags,
@@ -42,7 +41,7 @@ public class Tenant {
     public Tenant(String id, Map<MetricType<?>, Integer> retentionSettings) {
         checkArgument(id != null, "Tenant id is null");
         this.id = id;
-        this.retentionSettings = retentionSettings == null ? emptyMap() : unmodifiableMap(retentionSettings);
+        this.retentionSettings = retentionSettings == null ? ImmutableMap.of() : ImmutableMap.copyOf(retentionSettings);
     }
 
     public String getId() {
