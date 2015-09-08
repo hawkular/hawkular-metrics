@@ -17,7 +17,7 @@
 package org.hawkular.metrics.api.jaxrs.model;
 
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.synchronizedMap;
+import static java.util.Collections.unmodifiableMap;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -55,7 +55,7 @@ public class TenantDefinition {
             Map<MetricType<?>, Integer> retentionSettings) {
         checkArgument(id != null, "Tenant id is null");
         this.id = id;
-        this.retentionSettings = retentionSettings == null ? emptyMap() : synchronizedMap(retentionSettings);
+        this.retentionSettings = retentionSettings == null ? emptyMap() : unmodifiableMap(retentionSettings);
     }
 
     public TenantDefinition(Tenant tenant) {
@@ -78,6 +78,7 @@ public class TenantDefinition {
     @org.codehaus.jackson.map.annotate.JsonDeserialize(
             keyUsing = org.hawkular.metrics.api.jaxrs.codehaus.jackson.MetricTypeKeyDeserializer.class
     )
+    @SuppressWarnings("unused")
     public Map<MetricType<?>, Integer> getRetentionSettings() {
         return retentionSettings;
     }
