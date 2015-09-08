@@ -605,7 +605,8 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
         Observable<Integer> tenantUpdates = updateTenantBuckets(metrics);
 
-        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics);
+        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics)
+                .doOnNext(batchSize -> logger.debug("Inserted {} {} metrics into metrics_idx", batchSize, metricType));
         return Observable.concat(updates, indexUpdates, tenantUpdates)
                 .takeLast(1)
                 .map(count -> null);
