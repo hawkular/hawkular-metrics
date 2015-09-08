@@ -17,6 +17,7 @@
 package org.hawkular.metrics.api.jaxrs.util;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -40,8 +41,8 @@ public final class OriginValidation {
 
         URI requestOriginURI;
         try {
-            requestOriginURI = new URI(requestOrigin.toString());
-        } catch (Exception e) {
+            requestOriginURI = new URI(requestOrigin);
+        } catch (URISyntaxException e) {
             return false;
         }
 
@@ -72,12 +73,12 @@ public final class OriginValidation {
      * @return parsed URIs of allowed origins
      * @throws Exception parsing failure exception
      */
-    public static Set<URI> parseAllowedCorsOrigins(String allowedCorsOrigins) throws Exception {
+    public static Set<URI> parseAllowedCorsOrigins(String allowedCorsOrigins) throws URISyntaxException {
         String[] stringOrigins = allowedCorsOrigins.split(",");
 
         Set<URI> parsedOrigins = new HashSet<>();
         for (String origin : stringOrigins) {
-            parsedOrigins.add(new URI(origin));
+            parsedOrigins.add(new URI(origin.trim()));
         }
 
         return parsedOrigins;

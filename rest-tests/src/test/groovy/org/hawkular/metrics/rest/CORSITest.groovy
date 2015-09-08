@@ -34,10 +34,12 @@ import org.junit.Test
 
 class CORSITest extends RESTTest {
 
+     static final String testOrigin = System.getProperty('hawkular-metrics.test.origin')
+
+
+
     @Test
     void testOptionsWithOrigin() {
-        def testOrigin = System.getProperty('hawkular-metrics.test.origin')
-
         def response = hawkularMetrics.options(path: "ping",
             headers: [
                 (ACCESS_CONTROL_REQUEST_METHOD): "POST",
@@ -66,11 +68,9 @@ class CORSITest extends RESTTest {
                 (ORIGIN): "*"
             ])
 
-        //Expected a 400 because this is be a pre-flight call that should never reach the resource router because
+        //Expected 400 because this pre-flight call that should never reach the resource router since
         //the request origin is bad
         assertEquals(400, response.status)
-
-        def testOrigin = System.getProperty('hawkular-metrics.test.origin')
 
         def wrongSchemeOrigin = testOrigin.replaceAll('http://','https://');
         response = hawkularMetrics.options(path: "gauges/test/data",
@@ -79,15 +79,14 @@ class CORSITest extends RESTTest {
                 (ORIGIN): wrongSchemeOrigin
             ])
 
-        //Expected a 400 because this is be a call that should never reach the resource router because
+        //Expected 400 because this call should never reach the resource router since
         //the request origin is bad
         assertEquals(400, response.status)
     }
 
     @Test
     void testOptionsWithSubdomainOrigin() {
-        def testOrigin = System.getProperty('hawkular-metrics.test.origin')
-
+        //construct a subdomain with "tester." as prefix
         def subDomainOrigin = testOrigin.substring(0,testOrigin.indexOf("/")+2) + "tester." + testOrigin.substring(testOrigin.indexOf("/")+2);
         def response = hawkularMetrics.options(path: "gauges/test/data",
             headers: [

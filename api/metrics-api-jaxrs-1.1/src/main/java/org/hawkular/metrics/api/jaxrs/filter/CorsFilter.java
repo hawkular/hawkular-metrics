@@ -22,13 +22,13 @@ import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_M
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_ORIGIN;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_MAX_AGE;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_REQUEST_METHOD;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ALLOW_ALL_ORIGIN;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ORIGIN;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.Enumeration;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -73,18 +73,11 @@ public class CorsFilter implements Filter {
         final HttpServletResponse httpResponse = (HttpServletResponse) response;
 
         //NOT a CORS request
-        if (httpRequest.getHeader(ORIGIN) == null) {
+        String requestOrigin = httpRequest.getHeader(ORIGIN);
+
+        if (requestOrigin == null) {
             chain.doFilter(request, response);
             return;
-        }
-
-        String requestOrigin = null;
-        Enumeration<String> originHeaders = httpRequest.getHeaders(ORIGIN);
-        if (originHeaders != null && originHeaders.hasMoreElements()) {
-            String originHeaderValue = originHeaders.nextElement();
-            if (originHeaderValue != null && !originHeaderValue.equals("null")) {
-                requestOrigin = originHeaderValue.split(",")[0];
-            }
         }
 
         if (allowAnyOrigin || OriginValidation.isAllowedOrigin(requestOrigin, allowedOrigins)) {
@@ -106,7 +99,7 @@ public class CorsFilter implements Filter {
 
     @Override
     public void init(FilterConfig arg0) throws ServletException {
-        if (allowedCorsOriginsConfig == null || "*".equals(allowedCorsOriginsConfig)) {
+        if (allowedCorsOriginsConfig == null || ALLOW_ALL_ORIGIN.equals(allowedCorsOriginsConfig.trim())) {
             allowAnyOrigin = true;
         } else {
             allowAnyOrigin = false;

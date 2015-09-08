@@ -21,6 +21,7 @@ import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_H
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_METHODS;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_ORIGIN;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_MAX_AGE;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ALLOW_ALL_ORIGIN;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ORIGIN;
@@ -62,21 +63,13 @@ public class CorsResponseFilter implements ContainerResponseFilter {
     public void filter(ContainerRequestContext requestContext,
             ContainerResponseContext responseContext) throws IOException {
 
-        if (requestContext.getHeaderString(ORIGIN) == null) {
+        String requestOrigin = requestContext.getHeaderString(ORIGIN);
+        if (requestOrigin == null) {
             return;
         }
 
-        final MultivaluedMap<String, String> requestHeaders = requestContext.getHeaders();
-        final MultivaluedMap<String, Object> responseHeaders = responseContext.getHeaders();
-
-        String requestOrigin = null;
-        if (requestHeaders.get(ORIGIN) != null && requestHeaders.get(ORIGIN).size() != 0
-                && requestHeaders.get(ORIGIN).get(0) != null
-                && !requestHeaders.get(ORIGIN).get(0).equals("null")) {
-            requestOrigin = requestHeaders.get(ORIGIN).get(0).toString();
-        }
-
         if (allowAnyOrigin || OriginValidation.isAllowedOrigin(requestOrigin, allowedOrigins)) {
+            final MultivaluedMap<String, Object> responseHeaders = responseContext.getHeaders();
             responseHeaders.add(ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin);
             responseHeaders.add(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
             responseHeaders.add(ACCESS_CONTROL_ALLOW_METHODS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS);
@@ -90,7 +83,7 @@ public class CorsResponseFilter implements ContainerResponseFilter {
 
     @PostConstruct
     public void init() throws Exception {
-        if (allowedCorsOriginsConfig == null || "*".equals(allowedCorsOriginsConfig)) {
+        if (allowedCorsOriginsConfig == null || ALLOW_ALL_ORIGIN.equals(allowedCorsOriginsConfig.trim())) {
             allowAnyOrigin = true;
         } else {
             allowAnyOrigin = false;
