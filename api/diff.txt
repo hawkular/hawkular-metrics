@@ -2,6 +2,10 @@ Only in api/metrics-api-jaxrs: README.adoc
 Only in api/metrics-api-jaxrs-1.1: hawkular-metrics-api-jaxrs-1.1.iml
 Only in api/metrics-api-jaxrs: hawkular-metrics-api-jaxrs.iml
 diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1.1/pom.xml
+21c21
+<   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+---
+>          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 31c31
 <   <artifactId>hawkular-metrics-api-jaxrs</artifactId>
 ---
@@ -23,38 +27,26 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 <         <version>${version.org.wildfly}</version>
 ---
 >         <groupId>org.jboss.bom.eap</groupId>
->         <version>${container.bom.version}</version>
 >         <artifactId>jboss-javaee-6.0-with-resteasy</artifactId>
+>         <version>${container.bom.version}</version>
 52,55d56
 <       <groupId>org.antlr</groupId>
 <       <artifactId>antlr4-runtime</artifactId>
 <     </dependency>
 <     <dependency>
-71c72
+66c67
 <     <!-- Wildfly provided -->
 ---
 >     <!-- AS7 provided -->
-78,79c79,90
-<       <groupId>org.jboss.resteasy</groupId>
+74c75
 <       <artifactId>resteasy-jackson2-provider</artifactId>
 ---
->       <groupId>com.fasterxml.jackson.core</groupId>
->       <artifactId>jackson-core</artifactId>
->       <scope>provided</scope>
->     </dependency>
->     <dependency>
->       <groupId>com.fasterxml.jackson.core</groupId>
->       <artifactId>jackson-databind</artifactId>
->       <scope>provided</scope>
->     </dependency>
->     <dependency>
->       <groupId>com.fasterxml.jackson.core</groupId>
->       <artifactId>jackson-annotations</artifactId>
-84c95
+>       <artifactId>resteasy-jackson-provider</artifactId>
+79c80
 <       <artifactId>jboss-servlet-api_3.1_spec</artifactId>
 ---
 >       <artifactId>jboss-servlet-api_3.0_spec</artifactId>
-104,115d114
+99,110d99
 < 
 <     <!-- test -->
 <     <dependency>
@@ -67,7 +59,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 <       <artifactId>mockito-core</artifactId>
 <       <scope>test</scope>
 <     </dependency>
-117a117,123
+112a102,108
 >   <repositories>
 >     <repository>
 >       <id>eap_6_early_access</id>
@@ -75,13 +67,13 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 >     </repository>
 >   </repositories>
 > 
-119c125
+114c110
 <     <finalName>hawkular-metric-rest</finalName>
 ---
 >     <finalName>hawkular-metrics-api-rest-1.1</finalName>
-121d126
+116d111
 < 
-123,137c128,134
+118,132c113,119
 <         <groupId>org.antlr</groupId>
 <         <artifactId>antlr4-maven-plugin</artifactId>
 <         <executions>
@@ -105,15 +97,15 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 >           <version>7.5.0.Final-redhat-15</version>
 >           <port>${jboss-as.management.port}</port>
 >         </configuration>
-157c154
+152c139
 <                 <exclude>static/index.html</exclude>
 ---
 >                 <exclude>index.html</exclude>
-165c162
+160c147
 <                 <include>static/index.html</include>
 ---
 >                 <include>index.html</include>
-175,235d171
+170,230d156
 <   <profiles>
 <     <profile>
 <       <id>docgen</id>
@@ -134,7 +126,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 <                 <configuration>
 <                   <artifactItems>
 <                     <artifactItem>
-<                       <groupId>org.hawkular</groupId>
+<                       <groupId>${project.groupId}</groupId>
 <                       <artifactId>hawkular-build-tools</artifactId>
 <                       <version>${version.org.hawkular.hawkular-build-tools}</version>
 <                       <type>jar</type>
