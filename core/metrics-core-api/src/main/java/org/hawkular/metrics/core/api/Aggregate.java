@@ -33,24 +33,24 @@ public interface Aggregate {
      * A function that emits a single item, the average of {@link DataPoint data points} as a double.
      */
     Func1<Observable<DataPoint<Double>>, Observable<Double>> Average = data ->
-        MathObservable.averageDouble(data.map(DataPoint::getValue));
+            MathObservable.averageDouble(data.map((DataPoint<Double> dataPoint) -> dataPoint.getValue()));
 
     /**
      * A function that emits a single item, the max of {@link DataPoint data points} as a double.
      */
     Func1<Observable<DataPoint<Double>>, Observable<Double>> Max = data ->
-        MathObservable.max(data.map(DataPoint::getValue));
+            MathObservable.max(data.map((DataPoint<Double> dataPoint) -> dataPoint.getValue()));
 
     /**
      * A function that emits a single item, the min of {@link DataPoint data points} as a double.
      */
     Func1<Observable<DataPoint<Double>>, Observable<Double>> Min = data ->
-        MathObservable.min(data.map(DataPoint::getValue));
+            MathObservable.min(data.map((DataPoint<Double> dataPoint) -> dataPoint.getValue()));
 
     /**
      * A function that emits a single item, the sum of {@link DataPoint data points} as a double.
      */
     Func1<Observable<DataPoint<Double>>, Observable<Double>> Sum = data ->
-        MathObservable.sumDouble(data.map(DataPoint::getValue));
+            MathObservable.sumDouble(data.map((DataPoint<Double> dataPoint) -> dataPoint.getValue()));
 
 }
