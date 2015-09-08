@@ -22,7 +22,6 @@ import static java.util.Collections.synchronizedMap;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Map;
-import java.util.Objects;
 
 import org.hawkular.metrics.api.jaxrs.fasterxml.jackson.MetricTypeKeyDeserializer;
 import org.hawkular.metrics.api.jaxrs.fasterxml.jackson.MetricTypeKeySerializer;
@@ -92,12 +91,12 @@ public class TenantDefinition {
             return false;
         }
         TenantDefinition that = (TenantDefinition) o;
-        return Objects.equals(id, that.id);
+        return id.equals(that.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return id.hashCode();
     }
 
     @Override

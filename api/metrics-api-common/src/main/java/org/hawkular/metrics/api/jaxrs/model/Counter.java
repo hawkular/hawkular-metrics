@@ -24,7 +24,6 @@ import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.List;
-import java.util.Objects;
 
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
@@ -85,13 +84,13 @@ public class Counter {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        Counter that = (Counter) o;
-        return Objects.equals(id, that.id);
+        Counter counter = (Counter) o;
+        return id.equals(counter.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return id.hashCode();
     }
 
     @Override

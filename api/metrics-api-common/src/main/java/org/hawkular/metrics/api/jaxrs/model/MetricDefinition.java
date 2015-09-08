@@ -22,7 +22,6 @@ import static java.util.Collections.unmodifiableMap;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Map;
-import java.util.Objects;
 
 import org.hawkular.metrics.api.jaxrs.fasterxml.jackson.MetricTypeDeserializer;
 import org.hawkular.metrics.api.jaxrs.fasterxml.jackson.MetricTypeSerializer;
@@ -121,13 +120,15 @@ public class MetricDefinition<T> {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        MetricDefinition<?> gauge = (MetricDefinition<?>) o;
-        return Objects.equals(id, gauge.getId()) && Objects.equals(type, gauge.getType());
+        MetricDefinition<?> that = (MetricDefinition<?>) o;
+        return id.equals(that.id) && type == that.type;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        int result = id.hashCode();
+        result = 31 * result + (type != null ? type.hashCode() : 0);
+        return result;
     }
 
     @Override

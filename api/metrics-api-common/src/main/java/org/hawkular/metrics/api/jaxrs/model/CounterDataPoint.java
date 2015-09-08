@@ -25,7 +25,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
@@ -102,14 +101,14 @@ public class CounterDataPoint {
             return false;
         }
         CounterDataPoint that = (CounterDataPoint) o;
-        // TODO should tags be included in equals?
-        return Objects.equals(timestamp, that.timestamp) && Objects.equals(value, that.value);
+        return timestamp == that.timestamp && value == that.value;
     }
 
     @Override
     public int hashCode() {
-        // TODO should tags be included?
-        return Objects.hash(timestamp, value);
+        int result = (int) (timestamp ^ (timestamp >>> 32));
+        result = 31 * result + (int) (value ^ (value >>> 32));
+        return result;
     }
 
     @Override

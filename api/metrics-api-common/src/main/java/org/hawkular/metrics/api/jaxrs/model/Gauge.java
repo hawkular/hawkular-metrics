@@ -24,7 +24,6 @@ import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.List;
-import java.util.Objects;
 
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
@@ -86,13 +85,13 @@ public class Gauge {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        Gauge that = (Gauge) o;
-        return Objects.equals(id, that.id);
+        Gauge gauge = (Gauge) o;
+        return id.equals(gauge.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return id.hashCode();
     }
 
     @Override

@@ -24,7 +24,6 @@ import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.List;
-import java.util.Objects;
 
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
@@ -88,12 +87,12 @@ public class Availability {
             return false;
         }
         Availability that = (Availability) o;
-        return Objects.equals(id, that.id);
+        return id.equals(that.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return id.hashCode();
     }
 
     @Override

@@ -25,7 +25,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
@@ -102,14 +101,17 @@ public class GaugeDataPoint {
             return false;
         }
         GaugeDataPoint that = (GaugeDataPoint) o;
-        // TODO should tags be included in equals?
-        return Objects.equals(timestamp, that.timestamp) && Objects.equals(value, that.value);
+        return timestamp == that.timestamp && Double.compare(that.value, value) == 0;
     }
 
     @Override
     public int hashCode() {
-        // TODO should tags be included?
-        return Objects.hash(timestamp, value);
+        int result;
+        long temp;
+        result = (int) (timestamp ^ (timestamp >>> 32));
+        temp = Double.doubleToLongBits(value);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        return result;
     }
 
     @Override
