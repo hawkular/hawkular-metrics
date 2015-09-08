@@ -26,7 +26,7 @@
 
   <context-param>
     <param-name>resteasy.providers</param-name>
-    <param-value>org.hawkular.metrics.api.jaxrs.util.JacksonContextResolver</param-value>
+    <param-value>org.hawkular.metrics.api.jaxrs.util.JacksonConfig</param-value>
   </context-param>
 
   <filter>

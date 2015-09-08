@@ -17,41 +17,39 @@
 package org.hawkular.metrics.api.jaxrs.util;
 
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.servlet.ServletContext;
 
+import com.google.common.collect.ImmutableList;
+
+@ApplicationScoped
+@Eager
 public class ManifestInformation {
+    private static final List<String> VERSION_ATTRIBUTES = ImmutableList.of("Implementation-Version",
+            "Built-From-Git-SHA1");
 
-    public static final List<String> VERSION_ATTRIBUTES = Collections
-            .unmodifiableList(Arrays.asList("Implementation-Version", "Built-From-Git-SHA1"));
-
-    public static Map<String, String> getManifestInformation(ServletContext servletContext, String... attributes) {
-        return getManifestInformation(servletContext, Arrays.asList(attributes));
-    }
-
-    public static Map<String, String> getManifestInformation(ServletContext servletContext, List<String> attributes) {
-        Map<String, String> manifestAttributes = new HashMap<>();
+    // We can't inject the servlet context because it's not supported in CDI 1.0 (EAP 6)
+    public Map<String, String> getFrom(ServletContext servletContext) {
+        Map<String, String> manifestInformation = new HashMap<>();
         try (InputStream inputStream = servletContext.getResourceAsStream("/META-INF/MANIFEST.MF")) {
             Manifest manifest = new Manifest(inputStream);
             Attributes attr = manifest.getMainAttributes();
-            for (String attribute : attributes) {
-                manifestAttributes.put(attribute, attr.getValue(attribute));
+            for (String attribute : VERSION_ATTRIBUTES) {
+                manifestInformation.put(attribute, attr.getValue(attribute));
             }
         } catch (Exception e) {
-            for (String attribute : attributes) {
-                if (manifestAttributes.get(attribute) == null) {
-                    manifestAttributes.put(attribute, "Unknown");
+            for (String attribute : VERSION_ATTRIBUTES) {
+                if (manifestInformation.get(attribute) == null) {
+                    manifestInformation.put(attribute, "Unknown");
                 }
             }
         }
-
-        return manifestAttributes;
+        return manifestInformation;
     }
 }

@@ -97,15 +97,15 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 >           <version>7.5.0.Final-redhat-15</version>
 >           <port>${jboss-as.management.port}</port>
 >         </configuration>
-152c139
+150c137
 <                 <exclude>static/index.html</exclude>
 ---
 >                 <exclude>index.html</exclude>
-160c147
+158c145
 <                 <include>static/index.html</include>
 ---
 >                 <include>index.html</include>
-170,230d156
+168,228d154
 <   <profiles>
 <     <profile>
 <       <id>docgen</id>
@@ -193,16 +193,6 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         classes.add(DurationConverter.class);
 >         classes.add(MetricTypeConverter.class);
 >         classes.add(TagsConverter.class);
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/MetricsServiceLifecycle.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/MetricsServiceLifecycle.java
-363c363
-< }
----
-> }
-\ No newline at end of file
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/config/ConfigurationKey.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/config/ConfigurationKey.java
-37a38,39
-> 
-> 
 diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ApplicationExceptionMapper.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ApplicationExceptionMapper.java
 21d20
 < import javax.ws.rs.core.Response.Status;
@@ -1236,10 +1226,6 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/StatusHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/StatusHandler.java
-66,67d65
-< 
-< 
 diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/TenantsHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/TenantsHandler.java
 21,23d20
 < import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.collectionToResponse;
@@ -1358,10 +1344,41 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 > @Provider
 > public class TagsConverter implements StringConverter<Tags> {
 Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs: swagger
-Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/util: JacksonConfig.java
-Only in api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/util: JacksonContextResolver.java
-Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/util: SimpleLink.java
-Only in api/metrics-api-jaxrs/src/main/resources: rest-doc
+diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/util/JacksonConfig.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/util/JacksonConfig.java
+25,28c25,28
+< import com.fasterxml.jackson.annotation.JsonInclude.Include;
+< import com.fasterxml.jackson.core.JsonParser;
+< import com.fasterxml.jackson.databind.ObjectMapper;
+< import com.fasterxml.jackson.databind.SerializationFeature;
+---
+> import org.codehaus.jackson.JsonParser;
+> import org.codehaus.jackson.map.ObjectMapper;
+> import org.codehaus.jackson.map.SerializationConfig;
+> import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
+43,46c43,46
+<         mapper.setSerializationInclusion(Include.NON_EMPTY);
+<         mapper.setSerializationInclusion(Include.NON_NULL);
+<         mapper.configure(SerializationFeature.WRITE_EMPTY_JSON_ARRAYS, false);
+<         mapper.configure(SerializationFeature.WRITE_NULL_MAP_VALUES, false);
+---
+>         mapper.setSerializationInclusion(Inclusion.NON_EMPTY);
+>         mapper.setSerializationInclusion(Inclusion.NON_NULL);
+>         mapper.configure(SerializationConfig.Feature.WRITE_EMPTY_JSON_ARRAYS, false);
+>         mapper.configure(SerializationConfig.Feature.WRITE_NULL_MAP_VALUES, false);
+Only in api/metrics-api-jaxrs/src/main: resources
+diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/webapp/WEB-INF/beans.xml api/metrics-api-jaxrs-1.1/src/main/webapp/WEB-INF/beans.xml
+20c20
+< <beans xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+---
+> <beans xmlns="http://java.sun.com/xml/ns/javaee"
+22,24c22,23
+<        xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/beans_1_1.xsd"
+<        version="1.1" bean-discovery-mode="annotated">
+< </beans>
+---
+>        xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/beans_1_0.xsd">
+> </beans>
+\ No newline at end of file
 diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/webapp/WEB-INF/jboss-deployment-structure.xml api/metrics-api-jaxrs-1.1/src/main/webapp/WEB-INF/jboss-deployment-structure.xml
 22,25d21
 <     <exclusions>
@@ -1378,10 +1395,6 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/webapp/WEB-INF/web.xml
 <   <display-name>Hawkular Metrics Rest interface</display-name>
 ---
 >   <display-name>Hawkular Metrics Rest interface - JAX-RS 1.1</display-name>
-29c29
-<     <param-value>org.hawkular.metrics.api.jaxrs.util.JacksonConfig</param-value>
----
->     <param-value>org.hawkular.metrics.api.jaxrs.util.JacksonContextResolver</param-value>
 31a32,40
 >   <filter>
 >     <filter-name>CorsFilter</filter-name>

@@ -140,8 +140,6 @@
               <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
               <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
             </manifest>
-            <!-- <manifestEntries> <Build-Number>${buildNumber}</Build-Number>
-              </manifestEntries> -->
           </archive>
           <webResources>
             <resource>

@@ -14,7 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.config;
+
+package org.hawkular.metrics.api.jaxrs.util;
 
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.METHOD;
@@ -25,15 +26,14 @@ import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
+import javax.inject.Qualifier;
+
 /**
- * Defines the {@link ConfigurationKey} for {@link Configurable} injection points.
- *
  * @author Thomas Segismont
- * @see Configurable
  */
+@Qualifier
 @Retention(RUNTIME)
 @Target({ METHOD, FIELD, PARAMETER })
 @Documented
-public @interface ConfigurationProperty {
-    ConfigurationKey value();
+public @interface TestClock {
 }

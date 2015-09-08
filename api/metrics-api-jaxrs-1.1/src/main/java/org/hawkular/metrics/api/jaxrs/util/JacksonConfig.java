@@ -27,17 +27,17 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 
-
 @Provider
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public class JacksonContextResolver implements ContextResolver<ObjectMapper> {
+/**
+ * @author Stefan Negrea
+ */
+public class JacksonConfig implements ContextResolver<ObjectMapper> {
+    private final ObjectMapper mapper;
 
-    private ObjectMapper mapper;
-
-    public JacksonContextResolver() {
+    public JacksonConfig() {
         mapper = new ObjectMapper();
-
         mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
         mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
         mapper.setSerializationInclusion(Inclusion.NON_EMPTY);

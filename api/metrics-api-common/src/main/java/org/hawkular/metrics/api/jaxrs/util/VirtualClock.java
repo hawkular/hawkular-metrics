@@ -27,7 +27,9 @@ public class VirtualClock {
 
     private TestScheduler scheduler;
 
+    @SuppressWarnings("unused")
     public VirtualClock() {
+        // Necessary for CDI
     }
 
     public VirtualClock(TestScheduler scheduler) {

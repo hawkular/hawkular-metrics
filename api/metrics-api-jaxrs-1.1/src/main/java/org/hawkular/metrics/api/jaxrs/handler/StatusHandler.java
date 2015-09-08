@@ -36,31 +36,28 @@ import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
 import com.wordnik.swagger.annotations.ApiOperation;
 
 /**
- * @author mwringe
+ * @author Matt Wringe
  */
-@Path("/status")
+@Path(StatusHandler.PATH)
 @Produces(APPLICATION_JSON)
 public class StatusHandler {
-
     public static final String PATH = "/status";
-
-    @Inject
-    private MetricsServiceLifecycle metricsServiceLifecycle;
 
     private static final String METRICSSERVICE_NAME = "MetricsService";
 
+    @Inject
+    MetricsServiceLifecycle metricsServiceLifecycle;
+    @Inject
+    ManifestInformation manifestInformation;
+
     @GET
     @ApiOperation(value = "Returns the current status for various components.",
-                  response = String.class, responseContainer = "Map")
+            response = String.class, responseContainer = "Map")
     public Response status(@Context ServletContext servletContext) {
-        Map<String, Object> status = new HashMap<>();
-
+        Map<String, String> status = new HashMap<>();
         State metricState = metricsServiceLifecycle.getState();
         status.put(METRICSSERVICE_NAME, metricState.toString());
-
-        status.putAll(
-                ManifestInformation.getManifestInformation(servletContext, ManifestInformation.VERSION_ATTRIBUTES));
-
+        status.putAll(manifestInformation.getFrom(servletContext));
         return Response.ok(status).build();
     }
 }
