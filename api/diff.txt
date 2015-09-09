@@ -208,7 +208,8 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 > }
 \ No newline at end of file
 diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/config/ConfigurationKey.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/config/ConfigurationKey.java
-36a37
+37a38,39
+> 
 > 
 diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ApplicationExceptionMapper.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ApplicationExceptionMapper.java
 21d20

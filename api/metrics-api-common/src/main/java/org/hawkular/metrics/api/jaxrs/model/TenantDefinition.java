@@ -34,10 +34,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
+import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * @author John Sanda
  */
+@ApiModel(value = "Tenant", description = "The definition of a tenant")
 public class TenantDefinition {
     private final String id;
     private final Map<MetricType<?>, Integer> retentionSettings;
@@ -63,10 +66,12 @@ public class TenantDefinition {
         retentionSettings = tenant.getRetentionSettings();
     }
 
+    @ApiModelProperty(value = "Identifier of the tenant", required = true)
     public String getId() {
         return id;
     }
 
+    @ApiModelProperty("Retention settings for metrics, expressed in days")
     @JsonProperty("retentions")
     @org.codehaus.jackson.annotate.JsonProperty("retentions")
     @JsonSerialize(include = Inclusion.NON_EMPTY, keyUsing = MetricTypeKeySerializer.class)
