@@ -30,7 +30,7 @@ import com.wordnik.swagger.annotations.ApiModel;
 /**
  * @author Stefan Negrea
  */
-@ApiModel
+@ApiModel(description = "Data points to store, grouped by metric type")
 public class MixedMetricsRequest {
     private final List<Gauge> gauges;
     private final List<Availability> availabilities;

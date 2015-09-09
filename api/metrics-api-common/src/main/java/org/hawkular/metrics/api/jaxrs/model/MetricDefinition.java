@@ -35,11 +35,12 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
 import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * @author John Sanda
  */
-@ApiModel(description = "The definition of a metric to create")
+@ApiModel(value = "Metric", description = "The definition of a metric")
 public class MetricDefinition<T> {
     private final String tenantId;
     private final String id;
@@ -84,14 +85,17 @@ public class MetricDefinition<T> {
         this.dataRetention = metric.getDataRetention();
     }
 
+    @ApiModelProperty("Identifier of the tenant")
     public String getTenantId() {
         return tenantId;
     }
 
+    @ApiModelProperty(value = "Identifier of the metric", required = true)
     public String getId() {
         return id;
     }
 
+    @ApiModelProperty("Metric tags")
     @JsonSerialize(include = Inclusion.NON_EMPTY)
     @org.codehaus.jackson.map.annotate.JsonSerialize(
             include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY
@@ -100,10 +104,12 @@ public class MetricDefinition<T> {
         return tags;
     }
 
+    @ApiModelProperty("How long, in days, a data point of this metric stays in the system after it is stored")
     public Integer getDataRetention() {
         return dataRetention;
     }
 
+    @ApiModelProperty("Metric type")
     @JsonSerialize(using = MetricTypeSerializer.class)
     @org.codehaus.jackson.map.annotate.JsonSerialize(
             using = org.hawkular.metrics.api.jaxrs.codehaus.jackson.MetricTypeSerializer.class

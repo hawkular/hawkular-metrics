@@ -37,6 +37,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
 import com.google.common.collect.Lists;
 import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import rx.Observable;
 
@@ -76,10 +77,12 @@ public class CounterDataPoint {
         tags = dataPoint.getTags();
     }
 
+    @ApiModelProperty(required = true)
     public long getTimestamp() {
         return timestamp;
     }
 
+    @ApiModelProperty(required = true)
     public long getValue() {
         return value;
     }

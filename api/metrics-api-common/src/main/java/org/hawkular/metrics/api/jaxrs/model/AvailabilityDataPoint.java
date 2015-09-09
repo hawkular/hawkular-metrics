@@ -39,13 +39,14 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
 import com.google.common.collect.Lists;
 import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import rx.Observable;
 
 /**
  * @author John Sanda
  */
-@ApiModel(description = "Consists of a timestamp and a value where supported values are \"up\" and \"down\"")
+@ApiModel(description = "Consists of a timestamp and a textual value indicating a system availability")
 public class AvailabilityDataPoint {
     private final long timestamp;
     private final AvailabilityType value;
@@ -78,10 +79,12 @@ public class AvailabilityDataPoint {
         tags = dataPoint.getTags();
     }
 
+    @ApiModelProperty(required = true)
     public long getTimestamp() {
         return timestamp;
     }
 
+    @ApiModelProperty(allowableValues = "[up,down,unknown]", required = true)
     @JsonSerialize(using = AvailabilityTypeSerializer.class)
     @org.codehaus.jackson.map.annotate.JsonSerialize(
             using = org.hawkular.metrics.api.jaxrs.codehaus.jackson.AvailabilityTypeSerializer.class

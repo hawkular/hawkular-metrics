@@ -35,6 +35,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
 import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import rx.Observable;
 
@@ -64,10 +65,12 @@ public class Counter {
         this.data = data == null || data.isEmpty() ? emptyList() : unmodifiableList(data);
     }
 
+    @ApiModelProperty(value = "Identifier of the metric", required = true)
     public String getId() {
         return id;
     }
 
+    @ApiModelProperty("Counter data points")
     @JsonSerialize(include = Inclusion.NON_EMPTY)
     @org.codehaus.jackson.map.annotate.JsonSerialize(
             include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY
