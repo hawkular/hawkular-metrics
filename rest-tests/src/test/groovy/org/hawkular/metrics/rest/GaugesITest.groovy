@@ -24,11 +24,10 @@ import org.junit.Test
  * @author Thomas Segismont
  */
 class GaugesITest extends RESTTest {
+  def tenantId = nextTenantId()
 
   @Test
   void shouldNotCreateMetricWithEmptyPayload() {
-    def tenantId = nextTenantId()
-
     badPost(path: "gauges", headers: [(tenantHeaderName): tenantId], body: "" /* Empty Body */) { exception ->
       assertEquals(400, exception.response.status)
     }
@@ -36,8 +35,6 @@ class GaugesITest extends RESTTest {
 
   @Test
   void shouldNotAddDataForMetricWithEmptyPayload() {
-    def tenantId = nextTenantId()
-
     badPost(path: "gauges/pimpo/data", headers: [(tenantHeaderName): tenantId],
         body: "" /* Empty Body */) { exception ->
       assertEquals(400, exception.response.status)
@@ -51,8 +48,6 @@ class GaugesITest extends RESTTest {
 
   @Test
   void shouldNotAddGaugeDataWithEmptyPayload() {
-    def tenantId = nextTenantId()
-
     badPost(path: "gauges/data", headers: [(tenantHeaderName): tenantId],
         body: "" /* Empty Body */) { exception ->
       assertEquals(400, exception.response.status)
@@ -66,8 +61,6 @@ class GaugesITest extends RESTTest {
 
   @Test
   void shouldNotTagGaugeDataWithEmptyPayload() {
-    def tenantId = nextTenantId()
-
     badPost(path: "gauges/pimpo/tag", headers: [(tenantHeaderName): tenantId],
         body: "" /* Empty Body */) { exception ->
       assertEquals(400, exception.response.status)
@@ -76,14 +69,36 @@ class GaugesITest extends RESTTest {
 
   @Test
   void shouldStoreLargePayloadSize() {
-    def tenantId = nextTenantId()
+    checkLargePayload("gauges", tenantId, { points, i -> points.push([timestamp: i, value: (double) i]) })
+  }
 
-    def points = []
-    for (i in 0..LARGE_PAYLOAD_SIZE + 10) {
-      points.push(['timestamp': i, 'value': (double) i])
-    }
+  @Test
+  void shouldNotAcceptDataWithEmptyTimestamp() {
+    invalidPointCheck("gauges", tenantId, [[value: 5.5]])
+  }
 
-    def response = hawkularMetrics.post(path: "gauges/test/data", headers: [(tenantHeaderName): tenantId], body: points)
-    assertEquals(200, response.status)
+  @Test
+  void shouldNotAcceptDataWithNullTimestamp() {
+    invalidPointCheck("gauges", tenantId, [[timestamp: null, value: 5.5]])
+  }
+
+  @Test
+  void shouldNotAcceptDataWithInvalidTimestamp() {
+    invalidPointCheck("gauges", tenantId, [[timestamp: "aaa", value: 5.5]])
+  }
+
+  @Test
+  void shouldNotAcceptDataWithEmptyValue() {
+    invalidPointCheck("gauges", tenantId, [[timestamp: 13]])
+  }
+
+  @Test
+  void shouldNotAcceptDataWithNullValue() {
+    invalidPointCheck("gauges", tenantId, [[timestamp: 13, value: null]])
+  }
+
+  @Test
+  void shouldNotAcceptDataWithInvalidValue() {
+    invalidPointCheck("gauges", tenantId, [[timestamp: 13, value: ["dsqdqs"]]])
   }
 }

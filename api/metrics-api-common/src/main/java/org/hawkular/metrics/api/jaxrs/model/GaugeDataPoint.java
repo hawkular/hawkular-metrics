@@ -16,94 +16,124 @@
  */
 package org.hawkular.metrics.api.jaxrs.model;
 
-import java.util.Collections;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableMap;
+
+import static org.hawkular.metrics.core.api.MetricType.GAUGE;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import org.hawkular.metrics.core.api.DataPoint;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonCreator.Mode;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableMap;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
+import com.google.common.collect.Lists;
 import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
+
+import rx.Observable;
 
 /**
- * @author jsanda
+ * @author John Sanda
  */
 @ApiModel(description = "A timestamp and a value where the value is interpreted as a floating point number")
 public class GaugeDataPoint {
+    private final long timestamp;
+    private final double value;
+    private final Map<String, String> tags;
 
-    @JsonProperty
-    @org.codehaus.jackson.annotate.JsonProperty
-    private long timestamp;
-
-    @JsonProperty
-    @org.codehaus.jackson.annotate.JsonProperty
-    @org.codehaus.jackson.map.annotate.JsonSerialize(
-            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
-    private Double value;
-
-    @JsonProperty
-    @JsonInclude(Include.NON_EMPTY)
-    @org.codehaus.jackson.annotate.JsonProperty
-    @org.codehaus.jackson.map.annotate.JsonSerialize(
-            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
-    private Map<String, String> tags = Collections.emptyMap();
-
-
-    /**
-     * Used by JAX-RS/Jackson to deserialize HTTP request data
-     */
+    @JsonCreator(mode = Mode.PROPERTIES)
+    @org.codehaus.jackson.annotate.JsonCreator
     @SuppressWarnings("unused")
-    private GaugeDataPoint() {
+    public GaugeDataPoint(
+            @JsonProperty("timestamp")
+            @org.codehaus.jackson.annotate.JsonProperty("timestamp")
+            Long timestamp,
+            @JsonProperty("value")
+            @org.codehaus.jackson.annotate.JsonProperty("value")
+            Double value,
+            @JsonProperty("tags")
+            @org.codehaus.jackson.annotate.JsonProperty("tags")
+            Map<String, String> tags
+    ) {
+        checkArgument(timestamp != null, "Data point timestamp is null");
+        checkArgument(value != null, "Data point value is null");
+        this.timestamp = timestamp;
+        this.value = value;
+        this.tags = tags == null ? emptyMap() : unmodifiableMap(tags);
     }
 
-    /**
-     * Used to prepared data for serialization into the HTTP response
-     *
-     * @param dataPoint
-     */
     public GaugeDataPoint(DataPoint<Double> dataPoint) {
         timestamp = dataPoint.getTimestamp();
         value = dataPoint.getValue();
         tags = dataPoint.getTags();
     }
 
-    public Double getValue() {
-        return value;
-    }
-
+    @ApiModelProperty(required = true)
     public long getTimestamp() {
         return timestamp;
     }
 
+    @ApiModelProperty(required = true)
+    public double getValue() {
+        return value;
+    }
+
+    @JsonSerialize(include = Inclusion.NON_EMPTY)
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY
+    )
     public Map<String, String> getTags() {
-        return ImmutableMap.copyOf(tags);
+        return tags;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         GaugeDataPoint that = (GaugeDataPoint) o;
-        // TODO should tags be included in equals?
-        return Objects.equals(timestamp, that.timestamp) &&
-                Objects.equals(value, that.value);
+        return timestamp == that.timestamp && Double.compare(that.value, value) == 0;
     }
 
     @Override
     public int hashCode() {
-        // TODO should tags be included?
-        return Objects.hash(timestamp, value);
+        int result;
+        long temp;
+        result = (int) (timestamp ^ (timestamp >>> 32));
+        temp = Double.doubleToLongBits(value);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        return result;
     }
 
     @Override
     public String toString() {
-        return com.google.common.base.Objects.toStringHelper("GaugeDataPoint")
+        return com.google.common.base.Objects.toStringHelper(this)
                 .add("timestamp", timestamp)
                 .add("value", value)
                 .add("tags", tags)
                 .toString();
+    }
+
+    public static List<DataPoint<Double>> asDataPoints(List<GaugeDataPoint> points) {
+        return Lists.transform(points, p -> new DataPoint<>(p.getTimestamp(), p.getValue()));
+    }
+
+    public static Observable<Metric<Double>> toObservable(String tenantId, String metricId, List<GaugeDataPoint>
+            points) {
+        List<DataPoint<Double>> dataPoints = asDataPoints(points);
+        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metricId), dataPoints);
+        return Observable.just(metric);
     }
 }

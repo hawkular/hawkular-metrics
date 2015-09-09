@@ -16,54 +16,102 @@
  */
 package org.hawkular.metrics.api.jaxrs.model;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 
-import java.util.List;
-import java.util.Objects;
+import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.List;
+
+import org.hawkular.metrics.core.api.AvailabilityType;
+import org.hawkular.metrics.core.api.DataPoint;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonCreator.Mode;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
 import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
+
+import rx.Observable;
 
 /**
  * A container for availability data points to be persisted. Note that the tenant id is not included because it is
  * obtained from the tenant header in the HTTP request.
  *
- * @author jsanda
+ * @author John Sanda
  */
 @ApiModel(description = "An availability metric with one or more data points")
 public class Availability {
+    private final String id;
+    private final List<AvailabilityDataPoint> data;
 
-    @JsonProperty
-    private String id;
+    @JsonCreator(mode = Mode.PROPERTIES)
+    @org.codehaus.jackson.annotate.JsonCreator
+    @SuppressWarnings("unused")
+    public Availability(
+            @JsonProperty("id")
+            @org.codehaus.jackson.annotate.JsonProperty("id")
+            String id,
+            @JsonProperty("data")
+            @org.codehaus.jackson.annotate.JsonProperty("data")
+            List<AvailabilityDataPoint> data
+    ) {
+        checkArgument(id != null, "Availability id is null");
+        this.id = id;
+        this.data = data == null || data.isEmpty() ? emptyList() : unmodifiableList(data);
+    }
 
-    @JsonProperty
-    private List<AvailabilityDataPoint> data;
-
+    @ApiModelProperty(value = "Identifier of the metric", required = true)
     public String getId() {
         return id;
     }
 
+    @ApiModelProperty("Availability data points")
+    @JsonSerialize(include = Inclusion.NON_EMPTY)
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY
+    )
     public List<AvailabilityDataPoint> getData() {
-        return unmodifiableList(data);
+        return data;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         Availability that = (Availability) o;
-        return Objects.equals(id, that.id);
+        return id.equals(that.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return id.hashCode();
     }
 
     @Override
     public String toString() {
-        return "Availability{" +
-                "id='" + id + '\'' +
-                '}';
+        return com.google.common.base.Objects.toStringHelper(this)
+                .add("id", id)
+                .add("data", data)
+                .omitNullValues()
+                .toString();
+    }
+
+    public static Observable<Metric<AvailabilityType>> toObservable(String tenantId, List<Availability>
+            availabilities) {
+        return Observable.from(availabilities).map(c -> {
+            List<DataPoint<AvailabilityType>> dataPoints = AvailabilityDataPoint.asDataPoints(c.getData());
+            return new Metric<>(new MetricId<>(tenantId, AVAILABILITY, c.getId()), dataPoints);
+        });
     }
 }

@@ -16,24 +16,24 @@
  */
 package org.hawkular.metrics.rest
 
-import org.hawkular.metrics.core.impl.DateTimeService
-import org.joda.time.DateTime
-import org.junit.Test
-
 import static java.lang.Double.NaN
+
 import static org.joda.time.DateTime.now
 import static org.joda.time.Duration.standardMinutes
 import static org.junit.Assert.assertEquals
+
+import org.hawkular.metrics.core.impl.DateTimeService
+import org.joda.time.DateTime
+import org.junit.Test
 
 /**
  * @author John Sanda
  */
 class CountersITest extends RESTTest {
+  def tenantId = nextTenantId()
 
   @Test
   void shouldNotCreateMetricWithEmptyPayload() {
-    def tenantId = nextTenantId()
-
     badPost(path: "counters", headers: [(tenantHeaderName): tenantId], body: "" /* Empty Body */) { exception ->
       assertEquals(400, exception.response.status)
     }
@@ -41,8 +41,6 @@ class CountersITest extends RESTTest {
 
   @Test
   void shouldNotAddDataForCounterWithEmptyPayload() {
-    def tenantId = nextTenantId()
-
     badPost(path: "counters/pimpo/data", headers: [(tenantHeaderName): tenantId],
         body: "" /* Empty Body */) { exception ->
       assertEquals(400, exception.response.status)
@@ -56,8 +54,6 @@ class CountersITest extends RESTTest {
 
   @Test
   void shouldNotAddDataWithEmptyPayload() {
-    def tenantId = nextTenantId()
-
     badPost(path: "counters/data", headers: [(tenantHeaderName): tenantId],
         body: "" /* Empty Body */) { exception ->
       assertEquals(400, exception.response.status)
@@ -71,7 +67,6 @@ class CountersITest extends RESTTest {
 
   @Test
   void createSimpleCounter() {
-    String tenantId = nextTenantId()
     String id = "C1"
 
     def response = hawkularMetrics.post(
@@ -90,7 +85,6 @@ class CountersITest extends RESTTest {
 
   @Test
   void shouldNotCreateDuplicateCounter() {
-    String tenantId = nextTenantId()
     String id = "C1"
 
     def response = hawkularMetrics.post(
@@ -107,7 +101,6 @@ class CountersITest extends RESTTest {
 
   @Test
   void createCounterWithTagsAndDataRetention() {
-    String tenantId = nextTenantId()
     String id = "C1"
 
     def response = hawkularMetrics.post(
@@ -136,7 +129,6 @@ class CountersITest extends RESTTest {
 
   @Test
   void createAndFindCounters() {
-    String tenantId = nextTenantId()
     String counter1 = "C1"
     String counter2 = "C2"
 
@@ -185,7 +177,6 @@ class CountersITest extends RESTTest {
 
   @Test
   void addDataForMultipleCountersAndFindWithDateRange() {
-    String tenantId = nextTenantId()
     String counter1 = "C1"
     String counter2 = "C2"
 
@@ -242,7 +233,6 @@ class CountersITest extends RESTTest {
 
   @Test
   void addDataForSingleCounterAndFindWithDefaultDateRange() {
-    String tenantId = nextTenantId()
     String counter = "C1"
     DateTime start = now().minusHours(8)
 
@@ -273,7 +263,6 @@ class CountersITest extends RESTTest {
 
   @Test
   void findWhenThereIsNoData() {
-    String tenantId = nextTenantId()
     String counter1 = "C1"
     String counter2 = "C2"
     DateTime start = now().minusHours(3)
@@ -312,7 +301,6 @@ class CountersITest extends RESTTest {
 
   @Test
   void findRate() {
-    String tenantId = nextTenantId()
     String counter = "C1"
     DateTimeService dateTimeService = new DateTimeService()
     DateTime start = dateTimeService.getTimeSlice(getTime(), standardMinutes(1))//.plusMinutes(1)
@@ -337,9 +325,6 @@ class CountersITest extends RESTTest {
         ]
     )
     assertEquals(200, response.status)
-
-//    response = hawkularMetrics.get(path: "clock/wait", query: [duration: "4mn"])
-//    assertEquals("There was an error waiting: $response.data", 200, response.status)
 
     response = hawkularMetrics.get(
         path: "counters/$counter/rate",
@@ -388,16 +373,37 @@ class CountersITest extends RESTTest {
   }
 
   @Test
-  void shouldStoreLargePayloadSize() {
-    def tenantId = nextTenantId()
+  void shouldStoreLargePayload() {
+    checkLargePayload("counters", tenantId, { points, i -> points.push([timestamp: i, value: i]) })
+  }
 
-    def points = []
-    for (i in 0..LARGE_PAYLOAD_SIZE + 10) {
-      points.push(['timestamp': i, 'value': i])
-    }
+  @Test
+  void shouldNotAcceptDataWithEmptyTimestamp() {
+    invalidPointCheck("counters", tenantId, [[value: "up"]])
+  }
 
-    def response = hawkularMetrics.post(path: "counters/test/data", headers: [(tenantHeaderName): tenantId],
-        body: points)
-    assertEquals(200, response.status)
+  @Test
+  void shouldNotAcceptDataWithNullTimestamp() {
+    invalidPointCheck("counters", tenantId, [[timestamp: null, value: 1]])
+  }
+
+  @Test
+  void shouldNotAcceptDataWithInvalidTimestamp() {
+    invalidPointCheck("counters", tenantId, [[timestamp: "aaa", value: 1]])
+  }
+
+  @Test
+  void shouldNotAcceptDataWithEmptyValue() {
+    invalidPointCheck("counters", tenantId, [[timestamp: 13]])
+  }
+
+  @Test
+  void shouldNotAcceptDataWithNullValue() {
+    invalidPointCheck("counters", tenantId, [[timestamp: 13, value: null]])
+  }
+
+  @Test
+  void shouldNotAcceptDataWithInvalidValue() {
+    invalidPointCheck("counters", tenantId, [[timestamp: 13, value: ["dsqdqs"]]])
   }
 }

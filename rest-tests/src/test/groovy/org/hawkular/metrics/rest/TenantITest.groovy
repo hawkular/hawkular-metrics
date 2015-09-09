@@ -15,54 +15,58 @@
  * limitations under the License.
  */
 package org.hawkular.metrics.rest
-import org.hawkular.metrics.core.impl.DateTimeService
-import org.joda.time.DateTime
-import org.junit.Test
 
 import static org.joda.time.Duration.standardMinutes
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertTrue
+
+import org.hawkular.metrics.core.impl.DateTimeService
+import org.joda.time.DateTime
+import org.junit.Ignore
+import org.junit.Test
+
 /**
  * @author Thomas Segismont
  */
 class TenantITest extends RESTTest {
+  def tenantId = nextTenantId()
 
   @Test
   void createAndReadTest() {
-    String firstTenantId = nextTenantId()
     String secondTenantId = nextTenantId()
 
     def response = hawkularMetrics.post(path: "tenants", body: [
-        id: firstTenantId,
-        //retentionSettings: [gauge: 45, availability: 30]
+        id        : tenantId,
+        retentions: [gauge: 45, availability: 30, counter: 13]
     ])
     assertEquals(201, response.status)
     assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
 
     response = hawkularMetrics.post(path: "tenants", body: [
-        id: secondTenantId//,
-        //retentionSettings: [gauge: 45, availability: 30]
+        id        : secondTenantId,
+        retentions: [gauge: 13, availability: 45, counter: 30]
     ])
     assertEquals(201, response.status)
     assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
 
     response = hawkularMetrics.get(path: "tenants")
     def expectedData = [
-        [id: firstTenantId,
-         //retentionSettings:[availability:30, gauge:45]
+        [
+            id        : tenantId,
+            retentions: [gauge: 45, availability: 30, counter: 13]
         ],
-        [id: secondTenantId,
-         //retentionSettings:[availability:30, gauge:45]
-        ]]
+        [
+            id        : secondTenantId,
+            retentions: [gauge: 13, availability: 45, counter: 30]
+        ]
+    ]
 
     assertTrue("${expectedData} not in ${response.data}", response.data.containsAll((expectedData)))
   }
 
   @Test
   void duplicateTenantTest() {
-    def tenantId = nextTenantId()
-
     def response = hawkularMetrics.post(path: 'tenants', body: [id: tenantId])
     assertEquals(201, response.status)
     assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
@@ -80,15 +84,15 @@ class TenantITest extends RESTTest {
     }
   }
 
-//  @Test
+  @Test
+  @Ignore
   void createImplicitTenantWhenInsertingGaugeDataPoints() {
-    String tenantId = nextTenantId()
     DateTimeService dateTimeService = new DateTimeService()
     DateTime start = dateTimeService.getTimeSlice(getTime(), standardMinutes(1))
 
     def response = hawkularMetrics.post(
         path: "gauges/G1/data",
-        headers : [(tenantHeaderName): tenantId],
+        headers: [(tenantHeaderName): tenantId],
         body: [
             [timestamp: start.minusMinutes(1).millis, value: 3.14]
         ]
@@ -104,9 +108,9 @@ class TenantITest extends RESTTest {
     assertNotNull("tenantId = $tenantId, Response = $response.data", response.data.find { it.id == tenantId })
   }
 
-//  @Test
+  @Test
+  @Ignore
   void createImplicitTenantWhenInsertingCounterDataPoints() {
-    String tenantId = nextTenantId()
     DateTimeService dateTimeService = new DateTimeService()
     DateTime start = dateTimeService.getTimeSlice(getTime(), standardMinutes(1))
 
@@ -128,9 +132,9 @@ class TenantITest extends RESTTest {
     assertNotNull("tenantId = $tenantId, Response = $response.data", response.data.find { it.id == tenantId })
   }
 
-//  @Test
+  @Test
+  @Ignore
   void createImplicitTenantWhenInsertingAvailabilityDataPoints() {
-    String tenantId = nextTenantId()
     DateTimeService dateTimeService = new DateTimeService()
     DateTime start = dateTimeService.getTimeSlice(getTime(), standardMinutes(1))
 
@@ -151,5 +155,4 @@ class TenantITest extends RESTTest {
 
     assertNotNull("tenantId = $tenantId, Response = $response.data", response.data.find { it.id == tenantId })
   }
-
 }

@@ -21,16 +21,12 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilities;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounters;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToGauges;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.regex.PatternSyntaxException;
 
@@ -50,18 +46,18 @@ import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.Counter;
 import org.hawkular.metrics.api.jaxrs.model.Gauge;
+import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.model.MixedMetricsRequest;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
-import org.hawkular.metrics.api.jaxrs.request.MetricDefinition;
-import org.hawkular.metrics.api.jaxrs.request.MixedMetricsRequest;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.api.jaxrs.util.MetricTypeTextConverter;
+import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 
-import com.google.common.collect.ImmutableList;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
@@ -69,11 +65,10 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 
 import rx.Observable;
-import rx.schedulers.Schedulers;
-
 
 /**
  * Interface to deal with metrics
+ *
  * @author Heiko W. Rupp
  */
 @Path("/metrics")
@@ -102,13 +97,13 @@ public class MetricHandler {
                     response = ApiError.class)
     })
     public Response createMetric(
-            @ApiParam(required = true) MetricDefinition metricDefinition,
+            @ApiParam(required = true) MetricDefinition<?> metricDefinition,
             @Context UriInfo uriInfo
     ) {
-        if(metricDefinition.getType() == null || !metricDefinition.getType().isUserType()) {
-            return ApiUtils.badRequest(new ApiError("MetricDefinition type is invalid"));
+        if (metricDefinition.getType() == null || !metricDefinition.getType().isUserType()) {
+            return badRequest(new ApiError("MetricDefinition type is invalid"));
         }
-        MetricId<?> id = new MetricId(tenantId, metricDefinition.getType(), metricDefinition.getId());
+        MetricId<?> id = new MetricId<>(tenantId, metricDefinition.getType(), metricDefinition.getId());
         Metric<?> metric = new Metric<>(id, metricDefinition.getTags(), metricDefinition.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/{type}/{id}").build(MetricTypeTextConverter.getLongForm(id
                 .getType()), id.getName());
@@ -121,7 +116,7 @@ public class MetricHandler {
             String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
             return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
         } catch (Exception e) {
-            return ApiUtils.serverError(e);
+            return serverError(e);
         }
     }
 
@@ -130,13 +125,13 @@ public class MetricHandler {
     @GET
     @Path("/")
     @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ",
-                  response = List.class, responseContainer = "List")
+            response = List.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully retrieved at least one metric definition."),
             @ApiResponse(code = 204, message = "No metrics found."),
             @ApiResponse(code = 400, message = "Invalid type parameter type.", response = ApiError.class),
             @ApiResponse(code = 500, message = "Failed to retrieve metrics due to unexpected error.",
-                         response = ApiError.class)
+                    response = ApiError.class)
     })
     public <T> Response findMetrics(
             @ApiParam(value = "Queried metric type",
@@ -161,9 +156,9 @@ public class MetricHandler {
                     .toBlocking()
                     .lastOrDefault(null);
         } catch (PatternSyntaxException e) {
-            return ApiUtils.badRequest(e);
+            return badRequest(e);
         } catch (Exception e) {
-            return ApiUtils.serverError(e);
+            return serverError(e);
         }
     }
 
@@ -179,38 +174,23 @@ public class MetricHandler {
     public Response addMetricsData(
             @ApiParam(value = "List of metrics", required = true) MixedMetricsRequest metricsRequest
     ) {
-        List<Gauge> gauges = metricsRequest.getGauges();
-        List<Counter> counters = metricsRequest.getCounters();
-        List<Availability> availabilities = metricsRequest.getAvailabilities();
-
-        if ((gauges == null || gauges.isEmpty()) && (availabilities == null || availabilities.isEmpty())
-                && (counters == null || counters.isEmpty())) {
+        if (metricsRequest.isEmpty()) {
             return emptyPayload();
         }
 
-        Collection<Observable<Void>> observables = new ArrayList<>();
-        if (gauges != null && !gauges.isEmpty()) {
-            gauges = ImmutableList.copyOf(gauges);
-            observables.add(metricsService.addDataPoints(GAUGE, requestToGauges(tenantId, gauges)
-                    .subscribeOn(Schedulers.computation())));
-        }
-        if (counters != null && !counters.isEmpty()) {
-            counters = ImmutableList.copyOf(counters);
-            observables.add(metricsService.addDataPoints(COUNTER, requestToCounters(tenantId, counters)
-                    .subscribeOn(Schedulers.computation())));
-        }
-        if (availabilities != null && !availabilities.isEmpty()) {
-            availabilities = ImmutableList.copyOf(availabilities);
-            observables.add(metricsService
-                    .addDataPoints(AVAILABILITY, requestToAvailabilities(tenantId, availabilities)
-                            .subscribeOn(Schedulers.computation())));
-        }
+        Observable<Metric<Double>> gauges = Gauge.toObservable(tenantId, metricsRequest.getGauges());
+        Observable<Metric<AvailabilityType>> availabilities = Availability.toObservable(tenantId,
+                metricsRequest.getAvailabilities());
+        Observable<Metric<Long>> counters = Counter.toObservable(tenantId, metricsRequest.getCounters());
 
         try {
-            Observable.merge(observables).toBlocking().lastOrDefault(null);
+            metricsService.addDataPoints(GAUGE, gauges)
+                    .mergeWith(metricsService.addDataPoints(AVAILABILITY, availabilities))
+                    .mergeWith(metricsService.addDataPoints(COUNTER, counters))
+                    .toBlocking().lastOrDefault(null);
             return Response.ok().build();
         } catch (Exception e) {
-            return ApiUtils.serverError(e);
+            return serverError(e);
         }
     }
 }

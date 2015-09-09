@@ -24,8 +24,6 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilities;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToAvailabilityDataPoints;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.valueToResponse;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
@@ -57,10 +55,10 @@ import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
+import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.model.TagRequest;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
-import org.hawkular.metrics.api.jaxrs.request.MetricDefinition;
-import org.hawkular.metrics.api.jaxrs.request.TagRequest;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Buckets;
@@ -205,10 +203,9 @@ public class AvailabilityHandler {
             @Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
             @ApiParam(value = "List of availability datapoints", required = true) List<AvailabilityDataPoint> data
     ) {
-        Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id),
-                requestToAvailabilityDataPoints(data));
-        metricsService.addDataPoints(AVAILABILITY, Observable.just(metric))
-                .subscribe(new ResultSetObserver(asyncResponse));
+        Observable<Metric<AvailabilityType>> metrics = AvailabilityDataPoint.toObservable(tenantId, id, data);
+        Observable<Void> observable = metricsService.addDataPoints(AVAILABILITY, metrics);
+        observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @POST
@@ -225,8 +222,9 @@ public class AvailabilityHandler {
             @ApiParam(value = "List of availability metrics", required = true)
             List<Availability> availabilities
     ) {
-        metricsService.addDataPoints(AVAILABILITY, requestToAvailabilities(tenantId, availabilities))
-                .subscribe(new ResultSetObserver(asyncResponse));
+        Observable<Metric<AvailabilityType>> metrics = Availability.toObservable(tenantId, availabilities);
+        Observable<Void> observable = metricsService.addDataPoints(AVAILABILITY, metrics);
+        observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @GET

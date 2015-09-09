@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.jackson;
+package org.hawkular.metrics.api.jaxrs.fasterxml.jackson;
 
 import java.io.IOException;
 
@@ -30,7 +30,8 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
  */
 public class MetricTypeDeserializer extends JsonDeserializer<MetricType<?>> {
 
-    @Override public MetricType<?> deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
+    @Override
+    public MetricType<?> deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
             throws IOException, JsonProcessingException {
         return MetricType.fromTextCode(jsonParser.getText());
     }

@@ -44,11 +44,15 @@ public class ExceptionMapperUtils {
     }
 
     private static Response buildErrorResponse(Throwable exception, ResponseBuilder responseBuilder) {
-        LOG.trace("RestEasy exception,", exception);
-        return responseBuilder
+        Response response = responseBuilder
                 .entity(new ApiError(Throwables.getRootCause(exception).getMessage()))
                 .type(MediaType.APPLICATION_JSON_TYPE)
                 .build();
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Turning " + exception.getClass().getCanonicalName() + " into a " + response.getStatus() + " " +
+                    "response", exception);
+        }
+        return response;
     }
 
     private ExceptionMapperUtils() {

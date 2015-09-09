@@ -31,15 +31,20 @@ import com.google.common.base.Throwables;
  */
 public class ExceptionMapperUtils {
     private static final Logger LOG = LoggerFactory.getLogger(ExceptionMapperUtils.class);
-    private ExceptionMapperUtils(){
 
-    }
-
-    public static Response buildResponse(Throwable exception, Status status){
-        LOG.trace("RestEasy exception,", exception);
-        return Response.status(status)
+    public static Response buildResponse(Throwable exception, Status status) {
+        Response response = Response.status(status)
                 .entity(new ApiError(Throwables.getRootCause(exception).getMessage()))
                 .type(MediaType.APPLICATION_JSON_TYPE)
                 .build();
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Turning " + exception.getClass().getCanonicalName() + " into a " + response.getStatus() + " " +
+                    "response", exception);
+        }
+        return response;
+    }
+
+    private ExceptionMapperUtils() {
+        // Utility class
     }
 }

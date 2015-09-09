@@ -22,8 +22,9 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounterDataPoints;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.requestToCounters;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 
 import java.net.URI;
@@ -46,7 +47,7 @@ import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Counter;
 import org.hawkular.metrics.api.jaxrs.model.CounterDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
-import org.hawkular.metrics.api.jaxrs.request.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
@@ -105,7 +106,7 @@ public class CounterHandler {
             @Context UriInfo uriInfo
     ) {
         if(metricDefinition.getType() != null && MetricType.COUNTER != metricDefinition.getType()) {
-            return ApiUtils.badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+            return badRequest(new ApiError("MetricDefinition type does not match " + MetricType
                     .COUNTER.getText()));
         }
         Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, metricDefinition.getId()),
@@ -119,7 +120,7 @@ public class CounterHandler {
             String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
             return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
         } catch (Exception e) {
-            return ApiUtils.serverError(e);
+            return serverError(e);
         }
     }
 
@@ -136,10 +137,10 @@ public class CounterHandler {
             return metricsService.findMetric(new MetricId<>(tenantId, COUNTER, id))
                 .map(MetricDefinition::new)
                 .map(metricDef -> Response.ok(metricDef).build())
-                .switchIfEmpty(Observable.just(ApiUtils.noContent()))
+                    .switchIfEmpty(Observable.just(noContent()))
                 .toBlocking().lastOrDefault(null);
         } catch (Exception e) {
-            return ApiUtils.serverError(e);
+            return serverError(e);
         }
     }
 
@@ -154,12 +155,12 @@ public class CounterHandler {
     })
     public Response addData(@ApiParam(value = "List of metrics", required = true) List<Counter> counters
     ) {
-        Observable<Metric<Long>> metrics = requestToCounters(tenantId, counters);
+        Observable<Metric<Long>> metrics = Counter.toObservable(tenantId, counters);
         try {
             metricsService.addDataPoints(COUNTER, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
         } catch (Exception e) {
-            return ApiUtils.serverError(e);
+            return serverError(e);
         }
     }
 
@@ -177,12 +178,12 @@ public class CounterHandler {
             @ApiParam(value = "List of data points containing timestamp and value", required = true)
             List<CounterDataPoint> data
     ) {
-        Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id), requestToCounterDataPoints(data));
+        Observable<Metric<Long>> metrics = CounterDataPoint.toObservable(tenantId, id, data);
         try {
-            metricsService.addDataPoints(COUNTER, Observable.just(metric)).toBlocking().lastOrDefault(null);
+            metricsService.addDataPoints(COUNTER, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
         } catch (Exception e) {
-            return ApiUtils.serverError(e);
+            return serverError(e);
         }
     }
 
@@ -214,7 +215,7 @@ public class CounterHandler {
                 .lastOrDefault(null);
         } catch (Exception e) {
             logger.warn("Failed to fetch counter data", e);
-            return ApiUtils.serverError(e);
+            return serverError(e);
         }
     }
 
@@ -249,7 +250,7 @@ public class CounterHandler {
                 .lastOrDefault(null);
         } catch (Exception e) {
             logger.warn("Failed to fetch counter rate data", e);
-            return ApiUtils.serverError(e);
+            return serverError(e);
         }
     }
 

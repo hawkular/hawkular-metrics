@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.jackson;
+
+package org.hawkular.metrics.api.jaxrs.fasterxml.jackson;
 
 import java.io.IOException;
 
-import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.AvailabilityType;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -26,14 +27,13 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 
 /**
- * @author Michael Burman
+ * @author Thomas Segismont
  */
-public class MetricTypeSerializer extends JsonSerializer<MetricType<?>> {
+public class AvailabilityTypeSerializer extends JsonSerializer<AvailabilityType> {
 
     @Override
-    public void serialize(MetricType<?> metricType, JsonGenerator jsonGenerator,
-                          SerializerProvider serializerProvider)
-            throws IOException, JsonProcessingException {
-        jsonGenerator.writeString(metricType.getText());
+    public void serialize(AvailabilityType availabilityType, JsonGenerator jsonGenerator, SerializerProvider
+            serializerProvider) throws IOException, JsonProcessingException {
+        jsonGenerator.writeString(availabilityType.getText());
     }
 }
