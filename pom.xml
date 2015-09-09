@@ -251,6 +251,8 @@
             <exclude>src/main/docker/cassandra.yaml</exclude>
             <!-- Exclude JAX-RS impl diff file -->
             <exclude>api/diff.txt</exclude>
+            <!-- Exclude sample page dependencies -->
+            <exclude>samples/rhmap/web/libs/**</exclude>
           </excludes>
         </configuration>
       </plugin>
