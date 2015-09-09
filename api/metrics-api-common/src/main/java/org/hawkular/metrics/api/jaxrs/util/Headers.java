@@ -30,4 +30,5 @@ public class Headers {
     //Default CORS Values
     public static final String DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS = "GET, POST, PUT, DELETE, OPTIONS, HEAD";
     public static final String DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS = "origin,accept,content-type,hawkular-tenant";
+    public static final String ALLOW_ALL_ORIGIN = "*";
 }

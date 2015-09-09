@@ -22,13 +22,16 @@ import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_M
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_ORIGIN;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_MAX_AGE;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_REQUEST_METHOD;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ALLOW_ALL_ORIGIN;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ORIGIN;
 
 import java.io.IOException;
-import java.util.Enumeration;
+import java.net.URI;
+import java.util.Set;
 
+import javax.inject.Inject;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -38,13 +41,26 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.hawkular.metrics.api.jaxrs.config.Configurable;
+import org.hawkular.metrics.api.jaxrs.config.ConfigurationKey;
+import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
+import org.hawkular.metrics.api.jaxrs.util.OriginValidation;
+
 /**
  * @author Stefan Negrea
  *
  */
 public class CorsFilter implements Filter {
 
-    public static final String PREFLIGHT_METHOD = "OPTIONS";
+    private static final String PREFLIGHT_METHOD = "OPTIONS";
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(ConfigurationKey.ALLOWED_CORS_ORIGINS)
+    private String allowedCorsOriginsConfig;
+
+    private Set<URI> allowedOrigins;
+    private boolean allowAnyOrigin;
 
     @Override
     public void destroy() {
@@ -56,28 +72,43 @@ public class CorsFilter implements Filter {
         final HttpServletRequest httpRequest = (HttpServletRequest) request;
         final HttpServletResponse httpResponse = (HttpServletResponse) response;
 
-        String origin = "*";
-        Enumeration<String> originHeaders = httpRequest.getHeaders(ORIGIN);
-        if (originHeaders != null && originHeaders.hasMoreElements()) {
-            String originHeaderValue = originHeaders.nextElement();
-            if (originHeaderValue != null && !originHeaderValue.equals("null")) {
-                origin = originHeaderValue.split(",")[0];
-            }
-        }
-        httpResponse.addHeader(ACCESS_CONTROL_ALLOW_ORIGIN, origin);
+        //NOT a CORS request
+        String requestOrigin = httpRequest.getHeader(ORIGIN);
 
-        httpResponse.addHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
-        httpResponse.addHeader(ACCESS_CONTROL_ALLOW_METHODS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS);
-        httpResponse.addHeader(ACCESS_CONTROL_MAX_AGE, (72 * 60 * 60) + "");
-        httpResponse.addHeader(ACCESS_CONTROL_ALLOW_HEADERS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS);
-
-        if (!isPreflightRequest((HttpServletRequest) request)) {
+        if (requestOrigin == null) {
             chain.doFilter(request, response);
+            return;
+        }
+
+        if (allowAnyOrigin || OriginValidation.isAllowedOrigin(requestOrigin, allowedOrigins)) {
+            httpResponse.addHeader(ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin);
+            httpResponse.addHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+            httpResponse.addHeader(ACCESS_CONTROL_ALLOW_METHODS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS);
+            httpResponse.addHeader(ACCESS_CONTROL_MAX_AGE, (72 * 60 * 60) + "");
+            httpResponse.addHeader(ACCESS_CONTROL_ALLOW_HEADERS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS);
+
+            if (!isPreflightRequest((HttpServletRequest) request)) {
+                chain.doFilter(request, response);
+            }
+        } else {
+            httpResponse.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            httpResponse.setContentLength(0);
+            return;
         }
     }
 
     @Override
     public void init(FilterConfig arg0) throws ServletException {
+        if (allowedCorsOriginsConfig == null || ALLOW_ALL_ORIGIN.equals(allowedCorsOriginsConfig.trim())) {
+            allowAnyOrigin = true;
+        } else {
+            allowAnyOrigin = false;
+            try {
+                allowedOrigins = OriginValidation.parseAllowedCorsOrigins(allowedCorsOriginsConfig);
+            } catch (Exception e) {
+                throw new ServletException(e);
+            }
+        }
     }
 
     private boolean isPreflightRequest(final HttpServletRequest request) {

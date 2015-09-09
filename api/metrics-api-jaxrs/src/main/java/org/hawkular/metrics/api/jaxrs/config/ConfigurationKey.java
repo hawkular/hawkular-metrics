@@ -26,6 +26,7 @@ import static com.google.common.base.Preconditions.checkArgument;
  */
 public enum ConfigurationKey {
 
+    ALLOWED_CORS_ORIGINS("hawkular.metrics.allowed-cors-origins", "*", "ALLOWED_CORS_ORIGINS", false),
     CASSANDRA_NODES("hawkular-metrics.cassandra-nodes", "127.0.0.1", "CASSANDRA_NODES", false),
     CASSANDRA_CQL_PORT("hawkular-metrics.cassandra-cql-port", "9042", "CASSANDRA_CQL_PORT", false),
     CASSANDRA_KEYSPACE("cassandra.keyspace", "hawkular_metrics", null, false),

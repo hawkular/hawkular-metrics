@@ -34,10 +34,12 @@ import org.junit.Test
 
 class CORSITest extends RESTTest {
 
+     static final String testOrigin = System.getProperty('hawkular-metrics.test.origin')
+
+
+
     @Test
     void testOptionsWithOrigin() {
-        def testOrigin = "TestOrigin123"
-
         def response = hawkularMetrics.options(path: "ping",
             headers: [
                 (ACCESS_CONTROL_REQUEST_METHOD): "POST",
@@ -59,22 +61,48 @@ class CORSITest extends RESTTest {
     }
 
     @Test
-    void testOptionsWithoutOrigin() {
+    void testOptionsWithBadOrigin() {
         def response = hawkularMetrics.options(path: "gauges/test/data",
             headers: [
-                (ACCESS_CONTROL_REQUEST_METHOD): "GET"
+                (ACCESS_CONTROL_REQUEST_METHOD): "OPTIONS",
+                (ORIGIN): "*"
+            ])
+
+        //Expected 400 because this pre-flight call that should never reach the resource router since
+        //the request origin is bad
+        assertEquals(400, response.status)
+
+        def wrongSchemeOrigin = testOrigin.replaceAll('http://','https://');
+        response = hawkularMetrics.options(path: "gauges/test/data",
+            headers: [
+                (ACCESS_CONTROL_REQUEST_METHOD): "GET",
+                (ORIGIN): wrongSchemeOrigin
+            ])
+
+        //Expected 400 because this call should never reach the resource router since
+        //the request origin is bad
+        assertEquals(400, response.status)
+    }
+
+    @Test
+    void testOptionsWithSubdomainOrigin() {
+        //construct a subdomain with "tester." as prefix
+        def subDomainOrigin = testOrigin.substring(0,testOrigin.indexOf("/")+2) + "tester." + testOrigin.substring(testOrigin.indexOf("/")+2);
+        def response = hawkularMetrics.options(path: "gauges/test/data",
+            headers: [
+                (ACCESS_CONTROL_REQUEST_METHOD): "GET",
+                (ORIGIN): subDomainOrigin
             ])
 
         def responseHeaders = "==== Response Headers = Start  ====\n"
         response.headers.each { responseHeaders += "${it.name} : ${it.value}\n" }
         responseHeaders += "==== Response Headers = End ====\n"
 
-        //Expected a 200 because this is be a pre-flight call that should never reach the resource router
         assertEquals(200, response.status)
         assertEquals(null, response.getData())
         assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS, response.headers[ACCESS_CONTROL_ALLOW_METHODS].value)
         assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS, response.headers[ACCESS_CONTROL_ALLOW_HEADERS].value)
-        assertEquals(responseHeaders, "*", response.headers[ACCESS_CONTROL_ALLOW_ORIGIN].value)
+        assertEquals(responseHeaders, subDomainOrigin, response.headers[ACCESS_CONTROL_ALLOW_ORIGIN].value)
         assertEquals(responseHeaders, "true", response.headers[ACCESS_CONTROL_ALLOW_CREDENTIALS].value)
         assertEquals(responseHeaders, (72 * 60 * 60)+"", response.headers[ACCESS_CONTROL_MAX_AGE].value)
     }
@@ -116,10 +144,12 @@ class CORSITest extends RESTTest {
         )
 
         //Send a CORS pre-flight request and make sure it returns no data
+        def testOrigin = System.getProperty('hawkular-metrics.test.origin')
         response = hawkularMetrics.options(path: "metrics",
             query: [type: 'gauge'],
             headers: [
-                (ACCESS_CONTROL_REQUEST_METHOD): "GET"
+                (ACCESS_CONTROL_REQUEST_METHOD): "GET",
+                (ORIGIN): testOrigin
             ])
 
         def responseHeaders = "==== Response Headers = Start  ====\n"
@@ -131,12 +161,16 @@ class CORSITest extends RESTTest {
         assertEquals(null, response.getData())
         assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS, response.headers[ACCESS_CONTROL_ALLOW_METHODS].value)
         assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS, response.headers[ACCESS_CONTROL_ALLOW_HEADERS].value)
-        assertEquals(responseHeaders, "*", response.headers[ACCESS_CONTROL_ALLOW_ORIGIN].value)
+        assertEquals(responseHeaders, testOrigin, response.headers[ACCESS_CONTROL_ALLOW_ORIGIN].value)
         assertEquals(responseHeaders, "true", response.headers[ACCESS_CONTROL_ALLOW_CREDENTIALS].value)
         assertEquals(responseHeaders, (72 * 60 * 60)+"", response.headers[ACCESS_CONTROL_MAX_AGE].value)
 
         //Requery 'metrics' endpoint to make sure data gets returned and check headers
-        response = hawkularMetrics.get(path: "metrics", query: [type: 'gauge'], headers: [(tenantHeaderName): tenantId])
+        response = hawkularMetrics.get(path: "metrics", query: [type: 'gauge'],
+            headers: [
+                (tenantHeaderName): tenantId,
+                (ORIGIN): testOrigin
+            ])
 
         responseHeaders = "==== Response Headers = Start  ====\n"
         response.headers.each { responseHeaders += "${it.name} : ${it.value}\n" }
@@ -152,7 +186,7 @@ class CORSITest extends RESTTest {
         )
         assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS, response.headers[ACCESS_CONTROL_ALLOW_METHODS].value)
         assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS, response.headers[ACCESS_CONTROL_ALLOW_HEADERS].value)
-        assertEquals(responseHeaders, "*", response.headers[ACCESS_CONTROL_ALLOW_ORIGIN].value)
+        assertEquals(responseHeaders, testOrigin, response.headers[ACCESS_CONTROL_ALLOW_ORIGIN].value)
         assertEquals(responseHeaders, "true", response.headers[ACCESS_CONTROL_ALLOW_CREDENTIALS].value)
         assertEquals(responseHeaders, (72 * 60 * 60)+"", response.headers[ACCESS_CONTROL_MAX_AGE].value)
     }

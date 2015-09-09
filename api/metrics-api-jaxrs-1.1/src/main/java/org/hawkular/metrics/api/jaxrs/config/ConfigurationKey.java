@@ -26,6 +26,7 @@ import static com.google.common.base.Preconditions.checkArgument;
  */
 public enum ConfigurationKey {
 
+    ALLOWED_CORS_ORIGINS("hawkular.metrics.allowed-cors-origins", "*", "ALLOWED_CORS_ORIGINS", false),
     CASSANDRA_NODES("hawkular-metrics.cassandra-nodes", "127.0.0.1", "CASSANDRA_NODES", false),
     CASSANDRA_CQL_PORT("hawkular-metrics.cassandra-cql-port", "9042", "CASSANDRA_CQL_PORT", false),
     CASSANDRA_KEYSPACE("cassandra.keyspace", "hawkular_metrics", null, false),
@@ -33,6 +34,7 @@ public enum ConfigurationKey {
     CASSANDRA_USESSL("hawkular-metrics.cassandra-use-ssl", "false", "CASSANDRA_USESSL", false),
     WAIT_FOR_SERVICE("hawkular.metrics.waitForService", null, null, true),
     USE_VIRTUAL_CLOCK("hawkular.metrics.use-virtual-clock", "false", "USE_VIRTUAL_CLOCK", false);
+
 
 
     private final String name;

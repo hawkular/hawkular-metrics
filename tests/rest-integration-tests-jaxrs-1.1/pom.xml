@@ -189,6 +189,7 @@
               <systemPropertyVariables>
                 <keyspace>${cassandra.keyspace}</keyspace>
                 <hawkular-metrics.base-uri>${base-uri}</hawkular-metrics.base-uri>
+                <hawkular-metrics.test.origin>http://test.hawkular.org</hawkular-metrics.test.origin>
                 <project.version>${project.version}</project.version>
               </systemPropertyVariables>
             </configuration>
@@ -225,6 +226,7 @@
                     -Dcassandra.keyspace=${cassandra.keyspace} -Dcassandra.resetdb -Dhawkular.metrics.waitForService
                     -Dhawkular.metrics.use-virtual-clock=true -Dterminal-event.timeout=${terminal-event.timeout}
                     -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787
+                    -Dhawkular.metrics.allowed-cors-origins=http://test.hawkular.org,https://secure.hawkular.io
                   </jvmArgs>
                 </configuration>
               </execution>
