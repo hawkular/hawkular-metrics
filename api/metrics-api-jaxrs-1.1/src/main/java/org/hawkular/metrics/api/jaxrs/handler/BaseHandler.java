@@ -23,6 +23,7 @@ import static javax.ws.rs.core.MediaType.TEXT_HTML;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.inject.Inject;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -38,33 +39,31 @@ import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import com.wordnik.swagger.annotations.ApiOperation;
 
 /**
- * @author mwringe
+ * @author Matt Wringe
  */
-@Path("/")
+@Path(BaseHandler.PATH)
 public class BaseHandler {
-
     public static final String PATH = "/";
+
+    @Inject
+    ManifestInformation manifestInformation;
 
     @GET
     @Produces(APPLICATION_JSON)
     @ApiOperation(value = "Returns some basic information about the Hawkular Metrics service.",
-                  response = String.class, responseContainer = "Map")
+            response = String.class, responseContainer = "Map")
     public Response baseJSON(@Context ServletContext servletContext) {
-        Map<String, Object> hawkularMetricsProperties = new HashMap<>();
+        Map<String, String> hawkularMetricsProperties = new HashMap<>();
         hawkularMetricsProperties.put("name", "Hawkular-Metrics");
-
-        hawkularMetricsProperties.putAll(
-                ManifestInformation.getManifestInformation(servletContext, ManifestInformation.VERSION_ATTRIBUTES));
-
+        hawkularMetricsProperties.putAll(manifestInformation.getFrom(servletContext));
         return Response.ok(hawkularMetricsProperties).build();
     }
 
     @GET
     @Produces({APPLICATION_XHTML_XML, TEXT_HTML})
     public void baseHTML(@Context ServletContext context) throws Exception {
-
         HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
         HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
-        request.getRequestDispatcher("/static/index.html").forward(request,response);
+        request.getRequestDispatcher("/static/index.html").forward(request, response);
     }
 }

@@ -16,25 +16,66 @@
  */
 package org.hawkular.metrics.api.jaxrs.util;
 
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.ALLOWED_CORS_ORIGINS;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.ALLOW_ALL_ORIGIN;
+
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.HashSet;
+import java.util.Arrays;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+
+import org.hawkular.metrics.api.jaxrs.config.Configurable;
+import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * @author Stefan Negrea
  */
-public final class OriginValidation {
+@ApplicationScoped
+@Eager
+public class OriginValidation {
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(ALLOWED_CORS_ORIGINS)
+    String allowedCorsOriginsConfig;
+
+    private boolean allowAnyOrigin;
+    private Set<URI> allowedOrigins;
+
+    @PostConstruct
+    void init() {
+        if (ALLOW_ALL_ORIGIN.equals(allowedCorsOriginsConfig.trim())) {
+            allowAnyOrigin = true;
+        } else {
+            allowAnyOrigin = false;
+            Set<URI> parsedOrigins = Arrays.stream(allowedCorsOriginsConfig.split(","))
+                    .map(String::trim)
+                    .map(URI::create)
+                    .collect(Collectors.toSet());
+            allowedOrigins = ImmutableSet.copyOf(parsedOrigins);
+        }
+    }
 
     /**
      * Helper method to check whether requests from the specified origin
      * must be allowed.
      *
      * @param requestOrigin origin as reported by the client, {@code null} if unknown.
-     * @param allowedOrigins set of configured allowed origins
+     *
      * @return {@code true} if the origin is allowed, else {@code false}.
      */
-    public static boolean isAllowedOrigin(final String requestOrigin, final Set<URI> allowedOrigins) {
+    public boolean isAllowedOrigin(final String requestOrigin) {
+        if (allowAnyOrigin) {
+            return true;
+        }
+
         if (requestOrigin == null) {
             return false;
         }
@@ -64,23 +105,5 @@ public final class OriginValidation {
         }
 
         return false;
-    }
-
-    /**
-     * Parse allowed origins setting into URIs
-     *
-     * @param allowedCorsOrigins string setting value
-     * @return parsed URIs of allowed origins
-     * @throws Exception parsing failure exception
-     */
-    public static Set<URI> parseAllowedCorsOrigins(String allowedCorsOrigins) throws URISyntaxException {
-        String[] stringOrigins = allowedCorsOrigins.split(",");
-
-        Set<URI> parsedOrigins = new HashSet<>();
-        for (String origin : stringOrigins) {
-            parsedOrigins.add(new URI(origin.trim()));
-        }
-
-        return parsedOrigins;
     }
 }

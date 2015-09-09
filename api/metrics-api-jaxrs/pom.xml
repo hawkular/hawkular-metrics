@@ -54,11 +54,6 @@
     </dependency>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
-      <artifactId>hawkular-metrics-core-api</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.hawkular.metrics</groupId>
       <artifactId>hawkular-metrics-core-impl</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -145,8 +140,6 @@
               <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
               <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
             </manifest>
-            <!-- <manifestEntries> <Build-Number>${buildNumber}</Build-Number>
-              </manifestEntries> -->
           </archive>
           <webResources>
             <resource>
@@ -192,7 +185,7 @@
                 <configuration>
                   <artifactItems>
                     <artifactItem>
-                      <groupId>org.hawkular</groupId>
+                      <groupId>${project.groupId}</groupId>
                       <artifactId>hawkular-build-tools</artifactId>
                       <version>${version.org.hawkular.hawkular-build-tools}</version>
                       <type>jar</type>

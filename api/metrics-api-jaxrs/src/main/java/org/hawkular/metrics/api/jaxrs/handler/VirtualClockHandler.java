@@ -35,6 +35,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
 import org.hawkular.metrics.api.jaxrs.param.Duration;
+import org.hawkular.metrics.api.jaxrs.util.TestClock;
 import org.hawkular.metrics.api.jaxrs.util.VirtualClock;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.slf4j.Logger;
@@ -60,6 +61,7 @@ public class VirtualClockHandler {
     private static Logger logger = LoggerFactory.getLogger(VirtualClockHandler.class);
 
     @Inject
+    @TestClock
     private VirtualClock virtualClock;
 
     @Inject

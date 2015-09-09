@@ -22,14 +22,11 @@ import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_M
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_ORIGIN;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_MAX_AGE;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_REQUEST_METHOD;
-import static org.hawkular.metrics.api.jaxrs.util.Headers.ALLOW_ALL_ORIGIN;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ORIGIN;
 
 import java.io.IOException;
-import java.net.URI;
-import java.util.Set;
 
 import javax.inject.Inject;
 import javax.servlet.Filter;
@@ -41,36 +38,22 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.hawkular.metrics.api.jaxrs.config.Configurable;
-import org.hawkular.metrics.api.jaxrs.config.ConfigurationKey;
-import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.util.OriginValidation;
 
 /**
  * @author Stefan Negrea
- *
  */
 public class CorsFilter implements Filter {
-
     private static final String PREFLIGHT_METHOD = "OPTIONS";
 
     @Inject
-    @Configurable
-    @ConfigurationProperty(ConfigurationKey.ALLOWED_CORS_ORIGINS)
-    private String allowedCorsOriginsConfig;
-
-    private Set<URI> allowedOrigins;
-    private boolean allowAnyOrigin;
-
-    @Override
-    public void destroy() {
-    }
+    OriginValidation validator;
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        final HttpServletRequest httpRequest = (HttpServletRequest) request;
-        final HttpServletResponse httpResponse = (HttpServletResponse) response;
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        HttpServletResponse httpResponse = (HttpServletResponse) response;
 
         //NOT a CORS request
         String requestOrigin = httpRequest.getHeader(ORIGIN);
@@ -80,7 +63,7 @@ public class CorsFilter implements Filter {
             return;
         }
 
-        if (allowAnyOrigin || OriginValidation.isAllowedOrigin(requestOrigin, allowedOrigins)) {
+        if (validator.isAllowedOrigin(requestOrigin)) {
             httpResponse.addHeader(ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin);
             httpResponse.addHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
             httpResponse.addHeader(ACCESS_CONTROL_ALLOW_METHODS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS);
@@ -93,31 +76,21 @@ public class CorsFilter implements Filter {
         } else {
             httpResponse.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             httpResponse.setContentLength(0);
-            return;
-        }
-    }
-
-    @Override
-    public void init(FilterConfig arg0) throws ServletException {
-        if (allowedCorsOriginsConfig == null || ALLOW_ALL_ORIGIN.equals(allowedCorsOriginsConfig.trim())) {
-            allowAnyOrigin = true;
-        } else {
-            allowAnyOrigin = false;
-            try {
-                allowedOrigins = OriginValidation.parseAllowedCorsOrigins(allowedCorsOriginsConfig);
-            } catch (Exception e) {
-                throw new ServletException(e);
-            }
         }
     }
 
     private boolean isPreflightRequest(final HttpServletRequest request) {
-        if (request.getHeader(ACCESS_CONTROL_REQUEST_METHOD) != null &&
-                request.getMethod() != null &&
-                request.getMethod().equalsIgnoreCase(PREFLIGHT_METHOD)) {
-            return true;
-        }
+        return request.getHeader(ACCESS_CONTROL_REQUEST_METHOD) != null
+                && request.getMethod() != null
+                && request.getMethod().equalsIgnoreCase(PREFLIGHT_METHOD);
 
-        return false;
+    }
+
+    @Override
+    public void init(FilterConfig config) throws ServletException {
+    }
+
+    @Override
+    public void destroy() {
     }
 }

@@ -47,6 +47,7 @@ import javax.inject.Inject;
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
+import org.hawkular.metrics.api.jaxrs.util.TestClock;
 import org.hawkular.metrics.api.jaxrs.util.VirtualClock;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.impl.DataAccess;
@@ -325,6 +326,7 @@ public class MetricsServiceLifecycle {
 
     @Produces
     @ApplicationScoped
+    @TestClock
     public VirtualClock getVirtualClock() {
         return virtualClock;
     }
