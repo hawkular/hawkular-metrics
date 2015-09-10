@@ -175,13 +175,13 @@
               "lifecycle": {
                 "postStart": {
                   "exec": {
-                    "command": ["/opt/hawkular/scripts/hawkular-metrics-poststart.sh"]
+                    "command": ["/opt/hawkular/scripts/hawkular-metrics-poststart.py"]
                   }
                 }
               },
               "livenessProbe": {
                 "exec": {
-                  "command": ["/opt/hawkular/scripts/hawkular-metrics-liveness.sh"]
+                  "command": ["/opt/hawkular/scripts/hawkular-metrics-liveness.py"]
                 }
               }
             }],

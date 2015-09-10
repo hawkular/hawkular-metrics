@@ -41,8 +41,8 @@ COPY hawkular-metrics-api-jaxrs.war $JBOSS_HOME/standalone/deployments/
 
 # Copy the hawkular kubernetes scripts
 ENV HAWKULAR_METRICS_SCRIPT_DIRECTORY /opt/hawkular/scripts/
-COPY hawkular-metrics-poststart.sh $HAWKULAR_METRICS_SCRIPT_DIRECTORY
-COPY hawkular-metrics-liveness.sh $HAWKULAR_METRICS_SCRIPT_DIRECTORY
+COPY hawkular-metrics-poststart.py $HAWKULAR_METRICS_SCRIPT_DIRECTORY
+COPY hawkular-metrics-liveness.py $HAWKULAR_METRICS_SCRIPT_DIRECTORY
 
 # Overwrite the welcome-content to display a more appropriate status page
 COPY welcome-content $JBOSS_HOME/welcome-content/
