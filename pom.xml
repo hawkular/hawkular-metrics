@@ -85,11 +85,9 @@
     <module>api/metrics-api-common</module>
     <module>api/metrics-api-jaxrs</module>
     <module>api/metrics-api-jaxrs-1.1</module>
-    <module>tests/rest-tests</module>
-    <module>tests/rest-integration-tests-jaxrs-1.1</module>
+    <module>tests</module>
     <module>clients</module>
     <module>containers</module>
-    <module>tests/load-tests</module>
   </modules>
 
   <scm>
