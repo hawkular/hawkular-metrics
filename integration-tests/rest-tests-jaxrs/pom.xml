@@ -27,9 +27,9 @@
     <version>0.7.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>hawkular-metrics-rest-tests</artifactId>
+  <artifactId>hawkular-metrics-rest-tests-jaxrs</artifactId>
 
-  <name>Hawkular Metrics Rest Tests</name>
+  <name>Hawkular Metrics Rest Tests for JAX-RS 2.0</name>
 
   <properties>
     <wildfly-maven-plugin.skip>true</wildfly-maven-plugin.skip>
