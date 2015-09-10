@@ -28,9 +28,9 @@
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
-  <artifactId>hawkular-metrics-rest-integration-tests-jax-rs-1.1</artifactId>
+  <artifactId>hawkular-metrics-rest-tests-jaxrs-1.1</artifactId>
 
-  <name>Hawkular Metrics - Rest Integration Tests for JAX-RS 1.1</name>
+  <name>Hawkular Metrics Rest Tests for JAX-RS 1.1</name>
 
   <properties>
     <jboss-as-maven-plugin.skip>true</jboss-as-maven-plugin.skip>
