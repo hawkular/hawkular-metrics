@@ -28,9 +28,9 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>hawkular-rx-java-driver</artifactId>
+  <artifactId>hawkular-metrics-rx-java-driver</artifactId>
 
-  <name>Hakwular RxJavaDriver</name>
+  <name>Hakwular Metrics RxJavaDriver</name>
   <description>Rx Wrapper for DataStax Java driver</description>
 
   <dependencies>

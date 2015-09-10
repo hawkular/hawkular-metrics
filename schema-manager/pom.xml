@@ -28,10 +28,10 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>schema-manager</artifactId>
+  <artifactId>hawkular-metrics-schema-manager</artifactId>
 
-  <name>Schema Manager</name>
-  <description>Schema manager for Cassandra</description>
+  <name>Hawkular Metrics Schema Manager</name>
+  <description>Hawkular Metrics Schema Manager for Cassandra</description>
 
   <dependencies>
     <dependency>
