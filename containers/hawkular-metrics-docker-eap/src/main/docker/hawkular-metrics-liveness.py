@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/python
 #
 # Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
 # and other contributors as indicated by the @author tags.
@@ -16,15 +16,23 @@
 # limitations under the License.
 #
 
-STATUS_URL=http://localhost:$HAWKULAR_METRICS_ENDPOINT_PORT/hawkular/metrics/status
-STATUS_CODE=`curl -L -s -o /dev/null -w "%{http_code}" $STATUS_URL`
+import os
+import json
+import urllib2
 
-if [ $STATUS_CODE -eq 200 ]; then
-  STATUS_JSON=`curl -L -s -X GET $STATUS_URL`
-  # if the status is STARTED, then its up and running
-  if [ $STATUS_JSON = '{"MetricsService":"STARTED"}' ]; then
-        exit 0
-  fi
-fi
+hawkularEndpointPort = os.environ.get("HAWKULAR_METRICS_ENDPOINT_PORT")
+statusURL = "http://localhost:" + hawkularEndpointPort  + "/hawkular/metrics/status"
+response = urllib2.urlopen(statusURL)
 
-exit 1 # conditions were not passed, exit with an error code
+statusCode = response.getcode();
+
+# if the status is 200, then continue
+if (statusCode == 200):
+  responseHTML = response.read() 
+  jsonResponse = json.loads(responseHTML)
+  # if the metrics service is started then we are good
+  if (jsonResponse["MetricsService"] == "STARTED"):
+    exit(0)
+
+# conditions were not passed, exit with an error code
+exit(1)
