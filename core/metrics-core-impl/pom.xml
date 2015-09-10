@@ -38,7 +38,7 @@
 
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>schema-manager</artifactId>
+      <artifactId>hawkular-metrics-schema-manager</artifactId>
       <version>${project.version}</version>
     </dependency>
 
@@ -56,7 +56,7 @@
 
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>hawkular-rx-java-driver</artifactId>
+      <artifactId>hawkular-metrics-rx-java-driver</artifactId>
       <version>${project.version}</version>
     </dependency>
 
