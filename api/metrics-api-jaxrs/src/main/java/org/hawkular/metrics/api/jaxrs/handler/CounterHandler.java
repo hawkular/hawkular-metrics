@@ -209,7 +209,7 @@ public class CounterHandler {
     @ApiOperation(
             value = "Retrieve counter rate data points which are automatically generated on the server side.",
             notes = "Rate data points are only generated for counters that are explicitly created.",
-            response = List.class)
+            response = GaugeDataPoint.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),
