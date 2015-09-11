@@ -41,7 +41,6 @@ public class Functions {
 
     private enum GAUGE_COLS {
         TIME,
-        METRIC_TAGS,
         DATA_RETENTION,
         VALUE,
         TAGS,
@@ -50,7 +49,6 @@ public class Functions {
 
     private enum COUNTER_COLS {
         TIME,
-        METRIC_TAGS,
         DATA_RETENTION,
         VALUE,
         TAGS,
@@ -59,7 +57,6 @@ public class Functions {
 
     private enum AVAILABILITY_COLS {
         TIME,
-        METRIC_TAGS,
         DATA_RETENTION,
         AVAILABILITY,
         TAGS,
