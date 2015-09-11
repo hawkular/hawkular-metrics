@@ -69,22 +69,19 @@ apidocFile.withWriter('UTF-8') { writer ->
 private writeEndpointHeader(Writer writer, Entry path, Entry method) {
   def summary = method.value.summary.trim()
   def description = method.value.description?.trim()
-  def endpoint = path.key
+  String endpoint = path.key
   def httpMethod = method.key.toUpperCase()
+  def anchor = httpMethod + '_' + endpoint.replace('/', '_').replace('{', '_').replace('}', '_')
 
   writer.println """
 
 ==============================================
 
-*Endpoint* `${endpoint}`
+[[${anchor}]]
+*Endpoint ${httpMethod} `${endpoint}`*
 
 NOTE: *${summary}* +
 ${description ? "_${description}_" : ''}
-
-*Method*
-****
-*${httpMethod}* `${endpoint}`
-****
 
 """
 }
