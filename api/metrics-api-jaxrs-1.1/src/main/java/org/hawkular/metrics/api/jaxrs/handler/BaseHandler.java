@@ -36,8 +36,6 @@ import javax.ws.rs.core.Response;
 import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
 
-import com.wordnik.swagger.annotations.ApiOperation;
-
 /**
  * @author Matt Wringe
  */
@@ -50,8 +48,6 @@ public class BaseHandler {
 
     @GET
     @Produces(APPLICATION_JSON)
-    @ApiOperation(value = "Returns some basic information about the Hawkular Metrics service.",
-            response = String.class, responseContainer = "Map")
     public Response baseJSON(@Context ServletContext servletContext) {
         Map<String, String> hawkularMetricsProperties = new HashMap<>();
         hawkularMetricsProperties.put("name", "Hawkular-Metrics");

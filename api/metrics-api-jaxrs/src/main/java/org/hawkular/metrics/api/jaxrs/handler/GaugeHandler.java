@@ -47,9 +47,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
+import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Gauge;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
@@ -63,12 +63,11 @@ import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import rx.Observable;
 
 /**
@@ -78,7 +77,7 @@ import rx.Observable;
 @Path("/gauges")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@Api(value = "", description = "Gauge metrics interface")
+@Api(tags = "Gauge")
 public class GaugeHandler {
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
@@ -134,8 +133,7 @@ public class GaugeHandler {
 
     @GET
     @Path("/{id}/tags")
-    @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = String.class,
-                  responseContainer = "Map")
+    @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = Map.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's tags were successfully retrieved."),
             @ApiResponse(code = 204, message = "Query was successful, but no metrics were found."),
@@ -225,7 +223,7 @@ public class GaugeHandler {
 
     @GET
     @Path("/")
-    @ApiOperation(value = "Find gauge metrics data by their tags.", response = Map.class, responseContainer = "List")
+    @ApiOperation(value = "Find gauge metrics data by their tags.", response = Map.class)
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched data."),
             @ApiResponse(code = 204, message = "No matching data found."),
             @ApiResponse(code = 400, message = "Missing or invalid tags query", response = ApiError.class),
@@ -249,9 +247,9 @@ public class GaugeHandler {
 
     @GET
     @Path("/{id}/data")
-    @ApiOperation(value = "Retrieve gauge data. When buckets or bucketDuration query parameter is used, the time "
-            + "range between start and end will be divided in buckets of equal duration, and metric "
-            + "statistics will be computed for each bucket.", response = List.class)
+    @ApiOperation(value = "Retrieve gauge data.", notes = "When buckets or bucketDuration query parameter is used, " +
+            "the time range between start and end will be divided in buckets of equal duration, and metric statistics" +
+            " will be computed for each bucket.", response = GaugeDataPoint.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),
@@ -303,10 +301,12 @@ public class GaugeHandler {
     @GET
     @Path("/{id}/periods")
     @ApiOperation(value = "Retrieve periods for which the condition holds true for each consecutive data point.",
-        response = List.class)
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched periods."),
+            response = List.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched periods."),
             @ApiResponse(code = 204, message = "No data was found."),
-            @ApiResponse(code = 400, message = "Missing or invalid query parameters") })
+            @ApiResponse(code = 400, message = "Missing or invalid query parameters", response = ApiError.class)
+    })
     public void findPeriods(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
@@ -314,9 +314,8 @@ public class GaugeHandler {
             @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") final Long end,
             @ApiParam(value = "A threshold against which values are compared", required = true)
             @QueryParam("threshold") double threshold,
-            @ApiParam(value = "A comparison operation to perform between values and the threshold."
-                              + " Supported operations include ge, gte, lt, lte, and eq", required = true,
-                      allowableValues = "[ge, gte, lt, lte, eq, neq]")
+            @ApiParam(value = "A comparison operation to perform between values and the threshold.", required = true,
+                    allowableValues = "ge, gte, lt, lte, eq, neq")
             @QueryParam("op") String operator
     ) {
         long now = System.currentTimeMillis();
@@ -369,8 +368,8 @@ public class GaugeHandler {
 
     @GET
     @Path("/tags/{tags}")
-    @ApiOperation(value = "Find metric data with given tags.", response = Map.class, responseContainer = "List")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Me values fetched successfully"),
+    @ApiOperation(value = "Find metric data with given tags.", response = Map.class)
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "Metric values fetched successfully"),
             @ApiResponse(code = 204, message = "No matching data found."),
             @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
             @ApiResponse(code = 500, message = "Any error while fetching data.", response = ApiError.class), })
@@ -396,7 +395,7 @@ public class GaugeHandler {
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Tags were modified successfully."),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Processing tags failed")
+            @ApiResponse(code = 500, message = "Processing tags failed", response = ApiError.class)
     })
     public void tagGaugeData(
             @Suspended final AsyncResponse asyncResponse,

@@ -19,6 +19,7 @@ package org.hawkular.metrics.api.jaxrs.handler;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import java.util.Date;
+import java.util.Map;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -29,7 +30,7 @@ import javax.ws.rs.core.Response;
 
 import org.hawkular.metrics.api.jaxrs.util.StringValue;
 
-import com.wordnik.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiOperation;
 
 /**
  * @author Thomas Segismont
@@ -41,8 +42,8 @@ public class PingHandler {
 
     @GET
     @POST
-    @ApiOperation(value = "Returns the current time and serves to check for the availability of the api.",
-            response = String.class, responseContainer = "Map")
+    @ApiOperation(value = "Returns the current time and serves to check for the availability of the api.", response =
+            Map.class)
     public Response ping() {
         return Response.ok(new StringValue(new Date().toString())).build();
     }

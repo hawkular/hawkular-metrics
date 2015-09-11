@@ -27,7 +27,6 @@ import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 import java.net.URI;
-import java.util.List;
 import java.util.regex.PatternSyntaxException;
 
 import javax.inject.Inject;
@@ -44,8 +43,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
+import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.Counter;
 import org.hawkular.metrics.api.jaxrs.model.Gauge;
@@ -60,12 +59,11 @@ import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import rx.Observable;
 
 
@@ -77,7 +75,7 @@ import rx.Observable;
 @Path("/metrics")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@Api(value = "", description = "Metrics related REST interface")
+@Api(tags = "Metric")
 public class MetricHandler {
     @Inject
     private MetricsService metricsService;
@@ -100,7 +98,7 @@ public class MetricHandler {
     })
     public void createMetric(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(required = true) MetricDefinition<?> metricDefinition,
+            @ApiParam(required = true) MetricDefinition metricDefinition,
             @Context UriInfo uriInfo
     ) {
         if (metricDefinition.getType() == null || !metricDefinition.getType().isUserType()) {
@@ -116,7 +114,7 @@ public class MetricHandler {
     @GET
     @Path("/")
     @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ",
-            response = List.class, responseContainer = "List")
+            response = MetricDefinition.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully retrieved at least one metric definition."),
             @ApiResponse(code = 204, message = "No metrics found."),
@@ -125,13 +123,14 @@ public class MetricHandler {
                     response = ApiError.class)
     })
     public <T> void findMetrics(
-            @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(value = "Queried metric type",
-                    required = false,
-                    allowableValues = "[gauge, availability, counter]")
-            @QueryParam("type") MetricType<T> metricType,
-            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags) {
-
+            @Suspended
+            AsyncResponse asyncResponse,
+            @ApiParam(value = "Queried metric type", required = false, allowableValues = "gauge, availability, counter")
+            @QueryParam("type")
+            MetricType<T> metricType,
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags")
+            Tags tags
+    ) {
         if (metricType != null && !metricType.isUserType()) {
             asyncResponse.resume(badRequest(new ApiError("Incorrect type param " + metricType.toString())));
             return;

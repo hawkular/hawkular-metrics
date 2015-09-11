@@ -87,13 +87,8 @@
 
     <!-- documentation -->
     <dependency>
-      <groupId>com.wordnik</groupId>
+      <groupId>io.swagger</groupId>
       <artifactId>swagger-annotations</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.wordnik</groupId>
-      <artifactId>swagger-core_2.10</artifactId>
       <scope>provided</scope>
     </dependency>
 
@@ -168,48 +163,27 @@
   <profiles>
     <profile>
       <id>docgen</id>
-
+      <properties>
+        <swaggerDirectory>${project.build.directory}/generated/swagger-ui</swaggerDirectory>
+      </properties>
       <build>
         <!-- Document generation from the Swagger annotations on the REST-API. -->
         <plugins>
           <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-dependency-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>unpack</id>
-                <phase>process-resources</phase>
-                <goals>
-                  <goal>unpack</goal>
-                </goals>
-                <configuration>
-                  <artifactItems>
-                    <artifactItem>
-                      <groupId>${project.groupId}</groupId>
-                      <artifactId>hawkular-build-tools</artifactId>
-                      <version>${version.org.hawkular.hawkular-build-tools}</version>
-                      <type>jar</type>
-                      <includes>**/*.mustache</includes>
-                    </artifactItem>
-                  </artifactItems>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
             <groupId>com.github.kongchen</groupId>
             <artifactId>swagger-maven-plugin</artifactId>
+            <version>3.1.0</version>
             <configuration>
               <apiSources>
                 <apiSource>
+                  <springmvc>false</springmvc>
                   <locations>org.hawkular.metrics.api.jaxrs</locations>
-                  <apiVersion>1.0</apiVersion>
-                  <basePath>http://localhost:8080/hawkular/metrics/</basePath>
-                  <outputTemplate>${project.build.directory}/dependency/hawkular-documentation/asciidoc.mustache</outputTemplate>
-                  <swaggerDirectory>${project.build.directory}/generated/swagger-ui</swaggerDirectory>
-                  <swaggerInternalFilter>org.hawkular.metrics.api.jaxrs.swagger.filter.JaxRsFilter</swaggerInternalFilter>
-                  <swaggerApiReader>com.wordnik.swagger.jaxrs.reader.DefaultJaxrsApiReader</swaggerApiReader>
-                  <outputPath>${project.build.directory}/generated/rest-metrics.adoc</outputPath>
+                  <basePath>/hawkular/metrics/</basePath>
+                  <info>
+                    <title>Hawkular Metrics REST API</title>
+                    <version>1.0</version>
+                  </info>
+                  <swaggerDirectory>${swaggerDirectory}</swaggerDirectory>
                 </apiSource>
               </apiSources>
             </configuration>
@@ -218,6 +192,35 @@
                 <phase>compile</phase>
                 <goals>
                   <goal>generate</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.gmavenplus</groupId>
+            <artifactId>gmavenplus-plugin</artifactId>
+            <dependencies>
+              <dependency>
+                <groupId>org.codehaus.groovy</groupId>
+                <artifactId>groovy-all</artifactId>
+                <version>${version.org.codehaus.groovy}</version>
+              </dependency>
+            </dependencies>
+            <configuration>
+              <properties>
+                <swaggerFile>${swaggerDirectory}/swagger.json</swaggerFile>
+                <outputFile>${project.build.directory}/generated/rest-metrics.adoc</outputFile>
+              </properties>
+              <scripts>
+                <script>file:///${project.basedir}/src/main/script/apidoc.groovy</script>
+              </scripts>
+            </configuration>
+            <executions>
+              <execution>
+                <id>generate-api-doc</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>execute</goal>
                 </goals>
               </execution>
             </executions>

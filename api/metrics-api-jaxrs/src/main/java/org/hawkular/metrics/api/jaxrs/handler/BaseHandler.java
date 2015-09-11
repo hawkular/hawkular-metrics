@@ -36,7 +36,7 @@ import javax.ws.rs.core.Response;
 import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
 
-import com.wordnik.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiOperation;
 
 /**
  * @author Matt Wringe

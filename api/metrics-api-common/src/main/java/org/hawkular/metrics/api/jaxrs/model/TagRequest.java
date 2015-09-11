@@ -25,7 +25,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonCreator.Mode;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Objects;
-import com.wordnik.swagger.annotations.ApiModel;
+
+import io.swagger.annotations.ApiModel;
 
 /**
  * @author John Sanda

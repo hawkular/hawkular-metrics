@@ -48,7 +48,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import org.hawkular.metrics.api.jaxrs.ApiError;
+import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
@@ -66,12 +66,6 @@ import org.hawkular.metrics.core.api.MetricsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-
 import rx.Observable;
 
 /**
@@ -81,7 +75,6 @@ import rx.Observable;
 @Path("/availability")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@Api(value = "", description = "Availability metrics interface")
 public class AvailabilityHandler {
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
@@ -95,17 +88,8 @@ public class AvailabilityHandler {
 
     @POST
     @Path("/")
-    @ApiOperation(value = "Create availability metric. Same notes as creating gauge metric apply.")
-    @ApiResponses(value = {
-            @ApiResponse(code = 201, message = "Metric created successfully"),
-            @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
-            @ApiResponse(code = 409, message = "Availability metric with given id already exists",
-                    response = ApiError.class),
-            @ApiResponse(code = 500, message = "Metric creation failed due to an unexpected error",
-                    response = ApiError.class)
-    })
     public Response createAvailabilityMetric(
-            @ApiParam(required = true) MetricDefinition metricDefinition,
+            MetricDefinition metricDefinition,
             @Context UriInfo uriInfo
     ) {
         if(metricDefinition.getType() != null && MetricType.AVAILABILITY != metricDefinition.getType()) {
@@ -129,12 +113,6 @@ public class AvailabilityHandler {
 
     @GET
     @Path("/{id}")
-    @ApiOperation(value = "Retrieve single metric definition.", response = MetricDefinition.class)
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Metric's definition was successfully retrieved."),
-            @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.",
-                         response = ApiError.class) })
     public Response getAvailabilityMetric(@PathParam("id") String id) {
         try {
             return metricsService.findMetric(new MetricId<>(tenantId, AVAILABILITY, id))
@@ -150,13 +128,6 @@ public class AvailabilityHandler {
 
     @GET
     @Path("/{id}/tags")
-    @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = String.class,
-                  responseContainer = "Map")
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Metric's tags were successfully retrieved."),
-            @ApiResponse(code = 204, message = "Query was successful, but no metrics were found."),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's tags.",
-                response = ApiError.class) })
     public Response getAvailabilityMetricTags(
             @PathParam("id") String id
     ) {
@@ -175,14 +146,9 @@ public class AvailabilityHandler {
 
     @PUT
     @Path("/{id}/tags")
-    @ApiOperation(value = "Update tags associated with the metric definition.")
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while updating metric's tags.",
-                response = ApiError.class) })
     public Response updateAvailabilityMetricTags(
             @PathParam("id") String id,
-            @ApiParam(required = true) Map<String, String> tags
+            Map<String, String> tags
     ) {
         Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id));
         try {
@@ -195,15 +161,9 @@ public class AvailabilityHandler {
 
     @DELETE
     @Path("/{id}/tags/{tags}")
-    @ApiOperation(value = "Delete tags associated with the metric definition.")
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
-            @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.",
-                response = ApiError.class) })
     public Response deleteAvailabilityMetricTags(
             @PathParam("id") String id,
-            @ApiParam("Tag list") @PathParam("tags") Tags tags
+            @PathParam("tags") Tags tags
     ) {
         Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id));
 
@@ -217,16 +177,9 @@ public class AvailabilityHandler {
 
     @POST
     @Path("/{id}/data")
-    @ApiOperation(value = "Add data for a single availability metric.")
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Adding data succeeded."),
-            @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
-                    response = ApiError.class)
-    })
     public Response addAvailabilityForMetric(
             @PathParam("id") String id,
-            @ApiParam(value = "List of availability datapoints", required = true) List<AvailabilityDataPoint> data
+            List<AvailabilityDataPoint> data
     ) {
         Observable<Metric<AvailabilityType>> metrics = AvailabilityDataPoint.toObservable(tenantId, id, data);
         try {
@@ -239,15 +192,7 @@ public class AvailabilityHandler {
 
     @POST
     @Path("/data")
-    @ApiOperation(value = "Add metric data for multiple availability metrics in a single call.")
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Adding data succeeded."),
-            @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
-                    response = ApiError.class)
-    })
     public Response addAvailabilityData(
-            @ApiParam(value = "List of availability metrics", required = true)
             List<Availability> availabilities
     ) {
         Observable<Metric<AvailabilityType>> metrics = Availability.toObservable(tenantId, availabilities);
@@ -261,14 +206,8 @@ public class AvailabilityHandler {
 
     @GET
     @Path("/")
-    @ApiOperation(value = "Find availabilities metrics data by their tags.", response = Map.class,
-        responseContainer = "List")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched data."),
-            @ApiResponse(code = 204, message = "No matching data found."),
-            @ApiResponse(code = 400, message = "Missing or invalid tags query", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Any error in the query.", response = ApiError.class), })
     public Response findAvailabilityDataByTags(
-            @ApiParam(value = "Tag list", required = true) @QueryParam("tags") Tags tags
+            @QueryParam("tags") Tags tags
     ) {
         if (tags == null) {
             return badRequest(new ApiError("Missing tags query"));
@@ -291,26 +230,14 @@ public class AvailabilityHandler {
 
     @GET
     @Path("/{id}/data")
-    @ApiOperation(value = "Retrieve availability data. When buckets or bucketDuration query parameter is used, "
-            + "the time range between start and end will be divided in buckets of equal duration, and availability "
-            + "statistics will be computed for each bucket.", response = List.class)
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully fetched availability data."),
-            @ApiResponse(code = 204, message = "No availability data was found."),
-            @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
-                response = ApiError.class),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching availability data.",
-                response = ApiError.class), })
     public Response findAvailabilityData(
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
-            @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
-            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
-            @ApiParam(value = "Set to true to return only distinct, contiguous values")
+            @QueryParam("start") final Long start,
+            @QueryParam("end") final Long end,
+            @QueryParam("buckets") Integer bucketsCount,
+            @QueryParam("bucketDuration") Duration bucketDuration,
             @QueryParam("distinct") @DefaultValue("false") Boolean distinct
     ) {
-
         long now = System.currentTimeMillis();
         Long startTime = start == null ? now - EIGHT_HOURS : start;
         Long endTime = end == null ? now : end;
@@ -353,14 +280,9 @@ public class AvailabilityHandler {
 
     @POST
     @Path("/{id}/tag")
-    @ApiOperation(value = "Add or update availability metric's tags.")
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Tags were modified successfully."),
-            @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
-    })
     public Response tagAvailabilityData(
             @PathParam("id") final String id,
-            @ApiParam(required = true) TagRequest params
+            TagRequest params
     ) {
         Observable<Void> resultSetObservable;
         Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id));
@@ -381,14 +303,8 @@ public class AvailabilityHandler {
 
     @GET
     @Path("/tags/{tags}")
-    @ApiOperation(value = "Find availability metric data with given tags.", response = Map.class,
-        responseContainer = "List")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Availability values fetched successfully"),
-            @ApiResponse(code = 204, message = "No matching data found."),
-            @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Any error while fetching data.", response = ApiError.class), })
     public Response findTaggedAvailabilityData(
-            @ApiParam("Tag list") @PathParam("tags") Tags tags
+            @PathParam("tags") Tags tags
     ) {
         try {
         return metricsService.findAvailabilityByTags(tenantId, tags.getTags()).map(m -> {

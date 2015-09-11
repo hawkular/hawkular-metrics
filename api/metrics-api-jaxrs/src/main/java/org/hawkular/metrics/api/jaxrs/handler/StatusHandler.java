@@ -33,7 +33,7 @@ import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle;
 import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle.State;
 import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
 
-import com.wordnik.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiOperation;
 
 /**
  * @author Matt Wringe
@@ -52,7 +52,7 @@ public class StatusHandler {
 
     @GET
     @ApiOperation(value = "Returns the current status for various components.",
-            response = String.class, responseContainer = "Map")
+            response = Map.class)
     public Response status(@Context ServletContext servletContext) {
         Map<String, String> status = new HashMap<>();
         State metricState = metricsServiceLifecycle.getState();

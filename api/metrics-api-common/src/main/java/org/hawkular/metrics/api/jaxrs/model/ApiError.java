@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs;
+package org.hawkular.metrics.api.jaxrs.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.wordnik.swagger.annotations.ApiModel;
-import com.wordnik.swagger.annotations.ApiModelProperty;
+
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 
 /**
  * Return information what failed in the REST-call.
@@ -34,7 +35,7 @@ public class ApiError {
         this.errorMsg = errorMsg != null && !errorMsg.trim().isEmpty() ? errorMsg : "No details";
     }
 
-    @ApiModelProperty(value = "Detailed error message of what happened")
+    @ApiModelProperty(value = "Detailed error message of what happened", required = true)
     public String getErrorMsg() {
         return errorMsg;
     }

@@ -34,19 +34,20 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
-import com.wordnik.swagger.annotations.ApiModel;
-import com.wordnik.swagger.annotations.ApiModelProperty;
+
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 
 /**
  * @author John Sanda
  */
 @ApiModel(value = "Metric", description = "The definition of a metric")
-public class MetricDefinition<T> {
+public class MetricDefinition {
     private final String tenantId;
     private final String id;
     private final Map<String, String> tags;
     private final Integer dataRetention;
-    private final MetricType<T> type;
+    private final MetricType<?> type;
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
@@ -67,7 +68,7 @@ public class MetricDefinition<T> {
             @org.codehaus.jackson.map.annotate.JsonDeserialize(
                     using = org.hawkular.metrics.api.jaxrs.codehaus.jackson.MetricTypeDeserializer.class
             )
-            MetricType<T> type
+            MetricType<?> type
     ) {
         checkArgument(id != null, "Metric id is null");
         this.tenantId = null;
@@ -77,7 +78,7 @@ public class MetricDefinition<T> {
         this.type = type;
     }
 
-    public MetricDefinition(Metric<T> metric) {
+    public MetricDefinition(Metric<?> metric) {
         this.tenantId = metric.getId().getTenantId();
         this.id = metric.getId().getName();
         this.type = metric.getId().getType();
@@ -109,12 +110,12 @@ public class MetricDefinition<T> {
         return dataRetention;
     }
 
-    @ApiModelProperty("Metric type")
+    @ApiModelProperty(value = "Metric type", dataType = "string", allowableValues = "gauge, availability, counter")
     @JsonSerialize(using = MetricTypeSerializer.class)
     @org.codehaus.jackson.map.annotate.JsonSerialize(
             using = org.hawkular.metrics.api.jaxrs.codehaus.jackson.MetricTypeSerializer.class
     )
-    public MetricType<T> getType() {
+    public MetricType<?> getType() {
         return type;
     }
 
@@ -126,7 +127,7 @@ public class MetricDefinition<T> {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        MetricDefinition<?> that = (MetricDefinition<?>) o;
+        MetricDefinition that = (MetricDefinition) o;
         return id.equals(that.id) && type == that.type;
     }
 

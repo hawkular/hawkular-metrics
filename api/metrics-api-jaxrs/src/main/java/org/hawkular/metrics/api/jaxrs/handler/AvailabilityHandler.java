@@ -50,9 +50,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
+import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
@@ -69,12 +69,11 @@ import org.hawkular.metrics.core.api.MetricsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import rx.Observable;
 
 /**
@@ -84,7 +83,7 @@ import rx.Observable;
 @Path("/availability")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@Api(value = "", description = "Availability metrics interface")
+@Api(tags = "Availability")
 public class AvailabilityHandler {
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
@@ -229,8 +228,7 @@ public class AvailabilityHandler {
 
     @GET
     @Path("/")
-    @ApiOperation(value = "Find availabilities metrics data by their tags.", response = Map.class,
-        responseContainer = "List")
+    @ApiOperation(value = "Find availabilities metrics data by their tags.", response = Map.class)
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched data."),
             @ApiResponse(code = 204, message = "No matching data found."),
             @ApiResponse(code = 400, message = "Missing or invalid tags query", response = ApiError.class),
@@ -256,9 +254,10 @@ public class AvailabilityHandler {
 
     @GET
     @Path("/{id}/data")
-    @ApiOperation(value = "Retrieve availability data. When buckets or bucketDuration query parameter is used, "
-            + "the time range between start and end will be divided in buckets of equal duration, and availability "
-            + "statistics will be computed for each bucket.", response = List.class)
+    @ApiOperation(value = "Retrieve availability data.", notes = "When buckets or bucketDuration query parameter is " +
+            "used, the time range between start and end will be divided in buckets of equal duration, and " +
+            "availability statistics will be computed for each bucket.", response = AvailabilityDataPoint.class,
+            responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched availability data."),
             @ApiResponse(code = 204, message = "No availability data was found."),
@@ -339,8 +338,7 @@ public class AvailabilityHandler {
 
     @GET
     @Path("/tags/{tags}")
-    @ApiOperation(value = "Find availability metric data with given tags.", response = Map.class,
-        responseContainer = "List")
+    @ApiOperation(value = "Find availability metric data with given tags.", response = Map.class)
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Availability values fetched successfully"),
             @ApiResponse(code = 204, message = "No matching data found."),
             @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),

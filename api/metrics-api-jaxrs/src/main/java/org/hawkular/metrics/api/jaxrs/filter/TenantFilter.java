@@ -27,10 +27,10 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.ext.Provider;
 
-import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.BaseHandler;
 import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
 import org.hawkular.metrics.api.jaxrs.handler.VirtualClockHandler;
+import org.hawkular.metrics.api.jaxrs.model.ApiError;
 
 /**
  * @author Stefan Negrea
