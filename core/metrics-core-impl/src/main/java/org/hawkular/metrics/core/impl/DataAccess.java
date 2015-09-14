@@ -54,9 +54,9 @@ public interface DataAccess {
 
     Observable<ResultSet> findMetric(MetricId<?> id);
 
-    Observable<ResultSet> addTagsAndDataRetention(Metric metric);
+    Observable<ResultSet> addDataRetention(Metric metric);
 
-    Observable<ResultSet> getMetricTags(MetricId<?> id, long dpart);
+    Observable<ResultSet> getMetricTags(MetricId<?> id);
 
     Observable<ResultSet> addTags(Metric metric, Map<String, String> tags);
 

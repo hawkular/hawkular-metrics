@@ -71,8 +71,7 @@ CREATE TYPE ${keyspace}.aggregate_data (
 -- be set. For availability metrics the availability column will be set, and
 -- the n_value column will not be set.
 --
--- The m_tags column is a map of tags that apply to the metric whereas the tags
--- column is a map of tags for individual data points.
+-- tags column is a map of tags for individual data points.
 --
 -- The dpart column is used for bucketing data. For example, we might decide
 -- that a partition should store no more than a day's worth of data. dpart
@@ -88,7 +87,6 @@ CREATE TABLE ${keyspace}.data (
     dpart bigint,
     time timeuuid,
     data_retention int static,
-    m_tags map<text, text> static,
     n_value double,
     availability blob,
     l_value bigint,

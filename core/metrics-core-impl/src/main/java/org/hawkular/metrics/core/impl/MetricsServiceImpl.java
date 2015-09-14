@@ -457,7 +457,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                 // eventually want to implement more fine-grained error handling where we can
                 // notify the subscriber of what exactly fails.
                 List<Observable<ResultSet>> updates = new ArrayList<>();
-                updates.add(dataAccess.addTagsAndDataRetention(metric));
+                updates.add(dataAccess.addDataRetention(metric));
                 updates.add(dataAccess.insertIntoMetricsTagsIndex(metric, metric.getTags()));
 
                 if (metric.getDataRetention() != null) {
@@ -551,7 +551,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public Observable<Optional<Map<String, String>>> getMetricTags(MetricId<?> id) {
-        Observable<ResultSet> metricTags = dataAccess.getMetricTags(id, DataAccessImpl.DPART);
+        Observable<ResultSet> metricTags = dataAccess.getMetricTags(id);
 
         return metricTags.flatMap(Observable::from).take(1).map(row -> Optional.of(row.getMap(0, String.class, String
                 .class)))

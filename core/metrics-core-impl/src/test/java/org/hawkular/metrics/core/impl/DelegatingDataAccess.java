@@ -86,13 +86,13 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> getMetricTags(MetricId<?> id, long dpart) {
-        return delegate.getMetricTags(id, dpart);
+    public Observable<ResultSet> getMetricTags(MetricId<?> id) {
+        return delegate.getMetricTags(id);
     }
 
     @Override
-    public Observable<ResultSet> addTagsAndDataRetention(Metric metric) {
-        return delegate.addTagsAndDataRetention(metric);
+    public Observable<ResultSet> addDataRetention(Metric metric) {
+        return delegate.addDataRetention(metric);
     }
 
     @Override

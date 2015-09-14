@@ -84,11 +84,7 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement getMetricTags;
 
-    private PreparedStatement addMetricTagsToDataTable;
-
-    private PreparedStatement addMetadataAndDataRetention;
-
-    private PreparedStatement deleteMetricTagsFromDataTable;
+    private PreparedStatement addDataRetention;
 
     private PreparedStatement insertGaugeData;
 
@@ -178,26 +174,16 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ?");
 
         getMetricTags = session.prepare(
-                "SELECT m_tags " +
-                "FROM data " +
-                "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
+            "SELECT tags " +
+            "FROM metrics_idx " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ?");
 
-        addMetricTagsToDataTable = session.prepare(
-            "UPDATE data " +
-            "SET m_tags = m_tags + ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
-
-        // TODO I am not sure if we want the m_tags and data_retention columns in the data table
+        // TODO I am not sure if we want the data_retention columns in the data table
         // Everything else in a partition will have a TTL set on it, so I fear that these columns
         // might cause problems with compaction.
-        addMetadataAndDataRetention = session.prepare(
+        addDataRetention = session.prepare(
             "UPDATE data " +
-            "SET m_tags = m_tags + ?, data_retention = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
-
-        deleteMetricTagsFromDataTable = session.prepare(
-            "UPDATE data " +
-            "SET m_tags = m_tags - ? " +
+            "SET data_retention = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ?");
 
         insertIntoMetricsIndex = session.prepare(
@@ -226,49 +212,49 @@ public class DataAccessImpl implements DataAccess {
         insertGaugeData = session.prepare(
             "UPDATE data " +
             "USING TTL ?" +
-            "SET m_tags = m_tags + ?, n_value = ? " +
+            "SET n_value = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ? ");
 
         insertCounterData = session.prepare(
             "UPDATE data " +
             "USING TTL ?" +
-            "SET m_tags = m_tags + ?, l_value = ? " +
+            "SET l_value = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ? ");
 
         findGaugeDataByDateRangeExclusive = session.prepare(
-            "SELECT time, m_tags, data_retention, n_value, tags FROM data " +
+            "SELECT time, data_retention, n_value, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time < ?");
 
         findGaugeDataByDateRangeExclusiveASC = session.prepare(
-            "SELECT time, m_tags, data_retention, n_value, tags FROM data " +
+            "SELECT time, data_retention, n_value, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?" +
             " AND time < ? ORDER BY time ASC");
 
         findCounterDataExclusive = session.prepare(
-            "SELECT time, m_tags, data_retention, l_value, tags FROM data " +
+            "SELECT time, data_retention, l_value, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? " +
             "AND time < ? " +
             "ORDER BY time ASC");
 
         findGaugeDataWithWriteTimeByDateRangeExclusive = session.prepare(
-            "SELECT time, m_tags, data_retention, n_value, tags, WRITETIME(n_value) FROM data " +
+            "SELECT time, data_retention, n_value, tags, WRITETIME(n_value) FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time < ?");
 
         findGaugeDataByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, m_tags, data_retention, n_value, tags " +
+            "SELECT tenant_id, metric, interval, dpart, time, data_retention, n_value, tags " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time <= ?");
 
         findGaugeDataWithWriteTimeByDateRangeInclusive = session.prepare(
-            "SELECT time, m_tags, data_retention, n_value, tags, WRITETIME(n_value) FROM data " +
+            "SELECT time, data_retention, n_value, tags, WRITETIME(n_value) FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time <= ?");
 
         findAvailabilityByDateRangeInclusive = session.prepare(
-            "SELECT time, m_tags, data_retention, availability, tags, WRITETIME(availability) FROM data " +
+            "SELECT time, data_retention, availability, tags, WRITETIME(availability) FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time <= ?");
 
@@ -307,17 +293,17 @@ public class DataAccessImpl implements DataAccess {
         insertAvailability = session.prepare(
             "UPDATE data " +
             "USING TTL ? " +
-            "SET m_tags = m_tags + ?, availability = ? " +
+            "SET availability = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
         findAvailabilities = session.prepare(
-            "SELECT time, m_tags, data_retention, availability, tags FROM data " +
+            "SELECT time, data_retention, availability, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time < ? " +
             "ORDER BY time ASC");
 
         findAvailabilitiesWithWriteTime = session.prepare(
-            "SELECT time, m_tags, data_retention, availability, tags, WRITETIME(availability) FROM data " +
+            "SELECT time, data_retention, availability, tags, WRITETIME(availability) FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?" +
                     " AND time < ?");
 
@@ -397,9 +383,9 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> getMetricTags(MetricId<?> id, long dpart) {
+    public Observable<ResultSet> getMetricTags(MetricId<?> id) {
         return rxSession.execute(getMetricTags.bind(id.getTenantId(), id.getType().getCode(), id.getName(),
-                                                    id.getInterval().toString(), dpart));
+                id.getInterval().toString()));
     }
 
     // This method updates the metric tags and data retention in the data table. In the
@@ -408,9 +394,9 @@ public class DataAccessImpl implements DataAccess {
     // determine when we start writing data to a new partition, e.g., the start of the next
     // day, and then add the tags and retention to the new partition.
     @Override
-    public Observable<ResultSet> addTagsAndDataRetention(Metric metric) {
+    public Observable<ResultSet> addDataRetention(Metric metric) {
         MetricId<?> metricId = metric.getId();
-        return rxSession.execute(addMetadataAndDataRetention.bind(metric.getTags(), metric.getDataRetention(),
+        return rxSession.execute(addDataRetention.bind(metric.getDataRetention(),
                 metricId.getTenantId(), metricId.getType().getCode(), metricId.getName(), metricId.getInterval()
                         .toString(), DPART));
     }
@@ -419,8 +405,6 @@ public class DataAccessImpl implements DataAccess {
     public Observable<ResultSet> addTags(Metric metric, Map<String, String> tags) {
         BatchStatement batch = new BatchStatement(UNLOGGED);
         MetricId<?> metricId = metric.getId();
-        batch.add(addMetricTagsToDataTable.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
-                metricId.getName(), metricId.getInterval().toString(), DPART));
         batch.add(addTagsToMetricsIndex.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
                 metricId.getInterval().toString(), metricId.getName()));
         return rxSession.execute(batch);
@@ -430,8 +414,6 @@ public class DataAccessImpl implements DataAccess {
     public Observable<ResultSet> deleteTags(Metric metric, Set<String> tags) {
         BatchStatement batch = new BatchStatement(UNLOGGED);
         MetricId<?> metricId = metric.getId();
-        batch.add(deleteMetricTagsFromDataTable.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
-                metricId.getName(), metricId.getInterval().toString(), DPART));
         batch.add(deleteTagsFromMetricsIndex.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
                 metricId.getInterval().toString(), metricId.getName()));
         return rxSession.execute(batch);
@@ -485,7 +467,7 @@ public class DataAccessImpl implements DataAccess {
             PreparedStatement statement, Metric<?> metric, Object value, long timestamp, int ttl
     ) {
         MetricId<?> metricId = metric.getId();
-        return statement.bind(ttl, metric.getTags(), value, metricId.getTenantId(),
+        return statement.bind(ttl, value, metricId.getTenantId(),
                 metricId.getType().getCode(), metricId.getName(), metricId.getInterval().toString(), DPART,
                 getTimeUUID(timestamp));
     }
