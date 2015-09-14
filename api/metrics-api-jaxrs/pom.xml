@@ -54,11 +54,6 @@
     </dependency>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
-      <artifactId>hawkular-metrics-core-impl</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.hawkular.metrics</groupId>
       <artifactId>hawkular-metrics-api-common</artifactId>
       <version>${project.version}</version>
     </dependency>

@@ -34,18 +34,19 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 <       <artifactId>antlr4-runtime</artifactId>
 <     </dependency>
 <     <dependency>
-66c67
+61c62
 <     <!-- Wildfly provided -->
 ---
 >     <!-- AS7 provided -->
-74c75
+69c70
 <       <artifactId>resteasy-jackson2-provider</artifactId>
 ---
 >       <artifactId>resteasy-jackson-provider</artifactId>
-79c80
+74c75
 <       <artifactId>jboss-servlet-api_3.1_spec</artifactId>
 ---
 >       <artifactId>jboss-servlet-api_3.0_spec</artifactId>
+<<<<<<< HEAD
 87,105d87
 < 
 <     <!-- documentation -->
@@ -54,6 +55,9 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 <       <artifactId>swagger-annotations</artifactId>
 <       <scope>provided</scope>
 <     </dependency>
+=======
+94,105d94
+>>>>>>> Removed redundant dependency declaration
 < 
 <     <!-- test -->
 <     <dependency>
@@ -66,7 +70,11 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 <       <artifactId>mockito-core</artifactId>
 <       <scope>test</scope>
 <     </dependency>
+<<<<<<< HEAD
 107a90,96
+=======
+107a97,103
+>>>>>>> Removed redundant dependency declaration
 >   <repositories>
 >     <repository>
 >       <id>eap_6_early_access</id>
@@ -74,6 +82,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 >     </repository>
 >   </repositories>
 > 
+<<<<<<< HEAD
 109c98
 <     <finalName>hawkular-metric-rest</finalName>
 ---
@@ -81,6 +90,15 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 111d99
 < 
 113,127c101,107
+=======
+109c105
+<     <finalName>hawkular-metric-rest</finalName>
+---
+>     <finalName>hawkular-metrics-api-rest-1.1</finalName>
+111d106
+< 
+113,127c108,114
+>>>>>>> Removed redundant dependency declaration
 <         <groupId>org.antlr</groupId>
 <         <artifactId>antlr4-maven-plugin</artifactId>
 <         <executions>
@@ -104,6 +122,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 >           <version>7.5.0.Final-redhat-15</version>
 >           <port>${jboss-as.management.port}</port>
 >         </configuration>
+<<<<<<< HEAD
 145c125
 <                 <exclude>static/index.html</exclude>
 ---
@@ -113,6 +132,17 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 ---
 >                 <include>index.html</include>
 163,231d142
+=======
+145c132
+<                 <exclude>static/index.html</exclude>
+---
+>                 <exclude>index.html</exclude>
+153c140
+<                 <include>static/index.html</include>
+---
+>                 <include>index.html</include>
+163,223d149
+>>>>>>> Removed redundant dependency declaration
 <   <profiles>
 <     <profile>
 <       <id>docgen</id>
