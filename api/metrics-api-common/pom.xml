@@ -38,6 +38,13 @@
     <enforcer.skip>true</enforcer.skip>
   </properties>
 
+  <repositories>
+    <repository>
+      <id>eap_6_early_access</id>
+      <url>https://maven.repository.redhat.com/earlyaccess/all/</url>
+    </repository>
+  </repositories>
+
   <dependencies>
 
     <dependency>
@@ -108,13 +115,4 @@
     </dependency>
 
   </dependencies>
-
-  <repositories>
-    <repository>
-      <id>eap_6_early_access</id>
-      <url>https://maven.repository.redhat.com/earlyaccess/all/</url>
-    </repository>
-  </repositories>
-
 </project>
-

@@ -39,6 +39,13 @@
     <terminal-event.timeout>10</terminal-event.timeout>
   </properties>
 
+  <repositories>
+    <repository>
+      <id>eap_6_early_access</id>
+      <url>https://maven.repository.redhat.com/earlyaccess/all/</url>
+    </repository>
+  </repositories>
+
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -86,13 +93,6 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <repositories>
-    <repository>
-      <id>eap_6_early_access</id>
-      <url>https://maven.repository.redhat.com/earlyaccess/all/</url>
-    </repository>
-  </repositories>
 
   <build>
     <plugins>

@@ -10,7 +10,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 <   <artifactId>hawkular-metrics-api-jaxrs</artifactId>
 ---
 >   <artifactId>hawkular-metrics-api-jaxrs-1.1</artifactId>
-34,35c34,40
+34,35c34,47
 <   <name>Hawkular Metrics JAX-RS 2.0 API</name>
 <   <description>JAX-RS 2.0 REST API Implementation</description>
 ---
@@ -21,7 +21,14 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 >     <enforcer.skip>true</enforcer.skip>
 >     <container.bom.version>6.4.0.Beta1</container.bom.version>
 >   </properties>
-40,42c45,47
+> 
+>   <repositories>
+>     <repository>
+>       <id>eap_6_early_access</id>
+>       <url>https://maven.repository.redhat.com/earlyaccess/all/</url>
+>     </repository>
+>   </repositories>
+40,42c52,54
 <         <groupId>org.wildfly.bom</groupId>
 <         <artifactId>jboss-javaee-7.0-wildfly</artifactId>
 <         <version>${version.org.wildfly}</version>
@@ -29,23 +36,24 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 >         <groupId>org.jboss.bom.eap</groupId>
 >         <artifactId>jboss-javaee-6.0-with-resteasy</artifactId>
 >         <version>${container.bom.version}</version>
-52,55d56
+51,54d62
 <       <groupId>org.antlr</groupId>
 <       <artifactId>antlr4-runtime</artifactId>
 <     </dependency>
 <     <dependency>
-61c62
+60c68
 <     <!-- Wildfly provided -->
 ---
 >     <!-- AS7 provided -->
-69c70
+68c76
 <       <artifactId>resteasy-jackson2-provider</artifactId>
 ---
 >       <artifactId>resteasy-jackson-provider</artifactId>
-74c75
+73c81
 <       <artifactId>jboss-servlet-api_3.1_spec</artifactId>
 ---
 >       <artifactId>jboss-servlet-api_3.0_spec</artifactId>
+<<<<<<< HEAD
 <<<<<<< HEAD
 87,105d87
 < 
@@ -58,6 +66,9 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 =======
 94,105d94
 >>>>>>> Removed redundant dependency declaration
+=======
+93,104d100
+>>>>>>> Ran mvn tidy:pom
 < 
 <     <!-- test -->
 <     <dependency>
@@ -70,6 +81,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 <       <artifactId>mockito-core</artifactId>
 <       <scope>test</scope>
 <     </dependency>
+<<<<<<< HEAD
 <<<<<<< HEAD
 107a90,96
 =======
@@ -92,13 +104,20 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 113,127c101,107
 =======
 109c105
+=======
+108c104
+>>>>>>> Ran mvn tidy:pom
 <     <finalName>hawkular-metric-rest</finalName>
 ---
 >     <finalName>hawkular-metrics-api-rest-1.1</finalName>
-111d106
+110d105
 < 
+<<<<<<< HEAD
 113,127c108,114
 >>>>>>> Removed redundant dependency declaration
+=======
+112,126c107,113
+>>>>>>> Ran mvn tidy:pom
 <         <groupId>org.antlr</groupId>
 <         <artifactId>antlr4-maven-plugin</artifactId>
 <         <executions>
@@ -123,6 +142,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 >           <port>${jboss-as.management.port}</port>
 >         </configuration>
 <<<<<<< HEAD
+<<<<<<< HEAD
 145c125
 <                 <exclude>static/index.html</exclude>
 ---
@@ -134,15 +154,23 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 163,231d142
 =======
 145c132
+=======
+144c131
+>>>>>>> Ran mvn tidy:pom
 <                 <exclude>static/index.html</exclude>
 ---
 >                 <exclude>index.html</exclude>
-153c140
+152c139
 <                 <include>static/index.html</include>
 ---
 >                 <include>index.html</include>
+<<<<<<< HEAD
 163,223d149
 >>>>>>> Removed redundant dependency declaration
+=======
+161,222d147
+< 
+>>>>>>> Ran mvn tidy:pom
 <   <profiles>
 <     <profile>
 <       <id>docgen</id>

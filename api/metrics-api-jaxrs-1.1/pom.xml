@@ -39,6 +39,13 @@
     <container.bom.version>6.4.0.Beta1</container.bom.version>
   </properties>
 
+  <repositories>
+    <repository>
+      <id>eap_6_early_access</id>
+      <url>https://maven.repository.redhat.com/earlyaccess/all/</url>
+    </repository>
+  </repositories>
+
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -50,7 +57,6 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-
   <dependencies>
 
     <dependency>
@@ -81,13 +87,6 @@
       <scope>provided</scope>
     </dependency>
   </dependencies>
-
-  <repositories>
-    <repository>
-      <id>eap_6_early_access</id>
-      <url>https://maven.repository.redhat.com/earlyaccess/all/</url>
-    </repository>
-  </repositories>
 
   <build>
     <finalName>hawkular-metrics-api-rest-1.1</finalName>
@@ -134,5 +133,4 @@
 
     </plugins>
   </build>
-
 </project>
