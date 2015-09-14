@@ -53,9 +53,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 <       <artifactId>jboss-servlet-api_3.1_spec</artifactId>
 ---
 >       <artifactId>jboss-servlet-api_3.0_spec</artifactId>
-<<<<<<< HEAD
-<<<<<<< HEAD
-87,105d87
+81,99d88
 < 
 <     <!-- documentation -->
 <     <dependency>
@@ -63,12 +61,6 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 <       <artifactId>swagger-annotations</artifactId>
 <       <scope>provided</scope>
 <     </dependency>
-=======
-94,105d94
->>>>>>> Removed redundant dependency declaration
-=======
-93,104d100
->>>>>>> Ran mvn tidy:pom
 < 
 <     <!-- test -->
 <     <dependency>
@@ -81,43 +73,13 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 <       <artifactId>mockito-core</artifactId>
 <       <scope>test</scope>
 <     </dependency>
-<<<<<<< HEAD
-<<<<<<< HEAD
-107a90,96
-=======
-107a97,103
->>>>>>> Removed redundant dependency declaration
->   <repositories>
->     <repository>
->       <id>eap_6_early_access</id>
->       <url>https://maven.repository.redhat.com/earlyaccess/all/</url>
->     </repository>
->   </repositories>
-> 
-<<<<<<< HEAD
-109c98
+103c92
 <     <finalName>hawkular-metric-rest</finalName>
 ---
 >     <finalName>hawkular-metrics-api-rest-1.1</finalName>
-111d99
+105d93
 < 
-113,127c101,107
-=======
-109c105
-=======
-108c104
->>>>>>> Ran mvn tidy:pom
-<     <finalName>hawkular-metric-rest</finalName>
----
->     <finalName>hawkular-metrics-api-rest-1.1</finalName>
-110d105
-< 
-<<<<<<< HEAD
-113,127c108,114
->>>>>>> Removed redundant dependency declaration
-=======
-112,126c107,113
->>>>>>> Ran mvn tidy:pom
+107,121c95,101
 <         <groupId>org.antlr</groupId>
 <         <artifactId>antlr4-maven-plugin</artifactId>
 <         <executions>
@@ -141,36 +103,16 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 >           <version>7.5.0.Final-redhat-15</version>
 >           <port>${jboss-as.management.port}</port>
 >         </configuration>
-<<<<<<< HEAD
-<<<<<<< HEAD
-145c125
+139c119
 <                 <exclude>static/index.html</exclude>
 ---
 >                 <exclude>index.html</exclude>
-153c133
+147c127
 <                 <include>static/index.html</include>
 ---
 >                 <include>index.html</include>
-163,231d142
-=======
-145c132
-=======
-144c131
->>>>>>> Ran mvn tidy:pom
-<                 <exclude>static/index.html</exclude>
----
->                 <exclude>index.html</exclude>
-152c139
-<                 <include>static/index.html</include>
----
->                 <include>index.html</include>
-<<<<<<< HEAD
-163,223d149
->>>>>>> Removed redundant dependency declaration
-=======
-161,222d147
+156,225d135
 < 
->>>>>>> Ran mvn tidy:pom
 <   <profiles>
 <     <profile>
 <       <id>docgen</id>
