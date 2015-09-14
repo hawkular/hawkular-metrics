@@ -46,6 +46,8 @@ import javax.inject.Inject;
 
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
+import org.hawkular.metrics.api.jaxrs.log.RestLogger;
+import org.hawkular.metrics.api.jaxrs.log.RestLogging;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.api.jaxrs.util.TestClock;
 import org.hawkular.metrics.api.jaxrs.util.VirtualClock;
@@ -62,8 +64,6 @@ import org.hawkular.metrics.tasks.impl.Queries;
 import org.hawkular.metrics.tasks.impl.TaskSchedulerImpl;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.joda.time.DateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
@@ -86,7 +86,7 @@ import rx.schedulers.TestScheduler;
 @ApplicationScoped
 @Eager
 public class MetricsServiceLifecycle {
-    private static final Logger LOG = LoggerFactory.getLogger(MetricsServiceLifecycle.class);
+    private static final RestLogger log = RestLogging.getRestLogger(MetricsServiceLifecycle.class);
 
     /**
      * @see #getState()
@@ -190,17 +190,16 @@ public class MetricsServiceLifecycle {
         if (state != State.STARTING) {
             return;
         }
-        LOG.info("Initializing metrics service");
+        log.infoInitializing();
         connectionAttempts++;
         try {
             session = createSession();
         } catch (Exception t) {
             Throwable rootCause = Throwables.getRootCause(t);
-            LOG.warn("Could not connect to Cassandra cluster - assuming its not up yet: " + rootCause
-                             .getLocalizedMessage());
+            log.warnCouldNotConnectToCassandra(rootCause.getLocalizedMessage());
             // cycle between original and more wait time - avoid waiting huge amounts of time
             long delay = 1L + ((connectionAttempts - 1L) % 4L);
-            LOG.warn("[{}] Retrying connecting to Cassandra cluster in [{}]s...", connectionAttempts, delay);
+            log.warnRetryingConnectingToCassandra(connectionAttempts, delay);
             lifecycleExecutor.schedule(this::startMetricsService, delay, SECONDS);
             return;
         }
@@ -226,20 +225,20 @@ public class MetricsServiceLifecycle {
             // the registered metrics in various ways such as new REST endpoints, JMX, or via different
             // com.codahale.metrics.Reporter instances.
             metricsService.startUp(session, keyspace, false, false, new MetricRegistry());
-            LOG.info("Metrics service started");
+            log.infoServiceStarted();
 
             initJobs();
 
             state = State.STARTED;
-        } catch (Exception t) {
-            LOG.error("An error occurred trying to connect to the Cassandra cluster", t);
+        } catch (Exception e) {
+            log.fatalCannotConnectToCassandra(e);
             state = State.FAILED;
         } finally {
             if (state != State.STARTED) {
                 try {
                     metricsService.shutdown();
-                } catch (Exception ignore) {
-                    LOG.error("Could not shutdown the metricsService instance: ", ignore);
+                } catch (Exception e) {
+                    log.errorCouldNotCloseServiceInstance(e);
                 }
             }
         }
@@ -252,7 +251,7 @@ public class MetricsServiceLifecycle {
             port = Integer.parseInt(cqlPort);
         } catch (NumberFormatException nfe) {
             String defaultPort = CASSANDRA_CQL_PORT.defaultValue();
-            LOG.warn("Invalid CQL port '{}', not a number. Will use a default of {}", cqlPort, defaultPort);
+            log.warnInvalidCqlPort(cqlPort, defaultPort);
             port = Integer.parseInt(defaultPort);
         }
         clusterBuilder.withPort(port);
@@ -342,8 +341,8 @@ public class MetricsServiceLifecycle {
         Future stopFuture = lifecycleExecutor.submit(this::stopMetricsService);
         try {
             Futures.get(stopFuture, 1, MINUTES, Exception.class);
-        } catch (Exception ignore) {
-            LOG.error("Unexcepted exception while shutting down, ", ignore);
+        } catch (Exception e) {
+            log.errorShutdownProblem(e);
         }
         lifecycleExecutor.shutdown();
     }

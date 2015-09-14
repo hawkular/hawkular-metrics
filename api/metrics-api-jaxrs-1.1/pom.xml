@@ -66,6 +66,16 @@
     </dependency>
 
     <!-- AS7 provided -->
+    <!-- Set the jboss-logging scope here since EAP6.4 BOM does not include jboss-logging -->
+    <dependency>
+      <groupId>org.jboss.logging</groupId>
+      <artifactId>jboss-logging</artifactId>
+      <!--
+      This version is "almost" compatible with the version included in EAP6.4:
+      we can't use logger methods with primitive arguments
+      -->
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-jaxrs</artifactId>

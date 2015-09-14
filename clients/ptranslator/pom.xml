@@ -38,7 +38,7 @@
     <wildfly-maven-plugin.skip>true</wildfly-maven-plugin.skip>
     <cassandra.keyspace>hawkular_metrics_ptrans_integration_tests</cassandra.keyspace>
     <!-- Configuration files used when starting a development ptrans instance with mvn exec:java -->
-    <dev.log4j.configuration>${project.basedir}/log4j-dev.xml</dev.log4j.configuration>
+    <dev.logback.configuration>${project.basedir}/src/main/resources/logback-test.xml</dev.logback.configuration>
     <dev.ptrans.conf>${project.basedir}/ptrans.conf</dev.ptrans.conf>
   </properties>
 
@@ -59,14 +59,12 @@
       <version>1.0.7</version>
     </dependency>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
-      <version>${slf4j.version}</version>
+      <groupId>org.jboss.logging</groupId>
+      <artifactId>jboss-logging</artifactId>
     </dependency>
     <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
-      <version>${log4j.version}</version>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
     </dependency>
     <dependency>
       <groupId>commons-cli</groupId>
@@ -107,10 +105,29 @@
       <type>war</type>
       <scope>test</scope>
     </dependency>
+    <!-- JBoss Logging Annotations Processor -->
+    <dependency>
+      <groupId>org.jboss.logging</groupId>
+      <artifactId>jboss-logging-annotations</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.logging</groupId>
+      <artifactId>jboss-logging-processor</artifactId>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
 
   <build>
     <finalName>ptrans</finalName>
+    <resources>
+      <resource>
+        <directory>${project.basedir}/src/main/resources</directory>
+        <excludes>
+          <exclude>logback-test.xml</exclude>
+        </excludes>
+      </resource>
+    </resources>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -149,8 +166,8 @@
           <mainClass>org.hawkular.metrics.clients.ptrans.Main</mainClass>
           <systemProperties>
             <systemProperty>
-              <key>log4j.configuration</key>
-              <value>file:${dev.log4j.configuration}</value>
+              <key>logback.configurationFile</key>
+              <value>${dev.logback.configuration}</value>
             </systemProperty>
           </systemProperties>
           <arguments>

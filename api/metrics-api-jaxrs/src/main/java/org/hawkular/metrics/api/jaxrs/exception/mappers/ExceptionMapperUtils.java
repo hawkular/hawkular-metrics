@@ -21,8 +21,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.hawkular.metrics.api.jaxrs.model.ApiError;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.logging.Logger;
 
 import com.google.common.base.Throwables;
 
@@ -30,15 +29,15 @@ import com.google.common.base.Throwables;
  * @author Jeeva Kandasamy
  */
 public class ExceptionMapperUtils {
-    private static final Logger LOG = LoggerFactory.getLogger(ExceptionMapperUtils.class);
+    private static final Logger log = Logger.getLogger(ExceptionMapperUtils.class);
 
     public static Response buildResponse(Throwable exception, Status status) {
         Response response = Response.status(status)
                 .entity(new ApiError(Throwables.getRootCause(exception).getMessage()))
                 .type(MediaType.APPLICATION_JSON_TYPE)
                 .build();
-        if (LOG.isTraceEnabled()) {
-            LOG.trace("Turning " + exception.getClass().getCanonicalName() + " into a " + response.getStatus() + " " +
+        if (log.isTraceEnabled()) {
+            log.trace("Turning " + exception.getClass().getCanonicalName() + " into a " + response.getStatus() + " " +
                     "response", exception);
         }
         return response;

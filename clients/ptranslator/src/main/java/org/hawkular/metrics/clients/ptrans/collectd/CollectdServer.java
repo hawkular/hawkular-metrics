@@ -30,8 +30,6 @@ import org.hawkular.metrics.clients.ptrans.collectd.event.TimeSpan;
 import org.hawkular.metrics.clients.ptrans.collectd.event.ValueListEvent;
 import org.hawkular.metrics.clients.ptrans.collectd.packet.CollectdPacket;
 import org.hawkular.metrics.clients.ptrans.collectd.packet.CollectdPacketDecoder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
@@ -42,8 +40,6 @@ import io.vertx.core.datagram.DatagramSocket;
  * @author Thomas Segismont
  */
 public class CollectdServer extends AbstractVerticle {
-    private static final Logger LOG = LoggerFactory.getLogger(CollectdServer.class);
-
     private final int port;
     private final CollectdPacketDecoder packetDecoder;
     private final CollectdEventsDecoder eventsDecoder;

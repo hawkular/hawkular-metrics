@@ -66,8 +66,6 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -86,8 +84,6 @@ import rx.Observable;
 @Api(tags = "Availability")
 public class AvailabilityHandler {
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
-
-    private static final Logger logger = LoggerFactory.getLogger(AvailabilityHandler.class);
 
     @Inject
     private MetricsService metricsService;
@@ -243,11 +239,11 @@ public class AvailabilityHandler {
             // @TODO Repeated code, refactor (in GaugeHandler also)
             metricsService.findAvailabilityByTags(tenantId, tags.getTags()).subscribe(m -> {
                 if (m.isEmpty()) {
-                    asyncResponse.resume(Response.noContent().build());
+                    asyncResponse.resume(noContent());
                 } else {
                     asyncResponse.resume(Response.ok(m).build());
                 }
-            }, t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
+            }, t -> asyncResponse.resume(serverError(t)));
 
         }
     }
@@ -286,12 +282,7 @@ public class AvailabilityHandler {
                     .map(AvailabilityDataPoint::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
-                    .subscribe(
-                            asyncResponse::resume,
-                            t -> {
-                                logger.warn("Failed to fetch availability data", t);
-                                serverError(t);
-                            });
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
         } else if (bucketsCount != null && bucketDuration != null) {
             asyncResponse.resume(badRequest(new ApiError("Both buckets and bucketDuration parameters are used")));
         } else {
@@ -309,7 +300,7 @@ public class AvailabilityHandler {
 
             metricsService.findAvailabilityStats(metricId, startTime, endTime, buckets)
                 .map(ApiUtils::collectionToResponse)
-                .subscribe(asyncResponse::resume, ApiUtils::serverError);
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
         }
     }
 
@@ -350,11 +341,10 @@ public class AvailabilityHandler {
         metricsService.findAvailabilityByTags(tenantId, tags.getTags())
         .subscribe(m -> { // @TODO Repeated code, refactor and use Optional?
             if (m.isEmpty()) {
-                asyncResponse.resume(Response.noContent().build());
+                asyncResponse.resume(noContent());
             } else {
                 asyncResponse.resume(Response.ok(m).build());
             }
-        }, t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
+        }, t -> asyncResponse.resume(serverError(t)));
     }
-
 }

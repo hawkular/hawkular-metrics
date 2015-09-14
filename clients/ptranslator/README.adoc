@@ -106,21 +106,6 @@ LoadPlugin network
 
 TIP: Don't forget to start a Hawkular Metrics web server as well.
 
-=== With the start script
-
-You can use the provided `start.sh` script to start the server (this will build the source first).
-
-Make sure to specify a configuration file on the command line:
-
-[source,bash]
-----
-./start.sh -c ptrans.conf
-----
-
-This method does not allow to configure logging and works on *nix systems only.
-
-=== With Maven
-
 Once the project is built, simply run the following command:
 
 [source,bash]
@@ -128,10 +113,10 @@ Once the project is built, simply run the following command:
 mvn exec:java
 ----
 
-By default, the log4j and ptrans.conf files at the project base directory will be used.
+By default, the `logging-dev.properties` and `ptrans.conf` files at the project base directory will be used.
 If you want to use your own files:
 
 [source,bash]
 ----
-mvn exec:java -Ddev.log4j.configuration=<path to log4j file> -Ddev.ptrans.conf=<path to ptrans.conf>
+mvn exec:java -Dlogback.configurationFile=<path to logback file> -Ddev.ptrans.conf=<path to ptrans.conf>
 ----

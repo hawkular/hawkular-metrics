@@ -20,10 +20,10 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+import org.hawkular.metrics.tasks.log.TaskQueueLogger;
+import org.hawkular.metrics.tasks.log.TaskQueueLogging;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.joda.time.DateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 
@@ -31,8 +31,7 @@ import rx.Observable;
  * @author jsanda
  */
 public class LeaseService {
-
-    private static final Logger logger = LoggerFactory.getLogger(LeaseService.class);
+    private static final TaskQueueLogger log = TaskQueueLogging.getTaskQueueLogger(LeaseService.class);
 
     public static final int DEFAULT_LEASE_TTL = 180;
 
@@ -54,7 +53,7 @@ public class LeaseService {
     }
 
     public void shutdown() {
-        logger.info("Shutting down");
+        log.infoShutdown();
         renewals.shutdownNow();
     }
 

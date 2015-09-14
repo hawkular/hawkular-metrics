@@ -28,9 +28,9 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.impl.log.CoreLogger;
+import org.hawkular.metrics.core.impl.log.CoreLogging;
 import org.hawkular.metrics.tasks.api.Task2;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 import rx.functions.Action1;
@@ -39,8 +39,7 @@ import rx.functions.Action1;
  * Calculates and persists rates for all counter metrics of a single tenant.
  */
 public class GenerateRate implements Action1<Task2> {
-
-    private static final Logger logger = LoggerFactory.getLogger(GenerateRate.class);
+    private static final CoreLogger log = CoreLogging.getCoreLogger(GenerateRate.class);
 
     public static final String TASK_NAME = "generate-rates";
 
@@ -53,7 +52,7 @@ public class GenerateRate implements Action1<Task2> {
     @Override
     public void call(Task2 task) {
         // TODO We need to make this fault tolerant. See HWKMETRICS-213 for details.
-        logger.info("Generating rate for {}", task);
+        log.debugf("Generating rate for %s", task);
         String tenant = task.getParameters().get("tenant");
         long start = task.getTrigger().getTriggerTime();
         long end = start + TimeUnit.MINUTES.toMillis(1);
@@ -72,13 +71,14 @@ public class GenerateRate implements Action1<Task2> {
                 aVoid -> {
                 },
                 t -> {
-                    logger.warn("There was an error persisting rates for {tenant= " + tenant + ", start= " +
-                            start + ", end= " + end + "}", t);
+                    log.warnFailedToPersistRates(tenant, start, end, t);
                     latch.countDown();
                 },
                 () -> {
-                    logger.debug("Successfully persisted rate data for {tenant= " + tenant + ", start= " +
-                            start + ", end= " + end + "}");
+                    if (log.isDebugEnabled()) {
+                        log.debug("Successfully persisted rate data for {tenant= " + tenant + ", start= " + start +
+                                ", end= " + end + "}");
+                    }
                     latch.countDown();
                 }
         );

@@ -57,10 +57,11 @@ import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
-import org.hawkular.metrics.core.api.MetricsThreadFactory;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
+import org.hawkular.metrics.core.impl.log.CoreLogger;
+import org.hawkular.metrics.core.impl.log.CoreLogging;
 import org.hawkular.metrics.core.impl.transformers.ItemsToSetTransformer;
 import org.hawkular.metrics.core.impl.transformers.MetricsIndexRowTransformer;
 import org.hawkular.metrics.core.impl.transformers.TagsIndexRowTransformer;
@@ -69,8 +70,6 @@ import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.hawkular.rx.cassandra.driver.RxUtil;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
@@ -96,7 +95,7 @@ import rx.functions.Func3;
  * @author John Sanda
  */
 public class MetricsServiceImpl implements MetricsService, TenantsService {
-    private static final Logger logger = LoggerFactory.getLogger(MetricsServiceImpl.class);
+    private static final CoreLogger log = CoreLogging.getCoreLogger(MetricsServiceImpl.class);
 
     /**
      * In seconds.
@@ -191,7 +190,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
             schemaManager.createSchema(keyspace);
         }
         session.execute("USE " + keyspace);
-        logger.info("Using a key space of '{}'", keyspace);
+        log.infoKeyspaceUsed(keyspace);
         metricsTasks = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
         loadDataRetentions();
 
@@ -333,10 +332,9 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
         @Override
         public void onFailure(Throwable t) {
-            logger.warn("Failed to load data retentions for {tenantId: " + tenantId + ", metricType: " +
-                    type.getText() + "}", t);
+            log.warnDataRetentionLoadingFailure(tenantId, type, t);
             latch.countDown();
-            // TODO We probably should not let initialization proceed on this error
+            // TODO We probably should not let initialization proceed on this error (then change log level to FATAL)
         }
     }
 
@@ -606,7 +604,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         Observable<Integer> tenantUpdates = updateTenantBuckets(metrics);
 
         Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics)
-                .doOnNext(batchSize -> logger.debug("Inserted {} {} metrics into metrics_idx", batchSize, metricType));
+                .doOnNext(batchSize -> log.tracef("Inserted %d %s metrics into metrics_idx", batchSize, metricType));
         return Observable.concat(updates, indexUpdates, tenantUpdates)
                 .takeLast(1)
                 .map(count -> null);

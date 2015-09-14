@@ -22,8 +22,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.hawkular.metrics.client.common.SingleMetric;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.logging.Logger;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.util.CharsetUtil;
@@ -40,8 +39,8 @@ import io.netty.util.CharsetUtil;
  * @author Heiko W. Rupp
  */
 public class DecoderUtil {
+    private static final Logger log = Logger.getLogger(DecoderUtil.class);
 
-    private static final Logger logger = LoggerFactory.getLogger(DecoderUtil.class);
     private static Pattern statsDPattern = Pattern.compile("([A-Za-z\\.]+):([0-9\\.]+)\\|[a-z]");
 
     public static void decodeTheBuffer(ByteBuf data, List<Object> out) {
@@ -101,9 +100,7 @@ public class DecoderUtil {
                     SingleMetric metric = new SingleMetric(source,now, value);
                     metrics.add(metric);
                 } catch (NumberFormatException e) {
-                    if (logger.isTraceEnabled()) {
-                        logger.debug("Unknown number format for " + entry + ", skipping");
-                    }
+                    log.tracef("Unknown number format for %s, skipping", entry);
                 }
             }
             out.add(metrics);

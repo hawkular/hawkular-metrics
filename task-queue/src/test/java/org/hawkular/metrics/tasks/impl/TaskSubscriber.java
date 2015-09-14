@@ -22,8 +22,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.tasks.api.Task2;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.logging.Logger;
 
 import rx.functions.Action1;
 import rx.observers.TestSubscriber;
@@ -32,8 +31,7 @@ import rx.observers.TestSubscriber;
  * @author jsanda
  */
 public class TaskSubscriber extends TestSubscriber<Task2> {
-
-    private static Logger logger = LoggerFactory.getLogger(TaskSubscriber.class);
+    private static Logger log = Logger.getLogger(TaskSubscriber.class);
 
     private Random random = new Random();
 
@@ -142,7 +140,7 @@ public class TaskSubscriber extends TestSubscriber<Task2> {
 //        if (numberOfOnNextEvents > 0 && getOnNextEvents().size() >= numberOfOnNextEvents) {
 //            onNextEventsLatch.countDown();
 //        }
-        logger.debug("Executing {}", task2);
+        log.debugf("Executing %s", task2);
         onNext.call(task2);
         super.onNext(task2);
     }

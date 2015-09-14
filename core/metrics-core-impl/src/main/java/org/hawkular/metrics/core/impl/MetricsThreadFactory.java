@@ -14,37 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.api;
+package org.hawkular.metrics.core.impl;
 
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.hawkular.metrics.core.impl.log.CoreLogger;
+import org.hawkular.metrics.core.impl.log.CoreLogging;
 
 /**
  * @author John Sanda
  */
-public class MetricsThreadFactory implements ThreadFactory, Thread.UncaughtExceptionHandler {
+public class MetricsThreadFactory implements ThreadFactory, UncaughtExceptionHandler {
+    private static final CoreLogger log = CoreLogging.getCoreLogger(MetricsThreadFactory.class);
 
-    private static final Logger logger = LoggerFactory.getLogger(MetricsThreadFactory.class);
+    private static final String METRICS_THREAD_POOL = "MetricsThreadPool";
 
     private AtomicInteger threadNumber = new AtomicInteger(0);
 
-    private String poolName = "MetricsThreadPool";
-
     @Override
     public Thread newThread(Runnable r) {
-        Thread t = new Thread(r, poolName + "-" + threadNumber.getAndIncrement());
+        Thread t = new Thread(r, METRICS_THREAD_POOL + "-" + threadNumber.getAndIncrement());
         t.setDaemon(false);
         t.setUncaughtExceptionHandler(this);
-
         return t;
     }
 
     @Override
-    public void uncaughtException(Thread t, Throwable e) {
-        logger.error("Uncaught exception on scheduled thread [{}]", t.getName(), e);
+    public void uncaughtException(Thread thread, Throwable t) {
+        log.errorUncaughtExceptionOnScheduledThread(thread.getName(), t);
     }
-
 }

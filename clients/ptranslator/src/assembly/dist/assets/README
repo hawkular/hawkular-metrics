@@ -8,9 +8,9 @@ The following command starts ptrans:
 
 java -jar ptrans-all.jar -c <path to ptrans.conf>
 
-By default, ptrans logs everything to the console, but you can make use your own log4j configuration file:
+By default, ptrans logs everything to the console, but you can use your own logback configuration file:
 
-java -jar ptrans-all.jar -Dlog4j.configuration=file:<path log4j.xml> -c <path to ptrans.conf>
+java -jar ptrans-all.jar -Dlogback.configurationFile=<path to logback file> -c <path to ptrans.conf>
 
 === STOPPING
 

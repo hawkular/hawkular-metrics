@@ -42,8 +42,6 @@ import org.hawkular.metrics.tasks.api.SingleExecutionTrigger;
 import org.hawkular.metrics.tasks.api.Task2;
 import org.hawkular.metrics.tasks.api.Trigger;
 import org.hawkular.rx.cassandra.driver.RxSession;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -61,9 +59,6 @@ import rx.schedulers.TestScheduler;
  * @author jsanda
  */
 public class TaskSchedulerITest extends BaseITest {
-
-    private static Logger logger = LoggerFactory.getLogger(TaskSchedulerITest.class);
-
     private TestTaskScheduler scheduler;
 
     private TestScheduler tickScheduler;
