@@ -38,9 +38,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
 import com.google.common.collect.Lists;
-import com.wordnik.swagger.annotations.ApiModel;
-import com.wordnik.swagger.annotations.ApiModelProperty;
 
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 import rx.Observable;
 
 /**
@@ -84,7 +84,7 @@ public class AvailabilityDataPoint {
         return timestamp;
     }
 
-    @ApiModelProperty(allowableValues = "[up,down,unknown]", required = true)
+    @ApiModelProperty(required = true, dataType = "string", allowableValues = "up,down,unknown")
     @JsonSerialize(using = AvailabilityTypeSerializer.class)
     @org.codehaus.jackson.map.annotate.JsonSerialize(
             using = org.hawkular.metrics.api.jaxrs.codehaus.jackson.AvailabilityTypeSerializer.class

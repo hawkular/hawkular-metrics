@@ -19,11 +19,12 @@ package org.hawkular.metrics.api.jaxrs.util;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.wordnik.swagger.annotations.ApiModel;
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 
 /**
- * Encapsulate a simple string value
+ * Encapsulate a simple string value.
+ *
  * @author Heiko W. Rupp
  */
 @ApiModel(value = "Encapsulates a simple string value. In XML this is represented as <value value=\"...\"/>")

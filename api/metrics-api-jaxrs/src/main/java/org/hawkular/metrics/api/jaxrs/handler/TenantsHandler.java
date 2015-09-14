@@ -34,16 +34,16 @@ import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
-import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.observer.TenantCreatedObserver;
+import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.TenantDefinition;
 import org.hawkular.metrics.core.api.MetricsService;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 
 /**
  * @author Thomas Segismont
@@ -51,10 +51,8 @@ import com.wordnik.swagger.annotations.ApiResponses;
 @Path("/tenants")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@Api(value = "/tenants", description = "Tenants related REST interface")
+@Api(tags = "Tenant")
 public class TenantsHandler {
-
-    // TODO: add back retention settings
 
     @Inject
     private MetricsService metricsService;
@@ -62,7 +60,7 @@ public class TenantsHandler {
     @POST
     @ApiOperation(value = "Create a new tenant.", notes = "Clients are not required to create explicitly create a "
             + "tenant before starting to store metric data. It is recommended to do so however to ensure that there "
-            + "are no tenant id naming collisions and to provide default data retention settings. ")
+            + "are no tenant id naming collisions and to provide default data retention settings.")
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "Tenant has been succesfully created."),
             @ApiResponse(code = 400, message = "Missing or invalid retention properties. ",
@@ -83,7 +81,7 @@ public class TenantsHandler {
     }
 
     @GET
-    @ApiOperation(value = "Returns a list of tenants.")
+    @ApiOperation(value = "Returns a list of tenants.", response = TenantDefinition.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Returned a list of tenants successfully."),
             @ApiResponse(code = 204, message = "No tenants were found."),

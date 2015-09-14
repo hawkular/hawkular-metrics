@@ -45,9 +45,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import org.hawkular.metrics.api.jaxrs.ApiError;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
+import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Counter;
 import org.hawkular.metrics.api.jaxrs.model.CounterDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
@@ -60,12 +60,11 @@ import org.hawkular.metrics.core.api.MetricsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import rx.Observable;
 
 /**
@@ -75,8 +74,7 @@ import rx.Observable;
 @Path("/counters")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@Api(value = "", description = "Counter metrics interface. A counter is a metric whose value are monotonically " +
-    "increasing or decreasing.")
+@Api(tags = "Counter")
 public class CounterHandler {
 
     private static Logger logger = LoggerFactory.getLogger(CounterHandler.class);
@@ -175,7 +173,8 @@ public class CounterHandler {
 
     @GET
     @Path("/{id}/data")
-    @ApiOperation(value = "Retrieve counter data points.", response = List.class)
+    @ApiOperation(value = "Retrieve counter data points.", response = CounterDataPoint.class,
+            responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),
@@ -210,7 +209,7 @@ public class CounterHandler {
     @ApiOperation(
             value = "Retrieve counter rate data points which are automatically generated on the server side.",
             notes = "Rate data points are only generated for counters that are explicitly created.",
-            response = List.class)
+            response = GaugeDataPoint.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),

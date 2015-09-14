@@ -120,6 +120,7 @@
     <rxjava.version>1.0.13</rxjava.version>
     <codahale.metrics.version>3.0.2</codahale.metrics.version>
     <rxjava-math.version>1.0.0</rxjava-math.version>
+    <io.swagger.version>1.5.3</io.swagger.version>
 
     <findbugs.version>3.0.0</findbugs.version>
 
@@ -170,6 +171,12 @@
         <groupId>org.testng</groupId>
         <artifactId>testng</artifactId>
         <version>${testng.version}</version>
+      </dependency>
+      <!-- Doc dependencies -->
+      <dependency>
+        <groupId>io.swagger</groupId>
+        <artifactId>swagger-annotations</artifactId>
+        <version>${io.swagger.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

@@ -23,9 +23,11 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonCreator.Mode;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Objects;
-import com.wordnik.swagger.annotations.ApiModel;
+
+import io.swagger.annotations.ApiModel;
 
 /**
  * @author Stefan Negrea
@@ -70,6 +72,8 @@ public class MixedMetricsRequest {
     /**
      * @return true if this instance has no data point (of any type)
      */
+    @JsonIgnore
+    @org.codehaus.jackson.annotate.JsonIgnore
     public boolean isEmpty() {
         return gauges.isEmpty() && availabilities.isEmpty() && counters.isEmpty();
     }

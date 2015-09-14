@@ -27,7 +27,6 @@ import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 import java.net.URI;
-import java.util.List;
 import java.util.regex.PatternSyntaxException;
 
 import javax.inject.Inject;
@@ -42,7 +41,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import org.hawkular.metrics.api.jaxrs.ApiError;
+import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.Counter;
 import org.hawkular.metrics.api.jaxrs.model.Gauge;
@@ -58,12 +57,6 @@ import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-
 import rx.Observable;
 
 /**
@@ -74,7 +67,6 @@ import rx.Observable;
 @Path("/metrics")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@Api(value = "", description = "Metrics related REST interface")
 public class MetricHandler {
 
     @Inject
@@ -85,19 +77,8 @@ public class MetricHandler {
 
     @POST
     @Path("/")
-    @ApiOperation(value = "Create metric.", notes = "Clients are not required to explicitly create "
-            + "a metric before storing data. Doing so however allows clients to prevent naming collisions and to "
-            + "specify tags and data retention.")
-    @ApiResponses(value = {
-            @ApiResponse(code = 201, message = "Metric created successfully"),
-            @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
-            @ApiResponse(code = 409, message = "Metric with given id already exists",
-                    response = ApiError.class),
-            @ApiResponse(code = 500, message = "Metric creation failed due to an unexpected error",
-                    response = ApiError.class)
-    })
     public Response createMetric(
-            @ApiParam(required = true) MetricDefinition<?> metricDefinition,
+            MetricDefinition metricDefinition,
             @Context UriInfo uriInfo
     ) {
         if (metricDefinition.getType() == null || !metricDefinition.getType().isUserType()) {
@@ -120,26 +101,12 @@ public class MetricHandler {
         }
     }
 
-
-    @SuppressWarnings("rawtypes")
     @GET
     @Path("/")
-    @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ",
-            response = List.class, responseContainer = "List")
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully retrieved at least one metric definition."),
-            @ApiResponse(code = 204, message = "No metrics found."),
-            @ApiResponse(code = 400, message = "Invalid type parameter type.", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Failed to retrieve metrics due to unexpected error.",
-                    response = ApiError.class)
-    })
     public <T> Response findMetrics(
-            @ApiParam(value = "Queried metric type",
-                    required = false,
-                    allowableValues = "[gauge, availability, counter]")
             @QueryParam("type") MetricType<T> metricType,
-            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags) {
-
+            @QueryParam("tags") Tags tags
+    ) {
         if (metricType != null && !metricType.isUserType()) {
             return badRequest(new ApiError("Incorrect type param " + metricType.toString()));
         }
@@ -164,15 +131,8 @@ public class MetricHandler {
 
     @POST
     @Path("/data")
-    @ApiOperation(value = "Add data for multiple metrics in a single call.")
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Adding data succeeded."),
-            @ApiResponse(code = 400, message = "Missing or invalid payload.", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
-                    response = ApiError.class)
-    })
     public Response addMetricsData(
-            @ApiParam(value = "List of metrics", required = true) MixedMetricsRequest metricsRequest
+            MixedMetricsRequest metricsRequest
     ) {
         if (metricsRequest.isEmpty()) {
             return emptyPayload();

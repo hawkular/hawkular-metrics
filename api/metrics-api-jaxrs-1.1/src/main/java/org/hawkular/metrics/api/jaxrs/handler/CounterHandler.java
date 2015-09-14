@@ -43,7 +43,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import org.hawkular.metrics.api.jaxrs.ApiError;
+import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Counter;
 import org.hawkular.metrics.api.jaxrs.model.CounterDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
@@ -57,12 +57,6 @@ import org.hawkular.metrics.core.api.MetricsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-
 import rx.Observable;
 
 /**
@@ -72,8 +66,6 @@ import rx.Observable;
 @Path("/counters")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@Api(value = "", description = "Counter metrics interface. A counter is a metric whose value are monotonically " +
-    "increasing or decreasing.")
 public class CounterHandler {
 
     private static Logger logger = LoggerFactory.getLogger(CounterHandler.class);
@@ -88,21 +80,8 @@ public class CounterHandler {
 
     @POST
     @Path("/")
-    @ApiOperation(
-            value = "Create counter metric. This operation also causes the rate to be calculated and " +
-                    "persisted periodically after raw count data is persisted.",
-            notes = "Clients are not required to explicitly create a metric before storing data. Doing so however " +
-                    "allows clients to prevent naming collisions and to specify tags and data retention.")
-    @ApiResponses(value = {
-            @ApiResponse(code = 201, message = "Metric created successfully"),
-            @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
-            @ApiResponse(code = 409, message = "Counter metric with given id already exists", response = ApiError
-                    .class),
-            @ApiResponse(code = 500, message = "Metric creation failed due to an unexpected error",
-                    response = ApiError.class)
-    })
     public Response createCounter(
-            @ApiParam(required = true) MetricDefinition metricDefinition,
+            MetricDefinition metricDefinition,
             @Context UriInfo uriInfo
     ) {
         if(metricDefinition.getType() != null && MetricType.COUNTER != metricDefinition.getType()) {
@@ -126,12 +105,6 @@ public class CounterHandler {
 
     @GET
     @Path("/{id}")
-    @ApiOperation(value = "Retrieve a counter definition", response = MetricDefinition.class)
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Metric's definition was successfully retrieved."),
-            @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.",
-                         response = ApiError.class) })
     public Response getCounter(@PathParam("id") String id) {
         try {
             return metricsService.findMetric(new MetricId<>(tenantId, COUNTER, id))
@@ -146,15 +119,7 @@ public class CounterHandler {
 
     @POST
     @Path("/data")
-    @ApiOperation(value = "Add data points for multiple counters")
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Adding data points succeeded."),
-            @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Unexpected error happened while storing the data points",
-                    response = ApiError.class)
-    })
-    public Response addData(@ApiParam(value = "List of metrics", required = true) List<Counter> counters
-    ) {
+    public Response addData(List<Counter> counters) {
         Observable<Metric<Long>> metrics = Counter.toObservable(tenantId, counters);
         try {
             metricsService.addDataPoints(COUNTER, metrics).toBlocking().lastOrDefault(null);
@@ -166,16 +131,8 @@ public class CounterHandler {
 
     @POST
     @Path("/{id}/data")
-    @ApiOperation(value = "Add data for a single counter")
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Adding data succeeded."),
-            @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
-                    response = ApiError.class),
-    })
     public Response addData(
             @PathParam("id") String id,
-            @ApiParam(value = "List of data points containing timestamp and value", required = true)
             List<CounterDataPoint> data
     ) {
         Observable<Metric<Long>> metrics = CounterDataPoint.toObservable(tenantId, id, data);
@@ -189,19 +146,11 @@ public class CounterHandler {
 
     @GET
     @Path("/{id}/data")
-    @ApiOperation(value = "Retrieve counter data points.", response = List.class)
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
-            @ApiResponse(code = 204, message = "No metric data was found."),
-            @ApiResponse(code = 400, message = "start or end parameter is invalid.",
-                         response = ApiError.class),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
-                         response = ApiError.class) })
     public Response findCounterData(
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end) {
-
+            @QueryParam("start") final Long start,
+            @QueryParam("end") final Long end
+    ) {
         long now = System.currentTimeMillis();
         long startTime = start == null ? now - EIGHT_HOURS : start;
         long endTime = end == null ? now : end;
@@ -221,22 +170,11 @@ public class CounterHandler {
 
     @GET
     @Path("/{id}/rate")
-    @ApiOperation(
-            value = "Retrieve counter rate data points which are automatically generated on the server side.",
-            notes = "Rate data points are only generated for counters that are explicitly created.",
-            response = List.class)
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
-            @ApiResponse(code = 204, message = "No metric data was found."),
-            @ApiResponse(code = 400, message = "start or end parameter is invalid.",
-                         response = ApiError.class),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
-                         response = ApiError.class) })
     public Response findRate(
         @PathParam("id") String id,
-        @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
-        @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end) {
-
+        @QueryParam("start") final Long start,
+        @QueryParam("end") final Long end
+    ) {
         long now = System.currentTimeMillis();
         long startTime = start == null ? now - EIGHT_HOURS : start;
         long endTime = end == null ? now : end;
@@ -253,5 +191,4 @@ public class CounterHandler {
             return serverError(e);
         }
     }
-
 }
