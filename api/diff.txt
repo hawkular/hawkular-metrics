@@ -10,7 +10,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 <   <artifactId>hawkular-metrics-api-jaxrs</artifactId>
 ---
 >   <artifactId>hawkular-metrics-api-jaxrs-1.1</artifactId>
-34,35c34,40
+34,35c34,47
 <   <name>Hawkular Metrics JAX-RS 2.0 API</name>
 <   <description>JAX-RS 2.0 REST API Implementation</description>
 ---
@@ -21,7 +21,14 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 >     <enforcer.skip>true</enforcer.skip>
 >     <container.bom.version>6.4.0.Beta1</container.bom.version>
 >   </properties>
-40,42c45,47
+> 
+>   <repositories>
+>     <repository>
+>       <id>eap_6_early_access</id>
+>       <url>https://maven.repository.redhat.com/earlyaccess/all/</url>
+>     </repository>
+>   </repositories>
+40,42c52,54
 <         <groupId>org.wildfly.bom</groupId>
 <         <artifactId>jboss-javaee-7.0-wildfly</artifactId>
 <         <version>${version.org.wildfly}</version>
@@ -29,24 +36,24 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 >         <groupId>org.jboss.bom.eap</groupId>
 >         <artifactId>jboss-javaee-6.0-with-resteasy</artifactId>
 >         <version>${container.bom.version}</version>
-52,55d56
+51,54d62
 <       <groupId>org.antlr</groupId>
 <       <artifactId>antlr4-runtime</artifactId>
 <     </dependency>
 <     <dependency>
-66c67
+60c68
 <     <!-- Wildfly provided -->
 ---
 >     <!-- AS7 provided -->
-74c75
+68c76
 <       <artifactId>resteasy-jackson2-provider</artifactId>
 ---
 >       <artifactId>resteasy-jackson-provider</artifactId>
-79c80
+73c81
 <       <artifactId>jboss-servlet-api_3.1_spec</artifactId>
 ---
 >       <artifactId>jboss-servlet-api_3.0_spec</artifactId>
-87,105d87
+81,99d88
 < 
 <     <!-- documentation -->
 <     <dependency>
@@ -66,21 +73,13 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 <       <artifactId>mockito-core</artifactId>
 <       <scope>test</scope>
 <     </dependency>
-107a90,96
->   <repositories>
->     <repository>
->       <id>eap_6_early_access</id>
->       <url>https://maven.repository.redhat.com/earlyaccess/all/</url>
->     </repository>
->   </repositories>
-> 
-109c98
+103c92
 <     <finalName>hawkular-metric-rest</finalName>
 ---
 >     <finalName>hawkular-metrics-api-rest-1.1</finalName>
-111d99
+105d93
 < 
-113,127c101,107
+107,121c95,101
 <         <groupId>org.antlr</groupId>
 <         <artifactId>antlr4-maven-plugin</artifactId>
 <         <executions>
@@ -104,15 +103,16 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 >           <version>7.5.0.Final-redhat-15</version>
 >           <port>${jboss-as.management.port}</port>
 >         </configuration>
-145c125
+139c119
 <                 <exclude>static/index.html</exclude>
 ---
 >                 <exclude>index.html</exclude>
-153c133
+147c127
 <                 <include>static/index.html</include>
 ---
 >                 <include>index.html</include>
-163,231d142
+156,225d135
+< 
 <   <profiles>
 <     <profile>
 <       <id>docgen</id>

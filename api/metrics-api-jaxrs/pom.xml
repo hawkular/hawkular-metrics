@@ -45,17 +45,11 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-
   <dependencies>
 
     <dependency>
       <groupId>org.antlr</groupId>
       <artifactId>antlr4-runtime</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.hawkular.metrics</groupId>
-      <artifactId>hawkular-metrics-core-impl</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
