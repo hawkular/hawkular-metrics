@@ -17,11 +17,24 @@
 
 package org.hawkular.openshift.cassandra;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.DatabaseDescriptor;
@@ -39,46 +52,71 @@ public class OpenshiftSeedProvider implements SeedProvider {
 
     private static final String PARAMETER_SEEDS = "seeds";
 
-    private static final String CASSANDRA_NODES_SERVICE_NAME_ENVAR_NAME = "CASSANDRA_NODES_SERVICE_NAME";
-    private static final String DEFAULT_CASSANDRA_NODES_SERVICE_NAME = "cassandra-nodes";
+    // The environment variables to set the Cassandra Service Name
+    private static final String CASSANDRA_NODES_SERVICE_NAME =
+            getEnv("CASSANDRA_NODES_SERVICE_NAME", "hawkular-cassandra");
+
+
+    // The environment variables to set the KUBERNETES-MASTER
+    private static final String KUBERNETES_MASTER_URL =
+            getEnv("KUBERNETES_MASTER_URL", "https://kubernetes.default.svc.cluster.local:443");
+
+    // The environment vairables to set the namespace
+    private static final String POD_NAMESPACE = getEnv("POD_NAMESPACE", "default");
+
+    private static final String KUBERNETES_MASTER_CERTIFICATE_FILENAME = "/var/run/secrets/kubernetes" +
+            ".io/serviceaccount/ca.crt";
+
+//    private static final String SERVICE_ACCOUNT_TOKEN_FILENAME =
+//                                                      "/var/run/secrets/kubernetes.io/serviceaccount/token";
+//
+//    private static final String SERVICE_URL = KUBERNETES_MASTER_URL + "/api/v1/namespaces/" + POD_NAMESPACE +
+//            "/endpoints/" + CASSANDRA_NODES_SERVICE_NAME;
+
+    private static final String MASTER = getEnv("CASSANDRA_MASTER", "false");
+
+
 
     // properties to determine how long to wait for the service to come online.
     // Currently set to 60 seconds
     private static final int SERVICE_TRIES = 30;
     private static final int SERVICE_TRY_WAIT_TIME_MILLISECONDS = 2000;
 
+    private SSLContext sslContext;
+
     //Required Constructor
     public OpenshiftSeedProvider(Map<String, String> args) {
+        try {
+            sslContext = setupSSL();
+        } catch (Exception e) {
+            throw new RuntimeException("Could not setup security properly for Cassandra", e);
+        }
     }
 
     @Override
     public List<InetAddress> getSeeds() {
         List<InetAddress> seeds = new ArrayList<>();
 
-        String serviceName = getEnv(CASSANDRA_NODES_SERVICE_NAME_ENVAR_NAME, DEFAULT_CASSANDRA_NODES_SERVICE_NAME);
         try {
             InetAddress[] inetAddresses = null;
 
-            // we need to wait until the service is started
             for (int i = 0; i < SERVICE_TRIES; i++) {
-                inetAddresses = getInetAddresses(serviceName, inetAddresses, i);
-            }
-
-            if (inetAddresses == null) {
-                inetAddresses = InetAddress.getAllByName(serviceName);
-            }
-
-            logger.debug(inetAddresses.length + " addresses found for service name " + serviceName);
-
-            if (inetAddresses.length >= 1) {
-                for (InetAddress inetAddress : inetAddresses) {
-                    logger.debug("Adding address " + inetAddress.getHostAddress() + " to seed list");
-                    seeds.add(inetAddress);
+                List<InetAddress> serviceList = getInetAddresses(CASSANDRA_NODES_SERVICE_NAME);
+                if (!serviceList.isEmpty()) {
+                    seeds = serviceList;
+                    break;
                 }
-            } else {
-                logger.debug("No hosts found for server '" + serviceName
-                        + "' getting this hosts address from the configuration file.");
-                seeds = getSeedsFromConfig();
+
+                // If we are a master node and we didn't find another other nodes in the service, then we assume
+                // We are the only node available, so we will use our own IP address listed in the seed configuration
+                // file.
+                if (MASTER.equalsIgnoreCase("true") && i >= 3) {
+                    logger.debug("Did not find any other nodes running in the cluster and this instance is " +
+                                         "marked as a Master. Configuring this node to use its own IP as a seed.");
+                    return getSeedsFromConfig();
+                }
+
+                Thread.sleep(SERVICE_TRY_WAIT_TIME_MILLISECONDS);
             }
         }
         catch(Exception exception) {
@@ -89,22 +127,87 @@ public class OpenshiftSeedProvider implements SeedProvider {
         return seeds;
     }
 
-    private InetAddress[] getInetAddresses(String serviceName, InetAddress[] inetAddresses, int i)
+    private SSLContext setupSSL() throws CertificateException, IOException, KeyStoreException,
+            NoSuchAlgorithmException, KeyManagementException {
+        CertificateFactory cFactory = CertificateFactory.getInstance("X.509");
+        InputStream certInputStream = new FileInputStream(KUBERNETES_MASTER_CERTIFICATE_FILENAME);
+
+        // get the certificate
+        Certificate certificate = cFactory.generateCertificate(certInputStream);
+        certInputStream.close();
+
+        // get the default keystore and add the certificate
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        keyStore.load(null, null);
+        keyStore.setCertificateEntry("kubernetes_master_ca", certificate);
+
+        TrustManagerFactory tmFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmFactory.init(keyStore);
+
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(null, tmFactory.getTrustManagers(), null);
+
+        return sslContext;
+    }
+
+    private List<InetAddress> getInetAddresses(String serviceName)
             throws UnknownHostException, InterruptedException {
+
+        List<InetAddress> inetAddresses = new ArrayList<>();
+
         try {
-            inetAddresses = InetAddress.getAllByName(serviceName);
-        } catch (UnknownHostException e) {
-            if (i == (SERVICE_TRIES - 1)) {
-                logger.error("Could not detect service. Aborting.");
-                throw e;
-            } else {
-                logger.warn("Could not detect service '" + serviceName +
-                        "'. It may not be up yet trying again.", e);
-                Thread.sleep(SERVICE_TRY_WAIT_TIME_MILLISECONDS);
+            InetAddress[] inetArray = InetAddress.getAllByName(serviceName);
+
+            for (InetAddress address: inetArray) {
+                inetAddresses.add(address);
             }
+
+        } catch (UnknownHostException e) {
+            logger.warn("UnknownHostException for service '" + serviceName + "'. It may not be up yet. Trying again");
         }
         return inetAddresses;
     }
+
+// Keeping this in here for now as we might need to go back to use the API to do a service lookup
+//
+//    private List<InetAddress> getInetAddresses(String serviceName) throws IOException {
+//        URL url = new URL(SERVICE_URL);
+//        HttpsURLConnection httpsURLConnection = (HttpsURLConnection) url.openConnection();
+//
+//        BufferedReader bufferedReader = new BufferedReader(new FileReader(SERVICE_ACCOUNT_TOKEN_FILENAME));
+//        httpsURLConnection.setRequestProperty("Authorization", "Bearer " + bufferedReader.readLine());
+//        bufferedReader.close();
+//
+//        httpsURLConnection.setSSLSocketFactory(sslContext.getSocketFactory());
+//
+//        ObjectMapper objectMapper = new ObjectMapper();
+//
+//        ObjectNode objectNode = (ObjectNode) objectMapper.readTree(httpsURLConnection.getInputStream());
+//
+//        return getInetAddresses(objectNode);
+//    }
+//
+//    private List<InetAddress> getInetAddresses(ObjectNode objectNode) throws UnknownHostException {
+//        List<InetAddress> seeds = new ArrayList<>();
+//
+//        ArrayNode subsets = (ArrayNode) objectNode.get("subsets");
+//
+//        if (subsets != null) {
+//            for (JsonNode jsonNode : subsets) {
+//                ArrayNode addresses = (ArrayNode) jsonNode.get("addresses");
+//                if (addresses != null) {
+//                    for (JsonNode address: addresses) {
+//                        String ip = address.get("ip").asText();
+//
+//                        InetAddress inetAddress = InetAddress.getByName(ip);
+//                        seeds.add(inetAddress);
+//                    }
+//                }
+//            }
+//
+//        }
+//        return seeds;
+//    }
 
     private List<InetAddress> getSeedsFromConfig() throws ConfigurationException {
         List<InetAddress> seedsAddresses = new ArrayList<>();
@@ -125,7 +228,7 @@ public class OpenshiftSeedProvider implements SeedProvider {
         return seedsAddresses;
     }
 
-    private String getEnv(String name, String defaultValue) {
+    private static String getEnv(String name, String defaultValue) {
         String value = System.getenv(name);
         if (value != null) {
             return value;

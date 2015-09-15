@@ -48,6 +48,8 @@ public abstract class BaseContainerTests {
     protected static final String CASSANDRA_NAME = "hawkular-cassandra";
     protected static final String CASSANDRA_CLUSTER_NAME = "hawkular-cassandra-nodes";
 
+    protected static final String CASSANDRA_MASTER_NAME = "hawkular-cassandra-master";
+
     protected static final String READY_STATE = "Ready";
 
     protected static String TENANT_HEADER = "Hawkular-Tenant";
@@ -75,12 +77,6 @@ public abstract class BaseContainerTests {
 
         ResteasyClient restClient = new ResteasyClientBuilder().build();
         target = restClient.target("http://" + metricsIP);
-    }
-
-    protected void foo() throws Exception {
-        ResteasyClient restClient = new ResteasyClientBuilder().build();
-        ResteasyWebTarget target = restClient.target("http://localhost:8080");
-
     }
 
     public void sendMetric(String metricId, String metricValue, int timeStamp) throws Exception {

@@ -50,7 +50,7 @@ public class TestContainers extends BaseContainerTests{
 
     @Test
     public void testCassandraRC() throws Exception {
-        ReplicationController rc = client.getReplicationController(CASSANDRA_NAME);
+        ReplicationController rc = client.getReplicationController(CASSANDRA_MASTER_NAME);
         assertThat(rc).isNotNull();
         assertThat(rc.getSpec()).hasReplicas(1);
         assertThat(rc.getStatus()).hasReplicas(1);
