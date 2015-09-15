@@ -26,7 +26,7 @@
     <version>0.7.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>clients</artifactId>
+  <artifactId>hawkular-metrics-clients</artifactId>
   <packaging>pom</packaging>
 
   <name>Hawkular Metrics clients</name>

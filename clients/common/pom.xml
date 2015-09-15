@@ -23,12 +23,12 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <artifactId>clients</artifactId>
     <groupId>org.hawkular.metrics</groupId>
+    <artifactId>hawkular-metrics-clients</artifactId>
     <version>0.7.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>clients-common</artifactId>
+  <artifactId>hawkular-metrics-clients-common</artifactId>
 
   <dependencies>
     <dependency>
