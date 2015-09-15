@@ -60,14 +60,6 @@ class GaugesITest extends RESTTest {
   }
 
   @Test
-  void shouldNotTagGaugeDataWithEmptyPayload() {
-    badPost(path: "gauges/pimpo/tag", headers: [(tenantHeaderName): tenantId],
-        body: "" /* Empty Body */) { exception ->
-      assertEquals(400, exception.response.status)
-    }
-  }
-
-  @Test
   void shouldStoreLargePayloadSize() {
     checkLargePayload("gauges", tenantId, { points, i -> points.push([timestamp: i, value: (double) i]) })
   }

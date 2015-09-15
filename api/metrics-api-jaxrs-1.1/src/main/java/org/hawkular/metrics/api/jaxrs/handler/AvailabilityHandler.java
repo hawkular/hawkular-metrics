@@ -52,7 +52,6 @@ import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
-import org.hawkular.metrics.api.jaxrs.model.TagRequest;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
@@ -268,29 +267,6 @@ public class AvailabilityHandler {
             } catch (Exception e) {
                 return serverError(e);
             }
-        }
-    }
-
-    @POST
-    @Path("/{id}/tag")
-    public Response tagAvailabilityData(
-            @PathParam("id") final String id,
-            TagRequest params
-    ) {
-        Observable<Void> resultSetObservable;
-        Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id));
-        if (params.getTimestamp() != null) {
-            resultSetObservable = metricsService.tagAvailabilityData(metric, params.getTags(), params.getTimestamp());
-        } else {
-            resultSetObservable = metricsService.tagAvailabilityData(metric, params.getTags(), params.getStart(),
-                params.getEnd());
-        }
-
-        try {
-            resultSetObservable.toBlocking().lastOrDefault(null);
-            return Response.ok().build();
-        } catch (Exception e) {
-            return serverError(e);
         }
     }
 

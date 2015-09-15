@@ -16,13 +16,8 @@
  */
 package org.hawkular.metrics.core.api;
 
-import static java.util.Collections.emptyMap;
-
 import java.util.Comparator;
-import java.util.Map;
 import java.util.Objects;
-
-import com.google.common.collect.ImmutableMap;
 
 /**
  * A metric data point consists of a timestamp and a value. The data type of the value will vary depending on the metric
@@ -38,17 +33,9 @@ public class DataPoint<T> {
 
     private final T value;
 
-    private Map<String, String> tags = emptyMap();
-
     public DataPoint(long timestamp, T value) {
         this.timestamp = timestamp;
         this.value = value;
-    }
-
-    public DataPoint(long timestamp, T value, Map<String, String> tags) {
-        this.timestamp = timestamp;
-        this.value = value;
-        this.tags = ImmutableMap.copyOf(tags);
     }
 
     public long getTimestamp() {
@@ -57,10 +44,6 @@ public class DataPoint<T> {
 
     public T getValue() {
         return value;
-    }
-
-    public Map<String, String> getTags() {
-        return tags;
     }
 
     @Override
@@ -82,7 +65,6 @@ public class DataPoint<T> {
         return com.google.common.base.Objects.toStringHelper(this)
                 .add("timestamp", timestamp)
                 .add("value", value)
-                .add("tags", tags)
                 .toString();
     }
 }

@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
@@ -187,25 +186,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> insertGaugeTag(String tag, String tagValue, Metric<Double> metric,
-            Observable<TTLDataPoint<Double>> data) {
-        return delegate.insertGaugeTag(tag, tagValue, metric, data);
-    }
-
-    @Override
-    public Observable<ResultSet> insertAvailabilityTag(String tag, String tagValue,
-            Metric<AvailabilityType> metric, Observable<TTLDataPoint<AvailabilityType>> data) {
-        return delegate.insertAvailabilityTag(tag, tagValue, metric, data);
-    }
-
-    @Override
-    public Observable<ResultSet> updateDataWithTag(Metric metric, DataPoint dataPoint, Map<String, String> tags) {
-        return delegate.updateDataWithTag(metric, dataPoint, tags);
-    }
-
-    @Override
-    public Observable<ResultSet> findGaugeDataByTag(String tenantId, String tag, String tagValue) {
-        return delegate.findGaugeDataByTag(tenantId, tag, tagValue);
+    public Observable<ResultSet> findGaugeByTag(String tenantId, String tag, String tagValue) {
+        return delegate.findGaugeByTag(tenantId, tag, tagValue);
     }
 
     @Override

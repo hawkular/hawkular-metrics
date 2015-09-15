@@ -16,9 +16,6 @@
  */
 package org.hawkular.metrics.api.jaxrs.model;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.unmodifiableMap;
-
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -33,8 +30,6 @@ import org.hawkular.metrics.core.api.MetricId;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonCreator.Mode;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
 import com.google.common.collect.Lists;
 
 import io.swagger.annotations.ApiModel;
@@ -48,7 +43,6 @@ import rx.Observable;
 public class CounterDataPoint {
     private final long timestamp;
     private final long value;
-    private final Map<String, String> tags;
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
@@ -68,13 +62,11 @@ public class CounterDataPoint {
         checkArgument(value != null, "Data point value is null");
         this.timestamp = timestamp;
         this.value = value;
-        this.tags = tags == null ? emptyMap() : unmodifiableMap(tags);
     }
 
     public CounterDataPoint(DataPoint<Long> dataPoint) {
         timestamp = dataPoint.getTimestamp();
         value = dataPoint.getValue();
-        tags = dataPoint.getTags();
     }
 
     @ApiModelProperty(required = true)
@@ -85,14 +77,6 @@ public class CounterDataPoint {
     @ApiModelProperty(required = true)
     public long getValue() {
         return value;
-    }
-
-    @JsonSerialize(include = Inclusion.NON_EMPTY)
-    @org.codehaus.jackson.map.annotate.JsonSerialize(
-            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY
-    )
-    public Map<String, String> getTags() {
-        return tags;
     }
 
     @Override
@@ -119,7 +103,6 @@ public class CounterDataPoint {
         return com.google.common.base.Objects.toStringHelper(this)
                 .add("timestamp", timestamp)
                 .add("value", value)
-                .add("tags", tags)
                 .toString();
     }
 

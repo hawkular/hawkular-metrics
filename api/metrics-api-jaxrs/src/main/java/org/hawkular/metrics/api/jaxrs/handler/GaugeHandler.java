@@ -53,7 +53,6 @@ import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Gauge;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
-import org.hawkular.metrics.api.jaxrs.model.TagRequest;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
@@ -235,7 +234,7 @@ public class GaugeHandler {
         if (tags == null) {
             asyncResponse.resume(badRequest(new ApiError("Missing tags query")));
         } else {
-            metricsService.findGaugeDataByTags(tenantId, tags.getTags()).subscribe(m -> {
+            metricsService.findGaugeByTags(tenantId, tags.getTags()).subscribe(m -> {
                 if (m.isEmpty()) {
                     asyncResponse.resume(Response.noContent().build());
                 } else {
@@ -377,7 +376,7 @@ public class GaugeHandler {
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam("Tag list") @PathParam("tags") Tags tags
     ) {
-        metricsService.findGaugeDataByTags(tenantId, tags.getTags())
+        metricsService.findGaugeByTags(tenantId, tags.getTags())
                 .flatMap(input -> Observable.from(input.entrySet()))
                 .toMap(e -> e.getKey().getName(), Map.Entry::getValue)
                 .subscribe(m -> { // @TODO Repeated code
@@ -387,28 +386,5 @@ public class GaugeHandler {
                         asyncResponse.resume(Response.ok(m).build());
                     }
                 }, t -> asyncResponse.resume(ApiUtils.serverError(t)));
-    }
-
-    @POST
-    @Path("/{id}/tag")
-    @ApiOperation(value = "Add or update gauge metric's tags.")
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Tags were modified successfully."),
-            @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Processing tags failed", response = ApiError.class)
-    })
-    public void tagGaugeData(
-            @Suspended final AsyncResponse asyncResponse,
-            @PathParam("id") final String id, @ApiParam(required = true) TagRequest params
-    ) {
-        Observable<Void> resultSetObservable;
-        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
-        if (params.getTimestamp() != null) {
-            resultSetObservable = metricsService.tagGaugeData(metric, params.getTags(), params.getTimestamp());
-        } else {
-            resultSetObservable = metricsService.tagGaugeData(metric, params.getTags(), params.getStart(), params
-                    .getEnd());
-        }
-        resultSetObservable.subscribe(new ResultSetObserver(asyncResponse));
     }
 }

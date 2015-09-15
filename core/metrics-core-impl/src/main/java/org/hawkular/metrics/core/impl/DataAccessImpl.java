@@ -68,6 +68,7 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement insertTenantId;
 
     private PreparedStatement findAllTenantIds;
+
     private PreparedStatement findAllTenantIdsFromMetricsIdx;
 
     private PreparedStatement insertTenantIdIntoBucket;
@@ -108,13 +109,7 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findGaugeMetrics;
 
-    private PreparedStatement insertGaugeTags;
-
-    private PreparedStatement insertAvailabilityTags;
-
-    private PreparedStatement updateDataWithTags;
-
-    private PreparedStatement findGaugeDataByTag;
+    private PreparedStatement findGaugeByTag;
 
     private PreparedStatement findAvailabilityByTag;
 
@@ -222,39 +217,39 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ? ");
 
         findGaugeDataByDateRangeExclusive = session.prepare(
-            "SELECT time, data_retention, n_value, tags FROM data " +
+            "SELECT time, data_retention, n_value FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time < ?");
 
         findGaugeDataByDateRangeExclusiveASC = session.prepare(
-            "SELECT time, data_retention, n_value, tags FROM data " +
+            "SELECT time, data_retention, n_value FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?" +
             " AND time < ? ORDER BY time ASC");
 
         findCounterDataExclusive = session.prepare(
-            "SELECT time, data_retention, l_value, tags FROM data " +
+            "SELECT time, data_retention, l_value FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ? " +
             "AND time < ? " +
             "ORDER BY time ASC");
 
         findGaugeDataWithWriteTimeByDateRangeExclusive = session.prepare(
-            "SELECT time, data_retention, n_value, tags, WRITETIME(n_value) FROM data " +
+            "SELECT time, data_retention, n_value, WRITETIME(n_value) FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time < ?");
 
         findGaugeDataByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, interval, dpart, time, data_retention, n_value, tags " +
+            "SELECT tenant_id, metric, interval, dpart, time, data_retention, n_value " +
             "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time <= ?");
 
         findGaugeDataWithWriteTimeByDateRangeInclusive = session.prepare(
-            "SELECT time, data_retention, n_value, tags, WRITETIME(n_value) FROM data " +
+            "SELECT time, data_retention, n_value, WRITETIME(n_value) FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time <= ?");
 
         findAvailabilityByDateRangeInclusive = session.prepare(
-            "SELECT time, data_retention, availability, tags, WRITETIME(availability) FROM data " +
+            "SELECT time, data_retention, availability, WRITETIME(availability) FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time <= ?");
 
@@ -265,29 +260,14 @@ public class DataAccessImpl implements DataAccess {
         findGaugeMetrics = session.prepare(
             "SELECT DISTINCT tenant_id, type, metric, interval, dpart FROM data;");
 
-        insertGaugeTags = session.prepare(
-            "INSERT INTO tags (tenant_id, tname, tvalue, type, metric, interval, time, n_value) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
-            "USING TTL ?");
-
-        insertAvailabilityTags = session.prepare(
-            "INSERT INTO tags (tenant_id, tname, tvalue, type, metric, interval, time, availability) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
-            "USING TTL ?");
-
-        updateDataWithTags = session.prepare(
-            "UPDATE data " +
-            "SET tags = tags + ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
-
-        findGaugeDataByTag = session.prepare(
-            "SELECT tenant_id, tname, tvalue, type, metric, interval, time, n_value " +
-            "FROM tags " +
+        findGaugeByTag = session.prepare(
+            "SELECT tenant_id, tname, tvalue, type, metric, interval " +
+            "FROM metrics_tags_idx " +
             "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
 
         findAvailabilityByTag = session.prepare(
-            "SELECT tenant_id, tname, tvalue, type, metric, interval, time, availability " +
-            "FROM tags " +
+            "SELECT tenant_id, tname, tvalue, type, metric, interval " +
+            "FROM metrics_tags_idx " +
             "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
 
         insertAvailability = session.prepare(
@@ -297,13 +277,15 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time = ?");
 
         findAvailabilities = session.prepare(
-            "SELECT time, data_retention, availability, tags FROM data " +
+            "SELECT time, data_retention, availability " +
+            "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?"
                 + " AND time < ? " +
             "ORDER BY time ASC");
 
         findAvailabilitiesWithWriteTime = session.prepare(
-            "SELECT time, data_retention, availability, tags, WRITETIME(availability) FROM data " +
+            "SELECT time, data_retention, availability, WRITETIME(availability) " +
+            "FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND interval = ? AND dpart = ? AND time >= ?" +
                     " AND time < ?");
 
@@ -569,39 +551,8 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> insertGaugeTag(String tag, String tagValue, Metric<Double> metric,
-            Observable<TTLDataPoint<Double>> data) {
-        MetricId<?> id = metric.getId();
-        return data
-                .map(d -> insertGaugeTags.bind(id.getTenantId(), tag, tagValue, GAUGE.getCode(), id.getName(),
-                        id.getInterval().toString(), getTimeUUID(d.getDataPoint().getTimestamp()),
-                        d.getDataPoint().getValue(), d.getTTL()))
-                .compose(new BatchStatementTransformer())
-                .flatMap(rxSession::execute);
-    }
-
-    @Override
-    public Observable<ResultSet> insertAvailabilityTag(String tag, String tagValue, Metric<AvailabilityType> metric,
-                                                       Observable<TTLDataPoint<AvailabilityType>> data) {
-        MetricId<?> id = metric.getId();
-        return data
-                .map(a -> insertAvailabilityTags.bind(id.getTenantId(), tag, tagValue, AVAILABILITY.getCode(),
-                        id.getName(), id.getInterval().toString(),
-                        getTimeUUID(a.getDataPoint().getTimestamp()), getBytes(a.getDataPoint()), a.getTTL()))
-                .compose(new BatchStatementTransformer())
-                .flatMap(rxSession::execute);
-    }
-
-    @Override
-    public Observable<ResultSet> updateDataWithTag(Metric metric, DataPoint dataPoint, Map<String, String> tags) {
-        MetricId<?> metricId = metric.getId();
-        return rxSession.execute(updateDataWithTags.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
-                metricId.getName(), metricId.getInterval().toString(), DPART, getTimeUUID(dataPoint.getTimestamp())));
-    }
-
-    @Override
-    public Observable<ResultSet> findGaugeDataByTag(String tenantId, String tag, String tagValue) {
-        return rxSession.execute(findGaugeDataByTag.bind(tenantId, tag, tagValue));
+    public Observable<ResultSet> findGaugeByTag(String tenantId, String tag, String tagValue) {
+        return rxSession.execute(findGaugeByTag.bind(tenantId, tag, tagValue));
     }
 
     @Override

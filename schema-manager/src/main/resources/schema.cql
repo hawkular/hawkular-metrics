@@ -91,7 +91,6 @@ CREATE TABLE ${keyspace}.data (
     availability blob,
     l_value bigint,
     aggregates set<frozen <aggregate_data>>,
-    tags map<text, text>,
     PRIMARY KEY ((tenant_id, type, metric, interval, dpart), time)
 )
 WITH CLUSTERING ORDER BY (time DESC);
@@ -106,22 +105,6 @@ CREATE TABLE ${keyspace}.metrics_tags_idx (
     metric text,
     interval text,
     PRIMARY KEY ((tenant_id, tname), tvalue, type, metric, interval)
-) WITH compaction = { 'class': 'LeveledCompactionStrategy' };
-
--- #
-
-CREATE TABLE ${keyspace}.tags (
-    tenant_id text,
-    tname text,      // the tag name
-    tvalue text,     // the tag value
-    type int,
-    metric text,
-    interval text,
-    time timeuuid,
-    n_value double,
-    aggregates set<frozen <aggregate_data>>,
-    availability blob,
-    PRIMARY KEY ((tenant_id, tname), tvalue, type, metric, interval, time)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' };
 
 -- #

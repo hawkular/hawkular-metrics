@@ -63,15 +63,6 @@ class AvailabilityITest extends RESTTest {
   }
 
   @Test
-  void shouldNotTagAvailabilityDataWithEmptyPayload() {
-    badPost(path: "availability/pimpo/tag", headers: [(tenantHeaderName): tenantId],
-        body: "" /* Empty Body */) { exception ->
-      assertEquals(400, exception.response.status)
-    }
-  }
-
-
-  @Test
   void shouldStoreLargePayloadSize() {
     def availabilityTypes = AvailabilityType.values()
     checkLargePayload("availability", tenantId, { points, int i ->

@@ -43,7 +43,6 @@ public class Functions {
         TIME,
         DATA_RETENTION,
         VALUE,
-        TAGS,
         WRITE_TIME
     }
 
@@ -51,7 +50,6 @@ public class Functions {
         TIME,
         DATA_RETENTION,
         VALUE,
-        TAGS,
         WRITE_TIME
     }
 
@@ -59,7 +57,6 @@ public class Functions {
         TIME,
         DATA_RETENTION,
         AVAILABILITY,
-        TAGS,
         WRITE_TIME
     }
 
@@ -71,17 +68,13 @@ public class Functions {
     public static DataPoint<Double> getGaugeDataPoint(Row row) {
         return new DataPoint<>(
                 UUIDs.unixTimestamp(row.getUUID(GAUGE_COLS.TIME.ordinal())),
-                row.getDouble(GAUGE_COLS.VALUE.ordinal()),
-                row.getMap(GAUGE_COLS.TAGS.ordinal(), String.class, String.class)
-        );
+                row.getDouble(GAUGE_COLS.VALUE.ordinal()));
     }
 
     public static DataPoint<Long> getCounterDataPoint(Row row) {
         return new DataPoint<>(
                 UUIDs.unixTimestamp(row.getUUID(COUNTER_COLS.TIME.ordinal())),
-                row.getLong(COUNTER_COLS.VALUE.ordinal()),
-                row.getMap(COUNTER_COLS.TAGS.ordinal(), String.class, String.class)
-        );
+                row.getLong(COUNTER_COLS.VALUE.ordinal()));
     }
 
     public static TTLDataPoint<Double> getTTLGaugeDataPoint(Row row, int originalTTL) {
@@ -103,9 +96,7 @@ public class Functions {
     public static DataPoint<AvailabilityType> getAvailabilityDataPoint(Row row) {
         return new DataPoint<>(
                 UUIDs.unixTimestamp(row.getUUID(AVAILABILITY_COLS.TIME.ordinal())),
-                AvailabilityType.fromBytes(row.getBytes(AVAILABILITY_COLS.AVAILABILITY.ordinal())),
-                row.getMap(AVAILABILITY_COLS.TAGS.ordinal(), String.class, String.class)
-        );
+                AvailabilityType.fromBytes(row.getBytes(AVAILABILITY_COLS.AVAILABILITY.ordinal())));
     }
 
     public static Tenant getTenant(Row row) {
