@@ -119,6 +119,7 @@ public class HawkularMetricsRestApp extends Application {
         // Add interceptors and other miscellaneous providers
         classes.add(EmptyPayloadInterceptor.class);
         classes.add(ConvertersProvider.class);
+        classes.add(org.hawkular.metrics.api.jaxrs.influx.param.ConvertersProvider.class);
         classes.add(JacksonConfig.class);
 
         return classes;

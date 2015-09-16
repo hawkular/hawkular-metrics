@@ -16,6 +16,12 @@
  */
 package org.hawkular.metrics.api.jaxrs.influx;
 
+import static org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit.DAYS;
+import static org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit.HOURS;
+import static org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit.MICROSECONDS;
+import static org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit.MINUTES;
+import static org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit.SECONDS;
+import static org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit.WEEKS;
 import static org.junit.Assert.assertEquals;
 
 import java.util.concurrent.TimeUnit;
@@ -29,11 +35,21 @@ public class InfluxTimeUnitTest {
 
     @Test
     public void testConvertTo() throws Exception {
-        assertEquals(5, InfluxTimeUnit.MINUTES.convertTo(TimeUnit.DAYS, 60 * 24 * 5));
-        assertEquals(5, InfluxTimeUnit.MINUTES.convertTo(TimeUnit.DAYS, 60 * 24 * 5));
-        assertEquals(5, InfluxTimeUnit.MINUTES.convertTo(TimeUnit.DAYS, 60 * 24 * 5));
-        assertEquals(5, InfluxTimeUnit.MINUTES.convertTo(TimeUnit.DAYS, 60 * 24 * 5));
-        assertEquals(7, InfluxTimeUnit.SECONDS.convertTo(TimeUnit.HOURS, 3600 * 7));
-        assertEquals(13 * 1000, InfluxTimeUnit.MICROSECONDS.convertTo(TimeUnit.NANOSECONDS, 13));
+        assertEquals(5 * 7 * 24, WEEKS.convertTo(TimeUnit.HOURS, 5));
+        assertEquals(48, DAYS.convertTo(TimeUnit.HOURS, 2));
+        assertEquals(4 * 3600, HOURS.convertTo(TimeUnit.SECONDS, 4));
+        assertEquals(5, MINUTES.convertTo(TimeUnit.DAYS, 60 * 24 * 5));
+        assertEquals(7, SECONDS.convertTo(TimeUnit.HOURS, 3600 * 7));
+        assertEquals(13 * 1000, MICROSECONDS.convertTo(TimeUnit.NANOSECONDS, 13));
+    }
+
+    @Test
+    public void testConvert() throws Exception {
+        assertEquals(5 * 7 * 24, HOURS.convert(5, WEEKS));
+        assertEquals(48, HOURS.convert(2, DAYS));
+        assertEquals(4 * 3600, SECONDS.convert(4, HOURS));
+        assertEquals(5, DAYS.convert(60 * 24 * 5, MINUTES));
+        assertEquals(7, HOURS.convert(3600 * 7, SECONDS));
+        assertEquals(42, WEEKS.convert(42 * 7 * 24 * 3600, SECONDS));
     }
 }

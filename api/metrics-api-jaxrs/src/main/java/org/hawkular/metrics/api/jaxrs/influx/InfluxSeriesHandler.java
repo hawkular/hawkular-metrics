@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.api.jaxrs.influx;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -27,6 +28,7 @@ import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,6 +104,9 @@ import rx.Observer;
 public class InfluxSeriesHandler {
     private static final Logger LOG = LoggerFactory.getLogger(InfluxSeriesHandler.class);
 
+    private static final EnumSet<InfluxTimeUnit> TIME_PRECISION_ALLOWED =
+            EnumSet.of(InfluxTimeUnit.SECONDS, InfluxTimeUnit.MILLISECONDS, InfluxTimeUnit.MICROSECONDS);
+
     @Inject
     MetricsService metricsService;
     @Inject
@@ -119,11 +124,18 @@ public class InfluxSeriesHandler {
     @POST
     @Consumes(APPLICATION_JSON)
     public void write(
-            @Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
+            @Suspended AsyncResponse asyncResponse,
+            @PathParam("tenantId") String tenantId,
+            @QueryParam("time_precision") InfluxTimeUnit timePrecision,
             List<InfluxObject> influxObjects
     ) {
         if (influxObjects == null) {
             asyncResponse.resume(errorResponse(BAD_REQUEST, "Null objects"));
+            return;
+        }
+
+        if (timePrecision != null && !TIME_PRECISION_ALLOWED.contains(timePrecision)) {
+            asyncResponse.resume(errorResponse(BAD_REQUEST, "Invalid time precision: " + timePrecision));
             return;
         }
 
@@ -135,11 +147,15 @@ public class InfluxSeriesHandler {
         }
 
         Observable<Metric<Double>> input = Observable.from(influxObjects)
-                .map(influxObject -> influxToGauge(tenantId, influxObject));
+                .map(influxObject -> influxToGauge(tenantId, influxObject, timePrecision));
         metricsService.addDataPoints(GAUGE, input).subscribe(new WriteObserver(asyncResponse));
     }
 
-    private static Metric<Double> influxToGauge(String tenantId, InfluxObject influxObject) {
+    private static Metric<Double> influxToGauge(String tenantId, InfluxObject influxObject, InfluxTimeUnit
+            timePrecision) {
+        if (timePrecision == null) {
+            timePrecision = InfluxTimeUnit.MILLISECONDS;
+        }
         List<String> influxObjectColumns = influxObject.getColumns();
         int valueColumnIndex = influxObjectColumns.indexOf("value");
         List<List<?>> influxObjectPoints = influxObject.getPoints();
@@ -152,6 +168,7 @@ public class InfluxSeriesHandler {
                 value = ((Number) point.get(0)).doubleValue();
             } else {
                 timestamp = ((Number) point.get((valueColumnIndex + 1) % 2)).longValue();
+                timestamp = timePrecision.convertTo(MILLISECONDS, timestamp);
                 value = ((Number) point.get(valueColumnIndex)).doubleValue();
             }
             dataPoints.add(new DataPoint<>(timestamp, value));
@@ -161,12 +178,19 @@ public class InfluxSeriesHandler {
 
     @GET
     public void query(
-            @Suspended AsyncResponse asyncResponse, @PathParam("tenantId") String tenantId,
-            @QueryParam("q") String queryString
+            @Suspended AsyncResponse asyncResponse,
+            @PathParam("tenantId") String tenantId,
+            @QueryParam("q") String queryString,
+            @QueryParam("time_precision") InfluxTimeUnit timePrecision
     ) {
 
         if (queryString == null || queryString.isEmpty()) {
             asyncResponse.resume(errorResponse(BAD_REQUEST, "Missing query"));
+            return;
+        }
+
+        if (timePrecision != null && !TIME_PRECISION_ALLOWED.contains(timePrecision)) {
+            asyncResponse.resume(errorResponse(BAD_REQUEST, "Invalid time precision: " + timePrecision));
             return;
         }
 
@@ -183,14 +207,14 @@ public class InfluxSeriesHandler {
         }
 
         switch (queryType) {
-        case LIST_SERIES:
-            listSeries(asyncResponse, tenantId, queryContext.listSeries());
-            break;
-        case SELECT:
-            select(asyncResponse, tenantId, queryContext.selectQuery());
-            break;
-        default:
-            asyncResponse.resume(errorResponse(BAD_REQUEST, "Query not yet supported: " + queryString));
+            case LIST_SERIES:
+                listSeries(asyncResponse, tenantId, queryContext.listSeries());
+                break;
+            case SELECT:
+                select(asyncResponse, tenantId, queryContext.selectQuery(), timePrecision);
+                break;
+            default:
+                asyncResponse.resume(errorResponse(BAD_REQUEST, "Query not yet supported: " + queryString));
         }
     }
 
@@ -230,7 +254,8 @@ public class InfluxSeriesHandler {
         return ImmutableList.of(builder.createInfluxObject());
     }
 
-    private void select(AsyncResponse asyncResponse, String tenantId, SelectQueryContext selectQueryContext) {
+    private void select(AsyncResponse asyncResponse, String tenantId, SelectQueryContext selectQueryContext,
+                        InfluxTimeUnit timePrecision) {
 
         SelectQueryDefinitionsParser definitionsParser = new SelectQueryDefinitionsParser();
         parseTreeWalker.walk(definitionsParser, selectQueryContext);
@@ -314,7 +339,11 @@ public class InfluxSeriesHandler {
 
                     for (DataPoint<Double> m : metrics) {
                         List<Object> data = new ArrayList<>();
-                        data.add(m.getTimestamp());
+                        if (timePrecision == null) {
+                            data.add(m.getTimestamp());
+                        } else {
+                            data.add(timePrecision.convert(m.getTimestamp(), InfluxTimeUnit.MILLISECONDS));
+                        }
                         data.add(m.getValue());
                         builder.addPoint(data);
                     }

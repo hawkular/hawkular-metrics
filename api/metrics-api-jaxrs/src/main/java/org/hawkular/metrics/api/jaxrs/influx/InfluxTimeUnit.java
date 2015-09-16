@@ -30,11 +30,21 @@ public enum InfluxTimeUnit {
         public long convertTo(TimeUnit targetUnit, long value) {
             return targetUnit.convert(value, TimeUnit.MICROSECONDS);
         }
+
+        @Override
+        public long convert(long sourceValue, InfluxTimeUnit sourceUnit) {
+            return sourceUnit.convertTo(TimeUnit.MICROSECONDS, sourceValue);
+        }
     },
     MILLISECONDS("ms") {
         @Override
         public long convertTo(TimeUnit targetUnit, long value) {
             return targetUnit.convert(value, TimeUnit.MILLISECONDS);
+        }
+
+        @Override
+        public long convert(long sourceValue, InfluxTimeUnit sourceUnit) {
+            return sourceUnit.convertTo(TimeUnit.MILLISECONDS, sourceValue);
         }
     },
     SECONDS("s") {
@@ -42,11 +52,21 @@ public enum InfluxTimeUnit {
         public long convertTo(TimeUnit targetUnit, long value) {
             return targetUnit.convert(value, TimeUnit.SECONDS);
         }
+
+        @Override
+        public long convert(long sourceValue, InfluxTimeUnit sourceUnit) {
+            return sourceUnit.convertTo(TimeUnit.SECONDS, sourceValue);
+        }
     },
     MINUTES("m") {
         @Override
         public long convertTo(TimeUnit targetUnit, long value) {
             return targetUnit.convert(value, TimeUnit.MINUTES);
+        }
+
+        @Override
+        public long convert(long sourceValue, InfluxTimeUnit sourceUnit) {
+            return sourceUnit.convertTo(TimeUnit.MINUTES, sourceValue);
         }
     },
     HOURS("h") {
@@ -54,17 +74,32 @@ public enum InfluxTimeUnit {
         public long convertTo(TimeUnit targetUnit, long value) {
             return targetUnit.convert(value, TimeUnit.HOURS);
         }
+
+        @Override
+        public long convert(long sourceValue, InfluxTimeUnit sourceUnit) {
+            return sourceUnit.convertTo(TimeUnit.HOURS, sourceValue);
+        }
     },
     DAYS("d") {
         @Override
         public long convertTo(TimeUnit targetUnit, long value) {
             return targetUnit.convert(value, TimeUnit.DAYS);
         }
+
+        @Override
+        public long convert(long sourceValue, InfluxTimeUnit sourceUnit) {
+            return sourceUnit.convertTo(TimeUnit.DAYS, sourceValue);
+        }
     },
     WEEKS("w") {
         @Override
         public long convertTo(TimeUnit targetUnit, long value) {
             return targetUnit.convert(7 * value, TimeUnit.DAYS);
+        }
+
+        @Override
+        public long convert(long sourceValue, InfluxTimeUnit sourceUnit) {
+            return sourceUnit.convertTo(TimeUnit.DAYS, sourceValue) / 7;
         }
     };
 
@@ -88,6 +123,8 @@ public enum InfluxTimeUnit {
      * @return the value in the target {@link java.util.concurrent.TimeUnit}
      */
     public abstract long convertTo(TimeUnit targetUnit, long value);
+
+    public abstract long convert(long sourceValue, InfluxTimeUnit sourceUnit);
 
     private static final Map<String, InfluxTimeUnit> UNIT_BY_ID;
 
