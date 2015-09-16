@@ -208,13 +208,19 @@ public class AvailabilityHandler {
             return badRequest(new ApiError("Missing tags query"));
         } else {
             try {
-                return metricsService.findAvailabilityByTags(tenantId, tags.getTags()).map(m -> {
-                    if (m.isEmpty()) {
-                        return ApiUtils.noContent();
-                    } else {
-                        return Response.ok(m).build();
-                    }
-                }).toBlocking().lastOrDefault(null);
+                return metricsService.findMetricsByTags(tenantId, AVAILABILITY, tags.getTags())
+                        .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
+                        .map(e -> new MetricDefinition(e.getName(), null, null, AVAILABILITY))
+                        .toList()
+                        .map(m -> {
+                            if (m.isEmpty()) {
+                                return ApiUtils.noContent();
+                            } else {
+                                return Response.ok(m).build();
+                            }
+                        })
+                        .toBlocking()
+                        .lastOrDefault(null);
             } catch (Exception e) {
                 return serverError(e);
             }
@@ -276,13 +282,17 @@ public class AvailabilityHandler {
             @PathParam("tags") Tags tags
     ) {
         try {
-        return metricsService.findAvailabilityByTags(tenantId, tags.getTags()).map(m -> {
-            if (m.isEmpty()) {
-                return ApiUtils.noContent();
-            } else {
-                return Response.ok(m).build();
-            }
-            }).toBlocking().lastOrDefault(null);
+            return metricsService.findMetricsByTags(tenantId, AVAILABILITY, tags.getTags())
+                    .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
+                    .map(e -> new MetricDefinition(e.getName(), null, null, AVAILABILITY))
+                    .toList()
+                    .map(m -> {
+                        if (m.isEmpty()) {
+                            return ApiUtils.noContent();
+                        } else {
+                            return Response.ok(m).build();
+                        }
+                    }).toBlocking().lastOrDefault(null);
         } catch (Exception e) {
             return serverError(e);
         }

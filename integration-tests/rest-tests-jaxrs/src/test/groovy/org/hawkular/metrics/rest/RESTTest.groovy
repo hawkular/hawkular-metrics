@@ -137,4 +137,15 @@ ${entity}
       assertEquals(400, exception.response.status)
     }
   }
+
+  def assertDefinitionArrayEquals = { expected, actual ->
+    assertEquals(expected.size(), actual.size())
+
+    def sortedExpectedArray =  expected.sort { a, b ->  a.id <=> b.id }
+    def sortedActualArray = actual.sort { a, b ->  a.id <=> b.id }
+
+    [sortedExpectedArray, sortedActualArray].transpose().collect {
+      assertEquals(it[0].id, it[1].id)
+    }
+  }
 }

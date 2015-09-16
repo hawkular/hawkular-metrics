@@ -236,14 +236,18 @@ public class AvailabilityHandler {
             asyncResponse.resume(badRequest(new ApiError("Missing tags query")));
         } else {
             // @TODO Repeated code, refactor (in GaugeHandler also)
-            metricsService.findAvailabilityByTags(tenantId, tags.getTags()).subscribe(m -> {
-                if (m.isEmpty()) {
-                    asyncResponse.resume(noContent());
-                } else {
-                    asyncResponse.resume(Response.ok(m).build());
-                }
-            }, t -> asyncResponse.resume(serverError(t)));
-
+            metricsService.findMetricsByTags(tenantId, AVAILABILITY, tags.getTags())
+                    .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
+                    .map(e -> new MetricDefinition(e.getName(), null, null, AVAILABILITY))
+                    .toList()
+                    .subscribe(m -> {
+                        if (m.isEmpty()) {
+                            asyncResponse.resume(Response.noContent().build());
+                        } else {
+                            asyncResponse.resume(Response.ok(m).build());
+                        }
+                    } , t -> asyncResponse
+                            .resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
         }
     }
 
@@ -314,13 +318,16 @@ public class AvailabilityHandler {
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam("Tag list") @PathParam("tags") Tags tags
     ) {
-        metricsService.findAvailabilityByTags(tenantId, tags.getTags())
-        .subscribe(m -> { // @TODO Repeated code, refactor and use Optional?
-            if (m.isEmpty()) {
-                asyncResponse.resume(noContent());
-            } else {
-                asyncResponse.resume(Response.ok(m).build());
-            }
-        }, t -> asyncResponse.resume(serverError(t)));
+        metricsService.findMetricsByTags(tenantId, AVAILABILITY, tags.getTags())
+                .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
+                .map(e -> new MetricDefinition(e.getName(), null, null, AVAILABILITY))
+                .toList()
+                .subscribe(m -> {// @TODO Repeated code, refactor and use Optional?
+                    if (m.isEmpty()) {
+                        asyncResponse.resume(Response.noContent().build());
+                    } else {
+                        asyncResponse.resume(Response.ok(m).build());
+                    }
+                } , t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
     }
 }

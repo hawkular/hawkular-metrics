@@ -201,7 +201,11 @@ public class GaugeHandler {
             return badRequest(new ApiError("Missing tags query"));
         } else {
             try{
-                return metricsService.findGaugeByTags(tenantId, tags.getTags()).map(m -> {
+                return metricsService.findMetricsByTags(tenantId, GAUGE, tags.getTags())
+                        .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
+                        .map(e -> new MetricDefinition(e.getName(), null, null, GAUGE))
+                        .toList()
+                        .map(m -> {
                     if (m.isEmpty()) {
                         return ApiUtils.noContent();
                     } else {
@@ -330,9 +334,10 @@ public class GaugeHandler {
     @Path("/tags/{tags}")
     public Response findTaggedGaugeData(@PathParam("tags") Tags tags) {
         try {
-            return metricsService.findGaugeByTags(tenantId, tags.getTags())
-                    .flatMap(input -> Observable.from(input.entrySet()))
-                    .toMap(e -> e.getKey().getName(), Map.Entry::getValue)
+            return metricsService.findMetricsByTags(tenantId, GAUGE, tags.getTags())
+                    .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
+                    .map(e -> new MetricDefinition(e.getName(), null, null, GAUGE))
+                    .toList()
                     .map(m -> {
                         if (m.isEmpty()) {
                         return ApiUtils.noContent();

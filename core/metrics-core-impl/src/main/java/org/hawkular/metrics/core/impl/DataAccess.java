@@ -94,10 +94,6 @@ public interface DataAccess {
 
     Observable<ResultSet> findAllGaugeMetrics();
 
-    Observable<ResultSet> findGaugeByTag(String tenantId, String tag, String tagValue);
-
-    Observable<ResultSet> findAvailabilityByTag(String tenantId, String tag, String tagValue);
-
     Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl);
 
     Observable<ResultSet> findAvailabilityData(MetricId<?> id, long startTime, long endTime);

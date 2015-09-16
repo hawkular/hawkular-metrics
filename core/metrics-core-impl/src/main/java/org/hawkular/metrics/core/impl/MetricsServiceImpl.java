@@ -813,23 +813,22 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public Observable<Map<MetricId<Double>, Set<DataPoint<Double>>>> findGaugeByTags(String tenantId,
+    public <T> Observable<Set<MetricId<T>>> findMetricsByTags(String tenantId, MetricType<T> metricType,
             Map<String, String> tags) {
         return Observable.from(tags.entrySet())
-                .flatMap(e -> dataAccess.findGaugeByTag(tenantId, e.getKey(), e.getValue()))
-                .map(TaggedGaugeDataPointMapper::apply)
+                .flatMap(e -> dataAccess.findMetricsByTagNameValue(tenantId, e.getKey(), e.getValue()))
+                .map(value -> TaggedMetricMapper.apply(value, metricType))
                 .toList()
-                .map(new MergeDataPointTagsFunction<>());
-    }
-
-    @Override
-    public Observable<Map<MetricId<AvailabilityType>, Set<DataPoint<AvailabilityType>>>> findAvailabilityByTags(
-            String tenantId, Map<String, String> tags) {
-        return Observable.from(tags.entrySet())
-                .flatMap(e -> dataAccess.findAvailabilityByTag(tenantId, e.getKey(), e.getValue()))
-                .map(TaggedAvailabilityDataPointMapper::apply)
-                .toList()
-                .map(new MergeDataPointTagsFunction<>());
+                .map(new Func1<List<Set<MetricId<T>>>, Set<MetricId<T>>>() {
+                    @Override
+                    public Set<MetricId<T>> call(List<Set<MetricId<T>>> t) {
+                        Set<MetricId<T>> accumulator = new HashSet<>();
+                        for (Set<MetricId<T>> set : t) {
+                            accumulator.addAll(set);
+                        }
+                        return accumulator;
+                    }
+                });
     }
 
     @Override

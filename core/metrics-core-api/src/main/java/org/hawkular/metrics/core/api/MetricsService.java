@@ -159,12 +159,6 @@ public interface MetricsService {
     /** Check if a metric with the passed {id} has been stored in the system */
     Observable<Boolean> idExists(String id);
 
-    Observable<Map<MetricId<Double>, Set<DataPoint<Double>>>> findGaugeByTags(String tenantId,
-            Map<String, String> tags);
-
-    Observable<Map<MetricId<AvailabilityType>, Set<DataPoint<AvailabilityType>>>> findAvailabilityByTags(
-            String tenantId, Map<String, String> tags);
-
     /**
      * Fetches counter data points and calculates per-minute rates. The start and end time are rounded down to the
      * nearest minutes in order to separate data points into one minute buckets.
@@ -202,4 +196,7 @@ public interface MetricsService {
      * the predicate matches, and the second element is the end time inclusive for which the predicate matches.
      */
     Observable<List<long[]>> getPeriods(MetricId<Double> id, Predicate<Double> predicate, long start, long end);
+
+    <T> Observable<Set<MetricId<T>>> findMetricsByTags(String tenantId, MetricType<T> metricType,
+            Map<String, String> tags);
 }

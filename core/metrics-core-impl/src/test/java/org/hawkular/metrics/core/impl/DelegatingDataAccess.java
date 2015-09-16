@@ -186,16 +186,6 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findGaugeByTag(String tenantId, String tag, String tagValue) {
-        return delegate.findGaugeByTag(tenantId, tag, tagValue);
-    }
-
-    @Override
-    public Observable<ResultSet> findAvailabilityByTag(String tenantId, String tag, String tagValue) {
-        return delegate.findAvailabilityByTag(tenantId, tag, tagValue);
-    }
-
-    @Override
     public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
         return delegate.insertAvailabilityData(metric, ttl);
     }

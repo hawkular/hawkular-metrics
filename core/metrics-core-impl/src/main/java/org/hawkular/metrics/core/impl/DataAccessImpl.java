@@ -109,10 +109,6 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findGaugeMetrics;
 
-    private PreparedStatement findGaugeByTag;
-
-    private PreparedStatement findAvailabilityByTag;
-
     private PreparedStatement insertAvailability;
 
     private PreparedStatement findAvailabilities;
@@ -260,16 +256,6 @@ public class DataAccessImpl implements DataAccess {
         findGaugeMetrics = session.prepare(
             "SELECT DISTINCT tenant_id, type, metric, interval, dpart FROM data;");
 
-        findGaugeByTag = session.prepare(
-            "SELECT tenant_id, tname, tvalue, type, metric, interval " +
-            "FROM metrics_tags_idx " +
-            "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
-
-        findAvailabilityByTag = session.prepare(
-            "SELECT tenant_id, tname, tvalue, type, metric, interval " +
-            "FROM metrics_tags_idx " +
-            "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
-
         insertAvailability = session.prepare(
             "UPDATE data " +
             "USING TTL ? " +
@@ -311,7 +297,7 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND tname = ?");
 
         findMetricsByTagNameValue = session.prepare(
-                "SELECT type, metric, interval " +
+                "SELECT tenant_id, type, metric, interval " +
                         "FROM metrics_tags_idx " +
                         "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
     }
@@ -548,16 +534,6 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<ResultSet> findAllGaugeMetrics() {
         return rxSession.execute(findGaugeMetrics.bind());
-    }
-
-    @Override
-    public Observable<ResultSet> findGaugeByTag(String tenantId, String tag, String tagValue) {
-        return rxSession.execute(findGaugeByTag.bind(tenantId, tag, tagValue));
-    }
-
-    @Override
-    public Observable<ResultSet> findAvailabilityByTag(String tenantId, String tag, String tagValue) {
-        return rxSession.execute(findAvailabilityByTag.bind(tenantId, tag, tagValue));
     }
 
     @Override

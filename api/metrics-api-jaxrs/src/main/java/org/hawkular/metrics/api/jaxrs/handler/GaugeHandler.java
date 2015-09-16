@@ -234,13 +234,18 @@ public class GaugeHandler {
         if (tags == null) {
             asyncResponse.resume(badRequest(new ApiError("Missing tags query")));
         } else {
-            metricsService.findGaugeByTags(tenantId, tags.getTags()).subscribe(m -> {
-                if (m.isEmpty()) {
-                    asyncResponse.resume(Response.noContent().build());
-                } else {
-                    asyncResponse.resume(Response.ok(m).build());
-                }
-            }, t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
+            metricsService.findMetricsByTags(tenantId, GAUGE, tags.getTags())
+                    .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
+                    .map(e -> new MetricDefinition(e.getName(), null, null, GAUGE))
+                    .toList()
+                    .subscribe(m -> {
+                        if (m.isEmpty()) {
+                            asyncResponse.resume(Response.noContent().build());
+                        } else {
+                            asyncResponse.resume(Response.ok(m).build());
+                        }
+                    } , t -> asyncResponse
+                            .resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
         }
     }
 
@@ -376,10 +381,11 @@ public class GaugeHandler {
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam("Tag list") @PathParam("tags") Tags tags
     ) {
-        metricsService.findGaugeByTags(tenantId, tags.getTags())
-                .flatMap(input -> Observable.from(input.entrySet()))
-                .toMap(e -> e.getKey().getName(), Map.Entry::getValue)
-                .subscribe(m -> { // @TODO Repeated code
+        metricsService.findMetricsByTags(tenantId, GAUGE, tags.getTags())
+                .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
+                .map(e -> new MetricDefinition(e.getName(), null, null, GAUGE))
+                .toList()
+                .subscribe(m -> {
                     if (m.isEmpty()) {
                         asyncResponse.resume(Response.noContent().build());
                     } else {
