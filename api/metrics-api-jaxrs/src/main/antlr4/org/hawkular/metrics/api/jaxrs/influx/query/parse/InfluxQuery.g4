@@ -59,7 +59,7 @@ operand: prefix? name #nameOperand
        | ID '(' ')' PLUS TIMESPAN #futureMomentOperand
        | ID '(' ')' #presentMomentOperand
        | DATE_STRING #dateOperand
-       | DASH? INT #integerOperand
+       | DASH? INT #longOperand
        | DASH? FLOAT #doubleOperand
        ;
 
@@ -82,7 +82,7 @@ functionArgumentList: functionArgument (',' functionArgument)*;
 functionArgument: prefix? name #nameFunctionArgument
                 | SINGLE_QUOTED_STRING #stringFunctionArgument
                 | DASH? FLOAT #doubleFunctionArgument
-                | DASH? INT #integerFunctionArgument;
+                | DASH? INT #longFunctionArgument;
 
 LIST: L I S T;
 SERIES: S E R I E S;

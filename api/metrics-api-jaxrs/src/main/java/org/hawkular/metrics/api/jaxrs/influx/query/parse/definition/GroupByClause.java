@@ -23,10 +23,10 @@ import org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit;
  */
 public class GroupByClause {
     private final String bucketType;
-    private final int bucketSize;
+    private final long bucketSize;
     private final InfluxTimeUnit bucketSizeUnit;
 
-    public GroupByClause(String bucketType, int bucketSize, InfluxTimeUnit bucketSizeUnit) {
+    public GroupByClause(String bucketType, long bucketSize, InfluxTimeUnit bucketSizeUnit) {
         this.bucketType = bucketType;
         this.bucketSize = bucketSize;
         this.bucketSizeUnit = bucketSizeUnit;
@@ -36,7 +36,7 @@ public class GroupByClause {
         return bucketType;
     }
 
-    public int getBucketSize() {
+    public long getBucketSize() {
         return bucketSize;
     }
 
