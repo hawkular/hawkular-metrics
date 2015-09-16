@@ -101,7 +101,7 @@
                 ],
               "volumeMounts": [
                 { "name": "cassandra-data", "mountPath": "/cassandra_data" },
-                { "name": "cassandra-secrets", "mountPath": "/secret"}
+                { "name": "hawkular-cassandra-secrets", "mountPath": "/secret"}
               ],
               "lifecycle": {
                 "postStart": {
@@ -118,7 +118,7 @@
             }],
             "volumes": [
               { "name": "cassandra-data", "emptyDir":{} },
-              { "name": "cassandra-secrets", "secret": { "secretName": "cassandra-secrets"} }
+              { "name": "hawkular-cassandra-secrets", "secret": { "secretName": "hawkular-cassandra-secrets"} }
             ]
           }
         }
@@ -177,7 +177,7 @@
                 ],
               "volumeMounts": [
                 { "name": "cassandra-data", "mountPath": "/cassandra_data" },
-                { "name": "cassandra-secrets", "mountPath": "/secret"}
+                { "name": "hawkular-cassandra-secrets", "mountPath": "/secret"}
               ],
               "lifecycle": {
                 "postStart": {
@@ -194,7 +194,7 @@
             }],
             "volumes": [
               { "name": "cassandra-data", "emptyDir":{} },
-              { "name": "cassandra-secrets", "secret": { "secretName": "cassandra-secrets"} }
+              { "name": "hawkular-cassandra-secrets", "secret": { "secretName": "hawkular-cassandra-secrets"} }
             ]
           }
         }
@@ -214,7 +214,8 @@
           "name": "hawkular-metrics"
         },
         "ports": [
-          { "name": "http-endpoint", "port": 80, "targetPort": "http-endpoint" }
+          { "name": "http-endpoint", "port": 80, "targetPort": "http-endpoint" },
+          { "name": "https-endpoint", "port": 443, "targetPort": "https-endpoint" }
         ]
       }
     },
@@ -244,22 +245,25 @@
             "containers": [{
               "image": "${hawkular-metrics.image}",
               "name" : "hawkular-metrics",
-              "command" : [ "/opt/eap/bin/standalone.sh",
+              "ports": [
+                { "name": "http-endpoint", "containerPort": 8080},
+                { "name": "https-endpoint", "containerPort": 8444}
+              ],
+              "command" : [ "/opt/hawkular/scripts/hawkular-metrics-wrapper.sh",
                 "-b", "0.0.0.0",
                 "-Dhawkular-metrics.cassandra-nodes=hawkular-cassandra",
                 "-Dhawkular-metrics.cassandra-use-ssl",
-                "-Djavax.net.ssl.keyStore=/secrets/hawkular-metrics.keystore",
-                "-Djavax.net.ssl.keyStorePassword=hawkular",
-                "-Djavax.net.ssl.trustStore=/secrets/hawkular-metrics.truststore",
-                "-Djavax.net.ssl.trustStorePassword=hawkular",
                 "-Dorg.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH=true",
-                "-Dorg.apache.catalina.connector.CoyoteAdapter.ALLOW_BACKSLASH=true"
+                "-Dorg.apache.catalina.connector.CoyoteAdapter.ALLOW_BACKSLASH=true",
+                "-Dhawkular-metrics.openshift.auth-methods=openshift-oauth,htpasswd",
+                "-Dhawkular-metrics.openshift.htpasswd-file=/secrets/hawkular-metrics.htpasswd.file",
+                "--hmw.keystore=/secrets/hawkular-metrics.keystore",
+                "--hmw.truststore=/secrets/hawkular-metrics.truststore",
+                "--hmw.keystore_password_file=/secrets/hawkular-metrics.keystore.password",
+                "--hmw.truststore_password_file=/secrets/hawkular-metrics.truststore.password"
               ],
               "volumeMounts": [
                 { "name": "hawkular-metrics-secrets", "mountPath": "/secrets"}
-              ],
-              "ports": [
-                { "name": "http-endpoint", "containerPort": 8080}
               ],
               "lifecycle": {
                 "postStart": {
@@ -345,8 +349,10 @@
         "name": "hawkular"
       },
       "secrets": [
-        { "name": "cassandra-secrets" },
-        { "name": "hawkular-metrics-secrets" }
+        { "name": "hawkular-cassandra-secrets" },
+        { "name": "hawkular-metrics-secrets" },
+        { "name": "hawkular-metrics-certificate" },
+        { "name": "hawkular-cassandra-certificate" }
       ]
     }
   ]

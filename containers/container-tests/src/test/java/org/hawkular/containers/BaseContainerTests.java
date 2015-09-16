@@ -20,6 +20,18 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -100,6 +112,21 @@ public abstract class BaseContainerTests {
     }
 
     public JsonNode getJSON(String path, String tenant) throws Exception {
+        return getJSON(target, path, tenant);
+    }
+
+    public JsonNode getHTTPsJSON(String path, String tenant, byte[] certificate) throws Exception {
+
+//        SSLContext sslContext = setupSSL(certificate);
+//        ResteasyClient restClient = new ResteasyClientBuilder().sslContext(sslContext).build();
+
+        ResteasyClient restClient = new ResteasyClientBuilder().disableTrustManager().build();
+        ResteasyWebTarget target = restClient.target("https://" + metricsIP);
+
+        return getJSON(target, path, tenant);
+    }
+
+    public JsonNode getJSON(ResteasyWebTarget target, String path, String tenant) throws Exception {
         Response response = target.clone()
                 .path(path)
                 .queryParam("start", 0)
@@ -119,6 +146,31 @@ public abstract class BaseContainerTests {
         response.close();
 
         return jsonNode;
+    }
+
+
+    private SSLContext setupSSL(byte[] certificateBytes) throws CertificateException, IOException, KeyStoreException,
+            NoSuchAlgorithmException, KeyManagementException {
+
+        CertificateFactory cFactory = CertificateFactory.getInstance("X.509");
+        InputStream certInputStream = new ByteArrayInputStream(certificateBytes);
+
+        // get the certificate
+        Certificate certificate = cFactory.generateCertificate(certInputStream);
+        certInputStream.close();
+
+        // get the default keystore and add the certificate
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        keyStore.load(null, null);
+        keyStore.setCertificateEntry("ca", certificate);
+
+        TrustManagerFactory tmFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmFactory.init(keyStore);
+
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(null, tmFactory.getTrustManagers(), null);
+
+        return sslContext;
     }
 
 }

@@ -270,6 +270,8 @@
             <exclude>samples/rhmap/web/libs/**</exclude>
             <!-- Exclude vim swap files -->
             <exclude>**/.*.sw*</exclude>
+            <!-- Exclude the standalone.xml file since it comes from upstream EAP -->
+            <exclude>src/main/docker/standalone.xml</exclude>
           </excludes>
         </configuration>
       </plugin>
