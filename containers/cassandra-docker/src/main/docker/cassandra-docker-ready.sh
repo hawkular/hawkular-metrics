@@ -19,7 +19,7 @@
 # Get the machines IP address from hosts
 # TODO: find a better way to retrieve the IP address (without
 # relying on the normal tools which are not installed in docker images by default)
-HOSTIP=`cat /etc/hosts | grep $HOSTNAME | awk '{print $1}'`
+HOSTIP=`cat /etc/hosts | grep $HOSTNAME | awk '{print $1}' | head -n 1`
 
 while : ;do
 

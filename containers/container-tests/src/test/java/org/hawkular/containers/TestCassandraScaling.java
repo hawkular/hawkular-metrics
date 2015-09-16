@@ -37,11 +37,11 @@ public class TestCassandraScaling extends BaseContainerTests {
     public void testScaling() throws Exception {
         // Test with the intial setup of 1 replica
         testWriteData("initial", "11.102", 1);
-        ReplicationController rc = client.getReplicationController(CASSANDRA_NAME);
+        ReplicationController rc = client.getReplicationController(CASSANDRA_MASTER_NAME);
 
         // Test scaling up to 2 replicas
         rc.getSpec().setReplicas(2);
-        client.updateReplicationController(CASSANDRA_NAME, rc);
+        client.updateReplicationController(CASSANDRA_MASTER_NAME, rc);
 
         while(client.getPodsForService(CASSANDRA_NAME).size() < 2) {
             Thread.sleep(1000);
@@ -50,9 +50,9 @@ public class TestCassandraScaling extends BaseContainerTests {
         testWriteData("2reps", "22.42", 2);
 
         // Test scaling down to 1 replica
-        rc = client.getReplicationController(CASSANDRA_NAME);
+        rc = client.getReplicationController(CASSANDRA_MASTER_NAME);
         rc.getSpec().setReplicas(1);
-        client.updateReplicationController(CASSANDRA_NAME, rc);
+        client.updateReplicationController(CASSANDRA_MASTER_NAME, rc);
 
         // TODO: check that the docker images have been shut down and not just removed from the service
         while (client.getPodsForService(CASSANDRA_NAME).size() > 1) {

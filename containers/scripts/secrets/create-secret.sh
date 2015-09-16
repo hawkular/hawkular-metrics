@@ -25,6 +25,9 @@ do
     --hawkular-metrics-truststore-password=*)
       HAWKULAR_METRICS_TRUSTSTORE_PASSWORD="${args#*=}"
     ;;
+    --hawkular-metrics-keystore-alias=*)
+      HAWKULAR_METRICS_KEYSTORE_ALIAS="${args#*=}"
+    ;;
     --cassandra-keystore-password=*)
       CASSANDRA_KEYSTORE_PASSWORD="${args#*=}"
     ;;
@@ -61,13 +64,18 @@ if [ -z "$CASSANDRA_TRUSTSTORE_PASSWORD" ]; then
   echo
 fi
 
+if [ -z "$HAWKULAR_METRICS_KEYSTORE_ALIAS" ]; then
+  HAWKULAR_METRICS_KEYSTORE_ALIAS="hawkular-metrics"
+fi
+
+
 echo
 echo "Creating the Hawkular-Metrics Keystore"
 if [ -z "$DNAME" ]; then
-  keytool -genkey -noprompt -alias hawkular-metrics -keyalg RSA -keystore hawkular-metrics.keystore \
+  keytool -genkey -noprompt -alias $HAWKULAR_METRICS_KEYSTORE_ALIAS -keyalg RSA -keystore hawkular-metrics.keystore \
           -keypass $HAWKULAR_METRICS_KEYSTORE_PASSWORD -storepass $HAWKULAR_METRICS_KEYSTORE_PASSWORD 
 else
-  keytool -genkey -noprompt -alias hawkular-metrics -keyalg RSA -keystore hawkular-metrics.keystore \
+  keytool -genkey -noprompt -alias $HAWKULAR_METRICS_KEYSTORE_ALIAS -keyalg RSA -keystore hawkular-metrics.keystore \
           -keypass $HAWKULAR_METRICS_KEYSTORE_PASSWORD -storepass $HAWKULAR_METRICS_KEYSTORE_PASSWORD \
           -dname "$DNAME"          
 fi
@@ -85,7 +93,7 @@ fi
 
 echo
 echo "Creating the Hawkular Metrics Certificate"
-keytool -noprompt -export -alias hawkular-metrics -file hawkular-metrics.cert -keystore hawkular-metrics.keystore -storepass $HAWKULAR_METRICS_KEYSTORE_PASSWORD
+keytool -noprompt -export -alias $HAWKULAR_METRICS_KEYSTORE_ALIAS -file hawkular-metrics.cert -keystore hawkular-metrics.keystore -storepass $HAWKULAR_METRICS_KEYSTORE_PASSWORD
 
 echo
 echo "Creating the Cassandra Certificate"
@@ -93,7 +101,7 @@ keytool -noprompt -export -alias cassandra -file cassandra.cert -keystore cassan
 
 echo
 echo "Importing the Hawkular Metrics certificate into the Cassandra Truststore"
-keytool -noprompt -import -v -trustcacerts -alias hawkular-metrics -file hawkular-metrics.cert -keystore cassandra.truststore -trustcacerts -storepass $CASSANDRA_TRUSTSTORE_PASSWORD
+keytool -noprompt -import -v -trustcacerts -alias $HAWKULAR_METRICS_KEYSTORE_ALIAS -file hawkular-metrics.cert -keystore cassandra.truststore -trustcacerts -storepass $CASSANDRA_TRUSTSTORE_PASSWORD
 
 echo
 echo "Importing the Cassandra certificate into the Hawkular Metrics Truststore"
@@ -120,7 +128,8 @@ cat > hawkular-secrets.json <<EOF
         "hawkular-metrics.keystore": "$(base64 -w 0 hawkular-metrics.keystore)",
         "hawkular-metrics.keystore.password": "$(base64 <<< `echo $HAWKULAR_METRICS_KEYSTORE_PASSWORD`)",
         "hawkular-metrics.truststore": "$(base64 -w 0 hawkular-metrics.truststore)",
-        "hawkular-metrics.truststore.password": "$(base64 <<< `echo $HAWKULAR_METRICS_TRUSTSTORE_PASSWORD`)"
+        "hawkular-metrics.truststore.password": "$(base64 <<< `echo $HAWKULAR_METRICS_TRUSTSTORE_PASSWORD`)",
+        "hawkular-metrics.keystore.alias": "$(base64 <<< `echo $HAWKULAR_METRICS_KEYSTORE_ALIAS`)"
       }
     },
     {

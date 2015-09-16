@@ -9,16 +9,15 @@
       "apiVersion" : "v1",
       "kind": "Service",
       "metadata" : {
-        "name": "hawkular-cassandra-nodes",
+        "name": "hawkular-cassandra",
         "labels": {
           "name": "hawkular-cassandra"
         }
       },
       "spec" : {
         "selector" : {
-          "name": "hawkular-cassandra"
+          "type": "hawkular-cassandra"
         },
-        "portalIp": "None",
         "ports": [
           { "name": "cql-port", "port": 9042, "targetPort": "cql-port" },
           { "name": "thift-port", "port": 9160, "targetPort": "thift-port" },
@@ -31,15 +30,16 @@
       "apiVersion" : "v1",
       "kind": "Service",
       "metadata" : {
-        "name": "hawkular-cassandra",
+        "name": "hawkular-cassandra-nodes",
         "labels": {
           "name": "hawkular-cassandra"
         }
       },
       "spec" : {
         "selector" : {
-          "name": "hawkular-cassandra"
+          "type": "hawkular-cassandra"
         },
+        "portalIp": "None",
         "ports": [
           { "name": "cql-port", "port": 9042, "targetPort": "cql-port" },
           { "name": "thift-port", "port": 9160, "targetPort": "thift-port" },
@@ -52,21 +52,23 @@
       "apiVersion": "v1",
       "kind": "ReplicationController",
       "metadata": {
-        "name": "hawkular-cassandra",
+        "name": "hawkular-cassandra-nodes",
         "labels" : {
-          "name": "hawkular-cassandra"
+          "name": "hawkular-cassandra-nodes",
+          "type": "hawkular-cassandra"
         }
       },
       "spec": {
         "selector" : {
-          "name": "hawkular-cassandra"
+          "name": "hawkular-cassandra-node"
         },
-        "replicas": 1,
+        "replicas": 0,
         "template": {
           "version": "v1",
           "metadata": {
             "labels" : {
-              "name": "hawkular-cassandra"
+              "name": "hawkular-cassandra-node",
+              "type": "hawkular-cassandra"
             }
           },
           "spec": {
@@ -93,11 +95,96 @@
                 "--truststore_file=/secret/cassandra.truststore",
                 "--truststore_password_file=/secret/cassandra.truststore.password"
                 ],
+              "env" : [
+                {"name": "CASSANDRA_MASTER", "value":"false"},
+                {"name": "POD_NAMESPACE", "valueFrom": {"fieldRef": {"fieldPath": "metadata.namespace"}}}
+                ],
               "volumeMounts": [
                 { "name": "cassandra-data", "mountPath": "/cassandra_data" },
                 { "name": "cassandra-secrets", "mountPath": "/secret"}
               ],
               "lifecycle": {
+                "postStart": {
+                  "exec": {
+                    "command": ["/opt/apache-cassandra/bin/cassandra-docker-ready.sh"]
+                  }
+                },
+                "preStop": {
+                  "exec": {
+                    "command": ["/opt/apache-cassandra/bin/cassandra-docker-pre-stop.sh"]
+                  }
+                }
+              }
+            }],
+            "volumes": [
+              { "name": "cassandra-data", "emptyDir":{} },
+              { "name": "cassandra-secrets", "secret": { "secretName": "cassandra-secrets"} }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ReplicationController",
+      "metadata": {
+        "name": "hawkular-cassandra-master",
+        "labels" : {
+          "name": "hawkular-cassandra-master",
+          "type": "hawkular-cassandra"
+        }
+      },
+      "spec": {
+        "selector" : {
+          "name": "hawkular-cassandra-master"
+        },
+        "replicas": 1,
+        "template": {
+          "version": "v1",
+          "metadata": {
+            "labels" : {
+              "name": "hawkular-cassandra-master",
+              "type": "hawkular-cassandra"
+            }
+          },
+          "spec": {
+            "serviceAccount": "hawkular",
+            "containers": [{
+              "image": "${cassandra.image}",
+              "name" : "hawkular-cassandra",
+              "ports": [
+                { "name": "cql-port", "containerPort": 9042},
+                { "name": "thift-port", "containerPort": 9160},
+                { "name": "tcp-port", "containerPort": 7000},
+                { "name": "ssl-port", "containerPort": 7001}
+              ],
+              "command" : ["/opt/apache-cassandra/bin/cassandra-docker.sh",
+                "--seed_provider_classname=org.hawkular.openshift.cassandra.OpenshiftSeedProvider",
+                "--cluster_name=hawkular-metrics",
+                "--data_volume=/cassandra_data",
+                "--internode_encryption=all",
+                "--require_node_auth=true",
+                "--enable_client_encryption=true",
+                "--require_client_auth=false",
+                "--keystore_file=/secret/cassandra.keystore",
+                "--keystore_password_file=/secret/cassandra.keystore.password",
+                "--truststore_file=/secret/cassandra.truststore",
+                "--truststore_password_file=/secret/cassandra.truststore.password"
+                ],
+              "env" : [
+                {"name": "CASSANDRA_MASTER", "value":"true"},
+                {"name": "POD_NAMESPACE", "valueFrom": {"fieldRef": {"fieldPath": "metadata.namespace"}}}
+                ],
+              "volumeMounts": [
+                { "name": "cassandra-data", "mountPath": "/cassandra_data" },
+                { "name": "cassandra-secrets", "mountPath": "/secret"}
+              ],
+              "lifecycle": {
+                "postStart": {
+                  "exec": {
+                    "command": ["/opt/apache-cassandra/bin/cassandra-docker-ready.sh"]
+                  }
+                },
                 "preStop": {
                   "exec": {
                     "command": ["/opt/apache-cassandra/bin/cassandra-docker-pre-stop.sh"]
