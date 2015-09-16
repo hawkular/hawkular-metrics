@@ -29,6 +29,16 @@ public class OperandUtils {
         return operand instanceof InstantOperand;
     }
 
+    public static boolean isPositiveLongOperand(Operand operand) {
+        if (operand instanceof LongOperand) {
+            LongOperand longOperand = (LongOperand) operand;
+            if (longOperand.getValue() >= 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private OperandUtils() {
         // Utility class
     }

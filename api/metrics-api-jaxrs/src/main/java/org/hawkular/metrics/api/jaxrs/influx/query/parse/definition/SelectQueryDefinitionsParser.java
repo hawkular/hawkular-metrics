@@ -57,6 +57,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.antlr.v4.runtime.misc.NotNull;
+import org.antlr.v4.runtime.tree.TerminalNode;
 import org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryBaseListener;
 import org.joda.time.Instant;
@@ -274,12 +275,20 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     @Override
     public void exitPastMomentOperand(@NotNull PastMomentOperandContext ctx) {
         String functionName = ctx.ID().getText();
-        String timespan = ctx.TIMESPAN().getText();
-        long timeshift = Long.parseLong(timespan.substring(0, timespan.length() - 1));
-        char unitId = timespan.charAt(timespan.length() - 1);
-        InfluxTimeUnit timeshiftUnit = InfluxTimeUnit.findById(String.valueOf(unitId));
-        if (timeshiftUnit == null) {
-            throw new RuntimeException("Unknown time unit: " + unitId);
+        TerminalNode intNode = ctx.INT();
+        long timeshift;
+        InfluxTimeUnit timeshiftUnit;
+        if (intNode == null) {
+            String timespan = ctx.TIMESPAN().getText();
+            timeshift = Long.parseLong(timespan.substring(0, timespan.length() - 1));
+            char unitId = timespan.charAt(timespan.length() - 1);
+            timeshiftUnit = InfluxTimeUnit.findById(String.valueOf(unitId));
+            if (timeshiftUnit == null) {
+                throw new RuntimeException("Unknown time unit: " + unitId);
+            }
+        } else {
+            timeshift = Long.parseLong(intNode.getText());
+            timeshiftUnit = InfluxTimeUnit.MICROSECONDS;
         }
         operandQueue.addLast(new MomentOperand(functionName, -1 * timeshift, timeshiftUnit));
     }
@@ -287,12 +296,20 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     @Override
     public void exitFutureMomentOperand(@NotNull FutureMomentOperandContext ctx) {
         String functionName = ctx.ID().getText();
-        String timespan = ctx.TIMESPAN().getText();
-        long timeshift = Long.parseLong(timespan.substring(0, timespan.length() - 1));
-        char unitId = timespan.charAt(timespan.length() - 1);
-        InfluxTimeUnit timeshiftUnit = InfluxTimeUnit.findById(String.valueOf(unitId));
-        if (timeshiftUnit == null) {
-            throw new RuntimeException("Unknown time unit: " + unitId);
+        TerminalNode intNode = ctx.INT();
+        long timeshift;
+        InfluxTimeUnit timeshiftUnit;
+        if (intNode == null) {
+            String timespan = ctx.TIMESPAN().getText();
+            timeshift = Long.parseLong(timespan.substring(0, timespan.length() - 1));
+            char unitId = timespan.charAt(timespan.length() - 1);
+            timeshiftUnit = InfluxTimeUnit.findById(String.valueOf(unitId));
+            if (timeshiftUnit == null) {
+                throw new RuntimeException("Unknown time unit: " + unitId);
+            }
+        } else {
+            timeshift = Long.parseLong(intNode.getText());
+            timeshiftUnit = InfluxTimeUnit.MICROSECONDS;
         }
         operandQueue.addLast(new MomentOperand(functionName, timeshift, timeshiftUnit));
     }
