@@ -46,9 +46,11 @@ ENV HAWKULAR_METRICS_VERSION ${project.version}
 COPY hawkular-metrics-api-jaxrs.war $JBOSS_HOME/standalone/deployments/
 
 # Copy the hawkular kubernetes scripts
-ENV HAWKULAR_METRICS_SCRIPT_DIRECTORY /opt/hawkular/scripts/
+ENV HAWKULAR_METRICS_DIRECTORY /opt/hawkular
+ENV HAWKULAR_METRICS_SCRIPT_DIRECTORY $HAWKULAR_METRICS_DIRECOTRY/scripts/
 COPY hawkular-metrics-poststart.py $HAWKULAR_METRICS_SCRIPT_DIRECTORY
 COPY hawkular-metrics-liveness.py $HAWKULAR_METRICS_SCRIPT_DIRECTORY
+COPY hawkular-metrics-wrapper.sh $HAWKULAR_METRICS_SCRIPT_DIRECTORY
 
 # Overwrite the welcome-content to display a more appropriate status page
 COPY welcome-content $JBOSS_HOME/welcome-content/
@@ -60,4 +62,4 @@ RUN chmod -R 777 /opt
 
 USER jboss
 
-CMD $JBOSS_HOME/bin/standalone.sh -b 0.0.0.0 -bmanagement 0.0.0.0 -Dhawkular-metrics.cassandra-nodes=hawkular-cassandra
+CMD $HAWKULAR_METRICS_SCRIPT_DIRECTORY/hawkular-metrics-wrapper.sh -b 0.0.0.0 -bmanagement 0.0.0.0 -Dhawkular-metrics.cassandra-nodes=hawkular-cassandra

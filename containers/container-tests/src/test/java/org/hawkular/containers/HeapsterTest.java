@@ -99,7 +99,7 @@ public class HeapsterTest extends BaseContainerTests {
     public void testGetMetrics() throws Exception {
         String metricId = URLEncoder.encode("///cpu/usage", "UTF-8");
 
-        Thread.sleep(10000);
+        Thread.sleep(20000);
 
         JsonNode json = getJSON("/hawkular/metrics/gauges/" + metricId + "/data", "heapster");
 

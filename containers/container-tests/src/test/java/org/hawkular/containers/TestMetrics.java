@@ -17,12 +17,18 @@
 package org.hawkular.containers;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Base64;
 
 import org.jboss.arquillian.junit.Arquillian;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+
+import io.fabric8.kubernetes.api.model.Secret;
 
 /**
  * @author mwringe
@@ -50,5 +56,19 @@ public class TestMetrics extends BaseContainerTests{
 
         assertEquals("[{\"timestamp\":2,\"value\":201.0},{\"timestamp\":1," +
                              "\"value\":101.0}]", json.toString());
+    }
+
+    @Test
+    public void testMetricsServiceHTTPS() throws Exception {
+        Secret secret = client.getSecret("hawkular-metrics-certificate", session.getNamespace());
+        String certificate = secret.getData().get("hawkular-metrics.certificate");
+
+        byte[] certificateBytes = Base64.getDecoder().decode(certificate);
+
+        JsonNode jsonNode = getHTTPsJSON("/hawkular/metrics/metrics", getTenant(), certificateBytes);
+
+        ArrayNode metrics = (ArrayNode)jsonNode;
+
+        assertTrue((metrics.size() > 0));
     }
 }

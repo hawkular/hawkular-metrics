@@ -1,0 +1,16 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Secret",
+      "metadata":
+      { "name": "hawkular-cassandra-certificate" },
+      "data":
+      {
+        "cassandra.certificate": "MIIDdzCCAl+gAwIBAgIEOcuivjANBgkqhkiG9w0BAQsFADBsMRAwDgYDVQQGEwdVbmtub3duMRAwDgYDVQQIEwdVbmtub3duMRAwDgYDVQQHEwdVbmtub3duMRAwDgYDVQQKEwdVbmtub3duMRAwDgYDVQQLEwdVbmtub3duMRAwDgYDVQQDEwdVbmtub3duMB4XDTE1MDkxNTIyMzY0N1oXDTE1MTIxNDIyMzY0N1owbDEQMA4GA1UEBhMHVW5rbm93bjEQMA4GA1UECBMHVW5rbm93bjEQMA4GA1UEBxMHVW5rbm93bjEQMA4GA1UEChMHVW5rbm93bjEQMA4GA1UECxMHVW5rbm93bjEQMA4GA1UEAxMHVW5rbm93bjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAIKOBYCLWzVjXDvFGeYBH1C3kZg/bYgg0AYKnr2t+m9FhD4VDIFX9D1p40xCGowG18APkVHHFcCxNLCo5BAzQb+yry88fz6KshQbYa9KKCY/nLYwXnqmYjJBU74qbjuesXmNE4CjRWTFPvW+5ZaR/Duthq3MfSJZ/kBaLwdAvJbeNsl091g+poM/sLBbjHFjlwDQPjasdi1bBjIc5YNlEk+LR6MW3NK+3AlnxY6T5BqTezIndQlT7MQgjwFyR5N+HG8BWAhfqQpSLe5tBSI1bwqaiOpg+R3iFI3bdmy5Z42m2prof9RBYxshbsbqnBXpk3WAkzB5PB/BpxIffNc5qwUCAwEAAaMhMB8wHQYDVR0OBBYEFMI1EwtzZzNwxwKVnUGfKrHnIqthMA0GCSqGSIb3DQEBCwUAA4IBAQBvckL6IlEY55hOKSI7Z9HuvYUCqbe93K3PHLmxI7X79LPoNkx4JK63seR5CGB8VB6nNblryRueqvCvJ32DriUUjImvPlTmMcE65sH8bCVj6gE9xDlij9kQrMN5RuuLLqcjM7Fe+3gqQbdejigP24/pIC9Lc0bM/l9saPQtSe1aU7iucfDOX54PIfe+dQ8kqV7eb8wrQ8Ap2Yrq9Mon3UvKa7lP3LLff+utQ4Opcwwzawt4Lz52LMa9HsF98knbJsSQhCZUTebyJBQY3nGMJjnRRq9v0cCwyhvl5chMK2ggCcQqNMn6OYvbfzbsio9KqEZ4xsvwR3A5+25Lh0rJc2B5"
+      }
+    }
+  ]
+}

@@ -63,9 +63,12 @@ public class TestContainers extends BaseContainerTests{
 
         ServiceSpec spec = service.getSpec();
         assertThat(spec).isNotNull();
-        assertThat((List)spec.getPorts()).hasSize(1);
+        assertThat((List)spec.getPorts()).hasSize(2);
         ServicePort port = spec.getPorts().get(0);
         assertThat(port).hasPort(80);
+
+        port = spec.getPorts().get(1);
+        assertThat(port).hasPort(443);
     }
 
     @Test
