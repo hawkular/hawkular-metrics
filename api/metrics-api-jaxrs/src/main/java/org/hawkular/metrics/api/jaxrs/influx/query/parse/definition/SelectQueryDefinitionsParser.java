@@ -181,7 +181,7 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
         String timespan = ctx.TIMESPAN().getText();
         int bucketSize = Integer.parseInt(timespan.substring(0, timespan.length() - 1));
         char unitId = timespan.charAt(timespan.length() - 1);
-        InfluxTimeUnit bucketSizeUnit = InfluxTimeUnit.findById(unitId);
+        InfluxTimeUnit bucketSizeUnit = InfluxTimeUnit.findById(String.valueOf(unitId));
         if (bucketSizeUnit == null) {
             throw new RuntimeException("Unknown time unit: " + unitId);
         }
@@ -264,7 +264,7 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
         String timespan = ctx.TIMESPAN().getText();
         int amount = Integer.parseInt(timespan.substring(0, timespan.length() - 1));
         char unitId = timespan.charAt(timespan.length() - 1);
-        InfluxTimeUnit unit = InfluxTimeUnit.findById(unitId);
+        InfluxTimeUnit unit = InfluxTimeUnit.findById(String.valueOf(unitId));
         if (unit == null) {
             throw new RuntimeException("Unknown time unit: " + unitId);
         }
@@ -277,7 +277,7 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
         String timespan = ctx.TIMESPAN().getText();
         int timeshift = Integer.parseInt(timespan.substring(0, timespan.length() - 1));
         char unitId = timespan.charAt(timespan.length() - 1);
-        InfluxTimeUnit timeshiftUnit = InfluxTimeUnit.findById(unitId);
+        InfluxTimeUnit timeshiftUnit = InfluxTimeUnit.findById(String.valueOf(unitId));
         if (timeshiftUnit == null) {
             throw new RuntimeException("Unknown time unit: " + unitId);
         }
@@ -290,7 +290,7 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
         String timespan = ctx.TIMESPAN().getText();
         int timeshift = Integer.parseInt(timespan.substring(0, timespan.length() - 1));
         char unitId = timespan.charAt(timespan.length() - 1);
-        InfluxTimeUnit timeshiftUnit = InfluxTimeUnit.findById(unitId);
+        InfluxTimeUnit timeshiftUnit = InfluxTimeUnit.findById(String.valueOf(unitId));
         if (timeshiftUnit == null) {
             throw new RuntimeException("Unknown time unit: " + unitId);
         }

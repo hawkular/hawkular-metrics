@@ -16,68 +16,65 @@
  */
 package org.hawkular.metrics.api.jaxrs.influx;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * @author Thomas Segismont
  */
 public enum InfluxTimeUnit {
-    /** */
-    MICROSECONDS('u') {
+    MICROSECONDS("u") {
         @Override
         public long convertTo(TimeUnit targetUnit, long value) {
             return targetUnit.convert(value, TimeUnit.MICROSECONDS);
         }
     },
-    /** */
-    SECONDS('s') {
+    MILLISECONDS("ms") {
+        @Override
+        public long convertTo(TimeUnit targetUnit, long value) {
+            return targetUnit.convert(value, TimeUnit.MILLISECONDS);
+        }
+    },
+    SECONDS("s") {
         @Override
         public long convertTo(TimeUnit targetUnit, long value) {
             return targetUnit.convert(value, TimeUnit.SECONDS);
         }
     },
-    /** */
-    MINUTES('m') {
+    MINUTES("m") {
         @Override
         public long convertTo(TimeUnit targetUnit, long value) {
             return targetUnit.convert(value, TimeUnit.MINUTES);
         }
     },
-    /** */
-    HOURS('h') {
+    HOURS("h") {
         @Override
         public long convertTo(TimeUnit targetUnit, long value) {
             return targetUnit.convert(value, TimeUnit.HOURS);
         }
     },
-    /** */
-    DAYS('d') {
+    DAYS("d") {
         @Override
         public long convertTo(TimeUnit targetUnit, long value) {
             return targetUnit.convert(value, TimeUnit.DAYS);
         }
     },
-    /** */
-    WEEKS('w') {
+    WEEKS("w") {
         @Override
         public long convertTo(TimeUnit targetUnit, long value) {
             return targetUnit.convert(7 * value, TimeUnit.DAYS);
         }
     };
 
-    private final char id;
+    private String id;
 
-    InfluxTimeUnit(char id) {
-        if (Character.isUpperCase(id)) {
-            this.id = Character.toLowerCase(id);
-        } else {
-            this.id = id;
-        }
+    InfluxTimeUnit(String id) {
+        this.id = id.toLowerCase();
     }
 
-    public char getId() {
+    public String getId() {
         return id;
     }
 
@@ -86,24 +83,28 @@ public enum InfluxTimeUnit {
      * <code>target</code> {@link java.util.concurrent.TimeUnit}.
      *
      * @param targetUnit the target {@link java.util.concurrent.TimeUnit}
-     * @param value the value in <code>this</code> {@link InfluxTimeUnit}
+     * @param value      the value in <code>this</code> {@link InfluxTimeUnit}
+     *
      * @return the value in the target {@link java.util.concurrent.TimeUnit}
      */
     public abstract long convertTo(TimeUnit targetUnit, long value);
 
-    private static final Map<Character, InfluxTimeUnit> UNIT_BY_ID = new HashMap<Character, InfluxTimeUnit>();
+    private static final Map<String, InfluxTimeUnit> UNIT_BY_ID;
 
     static {
+        ImmutableMap.Builder<String, InfluxTimeUnit> builder = new ImmutableMap.Builder<>();
         for (InfluxTimeUnit influxTimeUnit : values()) {
-            UNIT_BY_ID.put(influxTimeUnit.id, influxTimeUnit);
+            builder.put(influxTimeUnit.id, influxTimeUnit);
         }
+        UNIT_BY_ID = builder.build();
     }
 
     /**
      * @param id time unit id
+     *
      * @return the {@link InfluxTimeUnit} which id is <code>id</code>, null otherwise
      */
-    public static InfluxTimeUnit findById(char id) {
+    public static InfluxTimeUnit findById(String id) {
         return UNIT_BY_ID.get(id);
     }
 }
