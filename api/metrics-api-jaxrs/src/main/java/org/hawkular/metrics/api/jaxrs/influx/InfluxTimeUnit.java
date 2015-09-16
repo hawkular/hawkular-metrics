@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.influx.query.parse.definition;
+package org.hawkular.metrics.api.jaxrs.influx;
 
 import java.util.HashMap;
 import java.util.Map;

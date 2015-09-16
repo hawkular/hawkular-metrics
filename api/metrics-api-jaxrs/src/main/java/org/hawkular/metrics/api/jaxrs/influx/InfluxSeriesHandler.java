@@ -62,7 +62,6 @@ import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.AggregatedCo
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.BooleanExpression;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.FunctionArgument;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.GroupByClause;
-import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.InfluxTimeUnit;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.ListSeriesDefinitionsParser;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.NumberFunctionArgument;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.RegularExpression;

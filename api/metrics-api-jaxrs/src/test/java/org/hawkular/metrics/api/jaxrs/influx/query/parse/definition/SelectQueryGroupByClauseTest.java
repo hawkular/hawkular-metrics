@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParserFactory;
 import org.junit.Test;

@@ -18,6 +18,7 @@ package org.hawkular.metrics.api.jaxrs.influx.query.parse.definition;
 
 import java.util.concurrent.TimeUnit;
 
+import org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit;
 import org.joda.time.Instant;
 
 /**

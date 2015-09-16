@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.api.jaxrs.influx.query.parse.definition;
 
+import org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit;
+
 /**
  * @author Thomas Segismont
  */

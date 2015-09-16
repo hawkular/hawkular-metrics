@@ -56,6 +56,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.antlr.v4.runtime.misc.NotNull;
+import org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryBaseListener;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser;
 import org.joda.time.Instant;
