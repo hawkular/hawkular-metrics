@@ -223,12 +223,12 @@ public class AvailabilityHandler {
 
     @GET
     @Path("/")
-    @ApiOperation(value = "Find availabilities metrics data by their tags.", response = Map.class)
+    @ApiOperation(value = "Find availability metrics by tags.", response = Map.class)
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched data."),
             @ApiResponse(code = 204, message = "No matching data found."),
             @ApiResponse(code = 400, message = "Missing or invalid tags query", response = ApiError.class),
             @ApiResponse(code = 500, message = "Any error in the query.", response = ApiError.class), })
-    public void findAvailabilityDataByTags(
+    public void findAvailabilityMetricsByTags(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "Tag list", required = true) @QueryParam("tags") Tags tags
     ) {
@@ -309,12 +309,12 @@ public class AvailabilityHandler {
 
     @GET
     @Path("/tags/{tags}")
-    @ApiOperation(value = "Find availability metric data with given tags.", response = Map.class)
+    @ApiOperation(value = "Find availability metrics by tags.", response = Map.class)
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Availability values fetched successfully"),
             @ApiResponse(code = 204, message = "No matching data found."),
             @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
             @ApiResponse(code = 500, message = "Any error while fetching data.", response = ApiError.class), })
-    public void findTaggedAvailabilityData(
+    public void findTaggedAvailabilityMetrics(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam("Tag list") @PathParam("tags") Tags tags
     ) {

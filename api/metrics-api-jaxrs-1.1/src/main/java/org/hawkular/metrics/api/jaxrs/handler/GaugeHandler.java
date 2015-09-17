@@ -196,7 +196,7 @@ public class GaugeHandler {
     @GET
     @Produces(APPLICATION_JSON)
     @Path("/")
-    public Response findGaugeDataByTags(@QueryParam("tags") Tags tags) {
+    public Response findGaugeMetricsByTags(@QueryParam("tags") Tags tags) {
         if (tags == null) {
             return badRequest(new ApiError("Missing tags query"));
         } else {
@@ -332,7 +332,7 @@ public class GaugeHandler {
     @GET
     @Produces(APPLICATION_JSON)
     @Path("/tags/{tags}")
-    public Response findTaggedGaugeData(@PathParam("tags") Tags tags) {
+    public Response findTaggedGaugeMetrics(@PathParam("tags") Tags tags) {
         try {
             return metricsService.findMetricsByTags(tenantId, GAUGE, tags.getTags())
                     .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))

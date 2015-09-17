@@ -201,7 +201,7 @@ public class AvailabilityHandler {
 
     @GET
     @Path("/")
-    public Response findAvailabilityDataByTags(
+    public Response findAvailabilityMetricsByTags(
             @QueryParam("tags") Tags tags
     ) {
         if (tags == null) {
@@ -278,7 +278,7 @@ public class AvailabilityHandler {
 
     @GET
     @Path("/tags/{tags}")
-    public Response findTaggedAvailabilityData(
+    public Response findTaggedAvailabilityMetrics(
             @PathParam("tags") Tags tags
     ) {
         try {

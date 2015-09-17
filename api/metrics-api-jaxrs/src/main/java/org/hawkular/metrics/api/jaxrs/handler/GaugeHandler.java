@@ -222,12 +222,12 @@ public class GaugeHandler {
 
     @GET
     @Path("/")
-    @ApiOperation(value = "Find gauge metrics data by their tags.", response = Map.class)
+    @ApiOperation(value = "Find gauge metrics by tags.", response = Map.class)
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched data."),
             @ApiResponse(code = 204, message = "No matching data found."),
             @ApiResponse(code = 400, message = "Missing or invalid tags query", response = ApiError.class),
             @ApiResponse(code = 500, message = "Any error in the query.", response = ApiError.class), })
-    public void findGaugeDataByTags(
+    public void findGaugeMetricsByTags(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "Tag list", required = true) @QueryParam("tags") Tags tags
     ) {
@@ -372,12 +372,12 @@ public class GaugeHandler {
 
     @GET
     @Path("/tags/{tags}")
-    @ApiOperation(value = "Find metric data with given tags.", response = Map.class)
+    @ApiOperation(value = "Find gauge metrics by tags.", response = Map.class)
     @ApiResponses(value = {@ApiResponse(code = 200, message = "Metric values fetched successfully"),
             @ApiResponse(code = 204, message = "No matching data found."),
             @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
             @ApiResponse(code = 500, message = "Any error while fetching data.", response = ApiError.class), })
-    public void findTaggedGaugeData(
+    public void findTaggedGaugeMetrics(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam("Tag list") @PathParam("tags") Tags tags
     ) {
