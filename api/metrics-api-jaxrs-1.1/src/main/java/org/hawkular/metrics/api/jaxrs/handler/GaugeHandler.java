@@ -194,30 +194,6 @@ public class GaugeHandler {
     }
 
     @GET
-    @Produces(APPLICATION_JSON)
-    @Path("/")
-    public Response findGaugeMetricsByTags(@QueryParam("tags") Tags tags) {
-        if (tags == null) {
-            return badRequest(new ApiError("Missing tags query"));
-        } else {
-            try{
-                return metricsService.findMetricsWithFilters(tenantId, tags.getTags(), GAUGE)
-                        .map(MetricDefinition::new)
-                        .toList()
-                        .map(m -> {
-                            if (m.isEmpty()) {
-                                return ApiUtils.noContent();
-                            } else {
-                                return Response.ok(m).build();
-                            }
-                        }).toBlocking().lastOrDefault(null);
-            } catch (Exception e) {
-                return Response.serverError().entity(new ApiError(e.getMessage())).build();
-                    }
-        }
-    }
-
-    @GET
     @Path("/{id}/data")
     @Produces(APPLICATION_JSON)
     public Response findGaugeData(

@@ -200,33 +200,6 @@ public class AvailabilityHandler {
     }
 
     @GET
-    @Path("/")
-    public Response findAvailabilityMetricsByTags(
-            @QueryParam("tags") Tags tags
-    ) {
-        if (tags == null) {
-            return badRequest(new ApiError("Missing tags query"));
-        } else {
-            try {
-                return metricsService.findMetricsWithFilters(tenantId, tags.getTags(), AVAILABILITY)
-                        .map(MetricDefinition::new)
-                        .toList()
-                        .map(m -> {
-                            if (m.isEmpty()) {
-                                return ApiUtils.noContent();
-                            } else {
-                                return Response.ok(m).build();
-                            }
-                        })
-                        .toBlocking()
-                        .lastOrDefault(null);
-            } catch (Exception e) {
-                return serverError(e);
-            }
-        }
-    }
-
-    @GET
     @Path("/{id}/data")
     public Response findAvailabilityData(
             @PathParam("id") String id,

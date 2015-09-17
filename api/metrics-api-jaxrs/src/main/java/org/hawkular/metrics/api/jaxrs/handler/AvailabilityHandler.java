@@ -222,34 +222,6 @@ public class AvailabilityHandler {
     }
 
     @GET
-    @Path("/")
-    @ApiOperation(value = "Find availability metrics by tags.", response = Map.class)
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched data."),
-            @ApiResponse(code = 204, message = "No matching data found."),
-            @ApiResponse(code = 400, message = "Missing or invalid tags query", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Any error in the query.", response = ApiError.class), })
-    public void findAvailabilityMetricsByTags(
-            @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(value = "Tag list", required = true) @QueryParam("tags") Tags tags
-    ) {
-        if (tags == null) {
-            asyncResponse.resume(badRequest(new ApiError("Missing tags query")));
-        } else {
-            metricsService.findMetricsWithFilters(tenantId, tags.getTags(), AVAILABILITY)
-                    .map(MetricDefinition::new)
-                    .toList()
-                    .subscribe(m -> {
-                        if (m.isEmpty()) {
-                            asyncResponse.resume(Response.noContent().build());
-                        } else {
-                            asyncResponse.resume(Response.ok(m).build());
-                        }
-                    } , t -> asyncResponse
-                            .resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
-        }
-    }
-
-    @GET
     @Path("/{id}/data")
     @ApiOperation(value = "Retrieve availability data.", notes = "When buckets or bucketDuration query parameter is " +
             "used, the time range between start and end will be divided in buckets of equal duration, and " +
