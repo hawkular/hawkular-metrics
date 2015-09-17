@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
@@ -17,20 +16,16 @@
     limitations under the License.
 
 -->
-<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
-<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
-
-  <appender name="CONSOLE" class="org.apache.log4j.ConsoleAppender">
-    <param name="Target" value="System.out"/>
-    <param name="Threshold" value="INFO"/>
-    <layout class="org.apache.log4j.PatternLayout">
-      <param name="ConversionPattern" value="%-5p %d{dd-MM HH:mm:ss,SSS} (%F:%M:%L) - %m%n"/>
-    </layout>
+<configuration>
+  <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%-5level %date{ISO8601} [%thread] %logger - %message%n</pattern>
+    </encoder>
   </appender>
 
-  <root>
-    <level value="INFO"/>
-    <appender-ref ref="CONSOLE"/>
-  </root>
+  <logger name="io.netty.channel.AbstractChannel" level="debug"/>
 
-</log4j:configuration>
+  <root level="debug">
+    <appender-ref ref="stdout"/>
+  </root>
+</configuration>

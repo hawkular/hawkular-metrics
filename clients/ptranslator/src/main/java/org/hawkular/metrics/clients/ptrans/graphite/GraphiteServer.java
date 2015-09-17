@@ -23,8 +23,7 @@ import static org.hawkular.metrics.clients.ptrans.backend.Constants.METRIC_ADDRE
 
 import org.hawkular.metrics.client.common.SingleMetric;
 import org.hawkular.metrics.clients.ptrans.Configuration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.logging.Logger;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
@@ -38,7 +37,7 @@ import io.vertx.core.parsetools.RecordParser;
  * @author Thomas Segismont
  */
 public class GraphiteServer extends AbstractVerticle {
-    private static final Logger LOG = LoggerFactory.getLogger(GraphiteServer.class);
+    private static final Logger log = Logger.getLogger(GraphiteServer.class);
 
     private final int port;
     private final RecordParser recordParser;
@@ -68,7 +67,7 @@ public class GraphiteServer extends AbstractVerticle {
 
         String[] items = msg.split(" ");
         if (items.length != 3) {
-            LOG.debug("Unknown data format for '{}', skipping", msg);
+            log.tracef("Unknown data format for '%s', skipping", msg);
             return;
         }
 

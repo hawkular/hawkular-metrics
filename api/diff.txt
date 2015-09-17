@@ -41,19 +41,30 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 <       <artifactId>antlr4-runtime</artifactId>
 <     </dependency>
 <     <dependency>
-60c68
+60,61c68,78
 <     <!-- Wildfly provided -->
+<     <!-- No need to set the jboss-logging scope here since Wildfly BOM includes jboss-logging -->
 ---
 >     <!-- AS7 provided -->
-68c76
+>     <!-- Set the jboss-logging scope here since EAP6.4 BOM does not include jboss-logging -->
+>     <dependency>
+>       <groupId>org.jboss.logging</groupId>
+>       <artifactId>jboss-logging</artifactId>
+>       <!--
+>       This version is "almost" compatible with the version included in EAP6.4:
+>       we can't use logger methods with primitive arguments
+>       -->
+>       <scope>provided</scope>
+>     </dependency>
+69c86
 <       <artifactId>resteasy-jackson2-provider</artifactId>
 ---
 >       <artifactId>resteasy-jackson-provider</artifactId>
-73c81
+74c91
 <       <artifactId>jboss-servlet-api_3.1_spec</artifactId>
 ---
 >       <artifactId>jboss-servlet-api_3.0_spec</artifactId>
-81,99d88
+82,100d98
 < 
 <     <!-- documentation -->
 <     <dependency>
@@ -73,13 +84,13 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 <       <artifactId>mockito-core</artifactId>
 <       <scope>test</scope>
 <     </dependency>
-103c92
+104c102
 <     <finalName>hawkular-metric-rest</finalName>
 ---
 >     <finalName>hawkular-metrics-api-rest-1.1</finalName>
-105d93
+106d103
 < 
-107,121c95,101
+108,122c105,111
 <         <groupId>org.antlr</groupId>
 <         <artifactId>antlr4-maven-plugin</artifactId>
 <         <executions>
@@ -103,15 +114,15 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1
 >           <version>7.5.0.Final-redhat-15</version>
 >           <port>${jboss-as.management.port}</port>
 >         </configuration>
-139c119
+140c129
 <                 <exclude>static/index.html</exclude>
 ---
 >                 <exclude>index.html</exclude>
-147c127
+148c137
 <                 <include>static/index.html</include>
 ---
 >                 <include>index.html</include>
-156,225d135
+157,226d145
 < 
 <   <profiles>
 <     <profile>
@@ -189,7 +200,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 < import org.hawkular.metrics.api.jaxrs.filter.CorsResponseFilter;
 46d43
 < import org.hawkular.metrics.api.jaxrs.influx.InfluxSeriesHandler;
-48,49c45,47
+50,51c47,49
 < import org.hawkular.metrics.api.jaxrs.param.ConvertersProvider;
 < import org.hawkular.metrics.api.jaxrs.util.JacksonConfig;
 ---
@@ -218,13 +229,13 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ExceptionMapperUtils.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ExceptionMapperUtils.java
 20a21
 > import javax.ws.rs.core.Response.ResponseBuilder;
-34a36,40
+33a35,39
 >     public static Response buildResponse(Throwable exception, int statusCode) {
 >         ResponseBuilder responseBuilder = Response.status(statusCode);
 >         return buildErrorResponse(exception, responseBuilder);
 >     }
 > 
-36c42,47
+35c41,46
 <         Response response = Response.status(status)
 ---
 >         ResponseBuilder responseBuilder = Response.status(status);
@@ -464,15 +475,15 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 < import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 65a62
 > import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
-72,76d68
+70,74d66
 < import io.swagger.annotations.Api;
 < import io.swagger.annotations.ApiOperation;
 < import io.swagger.annotations.ApiParam;
 < import io.swagger.annotations.ApiResponse;
 < import io.swagger.annotations.ApiResponses;
-86d77
+84d75
 < @Api(tags = "Availability")
-100,111c91,92
+96,107c87,88
 <     @ApiOperation(value = "Create availability metric. Same notes as creating gauge metric apply.")
 <     @ApiResponses(value = {
 <             @ApiResponse(code = 201, message = "Metric created successfully"),
@@ -488,13 +499,13 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 ---
 >     public Response createAvailabilityMetric(
 >             MetricDefinition metricDefinition,
-115,116c96,97
+111,112c92,93
 <             asyncResponse.resume(badRequest(new ApiError("MetricDefinition type does not match " + MetricType
 <                     .AVAILABILITY.getText())));
 ---
 >             return ApiUtils.badRequest(new ApiError("MetricDefinition type does not match " + MetricType
 >                     .AVAILABILITY.getText()));
-121c102,111
+117c98,107
 <         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
 ---
 >         try {
@@ -507,7 +518,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-126,134c116,118
+122,130c112,114
 <     @ApiOperation(value = "Retrieve single metric definition.", response = MetricDefinition.class)
 <     @ApiResponses(value = {
 <             @ApiResponse(code = 200, message = "Metric's definition was successfully retrieved."),
@@ -521,7 +532,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >     public Response getAvailabilityMetric(@PathParam("id") String id) {
 >         try {
 >             return metricsService.findMetric(new MetricId<>(tenantId, AVAILABILITY, id))
-138c122,126
+134c118,122
 <                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
 ---
 >                 .toBlocking()
@@ -529,7 +540,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-143,151c131
+139,147c127
 <     @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = String.class,
 <                   responseContainer = "Map")
 <     @ApiResponses(value = {
@@ -541,7 +552,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <             @Suspended final AsyncResponse asyncResponse,
 ---
 >     public Response getAvailabilityMetricTags(
-154,156c134,143
+150,152c130,139
 <         metricsService.getMetricTags(new MetricId<>(tenantId, AVAILABILITY, id)).subscribe(
 <                 optional -> asyncResponse.resume(valueToResponse(optional)),
 <                 t -> asyncResponse.resume(serverError(t)));
@@ -556,9 +567,9 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-158a146
+154a142
 > 
-161,167c149
+157,163c145
 <     @ApiOperation(value = "Update tags associated with the metric definition.")
 <     @ApiResponses(value = {
 <             @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
@@ -568,11 +579,11 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <             @Suspended final AsyncResponse asyncResponse,
 ---
 >     public Response updateAvailabilityMetricTags(
-169c151
+165c147
 <             @ApiParam(required = true) Map<String, String> tags
 ---
 >             Map<String, String> tags
-172c154,159
+168c150,155
 <         metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
 ---
 >         try {
@@ -581,7 +592,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-177,184c164
+173,180c160
 <     @ApiOperation(value = "Delete tags associated with the metric definition.")
 <     @ApiResponses(value = {
 <             @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
@@ -592,11 +603,11 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <             @Suspended final AsyncResponse asyncResponse,
 ---
 >     public Response deleteAvailabilityMetricTags(
-186c166
+182c162
 <             @ApiParam("Tag list") @PathParam("tags") Tags tags
 ---
 >             @PathParam("tags") Tags tags
-189c169,175
+185c165,171
 <         metricsService.deleteTags(metric, tags.getTags()).subscribe(new ResultSetObserver(asyncResponse));
 ---
 > 
@@ -606,7 +617,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-194,203c180,182
+190,199c176,178
 <     @ApiOperation(value = "Add data for a single availability metric.")
 <     @ApiResponses(value = {
 <             @ApiResponse(code = 200, message = "Adding data succeeded."),
@@ -621,7 +632,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >     public Response addAvailabilityForMetric(
 >             @PathParam("id") String id,
 >             List<AvailabilityDataPoint> data
-206,207c185,190
+202,203c181,186
 <         Observable<Void> observable = metricsService.addDataPoints(AVAILABILITY, metrics);
 <         observable.subscribe(new ResultSetObserver(asyncResponse));
 ---
@@ -631,7 +642,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-212,221c195
+208,217c191
 <     @ApiOperation(value = "Add metric data for multiple availability metrics in a single call.")
 <     @ApiResponses(value = {
 <             @ApiResponse(code = 200, message = "Adding data succeeded."),
@@ -644,7 +655,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <             @ApiParam(value = "List of availability metrics", required = true)
 ---
 >     public Response addAvailabilityData(
-225,226c199,204
+221,222c195,200
 <         Observable<Void> observable = metricsService.addDataPoints(AVAILABILITY, metrics);
 <         observable.subscribe(new ResultSetObserver(asyncResponse));
 ---
@@ -654,7 +665,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-231,238c209,210
+227,234c205,206
 <     @ApiOperation(value = "Find availabilities metrics data by their tags.", response = Map.class)
 <     @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched data."),
 <             @ApiResponse(code = 204, message = "No matching data found."),
@@ -666,19 +677,19 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 ---
 >     public Response findAvailabilityDataByTags(
 >             @QueryParam("tags") Tags tags
-241c213
+237c209
 <             asyncResponse.resume(badRequest(new ApiError("Missing tags query")));
 ---
 >             return badRequest(new ApiError("Missing tags query"));
-243,251c215,227
+239,247c211,221
 <             // @TODO Repeated code, refactor (in GaugeHandler also)
 <             metricsService.findAvailabilityByTags(tenantId, tags.getTags()).subscribe(m -> {
 <                 if (m.isEmpty()) {
-<                     asyncResponse.resume(Response.noContent().build());
+<                     asyncResponse.resume(noContent());
 <                 } else {
 <                     asyncResponse.resume(Response.ok(m).build());
 <                 }
-<             }, t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
+<             }, t -> asyncResponse.resume(serverError(t)));
 < 
 ---
 >             try {
@@ -688,13 +699,11 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >                     } else {
 >                         return Response.ok(m).build();
 >                     }
->                 })
->                         .toBlocking()
->                         .lastOrDefault(null);
+>                 }).toBlocking().lastOrDefault(null);
 >             } catch (Exception e) {
->                 return Response.serverError().entity(new ApiError(e.getMessage())).build();
+>                 return serverError(e);
 >             }
-257,269c233
+253,265c227
 <     @ApiOperation(value = "Retrieve availability data.", notes = "When buckets or bucketDuration query parameter is " +
 <             "used, the time range between start and end will be divided in buckets of equal duration, and " +
 <             "availability statistics will be computed for each bucket.", response = AvailabilityDataPoint.class,
@@ -710,7 +719,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <             @Suspended AsyncResponse asyncResponse,
 ---
 >     public Response findAvailabilityData(
-271,275c235,238
+267,271c229,232
 <             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
 <             @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
 <             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
@@ -721,32 +730,26 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >             @QueryParam("end") final Long end,
 >             @QueryParam("buckets") Integer bucketsCount,
 >             @QueryParam("bucketDuration") Duration bucketDuration,
-283d245
+279d239
 < 
-285c247,248
+281c241,242
 <             metricsService.findAvailabilityData(metricId, startTime, endTime, distinct)
 ---
 >             try {
 >                 return metricsService.findAvailabilityData(metricId, startTime, endTime, distinct)
-289,294c252,257
-<                     .subscribe(
-<                             asyncResponse::resume,
-<                             t -> {
-<                                 logger.warn("Failed to fetch availability data", t);
-<                                 serverError(t);
-<                             });
+285c246,250
+<                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
 ---
 >                     .toBlocking()
 >                     .lastOrDefault(null);
 >             } catch (Exception e) {
->                 logger.warn("Failed to fetch availability data", e);
 >                 return serverError(e);
 >             }
-296c259
+287c252
 <             asyncResponse.resume(badRequest(new ApiError("Both buckets and bucketDuration parameters are used")));
 ---
 >             return badRequest(new ApiError("Both buckets and bucketDuration parameters are used"));
-306,307c269,276
+297,298c262,269
 <                 asyncResponse.resume(badRequest(new ApiError("Bucket: " + e.getMessage())));
 <                 return;
 ---
@@ -758,12 +761,12 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >                         .lastOrDefault(null);
 >             } catch (Exception e) {
 >                 return serverError(e);
-309,312d277
+300,303d270
 < 
 <             metricsService.findAvailabilityStats(metricId, startTime, endTime, buckets)
 <                 .map(ApiUtils::collectionToResponse)
-<                 .subscribe(asyncResponse::resume, ApiUtils::serverError);
-318,324c283
+<                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+309,315c276
 <     @ApiOperation(value = "Add or update availability metric's tags.")
 <     @ApiResponses(value = {
 <             @ApiResponse(code = 200, message = "Tags were modified successfully."),
@@ -773,11 +776,11 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <             @Suspended final AsyncResponse asyncResponse,
 ---
 >     public Response tagAvailabilityData(
-326c285
+317c278
 <             @ApiParam(required = true) TagRequest params
 ---
 >             TagRequest params
-336c295,301
+327c288,294
 <         resultSetObservable.subscribe(new ResultSetObserver(asyncResponse));
 ---
 > 
@@ -787,7 +790,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-341,348c306,307
+332,339c299,300
 <     @ApiOperation(value = "Find availability metric data with given tags.", response = Map.class)
 <     @ApiResponses(value = { @ApiResponse(code = 200, message = "Availability values fetched successfully"),
 <             @ApiResponse(code = 204, message = "No matching data found."),
@@ -799,27 +802,29 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 ---
 >     public Response findTaggedAvailabilityData(
 >             @PathParam("tags") Tags tags
-350,351c309,310
+341,342c302,303
 <         metricsService.findAvailabilityByTags(tenantId, tags.getTags())
 <         .subscribe(m -> { // @TODO Repeated code, refactor and use Optional?
 ---
 >         try {
 >         return metricsService.findAvailabilityByTags(tenantId, tags.getTags()).map(m -> {
-353c312
-<                 asyncResponse.resume(Response.noContent().build());
+344c305
+<                 asyncResponse.resume(noContent());
 ---
 >                 return ApiUtils.noContent();
-355c314
+346c307
 <                 asyncResponse.resume(Response.ok(m).build());
 ---
 >                 return Response.ok(m).build();
-357c316,319
-<         }, t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
+348c309,312
+<         }, t -> asyncResponse.resume(serverError(t)));
 ---
 >             }).toBlocking().lastOrDefault(null);
 >         } catch (Exception e) {
->             return Response.serverError().entity(new ApiError(e.getMessage())).build();
+>             return serverError(e);
 >         }
+349a314
+> 
 diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/BaseHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/BaseHandler.java
 39,40d38
 < import io.swagger.annotations.ApiOperation;
@@ -836,15 +841,15 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 < import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 56a53
 > import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
-63,67d59
+61,65d57
 < import io.swagger.annotations.Api;
 < import io.swagger.annotations.ApiOperation;
 < import io.swagger.annotations.ApiParam;
 < import io.swagger.annotations.ApiResponse;
 < import io.swagger.annotations.ApiResponses;
-77d68
+75d66
 < @Api(tags = "Counter")
-92,107c83,84
+87,102c78,79
 <     @ApiOperation(
 <             value = "Create counter metric. This operation also causes the rate to be calculated and " +
 <                     "persisted periodically after raw count data is persisted.",
@@ -864,13 +869,13 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 ---
 >     public Response createCounter(
 >             MetricDefinition metricDefinition,
-111,112c88,89
+106,107c83,84
 <             asyncResponse.resume(badRequest(new ApiError("MetricDefinition type does not match " + MetricType
 <                     .COUNTER.getText())));
 ---
 >             return badRequest(new ApiError("MetricDefinition type does not match " + MetricType
 >                     .COUNTER.getText()));
-117c94,103
+112c89,98
 <         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
 ---
 >         try {
@@ -883,7 +888,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-122,130c108,110
+117,125c103,105
 <     @ApiOperation(value = "Retrieve a counter definition", response = MetricDefinition.class)
 <     @ApiResponses(value = {
 <             @ApiResponse(code = 200, message = "Metric's definition was successfully retrieved."),
@@ -897,7 +902,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >     public Response getCounter(@PathParam("id") String id) {
 >         try {
 >             return metricsService.findMetric(new MetricId<>(tenantId, COUNTER, id))
-133,134c113,117
+128,129c108,112
 <                 .switchIfEmpty(Observable.just(noContent()))
 <                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
 ---
@@ -906,7 +911,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-139,148c122
+134,143c117
 <     @ApiOperation(value = "Add data points for multiple counters")
 <     @ApiResponses(value = {
 <             @ApiResponse(code = 200, message = "Adding data points succeeded."),
@@ -919,7 +924,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <     ) {
 ---
 >     public Response addData(List<Counter> counters) {
-150,151c124,129
+145,146c119,124
 <         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
 <         observable.subscribe(new ResultSetObserver(asyncResponse));
 ---
@@ -929,7 +934,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-156,164c134
+151,159c129
 <     @ApiOperation(value = "Add data for a single counter")
 <     @ApiResponses(value = {
 <             @ApiResponse(code = 200, message = "Adding data succeeded."),
@@ -941,9 +946,9 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <             @Suspended final AsyncResponse asyncResponse,
 ---
 >     public Response addData(
-166d135
+161d130
 <             @ApiParam(value = "List of data points containing timestamp and value", required = true)
-170,171c139,144
+165,166c134,139
 <         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
 <         observable.subscribe(new ResultSetObserver(asyncResponse));
 ---
@@ -953,7 +958,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-176,186c149
+171,181c144
 <     @ApiOperation(value = "Retrieve counter data points.", response = CounterDataPoint.class,
 <             responseContainer = "List")
 <     @ApiResponses(value = {
@@ -967,7 +972,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <             @Suspended AsyncResponse asyncResponse,
 ---
 >     public Response findCounterData(
-188,190c151,153
+183,185c146,148
 <             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
 <             @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end) {
 < 
@@ -975,26 +980,20 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >             @QueryParam("start") final Long start,
 >             @QueryParam("end") final Long end
 >     ) {
-195c158,159
+190c153,154
 <         metricsService.findDataPoints(new MetricId<>(tenantId, COUNTER, id), startTime, endTime)
 ---
 >         try {
 >             return metricsService.findDataPoints(new MetricId<>(tenantId, COUNTER, id), startTime, endTime)
-199,204c163,168
-<                 .subscribe(
-<                         asyncResponse::resume,
-<                         t -> {
-<                             logger.warn("Failed to fetch counter data", t);
-<                             serverError(t);
-<                         });
+194c158,162
+<                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
 ---
 >                 .toBlocking()
 >                 .lastOrDefault(null);
 >         } catch (Exception e) {
->             logger.warn("Failed to fetch counter data", e);
 >             return serverError(e);
 >         }
-209,221c173
+199,211c167
 <     @ApiOperation(
 <             value = "Retrieve counter rate data points which are automatically generated on the server side.",
 <             notes = "Rate data points are only generated for counters that are explicitly created.",
@@ -1010,7 +1009,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <         @Suspended AsyncResponse asyncResponse,
 ---
 >     public Response findRate(
-223,225c175,177
+213,215c169,171
 <         @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
 <         @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end) {
 < 
@@ -1018,27 +1017,19 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         @QueryParam("start") final Long start,
 >         @QueryParam("end") final Long end
 >     ) {
-230c182,183
+220c176,177
 <         metricsService.findRateData(new MetricId<>(tenantId, COUNTER, id), startTime, endTime)
 ---
 >         try  {
 >             return metricsService.findRateData(new MetricId<>(tenantId, COUNTER, id), startTime, endTime)
-234,239c187,192
-<                 .subscribe(
-<                         asyncResponse::resume,
-<                         t -> {
-<                             logger.warn("Failed to fetch counter rate data", t);
-<                             serverError(t);
-<                         });
+224c181,185
+<                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
 ---
 >                 .toBlocking()
 >                 .lastOrDefault(null);
 >         } catch (Exception e) {
->             logger.warn("Failed to fetch counter rate data", e);
 >             return serverError(e);
 >         }
-241d193
-< 
 diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/GaugeHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/GaugeHandler.java
 44,45d43
 < import javax.ws.rs.container.AsyncResponse;

@@ -29,14 +29,13 @@ import org.hawkular.metrics.clients.ptrans.collectd.packet.PartType;
 import org.hawkular.metrics.clients.ptrans.collectd.packet.StringPart;
 import org.hawkular.metrics.clients.ptrans.collectd.packet.ValuePart;
 import org.hawkular.metrics.clients.ptrans.collectd.packet.Values;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.logging.Logger;
 
 /**
  * @author Thomas Segismont
  */
 public final class CollectdEventsDecoder {
-    private static final Logger LOG = LoggerFactory.getLogger(CollectdEventsDecoder.class);
+    private static final Logger log = Logger.getLogger(CollectdEventsDecoder.class);
 
     private static final String EMPTY_STRING_VALUE = "";
 
@@ -81,17 +80,17 @@ public final class CollectdEventsDecoder {
                             host, timestamp, pluginName, pluginInstance, typeName,
                             typeInstance, getValues(part).getData(), interval
                     );
-                    LOG.trace("Decoded ValueListEvent: {}", event);
+                    log.tracef("Decoded ValueListEvent: %s", event);
                     events.add(event);
                     break;
                 default:
-                    LOG.debug("Skipping unknown part type: {}", partType);
+                    log.tracef("Skipping unknown part type: %s", partType);
             }
         }
 
-        if (LOG.isTraceEnabled()) {
+        if (log.isTraceEnabled()) {
             long stop = System.currentTimeMillis();
-            LOG.trace("Decoded events in {} ms", stop - start);
+            log.tracef("Decoded events in %d ms", stop - start);
         }
 
         return events;

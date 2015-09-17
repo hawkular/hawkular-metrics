@@ -57,8 +57,6 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -76,9 +74,6 @@ import rx.Observable;
 @Produces(APPLICATION_JSON)
 @Api(tags = "Counter")
 public class CounterHandler {
-
-    private static Logger logger = LoggerFactory.getLogger(CounterHandler.class);
-
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
     @Inject
@@ -196,12 +191,7 @@ public class CounterHandler {
                 .map(CounterDataPoint::new)
                 .toList()
                 .map(ApiUtils::collectionToResponse)
-                .subscribe(
-                        asyncResponse::resume,
-                        t -> {
-                            logger.warn("Failed to fetch counter data", t);
-                            serverError(t);
-                        });
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
     }
 
     @GET
@@ -231,12 +221,6 @@ public class CounterHandler {
                 .map(GaugeDataPoint::new)
                 .toList()
                 .map(ApiUtils::collectionToResponse)
-                .subscribe(
-                        asyncResponse::resume,
-                        t -> {
-                            logger.warn("Failed to fetch counter rate data", t);
-                            serverError(t);
-                        });
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
     }
-
 }

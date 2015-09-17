@@ -33,8 +33,6 @@ import org.hawkular.metrics.tasks.api.SingleExecutionTrigger;
 import org.hawkular.metrics.tasks.api.Trigger;
 import org.hawkular.metrics.tasks.impl.Task2Impl;
 import org.joda.time.DateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -49,9 +47,6 @@ import rx.Observable;
  * task scheduler running for these tests.
  */
 public class GenerateRateITest extends MetricsITest {
-
-    private static Logger logger = LoggerFactory.getLogger(GenerateRateITest.class);
-
     private MetricsServiceImpl metricsService;
 
     private DateTimeService dateTimeService;

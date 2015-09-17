@@ -33,7 +33,6 @@
       <outputDirectory>.</outputDirectory>
       <includes>
         <include>LICENSE</include>
-        <include>log4j.xml</include>
         <include>ptrans.conf</include>
       </includes>
       <fileMode>644</fileMode>
@@ -43,6 +42,10 @@
     <file>
       <source>${project.basedir}/src/assembly/dist/assets/README</source>
       <filtered>true</filtered>
+      <fileMode>644</fileMode>
+    </file>
+    <file>
+      <source>${project.basedir}/src/main/resources/logback.xml</source>
       <fileMode>644</fileMode>
     </file>
     <file>

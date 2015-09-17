@@ -58,6 +58,7 @@
     </dependency>
 
     <!-- Wildfly provided -->
+    <!-- No need to set the jboss-logging scope here since Wildfly BOM includes jboss-logging -->
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-jaxrs</artifactId>

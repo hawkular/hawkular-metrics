@@ -25,8 +25,7 @@ import org.hawkular.metrics.client.common.Batcher;
 import org.hawkular.metrics.client.common.MetricBuffer;
 import org.hawkular.metrics.client.common.SingleMetric;
 import org.hawkular.metrics.clients.ptrans.Configuration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.logging.Logger;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
@@ -48,7 +47,7 @@ import io.vertx.core.http.HttpHeaders;
  * @author Thomas Segismont
  */
 public class MetricsSender extends AbstractVerticle {
-    private static final Logger LOG = LoggerFactory.getLogger(MetricsSender.class);
+    private static final Logger log = Logger.getLogger(MetricsSender.class);
 
     private final String host;
     private final int port;
@@ -150,9 +149,9 @@ public class MetricsSender extends AbstractVerticle {
         HttpClientRequest req = httpClient.post(postUri, response -> {
             connectionsUsed--;
             if (response.statusCode() != 200) {
-                if (LOG.isTraceEnabled()) {
+                if (log.isTraceEnabled()) {
                     response.bodyHandler(msg -> {
-                        LOG.trace("Could not send metrics: " + response.statusCode() + " : " + msg.toString());
+                        log.trace("Could not send metrics: " + response.statusCode() + " : " + msg.toString());
                     });
                 }
                 buffer.reInsert(metrics);
@@ -167,7 +166,7 @@ public class MetricsSender extends AbstractVerticle {
         req.putHeader(Constants.TENANT_HEADER_NAME, tenant);
         req.exceptionHandler(err -> {
             connectionsUsed--;
-            LOG.trace("Could not send metrics", err);
+            log.trace("Could not send metrics", err);
             buffer.reInsert(metrics);
             metricInserted();
         });

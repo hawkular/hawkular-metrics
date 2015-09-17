@@ -80,10 +80,9 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricsService;
+import org.jboss.logging.Logger;
 import org.joda.time.Instant;
 import org.joda.time.Interval;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -101,7 +100,7 @@ import rx.Observer;
 @Produces(APPLICATION_JSON)
 @ApplicationScoped
 public class InfluxSeriesHandler {
-    private static final Logger LOG = LoggerFactory.getLogger(InfluxSeriesHandler.class);
+    private static final Logger log = Logger.getLogger(InfluxSeriesHandler.class);
 
     @Inject
     MetricsService metricsService;
@@ -401,9 +400,7 @@ public class InfluxSeriesHandler {
                     for (DataPoint<Double> rnm : list) {
                         retVal += rnm.getValue();
                     }
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug("Applying mean mapping, total = {}, size = {}", retVal, size);
-                    }
+                    log.debugf("Applying mean mapping, total = %d, size = %d", retVal, size);
                     retVal /= size;
                     break;
                 case MAX:
@@ -506,7 +503,7 @@ public class InfluxSeriesHandler {
                     retVal = Math.sqrt(sd);
                     break;
                 default:
-                    LOG.warn("Mapping of '{}' function not yet supported", function);
+                    log.warnf("Mapping of '%s' function not supported yet", function);
                 }
                 if (isSingleValue) {
                     out.add(new DataPoint<>(firstElementInList.getTimestamp(), retVal));

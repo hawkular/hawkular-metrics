@@ -54,8 +54,6 @@ import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 
@@ -67,9 +65,6 @@ import rx.Observable;
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
 public class CounterHandler {
-
-    private static Logger logger = LoggerFactory.getLogger(CounterHandler.class);
-
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
     @Inject
@@ -163,7 +158,6 @@ public class CounterHandler {
                 .toBlocking()
                 .lastOrDefault(null);
         } catch (Exception e) {
-            logger.warn("Failed to fetch counter data", e);
             return serverError(e);
         }
     }
@@ -187,7 +181,6 @@ public class CounterHandler {
                 .toBlocking()
                 .lastOrDefault(null);
         } catch (Exception e) {
-            logger.warn("Failed to fetch counter rate data", e);
             return serverError(e);
         }
     }

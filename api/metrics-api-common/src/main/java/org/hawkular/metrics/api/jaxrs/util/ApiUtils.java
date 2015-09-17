@@ -22,9 +22,9 @@ import java.util.Optional;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.hawkular.metrics.api.jaxrs.log.RestLogger;
+import org.hawkular.metrics.api.jaxrs.log.RestLogging;
 import org.hawkular.metrics.api.jaxrs.model.ApiError;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
 
@@ -32,17 +32,14 @@ import com.google.common.base.Throwables;
  * @author jsanda
  */
 public class ApiUtils {
-    private static final Logger LOG = LoggerFactory.getLogger(ApiUtils.class);
-
-    private ApiUtils() {
-    }
+    private static final RestLogger log = RestLogging.getRestLogger(ApiUtils.class);
 
     public static Response collectionToResponse(Collection<?> collection) {
         return collection.isEmpty() ? noContent() : Response.ok(collection).type(MediaType.APPLICATION_JSON).build();
     }
 
     public static Response serverError(Throwable t, String message) {
-        LOG.trace("Server error response", t);
+        log.errorRequestProblem(t);
         String errorMsg = message + ": " + Throwables.getRootCause(t).getMessage();
         return Response.serverError().type(MediaType.APPLICATION_JSON).entity(new ApiError(errorMsg)).build();
     }
@@ -70,5 +67,9 @@ public class ApiUtils {
     public static Response badRequest(Throwable t) {
         ApiError error = new ApiError(t.getLocalizedMessage());
         return badRequest(error);
+    }
+
+    private ApiUtils() {
+        // Utility class
     }
 }

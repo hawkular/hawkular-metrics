@@ -18,11 +18,11 @@ package org.hawkular.metrics.core.impl;
 
 import java.util.concurrent.CountDownLatch;
 
+import org.hawkular.metrics.core.impl.log.CoreLogger;
+import org.hawkular.metrics.core.impl.log.CoreLogging;
 import org.hawkular.metrics.tasks.api.Task2;
 import org.hawkular.metrics.tasks.api.Trigger;
 import org.joda.time.DateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.ResultSet;
 
@@ -33,8 +33,7 @@ import rx.functions.Action1;
  * @author jsanda
  */
 public class CreateTenants implements Action1<Task2> {
-
-    private static final Logger logger = LoggerFactory.getLogger(CreateTenants.class);
+    private static final CoreLogger log = CoreLogging.getCoreLogger(CreateTenants.class);
 
     public static final String TASK_NAME = "create-tenants";
 
@@ -61,13 +60,13 @@ public class CreateTenants implements Action1<Task2> {
         tenantsService.createTenants(bucket, tenantIds).subscribe(
                 aVoid -> {},
                 t -> {
-                    logger.warn("Tenant creation failed", t);
+                    log.warnTenantCreationFailed(t);
                     latch.countDown();
                 },
                 () -> dataAccess.deleteTenantsBucket(bucket).subscribe(
                         resultSet -> {},
                         t -> {
-                            logger.warn("Failed to delete tenants bucket [" + bucket + "]", t);
+                            log.warnFailedToDeleteTenantBucket(bucket, t);
                             latch.countDown();
                         },
                         latch::countDown
@@ -75,7 +74,7 @@ public class CreateTenants implements Action1<Task2> {
         );
         try {
             latch.await();
-        } catch (InterruptedException e) {
+        } catch (InterruptedException ignored) {
         }
     }
 
@@ -87,5 +86,4 @@ public class CreateTenants implements Action1<Task2> {
     private Observable<Boolean> tenantDoesNotExist(String tenantId) {
         return dataAccess.findTenant(tenantId).map(ResultSet::isExhausted);
     }
-
 }

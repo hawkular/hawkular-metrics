@@ -63,8 +63,6 @@ import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 
@@ -77,8 +75,6 @@ import rx.Observable;
 @Produces(APPLICATION_JSON)
 public class AvailabilityHandler {
     private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
-
-    private static final Logger logger = LoggerFactory.getLogger(AvailabilityHandler.class);
 
     @Inject
     private MetricsService metricsService;
@@ -219,11 +215,9 @@ public class AvailabilityHandler {
                     } else {
                         return Response.ok(m).build();
                     }
-                })
-                        .toBlocking()
-                        .lastOrDefault(null);
+                }).toBlocking().lastOrDefault(null);
             } catch (Exception e) {
-                return Response.serverError().entity(new ApiError(e.getMessage())).build();
+                return serverError(e);
             }
         }
     }
@@ -252,7 +246,6 @@ public class AvailabilityHandler {
                     .toBlocking()
                     .lastOrDefault(null);
             } catch (Exception e) {
-                logger.warn("Failed to fetch availability data", e);
                 return serverError(e);
             }
         } else if (bucketsCount != null && bucketDuration != null) {
@@ -315,7 +308,7 @@ public class AvailabilityHandler {
             }
             }).toBlocking().lastOrDefault(null);
         } catch (Exception e) {
-            return Response.serverError().entity(new ApiError(e.getMessage())).build();
+            return serverError(e);
         }
     }
 

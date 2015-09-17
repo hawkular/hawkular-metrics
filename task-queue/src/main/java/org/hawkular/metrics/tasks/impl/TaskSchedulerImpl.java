@@ -33,11 +33,11 @@ import org.hawkular.metrics.tasks.api.SingleExecutionTrigger;
 import org.hawkular.metrics.tasks.api.Task2;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.hawkular.metrics.tasks.api.Trigger;
+import org.hawkular.metrics.tasks.log.TaskQueueLogger;
+import org.hawkular.metrics.tasks.log.TaskQueueLogging;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.ResultSet;
@@ -60,8 +60,7 @@ import rx.subjects.PublishSubject;
  * @author jsanda
  */
 public class TaskSchedulerImpl implements TaskScheduler {
-
-    private static Logger logger = LoggerFactory.getLogger(TaskSchedulerImpl.class);
+    private static TaskQueueLogger log = TaskQueueLogging.getTaskQueueLogger(TaskSchedulerImpl.class);
 
     public static final int DEFAULT_LEASE_TTL = 180;
 
@@ -166,7 +165,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
             try {
                 delegate.onNext(task2);
             } catch (Exception e) {
-                logger.warn("Execution of {} failed", task2);
+                log.warnTaskExecutionFailed(task2, e);
             }
         }
     }
@@ -224,15 +223,15 @@ public class TaskSchedulerImpl implements TaskScheduler {
         Observable<Lease> processedLeases = Observable.create(subscriber -> {
             leasesSubscription = leases.subscribe(
                     lease -> {
-                        logger.debug("Loading tasks for {}", lease);
+                        log.debugf("Loading tasks for %s", lease);
                         CountDownLatch latch = new CountDownLatch(1);
                         getQueue(lease)
                                 .observeOn(tasksScheduler)
                                 .groupBy(Task2Impl::getGroupKey)
                                 .flatMap(group -> group.flatMap(this::execute).map(this::rescheduleTask))
                                 .subscribe(
-                                        task -> logger.debug("Finished executing {}", task),
-                                        t -> logger.warn("There was an error observing tasks", t),
+                                        task -> log.debugf("Finished executing %s", task),
+                                        t -> log.warnTasksObservationProblem(t),
                                         () -> {
                                             Date timeSlice = new Date(lease.getTimeSlice());
                                             // TODO We need error handling here
@@ -248,19 +247,18 @@ public class TaskSchedulerImpl implements TaskScheduler {
                                             ).subscribe(
                                                     resultSet -> {},
                                                     t -> {
-                                                        logger.warn("There was an error during post-task processing",
-                                                                t);
+                                                        log.warnTaskPostProcessProblem(t);
                                                         subscriber.onError(t);
                                                     },
                                                     () -> {
-                                                        logger.debug("Finished executing tasks for {}", lease);
+                                                        log.debugf("Finished executing tasks for %s", lease);
                                                         latch.countDown();
                                                         subscriber.onNext(lease);
                                                     }
                                             );
                                         }
                                 );
-                        logger.debug("Started processing tasks for {}", lease);
+                        log.debugf("Started processing tasks for %s", lease);
                         try {
                             // While using a CountDownLatch might seem contrary to RxJava, we
                             // want to block here until all tasks have finished executing. We
@@ -270,14 +268,14 @@ public class TaskSchedulerImpl implements TaskScheduler {
                             // not want to try and acquire another lease until we have
                             // finished with the tasks for the current lease.
                             latch.await();
-                            logger.debug("Done waiting!");
+                            log.debug("Done waiting!");
                         } catch (InterruptedException e) {
-                            logger.warn("Interrupted waiting for task execution to complete", e);
+                            log.warnInterruptionOnTaskCompleteWaiting(e);
                         }
                     },
-                    t -> logger.warn("There was an error observing leases", t),
+                    t -> log.warnLeasesObservationProblem(t),
                     () -> {
-                        logger.debug("Finished observing leases");
+                        log.debug("Finished observing leases");
                         subscriber.onCompleted();
                     }
             );
@@ -314,7 +312,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
         return Observable.timer(0, 1, TimeUnit.MINUTES, tickScheduler)
                 .map(tick -> currentTimeSlice())
                 .takeUntil(d -> !running)
-                .doOnNext(tick -> logger.debug("Tick {}", tick))
+                .doOnNext(tick -> log.debugf("Tick %s", tick))
                 .observeOn(leaseScheduler);
     }
 
@@ -340,22 +338,22 @@ public class TaskSchedulerImpl implements TaskScheduler {
             // we acquire a lease, we execute all of the tasks for the lease. We check for
             // available leases again only after those tasks have completed.
             try {
-                logger.debug("Loading leases for {}", timeSlice);
-                logger.debug("Timestamp is {}", timeSlice.getTime());
+                log.debugf("Loading leases for %s", timeSlice);
+                log.debugf("Timestamp is %s", timeSlice.getTime());
                 List<Lease> leases = findAvailableLeases(timeSlice);
                 while (!leases.isEmpty()) {
                     for (Lease lease : leases) {
                         if (acquire(lease)) {
-                            logger.debug("Acquired {}", lease);
+                            log.debugf("Acquired %s", lease);
                             subscriber.onNext(lease);
-                            logger.debug("Finished with {}", lease);
+                            log.debugf("Finished with %s", lease);
                         }
                         break;
                     }
-                    logger.debug("Looking for available leases");
+                    log.debug("Looking for available leases");
                     leases = findAvailableLeases(timeSlice);
                 }
-                logger.debug("No more leases to process for {}", timeSlice);
+                log.debugf("No more leases to process for %s", timeSlice);
                 // TODO we do not want to perform a delete if there are no leases for the time slice
                 session.execute(queries.deleteLeases.bind(timeSlice)).toBlocking().first();
                 subscriber.onCompleted();
@@ -395,7 +393,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
      * the queue. The observable should execute on the lease scheduler.
      */
     Observable<Task2Impl> getQueue(Lease lease) {
-        logger.debug("Loading task queue for {}", lease);
+        log.debugf("Loading task queue for %s", lease);
         return session.execute(queries.getTasksFromQueue.bind(new Date(lease.getTimeSlice()), lease.getShard()),
                 Schedulers.immediate())
                 .flatMap(Observable::from)
@@ -416,14 +414,14 @@ public class TaskSchedulerImpl implements TaskScheduler {
      */
     private Observable<Task2Impl> execute(Task2Impl task) {
         Observable<Task2Impl> observable = Observable.create(subscriber -> {
-            logger.debug("Emitting {} for execution", task);
+            log.debugf("Emitting %s for execution", task);
             // This onNext call is to perform the actual task execution
             taskSubject.onNext(task);
             // This onNext call is for data flow. After the task executes, we call
             // this onNext so that the task gets rescheduled.
             subscriber.onNext(task);
             subscriber.onCompleted();
-            logger.debug("Finished executing {}", task);
+            log.debugf("Finished executing %s", task);
 
         });
         // Subscribe on the same scheduler thread to make sure tasks within the same group
@@ -434,7 +432,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
     @Override
     public void shutdown() {
         try {
-            logger.debug("shutting down");
+            log.debug("shutting down");
             running = false;
 
             if (leasesSubscription != null) {
@@ -495,7 +493,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
         Date timeSlice = new Date(trigger.getTriggerTime());
         Task2Impl task = new Task2Impl(id, groupKey, executionOrder, name, parameters, trigger);
 
-        logger.debug("Scheduling {}", task);
+        log.debugf("Scheduling %s", task);
 
         Observable<ResultSet> createTask = session.execute(queries.createTask2.bind(id, groupKey, executionOrder, name,
                 parameters, triggerUDT));
@@ -534,7 +532,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
     private Observable<Task2Impl> rescheduleTask(Task2Impl task) {
         Trigger nextTrigger = task.getTrigger().nextTrigger();
         if (nextTrigger == null) {
-            logger.debug("There are no more executions for {}", task);
+            log.debugf("There are no more executions for %s", task);
             return Observable.just(task);
         }
         int shard = computeShard(task.getGroupKey());
@@ -543,8 +541,10 @@ public class TaskSchedulerImpl implements TaskScheduler {
         UDTValue triggerUDT = getTriggerValue(session, newTask.getTrigger());
         Date timeSlice = new Date(newTask.getTrigger().getTriggerTime());
 
-        logger.debug("Next execution time for Task2Impl{id=" + newTask.getId() + ", name=" + newTask.getName() +
-                "} is " + new Date(newTask.getTrigger().getTriggerTime()));
+        if (log.isDebugEnabled()) {
+            log.debug("Next execution time for Task2Impl{id=" + newTask.getId() + ", name=" + newTask.getName() +
+                    "} is " + new Date(newTask.getTrigger().getTriggerTime()));
+        }
 
         Observable<ResultSet> updateQueue = session.execute(queries.insertIntoQueue.bind(timeSlice, shard,
                 newTask.getId(), task.getGroupKey(), task.getOrder(), newTask.getName(), newTask.getParameters(),
@@ -563,7 +563,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
                     t -> subscriber.onError(new RuntimeException("Failed to reschedule " + newTask, t)),
                     () -> {
                         try {
-                            logger.debug("Received result set for reschedule task, {}", newTask);
+                            log.debugf("Received result set for reschedule task, %s", newTask);
                             subscriber.onNext(newTask);
                             subscriber.onCompleted();
                         } catch (Exception e) {

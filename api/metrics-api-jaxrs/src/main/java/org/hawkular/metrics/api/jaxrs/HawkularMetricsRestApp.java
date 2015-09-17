@@ -45,22 +45,22 @@ import org.hawkular.metrics.api.jaxrs.handler.TenantsHandler;
 import org.hawkular.metrics.api.jaxrs.handler.VirtualClockHandler;
 import org.hawkular.metrics.api.jaxrs.influx.InfluxSeriesHandler;
 import org.hawkular.metrics.api.jaxrs.interceptor.EmptyPayloadInterceptor;
+import org.hawkular.metrics.api.jaxrs.log.RestLogger;
+import org.hawkular.metrics.api.jaxrs.log.RestLogging;
 import org.hawkular.metrics.api.jaxrs.param.ConvertersProvider;
 import org.hawkular.metrics.api.jaxrs.util.JacksonConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * Rest app initialization
+ * Rest app initialization.
+ *
  * @author Heiko W. Rupp
  */
 @ApplicationPath("/")
 public class HawkularMetricsRestApp extends Application {
-
-    private static final Logger logger = LoggerFactory.getLogger(HawkularMetricsRestApp.class);
+    private static final RestLogger log = RestLogging.getRestLogger(HawkularMetricsRestApp.class);
 
     public HawkularMetricsRestApp() {
-        logger.info("Hawkular Metrics starting ..");
+        log.infoAppStarting();
     }
 
     /**
@@ -94,10 +94,10 @@ public class HawkularMetricsRestApp extends Application {
         boolean useVirtualClock = Boolean.valueOf(System.getProperty("hawkular.metrics.use-virtual-clock", "false"));
 
         if (useVirtualClock) {
-            logger.info("Deploying {}", VirtualClockHandler.class);
+            log.infof("Deploying %s", VirtualClockHandler.class.getCanonicalName());
             classes.add(VirtualClockHandler.class);
         } else {
-            logger.info("Virtual clock is disabled");
+            log.info("Virtual clock is disabled");
         }
 
         // Add exception mapper providers

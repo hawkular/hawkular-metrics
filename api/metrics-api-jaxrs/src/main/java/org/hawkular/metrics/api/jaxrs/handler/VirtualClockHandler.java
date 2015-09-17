@@ -21,6 +21,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
+
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -38,10 +40,8 @@ import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.util.TestClock;
 import org.hawkular.metrics.api.jaxrs.util.VirtualClock;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.logging.Logger;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 
 import rx.observers.TestSubscriber;
@@ -55,10 +55,9 @@ import rx.schedulers.Schedulers;
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
 public class VirtualClockHandler {
+    private static Logger log = Logger.getLogger(VirtualClockHandler.class);
 
     public static final String PATH = "/clock";
-
-    private static Logger logger = LoggerFactory.getLogger(VirtualClockHandler.class);
 
     @Inject
     @TestClock
@@ -104,9 +103,8 @@ public class VirtualClockHandler {
 
             return Response.ok().build();
         } catch (Exception e) {
-            logger.warn("Failed to wait " + numMinutes + " minutes for task scheduler to complete work", e);
-            return Response.serverError().entity(ImmutableMap.of("errorMsg", Throwables.getStackTraceAsString(e)))
-                    .build();
+            log.warn("Failed to wait " + numMinutes + " minutes for task scheduler to complete work", e);
+            return serverError(e);
         }
     }
 

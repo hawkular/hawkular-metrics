@@ -19,8 +19,7 @@ package org.hawkular.metrics.clients.ptrans;
 import java.util.List;
 
 import org.hawkular.metrics.clients.ptrans.syslog.SyslogEventDecoder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.logging.Logger;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -34,7 +33,7 @@ import io.netty.util.CharsetUtil;
  * @author Heiko W. Rupp
  */
 public class DemuxHandler extends ByteToMessageDecoder {
-    private static final Logger logger = LoggerFactory.getLogger(DemuxHandler.class);
+    private static final Logger log = Logger.getLogger(DemuxHandler.class);
 
     private ChannelInboundHandlerAdapter forwardingHandler;
 
@@ -54,8 +53,8 @@ public class DemuxHandler extends ByteToMessageDecoder {
         ChannelPipeline pipeline = ctx.pipeline();
 
         String data = msg.toString(CharsetUtil.UTF_8);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Incoming: [" + data + "]");
+        if (log.isTraceEnabled()) {
+            log.trace("Incoming: [" + data + "]");
         }
 
         boolean done = false;
@@ -68,7 +67,9 @@ public class DemuxHandler extends ByteToMessageDecoder {
         }
 
         if (!done) {
-            logger.warn("Unknown input [" + data + "], ignoring");
+            if (log.isTraceEnabled()) {
+                log.trace("Unknown input [" + data + "], ignoring");
+            }
             msg.clear();
             ctx.close();
         }

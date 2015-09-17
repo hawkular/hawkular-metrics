@@ -31,8 +31,8 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.hawkular.metrics.clients.ptrans.log.PTransLogger;
+import org.hawkular.metrics.clients.ptrans.log.PTransLogging;
 
 import jnr.posix.POSIXFactory;
 
@@ -45,7 +45,7 @@ import jnr.posix.POSIXFactory;
  * @author Thomas Segismont
  */
 public class Main {
-    private static final Logger LOG = LoggerFactory.getLogger(Main.class);
+    private static final PTransLogger log = PTransLogging.getPTransLogger(Main.class);
 
     private final String[] args;
     private final OptionsFactory optionsFactory;
@@ -147,7 +147,7 @@ public class Main {
         try {
             main.start();
         } catch (Exception e) {
-            LOG.error("Exception on startup", e);
+            log.errorStartupProblem(e);
             System.exit(1);
         }
     }

@@ -22,8 +22,8 @@ import java.io.InputStreamReader;
 import java.io.StringWriter;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.hawkular.metrics.schema.log.SchemaManagerLogger;
+import org.hawkular.metrics.schema.log.SchemaManagerLogging;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
@@ -35,7 +35,7 @@ import com.google.common.io.CharStreams;
  * @author Heiko W. Rupp
  */
 public class SchemaManager {
-    private static final Logger logger = LoggerFactory.getLogger(SchemaManager.class);
+    private static final SchemaManagerLogger log = SchemaManagerLogging.getSchemaManagerLogger(SchemaManager.class);
 
     private final Session session;
 
@@ -44,17 +44,17 @@ public class SchemaManager {
     }
 
     public void dropKeyspace(String keyspace) {
-        logger.info("Dropping keyspace " + keyspace);
+        log.infoDroppingKeyspace(keyspace);
         session.execute("DROP KEYSPACE IF EXISTS " + keyspace);
     }
 
     public void createSchema(String keyspace) {
-        logger.info("Creating schema for keyspace " + keyspace);
+        log.infoCreatingSchemaForKeyspace(keyspace);
 
         ResultSet resultSet = session.execute("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = '" +
             keyspace + "'");
         if (!resultSet.isExhausted()) {
-            logger.info("Schema already exist. Skipping schema creation.");
+            log.infoSchemaAlreadyExists();
             return;
         }
 
@@ -67,7 +67,7 @@ public class SchemaManager {
             for (String cql : content.split("(?m)^-- #.*$")) {
                 if (!cql.startsWith("--")) {
                     String updatedCQL = substituteVars(cql.trim(), schemaVars);
-                    logger.debug("Executing CQL:\n" + updatedCQL + "\n");
+                    log.debugf("Executing CQL: %n%s%n", updatedCQL);
                     session.execute(updatedCQL);
                 }
             }

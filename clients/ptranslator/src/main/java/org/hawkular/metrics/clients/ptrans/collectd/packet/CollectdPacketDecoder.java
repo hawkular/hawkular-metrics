@@ -21,8 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.hawkular.metrics.clients.ptrans.collectd.event.DataType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jboss.logging.Logger;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
@@ -35,7 +34,7 @@ import io.vertx.core.datagram.DatagramPacket;
  * @author Thomas Segismont
  */
 public final class CollectdPacketDecoder {
-    private static final Logger LOG = LoggerFactory.getLogger(CollectdPacketDecoder.class);
+    private static final Logger log = Logger.getLogger(CollectdPacketDecoder.class);
 
     public CollectdPacket decode(DatagramPacket packet) {
         long start = System.currentTimeMillis();
@@ -80,20 +79,20 @@ public final class CollectdPacketDecoder {
             }
             //noinspection ConstantConditions
             if (part != null) {
-                LOG.trace("Decoded part: {}", part);
+                log.tracef("Decoded part: %s", part);
                 parts.add(part);
             }
         }
 
-        if (LOG.isTraceEnabled()) {
+        if (log.isTraceEnabled()) {
             long stop = System.currentTimeMillis();
-            LOG.trace("Decoded datagram in {} ms", stop - start);
+            log.tracef("Decoded datagram in %d ms", stop - start);
         }
 
         if (parts.size() > 0) {
             return new CollectdPacket(parts);
         } else {
-            LOG.debug("No parts decoded, no CollectdPacket output");
+            log.trace("No parts decoded, no CollectdPacket output");
             return null;
         }
     }
@@ -139,7 +138,7 @@ public final class CollectdPacketDecoder {
                     data.add(Double.longBitsToDouble(ByteBufUtil.swapLong(content.readLong())));
                     break;
                 default:
-                    LOG.debug("Skipping unknown data type: {}", dataType);
+                    log.tracef("Skipping unknown data type: %s", dataType);
             }
         }
         // Skip any additionnal bytes
