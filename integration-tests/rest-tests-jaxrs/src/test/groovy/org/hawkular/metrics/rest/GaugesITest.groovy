@@ -101,7 +101,7 @@ class GaugesITest extends RESTTest {
     def insertMetrics = [ [id: 'EmptyGauge1', tags: [a: '1', b: '2']],
       [id: 'EmptyGauge2', tags: [a: '1', b: '2']],
       [id: 'EmptyGauge3', tags: [a: '1', b: '3']],
-      [id: 'EmptyGauge4', tags: [b:'4']]
+      [id: 'EmptyGauge4', tags: [a: '1', b: '4']]
     ]
 
     //insert metrics
@@ -129,17 +129,25 @@ class GaugesITest extends RESTTest {
 
     response = hawkularMetrics.get(path: "gauges/tags/a:1,b:2", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
-    assertDefinitionArrayEquals([insertMetrics[0], insertMetrics[1], insertMetrics[2]], response.data)
+    assertDefinitionArrayEquals([insertMetrics[0], insertMetrics[1]], response.data)
 
     response = hawkularMetrics.get(path: "gauges", query: [tags: "b:2,a:1"], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
-    assertDefinitionArrayEquals([insertMetrics[0], insertMetrics[1],insertMetrics[2]], response.data)
+    assertDefinitionArrayEquals([insertMetrics[0], insertMetrics[1]], response.data)
 
-    response = hawkularMetrics.get(path: "gauges/tags/a:1,b:2,b:4", headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: "gauges/tags/a:1,b:3", headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertDefinitionArrayEquals([insertMetrics[2]], response.data)
+
+    response = hawkularMetrics.get(path: "gauges", query: [tags: "b:3,a:1"], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertDefinitionArrayEquals([insertMetrics[2]], response.data)
+
+    response = hawkularMetrics.get(path: "gauges/tags/a:1", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertDefinitionArrayEquals(insertMetrics, response.data)
 
-    response = hawkularMetrics.get(path: "gauges", query: [tags: "b:2,a:1,b:4"], headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: "gauges", query: [tags: "a:1"], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertDefinitionArrayEquals(insertMetrics, response.data)
   }

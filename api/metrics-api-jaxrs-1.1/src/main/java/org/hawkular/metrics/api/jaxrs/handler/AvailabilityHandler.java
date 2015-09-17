@@ -208,9 +208,8 @@ public class AvailabilityHandler {
             return badRequest(new ApiError("Missing tags query"));
         } else {
             try {
-                return metricsService.findMetricsByTags(tenantId, AVAILABILITY, tags.getTags())
-                        .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
-                        .map(e -> new MetricDefinition(e.getName(), null, null, AVAILABILITY))
+                return metricsService.findMetricsWithFilters(tenantId, tags.getTags(), AVAILABILITY)
+                        .map(MetricDefinition::new)
                         .toList()
                         .map(m -> {
                             if (m.isEmpty()) {
@@ -282,9 +281,8 @@ public class AvailabilityHandler {
             @PathParam("tags") Tags tags
     ) {
         try {
-            return metricsService.findMetricsByTags(tenantId, AVAILABILITY, tags.getTags())
-                    .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
-                    .map(e -> new MetricDefinition(e.getName(), null, null, AVAILABILITY))
+            return metricsService.findMetricsWithFilters(tenantId, tags.getTags(), AVAILABILITY)
+                    .map(MetricDefinition::new)
                     .toList()
                     .map(m -> {
                         if (m.isEmpty()) {

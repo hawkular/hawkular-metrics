@@ -146,6 +146,7 @@ ${entity}
 
     [sortedExpectedArray, sortedActualArray].transpose().collect {
       assertEquals(it[0].id, it[1].id)
+      assertEquals(it[0].tags, it[1].tags)
     }
   }
 }

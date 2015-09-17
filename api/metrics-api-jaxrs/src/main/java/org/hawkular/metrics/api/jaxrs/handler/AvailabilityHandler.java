@@ -235,10 +235,8 @@ public class AvailabilityHandler {
         if (tags == null) {
             asyncResponse.resume(badRequest(new ApiError("Missing tags query")));
         } else {
-            // @TODO Repeated code, refactor (in GaugeHandler also)
-            metricsService.findMetricsByTags(tenantId, AVAILABILITY, tags.getTags())
-                    .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
-                    .map(e -> new MetricDefinition(e.getName(), null, null, AVAILABILITY))
+            metricsService.findMetricsWithFilters(tenantId, tags.getTags(), AVAILABILITY)
+                    .map(MetricDefinition::new)
                     .toList()
                     .subscribe(m -> {
                         if (m.isEmpty()) {
@@ -318,9 +316,8 @@ public class AvailabilityHandler {
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam("Tag list") @PathParam("tags") Tags tags
     ) {
-        metricsService.findMetricsByTags(tenantId, AVAILABILITY, tags.getTags())
-                .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
-                .map(e -> new MetricDefinition(e.getName(), null, null, AVAILABILITY))
+        metricsService.findMetricsWithFilters(tenantId, tags.getTags(), AVAILABILITY)
+                .map(MetricDefinition::new)
                 .toList()
                 .subscribe(m -> {// @TODO Repeated code, refactor and use Optional?
                     if (m.isEmpty()) {

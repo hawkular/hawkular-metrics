@@ -730,11 +730,9 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <             asyncResponse.resume(badRequest(new ApiError("Missing tags query")));
 ---
 >             return badRequest(new ApiError("Missing tags query"));
-242,254c214,230
-<             // @TODO Repeated code, refactor (in GaugeHandler also)
-<             metricsService.findMetricsByTags(tenantId, AVAILABILITY, tags.getTags())
-<                     .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
-<                     .map(e -> new MetricDefinition(e.getName(), null, null, AVAILABILITY))
+242,252c214,229
+<             metricsService.findMetricsWithFilters(tenantId, tags.getTags(), AVAILABILITY)
+<                     .map(MetricDefinition::new)
 <                     .toList()
 <                     .subscribe(m -> {
 <                         if (m.isEmpty()) {
@@ -746,9 +744,8 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <                             .resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
 ---
 >             try {
->                 return metricsService.findMetricsByTags(tenantId, AVAILABILITY, tags.getTags())
->                         .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
->                         .map(e -> new MetricDefinition(e.getName(), null, null, AVAILABILITY))
+>                 return metricsService.findMetricsWithFilters(tenantId, tags.getTags(), AVAILABILITY)
+>                         .map(MetricDefinition::new)
 >                         .toList()
 >                         .map(m -> {
 >                             if (m.isEmpty()) {
@@ -762,7 +759,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >             } catch (Exception e) {
 >                 return serverError(e);
 >             }
-260,272c236
+258,270c235
 <     @ApiOperation(value = "Retrieve availability data.", notes = "When buckets or bucketDuration query parameter is " +
 <             "used, the time range between start and end will be divided in buckets of equal duration, and " +
 <             "availability statistics will be computed for each bucket.", response = AvailabilityDataPoint.class,
@@ -778,7 +775,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <             @Suspended AsyncResponse asyncResponse,
 ---
 >     public Response findAvailabilityData(
-274,278c238,241
+272,276c237,240
 <             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
 <             @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
 <             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
@@ -789,14 +786,14 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >             @QueryParam("end") final Long end,
 >             @QueryParam("buckets") Integer bucketsCount,
 >             @QueryParam("bucketDuration") Duration bucketDuration,
-286d248
+284d247
 < 
-288c250,251
+286c249,250
 <             metricsService.findAvailabilityData(metricId, startTime, endTime, distinct)
 ---
 >             try {
 >                 return metricsService.findAvailabilityData(metricId, startTime, endTime, distinct)
-292,297c255,260
+290,295c254,259
 <                     .subscribe(
 <                             asyncResponse::resume,
 <                             t -> {
@@ -809,11 +806,11 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >             } catch (Exception e) {
 >                 return serverError(e);
 >             }
-299c262
+297c261
 <             asyncResponse.resume(badRequest(new ApiError("Both buckets and bucketDuration parameters are used")));
 ---
 >             return badRequest(new ApiError("Both buckets and bucketDuration parameters are used"));
-309,310c272,279
+307,308c271,278
 <                 asyncResponse.resume(badRequest(new ApiError("Bucket: " + e.getMessage())));
 <                 return;
 ---
@@ -825,12 +822,12 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >                         .lastOrDefault(null);
 >             } catch (Exception e) {
 >                 return serverError(e);
-312,315d280
+310,313d279
 < 
 <             metricsService.findAvailabilityStats(metricId, startTime, endTime, buckets)
 <                 .map(ApiUtils::collectionToResponse)
 <                 .subscribe(asyncResponse::resume, ApiUtils::serverError);
-321,328c286,287
+319,326c285,286
 <     @ApiOperation(value = "Find availability metrics by tags.", response = Map.class)
 <     @ApiResponses(value = { @ApiResponse(code = 200, message = "Availability values fetched successfully"),
 <             @ApiResponse(code = 204, message = "No matching data found."),
@@ -842,10 +839,9 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 ---
 >     public Response findTaggedAvailabilityMetrics(
 >             @PathParam("tags") Tags tags
-330,340c289,303
-<         metricsService.findMetricsByTags(tenantId, AVAILABILITY, tags.getTags())
-<                 .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
-<                 .map(e -> new MetricDefinition(e.getName(), null, null, AVAILABILITY))
+328,337c288,301
+<         metricsService.findMetricsWithFilters(tenantId, tags.getTags(), AVAILABILITY)
+<                 .map(MetricDefinition::new)
 <                 .toList()
 <                 .subscribe(m -> {// @TODO Repeated code, refactor and use Optional?
 <                     if (m.isEmpty()) {
@@ -856,9 +852,8 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <                 } , t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
 ---
 >         try {
->             return metricsService.findMetricsByTags(tenantId, AVAILABILITY, tags.getTags())
->                     .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
->                     .map(e -> new MetricDefinition(e.getName(), null, null, AVAILABILITY))
+>             return metricsService.findMetricsWithFilters(tenantId, tags.getTags(), AVAILABILITY)
+>                     .map(MetricDefinition::new)
 >                     .toList()
 >                     .map(m -> {
 >                         if (m.isEmpty()) {
@@ -1306,10 +1301,9 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <             asyncResponse.resume(badRequest(new ApiError("Missing tags query")));
 ---
 >             return badRequest(new ApiError("Missing tags query"));
-237,248c203,217
-<             metricsService.findMetricsByTags(tenantId, GAUGE, tags.getTags())
-<                     .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
-<                     .map(e -> new MetricDefinition(e.getName(), null, null, GAUGE))
+237,247c203,216
+<             metricsService.findMetricsWithFilters(tenantId, tags.getTags(), GAUGE)
+<                     .map(MetricDefinition::new)
 <                     .toList()
 <                     .subscribe(m -> {
 <                         if (m.isEmpty()) {
@@ -1321,21 +1315,20 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <                             .resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
 ---
 >             try{
->                 return metricsService.findMetricsByTags(tenantId, GAUGE, tags.getTags())
->                         .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
->                         .map(e -> new MetricDefinition(e.getName(), null, null, GAUGE))
+>                 return metricsService.findMetricsWithFilters(tenantId, tags.getTags(), GAUGE)
+>                         .map(MetricDefinition::new)
 >                         .toList()
 >                         .map(m -> {
->                     if (m.isEmpty()) {
->                         return ApiUtils.noContent();
->                     } else {
->                         return Response.ok(m).build();
->                     }
->                 }).toBlocking().lastOrDefault(null);
+>                             if (m.isEmpty()) {
+>                                 return ApiUtils.noContent();
+>                             } else {
+>                                 return Response.ok(m).build();
+>                             }
+>                         }).toBlocking().lastOrDefault(null);
 >             } catch (Exception e) {
 >                 return Response.serverError().entity(new ApiError(e.getMessage())).build();
->             }
-254,265c223,224
+>                     }
+253,264c222,223
 <     @ApiOperation(value = "Retrieve gauge data.", notes = "When buckets or bucketDuration query parameter is used, " +
 <             "the time range between start and end will be divided in buckets of equal duration, and metric statistics" +
 <             " will be computed for each bucket.", response = GaugeDataPoint.class, responseContainer = "List")
@@ -1351,7 +1344,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 ---
 >     @Produces(APPLICATION_JSON)
 >     public Response findGaugeData(
-267,271c226,230
+266,270c225,229
 <             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
 <             @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
 <             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
@@ -1363,7 +1356,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >             @QueryParam("buckets") Integer bucketsCount,
 >             @QueryParam("bucketDuration") Duration bucketDuration
 >     ) {
-279,283c238,248
+278,282c237,247
 <             metricsService.findDataPoints(metricId, startTime, endTime)
 <                     .map(GaugeDataPoint::new)
 <                     .toList()
@@ -1381,16 +1374,16 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >             } catch (Exception e) {
 >                 return ApiUtils.serverError(e);
 >             }
-285c250
+284c249
 <             asyncResponse.resume(badRequest(new ApiError("Both buckets and bucketDuration parameters are used")));
 ---
 >             return badRequest(new ApiError("Both buckets and bucketDuration parameters are used"));
-295,296c260
+294,295c259
 <                 asyncResponse.resume(badRequest(new ApiError("Bucket: " + e.getMessage())));
 <                 return;
 ---
 >                 return badRequest(new ApiError("Bucket: " + e.getMessage()));
-299,301c263,271
+298,300c262,270
 <             metricsService.findGaugeStats(metricId, startTime, endTime, buckets)
 <                     .map(ApiUtils::collectionToResponse)
 <                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
@@ -1404,9 +1397,9 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >             } catch (Exception e) {
 >                 return ApiUtils.serverError(e);
 >             }
-305a276
+304a275
 >     @Produces(APPLICATION_JSON)
-307,315c278
+306,314c277
 <     @ApiOperation(value = "Retrieve periods for which the condition holds true for each consecutive data point.",
 <             response = List.class)
 <     @ApiResponses(value = {
@@ -1418,17 +1411,17 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <             @Suspended final AsyncResponse asyncResponse,
 ---
 >     public Response findPeriods(
-317,319c280,281
+316,318c279,280
 <             @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") final Long start,
 <             @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") final Long end,
 <             @ApiParam(value = "A threshold against which values are compared", required = true)
 ---
 >             @QueryParam("start") final Long start,
 >             @QueryParam("end") final Long end,
-321,322d282
+320,321d281
 <             @ApiParam(value = "A comparison operation to perform between values and the threshold.", required = true,
 <                     allowableValues = "ge, gte, lt, lte, eq, neq")
-360,365c320,321
+359,364c319,320
 <             asyncResponse.resume(badRequest(
 <                     new ApiError(
 <                             "Invalid value for op parameter. Supported values are lt, "
@@ -1438,7 +1431,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 ---
 >             return badRequest(
 >                     new ApiError("Invalid value for op parameter. Supported values are lt, lte, eq, gt, gte."));
-367,369c323,328
+366,368c322,327
 <             metricsService.getPeriods(new MetricId<>(tenantId, GAUGE, id), predicate, startTime, endTime)
 <                     .map(ApiUtils::collectionToResponse)
 <                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
@@ -1449,9 +1442,9 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >             } catch (Exception e) {
 >                 return ApiUtils.serverError(e);
 >             }
-373a333
+372a332
 >     @Produces(APPLICATION_JSON)
-375,394c335,350
+374,392c334,348
 <     @ApiOperation(value = "Find gauge metrics by tags.", response = Map.class)
 <     @ApiResponses(value = {@ApiResponse(code = 200, message = "Metric values fetched successfully"),
 <             @ApiResponse(code = 204, message = "No matching data found."),
@@ -1461,9 +1454,8 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <             @Suspended final AsyncResponse asyncResponse,
 <             @ApiParam("Tag list") @PathParam("tags") Tags tags
 <     ) {
-<         metricsService.findMetricsByTags(tenantId, GAUGE, tags.getTags())
-<                 .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
-<                 .map(e -> new MetricDefinition(e.getName(), null, null, GAUGE))
+<         metricsService.findMetricsWithFilters(tenantId, tags.getTags(), GAUGE)
+<                 .map(MetricDefinition::new)
 <                 .toList()
 <                 .subscribe(m -> {
 <                     if (m.isEmpty()) {
@@ -1475,9 +1467,8 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 ---
 >     public Response findTaggedGaugeMetrics(@PathParam("tags") Tags tags) {
 >         try {
->             return metricsService.findMetricsByTags(tenantId, GAUGE, tags.getTags())
->                     .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
->                     .map(e -> new MetricDefinition(e.getName(), null, null, GAUGE))
+>             return metricsService.findMetricsWithFilters(tenantId, tags.getTags(), GAUGE)
+>                     .map(MetricDefinition::new)
 >                     .toList()
 >                     .map(m -> {
 >                         if (m.isEmpty()) {

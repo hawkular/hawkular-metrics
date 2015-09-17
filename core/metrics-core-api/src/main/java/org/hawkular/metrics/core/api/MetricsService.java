@@ -19,7 +19,6 @@ package org.hawkular.metrics.core.api;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Predicate;
 
 import rx.Observable;
@@ -196,7 +195,4 @@ public interface MetricsService {
      * the predicate matches, and the second element is the end time inclusive for which the predicate matches.
      */
     Observable<List<long[]>> getPeriods(MetricId<Double> id, Predicate<Double> predicate, long start, long end);
-
-    <T> Observable<Set<MetricId<T>>> findMetricsByTags(String tenantId, MetricType<T> metricType,
-            Map<String, String> tags);
 }

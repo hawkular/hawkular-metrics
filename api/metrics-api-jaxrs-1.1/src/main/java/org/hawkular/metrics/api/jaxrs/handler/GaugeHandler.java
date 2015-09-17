@@ -201,20 +201,19 @@ public class GaugeHandler {
             return badRequest(new ApiError("Missing tags query"));
         } else {
             try{
-                return metricsService.findMetricsByTags(tenantId, GAUGE, tags.getTags())
-                        .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
-                        .map(e -> new MetricDefinition(e.getName(), null, null, GAUGE))
+                return metricsService.findMetricsWithFilters(tenantId, tags.getTags(), GAUGE)
+                        .map(MetricDefinition::new)
                         .toList()
                         .map(m -> {
-                    if (m.isEmpty()) {
-                        return ApiUtils.noContent();
-                    } else {
-                        return Response.ok(m).build();
-                    }
-                }).toBlocking().lastOrDefault(null);
+                            if (m.isEmpty()) {
+                                return ApiUtils.noContent();
+                            } else {
+                                return Response.ok(m).build();
+                            }
+                        }).toBlocking().lastOrDefault(null);
             } catch (Exception e) {
                 return Response.serverError().entity(new ApiError(e.getMessage())).build();
-            }
+                    }
         }
     }
 
@@ -334,9 +333,8 @@ public class GaugeHandler {
     @Path("/tags/{tags}")
     public Response findTaggedGaugeMetrics(@PathParam("tags") Tags tags) {
         try {
-            return metricsService.findMetricsByTags(tenantId, GAUGE, tags.getTags())
-                    .flatMap(input -> Observable.from(input.toArray(new MetricId<?>[input.size()])))
-                    .map(e -> new MetricDefinition(e.getName(), null, null, GAUGE))
+            return metricsService.findMetricsWithFilters(tenantId, tags.getTags(), GAUGE)
+                    .map(MetricDefinition::new)
                     .toList()
                     .map(m -> {
                         if (m.isEmpty()) {

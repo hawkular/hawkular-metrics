@@ -813,25 +813,6 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public <T> Observable<Set<MetricId<T>>> findMetricsByTags(String tenantId, MetricType<T> metricType,
-            Map<String, String> tags) {
-        return Observable.from(tags.entrySet())
-                .flatMap(e -> dataAccess.findMetricsByTagNameValue(tenantId, e.getKey(), e.getValue()))
-                .map(value -> TaggedMetricMapper.apply(value, metricType))
-                .toList()
-                .map(new Func1<List<Set<MetricId<T>>>, Set<MetricId<T>>>() {
-                    @Override
-                    public Set<MetricId<T>> call(List<Set<MetricId<T>>> t) {
-                        Set<MetricId<T>> accumulator = new HashSet<>();
-                        for (Set<MetricId<T>> set : t) {
-                            accumulator.addAll(set);
-                        }
-                        return accumulator;
-                    }
-                });
-    }
-
-    @Override
     public Observable<List<long[]>> getPeriods(MetricId<Double> id, Predicate<Double> predicate, long start, long end) {
         return dataAccess.findData(new Metric<>(id), start, end, Order.ASC)
                 .flatMap(Observable::from)
