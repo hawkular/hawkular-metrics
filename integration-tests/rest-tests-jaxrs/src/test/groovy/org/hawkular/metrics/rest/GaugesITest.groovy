@@ -123,15 +123,7 @@ class GaugesITest extends RESTTest {
     assertEquals(200, response.status)
     assertDefinitionArrayEquals([insertMetrics[0], insertMetrics[1]], response.data)
 
-    response = hawkularMetrics.get(path: "gauges", query: [tags: "b:2"], headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertDefinitionArrayEquals([insertMetrics[0], insertMetrics[1]], response.data)
-
     response = hawkularMetrics.get(path: "gauges/tags/a:1,b:2", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertDefinitionArrayEquals([insertMetrics[0], insertMetrics[1]], response.data)
-
-    response = hawkularMetrics.get(path: "gauges", query: [tags: "b:2,a:1"], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertDefinitionArrayEquals([insertMetrics[0], insertMetrics[1]], response.data)
 
@@ -139,15 +131,7 @@ class GaugesITest extends RESTTest {
     assertEquals(200, response.status)
     assertDefinitionArrayEquals([insertMetrics[2]], response.data)
 
-    response = hawkularMetrics.get(path: "gauges", query: [tags: "b:3,a:1"], headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertDefinitionArrayEquals([insertMetrics[2]], response.data)
-
     response = hawkularMetrics.get(path: "gauges/tags/a:1", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertDefinitionArrayEquals(insertMetrics, response.data)
-
-    response = hawkularMetrics.get(path: "gauges", query: [tags: "a:1"], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertDefinitionArrayEquals(insertMetrics, response.data)
   }

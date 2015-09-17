@@ -144,15 +144,7 @@ class AvailabilityITest extends RESTTest {
     assertEquals(200, response.status)
     assertDefinitionArrayEquals([insertMetrics[0], insertMetrics[1]], response.data)
 
-    response = hawkularMetrics.get(path: "availability", query: [tags: "c:2"], headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertDefinitionArrayEquals([insertMetrics[0], insertMetrics[1]], response.data)
-
     response = hawkularMetrics.get(path: "availability/tags/a:1,c:2", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertDefinitionArrayEquals([insertMetrics[0], insertMetrics[1]], response.data)
-
-    response = hawkularMetrics.get(path: "availability", query: [tags: "c:2,a:1"], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertDefinitionArrayEquals([insertMetrics[0], insertMetrics[1]], response.data)
 
@@ -160,15 +152,7 @@ class AvailabilityITest extends RESTTest {
     assertEquals(200, response.status)
     assertDefinitionArrayEquals([insertMetrics[2]], response.data)
 
-    response = hawkularMetrics.get(path: "availability", query: [tags: "c:3,a:1"], headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertDefinitionArrayEquals([insertMetrics[2]], response.data)
-
     response = hawkularMetrics.get(path: "availability/tags/a:1", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertDefinitionArrayEquals(insertMetrics, response.data)
-
-    response = hawkularMetrics.get(path: "availability", query: [tags: "a:1"], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertDefinitionArrayEquals(insertMetrics, response.data)
   }
