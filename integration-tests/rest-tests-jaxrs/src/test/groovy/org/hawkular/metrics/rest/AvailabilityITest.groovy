@@ -114,46 +114,4 @@ class AvailabilityITest extends RESTTest {
   void shouldNotAcceptDataWithInvalidValue() {
     invalidPointCheck("availability", tenantId, [[timestamp: 13, value: ["dsqdqs"]]])
   }
-
-  @Test
-  void verifyAvailabilityTagsQuery() {
-    String tenantId = nextTenantId()
-
-    def insertMetrics = [ [id: 'EmptyAvailability1', tags: [a: '1', c: '2']],
-      [id: 'EmptyAvailability2', tags: [a: '1', c: '2']],
-      [id: 'EmptyAvailability3', tags: [a: '1', c: '3']],
-      [id: 'EmptyAvailability4', tags: [a: '1', c: '4']]
-    ]
-
-    //insert metrics
-    insertMetrics.each {
-      def response = hawkularMetrics.post(path: "availability", body: it, headers: [(tenantHeaderName): tenantId])
-      assertEquals(201, response.status)
-    }
-
-    //fetch all metrics
-    insertMetrics.each {
-      def response = hawkularMetrics.get(path: "availability/" + it.id, headers: [(tenantHeaderName): tenantId])
-      assertEquals(200, response.status)
-      assertEquals(it.id, response.data.id)
-      assertEquals(it.tags, response.data.tags)
-    }
-
-    //various permutations for fetching by tags
-    def response = hawkularMetrics.get(path: "availability/tags/c:2", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertDefinitionArrayEquals([insertMetrics[0], insertMetrics[1]], response.data)
-
-    response = hawkularMetrics.get(path: "availability/tags/a:1,c:2", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertDefinitionArrayEquals([insertMetrics[0], insertMetrics[1]], response.data)
-
-    response = hawkularMetrics.get(path: "availability/tags/a:1,c:3", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertDefinitionArrayEquals([insertMetrics[2]], response.data)
-
-    response = hawkularMetrics.get(path: "availability/tags/a:1", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertDefinitionArrayEquals(insertMetrics, response.data)
-  }
 }

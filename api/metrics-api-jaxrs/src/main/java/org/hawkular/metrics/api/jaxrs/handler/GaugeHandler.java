@@ -340,27 +340,4 @@ public class GaugeHandler {
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         }
     }
-
-    @GET
-    @Path("/tags/{tags}")
-    @ApiOperation(value = "Find gauge metrics by tags.", response = Map.class)
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "Metric values fetched successfully"),
-            @ApiResponse(code = 204, message = "No matching data found."),
-            @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Any error while fetching data.", response = ApiError.class), })
-    public void findTaggedGaugeMetrics(
-            @Suspended final AsyncResponse asyncResponse,
-            @ApiParam("Tag list") @PathParam("tags") Tags tags
-    ) {
-        metricsService.findMetricsWithFilters(tenantId, tags.getTags(), GAUGE)
-                .map(MetricDefinition::new)
-                .toList()
-                .subscribe(m -> {
-                    if (m.isEmpty()) {
-                        asyncResponse.resume(Response.noContent().build());
-                    } else {
-                        asyncResponse.resume(Response.ok(m).build());
-                    }
-                }, t -> asyncResponse.resume(ApiUtils.serverError(t)));
-    }
 }

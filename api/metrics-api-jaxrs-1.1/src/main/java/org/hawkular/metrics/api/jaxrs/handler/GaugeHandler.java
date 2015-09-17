@@ -303,24 +303,4 @@ public class GaugeHandler {
             }
         }
     }
-
-    @GET
-    @Produces(APPLICATION_JSON)
-    @Path("/tags/{tags}")
-    public Response findTaggedGaugeMetrics(@PathParam("tags") Tags tags) {
-        try {
-            return metricsService.findMetricsWithFilters(tenantId, tags.getTags(), GAUGE)
-                    .map(MetricDefinition::new)
-                    .toList()
-                    .map(m -> {
-                        if (m.isEmpty()) {
-                        return ApiUtils.noContent();
-                        } else {
-                            return Response.ok(m).build();
-                        }
-                    }).toBlocking().lastOrDefault(null);
-        } catch (Exception e) {
-            return ApiUtils.serverError(e);
-        }
-    }
 }

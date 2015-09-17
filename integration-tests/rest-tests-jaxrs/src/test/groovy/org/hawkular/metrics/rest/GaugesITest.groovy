@@ -93,46 +93,4 @@ class GaugesITest extends RESTTest {
   void shouldNotAcceptDataWithInvalidValue() {
     invalidPointCheck("gauges", tenantId, [[timestamp: 13, value: ["dsqdqs"]]])
   }
-
-  @Test
-  void verifyGaugeTagsQuery() {
-    String tenantId = nextTenantId()
-
-    def insertMetrics = [ [id: 'EmptyGauge1', tags: [a: '1', b: '2']],
-      [id: 'EmptyGauge2', tags: [a: '1', b: '2']],
-      [id: 'EmptyGauge3', tags: [a: '1', b: '3']],
-      [id: 'EmptyGauge4', tags: [a: '1', b: '4']]
-    ]
-
-    //insert metrics
-    insertMetrics.each {
-      def response = hawkularMetrics.post(path: "gauges", body: it, headers: [(tenantHeaderName): tenantId])
-      assertEquals(201, response.status)
-    }
-
-    //fetch all metrics
-    insertMetrics.each {
-      def response = hawkularMetrics.get(path: "gauges/" + it.id, headers: [(tenantHeaderName): tenantId])
-      assertEquals(200, response.status)
-      assertEquals(it.id, response.data.id)
-      assertEquals(it.tags, response.data.tags)
-    }
-
-    //various permutations for fetching by tags
-    def response = hawkularMetrics.get(path: "gauges/tags/b:2", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertDefinitionArrayEquals([insertMetrics[0], insertMetrics[1]], response.data)
-
-    response = hawkularMetrics.get(path: "gauges/tags/a:1,b:2", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertDefinitionArrayEquals([insertMetrics[0], insertMetrics[1]], response.data)
-
-    response = hawkularMetrics.get(path: "gauges/tags/a:1,b:3", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertDefinitionArrayEquals([insertMetrics[2]], response.data)
-
-    response = hawkularMetrics.get(path: "gauges/tags/a:1", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertDefinitionArrayEquals(insertMetrics, response.data)
-  }
 }

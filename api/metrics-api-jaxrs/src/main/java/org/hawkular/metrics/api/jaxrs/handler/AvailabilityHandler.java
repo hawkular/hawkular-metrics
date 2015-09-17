@@ -276,27 +276,4 @@ public class AvailabilityHandler {
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
         }
     }
-
-    @GET
-    @Path("/tags/{tags}")
-    @ApiOperation(value = "Find availability metrics by tags.", response = Map.class)
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Availability values fetched successfully"),
-            @ApiResponse(code = 204, message = "No matching data found."),
-            @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Any error while fetching data.", response = ApiError.class), })
-    public void findTaggedAvailabilityMetrics(
-            @Suspended final AsyncResponse asyncResponse,
-            @ApiParam("Tag list") @PathParam("tags") Tags tags
-    ) {
-        metricsService.findMetricsWithFilters(tenantId, tags.getTags(), AVAILABILITY)
-                .map(MetricDefinition::new)
-                .toList()
-                .subscribe(m -> {// @TODO Repeated code, refactor and use Optional?
-                    if (m.isEmpty()) {
-                        asyncResponse.resume(Response.noContent().build());
-                    } else {
-                        asyncResponse.resume(Response.ok(m).build());
-                    }
-                } , t -> asyncResponse.resume(Response.serverError().entity(new ApiError(t.getMessage())).build()));
-    }
 }
