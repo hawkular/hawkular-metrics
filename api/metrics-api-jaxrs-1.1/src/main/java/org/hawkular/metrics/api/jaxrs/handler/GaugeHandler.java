@@ -49,7 +49,6 @@ import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Gauge;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
-import org.hawkular.metrics.api.jaxrs.model.TagRequest;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
@@ -195,27 +194,6 @@ public class GaugeHandler {
     }
 
     @GET
-    @Produces(APPLICATION_JSON)
-    @Path("/")
-    public Response findGaugeDataByTags(@QueryParam("tags") Tags tags) {
-        if (tags == null) {
-            return badRequest(new ApiError("Missing tags query"));
-        } else {
-            try{
-                return metricsService.findGaugeDataByTags(tenantId, tags.getTags()).map(m -> {
-                    if (m.isEmpty()) {
-                        return ApiUtils.noContent();
-                    } else {
-                        return Response.ok(m).build();
-                    }
-                }).toBlocking().lastOrDefault(null);
-            } catch (Exception e) {
-                return Response.serverError().entity(new ApiError(e.getMessage())).build();
-            }
-        }
-    }
-
-    @GET
     @Path("/{id}/data")
     @Produces(APPLICATION_JSON)
     public Response findGaugeData(
@@ -323,46 +301,6 @@ public class GaugeHandler {
             } catch (Exception e) {
                 return ApiUtils.serverError(e);
             }
-        }
-    }
-
-    @GET
-    @Produces(APPLICATION_JSON)
-    @Path("/tags/{tags}")
-    public Response findTaggedGaugeData(@PathParam("tags") Tags tags) {
-        try {
-            return metricsService.findGaugeDataByTags(tenantId, tags.getTags())
-                    .flatMap(input -> Observable.from(input.entrySet()))
-                    .toMap(e -> e.getKey().getName(), Map.Entry::getValue)
-                    .map(m -> {
-                        if (m.isEmpty()) {
-                        return ApiUtils.noContent();
-                        } else {
-                            return Response.ok(m).build();
-                        }
-                    }).toBlocking().lastOrDefault(null);
-        } catch (Exception e) {
-            return ApiUtils.serverError(e);
-        }
-    }
-
-    @POST
-    @Produces(APPLICATION_JSON)
-    @Path("/{id}/tag")
-    public Response tagGaugeData(@PathParam("id") final String id, TagRequest params) {
-        Observable<Void> resultSetObservable;
-        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
-        if (params.getTimestamp() != null) {
-            resultSetObservable = metricsService.tagGaugeData(metric, params.getTags(), params.getTimestamp());
-        } else {
-            resultSetObservable = metricsService.tagGaugeData(metric, params.getTags(), params.getStart(), params
-                    .getEnd());
-        }
-        try {
-            resultSetObservable.toBlocking().lastOrDefault(null);
-            return Response.ok().build();
-        } catch (Exception e) {
-            return ApiUtils.serverError(e);
         }
     }
 }

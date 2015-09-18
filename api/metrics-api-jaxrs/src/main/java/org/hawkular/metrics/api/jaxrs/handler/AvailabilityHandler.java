@@ -56,7 +56,6 @@ import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
-import org.hawkular.metrics.api.jaxrs.model.TagRequest;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
@@ -223,32 +222,6 @@ public class AvailabilityHandler {
     }
 
     @GET
-    @Path("/")
-    @ApiOperation(value = "Find availabilities metrics data by their tags.", response = Map.class)
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Successfully fetched data."),
-            @ApiResponse(code = 204, message = "No matching data found."),
-            @ApiResponse(code = 400, message = "Missing or invalid tags query", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Any error in the query.", response = ApiError.class), })
-    public void findAvailabilityDataByTags(
-            @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(value = "Tag list", required = true) @QueryParam("tags") Tags tags
-    ) {
-        if (tags == null) {
-            asyncResponse.resume(badRequest(new ApiError("Missing tags query")));
-        } else {
-            // @TODO Repeated code, refactor (in GaugeHandler also)
-            metricsService.findAvailabilityByTags(tenantId, tags.getTags()).subscribe(m -> {
-                if (m.isEmpty()) {
-                    asyncResponse.resume(noContent());
-                } else {
-                    asyncResponse.resume(Response.ok(m).build());
-                }
-            }, t -> asyncResponse.resume(serverError(t)));
-
-        }
-    }
-
-    @GET
     @Path("/{id}/data")
     @ApiOperation(value = "Retrieve availability data.", notes = "When buckets or bucketDuration query parameter is " +
             "used, the time range between start and end will be divided in buckets of equal duration, and " +
@@ -302,49 +275,5 @@ public class AvailabilityHandler {
                 .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
         }
-    }
-
-    @POST
-    @Path("/{id}/tag")
-    @ApiOperation(value = "Add or update availability metric's tags.")
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Tags were modified successfully."),
-            @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
-    })
-    public void tagAvailabilityData(
-            @Suspended final AsyncResponse asyncResponse,
-            @PathParam("id") final String id,
-            @ApiParam(required = true) TagRequest params
-    ) {
-        Observable<Void> resultSetObservable;
-        Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id));
-        if (params.getTimestamp() != null) {
-            resultSetObservable = metricsService.tagAvailabilityData(metric, params.getTags(), params.getTimestamp());
-        } else {
-            resultSetObservable = metricsService.tagAvailabilityData(metric, params.getTags(), params.getStart(),
-                params.getEnd());
-        }
-        resultSetObservable.subscribe(new ResultSetObserver(asyncResponse));
-    }
-
-    @GET
-    @Path("/tags/{tags}")
-    @ApiOperation(value = "Find availability metric data with given tags.", response = Map.class)
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Availability values fetched successfully"),
-            @ApiResponse(code = 204, message = "No matching data found."),
-            @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Any error while fetching data.", response = ApiError.class), })
-    public void findTaggedAvailabilityData(
-            @Suspended final AsyncResponse asyncResponse,
-            @ApiParam("Tag list") @PathParam("tags") Tags tags
-    ) {
-        metricsService.findAvailabilityByTags(tenantId, tags.getTags())
-        .subscribe(m -> { // @TODO Repeated code, refactor and use Optional?
-            if (m.isEmpty()) {
-                asyncResponse.resume(noContent());
-            } else {
-                asyncResponse.resume(Response.ok(m).build());
-            }
-        }, t -> asyncResponse.resume(serverError(t)));
     }
 }

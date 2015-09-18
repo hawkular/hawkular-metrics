@@ -127,7 +127,6 @@ public class MetricsServiceITest extends MetricsITest {
     public void initMethod() {
         session.execute("TRUNCATE tenants");
         session.execute("TRUNCATE data");
-        session.execute("TRUNCATE tags");
         session.execute("TRUNCATE metrics_idx");
         session.execute("TRUNCATE retentions_idx");
         session.execute("TRUNCATE metrics_tags_idx");
@@ -642,7 +641,6 @@ public class MetricsServiceITest extends MetricsITest {
         Map<String, String> tags = ImmutableMap.of("tag1", "");
 
         verifyTTLDataAccess.availabilityTagTLLLessThanEqualTo(DEFAULT_TTL - days(2).toStandardSeconds().getSeconds());
-        metricsService.tagAvailabilityData(m1, tags, start.getMillis(), start.plusMinutes(2).getMillis()).toBlocking();
 
         verifyTTLDataAccess.setAvailabilityTTL(days(14).toStandardSeconds().getSeconds());
         Metric<AvailabilityType> m2 = new Metric<>(new MetricId<>("t2", AVAILABILITY, "m2"),
@@ -651,7 +649,6 @@ public class MetricsServiceITest extends MetricsITest {
         addAvailabilityDataInThePast(m2, days(5).toStandardDuration());
 
         verifyTTLDataAccess.availabilityTagTLLLessThanEqualTo(days(14).minus(5).toStandardSeconds().getSeconds());
-        metricsService.tagAvailabilityData(m2, tags, start.plusMinutes(5).getMillis()).toBlocking();
 
         metricsService.createTenant(new Tenant("t3", ImmutableMap.of(AVAILABILITY, 24)))
                       .toBlocking()
@@ -718,53 +715,6 @@ public class MetricsServiceITest extends MetricsITest {
 
     private ByteBuffer getBytes(DataPoint<AvailabilityType> dataPoint) {
         return ByteBuffer.wrap(new byte[]{dataPoint.getValue().getCode()});
-    }
-
-    @Test
-    public void fetchGaugeDataThatHasTags() throws Exception {
-        DateTime end = now();
-        DateTime start = end.minusMinutes(10);
-
-        metricsService.createTenant(new Tenant("tenant1")).toBlocking().lastOrDefault(null);
-
-        List<DataPoint<Double>> dataPoints = asList(
-                new DataPoint<>(start.getMillis(), 100.0),
-                new DataPoint<>(start.plusMinutes(1).getMillis(), 101.1),
-                new DataPoint<>(start.plusMinutes(2).getMillis(), 102.2),
-                new DataPoint<>(start.plusMinutes(3).getMillis(), 103.3),
-                new DataPoint<>(start.plusMinutes(4).getMillis(), 104.4),
-                new DataPoint<>(start.plusMinutes(5).getMillis(), 105.5),
-                new DataPoint<>(start.plusMinutes(6).getMillis(), 106.6)
-        );
-        Metric<Double> metric = new Metric<>(new MetricId<>("tenant1", GAUGE, "m1"), dataPoints);
-
-        metricsService.addDataPoints(GAUGE, Observable.just(metric)).toBlocking().lastOrDefault(null);
-
-        Map<String, String> tags1 = ImmutableMap.of("t1", "1", "t2", "");
-        metricsService.tagGaugeData(metric, tags1, start.plusMinutes(2).getMillis()).toBlocking().lastOrDefault(null);
-
-        Map<String, String> tags2 = ImmutableMap.of("t3", "3", "t4", "");
-        metricsService.tagGaugeData(metric, tags2, start.plusMinutes(3).getMillis(), start.plusMinutes(5).getMillis()
-        ).toBlocking().lastOrDefault(null);
-
-        Observable<DataPoint<Double>> observable = metricsService.findDataPoints(new MetricId<>("tenant1", GAUGE, "m1"),
-                start.getMillis(), end.getMillis());
-        List<DataPoint<Double>> actual = ImmutableList.copyOf(observable.toBlocking().toIterable());
-        List<DataPoint<Double>> expected = asList(
-            new DataPoint<>(start.plusMinutes(6).getMillis(), 106.6),
-            new DataPoint<>(start.plusMinutes(5).getMillis(), 105.5),
-            new DataPoint<>(start.plusMinutes(4).getMillis(), 104.4),
-            new DataPoint<>(start.plusMinutes(3).getMillis(), 103.3),
-            new DataPoint<>(start.plusMinutes(2).getMillis(), 102.2),
-            new DataPoint<>(start.plusMinutes(1).getMillis(), 101.1),
-            new DataPoint<>(start.getMillis(), 100.0)
-        );
-
-        assertEquals(actual, expected, "The data does not match the expected values");
-        assertEquals(actual.get(3).getTags(), tags2, "The tags do not match");
-        assertEquals(actual.get(2).getTags(), tags2, "The tags do not match");
-        assertEquals(actual.get(2).getTags(), tags2, "The tags do not match");
-        assertEquals(actual.get(4).getTags(), tags1, "The tags do not match");
     }
 
     @Test
@@ -866,54 +816,6 @@ public class MetricsServiceITest extends MetricsITest {
     }
 
     @Test
-    public void fetchAvailabilityDataThatHasTags() throws Exception {
-        DateTime end = now();
-        DateTime start = end.minusMinutes(10);
-
-        metricsService.createTenant(new Tenant("tenant1")).toBlocking().lastOrDefault(null);
-
-        List<DataPoint<AvailabilityType>> dataPoints = asList(
-                new DataPoint<>(start.getMillis(), UP),
-                new DataPoint<>(start.plusMinutes(1).getMillis(), DOWN),
-                new DataPoint<>(start.plusMinutes(2).getMillis(), DOWN),
-                new DataPoint<>(start.plusMinutes(3).getMillis(), UP),
-                new DataPoint<>(start.plusMinutes(4).getMillis(), DOWN),
-                new DataPoint<>(start.plusMinutes(4).getMillis(), DOWN),
-                new DataPoint<>(start.plusMinutes(5).getMillis(), UP),
-                new DataPoint<>(start.plusMinutes(6).getMillis(), UP)
-        );
-        Metric<AvailabilityType> metric = new Metric<>(new MetricId<>("tenant1", AVAILABILITY, "A1"), dataPoints);
-
-        metricsService.addDataPoints(AVAILABILITY, Observable.just(metric)).toBlocking().lastOrDefault(null);
-
-        Map<String, String> tags1 = ImmutableMap.of("t1", "1", "t2", "");
-        metricsService.tagAvailabilityData(metric, tags1, start.plusMinutes(2).getMillis()).toBlocking()
-                .lastOrDefault(null);
-
-        Map<String, String> tags2 = ImmutableMap.of("t3", "3", "t4", "");
-        metricsService.tagAvailabilityData(metric, tags2, start.plusMinutes(3).getMillis(),
-            start.plusMinutes(5).getMillis()).toBlocking().lastOrDefault(null);
-
-        List<DataPoint<AvailabilityType>> actual = metricsService.findDataPoints(metric.getId(), start.getMillis(),
-                end.getMillis()).toList().toBlocking().last();
-        List<DataPoint<AvailabilityType>> expected = asList(
-            new DataPoint<>(start.getMillis(), UP),
-            new DataPoint<>(start.plusMinutes(1).getMillis(), DOWN),
-            new DataPoint<>(start.plusMinutes(2).getMillis(), DOWN),
-            new DataPoint<>(start.plusMinutes(3).getMillis(), UP),
-            new DataPoint<>(start.plusMinutes(4).getMillis(), DOWN),
-            new DataPoint<>(start.plusMinutes(5).getMillis(), UP),
-            new DataPoint<>(start.plusMinutes(6).getMillis(), UP)
-        );
-
-        assertEquals(actual, expected, "The data does not match the expected values");
-        assertEquals(actual.get(3).getTags(), tags2, "The tags do not match");
-        assertEquals(actual.get(2).getTags(), tags1, "The tags do not match");
-        assertEquals(actual.get(2).getTags(), tags1, "The tags do not match");
-        assertEquals(actual.get(4).getTags(), tags2, "The tags do not match");
-    }
-
-    @Test
     public void findDistinctAvailabilities() throws Exception {
         DateTime end = now();
         DateTime start = end.minusMinutes(20);
@@ -953,215 +855,6 @@ public class MetricsServiceITest extends MetricsITest {
         );
 
         assertEquals(actual, expected, "The availability data does not match the expected values");
-    }
-
-    @Test
-    public void tagGaugeDataByDateRangeAndQueryByMultipleTags() throws Exception {
-        String tenant = "tag-test";
-        DateTime start = now().minusMinutes(20);
-
-        metricsService.createTenant(new Tenant(tenant)).toBlocking().lastOrDefault(null);
-
-        DataPoint<Double> d1 = new DataPoint<>(start.getMillis(), 101.1);
-        DataPoint<Double> d2 = new DataPoint<>(start.plusMinutes(2).getMillis(), 101.2);
-        DataPoint<Double> d3 = new DataPoint<>(start.plusMinutes(6).getMillis(), 102.2);
-        DataPoint<Double> d4 = new DataPoint<>(start.plusMinutes(8).getMillis(), 102.3);
-        DataPoint<Double> d5 = new DataPoint<>(start.plusMinutes(4).getMillis(), 102.1);
-        DataPoint<Double> d6 = new DataPoint<>(start.plusMinutes(4).getMillis(), 101.4);
-        DataPoint<Double> d7 = new DataPoint<>(start.plusMinutes(10).getMillis(), 102.4);
-        DataPoint<Double> d8 = new DataPoint<>(start.plusMinutes(6).getMillis(), 103.1);
-        DataPoint<Double> d9 = new DataPoint<>(start.plusMinutes(7).getMillis(), 103.1);
-
-        Metric<Double> m1 = new Metric<>(new MetricId<>(tenant, GAUGE, "m1"), asList(d1, d2, d6));
-
-        Metric<Double> m2 = new Metric<>(new MetricId<>(tenant, GAUGE, "m2"), asList(d3, d4, d5, d7));
-
-        Metric<Double> m3 = new Metric<>(new MetricId<>(tenant, GAUGE, "m3"), asList(d8, d9));
-
-        metricsService.addDataPoints(GAUGE, Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
-
-        Map<String, String> tags1 = ImmutableMap.of("t1", "1");
-        Map<String, String> tags2 = ImmutableMap.of("t2", "2");
-
-        metricsService.tagGaugeData(m1, tags1, start.getMillis(), start.plusMinutes(6).getMillis()).toBlocking()
-                .lastOrDefault(null);
-        metricsService.tagGaugeData(m2, tags1, start.getMillis(), start.plusMinutes(6).getMillis()).toBlocking()
-                .lastOrDefault(null);
-        metricsService.tagGaugeData(m1, tags2, start.plusMinutes(4).getMillis(), start.plusMinutes(8).getMillis())
-        .toBlocking().lastOrDefault(null);
-        metricsService.tagGaugeData(m2, tags2, start.plusMinutes(4).getMillis(), start.plusMinutes(8).getMillis())
-        .toBlocking().lastOrDefault(null);
-        metricsService.tagGaugeData(m3, tags2, start.plusMinutes(4).getMillis(), start.plusMinutes(8).getMillis())
-        .toBlocking().lastOrDefault(null);
-
-        Map<MetricId<Double>, Set<DataPoint<Double>>> actual = metricsService.findGaugeDataByTags(tenant,
-                ImmutableMap.of("t1", "1", "t2", "2")).toBlocking().toIterable().iterator().next();
-        ImmutableMap<MetricId<Double>, ImmutableSet<DataPoint<Double>>> expected = ImmutableMap.of(
-                new MetricId<>(tenant, GAUGE, "m1"), ImmutableSet.of(d1, d2, d6),
-                new MetricId<>(tenant, GAUGE, "m2"), ImmutableSet.of(d5, d3)
-        );
-
-        assertEquals(actual, expected, "The tagged data does not match");
-    }
-
-    @Test
-    public void tagAvailabilityByDateRangeAndQueryByMultipleTags() throws Exception {
-        String tenant = "tag-test";
-        DateTime start = now().minusMinutes(20);
-
-        metricsService.createTenant(new Tenant(tenant)).toBlocking().lastOrDefault(null);
-
-        DataPoint<AvailabilityType> a1 = new DataPoint<>(start.getMillis(), UP);
-        DataPoint<AvailabilityType> a2 = new DataPoint<>(start.plusMinutes(2).getMillis(), UP);
-        DataPoint<AvailabilityType> a3 = new DataPoint<>(start.plusMinutes(6).getMillis(), DOWN);
-        DataPoint<AvailabilityType> a4 = new DataPoint<>(start.plusMinutes(8).getMillis(), DOWN);
-        DataPoint<AvailabilityType> a5 = new DataPoint<>(start.plusMinutes(4).getMillis(), UP);
-        DataPoint<AvailabilityType> a6 = new DataPoint<>(start.plusMinutes(4).getMillis(), DOWN);
-        DataPoint<AvailabilityType> a7 = new DataPoint<>(start.plusMinutes(10).getMillis(), UP);
-        DataPoint<AvailabilityType> a8 = new DataPoint<>(start.plusMinutes(6).getMillis(), DOWN);
-        DataPoint<AvailabilityType> a9 = new DataPoint<>(start.plusMinutes(7).getMillis(), UP);
-
-        Metric<AvailabilityType> m1 = new Metric<>(new MetricId<>(tenant, AVAILABILITY, "m1"), asList(a1, a2, a6));
-        Metric<AvailabilityType> m2 = new Metric<>(new MetricId<>(tenant, AVAILABILITY, "m2"),
-                asList(a3, a4, a5, a7));
-        Metric<AvailabilityType> m3 = new Metric<>(new MetricId<>(tenant, AVAILABILITY, "m3"), asList(a8, a9));
-
-        metricsService.addDataPoints(AVAILABILITY, Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
-
-        Map<String, String> tags1 = ImmutableMap.of("t1", "1");
-        Map<String, String> tags2 = ImmutableMap.of("t2", "2");
-
-        metricsService.tagAvailabilityData(m1, tags1, start.getMillis(), start.plusMinutes(6).getMillis()).toBlocking
-                ().lastOrDefault(null);
-        metricsService.tagAvailabilityData(m2, tags1, start.getMillis(), start.plusMinutes(6).getMillis()).toBlocking
-                ().lastOrDefault(null);
-        metricsService.tagAvailabilityData(m1, tags2, start.plusMinutes(4).getMillis(),
-                start.plusMinutes(8).getMillis()).toBlocking().lastOrDefault(null);
-        metricsService.tagAvailabilityData(m2, tags2, start.plusMinutes(4).getMillis(),
-                start.plusMinutes(8).getMillis()).toBlocking().lastOrDefault(null);
-        metricsService.tagAvailabilityData(m3, tags2, start.plusMinutes(4).getMillis(),
-            start.plusMinutes(8).getMillis()).toBlocking().lastOrDefault(null);
-
-        Map<MetricId<AvailabilityType>, Set<DataPoint<AvailabilityType>>> actual = metricsService
-            .findAvailabilityByTags(tenant, ImmutableMap.of("t1", "1", "t2", "2")).toBlocking().toIterable().iterator
-                        ().next();
-        ImmutableMap<MetricId<AvailabilityType>, ImmutableSet<DataPoint<AvailabilityType>>> expected = ImmutableMap.of(
-                new MetricId<>(tenant, AVAILABILITY, "m1"), ImmutableSet.of(a1, a2, a6),
-                new MetricId<>(tenant, AVAILABILITY, "m2"), ImmutableSet.of(a5, a3)
-        );
-
-        assertEquals(actual, expected, "The tagged data does not match");
-    }
-
-    @Test
-    public void tagIndividualGaugeDataPoints() throws Exception {
-        String tenant = "tag-test";
-        DateTime start = now().minusMinutes(20);
-
-        metricsService.createTenant(new Tenant(tenant)).toBlocking().lastOrDefault(null);
-
-        DataPoint<Double> d1 = new DataPoint<>(start.getMillis(), 101.1);
-        DataPoint<Double> d2 = new DataPoint<>(start.plusMinutes(2).getMillis(), 101.2);
-        DataPoint<Double> d3 = new DataPoint<>(start.plusMinutes(6).getMillis(), 102.2);
-        DataPoint<Double> d4 = new DataPoint<>(start.plusMinutes(8).getMillis(), 102.3);
-        DataPoint<Double> d5 = new DataPoint<>(start.plusMinutes(4).getMillis(), 102.1);
-        DataPoint<Double> d6 = new DataPoint<>(start.plusMinutes(4).getMillis(), 101.4);
-        DataPoint<Double> d7 = new DataPoint<>(start.plusMinutes(10).getMillis(), 102.4);
-        DataPoint<Double> d8 = new DataPoint<>(start.plusMinutes(6).getMillis(), 103.1);
-        DataPoint<Double> d9 = new DataPoint<>(start.plusMinutes(7).getMillis(), 103.1);
-
-        Metric<Double> m1 = new Metric<>(new MetricId<>(tenant, GAUGE, "m1"), asList(d1, d2, d6));
-
-        Metric<Double> m2 = new Metric<>(new MetricId<>(tenant, GAUGE, "m2"), asList(d3, d4, d5, d7));
-
-        Metric<Double> m3 = new Metric<>(new MetricId<>(tenant, GAUGE, "m3"), asList(d8, d9));
-
-        metricsService.addDataPoints(GAUGE, Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
-
-        Map<String, String> tags1 = ImmutableMap.of("t1", "");
-        metricsService.tagGaugeData(m1, tags1, d1.getTimestamp()).toBlocking().lastOrDefault(null);
-//        assertTrue(tagFuture.wasApplied(), "Tagging " + d1 + " returned unexpected results");
-
-        Map<String, String> tags2 = ImmutableMap.of("t1", "", "t2", "", "t3", "");
-        metricsService.tagGaugeData(m1, tags2, d2.getTimestamp()).toBlocking().lastOrDefault(null);
-//        assertTrue(tagFuture.wasApplied(), "Tagging " + d2 + " returned unexpected results");
-
-//        tagFuture = metricsService.tagGaugeData(m1, tags1, start.minusMinutes(10).getMillis());
-//        assertEquals(getUninterruptibly(tagFuture), Collections.emptyList(),
-//                "No data should be returned since there is no data for this time");
-
-        Map<String, String> tags3 = ImmutableMap.of("t1", "", "t2", "");
-        metricsService.tagGaugeData(m2, tags3, d3.getTimestamp()).toBlocking().lastOrDefault(null);
-//        assertTrue(tagFuture.wasApplied(), "Tagging " + d3 + " returned unexpected results");
-
-        Map<String, String> tags4 = ImmutableMap.of("t3", "", "t4", "");
-        metricsService.tagGaugeData(m2, tags4, d4.getTimestamp()).toBlocking().lastOrDefault(null);
-//        assertTrue(tagFuture.wasApplied(), "Tagging " + d4 + " returned unexpected results");
-
-        Map<MetricId<Double>, Set<DataPoint<Double>>> actual = metricsService.findGaugeDataByTags(tenant,
-                ImmutableMap.of("t2", "", "t3", "")).toBlocking().lastOrDefault(null);
-
-        ImmutableMap<MetricId<Double>, ImmutableSet<DataPoint<Double>>> expected = ImmutableMap.of(
-                new MetricId<>(tenant, GAUGE, "m1"), ImmutableSet.of(d2),
-                new MetricId<>(tenant, GAUGE, "m2"), ImmutableSet.of(d3, d4)
-        );
-
-        assertEquals(actual, expected, "The tagged data does not match");
-    }
-
-    @Test
-    public void tagIndividualAvailabilityDataPoints() throws Exception {
-        String tenant = "tag-test";
-        DateTime start = now().minusMinutes(20);
-
-        metricsService.createTenant(new Tenant(tenant)).toBlocking().lastOrDefault(null);
-
-        DataPoint<AvailabilityType> a1 = new DataPoint<>(start.getMillis(), UP);
-        DataPoint<AvailabilityType> a2 = new DataPoint<>(start.plusMinutes(2).getMillis(), UP);
-        DataPoint<AvailabilityType> a3 = new DataPoint<>(start.plusMinutes(6).getMillis(), DOWN);
-        DataPoint<AvailabilityType> a4 = new DataPoint<>(start.plusMinutes(8).getMillis(), DOWN);
-        DataPoint<AvailabilityType> a5 = new DataPoint<>(start.plusMinutes(4).getMillis(), UP);
-        DataPoint<AvailabilityType> a6 = new DataPoint<>(start.plusMinutes(4).getMillis(), DOWN);
-        DataPoint<AvailabilityType> a7 = new DataPoint<>(start.plusMinutes(10).getMillis(), UP);
-        DataPoint<AvailabilityType> a8 = new DataPoint<>(start.plusMinutes(6).getMillis(), DOWN);
-        DataPoint<AvailabilityType> a9 = new DataPoint<>(start.plusMinutes(7).getMillis(), UP);
-
-        Metric<AvailabilityType> m1 = new Metric<>(new MetricId<>(tenant, AVAILABILITY, "m1"), asList(a1, a2, a6));
-        Metric<AvailabilityType> m2 = new Metric<>(new MetricId<>(tenant, AVAILABILITY, "m2"),
-                asList(a3, a4, a5, a7));
-        Metric<AvailabilityType> m3 = new Metric<>(new MetricId<>(tenant, AVAILABILITY, "m3"), asList(a8, a9));
-
-        metricsService.addDataPoints(AVAILABILITY, Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
-
-        Map<String, String> tags1 = ImmutableMap.of("t1", "");
-        metricsService.tagAvailabilityData(m1, tags1, a1.getTimestamp()).toBlocking().lastOrDefault(null);
-//        assertTrue(tagFuture.wasApplied(), "Tagging " + a1 + " returned unexpected results");
-
-        Map<String, String> tags2 = ImmutableMap.of("t1", "", "t2", "", "t3", "");
-        metricsService.tagAvailabilityData(m1, tags2, a2.getTimestamp()).toBlocking().lastOrDefault(null);
-//        assertTrue(tagFuture.wasApplied(), "Tagging " + a2 + " returned unexpected results");
-
-//        tagFuture = metricsService.tagAvailabilityData(m1, tags1, start.minusMinutes(10).getMillis());
-//        assertEquals(getUninterruptibly(tagFuture), Collections.emptyList(),
-//            "No data should be returned since there is no data for this time");
-
-        Map<String, String> tags3 = ImmutableMap.of("t2", "", "t3", "");
-        metricsService.tagAvailabilityData(m2, tags3, a3.getTimestamp()).toBlocking().lastOrDefault(null);
-//        assertTrue(tagFuture.wasApplied(), "Tagging " + a3 + " returned unexpected results");
-
-        Map<String, String> tags4 = ImmutableMap.of("t3", "", "t4", "");
-        metricsService.tagAvailabilityData(m2, tags4, a4.getTimestamp()).toBlocking().lastOrDefault(null);
-//        assertTrue(tagFuture.wasApplied(), "Tagging " + a4 + " returned unexpected results");
-
-        Map<MetricId<AvailabilityType>, Set<DataPoint<AvailabilityType>>> actual = metricsService
-                .findAvailabilityByTags(
-                        tenant, tags3).toBlocking().last();
-        ImmutableMap<MetricId<AvailabilityType>, ImmutableSet<DataPoint<AvailabilityType>>> expected = ImmutableMap.of(
-                new MetricId<>(tenant, AVAILABILITY, "m1"), ImmutableSet.of(a2),
-                new MetricId<>(tenant, AVAILABILITY, "m2"), ImmutableSet.of(a3, a4)
-        );
-
-        assertEquals(actual, expected, "The tagged data does not match");
     }
 
     @Test
@@ -1399,30 +1092,5 @@ public class MetricsServiceITest extends MetricsITest {
                 "inserting data");
             return super.insertAvailabilityData(metric, ttl);
         }
-
-        @Override
-        public Observable<ResultSet> insertGaugeTag(String tag, String tagValue, Metric<Double> metric,
-                Observable<TTLDataPoint<Double>> data) {
-
-            List<TTLDataPoint<Double>> first = data.toList().toBlocking().first();
-
-            for (TTLDataPoint<Double> d : first) {
-                assertTrue(d.getTTL() <= gaugeTagTTL, "Expected the TTL to be <= " + gaugeTagTTL +
-                    " but it was " + d.getTTL());
-            }
-            return super.insertGaugeTag(tag, tagValue, metric, data);
-        }
-
-        @Override
-        public Observable<ResultSet> insertAvailabilityTag(String tag, String tagValue,
-                Metric<AvailabilityType> metric, Observable<TTLDataPoint<AvailabilityType>> data) {
-            List<TTLDataPoint<AvailabilityType>> first = data.toList().toBlocking().first();
-            for (TTLDataPoint<AvailabilityType> a : first) {
-                assertTrue(a.getTTL() <= availabilityTagTTL, "Expected the TTL to be <= " + availabilityTagTTL +
-                    " but it was " + a.getTTL());
-            }
-            return super.insertAvailabilityTag(tag, tagValue, metric, data);
-        }
     }
-
 }

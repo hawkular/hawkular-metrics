@@ -23,8 +23,6 @@ import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
-import static org.hawkular.metrics.core.impl.Functions.getTTLAvailabilityDataPoint;
-import static org.hawkular.metrics.core.impl.Functions.getTTLGaugeDataPoint;
 import static org.hawkular.metrics.core.impl.Functions.makeSafe;
 import static org.joda.time.Duration.standardMinutes;
 
@@ -812,92 +810,6 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                 .take(1)
                 .map(r -> Boolean.TRUE)
                 .defaultIfEmpty(Boolean.FALSE);
-    }
-
-    @Override
-    // TODO refactor to support multiple metrics
-    // Data for different metrics and for the same tag are stored within the same partition
-    // in the tags table; therefore, it makes sense for the API to support tagging multiple
-    // metrics since they could efficiently be inserted in a single batch statement.
-    public Observable<Void> tagGaugeData(Metric<Double> metric, final Map<String, String> tags, long start,
-            long end) {
-        Observable<ResultSet> findDataObservable = dataAccess.findData(metric.getId(), start, end, true);
-        return tagGaugeData(findDataObservable, tags, metric);
-    }
-
-    private Observable<Void> tagGaugeData(Observable<ResultSet> findDataObservable, Map<String, String> tags,
-            Metric<Double> metric) {
-        int ttl = getTTL(metric.getId());
-        Observable<Map.Entry<String, String>> tagsObservable = Observable.from(tags.entrySet()).cache();
-        Observable<TTLDataPoint<Double>> dataPoints = findDataObservable.flatMap(Observable::from)
-                .map(row -> getTTLGaugeDataPoint(row, ttl))
-                .cache();
-
-        Observable<ResultSet> tagInsert = tagsObservable
-                .flatMap(t -> dataAccess.insertGaugeTag(t.getKey(), t.getValue(), metric, dataPoints));
-
-        Observable<ResultSet> tagsInsert = dataPoints
-                .flatMap(g -> dataAccess.updateDataWithTag(metric, g.getDataPoint(), tags));
-
-        return tagInsert.concatWith(tagsInsert).map(r -> null);
-    }
-
-    private Observable<Void> tagAvailabilityData(Observable<ResultSet> findDataObservable, Map<String, String> tags,
-            Metric<AvailabilityType> metric) {
-        int ttl = getTTL(metric.getId());
-        Observable<Map.Entry<String, String>> tagsObservable = Observable.from(tags.entrySet()).cache();
-        Observable<TTLDataPoint<AvailabilityType>> dataPoints = findDataObservable.flatMap(Observable::from)
-                .map(row -> getTTLAvailabilityDataPoint(row, ttl))
-                .cache();
-
-        Observable<ResultSet> tagInsert = tagsObservable
-                .flatMap(t -> dataAccess.insertAvailabilityTag(t.getKey(), t.getValue(), metric, dataPoints));
-
-        Observable<ResultSet> tagsInsert = dataPoints
-                .flatMap(a -> dataAccess.updateDataWithTag(metric, a.getDataPoint(), tags));
-
-        return tagInsert.concatWith(tagsInsert).map(r -> null);
-    }
-
-    @Override
-    public Observable<Void> tagAvailabilityData(Metric<AvailabilityType> metric, Map<String, String> tags,
-            long start, long end) {
-        Observable<ResultSet> findDataObservable = dataAccess.findAvailabilityData(metric, start, end, true);
-        return tagAvailabilityData(findDataObservable, tags, metric);
-    }
-
-    @Override
-    public Observable<Void> tagGaugeData(Metric<Double> metric, final Map<String, String> tags,
-            long timestamp) {
-        Observable<ResultSet> findDataObservable = dataAccess.findData(metric, timestamp, true);
-        return tagGaugeData(findDataObservable, tags, metric);
-    }
-
-    @Override
-    public Observable<Void> tagAvailabilityData(Metric<AvailabilityType> metric, Map<String, String> tags,
-            long timestamp) {
-        Observable<ResultSet> findDataObservable = dataAccess.findAvailabilityData(metric, timestamp);
-        return tagAvailabilityData(findDataObservable, tags, metric);
-    }
-
-    @Override
-    public Observable<Map<MetricId<Double>, Set<DataPoint<Double>>>> findGaugeDataByTags(String tenantId,
-                                                                                         Map<String, String> tags) {
-        return Observable.from(tags.entrySet())
-                .flatMap(e -> dataAccess.findGaugeDataByTag(tenantId, e.getKey(), e.getValue()))
-                .map(TaggedGaugeDataPointMapper::apply)
-                .toList()
-                .map(new MergeDataPointTagsFunction<>());
-    }
-
-    @Override
-    public Observable<Map<MetricId<AvailabilityType>, Set<DataPoint<AvailabilityType>>>> findAvailabilityByTags(
-            String tenantId, Map<String, String> tags) {
-        return Observable.from(tags.entrySet())
-                .flatMap(e -> dataAccess.findAvailabilityByTag(tenantId, e.getKey(), e.getValue()))
-                .map(TaggedAvailabilityDataPointMapper::apply)
-                .toList()
-                .map(new MergeDataPointTagsFunction<>());
     }
 
     @Override

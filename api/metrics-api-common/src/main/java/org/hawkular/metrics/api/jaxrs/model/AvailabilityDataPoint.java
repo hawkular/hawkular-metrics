@@ -16,9 +16,6 @@
  */
 package org.hawkular.metrics.api.jaxrs.model;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.unmodifiableMap;
-
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -36,7 +33,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonCreator.Mode;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
 import com.google.common.collect.Lists;
 
 import io.swagger.annotations.ApiModel;
@@ -50,7 +46,6 @@ import rx.Observable;
 public class AvailabilityDataPoint {
     private final long timestamp;
     private final AvailabilityType value;
-    private final Map<String, String> tags;
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
@@ -70,13 +65,11 @@ public class AvailabilityDataPoint {
         checkArgument(value != null, "Data point value is null");
         this.timestamp = timestamp;
         this.value = AvailabilityType.fromString(value);
-        this.tags = tags == null ? emptyMap() : unmodifiableMap(tags);
     }
 
     public AvailabilityDataPoint(DataPoint<AvailabilityType> dataPoint) {
         timestamp = dataPoint.getTimestamp();
         value = dataPoint.getValue();
-        tags = dataPoint.getTags();
     }
 
     @ApiModelProperty(required = true)
@@ -91,14 +84,6 @@ public class AvailabilityDataPoint {
     )
     public AvailabilityType getValue() {
         return value;
-    }
-
-    @JsonSerialize(include = Inclusion.NON_EMPTY)
-    @org.codehaus.jackson.map.annotate.JsonSerialize(
-            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY
-    )
-    public Map<String, String> getTags() {
-        return tags;
     }
 
     @Override
@@ -125,7 +110,6 @@ public class AvailabilityDataPoint {
         return com.google.common.base.Objects.toStringHelper(this)
                 .add("timestamp", timestamp)
                 .add("value", value)
-                .add("tags", tags)
                 .omitNullValues()
                 .toString();
     }

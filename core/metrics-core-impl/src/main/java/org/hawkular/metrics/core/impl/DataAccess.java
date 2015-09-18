@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
@@ -94,18 +93,6 @@ public interface DataAccess {
     Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart);
 
     Observable<ResultSet> findAllGaugeMetrics();
-
-    Observable<ResultSet> insertGaugeTag(String tag, String tagValue, Metric<Double> metric,
-            Observable<TTLDataPoint<Double>> data);
-
-    Observable<ResultSet> insertAvailabilityTag(String tag, String tagValue,
-            Metric<AvailabilityType> metric, Observable<TTLDataPoint<AvailabilityType>> data);
-
-    Observable<ResultSet> updateDataWithTag(Metric metric, DataPoint dataPoint, Map<String, String> tags);
-
-    Observable<ResultSet> findGaugeDataByTag(String tenantId, String tag, String tagValue);
-
-    Observable<ResultSet> findAvailabilityByTag(String tenantId, String tag, String tagValue);
 
     Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl);
 

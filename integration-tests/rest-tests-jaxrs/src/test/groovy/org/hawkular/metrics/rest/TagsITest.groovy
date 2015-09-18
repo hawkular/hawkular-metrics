@@ -37,26 +37,6 @@ class TagsITest extends RESTTest {
     badDelete(path: "availability/id/tags/:5", headers: [(tenantHeaderName): tenantId]) { exception ->
       assertEquals(400, exception.response.status)
     }
-    badGet(path: "gauges", headers: [(tenantHeaderName): tenantId]) { exception ->
-      // Missing query
-      assertEquals(400, exception.response.status)
-    }
-    badGet(path: "gauges", query: [tags: ",5:"], headers: [(tenantHeaderName): tenantId]) { exception ->
-      assertEquals(400, exception.response.status)
-    }
-    badGet(path: "availability", headers: [(tenantHeaderName): tenantId]) { exception ->
-      // Missing query
-      assertEquals(400, exception.response.status)
-    }
-    badGet(path: "availability", query: [tags: ",5:"], headers: [(tenantHeaderName): tenantId]) { exception ->
-      assertEquals(400, exception.response.status)
-    }
-    badGet(path: "gauges/tags/:", headers: [(tenantHeaderName): tenantId]) { exception ->
-      assertEquals(400, exception.response.status)
-    }
-    badGet(path: "availability/tags/:", headers: [(tenantHeaderName): tenantId]) { exception ->
-      assertEquals(400, exception.response.status)
-    }
   }
 
   @Test

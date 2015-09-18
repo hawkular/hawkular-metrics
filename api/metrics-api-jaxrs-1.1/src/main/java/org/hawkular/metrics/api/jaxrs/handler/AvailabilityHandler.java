@@ -52,7 +52,6 @@ import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
-import org.hawkular.metrics.api.jaxrs.model.TagRequest;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
@@ -201,28 +200,6 @@ public class AvailabilityHandler {
     }
 
     @GET
-    @Path("/")
-    public Response findAvailabilityDataByTags(
-            @QueryParam("tags") Tags tags
-    ) {
-        if (tags == null) {
-            return badRequest(new ApiError("Missing tags query"));
-        } else {
-            try {
-                return metricsService.findAvailabilityByTags(tenantId, tags.getTags()).map(m -> {
-                    if (m.isEmpty()) {
-                        return ApiUtils.noContent();
-                    } else {
-                        return Response.ok(m).build();
-                    }
-                }).toBlocking().lastOrDefault(null);
-            } catch (Exception e) {
-                return serverError(e);
-            }
-        }
-    }
-
-    @GET
     @Path("/{id}/data")
     public Response findAvailabilityData(
             @PathParam("id") String id,
@@ -270,46 +247,4 @@ public class AvailabilityHandler {
             }
         }
     }
-
-    @POST
-    @Path("/{id}/tag")
-    public Response tagAvailabilityData(
-            @PathParam("id") final String id,
-            TagRequest params
-    ) {
-        Observable<Void> resultSetObservable;
-        Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id));
-        if (params.getTimestamp() != null) {
-            resultSetObservable = metricsService.tagAvailabilityData(metric, params.getTags(), params.getTimestamp());
-        } else {
-            resultSetObservable = metricsService.tagAvailabilityData(metric, params.getTags(), params.getStart(),
-                params.getEnd());
-        }
-
-        try {
-            resultSetObservable.toBlocking().lastOrDefault(null);
-            return Response.ok().build();
-        } catch (Exception e) {
-            return serverError(e);
-        }
-    }
-
-    @GET
-    @Path("/tags/{tags}")
-    public Response findTaggedAvailabilityData(
-            @PathParam("tags") Tags tags
-    ) {
-        try {
-        return metricsService.findAvailabilityByTags(tenantId, tags.getTags()).map(m -> {
-            if (m.isEmpty()) {
-                return ApiUtils.noContent();
-            } else {
-                return Response.ok(m).build();
-            }
-            }).toBlocking().lastOrDefault(null);
-        } catch (Exception e) {
-            return serverError(e);
-        }
-    }
-
 }
