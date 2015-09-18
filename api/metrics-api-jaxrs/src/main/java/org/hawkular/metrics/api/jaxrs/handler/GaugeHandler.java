@@ -23,7 +23,6 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
-import static org.hawkular.metrics.api.jaxrs.util.TagMapValidation.isValidTagMap;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 import java.net.URI;
@@ -162,14 +161,8 @@ public class GaugeHandler {
             @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags
     ) {
-        if (tags == null) {
-            asyncResponse.resume(badRequest(new ApiError("Missing tags")));
-        } else if (!isValidTagMap(tags)) {
-            asyncResponse.resume(badRequest(new ApiError("Invalid tags; tag key is required")));
-        } else {
-            Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
-            metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
-        }
+        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
+        metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @DELETE

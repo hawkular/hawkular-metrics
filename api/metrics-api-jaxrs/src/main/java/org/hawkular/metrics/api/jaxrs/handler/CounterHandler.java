@@ -25,7 +25,6 @@ import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_N
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
-import static org.hawkular.metrics.api.jaxrs.util.TagMapValidation.isValidTagMap;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 
 import java.net.URI;
@@ -162,14 +161,8 @@ public class CounterHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags) {
-        if (tags == null) {
-            asyncResponse.resume(badRequest(new ApiError("Missing tags")));
-        } else if (!isValidTagMap(tags)) {
-            asyncResponse.resume(badRequest(new ApiError("Invalid tags; tag key is required")));
-        } else {
-            Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id));
-            metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
-        }
+        Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id));
+        metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @DELETE

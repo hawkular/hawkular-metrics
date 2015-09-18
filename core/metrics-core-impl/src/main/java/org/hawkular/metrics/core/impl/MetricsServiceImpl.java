@@ -23,6 +23,7 @@ import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
+import static org.hawkular.metrics.core.impl.Functions.isValidTagMap;
 import static org.hawkular.metrics.core.impl.Functions.makeSafe;
 import static org.joda.time.Duration.standardMinutes;
 
@@ -559,6 +560,13 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     // functionality into a separate class.
     @Override
     public Observable<Void> addTags(Metric<?> metric, Map<String, String> tags) {
+        try {
+            checkArgument(tags != null, "Missing tags");
+            checkArgument(isValidTagMap(tags), "Invalid tags; tag key is required");
+        } catch (Exception e) {
+            return Observable.error(e);
+        }
+
         return dataAccess.addTags(metric, tags).mergeWith(dataAccess.insertIntoMetricsTagsIndex(metric, tags))
                 .toList().map(l -> null);
     }

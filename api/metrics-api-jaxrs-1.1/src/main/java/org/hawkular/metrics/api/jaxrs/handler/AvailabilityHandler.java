@@ -25,7 +25,6 @@ import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_N
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
-import static org.hawkular.metrics.api.jaxrs.util.TagMapValidation.isValidTagMap;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 
 import java.net.URI;
@@ -146,14 +145,6 @@ public class AvailabilityHandler {
             @PathParam("id") String id,
             Map<String, String> tags
     ) {
-        if (tags == null) {
-            return badRequest(new ApiError("Missing tags"));
-        }
-
-        if (!isValidTagMap(tags)) {
-            return badRequest(new ApiError("Invalid tags; tag key is required"));
-        }
-
         Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id));
         try {
             metricsService.addTags(metric, tags).toBlocking().lastOrDefault(null);

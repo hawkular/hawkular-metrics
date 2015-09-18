@@ -26,7 +26,6 @@ import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.valueToResponse;
-import static org.hawkular.metrics.api.jaxrs.util.TagMapValidation.isValidTagMap;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 
 import java.net.URI;
@@ -164,14 +163,8 @@ public class AvailabilityHandler {
             @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags
     ) {
-        if (tags == null) {
-            asyncResponse.resume(badRequest(new ApiError("Missing tags")));
-        } else if (!isValidTagMap(tags)) {
-            asyncResponse.resume(badRequest(new ApiError("Invalid tags; tag key is required")));
-        } else {
-            Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id));
-            metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
-        }
+        Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id));
+        metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @DELETE
