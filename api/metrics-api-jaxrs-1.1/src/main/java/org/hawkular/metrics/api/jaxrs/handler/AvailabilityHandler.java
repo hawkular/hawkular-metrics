@@ -123,7 +123,7 @@ public class AvailabilityHandler {
 
     @GET
     @Path("/{id}/tags")
-    public Response getAvailabilityMetricTags(
+    public Response getMetricTags(
             @PathParam("id") String id
     ) {
         Observable<Optional<Map<String, String>>> something = metricsService
@@ -141,7 +141,7 @@ public class AvailabilityHandler {
 
     @PUT
     @Path("/{id}/tags")
-    public Response updateAvailabilityMetricTags(
+    public Response updateMetricTags(
             @PathParam("id") String id,
             Map<String, String> tags
     ) {
@@ -156,7 +156,7 @@ public class AvailabilityHandler {
 
     @DELETE
     @Path("/{id}/tags/{tags}")
-    public Response deleteAvailabilityMetricTags(
+    public Response deleteMetricTags(
             @PathParam("id") String id,
             @PathParam("tags") Tags tags
     ) {

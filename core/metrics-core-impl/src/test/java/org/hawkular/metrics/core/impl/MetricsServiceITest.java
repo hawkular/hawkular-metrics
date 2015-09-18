@@ -443,6 +443,22 @@ public class MetricsServiceITest extends MetricsITest {
                 .lastOrDefault(null);
     }
 
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void doNotAllowInvalidMetricTags() {
+        Map<String, String> invalidTagMap = ImmutableMap.of("key1", "value1", "", "value2");
+
+        metricsService.addTags(new Metric<>(new MetricId<>("test", COUNTER_RATE, "counter-rate")), invalidTagMap)
+                .toBlocking()
+                .lastOrDefault(null);
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void doNotAllowEmptyMetricTags() {
+        metricsService.addTags(new Metric<>(new MetricId<>("test", COUNTER_RATE, "counter-rate")), null)
+                .toBlocking()
+                .lastOrDefault(null);
+    }
+
     @Test
     public void updateMetricTags() throws Exception {
         Metric<Double> metric = new Metric<>(new MetricId<>("t1", GAUGE, "m1"),

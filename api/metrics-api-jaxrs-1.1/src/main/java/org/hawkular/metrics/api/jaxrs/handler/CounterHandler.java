@@ -29,12 +29,15 @@ import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -48,6 +51,7 @@ import org.hawkular.metrics.api.jaxrs.model.Counter;
 import org.hawkular.metrics.api.jaxrs.model.CounterDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
@@ -109,6 +113,49 @@ public class CounterHandler {
                 .toBlocking().lastOrDefault(null);
         } catch (Exception e) {
             return serverError(e);
+        }
+    }
+
+    @GET
+    @Produces(APPLICATION_JSON)
+    @Path("/{id}/tags")
+    public Response getMetricTags(@PathParam("id") String id) {
+        try {
+            return metricsService.getMetricTags(new MetricId<>(tenantId, COUNTER, id))
+                    .map(ApiUtils::valueToResponse)
+                    .toBlocking().lastOrDefault(null);
+        } catch (Exception e) {
+            return ApiUtils.serverError(e);
+        }
+    }
+
+    @PUT
+    @Produces(APPLICATION_JSON)
+    @Path("/{id}/tags")
+    public Response updateMetricTags(
+            @PathParam("id") String id,
+            Map<String, String> tags) {
+        Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id));
+        try {
+            metricsService.addTags(metric, tags).toBlocking().lastOrDefault(null);
+            return Response.ok().build();
+        } catch (Exception e) {
+            return ApiUtils.serverError(e);
+        }
+    }
+
+    @DELETE
+    @Produces(APPLICATION_JSON)
+    @Path("/{id}/tags/{tags}")
+    public Response deleteMetricTags(
+            @PathParam("id") String id,
+            @PathParam("tags") Tags tags) {
+        try {
+            Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id));
+            metricsService.deleteTags(metric, tags.getTags()).toBlocking().lastOrDefault(null);
+            return Response.ok().build();
+        } catch (Exception e) {
+            return ApiUtils.serverError(e);
         }
     }
 

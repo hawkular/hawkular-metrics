@@ -29,12 +29,15 @@ import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -52,6 +55,7 @@ import org.hawkular.metrics.api.jaxrs.model.Counter;
 import org.hawkular.metrics.api.jaxrs.model.CounterDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
@@ -127,6 +131,54 @@ public class CounterHandler {
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(noContent()))
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+    }
+
+    @GET
+    @Path("/{id}/tags")
+    @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = Map.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Metric's tags were successfully retrieved."),
+            @ApiResponse(code = 204, message = "Query was successful, but no metrics were found."),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's tags.",
+                         response = ApiError.class) })
+    public void getMetricTags(
+            @Suspended final AsyncResponse asyncResponse,
+            @PathParam("id") String id) {
+        metricsService.getMetricTags(new MetricId<>(tenantId, COUNTER, id))
+                .subscribe(
+                        optional -> asyncResponse.resume(ApiUtils.valueToResponse(optional)),
+                        t -> asyncResponse.resume(ApiUtils.serverError(t)));
+    }
+
+    @PUT
+    @Path("/{id}/tags")
+    @ApiOperation(value = "Update tags associated with the metric definition.")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while updating metric's tags.",
+                        response = ApiError.class) })
+    public void updateMetricTags(
+            @Suspended final AsyncResponse asyncResponse,
+            @PathParam("id") String id,
+            @ApiParam(required = true) Map<String, String> tags) {
+        Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id));
+        metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
+    }
+
+    @DELETE
+    @Path("/{id}/tags/{tags}")
+    @ApiOperation(value = "Delete tags associated with the metric definition.")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
+            @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.",
+                        response = ApiError.class) })
+    public void deleteMetricTags(
+            @Suspended final AsyncResponse asyncResponse,
+            @PathParam("id") String id,
+            @ApiParam("Tag list") @PathParam("tags") Tags tags) {
+        Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id));
+        metricsService.deleteTags(metric, tags.getTags()).subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @POST

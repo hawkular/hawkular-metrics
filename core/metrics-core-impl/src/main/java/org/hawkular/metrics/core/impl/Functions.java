@@ -118,4 +118,14 @@ public class Functions {
         return "$" + s;
     }
 
+    public static boolean isValidTagMap(Map<String, String> map) {
+        for (String value : map.keySet()) {
+            if (value == null || value.trim().isEmpty()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 }

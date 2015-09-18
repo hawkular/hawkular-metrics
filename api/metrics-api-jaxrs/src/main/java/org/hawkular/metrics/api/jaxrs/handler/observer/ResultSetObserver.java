@@ -16,9 +16,12 @@
  */
 package org.hawkular.metrics.api.jaxrs.handler.observer;
 
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
+
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 
+import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 
 import rx.Observer;
@@ -43,7 +46,11 @@ public class ResultSetObserver implements Observer<Void> {
 
     @Override
     public void onError(Throwable t) {
-        asyncResponse.resume(ApiUtils.serverError(t));
+        if (t instanceof IllegalArgumentException) {
+            asyncResponse.resume(badRequest(new ApiError(t.getMessage())));
+        } else {
+            asyncResponse.resume(ApiUtils.serverError(t));
+        }
     }
 
     @Override

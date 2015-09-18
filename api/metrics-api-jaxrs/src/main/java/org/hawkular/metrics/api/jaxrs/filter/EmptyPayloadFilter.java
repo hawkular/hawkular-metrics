@@ -37,7 +37,8 @@ public class EmptyPayloadFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
-        if (!HttpMethod.POST.equals(requestContext.getMethod())) {
+        if (!HttpMethod.POST.equals(requestContext.getMethod()) &&
+                !HttpMethod.PUT.equals(requestContext.getMethod())) {
             return;
         }
         UriInfo uriInfo = requestContext.getUriInfo();

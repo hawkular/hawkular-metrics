@@ -120,7 +120,7 @@ public class GaugeHandler {
     @GET
     @Produces(APPLICATION_JSON)
     @Path("/{id}/tags")
-    public Response getGaugeMetricTags(@PathParam("id") String id) {
+    public Response getMetricTags(@PathParam("id") String id) {
         try {
             return metricsService.getMetricTags(new MetricId<>(tenantId, GAUGE, id))
                     .map(ApiUtils::valueToResponse)
@@ -133,10 +133,9 @@ public class GaugeHandler {
     @PUT
     @Produces(APPLICATION_JSON)
     @Path("/{id}/tags")
-    public Response updateGaugeMetricTags(
+    public Response updateMetricTags(
             @PathParam("id") String id,
-            Map<String, String> tags
-    ) {
+            Map<String, String> tags) {
         Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
         try {
             metricsService.addTags(metric, tags).toBlocking().lastOrDefault(null);
@@ -149,7 +148,7 @@ public class GaugeHandler {
     @DELETE
     @Produces(APPLICATION_JSON)
     @Path("/{id}/tags/{tags}")
-    public Response deleteGaugeMetricTags(
+    public Response deleteMetricTags(
             @PathParam("id") String id,
             @PathParam("tags") Tags tags
     ) {

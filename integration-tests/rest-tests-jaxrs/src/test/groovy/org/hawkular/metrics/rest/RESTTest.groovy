@@ -86,6 +86,10 @@ ${entity}
     badRequest(hawkularMetrics.&post, args, errorHandler)
   }
 
+  static def badPut(args, errorHandler) {
+    badRequest(hawkularMetrics.&put, args, errorHandler, true)
+  }
+
   static def badGet(args, errorHandler) {
     badRequest(hawkularMetrics.&get, args, errorHandler)
   }
@@ -94,8 +98,13 @@ ${entity}
     badRequest(hawkularMetrics.&delete, args, errorHandler)
   }
 
-  static def badRequest(method, args, errorHandler) {
+  static def badRequest(method, args, errorHandler, forceContentTypeOnEmptyBody = false) {
     def originalFailureHandler = hawkularMetrics.handler.failure;
+
+    if (forceContentTypeOnEmptyBody && args.body == null) {
+      args.headers["Content-Type"] = "application/json"
+    }
+
     hawkularMetrics.handler.failure = defaultFailureHandler;
     try {
       method(args)
