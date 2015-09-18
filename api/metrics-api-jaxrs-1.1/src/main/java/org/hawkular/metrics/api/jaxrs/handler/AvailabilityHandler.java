@@ -25,6 +25,7 @@ import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_N
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
+import static org.hawkular.metrics.api.jaxrs.util.TagMapValidation.isValidTagMap;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 
 import java.net.URI;
@@ -123,7 +124,7 @@ public class AvailabilityHandler {
 
     @GET
     @Path("/{id}/tags")
-    public Response getAvailabilityMetricTags(
+    public Response getMetricTags(
             @PathParam("id") String id
     ) {
         Observable<Optional<Map<String, String>>> something = metricsService
@@ -141,10 +142,18 @@ public class AvailabilityHandler {
 
     @PUT
     @Path("/{id}/tags")
-    public Response updateAvailabilityMetricTags(
+    public Response updateMetricTags(
             @PathParam("id") String id,
             Map<String, String> tags
     ) {
+        if (tags == null) {
+            return badRequest(new ApiError("Missing tags"));
+        }
+
+        if (!isValidTagMap(tags)) {
+            return badRequest(new ApiError("Invalid tags; tag key is required"));
+        }
+
         Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id));
         try {
             metricsService.addTags(metric, tags).toBlocking().lastOrDefault(null);
@@ -156,7 +165,7 @@ public class AvailabilityHandler {
 
     @DELETE
     @Path("/{id}/tags/{tags}")
-    public Response deleteAvailabilityMetricTags(
+    public Response deleteMetricTags(
             @PathParam("id") String id,
             @PathParam("tags") Tags tags
     ) {

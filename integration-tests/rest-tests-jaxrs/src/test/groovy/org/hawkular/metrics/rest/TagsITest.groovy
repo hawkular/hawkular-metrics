@@ -27,203 +27,171 @@ import org.junit.Test
  */
 class TagsITest extends RESTTest {
 
+  static metricTypes =  [
+    ["path": "gauges", "type": "gauge"],
+    ["path": "availability", "type": "availability"],
+    ["path": "counters", "type": "counter"]
+  ];
+
   @Test
   void shouldNotAcceptMissingOrInvalidTags() {
-    String tenantId = nextTenantId()
+    metricTypes.each {
+      def tenantId = nextTenantId()
 
-    badDelete(path: "gauges/id/tags/,", headers: [(tenantHeaderName): tenantId]) { exception ->
-      assertEquals(400, exception.response.status)
-    }
-    badDelete(path: "availability/id/tags/:5", headers: [(tenantHeaderName): tenantId]) { exception ->
-      assertEquals(400, exception.response.status)
+      badDelete(path: it.path + "/id1/tags/,", headers: [(tenantHeaderName): tenantId]) { exception ->
+        assertEquals(400, exception.response.status)
+      }
+
+      badDelete(path: it.path + "/id2/tags/:5", headers: [(tenantHeaderName): tenantId]) { exception ->
+        assertEquals(400, exception.response.status)
+      }
+
+      badPut(path: it.path + "/id4/tags", headers: [(tenantHeaderName): tenantId]) { exception ->
+          assertEquals(400, exception.response.status)
+      }
+
+      badPut(path: it.path + "/id5/tags", body:['': 'test'], headers: [(tenantHeaderName): tenantId]) { exception ->
+          assertEquals(400, exception.response.status)
+      }
     }
   }
 
   @Test
   void findMetricTagsWhenThereIsNoData() {
-    def tenantId = nextTenantId()
+    metricTypes.each {
+      def tenantId = nextTenantId()
 
-    def response = hawkularMetrics.get(path: "gauges/missing/tags", headers: [(tenantHeaderName): tenantId])
-    assertEquals("Expected a 204 response when the gauge metric is not found", 204, response.status)
+      def response = hawkularMetrics.get(path: it.path + "/missing/tags", headers: [(tenantHeaderName): tenantId])
+      assertEquals("Expected a 204 response when the " + it + " metric is not found", 204, response.status)
 
-    response = hawkularMetrics.get(path: "availability/missing/tags", headers: [(tenantHeaderName): tenantId])
-    assertEquals("Expected a 204 response when the availability metric is not found", 204, response.status)
-
-    response = hawkularMetrics.get(path: "gauges/missing", headers: [(tenantHeaderName): tenantId])
-    assertEquals("Expected a 204 response when the gauge metric is not found", 204, response.status)
+      response = hawkularMetrics.get(path: it.path + "/missing", headers: [(tenantHeaderName): tenantId])
+      assertEquals("Expected a 204 response when the " + it + " metric is not found", 204, response.status)
+    }
   }
 
   @Test
   void createMetricsAndUpdateTags() {
-    String tenantId = nextTenantId()
+    metricTypes.each {
+      String tenantId = nextTenantId()
 
-    // Create a gauge metric
-    def response = hawkularMetrics.post(path: "gauges", body: [
-        id  : 'N1',
-        tags: ['  a  1   ': '   A', 'bsq   d1': 'B   ']
-    ], headers: [(tenantHeaderName): tenantId])
-    assertEquals(201, response.status)
+      // Create a gauge metric
+      def response = hawkularMetrics.post(path: it.path, body: [
+          id  : 'N1',
+          tags: ['  a  1   ': '   A', 'bsq   d1': 'B   ']
+      ], headers: [(tenantHeaderName): tenantId])
+      assertEquals(201, response.status)
 
-    // Fetch the metric
-    response = hawkularMetrics.get(path: "gauges/N1", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertEquals([
-        tenantId: tenantId,
-        id  : 'N1',
-        tags: ['  a  1   ': '   A', 'bsq   d1': 'B   '],
-        type: 'gauge'
-    ], response.data)
+      // Fetch the metric
+      response = hawkularMetrics.get(path: it.path + "/N1", headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertEquals([
+          tenantId: tenantId,
+          id  : 'N1',
+          tags: ['  a  1   ': '   A', 'bsq   d1': 'B   '],
+          type: it.type
+      ], response.data)
 
-    // Make sure we do not allow duplicates
-    badPost(path: "gauges", body: [id: 'N1'], headers: [(tenantHeaderName): tenantId]) { exception ->
-      assertEquals(409, exception.response.status)
-      assertNotNull(exception.response.data['errorMsg'])
-    }
+      // Make sure we do not allow duplicates
+      badPost(path: it.path, body: [id: 'N1'], headers: [(tenantHeaderName): tenantId]) { exception ->
+        assertEquals(409, exception.response.status)
+        assertNotNull(exception.response.data['errorMsg'])
+      }
 
-    // Create a gauge metric that sets its data retention
-    response = hawkularMetrics.post(path: "gauges", body: [
+      // Create another metric that sets its data retention
+      response = hawkularMetrics.post(path: it.path, body: [
         id           : 'N2',
         tags         : [a2: '2', b2: 'B2'],
         dataRetention: 96
-    ], headers: [(tenantHeaderName): tenantId])
-    assertEquals(201, response.status)
+      ], headers: [(tenantHeaderName): tenantId])
+      assertEquals(201, response.status)
 
-    // Create an availability metric
-    response = hawkularMetrics.post(path: "availability", body: [
-        id  : 'A1',
-        tags: [a2: '2', b2: '2']
-    ], headers: [(tenantHeaderName): tenantId])
-    assertEquals(201, response.status)
+      // Fetch tags
+      response = hawkularMetrics.get(path: it.path + "/N1/tags", headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertEquals('  a  1   ': '   A', 'bsq   d1': 'B   ', response.data)
 
-    // Create an availability metric that sets its data retention
-    response = hawkularMetrics.post(path: "availability", body: [
-        id           : 'A2',
-        tags         : [a22: '22', b22: '22'],
-        dataRetention: 48
-    ], headers: [(tenantHeaderName): tenantId])
-    assertEquals(201, response.status)
+      response = hawkularMetrics.get(path: it.path + "/N2/tags", headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertEquals([a2: '2', b2: 'B2'], response.data)
 
-    // Make sure we do not allow duplicates
-    badPost(path: "availability", body: [id: 'A1'], headers: [(tenantHeaderName): tenantId]) { exception ->
-      assertEquals(409, exception.response.status)
-      assertNotNull(exception.response.data['errorMsg'])
+      // Verify the response for a non-existent metric
+      response = hawkularMetrics.get(path: it.path + "/N-doesNotExist/tags", headers: [(tenantHeaderName): tenantId])
+      assertEquals(204, response.status)
+
+      // Update the metric tags
+      response = hawkularMetrics.put(path: it.path + "/N1/tags", body: [a1: 'one', a2: '2', b1: 'B'], headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+
+      // Fetch the updated tags
+      response = hawkularMetrics.get(path: it.path +  "/N1/tags", headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertEquals(['  a  1   ': '   A', a1: 'one', a2: '2', b1: 'B', 'bsq   d1': 'B   '], response.data)
+
+      // Delete a gauge metric tag
+      response = hawkularMetrics.delete(path: it.path + "/N1/tags/a2:2,b1:B", headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      response = hawkularMetrics.get(path: it.path + "/N1/tags", headers: [(tenantHeaderName): tenantId])
+      assertEquals(['  a  1   ': '   A', a1: 'one', 'bsq   d1': 'B   '], response.data)
     }
-
-    // Fetch gauge tags
-    response = hawkularMetrics.get(path: "gauges/N1/tags", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertEquals('  a  1   ': '   A', 'bsq   d1': 'B   ', response.data)
-
-    response = hawkularMetrics.get(path: "gauges/N2/tags", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertEquals([a2: '2', b2: 'B2'], response.data)
-
-    // Verify the response for a non-existent metric
-    response = hawkularMetrics.get(path: "gauges/N-doesNotExist/tags", headers: [(tenantHeaderName): tenantId])
-    assertEquals(204, response.status)
-
-    // Fetch availability metric tags
-    response = hawkularMetrics.get(path: "availability/A1/tags", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertEquals([a2: '2', b2: '2'], response.data)
-
-    response = hawkularMetrics.get(path: "availability/A2/tags", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertEquals([a22: '22', b22: '22'], response.data)
-
-    // Verify the response for a non-existent metric
-    response = hawkularMetrics.get(path: "gauges/A-doesNotExist/tags", headers: [(tenantHeaderName): tenantId])
-    assertEquals(204, response.status)
-
-    // Update the gauge metric tags
-    response = hawkularMetrics.put(path: "gauges/N1/tags", body: [a1: 'one', a2: '2', b1: 'B'], headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-
-    // Fetch the updated tags
-    response = hawkularMetrics.get(path: "gauges/N1/tags", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertEquals(['  a  1   ': '   A', a1: 'one', a2: '2', b1: 'B', 'bsq   d1': 'B   '], response.data)
-
-    // Delete a gauge metric tag
-    response = hawkularMetrics.delete(path: "gauges/N1/tags/a2:2,b1:B", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    response = hawkularMetrics.get(path: "gauges/N1/tags", headers: [(tenantHeaderName): tenantId])
-    assertEquals(['  a  1   ': '   A', a1: 'one', 'bsq   d1': 'B   '], response.data)
-
-    // Update the availability metric data
-    response = hawkularMetrics.put(path: "availability/A1/tags", body: [a2: 'two', a3: 'THREE'], headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-
-    // Fetch the updated tags
-    response = hawkularMetrics.get(path: "availability/A1/tags", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertEquals([a2: 'two', a3: 'THREE', b2: '2'], response.data)
-
-    // delete an availability metric tag
-    response = hawkularMetrics.delete(path: "availability/A1/tags/a2:two,b2:2", headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-
-    response = hawkularMetrics.get(path: "availability/A1/tags", headers: [(tenantHeaderName): tenantId])
-    assertEquals([a3: 'THREE'], response.data)
   }
 
   @Test
   void findDefinitionsWithTags() {
-    String tenantId = nextTenantId()
+    metricTypes.each {
+      def tenantId = nextTenantId()
 
-    // Create a gauge metric
-    def response = hawkularMetrics.post(path: "gauges", body: [
+      // Create a metrics
+      def response = hawkularMetrics.post(path: it.path, body: [
         id  : 'N1',
         tags: ['a1': 'A', 'd1': 'B']
-    ], headers: [(tenantHeaderName): tenantId])
-    assertEquals(201, response.status)
+      ], headers: [(tenantHeaderName): tenantId])
+      assertEquals(201, response.status)
 
-    // Create an availability metric that sets its data retention
-    response = hawkularMetrics.post(path: "availability", body: [
-        id           : 'A2',
-        tags         : [a1: 'A2', a22: '22', b22: '22'],
-        dataRetention: 48
-    ], headers: [(tenantHeaderName): tenantId])
-    assertEquals(201, response.status)
+      response = hawkularMetrics.post(path: it.path, body: [
+        id  : 'N2',
+        tags: ['a1': 'A2']
+      ], headers: [(tenantHeaderName): tenantId])
+      assertEquals(201, response.status)
 
-    // Fetch metrics using tags
-    response = hawkularMetrics.get(path: "metrics",
+      // Fetch metrics using tags
+      response = hawkularMetrics.get(path: "metrics",
         query: [tags: "a1:*"],
         headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertTrue(response.data instanceof List)
-    assertEquals(2, response.data.size())
-    assertTrue(response.data.contains([
+
+      assertEquals(200, response.status)
+      assertTrue(response.data instanceof List)
+      assertEquals(2, response.data.size())
+      assertTrue(response.data.contains([
         tenantId: tenantId,
         id      : 'N1',
         tags    : ['a1': 'A', 'd1': 'B'],
-        type: 'gauge'
-    ]))
-    assertTrue(response.data.contains([
-        tenantId     : tenantId,
-        id           : 'A2',
-        tags         : [a1: 'A2', a22: '22', b22: '22'],
-        dataRetention: 48,
-        type: 'availability'
-    ]))
+        type: it.type
+      ]))
+      assertTrue(response.data.contains([
+        tenantId: tenantId,
+        id      : 'N2',
+        tags    : ['a1': 'A2'],
+        type: it.type
+      ]))
 
-    // Fetch with tags & type
-    response = hawkularMetrics.get(path: "metrics",
-        query: [tags: "a1:A,d1:B", type: "gauge"],
+      // Fetch with tags & type
+      response = hawkularMetrics.get(path: "metrics",
+        query: [tags: "a1:A,d1:B", type: it.type],
         headers: [(tenantHeaderName): tenantId])
-    assertEquals(200, response.status)
-    assertEquals([[
-                      tenantId: tenantId,
-                      id      : 'N1',
-                      tags    : ['a1': 'A', 'd1': 'B'],
-                      type: 'gauge'
-                  ]], response.data)
+      assertEquals(200, response.status)
+      assertEquals([[
+        tenantId: tenantId,
+        id      : 'N1',
+        tags    : ['a1': 'A', 'd1': 'B'],
+        type: it.type
+      ]], response.data)
 
-    // Fetch with incorrect regexp
-    badGet(path: "metrics", query: [tags: "a1:**", type: "gauge"],
+      // Fetch with incorrect regexp
+      badGet(path: "metrics", query: [tags: "a1:**", type: it.type],
         headers: [(tenantHeaderName): tenantId]) { exception ->
-      // Missing query
-      assertEquals(400, exception.response.status)
+         // Missing query
+        assertEquals(400, exception.response.status)
+      }
     }
   }
 }

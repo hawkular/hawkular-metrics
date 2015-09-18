@@ -26,6 +26,7 @@ import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.valueToResponse;
+import static org.hawkular.metrics.api.jaxrs.util.TagMapValidation.isValidTagMap;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 
 import java.net.URI;
@@ -142,7 +143,7 @@ public class AvailabilityHandler {
             @ApiResponse(code = 204, message = "Query was successful, but no metrics were found."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's tags.",
                 response = ApiError.class) })
-    public void getAvailabilityMetricTags(
+    public void getMetricTags(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id
     ) {
@@ -158,13 +159,19 @@ public class AvailabilityHandler {
             @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while updating metric's tags.",
                 response = ApiError.class) })
-    public void updateAvailabilityMetricTags(
+    public void updateMetricTags(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags
     ) {
-        Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id));
-        metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
+        if (tags == null) {
+            asyncResponse.resume(badRequest(new ApiError("Missing tags")));
+        } else if (!isValidTagMap(tags)) {
+            asyncResponse.resume(badRequest(new ApiError("Invalid tags; tag key is required")));
+        } else {
+            Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id));
+            metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
+        }
     }
 
     @DELETE
@@ -175,7 +182,7 @@ public class AvailabilityHandler {
             @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.",
                 response = ApiError.class) })
-    public void deleteAvailabilityMetricTags(
+    public void deleteMetricTags(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
             @ApiParam("Tag list") @PathParam("tags") Tags tags
