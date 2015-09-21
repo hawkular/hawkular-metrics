@@ -298,8 +298,9 @@
             <exclude>analysis-results.tgz</exclude>
             <!-- Exclude the cassandra.yaml file since modified from the Cassandra upstream project.-->
             <exclude>src/main/docker/cassandra.yaml</exclude>
-            <!-- Exclude JAX-RS impl diff file -->
+            <!-- Exclude JAX-RS impl diff files -->
             <exclude>api/diff.txt</exclude>
+            <exclude>api/diff-excludes</exclude>
             <!-- Exclude sample page dependencies -->
             <exclude>samples/rhmap/web/libs/**</exclude>
             <!-- Exclude vim swap files -->
