@@ -36,9 +36,11 @@ else
   echo 'Using cached Cassandra archive'
 fi
 
-tar -xzf ${CASSANDRA_DOWNLOADS}/${CASSANDRA_BINARY}
+CASSANDRA_HOME="${HOME}/cassandra"
+rm -rf "${CASSANDRA_HOME}"
 
-CASSANDRA_HOME="${HOME}/dsc-cassandra-${CASSANDRA_VERSION}"
+tar -xzf ${CASSANDRA_DOWNLOADS}/${CASSANDRA_BINARY}
+mv ${HOME}/dsc-cassandra-${CASSANDRA_VERSION} ${CASSANDRA_HOME}
 
 mkdir "${CASSANDRA_HOME}/logs"
 

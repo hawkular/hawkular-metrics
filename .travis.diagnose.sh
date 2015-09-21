@@ -16,14 +16,15 @@
 # limitations under the License.
 #
 
-
 set -x
+
+CASSANDRA_HOME="${HOME}/cassandra"
 
 nc -z -w5 127.0.0.1 9042; echo $?
 
 CASSANDRA_PID=`cat ${HOME}/cassandra.pid`
 
-ps -f -p $CASSANDRA_PID && cat `dsc-cassandra-2.1.1/bin/nodetool status`
+ps -f -p ${CASSANDRA_PID} && cat $(${CASSANDRA_HOME}/bin/nodetool status)
 
 ps aux | grep java
 
@@ -32,10 +33,9 @@ find -name *.hprof; echo $?
 find -name 'core*'; echo $?
 
 echo "##########################################################"
-cat dsc-cassandra-2.1.1/logs/stdout.log
+cat ${CASSANDRA_HOME}/logs/stdout.log
 echo "##########################################################"
 
 echo "##########################################################"
-cat dsc-cassandra-2.1.1/logs/system.log
+cat ${CASSANDRA_HOME}/logs/system.log
 echo "##########################################################"
-
