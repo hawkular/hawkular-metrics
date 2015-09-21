@@ -26,7 +26,6 @@ import java.util.List;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.apache.cxf.jaxrs.client.WebClient;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
@@ -71,7 +70,7 @@ public class HeapsterTest extends BaseContainerTests {
         addClusterPolicy(HEAPSTER_SERVICE_ACCOUNT_NAME, "cluster-readers");
 
         // we need to sleep for a bit for heapster to gather some metrics
-        Thread.sleep(10000);
+        Thread.sleep(20000);
 
         Service service = client.getService(HEAPSTER_SERVICE_NAME);
         String heapsterAddress = service.getSpec().getClusterIP();
@@ -132,31 +131,5 @@ public class HeapsterTest extends BaseContainerTests {
             assertTrue(timeStamp > 0);
             assertTrue(value > 0);
         }
-    }
-
-
-    private void addClusterPolicy(String userName, String type) throws Exception {
-
-        String path = "/oapi/v1/clusterrolebindings/" + type;
-        String serviceAccount = "system:serviceaccount:" + session.getNamespace() + ":" + userName;
-
-        // update the existing policy
-        WebClient webclient = client.getFactory().createWebClient();
-        ObjectNode policy = webclient.path(path)
-                .accept(MediaType.APPLICATION_JSON)
-                .get(ObjectNode.class);
-        webclient.close();
-
-        ArrayNode userNames = (ArrayNode) policy.get("userNames");
-        userNames.add(serviceAccount);
-
-        webclient = client.getFactory().createWebClient();
-        Response putResponse = webclient.path("/oapi/v1/clusterrolebindings/cluster-readers")
-                .accept(MediaType.APPLICATION_JSON)
-                .type(MediaType.APPLICATION_JSON)
-                .put(policy);
-
-        assertEquals(200, putResponse.getStatus());
-
     }
 }

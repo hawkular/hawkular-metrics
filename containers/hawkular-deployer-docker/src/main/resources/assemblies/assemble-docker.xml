@@ -17,11 +17,21 @@
     limitations under the License.
 
 -->
-<arquillian xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            xmlns="http://jboss.org/schema/arquillian"
-            xsi:schemaLocation="http://jboss.org/schema/arquillian
-            http://jboss.org/schema/arquillian/arquillian_1_0.xsd">
-  <extension qualifier="kubernetes">
-    <property name="configFileName">simple-pod.json</property>
-  </extension>
-</arquillian>
+<assembly>
+  <id>docker-directory</id>
+  <formats>
+    <format>zip</format>
+    <format>dir</format>
+  </formats>
+
+  <includeBaseDirectory>false</includeBaseDirectory>
+
+  <fileSets>
+    <fileSet>
+      <directory>./src/main/docker</directory>
+      <outputDirectory></outputDirectory>
+      <filtered>true</filtered>
+    </fileSet>
+  </fileSets>
+</assembly>
+

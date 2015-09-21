@@ -1,0 +1,31 @@
+{
+  "id": "hawkular-support-template",
+  "kind": "Template",
+  "apiVersion": "v1",
+  "name": "Hawkular Support Template",
+  "description": "Template for setting up various support components for Hawkular Metrics.",
+  "metadata" : {
+    "name": "hawkular-support-template",
+    "labels": {
+      "metrics-infra": "support"
+    }
+  },
+  "objects": [
+    {
+      "apiVersion": "v1",
+      "kind": "ServiceAccount",
+      "metadata": {
+        "name": "hawkular",
+        "labels" : {
+          "metrics-infra": "support"
+        }
+      },
+      "secrets": [
+        { "name": "hawkular-cassandra-secrets" },
+        { "name": "hawkular-metrics-secrets" },
+        { "name": "hawkular-metrics-certificate" },
+        { "name": "hawkular-cassandra-certificate" }
+      ]
+    }
+  ]
+}

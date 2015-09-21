@@ -36,6 +36,7 @@
     <module>cassandra-seed-provider</module>
     <module>cassandra-docker</module>
     <module>container-tests</module>
+    <module>hawkular-deployer-docker</module>
   </modules>
 
   <properties>
@@ -48,6 +49,7 @@
     <cassandra.build>devel</cassandra.build>
     <cassandra.image>${docker.user}/hawkular-cassandra:${version.org.apache.cassandra}-${cassandra.build}</cassandra.image>
     <heapster.image>kubernetes/heapster:v0.17.0</heapster.image>
+    <hawkular-deployment.image>${docker.user}/metrics-deployment:${project.version}</hawkular-deployment.image>
   </properties>
 
   <dependencyManagement>
@@ -88,7 +90,6 @@
       </activation>
       <modules>
         <module>hawkular-metrics-docker</module>
-        <module>kubernetes</module>
       </modules>
     </profile>
     <profile>
@@ -100,7 +101,6 @@
       </activation>
       <modules>
         <module>hawkular-metrics-docker-eap</module>
-        <module>kubernetes-eap</module>
       </modules>
     </profile>
   </profiles>
