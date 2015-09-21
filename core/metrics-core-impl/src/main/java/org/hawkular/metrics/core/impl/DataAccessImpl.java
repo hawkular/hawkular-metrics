@@ -23,8 +23,6 @@ import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
 
-import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
-
 import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.Map;
@@ -42,7 +40,6 @@ import org.hawkular.metrics.core.impl.transformers.BatchStatementTransformer;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
-import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
@@ -371,32 +368,18 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<ResultSet> addTags(Metric metric, Map<String, String> tags) {
-        BatchStatement batch = new BatchStatement(UNLOGGED);
         MetricId<?> metricId = metric.getId();
-        batch.add(addTagsToMetricsIndex.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
-                metricId.getInterval().toString(), metricId.getName()));
-        return rxSession.execute(batch);
+        BoundStatement stmt = addTagsToMetricsIndex.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
+                metricId.getInterval().toString(), metricId.getName());
+        return rxSession.execute(stmt);
     }
 
     @Override
     public Observable<ResultSet> deleteTags(Metric metric, Set<String> tags) {
-        BatchStatement batch = new BatchStatement(UNLOGGED);
         MetricId<?> metricId = metric.getId();
-        batch.add(deleteTagsFromMetricsIndex.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
-                metricId.getInterval().toString(), metricId.getName()));
-        return rxSession.execute(batch);
-    }
-
-    @Override
-    public Observable<ResultSet> updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
-            Set<String> deletions) {
-        MetricId<?> metricId = metric.getId();
-        BatchStatement batchStatement = new BatchStatement(UNLOGGED)
-                .add(addTagsToMetricsIndex.bind(additions, metricId.getTenantId(),
-                        metricId.getType().getCode(), metricId.getInterval().toString(), metricId.getName()))
-                .add(deleteTagsFromMetricsIndex.bind(deletions, metricId.getTenantId(), metricId.getType().getCode(),
-                        metricId.getInterval().toString(), metricId.getName()));
-        return rxSession.execute(batchStatement);
+        BoundStatement stmt = deleteTagsFromMetricsIndex.bind(tags, metricId.getTenantId(),
+                metricId.getType().getCode(), metricId.getInterval().toString(), metricId.getName());
+        return rxSession.execute(stmt);
     }
 
     @Override
@@ -572,22 +555,21 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<ResultSet> insertIntoMetricsTagsIndex(Metric metric, Map<String, String> tags) {
         MetricId<?> metricId = metric.getId();
-        return executeTagsBatch(tags, (name, value) -> insertMetricsTagsIndex.bind(metricId.getTenantId(), name, value,
+        return tagsUpdates(tags, (name, value) -> insertMetricsTagsIndex.bind(metricId.getTenantId(), name, value,
                 metricId.getType().getCode(), metricId.getName(), metricId.getInterval().toString()));
     }
 
     @Override
     public Observable<ResultSet> deleteFromMetricsTagsIndex(Metric metric, Map<String, String> tags) {
         MetricId<?> metricId = metric.getId();
-        return executeTagsBatch(tags, (name, value) -> deleteMetricsTagsIndex.bind(metricId.getTenantId(), name, value,
+        return tagsUpdates(tags, (name, value) -> deleteMetricsTagsIndex.bind(metricId.getTenantId(), name, value,
                 metricId.getType().getCode(), metricId.getName(), metricId.getInterval().toString()));
     }
 
-    private Observable<ResultSet> executeTagsBatch(Map<String, String> tags,
-                                                   BiFunction<String, String, BoundStatement> bindVars) {
+    private Observable<ResultSet> tagsUpdates(Map<String, String> tags,
+                                              BiFunction<String, String, BoundStatement> bindVars) {
         return Observable.from(tags.entrySet())
                 .map(entry -> bindVars.apply(entry.getKey(), entry.getValue()))
-                .compose(new BatchStatementTransformer())
                 .flatMap(rxSession::execute);
     }
 

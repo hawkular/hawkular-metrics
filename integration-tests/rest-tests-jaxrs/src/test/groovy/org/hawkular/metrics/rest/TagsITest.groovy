@@ -161,13 +161,13 @@ class TagsITest extends RESTTest {
       assertEquals(200, response.status)
       assertTrue(response.data instanceof List)
       assertEquals(2, response.data.size())
-      assertTrue(response.data.contains([
+      assertTrue((response.data ?: []).contains([
         tenantId: tenantId,
         id      : 'N1',
         tags    : ['a1': 'A', 'd1': 'B'],
         type: it.type
       ]))
-      assertTrue(response.data.contains([
+      assertTrue((response.data ?: []).contains([
         tenantId: tenantId,
         id      : 'N2',
         tags    : ['a1': 'A2'],
