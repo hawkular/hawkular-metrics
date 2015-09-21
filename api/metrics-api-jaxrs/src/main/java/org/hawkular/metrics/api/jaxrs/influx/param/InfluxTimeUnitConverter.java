@@ -14,33 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.influx.query.parse.definition;
+
+package org.hawkular.metrics.api.jaxrs.influx.param;
+
+import javax.ws.rs.ext.ParamConverter;
 
 import org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit;
 
 /**
+ * A JAX-RS {@link ParamConverter} for {@link InfluxTimeUnit} parameters.
+ *
  * @author Thomas Segismont
  */
-public class GroupByClause {
-    private final String bucketType;
-    private final long bucketSize;
-    private final InfluxTimeUnit bucketSizeUnit;
+public class InfluxTimeUnitConverter implements ParamConverter<InfluxTimeUnit> {
 
-    public GroupByClause(String bucketType, long bucketSize, InfluxTimeUnit bucketSizeUnit) {
-        this.bucketType = bucketType;
-        this.bucketSize = bucketSize;
-        this.bucketSizeUnit = bucketSizeUnit;
+    @Override
+    public InfluxTimeUnit fromString(String value) {
+        InfluxTimeUnit timeUnit = InfluxTimeUnit.findById(value);
+        if (timeUnit == null) {
+            throw new IllegalArgumentException(value + "does not represent a time unit");
+        }
+        return timeUnit;
     }
 
-    public String getBucketType() {
-        return bucketType;
-    }
-
-    public long getBucketSize() {
-        return bucketSize;
-    }
-
-    public InfluxTimeUnit getBucketSizeUnit() {
-        return bucketSizeUnit;
+    @Override
+    public String toString(InfluxTimeUnit value) {
+        return String.valueOf(value.getId());
     }
 }

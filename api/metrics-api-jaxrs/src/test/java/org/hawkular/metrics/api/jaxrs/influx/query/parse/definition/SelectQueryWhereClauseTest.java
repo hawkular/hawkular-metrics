@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParserFactory;
 import org.joda.time.DateTimeZone;
@@ -79,7 +80,7 @@ public class SelectQueryWhereClauseTest {
         assertEquals(EqBooleanExpression.class, nestedLeftExpr.getLeftExpression().getClass());
         EqBooleanExpression eqExpr = (EqBooleanExpression) nestedLeftExpr.getLeftExpression();
         assertNameOperand(eqExpr.getLeftOperand(), "a");
-        assertIntegerOperand(eqExpr.getRightOperand(), 2);
+        assertLongOperand(eqExpr.getRightOperand(), 2);
 
         // Inspect ".35 =  '2005-11-09 15:12:01.623'";
         assertEquals(EqBooleanExpression.class, nestedLeftExpr.getRightExpression().getClass());
@@ -111,7 +112,7 @@ public class SelectQueryWhereClauseTest {
         // Inspect "3 = '2005-11-09'";
         assertEquals(EqBooleanExpression.class, deeplyNestedRightExpr.getRightExpression().getClass());
         eqExpr = (EqBooleanExpression) deeplyNestedRightExpr.getRightExpression();
-        assertIntegerOperand(eqExpr.getLeftOperand(), 3);
+        assertLongOperand(eqExpr.getLeftOperand(), 3);
         instant = new MutableDateTime(2005, 11, 9, 0, 0, 0, 0, DateTimeZone.UTC).toInstant();
         assertDateOperand(eqExpr.getRightOperand(), instant);
     }
@@ -122,10 +123,10 @@ public class SelectQueryWhereClauseTest {
         assertEquals(value, doubleOperand.getValue(), 0);
     }
 
-    private void assertIntegerOperand(Operand operand, int value) {
-        assertEquals(IntegerOperand.class, operand.getClass());
-        IntegerOperand integerOperand = (IntegerOperand) operand;
-        assertEquals(value, integerOperand.getValue());
+    private void assertLongOperand(Operand operand, int value) {
+        assertEquals(LongOperand.class, operand.getClass());
+        LongOperand longOperand = (LongOperand) operand;
+        assertEquals(value, longOperand.getValue());
     }
 
     private void assertNameOperand(Operand operand, String name) {

@@ -18,6 +18,7 @@ package org.hawkular.metrics.api.jaxrs.influx.query.parse.definition;
 
 import java.util.concurrent.TimeUnit;
 
+import org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit;
 import org.joda.time.Instant;
 
 /**
@@ -25,10 +26,10 @@ import org.joda.time.Instant;
  */
 public class MomentOperand implements InstantOperand {
     private final String functionName;
-    private final int timeshift;
+    private final long timeshift;
     private final InfluxTimeUnit timeshiftUnit;
 
-    public MomentOperand(String functionName, int timeshift, InfluxTimeUnit timeshiftUnit) {
+    public MomentOperand(String functionName, long timeshift, InfluxTimeUnit timeshiftUnit) {
         this.functionName = functionName;
         this.timeshift = timeshift;
         this.timeshiftUnit = timeshiftUnit;
@@ -38,7 +39,7 @@ public class MomentOperand implements InstantOperand {
         return functionName;
     }
 
-    public int getTimeshift() {
+    public long getTimeshift() {
         return timeshift;
     }
 

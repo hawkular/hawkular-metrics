@@ -261,8 +261,9 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 116,117d112
 <         classes.add(CorsResponseFilter.class);
 <         classes.add(CorsRequestFilter.class);
-121,122c116,118
+121,123c116,118
 <         classes.add(ConvertersProvider.class);
+<         classes.add(org.hawkular.metrics.api.jaxrs.influx.param.ConvertersProvider.class);
 <         classes.add(JacksonConfig.class);
 ---
 >         classes.add(DurationConverter.class);

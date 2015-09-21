@@ -18,13 +18,18 @@ package org.hawkular.metrics.api.jaxrs.influx.query.translate;
 
 import static org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.OperandUtils.isTimeOperand;
 
+import java.util.concurrent.TimeUnit;
+
 import javax.enterprise.context.ApplicationScoped;
 
+import org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.AndBooleanExpression;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.BooleanExpression;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.GtBooleanExpression;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.InstantOperand;
+import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.LongOperand;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.LtBooleanExpression;
+import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.Operand;
 import org.joda.time.Instant;
 import org.joda.time.Interval;
 
@@ -38,6 +43,7 @@ public class ToIntervalTranslator {
      * Return the interval described by the where clause.
      *
      * @param whereClause the Influx query where clause
+     *
      * @return an {@link org.joda.time.Interval} or null if the where clause does define a proper interval (i.e.
      * <code>time &gt; '2012-08-15' and time &lt; '1998-08-15'</code>
      */
@@ -67,25 +73,33 @@ public class ToIntervalTranslator {
         LtBooleanExpression lt = (LtBooleanExpression) whereClause;
         if (isTimeOperand(lt.getLeftOperand())) {
             // time < x
-            InstantOperand instantOperand = (InstantOperand) lt.getRightOperand();
-            return new Interval(new Instant(0), instantOperand.getInstant());
+            Instant instant = getInstant(lt.getRightOperand());
+            return new Interval(new Instant(0), instant);
         } else {
             // x < time
-            InstantOperand instantOperand = (InstantOperand) lt.getLeftOperand();
-            return new Interval(instantOperand.getInstant(), Instant.now());
+            Instant instant = getInstant(lt.getLeftOperand());
+            return new Interval(instant, Instant.now());
         }
     }
 
     private Interval getIntervalFromGtExpression(GtBooleanExpression gt) {
         if (isTimeOperand(gt.getLeftOperand())) {
             // time > x
-            InstantOperand instantOperand = (InstantOperand) gt.getRightOperand();
-            return new Interval(instantOperand.getInstant(), Instant.now());
+            Instant instant = getInstant(gt.getRightOperand());
+            return new Interval(instant, Instant.now());
         } else {
             // x > time
-            InstantOperand instantOperand = (InstantOperand) gt.getLeftOperand();
-            return new Interval(new Instant(0), instantOperand.getInstant());
+            Instant instant = getInstant(gt.getLeftOperand());
+            return new Interval(new Instant(0), instant);
         }
     }
 
+    private Instant getInstant(Operand operand) {
+        if (operand instanceof InstantOperand) {
+            InstantOperand instantOperand = (InstantOperand) operand;
+            return instantOperand.getInstant();
+        }
+        LongOperand longOperand = (LongOperand) operand;
+        return new Instant(InfluxTimeUnit.MICROSECONDS.convertTo(TimeUnit.MILLISECONDS, longOperand.getValue()));
+    }
 }

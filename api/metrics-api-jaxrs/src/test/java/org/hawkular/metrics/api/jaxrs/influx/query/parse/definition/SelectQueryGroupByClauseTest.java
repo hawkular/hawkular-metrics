@@ -16,20 +16,21 @@
  */
 package org.hawkular.metrics.api.jaxrs.influx.query.parse.definition;
 
+import static java.util.stream.Collectors.toList;
+
+import static org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit.MILLISECONDS;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParserFactory;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-
-import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
 
 /**
  * @author Thomas Segismont
@@ -39,17 +40,15 @@ public class SelectQueryGroupByClauseTest {
 
     @Parameters(name = "{0}")
     public static Iterable<Object[]> testValidQueries() throws Exception {
-        return FluentIterable //
-            .from(Arrays.asList(InfluxTimeUnit.values())) //
-            .transform(new Function<InfluxTimeUnit, Object[]>() {
-                @Override
-                public Object[] apply(InfluxTimeUnit influxTimeUnit) {
-                    int bucketSize = influxTimeUnit.ordinal() + 15;
-                    return new Object[] {
-                        "select * from a group by time ( " + bucketSize + influxTimeUnit.getId() + " )", bucketSize,
-                        influxTimeUnit };
-                }
-            });
+        return Arrays.stream(InfluxTimeUnit.values())
+                .filter(timeUnit -> timeUnit != MILLISECONDS)
+                .map(timeUnit -> {
+                    int bucketSize = timeUnit.ordinal() + 15;
+                    return new Object[]{
+                            "select * from a group by time ( " + bucketSize + timeUnit.getId() + " )",
+                            bucketSize,
+                            timeUnit};
+                }).collect(toList());
     }
 
     private final SelectQueryDefinitionsParser definitionsParser = new SelectQueryDefinitionsParser();

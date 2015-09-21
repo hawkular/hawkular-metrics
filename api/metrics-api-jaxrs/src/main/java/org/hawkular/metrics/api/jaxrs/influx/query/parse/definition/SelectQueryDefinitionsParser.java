@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.api.jaxrs.influx.query.parse.definition;
 
+import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.AbsoluteMomentOperandContext;
 import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.AggregatedColumnDefinitionContext;
 import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.AliasContext;
 import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.AndExpressionContext;
@@ -32,9 +33,9 @@ import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParse
 import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.GroupByClauseContext;
 import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.GtExpressionContext;
 import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.IdNameContext;
-import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.IntegerFunctionArgumentContext;
-import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.IntegerOperandContext;
 import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.LimitClauseContext;
+import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.LongFunctionArgumentContext;
+import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.LongOperandContext;
 import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.LtExpressionContext;
 import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.NameFunctionArgumentContext;
 import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.NameOperandContext;
@@ -56,8 +57,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.antlr.v4.runtime.misc.NotNull;
+import org.antlr.v4.runtime.tree.TerminalNode;
+import org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryBaseListener;
-import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser;
 import org.joda.time.Instant;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -178,9 +180,9 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     public void exitGroupByClause(@NotNull GroupByClauseContext ctx) {
         String bucketType = ctx.ID().getText();
         String timespan = ctx.TIMESPAN().getText();
-        int bucketSize = Integer.parseInt(timespan.substring(0, timespan.length() - 1));
+        long bucketSize = Long.parseLong(timespan.substring(0, timespan.length() - 1));
         char unitId = timespan.charAt(timespan.length() - 1);
-        InfluxTimeUnit bucketSizeUnit = InfluxTimeUnit.findById(unitId);
+        InfluxTimeUnit bucketSizeUnit = InfluxTimeUnit.findById(String.valueOf(unitId));
         if (bucketSizeUnit == null) {
             throw new RuntimeException("Unknown time unit: " + unitId);
         }
@@ -259,11 +261,11 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     }
 
     @Override
-    public void exitAbsoluteMomentOperand(InfluxQueryParser.AbsoluteMomentOperandContext ctx) {
+    public void exitAbsoluteMomentOperand(AbsoluteMomentOperandContext ctx) {
         String timespan = ctx.TIMESPAN().getText();
-        int amount = Integer.parseInt(timespan.substring(0, timespan.length() - 1));
+        long amount = Long.parseLong(timespan.substring(0, timespan.length() - 1));
         char unitId = timespan.charAt(timespan.length() - 1);
-        InfluxTimeUnit unit = InfluxTimeUnit.findById(unitId);
+        InfluxTimeUnit unit = InfluxTimeUnit.findById(String.valueOf(unitId));
         if (unit == null) {
             throw new RuntimeException("Unknown time unit: " + unitId);
         }
@@ -273,12 +275,20 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     @Override
     public void exitPastMomentOperand(@NotNull PastMomentOperandContext ctx) {
         String functionName = ctx.ID().getText();
-        String timespan = ctx.TIMESPAN().getText();
-        int timeshift = Integer.parseInt(timespan.substring(0, timespan.length() - 1));
-        char unitId = timespan.charAt(timespan.length() - 1);
-        InfluxTimeUnit timeshiftUnit = InfluxTimeUnit.findById(unitId);
-        if (timeshiftUnit == null) {
-            throw new RuntimeException("Unknown time unit: " + unitId);
+        TerminalNode intNode = ctx.INT();
+        long timeshift;
+        InfluxTimeUnit timeshiftUnit;
+        if (intNode == null) {
+            String timespan = ctx.TIMESPAN().getText();
+            timeshift = Long.parseLong(timespan.substring(0, timespan.length() - 1));
+            char unitId = timespan.charAt(timespan.length() - 1);
+            timeshiftUnit = InfluxTimeUnit.findById(String.valueOf(unitId));
+            if (timeshiftUnit == null) {
+                throw new RuntimeException("Unknown time unit: " + unitId);
+            }
+        } else {
+            timeshift = Long.parseLong(intNode.getText());
+            timeshiftUnit = InfluxTimeUnit.MICROSECONDS;
         }
         operandQueue.addLast(new MomentOperand(functionName, -1 * timeshift, timeshiftUnit));
     }
@@ -286,12 +296,20 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     @Override
     public void exitFutureMomentOperand(@NotNull FutureMomentOperandContext ctx) {
         String functionName = ctx.ID().getText();
-        String timespan = ctx.TIMESPAN().getText();
-        int timeshift = Integer.parseInt(timespan.substring(0, timespan.length() - 1));
-        char unitId = timespan.charAt(timespan.length() - 1);
-        InfluxTimeUnit timeshiftUnit = InfluxTimeUnit.findById(unitId);
-        if (timeshiftUnit == null) {
-            throw new RuntimeException("Unknown time unit: " + unitId);
+        TerminalNode intNode = ctx.INT();
+        long timeshift;
+        InfluxTimeUnit timeshiftUnit;
+        if (intNode == null) {
+            String timespan = ctx.TIMESPAN().getText();
+            timeshift = Long.parseLong(timespan.substring(0, timespan.length() - 1));
+            char unitId = timespan.charAt(timespan.length() - 1);
+            timeshiftUnit = InfluxTimeUnit.findById(String.valueOf(unitId));
+            if (timeshiftUnit == null) {
+                throw new RuntimeException("Unknown time unit: " + unitId);
+            }
+        } else {
+            timeshift = Long.parseLong(intNode.getText());
+            timeshiftUnit = InfluxTimeUnit.MICROSECONDS;
         }
         operandQueue.addLast(new MomentOperand(functionName, timeshift, timeshiftUnit));
     }
@@ -310,12 +328,12 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     }
 
     @Override
-    public void exitIntegerOperand(@NotNull IntegerOperandContext ctx) {
-        int value = Integer.parseInt(ctx.INT().getText());
+    public void exitLongOperand(@NotNull LongOperandContext ctx) {
+        long value = Long.parseLong(ctx.INT().getText());
         if (ctx.DASH() != null) {
             value = -1 * value;
         }
-        operandQueue.addLast(new IntegerOperand(value));
+        operandQueue.addLast(new LongOperand(value));
     }
 
     @Override
@@ -395,12 +413,12 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     }
 
     @Override
-    public void exitIntegerFunctionArgument(@NotNull IntegerFunctionArgumentContext ctx) {
-        int value = Integer.parseInt(ctx.INT().getText());
+    public void exitLongFunctionArgument(@NotNull LongFunctionArgumentContext ctx) {
+        long value = Long.parseLong(ctx.INT().getText());
         if (ctx.DASH() != null) {
             value = -1 * value;
         }
-        functionArguments.add(new IntegerFunctionArgument(value));
+        functionArguments.add(new LongFunctionArgument(value));
     }
 
     private ColumnDefinitionBuilder getColumnDefinitionBuilder() {

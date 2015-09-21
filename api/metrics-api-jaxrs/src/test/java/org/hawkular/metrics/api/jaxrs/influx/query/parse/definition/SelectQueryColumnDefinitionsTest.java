@@ -196,9 +196,9 @@ public class SelectQueryColumnDefinitionsTest {
         assertEquals(" f ", nameFunctionArgument.getName());
 
         i++;
-        assertEquals(IntegerFunctionArgument.class, aggregationFunctionArguments.get(i).getClass());
-        IntegerFunctionArgument integerFunctionArgument = (IntegerFunctionArgument) aggregationFunctionArguments.get(i);
-        assertEquals(78, integerFunctionArgument.getValue());
+        assertEquals(LongFunctionArgument.class, aggregationFunctionArguments.get(i).getClass());
+        LongFunctionArgument longFunctionArgument = (LongFunctionArgument) aggregationFunctionArguments.get(i);
+        assertEquals(78, longFunctionArgument.getValue());
 
         i++;
         assertEquals(StringFunctionArgument.class, aggregationFunctionArguments.get(i).getClass());

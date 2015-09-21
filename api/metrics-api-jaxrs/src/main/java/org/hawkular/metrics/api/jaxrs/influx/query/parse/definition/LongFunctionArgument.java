@@ -19,14 +19,19 @@ package org.hawkular.metrics.api.jaxrs.influx.query.parse.definition;
 /**
  * @author Thomas Segismont
  */
-public class IntegerOperand implements Operand {
-    private final int value;
+public class LongFunctionArgument implements NumberFunctionArgument {
+    private final long value;
 
-    public IntegerOperand(int value) {
+    public LongFunctionArgument(long value) {
         this.value = value;
     }
 
-    public int getValue() {
+    public long getValue() {
+        return value;
+    }
+
+    @Override
+    public double getDoubleValue() {
         return value;
     }
 }

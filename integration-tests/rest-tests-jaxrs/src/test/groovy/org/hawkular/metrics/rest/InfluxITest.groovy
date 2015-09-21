@@ -31,11 +31,11 @@ import org.junit.Test
  * @author Thomas Segismont
  */
 class InfluxITest extends RESTTest {
+  def tenantId = nextTenantId()
+  def timeseriesName = 'test'
 
   @Test
   void testEmptyPayload() {
-    def tenantId = nextTenantId()
-
     hawkularMetrics.request(POST) { request ->
       uri.path = "db/${tenantId}/series"
       body = "" /* Empty body */
@@ -49,29 +49,27 @@ class InfluxITest extends RESTTest {
       response.failure = { response ->
         assertEquals(400, response.status)
         assertEquals(TEXT.toString(), response.contentType)
-        assertEquals("Null objects", EntityUtils.toString(response.entity))
+        assertEquals('Null objects', EntityUtils.toString(response.entity))
       }
     }
   }
 
   @Test
   void testListSeries() {
-    def tenantId = nextTenantId()
+    postData('serie1', now())
+    postData('serie2', now())
 
-    postData(tenantId, "serie1", now())
-    postData(tenantId, "serie2", now())
-
-    def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: "list series"])
+    def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: 'list series'])
     assertEquals(200, response.status)
 
     assertEquals(
         [
             [
-                name   : "list_series_result",
-                columns: ["time", "name"],
-                points : [
-                    [0, "serie1"],
-                    [0, "serie2"],
+                name: 'list_series_result',
+                columns: ['time', 'name'],
+                points: [
+                    [0, 'serie1'],
+                    [0, 'serie2'],
                 ]
             ]
         ],
@@ -81,36 +79,34 @@ class InfluxITest extends RESTTest {
 
   @Test
   void testListSeriesWithRegularExpression() {
-    def tenantId = nextTenantId()
+    postData('serie1', now())
+    postData('serie2', now())
 
-    postData(tenantId, "serie1", now())
-    postData(tenantId, "serie2", now())
-
-    def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: "list series /rIe\\d/i"])
+    def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: 'list series /rIe\\d/i'])
     assertEquals(200, response.status)
 
     assertEquals(
         [
             [
-                name   : "list_series_result",
-                columns: ["time", "name"],
-                points : [
-                    [0, "serie1"],
-                    [0, "serie2"],
+                name: 'list_series_result',
+                columns: ['time', 'name'],
+                points: [
+                    [0, 'serie1'],
+                    [0, 'serie2'],
                 ]
             ]
         ],
         response.data
     )
 
-    response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: "list series /^rIe\\d/i"])
+    response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: 'list series /^rIe\\d/i'])
     assertEquals(200, response.status)
 
     assertEquals(
         [
             [
-                name   : "list_series_result",
-                columns: ["time", "name"]
+                name: 'list_series_result',
+                columns: ['time', 'name']
             ]
         ],
         response.data
@@ -119,12 +115,10 @@ class InfluxITest extends RESTTest {
 
   @Test
   void testInfluxDataOrderedAsc() {
-    def tenantId = nextTenantId()
-    def timeseriesName = "influx.dataasc"
     def start = now().minus(4000)
-    postData(tenantId, timeseriesName, start)
+    postData(timeseriesName, start)
 
-    def influxQuery = 'select value from "' + timeseriesName + '" order asc'
+    def influxQuery = """select value from "${timeseriesName}" order asc"""
 
     def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
@@ -132,9 +126,9 @@ class InfluxITest extends RESTTest {
     assertEquals(
         [
             [
-                columns: ["time", "value"],
-                name   : timeseriesName,
-                points : [
+                columns: ['time', 'value'],
+                name: timeseriesName,
+                points: [
                     [start.millis, 40.1],
                     [start.plus(1000).millis, 41.1],
                     [start.plus(2000).millis, 42.1],
@@ -149,12 +143,10 @@ class InfluxITest extends RESTTest {
 
   @Test
   void testInfluxDataOrderedDescByDefault() {
-    def tenantId = nextTenantId()
-    def timeseriesName = "influx.datadesc"
     def start = now().minus(4000)
-    postData(tenantId, timeseriesName, start)
+    postData(timeseriesName, start)
 
-    def influxQuery = 'select value from "' + timeseriesName + '"'
+    def influxQuery = """select value from "${timeseriesName}" """
 
     def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
@@ -162,9 +154,9 @@ class InfluxITest extends RESTTest {
     assertEquals(
         [
             [
-                columns: ["time", "value"],
-                name   : timeseriesName,
-                points : [
+                columns: ['time', 'value'],
+                name: timeseriesName,
+                points: [
                     [start.plus(4000).millis, 44.1],
                     [start.plus(3000).millis, 43.1],
                     [start.plus(2000).millis, 42.1],
@@ -179,12 +171,10 @@ class InfluxITest extends RESTTest {
 
   @Test
   void testInfluxAddGetOneMetric() {
-    def tenantId = nextTenantId()
-    def timeseriesName = "influx.foo"
     def start = now().minus(4000)
-    postData(tenantId, timeseriesName, start)
+    postData(timeseriesName, start)
 
-    def influxQuery = 'select mean(value) from "' + timeseriesName + '" where time > now() - 30s group by time(30s) '
+    def influxQuery = """select mean(value) from "${timeseriesName}" where time > now() - 30s group by time(30s)"""
 
     def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
@@ -192,9 +182,9 @@ class InfluxITest extends RESTTest {
     assertEquals(
         [
             [
-                columns: ["time", "mean"],
-                name   : timeseriesName,
-                points : [
+                columns: ['time', 'mean'],
+                name: timeseriesName,
+                points: [
                     [start.plus(4000).millis, 42.1]
                 ]
             ]
@@ -205,12 +195,10 @@ class InfluxITest extends RESTTest {
 
   @Test
   void testInfluxLimitClause() {
-    def tenantId = nextTenantId()
-    def timeseriesName = "influx.limitclause"
     def start = now().minus(4000)
-    postData(tenantId, timeseriesName, start)
+    postData(timeseriesName, start)
 
-    def influxQuery = 'select value from "' + timeseriesName + '" limit 2 order asc '
+    def influxQuery = """select value from "${timeseriesName}" limit 2 order asc"""
 
     def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
@@ -218,9 +206,9 @@ class InfluxITest extends RESTTest {
     assertEquals(
         [
             [
-                columns: ["time", "value"],
-                name   : timeseriesName,
-                points : [
+                columns: ['time', 'value'],
+                name: timeseriesName,
+                points: [
                     [start.millis, 40.1],
                     [start.plus(1000).millis, 41.1]
                 ]
@@ -232,13 +220,11 @@ class InfluxITest extends RESTTest {
 
   @Test
   void testInfluxAddGetOneSillyMetric() {
-    def tenantId = nextTenantId()
-    def timeseriesName = "influx.foo3"
     def start = now().minus(4000)
-    postData(tenantId, timeseriesName, start)
+    postData(timeseriesName, start)
 
-    def influxQuery = 'select mean(value) from "' + timeseriesName + '''" where time > '2013-08-12 23:32:01.232'
-                        and time < '2013-08-13' group by time(30s) '''
+    def influxQuery = """select mean(value) from "${timeseriesName}" where time > '2013-08-12 23:32:01.232'
+                         and time < '2013-08-13' group by time(30s)"""
 
 
     def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
@@ -247,8 +233,35 @@ class InfluxITest extends RESTTest {
     assertEquals(
         [
             [
-                columns: ["time", "mean"],
-                name  : timeseriesName
+                columns: ['time', 'mean'],
+                name: timeseriesName
+            ]
+        ],
+        response.data
+    )
+  }
+
+  @Test
+  void testWhereClauseWithoutTimeUnit() {
+    def start = now().minus(4000)
+    postData(timeseriesName, start)
+
+    def influxQuery = """select * from "${timeseriesName}"
+                         where time > ${start.plus(1000).millis * 1000}
+                         and time < ${start.plus(3000).millis * 1000}"""
+
+    def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
+    assertEquals(200, response.status)
+
+    assertEquals(
+        [
+            [
+                columns: ['time', 'value'],
+                name: timeseriesName,
+                points: [
+                    [start.plus(2000).millis, 42.1],
+                    [start.plus(1000).millis, 41.1]
+                ]
             ]
         ],
         response.data
@@ -257,12 +270,10 @@ class InfluxITest extends RESTTest {
 
   @Test
   void testInfluxTop() {
-    def tenantId = nextTenantId()
-    def timeseriesName = "influx.top"
     def start = now().minus(4000)
-    postData(tenantId, timeseriesName, start)
+    postData(timeseriesName, start)
 
-    def influxQuery = 'select top(value, 3) from "' + timeseriesName + '" where time > now() - 30s group by time(30s)'
+    def influxQuery = """select top(value, 3) from "${timeseriesName}" where time > now() - 30s group by time(30s)"""
 
     def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
@@ -270,9 +281,9 @@ class InfluxITest extends RESTTest {
     assertEquals(
         [
             [
-                columns: ["time", "top"],
-                name   : timeseriesName,
-                points : [
+                columns: ['time', 'top'],
+                name: timeseriesName,
+                points: [
                     [start.plus(4000).millis, 44.1],
                     [start.plus(3000).millis, 43.1],
                     [start.plus(2000).millis, 42.1]
@@ -285,13 +296,11 @@ class InfluxITest extends RESTTest {
 
   @Test
   void testInfluxBottom() {
-    def tenantId = nextTenantId()
-    def timeseriesName = "influx.bottom"
     def start = now().minus(4000)
-    postData(tenantId, timeseriesName, start)
+    postData(timeseriesName, start)
 
-    def influxQuery = 'select bottom(value, 3) from "' + timeseriesName + '" where time > now() - 30s group by time' +
-        '(30s)'
+    def influxQuery = """select bottom(value, 3) from "${timeseriesName}" where time > now() - 30s
+                         group by time(30s)"""
 
     def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
@@ -299,9 +308,9 @@ class InfluxITest extends RESTTest {
     assertEquals(
         [
             [
-                columns: ["time", "bottom"],
-                name   : timeseriesName,
-                points : [
+                columns: ['time', 'bottom'],
+                name: timeseriesName,
+                points: [
                     [start.millis, 40.1],
                     [start.plus(1000).millis, 41.1],
                     [start.plus(2000).millis, 42.1]
@@ -314,12 +323,10 @@ class InfluxITest extends RESTTest {
 
   @Test
   void testInfluxStddev() {
-    def tenantId = nextTenantId()
-    def timeseriesName = "influx.stddev"
     def start = now().minus(4000)
-    postData(tenantId, timeseriesName, start)
+    postData(timeseriesName, start)
 
-    def influxQuery = 'select stddev(value) from "' + timeseriesName + '" where time > now() - 30s group by time(30s)'
+    def influxQuery = """select stddev(value) from "${timeseriesName}" where time > now() - 30s group by time(30s)"""
 
     def response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
     assertEquals(200, response.status)
@@ -327,9 +334,9 @@ class InfluxITest extends RESTTest {
     assertEquals(
         [
             [
-                columns: ["time", "stddev"],
-                name   : timeseriesName,
-                points : [
+                columns: ['time', 'stddev'],
+                name: timeseriesName,
+                points: [
                     [start.plus(4000).millis, 1.5811388300841898]
                 ]
             ]
@@ -338,11 +345,63 @@ class InfluxITest extends RESTTest {
     )
   }
 
-  private static void postData(String tenantId, String timeseriesName, DateTime start) {
+  @Test
+  void testTimePrecisionQueryParameter() {
+    def response = hawkularMetrics.post(path: "db/${tenantId}/series", query: [time_precision: 's'], body: [
+        [
+            name: timeseriesName,
+            columns: ['time', 'value'],
+            points: [
+                [1, 40.1],
+                [2, 41.1],
+                [3, 42.1],
+            ]
+        ]
+    ])
+    assertEquals(200, response.status)
+
+    def influxQuery = """select * from "${timeseriesName}" where time > 0"""
+
+    response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
+    assertEquals(200, response.status)
+    assertEquals(
+        [
+            [
+                columns: ['time', 'value'],
+                name: timeseriesName,
+                points: [
+                    [3_000, 42.1],
+                    [2_000, 41.1],
+                    [1_000, 40.1],
+                ]
+            ]
+        ],
+        response.data
+    )
+
+    response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery, time_precision: 'u'])
+    assertEquals(200, response.status)
+    assertEquals(
+        [
+            [
+                columns: ['time', 'value'],
+                name: timeseriesName,
+                points: [
+                    [3_000_000, 42.1],
+                    [2_000_000, 41.1],
+                    [1_000_000, 40.1],
+                ]
+            ]
+        ],
+        response.data
+    )
+  }
+
+  void postData(String timeseriesName, DateTime start) {
     def response = hawkularMetrics.post(path: "db/${tenantId}/series", body: [
         [
             name: timeseriesName,
-            columns: ["time", "value"],
+            columns: ['time', 'value'],
             points: [
                 [start.millis, 40.1],
                 [start.plus(1000).millis, 41.1],
