@@ -27,7 +27,7 @@
 # Make sure we use the same language on all developer stations
 export LC_ALL=C
 
-diff -r --exclude=target api/metrics-api-jaxrs api/metrics-api-jaxrs-1.1 > api/diff.txt
+diff -r --exclude-from=api/diff-excludes api/metrics-api-jaxrs api/metrics-api-jaxrs-1.1 > api/diff.txt
 
 MODIFIED=$(git status --porcelain api/diff.txt | wc -l)
 
