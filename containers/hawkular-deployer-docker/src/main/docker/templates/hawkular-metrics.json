@@ -1,0 +1,109 @@
+{
+  "id": "hawkular-metrics-template",
+  "kind": "Template",
+  "apiVersion": "v1",
+  "name": "Hawkular Metrics Template",
+  "description": "Configures a Hawkular Metrics template.",
+  "metadata" : {
+    "name": "hawkular-metrics-template",
+    "labels": {
+          "metrics-infra": "hawkular-metrics"
+    }
+  },
+ "parameters" : [
+    { "description": "Hawkular Metrics Image",
+      "name": "HAWKULAR_METRICS_IMAGE",
+      "value": "hawkular/hawkular-metrics:0.7.0-SNAPSHOT"
+    }
+  ],
+  "objects": [
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "hawkular-metrics",
+        "labels": {
+          "metrics-infra": "hawkular-metrics",
+          "name": "hawkular-metrics"
+        }
+      },
+      "spec": {
+        "selector": {
+          "name": "hawkular-metrics"
+        },
+        "ports": [
+          { "name": "http-endpoint", "port": 80, "targetPort": "http-endpoint" },
+          { "name": "https-endpoint", "port": 443, "targetPort": "https-endpoint" }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ReplicationController",
+      "metadata": {
+        "name": "hawkular-metrics",
+        "labels" : {
+          "metrics-infra": "hawkular-metrics",
+          "name": "hawkular-metrics"
+        }
+      },
+      "spec": {
+        "selector" : {
+          "name": "hawkular-metrics"
+        },
+        "replicas": 1,
+        "template": {
+          "version": "v1",
+          "metadata": {
+            "labels" : {
+              "metrics-infra": "hawkular-metrics",
+              "name": "hawkular-metrics"
+            }
+          },
+          "spec": {
+            "serviceAccount": "hawkular",
+            "containers": [{
+              "image": "${HAWKULAR_METRICS_IMAGE}",
+              "name" : "hawkular-metrics",
+              "ports": [
+                { "name": "http-endpoint", "containerPort": 8080},
+                { "name": "https-endpoint", "containerPort": 8444}
+              ],
+              "command" : [ "/opt/hawkular/scripts/hawkular-metrics-wrapper.sh",
+                "-b", "0.0.0.0",
+                "-Dhawkular-metrics.cassandra-nodes=hawkular-cassandra",
+                "-Dhawkular-metrics.cassandra-use-ssl",
+                "-Dorg.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH=true",
+                "-Dorg.apache.catalina.connector.CoyoteAdapter.ALLOW_BACKSLASH=true",
+                "-Dhawkular-metrics.openshift.auth-methods=openshift-oauth,htpasswd",
+                "-Dhawkular-metrics.openshift.htpasswd-file=/secrets/hawkular-metrics.htpasswd.file",
+                "--hmw.keystore=/secrets/hawkular-metrics.keystore",
+                "--hmw.truststore=/secrets/hawkular-metrics.truststore",
+                "--hmw.keystore_password_file=/secrets/hawkular-metrics.keystore.password",
+                "--hmw.truststore_password_file=/secrets/hawkular-metrics.truststore.password"
+              ],
+              "volumeMounts": [
+                { "name": "hawkular-metrics-secrets", "mountPath": "/secrets"}
+              ],
+              "lifecycle": {
+                "postStart": {
+                  "exec": {
+                    "command": ["/opt/hawkular/scripts/hawkular-metrics-poststart.py"]
+                  }
+                }
+              },
+              "livenessProbe": {
+                "exec": {
+                  "command": ["/opt/hawkular/scripts/hawkular-metrics-liveness.py"]
+                }
+              }
+            }],
+            "volumes": [
+              { "name": "hawkular-metrics-secrets", "secret": { "secretName": "hawkular-metrics-secrets"} }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
