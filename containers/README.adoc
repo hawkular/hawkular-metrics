@@ -141,7 +141,7 @@ The deployer requires a service account named 'metrics-deployer' to exist. One c
     secrets:
     - name: metrics-deployer
     API
- 
+
 Once the service account is created, it will need to be granted 'cluster-admin' priviledges so that it is capable of setting up all the accounts, secrets, and components required for metrics.
 
     openshift admin policy add-cluster-role-to-user cluster-admin \
