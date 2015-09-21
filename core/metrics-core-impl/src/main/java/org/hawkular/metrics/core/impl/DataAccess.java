@@ -61,9 +61,6 @@ public interface DataAccess {
 
     Observable<ResultSet> deleteTags(Metric metric, Set<String> tags);
 
-    Observable<ResultSet> updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
-            Set<String> deletions);
-
     <T> Observable<Integer> updateMetricsIndex(Observable<Metric<T>> metrics);
 
     Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType<?> type);

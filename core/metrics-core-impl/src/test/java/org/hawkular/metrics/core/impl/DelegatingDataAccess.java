@@ -105,12 +105,6 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> updateTagsInMetricsIndex(Metric metric, Map<String, String> additions,
-            Set<String> deletions) {
-        return delegate.updateTagsInMetricsIndex(metric, additions, deletions);
-    }
-
-    @Override
     public <T> Observable<Integer> updateMetricsIndex(Observable<Metric<T>> metrics) {
         return delegate.updateMetricsIndex(metrics);
     }
