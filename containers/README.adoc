@@ -127,49 +127,45 @@ Also, enable the DNS service in the `FedoraWorkstation` zone.
 
 === Deploying Hawkular Metrics with Cassandra and Heapster in OpenShift
 
-A few steps will need to be followed to deploy Hawkular Metrics on top of OpenShift.
+A few steps will need to be followed to deploy Hawkular Metrics on top of OpenShift. To deploy Hawkular Metrics and its components, a deployer pod will be used to faciliate the complex steps requied.
 
+==== Creating the Hawkular Deployer Service Account
 
-==== Creating and Deploying the Hawkular secret
-You will first need to create the secret which will contain the SSL certificates used between the Hawkular Metrics
-and Cassandra containers to enable SSL and certificate based authentication. This can be easily done by running the
-'create-secret.sh' in the containers/scripts/secrets directory.
+The deployer requires a service account named 'metrics-deployer' to exist. One can be created via the following command:
 
-[source, bash]
-----
-./scripts/secrets/create-secret.sh
-----
+    oc create -f - <<API
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: metrics-deployer
+    secrets:
+    - name: metrics-deployer
+    API
+ 
+Once the service account is created, it will need to be granted 'cluster-admin' priviledges so that it is capable of setting up all the accounts, secrets, and components required for metrics.
 
-This script will prompt to enter some information required to create the certificates. Once the script is run, you will now have
-a 'hawkular-secrets.json' file in that directory.
+    openshift admin policy add-cluster-role-to-user cluster-admin \
+              system:serviceaccount:default:metrics-deployer
 
-To add this secret to hawkular metrics, run the following command:
-[source, bash]
-----
-oc create -f hawkular-secrets.json
-----
+Note: if you are running this under a different project than 'default' you will need to change the default in the previous command to match your project's name.
 
-==== Giving the Hawkular user Cluster Reader permissions
-Heapster requires having read access to the cluster in order to be able gather metrics from the cluster. To give
-the 'hawkular' user this permission you will need to run the following command:
+==== Creating the Deployer Secret
 
-[source, bash]
-----
-oadm policy add-cluster-role-to-user cluster-admin system:serviceaccount:default:hawkular
-----
+The deployer requires a secret to exist before it can be deployed, even if the secret is empty and uses defaults. To create an empty secret, run the following command
 
-Note: if you are running the containers on a project other than 'default' you will need to replace
-'default' in the previous command with the name of the project you are deploying into.
+ oc secrets new metrics-deployer nothing=/dev/null
 
-==== Deploying the Hawkular Metrics Kubernetes Application
-Deploying the Hawkular Metrics Kubernetes application will deploy and configure the Hawkular Metrics container,
-Cassandra container and Heapster container to OpenShift. No other steps are required and all the data gathered
-from Heapster will be written into Hawkular Metrics automatically.
+The deployer can also take a few other secrets to setup the Hawkular or Cassandra cluster PEM certificate files. To specify the pem file located at location /foo/bar.pem to be used with Hawkular Metrics the following command can be used:
 
-[source, bash]
-----
-oc create -f ./kubernetes-eap/target/generated-app/hawkular-metrics-eap-kubernetes-app/kubernetes.json
-----
+ oc secrets new metrics-deployer hawkular-metrics.pem=/foo/bar.pem
+
+==== Running the Deployer
+
+Now that the service account and secret have been created, you will need to process and deploy the deployer template. The template for the deployer can be found under containers/container-tests/src/main/resources/deployer.yaml.
+
+To deploy the template you will need to at least specify the HAWKULAR_METRICS_HOSTNAME, this will be used when generating the SSL certificates for the Hawkular Metrics serivce:
+
+ oc process -f deployer.yaml -v HAWKULAR_METRICS_HOSTNAME=hawkular-metrics.example.com | oc create -f -
 
 === Running the Tests
 
