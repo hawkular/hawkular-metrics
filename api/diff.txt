@@ -1,55 +1,6 @@
-diff -r '--exclude=target' api/metrics-api-jaxrs/.classpath api/metrics-api-jaxrs-1.1/.classpath
-9,19d8
-< 	<classpathentry kind="src" output="target/classes" path="target/generated-sources/antlr4">
-< 		<attributes>
-< 			<attribute name="optional" value="true"/>
-< 			<attribute name="maven.pomderived" value="true"/>
-< 		</attributes>
-< 	</classpathentry>
-< 	<classpathentry excluding="**" kind="src" output="target/classes" path="src/main/resources">
-< 		<attributes>
-< 			<attribute name="maven.pomderived" value="true"/>
-< 		</attributes>
-< 	</classpathentry>
-23,27d11
-< 			<attribute name="maven.pomderived" value="true"/>
-< 		</attributes>
-< 	</classpathentry>
-< 	<classpathentry excluding="**" kind="src" output="target/test-classes" path="src/test/resources">
-< 		<attributes>
-diff -r '--exclude=target' api/metrics-api-jaxrs/.project api/metrics-api-jaxrs-1.1/.project
-3c3
-< 	<name>hawkular-metrics-api-jaxrs</name>
----
-> 	<name>hawkular-metrics-api-jaxrs-1.1</name>
-diff -r '--exclude=target' api/metrics-api-jaxrs/.settings/org.eclipse.core.resources.prefs api/metrics-api-jaxrs-1.1/.settings/org.eclipse.core.resources.prefs
-3,6d2
-< encoding//src/main/resources=UTF-8
-< encoding//src/test/java=UTF-8
-< encoding//src/test/resources=UTF-8
-< encoding//target/generated-sources/antlr4=UTF-8
-diff -r '--exclude=target' api/metrics-api-jaxrs/.settings/org.eclipse.wst.common.component api/metrics-api-jaxrs-1.1/.settings/org.eclipse.wst.common.component
-2c2
-<     <wb-module deploy-name="hawkular-metrics-api-jaxrs">
----
->     <wb-module deploy-name="hawkular-metrics-api-jaxrs-1.1">
-6,7d5
-<         <wb-resource deploy-path="/WEB-INF/classes" source-path="/target/generated-sources/antlr4"/>
-<         <wb-resource deploy-path="/WEB-INF/classes" source-path="/src/main/resources"/>
-26,27c24,25
-<         <property name="context-root" value="hawkular-metric-rest"/>
-<         <property name="java-output-path" value="/hawkular-metrics-api-jaxrs/target/classes"/>
----
->         <property name="java-output-path" value="/hawkular-metrics-api-jaxrs-1.1/target/classes"/>
->         <property name="context-root" value="hawkular-metrics-api-rest-1.1"/>
-diff -r '--exclude=target' api/metrics-api-jaxrs/.settings/org.eclipse.wst.common.project.facet.core.xml api/metrics-api-jaxrs-1.1/.settings/org.eclipse.wst.common.project.facet.core.xml
-5,6d4
-<   <installed facet="jst.web" version="3.1"/>
-<   <installed facet="jst.jaxrs" version="2.0"/>
-7a6,7
->   <installed facet="jst.jaxrs" version="1.1"/>
->   <installed facet="jst.web" version="3.1"/>
 Only in api/metrics-api-jaxrs: README.adoc
+Only in api/metrics-api-jaxrs-1.1: hawkular-metrics-api-jaxrs-1.1.iml
+Only in api/metrics-api-jaxrs: hawkular-metrics-api-jaxrs.iml
 diff -r '--exclude=target' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1.1/pom.xml
 21c21
 <   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
