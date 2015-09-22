@@ -41,7 +41,7 @@ public class OpenShiftTokenAuthentication {
 
     private static final Logger logger = LoggerFactory.getLogger(OpenShiftTokenAuthentication.class);
 
-    private static final String HAWKULAR_TENANTS = "Hawkular-Tenants";
+    private static final String HAWKULAR_TENANT = "hawkular-tenant";
 
     private static final String KUBERNETES_MASTER_URL =
             System.getProperty("KUBERNETES_MASTER_URL", "https://kubernetes.default.svc.cluster.local");
@@ -50,7 +50,7 @@ public class OpenShiftTokenAuthentication {
     //access to the pods in in a particular project.
     private static final String RESOURCE = "pods";
 
-    private static final String KIND = "LocalSubjectAccessReview";
+    private static final String KIND = "SubjectAccessReview";
 
     enum HTTP_METHOD {GET, PUT, POST, DELETE, PATCH};
 
@@ -58,17 +58,14 @@ public class OpenShiftTokenAuthentication {
             IOException, ServletException {
 
         String token = request.getHeader(OpenShiftAuthenticationFilter.AUTHORIZATION_HEADER);
-        String tenant = request.getHeader(HAWKULAR_TENANTS);
+        String tenant = request.getHeader(HAWKULAR_TENANT);
 
         if (token == null || tenant == null) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST,
                                "The '" + OpenShiftAuthenticationFilter.AUTHORIZATION_HEADER + "' and '"
-                                       + HAWKULAR_TENANTS + "' headers" + " are required");
+                                       + HAWKULAR_TENANT + "' headers" + " are required");
             return;
         }
-
-        //TODO: remove this once we have Tenants working properly in Heapster
-        tenant = "default";
 
         if (isAuthorized(request.getMethod(), token, tenant)) {
             filterChain.doFilter(request, response);
@@ -84,7 +81,12 @@ public class OpenShiftTokenAuthentication {
 
             String verb = getVerb(method);
 
-            String path = "/oapi/v1/namespaces/" + projectId + "/subjectaccessreviews";
+            String pod_namespace = System.getenv("POD_NAMESPACE");
+            if (pod_namespace == null) {
+                pod_namespace = "default";
+            }
+
+            String path = "/oapi/v1/namespaces/" + pod_namespace + "/subjectaccessreviews";
             URL url = new URL(KUBERNETES_MASTER_URL + path);
 
             HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
@@ -94,11 +96,11 @@ public class OpenShiftTokenAuthentication {
             connection.setDoOutput(true);
             //Set Headers
             connection.setRequestProperty("Accept", "application/json");
-            connection.addRequestProperty("Authorization", token);
+            connection.setRequestProperty("Authorization", token);
 
             //Add the body
             OutputStream outputStream = connection.getOutputStream();
-            for (byte b : generateSubjectAccessReview(verb).getBytes()) {
+            for (byte b : generateSubjectAccessReview(projectId, verb).getBytes()) {
                 outputStream.write(b);
             }
             outputStream.flush();
@@ -135,11 +137,12 @@ public class OpenShiftTokenAuthentication {
      * @return
      * @throws IOException
      */
-    private String generateSubjectAccessReview(String verb) throws IOException {
+    private String generateSubjectAccessReview(String namespace, String verb) throws IOException {
         ObjectNode objectNode = JsonNodeFactory.instance.objectNode();
         objectNode.put("kind", KIND);
         objectNode.put("resource", RESOURCE);
         objectNode.put("verb", verb);
+        objectNode.put("namespace", namespace);
         return objectNode.toString();
     }
 

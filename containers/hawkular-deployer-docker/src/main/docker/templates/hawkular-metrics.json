@@ -81,6 +81,9 @@
                 "--hmw.keystore_password_file=/secrets/hawkular-metrics.keystore.password",
                 "--hmw.truststore_password_file=/secrets/hawkular-metrics.truststore.password"
               ],
+              "env": [
+                {"name": "POD_NAMESPACE", "valueFrom": {"fieldRef": {"fieldPath": "metadata.namespace"}}}
+              ],
               "volumeMounts": [
                 { "name": "hawkular-metrics-secrets", "mountPath": "/secrets"}
               ],
