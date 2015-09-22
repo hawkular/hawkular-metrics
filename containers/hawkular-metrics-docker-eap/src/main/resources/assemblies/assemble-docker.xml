@@ -52,7 +52,7 @@
   <dependencySets>
     <dependencySet>
       <includes>
-        <include>org.hawkular.metrics:hawkular-metrics-api-jaxrs-1.1:war:${project.version}</include>
+        <include>org.hawkular.metrics:hawkular-metrics-api-jaxrs-1.1-openshift:war:${project.version}</include>
       </includes>
       <outputDirectory></outputDirectory>
       <outputFileNameMapping>hawkular-metrics-api-jaxrs.war</outputFileNameMapping>

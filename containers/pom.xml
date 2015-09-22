@@ -37,6 +37,8 @@
     <module>cassandra-docker</module>
     <module>container-tests</module>
     <module>hawkular-deployer-docker</module>
+    <module>hawkular-metrics-openshift-integration</module>
+    <module>metrics-api-jaxrs-1.1-openshift</module>
   </modules>
 
   <properties>

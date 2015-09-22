@@ -72,7 +72,7 @@
               ],
               "command" : ["./heapster",
                 "--source=kubernetes:${OAP_MASTER_URL}?useServiceAccount=true&kubeletHttps=false&kubeletPort=10266&auth=",
-                "--sink=hawkular:http://hawkular-metrics:80",
+                "--sink=hawkular:http://hawkular-metrics:80?useServiceAccount=true",
                 "--logtostderr=true",
                 "--vmodule=*=4"]
             }],

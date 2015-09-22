@@ -39,7 +39,7 @@
   <dependencies>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
-      <artifactId>hawkular-metrics-api-jaxrs-1.1</artifactId>
+      <artifactId>hawkular-metrics-api-jaxrs-1.1-openshift</artifactId>
       <version>${project.version}</version>
       <type>war</type>
     </dependency>
