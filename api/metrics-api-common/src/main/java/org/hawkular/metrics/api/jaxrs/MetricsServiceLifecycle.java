@@ -349,16 +349,20 @@ public class MetricsServiceLifecycle {
 
     private void stopMetricsService() {
         state = State.STOPPING;
-        metricsService.shutdown();
-        taskScheduler.shutdown();
-        jobs.values().forEach(Subscription::unsubscribe);
-        if (session != null) {
-            try {
+        try {
+            if (metricsService != null) {
+                metricsService.shutdown();
+            }
+            if (taskScheduler != null) {
+                taskScheduler.shutdown();
+            }
+            jobs.values().forEach(Subscription::unsubscribe);
+            if (session != null) {
                 session.close();
                 session.getCluster().close();
-            } finally {
-                state = State.STOPPED;
             }
+        } finally {
+            state = State.STOPPED;
         }
     }
 }
