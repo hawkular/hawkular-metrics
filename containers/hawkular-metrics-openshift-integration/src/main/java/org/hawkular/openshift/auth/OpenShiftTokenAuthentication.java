@@ -52,7 +52,7 @@ public class OpenShiftTokenAuthentication {
 
     private static final String KIND = "SubjectAccessReview";
 
-    enum HTTP_METHOD {GET, PUT, POST, DELETE, PATCH};
+    private enum HTTP_METHOD {GET, PUT, POST, DELETE, PATCH};
 
     public void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws
             IOException, ServletException {
@@ -64,15 +64,10 @@ public class OpenShiftTokenAuthentication {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST,
                                "The '" + OpenShiftAuthenticationFilter.AUTHORIZATION_HEADER + "' and '"
                                        + HAWKULAR_TENANT + "' headers" + " are required");
-            return;
-        }
-
-        if (isAuthorized(request.getMethod(), token, tenant)) {
+        } else if (isAuthorized(request.getMethod(), token, tenant)) {
             filterChain.doFilter(request, response);
-            return;
         } else {
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
-            return;
         }
     }
 

@@ -38,9 +38,9 @@ import org.slf4j.LoggerFactory;
  */
 public class BasicAuthentication {
 
-    public static final String BASIC_PREFIX = "Basic ";
+    static final String BASIC_PREFIX = "Basic ";
 
-    public static final String HTPASSWD_FILE = System.getProperty("hawkular-metrics.openshift.htpasswd-file", "~/" +
+    private static final String HTPASSWD_FILE = System.getProperty("hawkular-metrics.openshift.htpasswd-file", "~/" +
             ".htpasswd");
 
     public static final String MD5_PREFIX = "$apr1$";
@@ -50,7 +50,7 @@ public class BasicAuthentication {
 
     private Map<String, String> users = new HashMap<>();
 
-    public BasicAuthentication() throws Exception {
+    public BasicAuthentication() throws IOException {
         File passwdFile = new File(HTPASSWD_FILE);
         if (passwdFile.exists() && passwdFile.isFile()) {
 
@@ -66,6 +66,8 @@ public class BasicAuthentication {
                 line = reader.readLine();
             }
 
+            reader.close();
+
         }
     }
 
@@ -78,7 +80,8 @@ public class BasicAuthentication {
         }
 
         String basicHeader = request.getHeader(OpenShiftAuthenticationFilter.AUTHORIZATION_HEADER);
-        String username, password;
+        String username;
+        String password;
 
         if (basicHeader != null && basicHeader.startsWith("Basic ")) {
             basicHeader = basicHeader.substring("Basic ".length());
@@ -90,7 +93,8 @@ public class BasicAuthentication {
                 username = entries[0];
                 password = entries[1];
 
-                if (users.containsKey(username) && isAuthorized(username, password)) {
+                if (username != null && password !=null &&
+                        users.containsKey(username) && isAuthorized(username, password)) {
                     filterChain.doFilter(request, response);
                     return;
                 }

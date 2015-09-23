@@ -53,7 +53,7 @@ public class OpenShiftAuthenticationFilter implements Filter {
             if (SECURITY_OPTION.contains(HTPASSWD)) {
                 basicAuthentication = new BasicAuthentication();
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             logger.error("Error trying to setup BasicAuthentication based on an htpasswd file.", e);
         }
     }
@@ -88,7 +88,8 @@ public class OpenShiftAuthenticationFilter implements Filter {
             OpenShiftTokenAuthentication tokenAuthentication = new OpenShiftTokenAuthentication();
             tokenAuthentication.doFilter(request, response, filterChain);
             return;
-        } else if (authorizationHeader.startsWith("Basic ") && SECURITY_OPTION.contains(HTPASSWD)) {
+        } else if (authorizationHeader.startsWith(BasicAuthentication.BASIC_PREFIX)
+                && SECURITY_OPTION.contains(HTPASSWD)) {
             if (basicAuthentication != null) {
                 basicAuthentication.doFilter(request, response, filterChain);
                 return;
