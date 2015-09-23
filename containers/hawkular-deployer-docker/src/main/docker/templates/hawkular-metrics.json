@@ -75,12 +75,14 @@
                 "-Dhawkular-metrics.cassandra-use-ssl",
                 "-Dorg.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH=true",
                 "-Dorg.apache.catalina.connector.CoyoteAdapter.ALLOW_BACKSLASH=true",
-                "-Dhawkular-metrics.openshift.auth-methods=openshift-oauth,htpasswd",
-                "-Dhawkular-metrics.openshift.htpasswd-file=/secrets/hawkular-metrics.htpasswd.file",
+                "-Dhawkular-metrics.openshift.auth-methods=disabled",
                 "--hmw.keystore=/secrets/hawkular-metrics.keystore",
                 "--hmw.truststore=/secrets/hawkular-metrics.truststore",
                 "--hmw.keystore_password_file=/secrets/hawkular-metrics.keystore.password",
                 "--hmw.truststore_password_file=/secrets/hawkular-metrics.truststore.password"
+              ],
+              "env": [
+                {"name": "POD_NAMESPACE", "valueFrom": {"fieldRef": {"fieldPath": "metadata.namespace"}}}
               ],
               "volumeMounts": [
                 { "name": "hawkular-metrics-secrets", "mountPath": "/secrets"}

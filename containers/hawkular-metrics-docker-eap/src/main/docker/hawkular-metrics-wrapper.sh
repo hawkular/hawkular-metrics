@@ -66,7 +66,7 @@ cp $TRUSTSTORE hawkular-metrics.truststore
 chmod a+rw hawkular-metrics.*
 
 KEYTOOL_COMMAND=/usr/lib/jvm/java-1.8.0/jre/bin/keytool
-$KEYTOOL_COMMAND -noprompt -import -v -trustcacerts -alias kubernetes-master -file /var/run/secrets/kubernetes.io/serviceaccount/ca.crt -keystore hawkular-metrics.truststore -trustcacerts -storepass hawkular
+$KEYTOOL_COMMAND -noprompt -import -v -trustcacerts -alias kubernetes-master -file /var/run/secrets/kubernetes.io/serviceaccount/ca.crt -keystore hawkular-metrics.truststore -trustcacerts -storepass $TRUSTSTORE_PASSWORD
 
 popd
 
