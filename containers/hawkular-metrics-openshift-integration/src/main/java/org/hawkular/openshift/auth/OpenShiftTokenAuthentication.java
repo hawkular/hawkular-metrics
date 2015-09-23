@@ -94,12 +94,13 @@ public class OpenShiftTokenAuthentication {
             connection.setRequestProperty("Authorization", token);
 
             //Add the body
-            OutputStream outputStream = connection.getOutputStream();
-            for (byte b : generateSubjectAccessReview(projectId, verb).getBytes()) {
-                outputStream.write(b);
+            try (
+                OutputStream outputStream = connection.getOutputStream();
+            ) {
+                for (byte b : generateSubjectAccessReview(projectId, verb).getBytes()) {
+                    outputStream.write(b);
+                }
             }
-            outputStream.flush();
-            outputStream.close();
 
             //Perform the Operation
             connection.connect();

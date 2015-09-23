@@ -54,20 +54,17 @@ public class BasicAuthentication {
         File passwdFile = new File(HTPASSWD_FILE);
         if (passwdFile.exists() && passwdFile.isFile()) {
 
-            BufferedReader reader = new BufferedReader(new FileReader(passwdFile));
+            try (BufferedReader reader = new BufferedReader(new FileReader(passwdFile))) {
+                String line = reader.readLine();
+                while (line != null) {
+                    String[] values = line.split(":", 2);
+                    if (values.length == 2) {
+                        users.put(values[0], values[1]);
+                    }
 
-            String line = reader.readLine();
-            while (line != null) {
-                String[] values = line.split(":", 2);
-                if (values.length == 2) {
-                    users.put(values[0], values[1]);
+                    line = reader.readLine();
                 }
-
-                line = reader.readLine();
             }
-
-            reader.close();
-
         }
     }
 
