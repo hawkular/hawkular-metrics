@@ -71,7 +71,8 @@
                     },
                     params: {
                         "start": start.valueOf(),
-                        "end": end.valueOf()
+                        "end": end.valueOf(),
+                        "distinct": true
                     }
                 }).then(function (response) {
                     $scope.availAllChartData = response.data;
