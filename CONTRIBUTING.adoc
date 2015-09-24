@@ -5,7 +5,7 @@ http://www.hawkular.org/docs/dev/development.html[How to develop on Hawkular] pa
 
 == Code style
 
-Hawkular Metrics is a Hawkular component, so project level conventions apply here. That said, there are some
+Hawkular Metrics is a Hawkular subproject, so top level conventions apply here. That said, there are some
 Metrics specific ones.
 
 === Logging
