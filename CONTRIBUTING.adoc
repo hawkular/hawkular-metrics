@@ -1,6 +1,6 @@
 = Contributing to Hawkular Metrics
 
-Before hacking on Hawkular Metrics, it might be useful to read the
+Before contributing to Hawkular Metrics, it might be useful to read the
 http://www.hawkular.org/docs/dev/development.html[How to develop on Hawkular] page on Hawkular website.
 
 == Code style
