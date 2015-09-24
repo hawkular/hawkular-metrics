@@ -1,0 +1,26 @@
+= Contributing to Hawkular Metrics
+
+Before hacking on Hawkular Metrics, it might be useful to read the
+http://www.hawkular.org/docs/dev/development.html[How to develop on Hawkular] page on Hawkular website.
+
+== Code style
+
+Hawkular Metrics is a Hawkular component, so project level conventions apply here. That said, there are some
+Metrics specific ones.
+
+=== Logging
+
+When working with the JBoss Logging API:
+
+* Group all `INFO` level and above messages http://git.io/vnDW4[in one interface] per logical module for maintainability
+* Instead of creating a logger instance in the message logger interface, use a http://git.io/vnDWr[helper class] to get
+a logger instance with proper category
+* Use existing message logger instance to log trace/debug messages instead of creating a separate logger instance
+
+The logging `projectCode` is `HAWKMETRICS`.
+
+Note that until we no longer need to support EAP 6.4,
+http://lists.jboss.org/pipermail/hawkular-dev/2015-March/000378.html[we must not use primitive arguments in logging interfaces].
+
+Logback is the logging backend for tests. It allows to http://git.io/vnDlr[set log level with a system property]
+while still having a default value. No Maven filtering/replace dance involved.
