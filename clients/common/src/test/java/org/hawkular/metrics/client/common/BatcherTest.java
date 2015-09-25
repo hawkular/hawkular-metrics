@@ -31,7 +31,7 @@ public class BatcherTest {
     @Test
     public void testNoItemsList() throws Exception {
 
-        String json = Batcher.metricListToJson(Collections.EMPTY_LIST);
+        String json = Batcher.metricListToJson(Collections.emptyList());
 
         assert json != null;
         assert json.equals("[]");

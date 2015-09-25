@@ -269,7 +269,7 @@ public class FifoTest {
 
         BoundMetricFifo fifo = new BoundMetricFifo(10, 5);
 
-        assert !fifo.cleanout((Collection)null);
+        assert !fifo.cleanout((Collection<SingleMetric>) null);
         assert !fifo.cleanout((SingleMetric)null);
 
     }

@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class TriggerBuilder {
 
+    @SuppressWarnings("unused")
     private class RepeatingTriggerBuilder {
 
         public RepeatingTriggerBuilder withInterval(int interval, TimeUnit timeUnit) {
@@ -43,6 +44,7 @@ public class TriggerBuilder {
         }
     }
 
+    @SuppressWarnings("unused")
     private class SingleTriggerBuilder {
 
         public SingleTriggerBuilder withDelay(long delay, TimeUnit timeUnit) {

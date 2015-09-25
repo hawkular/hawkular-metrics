@@ -144,6 +144,7 @@ public interface MetricsService {
      * @return An {@link Observable} that emits the results with the same ordering as funcs
      * @see Aggregate
      */
+    @SuppressWarnings("unchecked")
     <T> Observable<T> findGaugeData(MetricId<Double> id, Long start, Long end,
                                     Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs);
 

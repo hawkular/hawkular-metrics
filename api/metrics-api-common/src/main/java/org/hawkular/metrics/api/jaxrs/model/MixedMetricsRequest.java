@@ -40,7 +40,6 @@ public class MixedMetricsRequest {
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
-    @SuppressWarnings("unused")
     public MixedMetricsRequest(
             @JsonProperty("gauges")
             @org.codehaus.jackson.annotate.JsonProperty("gauges")

@@ -46,7 +46,6 @@ public class CounterDataPoint {
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
-    @SuppressWarnings("unused")
     public CounterDataPoint(
             @JsonProperty("timestamp")
             @org.codehaus.jackson.annotate.JsonProperty("timestamp")

@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import static io.fabric8.kubernetes.assertions.Assertions.assertThat;
+import static io.fabric8.kubernetes.assertions.internal.Assertions.assertThat;
 
 import java.util.List;
 
@@ -63,7 +64,7 @@ public class TestContainers extends BaseContainerTests{
 
         ServiceSpec spec = service.getSpec();
         assertThat(spec).isNotNull();
-        assertThat((List)spec.getPorts()).hasSize(2);
+        assertThat((List) spec.getPorts()).hasSize(2);
         ServicePort port = spec.getPorts().get(0);
         assertThat(port).hasPort(80);
 
@@ -99,7 +100,7 @@ public class TestContainers extends BaseContainerTests{
     public void testMetricsPods() throws Exception {
         List<Pod> pods = client.getPodsForService(HAWKULAR_METRICS_NAME);
         assertThat(pods).isNotNull();
-        assertThat((List)pods).hasSize(1);
+        assertThat((List<Pod>) pods).hasSize(1);
 
         Pod pod = pods.get(0);
         assertEquals("Ready", pod.getStatus().getConditions().get(0).getType());
@@ -109,7 +110,7 @@ public class TestContainers extends BaseContainerTests{
     public void testCassandraPods() throws Exception {
         List<Pod> pods = client.getPodsForService(CASSANDRA_NAME);
         assertThat(pods).isNotNull();
-        assertThat((List)pods).hasSize(1);
+        assertThat((List<Pod>) pods).hasSize(1);
 
         Pod pod = pods.get(0);
         assertEquals(READY_STATE, pod.getStatus().getConditions().get(0).getType());
@@ -119,7 +120,7 @@ public class TestContainers extends BaseContainerTests{
     public void testCassandraClusterPods() throws Exception {
         List<Pod> pods = client.getPodsForService(CASSANDRA_CLUSTER_NAME);
         assertThat(pods).isNotNull();
-        assertThat((List)pods).hasSize(1);
+        assertThat((List<Pod>) pods).hasSize(1);
 
         Pod pod = pods.get(0);
         assertEquals(READY_STATE, pod.getStatus().getConditions().get(0).getType());

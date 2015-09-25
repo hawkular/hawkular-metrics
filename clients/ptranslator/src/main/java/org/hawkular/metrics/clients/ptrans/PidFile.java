@@ -56,6 +56,7 @@ class PidFile {
      *
      * @return true if the lock was acquired and the {@code pid} written to the PID file, false otherwise
      */
+    @SuppressWarnings("resource")
     boolean tryLock(int pid) {
         try {
             channel = new RandomAccessFile(file, "rw").getChannel();

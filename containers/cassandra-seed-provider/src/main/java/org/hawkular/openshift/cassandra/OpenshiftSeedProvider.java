@@ -98,8 +98,6 @@ public class OpenshiftSeedProvider implements SeedProvider {
         List<InetAddress> seeds = new ArrayList<>();
 
         try {
-            InetAddress[] inetAddresses = null;
-
             for (int i = 0; i < SERVICE_TRIES; i++) {
                 List<InetAddress> serviceList = getInetAddresses(CASSANDRA_NODES_SERVICE_NAME);
                 if (!serviceList.isEmpty()) {

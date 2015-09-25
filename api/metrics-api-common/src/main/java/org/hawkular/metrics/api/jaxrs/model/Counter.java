@@ -51,7 +51,6 @@ public class Counter {
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
-    @SuppressWarnings("unused")
     public Counter(
             @JsonProperty("id")
             @org.codehaus.jackson.annotate.JsonProperty("id")

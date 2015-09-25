@@ -49,7 +49,6 @@ public class AvailabilityDataPoint {
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
-    @SuppressWarnings("unused")
     public AvailabilityDataPoint(
             @JsonProperty("timestamp")
             @org.codehaus.jackson.annotate.JsonProperty("timestamp")
