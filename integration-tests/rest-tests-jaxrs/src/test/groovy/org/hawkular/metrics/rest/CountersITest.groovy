@@ -16,13 +16,9 @@
  */
 package org.hawkular.metrics.rest
 
-import static java.lang.Double.NaN
-
 import static org.joda.time.DateTime.now
-import static org.joda.time.Duration.standardMinutes
 import static org.junit.Assert.assertEquals
 
-import org.hawkular.metrics.core.impl.DateTimeService
 import org.joda.time.DateTime
 import org.junit.Test
 
@@ -302,8 +298,6 @@ class CountersITest extends RESTTest {
   @Test
   void findRate() {
     String counter = "C1"
-    DateTimeService dateTimeService = new DateTimeService()
-    DateTime start = dateTimeService.getTimeSlice(getTime(), standardMinutes(1))//.plusMinutes(1)
 
     // Create the tenant
     def response = hawkularMetrics.post(
@@ -316,12 +310,12 @@ class CountersITest extends RESTTest {
         path: "counters/$counter/data",
         headers: [(tenantHeaderName): tenantId],
         body: [
-            [timestamp: start.plusMinutes(1).millis, value: 100],
-            [timestamp: start.plusMinutes(1).plusSeconds(31).millis, value : 200],
-            [timestamp: start.plusMinutes(3).plusMillis(10).millis, value : 345],
-            [timestamp: start.plusMinutes(3).plusSeconds(30).millis, value : 515],
-            [timestamp: start.plusMinutes(4).millis, value : 595],
-            [timestamp: start.plusMinutes(4).plusSeconds(30).millis, value : 747]
+            [timestamp: 60_000 * 1.0, value: 0],
+            [timestamp: 60_000 * 1.5, value: 200],
+            [timestamp: 60_000 * 3.5, value: 400],
+            [timestamp: 60_000 * 5.0, value: 550],
+            [timestamp: 60_000 * 7.0, value: 950],
+            [timestamp: 60_000 * 7.5, value: 1000],
         ]
     )
     assertEquals(200, response.status)
@@ -329,47 +323,33 @@ class CountersITest extends RESTTest {
     response = hawkularMetrics.get(
         path: "counters/$counter/rate",
         headers: [(tenantHeaderName): tenantId],
-        query: [start: start.plusMinutes(1).millis, end: start.plusMinutes(6).millis]
+        query: [start: 0]
     )
     assertEquals(200, response.status)
 
     def expectedData = [
-        [
-            timestamp: start.plusMinutes(1).millis,
-            value: calculateRate(200 - 100, start.plusMinutes(1), start.plusMinutes(2))
-        ],
-        [
-            timestamp: start.plusMinutes(2).millis,
-            value: NaN
-        ],
-        [
-            timestamp: start.plusMinutes(3).millis,
-            value: calculateRate(515 - 345, start.plusMinutes(3), start.plusMinutes(4))
-        ],
-        [
-            timestamp: start.plusMinutes(4).millis,
-            value: calculateRate(747 - 595, start.plusMinutes(4), start.plusMinutes(5))
-        ],
-        [
-            timestamp: start.plusMinutes(5).millis,
-            value: NaN
-        ]
+        [timestamp: (60_000 * 1.25).toLong(), value: 400],
+        [timestamp: (60_000 * 2.5).toLong(), value: 100],
+        [timestamp: (60_000 * 4.25).toLong(), value: 100],
+        [timestamp: (60_000 * 6.0).toLong(), value: 200],
+        [timestamp: (60_000 * 7.25).toLong(), value: 100],
     ]
 
-    assertEquals("Expected to get back three data points", 5, response.data.size())
-    assertRateEquals(expectedData[0], response.data[0])
-    assertRateEquals(expectedData[1], response.data[1])
-    assertRateEquals(expectedData[2], response.data[2])
+    def actualData = response.data ?: []
+
+    def msg = """
+Expected: ${expectedData}
+Actual:   ${response.data}
+"""
+    assertEquals(msg, expectedData.size(), actualData.size())
+    for (i in 0..actualData.size() - 1) {
+      assertRateEquals(msg, expectedData[i], actualData[i])
+    }
   }
 
-
-  static double calculateRate(double value, DateTime start, DateTime end) {
-    return (value / (end.millis - start.millis)) * 60000.0
-  }
-
-  static void assertRateEquals(def expected, def actual) {
-    assertEquals("The timestamp does not match the expected value", expected.timestamp, actual.timestamp)
-    assertDoubleEquals(expected.value, actual.value)
+  static void assertRateEquals(String msg, def expected, def actual) {
+    assertEquals(msg, expected.timestamp, actual.timestamp)
+    assertDoubleEquals(msg, expected.value, actual.value)
   }
 
   @Test

@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import static java.lang.Double.NaN;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -170,7 +169,7 @@ public class MetricsServiceITest extends MetricsITest {
 
     @Test
     public void createMetricsIdxTenants() throws Exception {
-        Metric<Double> em1 = new Metric<>(new MetricId("t123", GAUGE, "em1"));
+        Metric<Double> em1 = new Metric<>(new MetricId<>("t123", GAUGE, "em1"));
         metricsService.createMetric(em1).toBlocking().lastOrDefault(null);
 
         Metric actual = metricsService.findMetric(em1.getId())
@@ -573,35 +572,27 @@ public class MetricsServiceITest extends MetricsITest {
 
     @Test
     public void findRates() {
-        DateTime start = dateTimeService.currentHour().minusHours(1);
         String tenantId = "counter-rate-test";
 
         Metric<Long> counter = new Metric<>(new MetricId<>(tenantId, COUNTER, "C1"), asList(
-                new DataPoint<>(start.plusMinutes(1).getMillis(), 10L),
-                new DataPoint<>(start.plusMinutes(1).plusSeconds(45).getMillis(), 17L),
-                new DataPoint<>(start.plusMinutes(2).plusSeconds(10).getMillis(), 29L),
-                new DataPoint<>(start.plusMinutes(2).plusSeconds(39).getMillis(), 41L),
-                new DataPoint<>(start.plusMinutes(2).plusSeconds(57).getMillis(), 49L),
-                new DataPoint<>(start.plusMinutes(3).plusSeconds(8).getMillis(), 56L),
-                new DataPoint<>(start.plusMinutes(3).plusSeconds(36).getMillis(), 67L),
-                new DataPoint<>(start.plusMinutes(4).plusSeconds(29).getMillis(), 84L)
+                new DataPoint<>((long) (60_000 * 1.0), 0L),
+                new DataPoint<>((long) (60_000 * 1.5), 200L),
+                new DataPoint<>((long) (60_000 * 3.5), 400L),
+                new DataPoint<>((long) (60_000 * 5.0), 550L),
+                new DataPoint<>((long) (60_000 * 7.0), 950L),
+                new DataPoint<>((long) (60_000 * 7.5), 1000L)
         ));
 
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
         List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getId(),
-                start.getMillis(), start.plusMinutes(6).getMillis()));
+                0, now().getMillis()));
         List<DataPoint<Double>> expected = asList(
-                new DataPoint<>(start.getMillis(), NaN),
-                new DataPoint<>(start.plusMinutes(1).getMillis(), calculateRate(17 - 10, start.plusMinutes(1),
-                        start.plusMinutes(2))),
-                new DataPoint<>(start.plusMinutes(2).getMillis(), calculateRate(49 - 29, start.plusMinutes(2),
-                        start.plusMinutes(3))),
-                new DataPoint<>(start.plusMinutes(3).getMillis(), calculateRate(67 - 56, start.plusMinutes(3),
-                        start.plusMinutes(4))),
-                new DataPoint<>(start.plusMinutes(4).getMillis(), calculateRate(84, start.plusMinutes(4),
-                        start.plusMinutes(5))),
-                new DataPoint<>(start.plusMinutes(5).getMillis(), NaN)
+                new DataPoint<>((long) (60_000 * 1.25), 400D),
+                new DataPoint<>((long) (60_000 * 2.5), 100D),
+                new DataPoint<>((long) (60_000 * 4.25), 100D),
+                new DataPoint<>((long) (60_000 * 6.0), 200D),
+                new DataPoint<>((long) (60_000 * 7.25), 100D)
         );
 
         assertEquals(actual, expected, "The rates do not match");
@@ -623,11 +614,7 @@ public class MetricsServiceITest extends MetricsITest {
         List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getId(),
                 start.plusMinutes(3).getMillis(), start.plusMinutes(5).getMillis()));
 
-        List<DataPoint<Double>> expected = asList(
-                new DataPoint<>(start.plusMinutes(3).getMillis(), NaN),
-                new DataPoint<>(start.plusMinutes(4).getMillis(), NaN)
-        );
-        assertEquals(actual, expected, "The rates do not match");
+        assertEquals(actual.size(), 0, "The rates do not match");
     }
 
     @Test
