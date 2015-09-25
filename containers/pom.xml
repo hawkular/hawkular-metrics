@@ -87,20 +87,6 @@
 
   <profiles>
     <profile>
-      <id>default</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
-      <modules>
-        <module>cassandra-seed-provider</module>
-        <module>cassandra-docker</module>
-        <module>container-tests</module>
-        <module>hawkular-deployer-docker</module>
-        <module>hawkular-metrics-openshift-integration</module>
-        <module>metrics-api-jaxrs-1.1-openshift</module>
-      </modules>
-    </profile>
-    <profile>
       <id>wildfly-containers</id>
       <activation>
         <property>
@@ -120,9 +106,7 @@
     <profile>
       <id>eap-containers</id>
       <activation>
-        <property>
-          <name>eap-containers</name>
-        </property>
+        <activeByDefault>true</activeByDefault>
       </activation>
       <modules>
         <module>cassandra-seed-provider</module>
