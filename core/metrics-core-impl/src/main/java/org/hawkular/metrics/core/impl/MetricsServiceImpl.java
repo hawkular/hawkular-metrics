@@ -42,7 +42,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -67,7 +66,6 @@ import org.hawkular.metrics.core.impl.transformers.TagsIndexRowTransformer;
 import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.hawkular.rx.cassandra.driver.RxUtil;
-import org.joda.time.DateTime;
 import org.joda.time.Duration;
 
 import com.codahale.metrics.Meter;
@@ -685,88 +683,18 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public Observable<DataPoint<Double>> findRateData(MetricId<Long> id, long start, long end) {
-        DateTime startTime = dateTimeService.getTimeSlice(new DateTime(start), standardMinutes(1));
-        DateTime endTime = dateTimeService.getTimeSlice(new DateTime(end), standardMinutes(1));
-
-        Observable<DataPoint<Long>> rawDataPoints = findDataPoints(id, startTime.getMillis(), endTime.getMillis());
-
-        return getCounterBuckets(rawDataPoints, startTime.getMillis(), endTime.getMillis())
-//                .map(bucket -> bucket.isEmpty() ? null : new DataPoint<>(bucket.startTime, bucket.getDelta()));
-                .map(bucket -> new DataPoint<>(bucket.startTime, bucket.getDelta()));
-    }
-
-    private Observable<CounterBucket> getCounterBuckets(Observable<DataPoint<Long>> dataPoints, long startTime,
-                                                        long endTime) {
-        return Observable.create(subscriber -> {
-            final AtomicReference<CounterBucket> bucketRef = new AtomicReference<>(new CounterBucket(startTime));
-            dataPoints.subscribe(
-                    dataPoint -> {
-                        while (!bucketRef.get().contains(dataPoint.getTimestamp())) {
-                            subscriber.onNext(bucketRef.get());
-                            bucketRef.set(new CounterBucket(bucketRef.get().endTime));
-                        }
-                        bucketRef.get().add(dataPoint);
-                    },
-                    subscriber::onError,
-                    () -> {
-                        subscriber.onNext(bucketRef.get());
-                        CounterBucket bucket = new CounterBucket(bucketRef.get().endTime);
-                        while (bucket.endTime <= endTime) {
-                            subscriber.onNext(bucket);
-                            bucket = new CounterBucket(bucket.endTime);
-                        }
-                        subscriber.onCompleted();
-                    }
-            );
-        });
-    }
-
-    private class CounterBucket {
-        DataPoint<Long> first;
-        DataPoint<Long> last;
-        long startTime;
-        long endTime;
-
-        public CounterBucket(long startTime) {
-            this.startTime = startTime;
-            this.endTime = startTime + 60000;
-        }
-
-        public void add(DataPoint<Long> dataPoint) {
-            if (first == null && dataPoint.getTimestamp() >= startTime) {
-                first = dataPoint;
-                last = dataPoint;
-            } else if (dataPoint.getTimestamp() >= startTime && dataPoint.getTimestamp() < endTime) {
-                last = dataPoint;
-            }
-        }
-
-        public boolean contains(long time) {
-            return time >= startTime && time < endTime;
-        }
-
-        public boolean isEmpty() {
-            return first == null && last == null;
-        }
-
-        public Double getDelta() {
-            if (isEmpty()) {
-                return Double.NaN;
-            }
-            if (first == last) {
-                return ((double) first.getValue() / (endTime - startTime)) * 60000;
-            }
-            return (((double) last.getValue() - (double) first.getValue()) / (endTime - startTime)) * 60000;
-        }
-
-        @Override public String toString() {
-            return "CounterBucket{" +
-                    "first=" + first +
-                    ", last=" + last +
-                    ", startTime=" + startTime +
-                    ", endTime=" + endTime +
-                    '}';
-        }
+        return findDataPoints(id, start, end)
+                .buffer(2, 1) // emit previous/next pairs
+                .filter(l -> l.size() == 2) // drop last buffer
+                .map(l -> {
+                    DataPoint<Long> point1 = l.get(0);
+                    DataPoint<Long> point2 = l.get(1);
+                    long timestamp = (point1.getTimestamp() + point2.getTimestamp()) / 2;
+                    long value_diff = point2.getValue() - point1.getValue();
+                    double time_diff = point2.getTimestamp() - point1.getTimestamp();
+                    double rate = 60_000D * value_diff / time_diff;
+                    return new DataPoint<>(timestamp, rate);
+                });
     }
 
     @Override
