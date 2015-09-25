@@ -169,10 +169,10 @@ public class MetricsServiceITest extends MetricsITest {
 
     @Test
     public void createMetricsIdxTenants() throws Exception {
-        Metric<Double> em1 = new Metric<>(new MetricId<>("t123", GAUGE, "em1"));
+        Metric<Double> em1 = new Metric<>(new MetricId<Double>("t123", GAUGE, "em1"));
         metricsService.createMetric(em1).toBlocking().lastOrDefault(null);
 
-        Metric actual = metricsService.findMetric(em1.getId())
+        Metric<Double> actual = metricsService.findMetric(em1.getId())
                 .toBlocking()
                 .lastOrDefault(null);
         assertNotNull(actual);
@@ -192,7 +192,7 @@ public class MetricsServiceITest extends MetricsITest {
     public void createAndFindMetrics() throws Exception {
         Metric<Double> em1 = new Metric<>(new MetricId<>("t1", GAUGE, "em1"));
         metricsService.createMetric(em1).toBlocking().lastOrDefault(null);
-        Metric actual = metricsService.findMetric(em1.getId())
+        Metric<Double> actual = metricsService.findMetric(em1.getId())
                 .toBlocking()
                 .lastOrDefault(null);
         assertNotNull(actual);
@@ -218,7 +218,7 @@ public class MetricsServiceITest extends MetricsITest {
                 ImmutableMap.of("a3", "3", "a4", "3"), null);
         metricsService.createMetric(gm2).toBlocking().lastOrDefault(null);
 
-        Metric actualAvail = metricsService.findMetric(m2.getId()).toBlocking()
+        Metric<AvailabilityType> actualAvail = metricsService.findMetric(m2.getId()).toBlocking()
                 .last();
         assertEquals(actualAvail, m2, "The metric does not match the expected value");
 
@@ -472,7 +472,7 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.deleteTags(metric, deletions).toBlocking()
                 .lastOrDefault(null);
 
-        Metric updatedMetric = metricsService.findMetric(metric.getId()).toBlocking()
+        Metric<?> updatedMetric = metricsService.findMetric(metric.getId()).toBlocking()
                 .last();
 
         assertEquals(updatedMetric.getTags(), ImmutableMap.of("a2", "two", "a3", "3"),
@@ -641,8 +641,6 @@ public class MetricsServiceITest extends MetricsITest {
 
         addAvailabilityDataInThePast(m1, days(2).toStandardDuration());
 
-        Map<String, String> tags = ImmutableMap.of("tag1", "");
-
         verifyTTLDataAccess.availabilityTagTLLLessThanEqualTo(DEFAULT_TTL - days(2).toStandardSeconds().getSeconds());
 
         verifyTTLDataAccess.setAvailabilityTTL(days(14).toStandardSeconds().getSeconds());
@@ -661,35 +659,6 @@ public class MetricsServiceITest extends MetricsITest {
                 singletonList(new DataPoint<>(start.getMillis(), UP)));
 
         metricsService.addDataPoints(AVAILABILITY, Observable.just(m3)).toBlocking();
-    }
-
-    private void addGaugeDataInThePast(Metric<Double> metric, final Duration duration) throws Exception {
-        DataAccess originalDataAccess = metricsService.getDataAccess();
-        try {
-            metricsService.setDataAccess(new DelegatingDataAccess(dataAccess) {
-
-                @Override
-                public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
-                    return Observable.from(insertDataWithNewWriteTime(gauge, ttl))
-                            .map(resultSet -> gauge.getDataPoints().size());
-                }
-
-                public ResultSetFuture insertDataWithNewWriteTime(Metric<Double> m, int ttl) {
-                    int actualTTL = ttl - duration.toStandardSeconds().getSeconds();
-                    long writeTime = now().minus(duration).getMillis() * 1000;
-                    BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
-                    for (DataPoint<Double> d : m.getDataPoints()) {
-                        batchStatement.add(insertGaugeDataWithTimestamp.bind(m.getId().getTenantId(), GAUGE.getCode(),
-                                m.getId().getName(), m.getId().getInterval().toString(), DPART,
-                                getTimeUUID(d.getTimestamp()), d.getValue(), actualTTL, writeTime));
-                    }
-                    return session.executeAsync(batchStatement);
-                }
-            });
-            metricsService.addDataPoints(GAUGE, Observable.just(metric));
-        } finally {
-            metricsService.setDataAccess(originalDataAccess);
-        }
     }
 
     private void addAvailabilityDataInThePast(Metric<AvailabilityType> metric, final Duration duration)
@@ -1049,6 +1018,7 @@ public class MetricsServiceITest extends MetricsITest {
         assertEquals(actual, expected, "The data retentions are wrong");
     }
 
+    @SuppressWarnings("unused")
     private static class VerifyTTLDataAccess extends DelegatingDataAccess {
 
         private int gaugeTTL;

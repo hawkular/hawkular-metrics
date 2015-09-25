@@ -334,21 +334,21 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture insertMetricInMetricsIndex(Metric metric) {
-        MetricId<?> metricId = metric.getId();
+    public <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric) {
+        MetricId<T> metricId = metric.getId();
         return session.executeAsync(insertIntoMetricsIndex.bind(metricId.getTenantId(), metricId.getType().getCode(),
                 metricId.getInterval().toString(), metricId.getName(), metric.getDataRetention(),
                 metric.getTags()));
     }
 
     @Override
-    public Observable<ResultSet> findMetric(MetricId<?> id) {
+    public <T> Observable<ResultSet> findMetric(MetricId<T> id) {
         return rxSession.execute(findMetric.bind(id.getTenantId(), id.getType().getCode(), id.getName(),
                 id.getInterval().toString()));
     }
 
     @Override
-    public Observable<ResultSet> getMetricTags(MetricId<?> id) {
+    public <T> Observable<ResultSet> getMetricTags(MetricId<T> id) {
         return rxSession.execute(getMetricTags.bind(id.getTenantId(), id.getType().getCode(), id.getName(),
                 id.getInterval().toString()));
     }
@@ -359,24 +359,24 @@ public class DataAccessImpl implements DataAccess {
     // determine when we start writing data to a new partition, e.g., the start of the next
     // day, and then add the tags and retention to the new partition.
     @Override
-    public Observable<ResultSet> addDataRetention(Metric metric) {
-        MetricId<?> metricId = metric.getId();
+    public <T> Observable<ResultSet> addDataRetention(Metric<T> metric) {
+        MetricId<T> metricId = metric.getId();
         return rxSession.execute(addDataRetention.bind(metric.getDataRetention(),
                 metricId.getTenantId(), metricId.getType().getCode(), metricId.getName(), metricId.getInterval()
                         .toString(), DPART));
     }
 
     @Override
-    public Observable<ResultSet> addTags(Metric metric, Map<String, String> tags) {
-        MetricId<?> metricId = metric.getId();
+    public <T> Observable<ResultSet> addTags(Metric<T> metric, Map<String, String> tags) {
+        MetricId<T> metricId = metric.getId();
         BoundStatement stmt = addTagsToMetricsIndex.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
                 metricId.getInterval().toString(), metricId.getName());
         return rxSession.execute(stmt);
     }
 
     @Override
-    public Observable<ResultSet> deleteTags(Metric metric, Set<String> tags) {
-        MetricId<?> metricId = metric.getId();
+    public <T> Observable<ResultSet> deleteTags(Metric<T> metric, Set<String> tags) {
+        MetricId<T> metricId = metric.getId();
         BoundStatement stmt = deleteTagsFromMetricsIndex.bind(tags, metricId.getTenantId(),
                 metricId.getType().getCode(), metricId.getInterval().toString(), metricId.getName());
         return rxSession.execute(stmt);
@@ -392,7 +392,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType<?> type) {
+    public <T> Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType<T> type) {
         return rxSession.execute(readMetricsIndex.bind(tenantId, type.getCode()));
     }
 
@@ -424,18 +424,18 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findData(MetricId<?> id, long startTime, long endTime) {
-        return findData(id, startTime, endTime, false);
+    public Observable<ResultSet> findGaugeData(MetricId<Double> id, long startTime, long endTime) {
+        return findGaugeData(id, startTime, endTime, false);
     }
 
     @Override
-    public Observable<ResultSet> findCounterData(MetricId<?> id, long startTime, long endTime) {
+    public Observable<ResultSet> findCounterData(MetricId<Long> id, long startTime, long endTime) {
         return rxSession.execute(findCounterDataExclusive.bind(id.getTenantId(), COUNTER.getCode(), id.getName(),
                 id.getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
     }
 
     @Override
-    public Observable<ResultSet> findData(Metric<Double> metric, long startTime, long endTime, Order
+    public Observable<ResultSet> findGaugeData(Metric<Double> metric, long startTime, long endTime, Order
             order) {
         MetricId<?> metricId = metric.getId();
         if (order == Order.ASC) {
@@ -450,7 +450,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findData(MetricId<?> id, long startTime, long endTime,
+    public Observable<ResultSet> findGaugeData(MetricId<Double> id, long startTime, long endTime,
             boolean includeWriteTime) {
         if (includeWriteTime) {
             return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeExclusive.bind(id.getTenantId(),
@@ -464,7 +464,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findData(Metric<Double> metric, long timestamp,
+    public Observable<ResultSet> findGaugeData(Metric<Double> metric, long timestamp,
             boolean includeWriteTime) {
         MetricId<?> metricId = metric.getId();
         if (includeWriteTime) {
@@ -533,18 +533,18 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findAvailabilityData(MetricId<?> id, long startTime, long endTime) {
+    public Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime) {
         return rxSession.execute(findAvailabilities.bind(id.getTenantId(), AVAILABILITY.getCode(),
                 id.getName(), id.getInterval().toString(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
     }
 
     @Override
-    public ResultSetFuture findDataRetentions(String tenantId, MetricType<?> type) {
+    public <T> ResultSetFuture findDataRetentions(String tenantId, MetricType<T> type) {
         return session.executeAsync(findDataRetentions.bind(tenantId, type.getCode()));
     }
 
     @Override
-    public Observable<ResultSet> updateRetentionsIndex(String tenantId, MetricType<?> type,
+    public <T> Observable<ResultSet> updateRetentionsIndex(String tenantId, MetricType<T> type,
                                                        Map<String, Integer> retentions) {
         return Observable.from(retentions.entrySet())
                 .map(entry -> updateRetentionsIndex.bind(tenantId, type.getCode(), entry.getKey(), entry.getValue()))
@@ -553,15 +553,15 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> insertIntoMetricsTagsIndex(Metric metric, Map<String, String> tags) {
-        MetricId<?> metricId = metric.getId();
+    public <T> Observable<ResultSet> insertIntoMetricsTagsIndex(Metric<T> metric, Map<String, String> tags) {
+        MetricId<T> metricId = metric.getId();
         return tagsUpdates(tags, (name, value) -> insertMetricsTagsIndex.bind(metricId.getTenantId(), name, value,
                 metricId.getType().getCode(), metricId.getName(), metricId.getInterval().toString()));
     }
 
     @Override
-    public Observable<ResultSet> deleteFromMetricsTagsIndex(Metric metric, Map<String, String> tags) {
-        MetricId<?> metricId = metric.getId();
+    public <T> Observable<ResultSet> deleteFromMetricsTagsIndex(Metric<T> metric, Map<String, String> tags) {
+        MetricId<T> metricId = metric.getId();
         return tagsUpdates(tags, (name, value) -> deleteMetricsTagsIndex.bind(metricId.getTenantId(), name, value,
                 metricId.getType().getCode(), metricId.getName(), metricId.getInterval().toString()));
     }
@@ -584,7 +584,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public ResultSetFuture updateRetentionsIndex(Metric metric) {
+    public <T> ResultSetFuture updateRetentionsIndex(Metric<T> metric) {
         return session.executeAsync(updateRetentionsIndex.bind(metric.getId().getTenantId(),
                 metric.getId().getType().getCode(), metric.getId().getName(), metric.getDataRetention()));
     }

@@ -214,9 +214,21 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
         dataPointFinders = ImmutableMap.<MetricType<?>, Func3<? extends MetricId<?>, Long, Long,
                 Observable<ResultSet>>>builder()
-                .put(GAUGE, dataAccess::findData)
-                .put(AVAILABILITY, dataAccess::findAvailabilityData)
-                .put(COUNTER, dataAccess::findCounterData)
+                .put(GAUGE, (metricId, start, end) -> {
+                    @SuppressWarnings("unchecked")
+                    MetricId<Double> gaugeId = (MetricId<Double>) metricId;
+                    return dataAccess.findGaugeData(gaugeId, start, end);
+                })
+                .put(AVAILABILITY, (metricId, start, end) -> {
+                    @SuppressWarnings("unchecked")
+                    MetricId<AvailabilityType> availabilityId = (MetricId<AvailabilityType>) metricId;
+                    return dataAccess.findAvailabilityData(availabilityId, start, end);
+                })
+                .put(COUNTER, (metricId, start, end) -> {
+                    @SuppressWarnings("unchecked")
+                    MetricId<Long> counterId = (MetricId<Long>) metricId;
+                    return dataAccess.findCounterData(counterId, start, end);
+                })
                 .build();
 
         dataPointMappers = ImmutableMap.<MetricType<?>, Func1<Row, ? extends DataPoint<?>>>builder()
@@ -716,7 +728,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public Observable<List<long[]>> getPeriods(MetricId<Double> id, Predicate<Double> predicate, long start, long end) {
-        return dataAccess.findData(new Metric<>(id), start, end, Order.ASC)
+        return dataAccess.findGaugeData(new Metric<>(id), start, end, Order.ASC)
                 .flatMap(Observable::from)
                 .map(Functions::getGaugeDataPoint)
                 .toList().map(data -> {
