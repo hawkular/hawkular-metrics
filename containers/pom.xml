@@ -57,6 +57,18 @@
   </dependencyManagement>
 
   <build>
+    <plugins>
+      <plugin>
+        <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>cassandra-docker/src/main/docker/cassandra.yaml</exclude>
+            <exclude>hawkular-metrics-docker-eap/src/main/docker/standalone.xml</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+    </plugins>
     <pluginManagement>
       <plugins>
         <plugin>
