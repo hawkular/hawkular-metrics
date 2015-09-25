@@ -1,4 +1,5 @@
 Only in api/metrics-api-jaxrs: README.adoc
+Only in api/metrics-api-jaxrs: ping.html
 diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1.1/pom.xml
 21c21
 <   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
