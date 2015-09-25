@@ -66,32 +66,6 @@
       <version>3.4.1</version>
     </dependency>
 
-    <!-- Test dependencies -->
-
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.testng</groupId>
-      <artifactId>testng</artifactId>
-      <scope>test</scope>
-    </dependency>
-
     <!-- JBoss Logging Annotations Processor -->
 
     <dependency>
@@ -123,7 +97,40 @@
   </build>
 
   <profiles>
+    <profile>
+      <id>test-dependencies</id>
+      <activation>
+        <property>
+          <name>!maven.test.skip</name>
+        </property>
+      </activation>
+      <dependencies>
+        <!-- Test dependencies -->
+        <dependency>
+          <groupId>ch.qos.logback</groupId>
+          <artifactId>logback-classic</artifactId>
+          <scope>test</scope>
+        </dependency>
 
+        <dependency>
+          <groupId>junit</groupId>
+          <artifactId>junit</artifactId>
+          <scope>test</scope>
+        </dependency>
+
+        <dependency>
+          <groupId>org.mockito</groupId>
+          <artifactId>mockito-core</artifactId>
+          <scope>test</scope>
+        </dependency>
+
+        <dependency>
+          <groupId>org.testng</groupId>
+          <artifactId>testng</artifactId>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+    </profile>
     <profile>
       <id>core-impl-integration-tests</id>
       <activation>
