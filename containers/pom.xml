@@ -32,15 +32,6 @@
 
   <name>Hawkular Metric Containers</name>
 
-  <modules>
-    <module>cassandra-seed-provider</module>
-    <module>cassandra-docker</module>
-    <module>container-tests</module>
-    <module>hawkular-deployer-docker</module>
-    <module>hawkular-metrics-openshift-integration</module>
-    <module>metrics-api-jaxrs-1.1-openshift</module>
-  </modules>
-
   <properties>
     <!-- Override version.org.apache.cassandra set in hawkular-parent -->
     <version.org.apache.cassandra>2.1.6</version.org.apache.cassandra>
@@ -84,6 +75,20 @@
 
   <profiles>
     <profile>
+      <id>default</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <modules>
+        <module>cassandra-seed-provider</module>
+        <module>cassandra-docker</module>
+        <module>container-tests</module>
+        <module>hawkular-deployer-docker</module>
+        <module>hawkular-metrics-openshift-integration</module>
+        <module>metrics-api-jaxrs-1.1-openshift</module>
+      </modules>
+    </profile>
+    <profile>
       <id>wildfly-containers</id>
       <activation>
         <property>
@@ -91,6 +96,12 @@
         </property>
       </activation>
       <modules>
+        <module>cassandra-seed-provider</module>
+        <module>cassandra-docker</module>
+        <module>container-tests</module>
+        <module>hawkular-deployer-docker</module>
+        <module>hawkular-metrics-openshift-integration</module>
+        <module>metrics-api-jaxrs-1.1-openshift</module>
         <module>hawkular-metrics-docker</module>
       </modules>
     </profile>
@@ -98,11 +109,25 @@
       <id>eap-containers</id>
       <activation>
         <property>
-          <name>!wildfly-containers</name>
+          <name>eap-containers</name>
         </property>
       </activation>
       <modules>
+        <module>cassandra-seed-provider</module>
+        <module>cassandra-docker</module>
+        <module>container-tests</module>
+        <module>hawkular-deployer-docker</module>
+        <module>hawkular-metrics-openshift-integration</module>
+        <module>metrics-api-jaxrs-1.1-openshift</module>
         <module>hawkular-metrics-docker-eap</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>openshift</id>
+      <modules>
+        <module>cassandra-seed-provider</module>
+        <module>hawkular-metrics-openshift-integration</module>
+        <module>metrics-api-jaxrs-1.1-openshift</module>
       </modules>
     </profile>
   </profiles>
