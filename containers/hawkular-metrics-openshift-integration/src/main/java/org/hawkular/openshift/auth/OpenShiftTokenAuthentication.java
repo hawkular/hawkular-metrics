@@ -76,12 +76,7 @@ public class OpenShiftTokenAuthentication {
 
             String verb = getVerb(method);
 
-            String pod_namespace = System.getenv("POD_NAMESPACE");
-            if (pod_namespace == null) {
-                pod_namespace = "default";
-            }
-
-            String path = "/oapi/v1/namespaces/" + pod_namespace + "/subjectaccessreviews";
+            String path = "/oapi/v1/subjectaccessreviews";
             URL url = new URL(KUBERNETES_MASTER_URL + path);
 
             HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
