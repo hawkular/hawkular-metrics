@@ -1,54 +1,3 @@
-diff -r '--exclude=target' api/metrics-api-jaxrs/.classpath api/metrics-api-jaxrs-1.1/.classpath
-9,19d8
-< 	<classpathentry kind="src" output="target/classes" path="target/generated-sources/antlr4">
-< 		<attributes>
-< 			<attribute name="optional" value="true"/>
-< 			<attribute name="maven.pomderived" value="true"/>
-< 		</attributes>
-< 	</classpathentry>
-< 	<classpathentry excluding="**" kind="src" output="target/classes" path="src/main/resources">
-< 		<attributes>
-< 			<attribute name="maven.pomderived" value="true"/>
-< 		</attributes>
-< 	</classpathentry>
-23,27d11
-< 			<attribute name="maven.pomderived" value="true"/>
-< 		</attributes>
-< 	</classpathentry>
-< 	<classpathentry excluding="**" kind="src" output="target/test-classes" path="src/test/resources">
-< 		<attributes>
-diff -r '--exclude=target' api/metrics-api-jaxrs/.project api/metrics-api-jaxrs-1.1/.project
-3c3
-< 	<name>hawkular-metrics-api-jaxrs</name>
----
-> 	<name>hawkular-metrics-api-jaxrs-1.1</name>
-diff -r '--exclude=target' api/metrics-api-jaxrs/.settings/org.eclipse.core.resources.prefs api/metrics-api-jaxrs-1.1/.settings/org.eclipse.core.resources.prefs
-3,6d2
-< encoding//src/main/resources=UTF-8
-< encoding//src/test/java=UTF-8
-< encoding//src/test/resources=UTF-8
-< encoding//target/generated-sources/antlr4=UTF-8
-diff -r '--exclude=target' api/metrics-api-jaxrs/.settings/org.eclipse.wst.common.component api/metrics-api-jaxrs-1.1/.settings/org.eclipse.wst.common.component
-2c2
-<     <wb-module deploy-name="hawkular-metrics-api-jaxrs">
----
->     <wb-module deploy-name="hawkular-metrics-api-jaxrs-1.1">
-6,7d5
-<         <wb-resource deploy-path="/WEB-INF/classes" source-path="/target/generated-sources/antlr4"/>
-<         <wb-resource deploy-path="/WEB-INF/classes" source-path="/src/main/resources"/>
-26,27c24,25
-<         <property name="context-root" value="hawkular-metric-rest"/>
-<         <property name="java-output-path" value="/hawkular-metrics-api-jaxrs/target/classes"/>
----
->         <property name="java-output-path" value="/hawkular-metrics-api-jaxrs-1.1/target/classes"/>
->         <property name="context-root" value="hawkular-metrics-api-rest-1.1"/>
-diff -r '--exclude=target' api/metrics-api-jaxrs/.settings/org.eclipse.wst.common.project.facet.core.xml api/metrics-api-jaxrs-1.1/.settings/org.eclipse.wst.common.project.facet.core.xml
-5,6d4
-<   <installed facet="jst.web" version="3.1"/>
-<   <installed facet="jst.jaxrs" version="2.0"/>
-7a6,7
->   <installed facet="jst.jaxrs" version="1.1"/>
->   <installed facet="jst.web" version="3.1"/>
 Only in api/metrics-api-jaxrs: README.adoc
 Only in api/metrics-api-jaxrs: ping.html
 diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1.1/pom.xml
@@ -244,7 +193,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/met
 <     </profile>
 <   </profiles>
 Only in api/metrics-api-jaxrs/src/main: antlr4
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/HawkularMetricsRestApp.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/HawkularMetricsRestApp.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/HawkularMetricsRestApp.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/HawkularMetricsRestApp.java
 32,33d31
 < import org.hawkular.metrics.api.jaxrs.filter.CorsRequestFilter;
 < import org.hawkular.metrics.api.jaxrs.filter.CorsResponseFilter;
@@ -270,14 +219,14 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         classes.add(DurationConverter.class);
 >         classes.add(MetricTypeConverter.class);
 >         classes.add(TagsConverter.class);
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ApplicationExceptionMapper.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ApplicationExceptionMapper.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ApplicationExceptionMapper.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ApplicationExceptionMapper.java
 21d20
 < import javax.ws.rs.core.Response.Status;
 37c36
 <         return ExceptionMapperUtils.buildResponse(exception, Status.INTERNAL_SERVER_ERROR);
 ---
 >         return ExceptionMapperUtils.buildResponse(exception, 500);
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ExceptionMapperUtils.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ExceptionMapperUtils.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ExceptionMapperUtils.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ExceptionMapperUtils.java
 20a21
 > import javax.ws.rs.core.Response.ResponseBuilder;
 33a35,39
@@ -295,13 +244,13 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 > 
 >     private static Response buildErrorResponse(Throwable exception, ResponseBuilder responseBuilder) {
 >         Response response = responseBuilder
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotAcceptableExceptionMapper.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotAcceptableExceptionMapper.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotAcceptableExceptionMapper.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotAcceptableExceptionMapper.java
 19d18
 < import javax.ws.rs.NotAcceptableException;
 22a22,23
 > 
 > import org.jboss.resteasy.spi.NotAcceptableException;
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotAllowedExceptionMapper.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotAllowedExceptionMapper.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotAllowedExceptionMapper.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotAllowedExceptionMapper.java
 19d18
 < import javax.ws.rs.NotAllowedException;
 23a23,24
@@ -317,13 +266,13 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 ---
 >     public Response toResponse(MethodNotAllowedException exception) {
 >         return ExceptionMapperUtils.buildResponse(exception, 405);
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotFoundExceptionMapper.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotFoundExceptionMapper.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotFoundExceptionMapper.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotFoundExceptionMapper.java
 19d18
 < import javax.ws.rs.NotFoundException;
 22a22,23
 > 
 > import org.jboss.resteasy.spi.NotFoundException;
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotSupportedExceptionMapper.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotSupportedExceptionMapper.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotSupportedExceptionMapper.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotSupportedExceptionMapper.java
 16a17
 > 
 19d19
@@ -342,7 +291,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 Only in api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/filter: CorsFilter.java
 Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/filter: CorsRequestFilter.java
 Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/filter: CorsResponseFilter.java
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/filter/EmptyPayloadFilter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/filter/EmptyPayloadFilter.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/filter/EmptyPayloadFilter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/filter/EmptyPayloadFilter.java
 20,21c20
 < import java.io.IOException;
 < 
@@ -399,7 +348,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 > 
 >         servletRequest.setAttribute(EMPTY_PAYLOAD, Boolean.TRUE);
 >         return null;
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/filter/MetricsServiceStateFilter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/filter/MetricsServiceStateFilter.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/filter/MetricsServiceStateFilter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/filter/MetricsServiceStateFilter.java
 21,22d20
 < import java.io.IOException;
 < 
@@ -453,7 +402,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 80a84,85
 > 
 >         return null;
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/filter/TenantFilter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/filter/TenantFilter.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/filter/TenantFilter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/filter/TenantFilter.java
 21c21
 < import java.io.IOException;
 ---
@@ -514,7 +463,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >                 .entity(new ApiError(MISSING_TENANT_MSG))
 >                 .build();
 >         return ServerResponse.copyIfNotServerResponse(response);
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/AvailabilityHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/AvailabilityHandler.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/AvailabilityHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/AvailabilityHandler.java
 28d27
 < import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.valueToResponse;
 33a33
@@ -780,14 +729,14 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 <             metricsService.findAvailabilityStats(metricId, startTime, endTime, buckets)
 <                 .map(ApiUtils::collectionToResponse)
 <                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/BaseHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/BaseHandler.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/BaseHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/BaseHandler.java
 39,40d38
 < import io.swagger.annotations.ApiOperation;
 < 
 53,54d50
 <     @ApiOperation(value = "Returns some basic information about the Hawkular Metrics service.",
 <             response = String.class, responseContainer = "Map")
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/CounterHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/CounterHandler.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/CounterHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/CounterHandler.java
 45,46d44
 < import javax.ws.rs.container.AsyncResponse;
 < import javax.ws.rs.container.Suspended;
@@ -1061,7 +1010,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/GaugeHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/GaugeHandler.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/GaugeHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/GaugeHandler.java
 44,45d43
 < import javax.ws.rs.container.AsyncResponse;
 < import javax.ws.rs.container.Suspended;
@@ -1387,7 +1336,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >             } catch (Exception e) {
 >                 return ApiUtils.serverError(e);
 >             }
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/MetricHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/MetricHandler.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/MetricHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/MetricHandler.java
 40,41d39
 < import javax.ws.rs.container.AsyncResponse;
 < import javax.ws.rs.container.Suspended;
@@ -1534,7 +1483,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/PingHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/PingHandler.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/PingHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/PingHandler.java
 22d21
 < import java.util.Map;
 33,34d31
@@ -1543,14 +1492,14 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 45,46d41
 <     @ApiOperation(value = "Returns the current time and serves to check for the availability of the api.", response =
 <             Map.class)
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/StatusHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/StatusHandler.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/StatusHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/StatusHandler.java
 36,37d35
 < import io.swagger.annotations.ApiOperation;
 < 
 54,55d51
 <     @ApiOperation(value = "Returns the current status for various components.",
 <             response = Map.class)
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/TenantsHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/TenantsHandler.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/TenantsHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/TenantsHandler.java
 21,23d20
 < import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.collectionToResponse;
 < import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
@@ -1631,7 +1580,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         }
 Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler: observer
 Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs: influx
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/interceptor/EmptyPayloadInterceptor.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/interceptor/EmptyPayloadInterceptor.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/interceptor/EmptyPayloadInterceptor.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/interceptor/EmptyPayloadInterceptor.java
 30,31c30,33
 < import javax.ws.rs.ext.ReaderInterceptor;
 < import javax.ws.rs.ext.ReaderInterceptorContext;
@@ -1656,7 +1605,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 ---
 >         if (context.getAttribute(EMPTY_PAYLOAD) != TRUE) {
 Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param: ConvertersProvider.java
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param/DurationConverter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/param/DurationConverter.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param/DurationConverter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/param/DurationConverter.java
 27c27,29
 < import javax.ws.rs.ext.ParamConverter;
 ---
@@ -1668,7 +1617,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 ---
 > @Provider
 > public class DurationConverter implements StringConverter<Duration> {
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param/MetricTypeConverter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/param/MetricTypeConverter.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param/MetricTypeConverter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/param/MetricTypeConverter.java
 16a17
 > 
 19c20
@@ -1682,7 +1631,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 ---
 > @Provider
 > public class MetricTypeConverter implements StringConverter<MetricType<?>> {
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param/TagsConverter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/param/TagsConverter.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param/TagsConverter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/param/TagsConverter.java
 28c28,30
 < import javax.ws.rs.ext.ParamConverter;
 ---
@@ -1694,7 +1643,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 ---
 > @Provider
 > public class TagsConverter implements StringConverter<Tags> {
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/util/JacksonConfig.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/util/JacksonConfig.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/util/JacksonConfig.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/util/JacksonConfig.java
 25,28c25,28
 < import com.fasterxml.jackson.annotation.JsonInclude.Include;
 < import com.fasterxml.jackson.core.JsonParser;
@@ -1717,7 +1666,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/java/org/hawkular/metr
 >         mapper.configure(SerializationConfig.Feature.WRITE_NULL_MAP_VALUES, false);
 Only in api/metrics-api-jaxrs/src/main: resources
 Only in api/metrics-api-jaxrs/src/main: script
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/webapp/WEB-INF/beans.xml api/metrics-api-jaxrs-1.1/src/main/webapp/WEB-INF/beans.xml
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/webapp/WEB-INF/beans.xml api/metrics-api-jaxrs-1.1/src/main/webapp/WEB-INF/beans.xml
 20c20
 < <beans xmlns="http://xmlns.jcp.org/xml/ns/javaee"
 ---
@@ -1730,7 +1679,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/webapp/WEB-INF/beans.x
 >        xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/beans_1_0.xsd">
 > </beans>
 \ No newline at end of file
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/webapp/WEB-INF/jboss-deployment-structure.xml api/metrics-api-jaxrs-1.1/src/main/webapp/WEB-INF/jboss-deployment-structure.xml
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/webapp/WEB-INF/jboss-deployment-structure.xml api/metrics-api-jaxrs-1.1/src/main/webapp/WEB-INF/jboss-deployment-structure.xml
 22,25d21
 <     <exclusions>
 <       <module name="org.jboss.resteasy.resteasy-jackson-provider"/>
@@ -1741,7 +1690,7 @@ diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/webapp/WEB-INF/jboss-d
 ---
 >       <module name="org.codehaus.jackson.jackson-core-asl" />
 >       <module name="org.codehaus.jackson.jackson-mapper-asl" />
-diff -r '--exclude=target' api/metrics-api-jaxrs/src/main/webapp/WEB-INF/web.xml api/metrics-api-jaxrs-1.1/src/main/webapp/WEB-INF/web.xml
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/webapp/WEB-INF/web.xml api/metrics-api-jaxrs-1.1/src/main/webapp/WEB-INF/web.xml
 25c25
 <   <display-name>Hawkular Metrics Rest interface</display-name>
 ---

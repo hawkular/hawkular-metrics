@@ -21,7 +21,6 @@ package org.hawkular.metrics.core.api;
  */
 public class MetricAlreadyExistsException extends RuntimeException {
 
-    /**  */
     private static final long serialVersionUID = 2099158006871754907L;
 
     private final Metric<?> metric;
