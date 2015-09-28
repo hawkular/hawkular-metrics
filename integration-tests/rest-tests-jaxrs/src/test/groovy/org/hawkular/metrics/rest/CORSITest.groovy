@@ -33,6 +33,8 @@ import org.junit.Test
 
 class CORSITest extends RESTTest {
   static final String testOrigin = System.getProperty("hawkular-metrics.test.origin", "http://test.hawkular.org")
+  static final String testAccessControlAllowHeaders = DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS + ',' +
+    System.getProperty("hawkular-metrics.test.access-control-allow-headers");
 
 
   @Test
@@ -40,6 +42,8 @@ class CORSITest extends RESTTest {
     def response = hawkularMetrics.options(path: "ping",
         headers: [
             (ACCESS_CONTROL_REQUEST_METHOD): "POST",
+            //this should be ignored by the container and reply with pre-configured headers
+            (ACCESS_CONTROL_ALLOW_HEADERS): "test-header",
             (ORIGIN): testOrigin,
         ])
 
@@ -51,7 +55,7 @@ class CORSITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(null, response.getData())
     assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS, response.headers[ACCESS_CONTROL_ALLOW_METHODS].value)
-    assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS, response.headers[ACCESS_CONTROL_ALLOW_HEADERS].value)
+    assertEquals(responseHeaders, testAccessControlAllowHeaders, response.headers[ACCESS_CONTROL_ALLOW_HEADERS].value)
     assertEquals(responseHeaders, testOrigin, response.headers[ACCESS_CONTROL_ALLOW_ORIGIN].value)
     assertEquals(responseHeaders, "true", response.headers[ACCESS_CONTROL_ALLOW_CREDENTIALS].value)
     assertEquals(responseHeaders, (72 * 60 * 60) + "", response.headers[ACCESS_CONTROL_MAX_AGE].value)
@@ -98,7 +102,7 @@ class CORSITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(null, response.getData())
     assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS, response.headers[ACCESS_CONTROL_ALLOW_METHODS].value)
-    assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS, response.headers[ACCESS_CONTROL_ALLOW_HEADERS].value)
+    assertEquals(responseHeaders, testAccessControlAllowHeaders, response.headers[ACCESS_CONTROL_ALLOW_HEADERS].value)
     assertEquals(responseHeaders, subDomainOrigin, response.headers[ACCESS_CONTROL_ALLOW_ORIGIN].value)
     assertEquals(responseHeaders, "true", response.headers[ACCESS_CONTROL_ALLOW_CREDENTIALS].value)
     assertEquals(responseHeaders, (72 * 60 * 60) + "", response.headers[ACCESS_CONTROL_MAX_AGE].value)
@@ -156,7 +160,7 @@ class CORSITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(null, response.getData())
     assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS, response.headers[ACCESS_CONTROL_ALLOW_METHODS].value)
-    assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS, response.headers[ACCESS_CONTROL_ALLOW_HEADERS].value)
+    assertEquals(responseHeaders, testAccessControlAllowHeaders, response.headers[ACCESS_CONTROL_ALLOW_HEADERS].value)
     assertEquals(responseHeaders, testOrigin, response.headers[ACCESS_CONTROL_ALLOW_ORIGIN].value)
     assertEquals(responseHeaders, "true", response.headers[ACCESS_CONTROL_ALLOW_CREDENTIALS].value)
     assertEquals(responseHeaders, (72 * 60 * 60) + "", response.headers[ACCESS_CONTROL_MAX_AGE].value)
@@ -181,7 +185,7 @@ class CORSITest extends RESTTest {
         response.data
     )
     assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS, response.headers[ACCESS_CONTROL_ALLOW_METHODS].value)
-    assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS, response.headers[ACCESS_CONTROL_ALLOW_HEADERS].value)
+    assertEquals(responseHeaders, testAccessControlAllowHeaders, response.headers[ACCESS_CONTROL_ALLOW_HEADERS].value)
     assertEquals(responseHeaders, testOrigin, response.headers[ACCESS_CONTROL_ALLOW_ORIGIN].value)
     assertEquals(responseHeaders, "true", response.headers[ACCESS_CONTROL_ALLOW_CREDENTIALS].value)
     assertEquals(responseHeaders, (72 * 60 * 60) + "", response.headers[ACCESS_CONTROL_MAX_AGE].value)
