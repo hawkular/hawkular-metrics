@@ -11,4 +11,3 @@ target
 *.tmp
 *.DS_Store
 *~
-metrics-api-jaxrs/ping.html
