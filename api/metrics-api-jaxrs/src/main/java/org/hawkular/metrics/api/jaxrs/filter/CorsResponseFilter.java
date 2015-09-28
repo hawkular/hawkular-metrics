@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.api.jaxrs.filter;
 
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.ALLOWED_CORS_ACCESS_CONTROL_ALLOW_HEADERS;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_CREDENTIALS;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_HEADERS;
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_METHODS;
@@ -35,6 +36,8 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 
+import org.hawkular.metrics.api.jaxrs.config.Configurable;
+import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.util.OriginValidation;
 
 /**
@@ -45,6 +48,11 @@ public class CorsResponseFilter implements ContainerResponseFilter {
 
     @Inject
     OriginValidation validator;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(ALLOWED_CORS_ACCESS_CONTROL_ALLOW_HEADERS)
+    String extraAccesControlAllowHeaders;
 
     @Override
     public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext)
@@ -61,7 +69,13 @@ public class CorsResponseFilter implements ContainerResponseFilter {
             responseHeaders.add(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
             responseHeaders.add(ACCESS_CONTROL_ALLOW_METHODS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS);
             responseHeaders.add(ACCESS_CONTROL_MAX_AGE, 72 * 60 * 60);
-            responseHeaders.add(ACCESS_CONTROL_ALLOW_HEADERS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS);
+
+            if (extraAccesControlAllowHeaders != null) {
+                responseHeaders.add(ACCESS_CONTROL_ALLOW_HEADERS,
+                        DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS + "," + extraAccesControlAllowHeaders.trim());
+            } else {
+                responseHeaders.add(ACCESS_CONTROL_ALLOW_HEADERS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS);
+            }
         } else {
             responseContext.setStatus(Response.Status.BAD_REQUEST.getStatusCode());
         }

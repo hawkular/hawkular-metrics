@@ -170,6 +170,7 @@
                 <keyspace>${cassandra.keyspace}</keyspace>
                 <hawkular-metrics.base-uri>${base-uri}</hawkular-metrics.base-uri>
                 <hawkular-metrics.test.origin>http://test.hawkular.org</hawkular-metrics.test.origin>
+                <hawkular-metrics.test.access-control-allow-headers>random-header1,random-header2</hawkular-metrics.test.access-control-allow-headers>
                 <project.version>${project.version}</project.version>
               </systemPropertyVariables>
             </configuration>
@@ -207,6 +208,7 @@
                     -Dhawkular.metrics.use-virtual-clock=true -Dterminal-event.timeout=${terminal-event.timeout}
                     -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787
                     -Dhawkular.metrics.allowed-cors-origins=http://test.hawkular.org,https://secure.hawkular.io
+                    -Dhawkular.metrics.allowed-cors-access-control-allow-headers=random-header1,random-header2
                   </jvmArgs>
                 </configuration>
               </execution>
