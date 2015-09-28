@@ -20,7 +20,7 @@ a logger instance with proper category
 The logging `projectCode` is `HAWKMETRICS`.
 
 Note that until we no longer need to support EAP 6.4,
-http://lists.jboss.org/pipermail/hawkular-dev/2015-March/000378.html[we must not use primitive arguments in logging interfaces].
+http://lists.jboss.org/pipermail/hawkular-dev/2015-March/000378.html[we must not use primitive arguments in logging method calls].
 
 Logback is the logging backend for tests. It allows to http://git.io/vnDlr[set log level with a system property]
 while still having a default value. No Maven filtering/replace dance involved.
