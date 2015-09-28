@@ -338,8 +338,10 @@ public class TaskSchedulerImpl implements TaskScheduler {
             // we acquire a lease, we execute all of the tasks for the lease. We check for
             // available leases again only after those tasks have completed.
             try {
-                log.debugf("Loading leases for %s", timeSlice);
-                log.debugf("Timestamp is %s", timeSlice.getTime());
+                if (log.isDebugEnabled()) {
+                    log.debug("Loading leases for " + timeSlice);
+                    log.debug("Timestamp is " + timeSlice.getTime());
+                }
                 List<Lease> leases = findAvailableLeases(timeSlice);
                 while (!leases.isEmpty()) {
                     for (Lease lease : leases) {
