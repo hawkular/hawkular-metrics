@@ -144,7 +144,7 @@
                   <goal>unpack-dependencies</goal>
                 </goals>
                 <configuration>
-                  <includeArtifactIds>hawkular-metrics-rest-tests</includeArtifactIds>
+                  <includeArtifactIds>hawkular-metrics-rest-tests-jaxrs</includeArtifactIds>
                   <excludes>**/*Influx*</excludes>
                   <includes>**/*ITest*</includes>
                   <outputDirectory>${project.build.testOutputDirectory}</outputDirectory>
