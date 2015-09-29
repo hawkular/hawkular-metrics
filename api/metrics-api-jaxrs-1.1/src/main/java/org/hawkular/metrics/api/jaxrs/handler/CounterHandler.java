@@ -139,6 +139,8 @@ public class CounterHandler {
         try {
             metricsService.addTags(metric, tags).toBlocking().lastOrDefault(null);
             return Response.ok().build();
+        } catch (IllegalArgumentException e1) {
+            return badRequest(new ApiError(e1.getMessage()));
         } catch (Exception e) {
             return ApiUtils.serverError(e);
         }
