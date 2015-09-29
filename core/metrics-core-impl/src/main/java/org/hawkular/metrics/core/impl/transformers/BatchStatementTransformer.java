@@ -32,7 +32,7 @@ import rx.functions.Func0;
  * @author Thomas Segismont
  */
 public class BatchStatementTransformer implements Transformer<Statement, BatchStatement> {
-    public static final int MAX_BATCH_SIZE = 64;
+    public static final int MAX_BATCH_SIZE = 10;
 
     /**
      * Creates {@link com.datastax.driver.core.BatchStatement.Type#UNLOGGED} batch statements.
