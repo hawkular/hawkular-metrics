@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.core.impl.transformers;
 
-import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 
@@ -48,7 +47,7 @@ public class TagsIndexRowTransformer<T> implements Transformer<Row, MetricId<T>>
         }).map(row1 -> {
             @SuppressWarnings("unchecked")
             MetricType<T> metricType = (MetricType<T>) MetricType.fromCode(row1.getInt(0));
-            return new MetricId<>(tenantId, metricType, row1.getString(1), Interval.parse(row1.getString(2)));
+            return new MetricId<>(tenantId, metricType, row1.getString(1));
         });
     }
 }

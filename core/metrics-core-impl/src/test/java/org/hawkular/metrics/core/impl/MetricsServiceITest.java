@@ -53,7 +53,6 @@ import java.util.regex.PatternSyntaxException;
 import org.hawkular.metrics.core.api.Aggregate;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
@@ -111,13 +110,13 @@ public class MetricsServiceITest extends MetricsITest {
 
         insertGaugeDataWithTimestamp = session
                 .prepare(
-            "INSERT INTO data (tenant_id, type, metric, interval, dpart, time, n_value) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?) " +
+            "INSERT INTO data (tenant_id, type, metric, dpart, time, n_value) " +
+            "VALUES (?, ?, ?, ?, ?, ?) " +
             "USING TTL ? AND TIMESTAMP ?");
 
         insertAvailabilityDateWithTimestamp = session.prepare(
-            "INSERT INTO data (tenant_id, type, metric, interval, dpart, time, availability) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?) " +
+            "INSERT INTO data (tenant_id, type, metric, dpart, time, availability) " +
+            "VALUES (?, ?, ?, ?, ?, ?) " +
             "USING TTL ? AND TIMESTAMP ?"
         );
     }
@@ -661,6 +660,35 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.addDataPoints(AVAILABILITY, Observable.just(m3)).toBlocking();
     }
 
+    private void addGaugeDataInThePast(Metric<Double> metric, final Duration duration) throws Exception {
+        DataAccess originalDataAccess = metricsService.getDataAccess();
+        try {
+            metricsService.setDataAccess(new DelegatingDataAccess(dataAccess) {
+
+                @Override
+                public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
+                    return Observable.from(insertDataWithNewWriteTime(gauge, ttl))
+                            .map(resultSet -> gauge.getDataPoints().size());
+                }
+
+                public ResultSetFuture insertDataWithNewWriteTime(Metric<Double> m, int ttl) {
+                    int actualTTL = ttl - duration.toStandardSeconds().getSeconds();
+                    long writeTime = now().minus(duration).getMillis() * 1000;
+                    BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
+                    for (DataPoint<Double> d : m.getDataPoints()) {
+                        batchStatement.add(insertGaugeDataWithTimestamp.bind(m.getId().getTenantId(), GAUGE.getCode(),
+                                m.getId().getName(), DPART, getTimeUUID(d.getTimestamp()), d.getValue(), actualTTL,
+                                writeTime));
+                    }
+                    return session.executeAsync(batchStatement);
+                }
+            });
+            metricsService.addDataPoints(GAUGE, Observable.just(metric));
+        } finally {
+            metricsService.setDataAccess(originalDataAccess);
+        }
+    }
+
     private void addAvailabilityDataInThePast(Metric<AvailabilityType> metric, final Duration duration)
             throws Exception {
         DataAccess originalDataAccess = metricsService.getDataAccess();
@@ -673,8 +701,8 @@ public class MetricsServiceITest extends MetricsITest {
                     BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
                     for (DataPoint<AvailabilityType> a : m.getDataPoints()) {
                         batchStatement.add(insertAvailabilityDateWithTimestamp.bind(m.getId().getTenantId(),
-                            AVAILABILITY.getCode(), m.getId().getName(), m.getId().getInterval().toString(), DPART,
-                            getTimeUUID(a.getTimestamp()), getBytes(a), actualTTL, writeTime));
+                            AVAILABILITY.getCode(), m.getId().getName(), DPART, getTimeUUID(a.getTimestamp()),
+                                getBytes(a), actualTTL, writeTime));
                     }
                     return rxSession.execute(batchStatement).map(resultSet -> batchStatement.size());
                 }
@@ -1001,8 +1029,8 @@ public class MetricsServiceITest extends MetricsITest {
 
         for (Row row : resultSet) {
             MetricType<?> type = MetricType.fromCode(row.getInt(0));
-            MetricId<?> id = new MetricId<>(tenantId, type, row.getString(1), Interval.parse(row.getString(2)));
-            actual.add(new MetricsTagsIndexEntry(row.getString(3), id)); // Need value here.. pff.
+            MetricId<?> id = new MetricId<>(tenantId, type, row.getString(1));
+            actual.add(new MetricsTagsIndexEntry(row.getString(2), id)); // Need value here.. pff.
         }
 
         assertEquals(actual, expected, "The metrics tags index entries do not match");

@@ -454,7 +454,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     public <T> Observable<Metric<T>> findMetric(final MetricId<T> id) {
         return dataAccess.findMetric(id)
                 .flatMap(Observable::from)
-                .map(row -> new Metric<>(id, row.getMap(2, String.class, String.class), row.getInt(3)));
+                .map(row -> new Metric<>(id, row.getMap(1, String.class, String.class), row.getInt(2)));
     }
 
     @Override
@@ -488,7 +488,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                     return Observable.just(entry)
                             .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
                                     .flatMap(Observable::from)
-                                    .filter(r -> positive == p.matcher(r.getString(3)).matches()) // XNOR
+                                    .filter(r -> positive == p.matcher(r.getString(2)).matches()) // XNOR
                                     .compose(new TagsIndexRowTransformer<>(tenantId, metricType))
                                     .compose(new ItemsToSetTransformer<>())
                                     .reduce((s1, s2) -> {

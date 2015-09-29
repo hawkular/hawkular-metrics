@@ -17,7 +17,6 @@
 
 package org.hawkular.metrics.core.impl.transformers;
 
-import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
@@ -45,9 +44,8 @@ public class MetricsIndexRowTransformer<T> implements Transformer<Row, Metric<T>
     @Override
     public Observable<Metric<T>> call(Observable<Row> rows) {
         return rows.map(row -> {
-            Interval interval = Interval.parse(row.getString(1));
-            MetricId<T> metricId = new MetricId<>(tenantId, type, row.getString(0), interval);
-            return new Metric<>(metricId, row.getMap(2, String.class, String.class), row.getInt(3));
+            MetricId<T> metricId = new MetricId<>(tenantId, type, row.getString(0));
+            return new Metric<>(metricId, row.getMap(1, String.class, String.class), row.getInt(2));
         });
     }
 }
