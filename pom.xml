@@ -76,20 +76,6 @@
     </developer>
   </developers>
 
-  <modules>
-    <module>rx-java-driver</module>
-    <module>schema-manager</module>
-    <module>task-queue</module>
-    <module>core/metrics-core-api</module>
-    <module>core/metrics-core-impl</module>
-    <module>api/metrics-api-common</module>
-    <module>api/metrics-api-jaxrs</module>
-    <module>api/metrics-api-jaxrs-1.1</module>
-    <module>integration-tests</module>
-    <module>clients</module>
-    <module>containers</module>
-  </modules>
-
   <scm>
     <connection>scm:git:ssh://github.com/hawkular/hawkular-metrics</connection>
     <developerConnection>scm:git:ssh://github.com/hawkular/hawkular-metrics</developerConnection>
@@ -259,23 +245,6 @@
             <version>5.0.3</version>
           </dependency>
         </dependencies>
-        <!-- Copy paste and uncomment the following block in sub-projects where Java 7 compatibility is required -->
-        <!--<executions>-->
-          <!--<execution>-->
-            <!--<id>java-api-check</id>-->
-            <!--<configuration>-->
-              <!--<signature>-->
-                <!--<groupId>org.codehaus.mojo.signature</groupId>-->
-                <!--<artifactId>java17</artifactId>-->
-                <!--<version>1.0</version>-->
-              <!--</signature>-->
-            <!--</configuration>-->
-            <!--<phase>verify</phase>-->
-            <!--<goals>-->
-              <!--<goal>check</goal>-->
-            <!--</goals>-->
-          <!--</execution>-->
-        <!--</executions>-->
       </plugin>
 
       <plugin>
@@ -354,39 +323,47 @@
   </reporting>
 
   <profiles>
-
     <profile>
-      <id>publish</id>
-
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-source-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>attach-sources</id>
-                <goals>
-                  <goal>jar</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-javadoc-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>attach-javadocs</id>
-                <goals>
-                  <goal>jar</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
+      <id>default</id>
+      <activation>
+        <property>
+          <name>!openshift</name>
+        </property>
+      </activation>
+      <modules>
+        <module>rx-java-driver</module>
+        <module>schema-manager</module>
+        <module>task-queue</module>
+        <module>core/metrics-core-api</module>
+        <module>core/metrics-core-impl</module>
+        <module>api/metrics-api-common</module>
+        <module>api/metrics-api-jaxrs</module>
+        <module>api/metrics-api-jaxrs-1.1</module>
+        <module>integration-tests</module>
+        <module>clients</module>
+        <module>containers</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>openshift</id>
+      <activation>
+        <property>
+          <name>openshift</name>
+        </property>
+      </activation>
+      <properties>
+        <skipTests>true</skipTests>
+      </properties>
+      <modules>
+        <module>rx-java-driver</module>
+        <module>schema-manager</module>
+        <module>task-queue</module>
+        <module>core/metrics-core-api</module>
+        <module>core/metrics-core-impl</module>
+        <module>api/metrics-api-common</module>
+        <module>api/metrics-api-jaxrs-1.1</module>
+        <module>containers</module>
+      </modules>
     </profile>
   </profiles>
 </project>
