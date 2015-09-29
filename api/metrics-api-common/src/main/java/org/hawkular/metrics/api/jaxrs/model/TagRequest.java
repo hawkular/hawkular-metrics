@@ -40,7 +40,6 @@ public class TagRequest {
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
-    @SuppressWarnings("unused")
     public TagRequest(
             @JsonProperty("tags")
             @org.codehaus.jackson.annotate.JsonProperty("tags")

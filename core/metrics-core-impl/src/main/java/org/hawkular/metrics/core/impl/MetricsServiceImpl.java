@@ -16,9 +16,6 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Comparator.comparingLong;
-
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
@@ -30,14 +27,11 @@ import static org.joda.time.Duration.standardMinutes;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -141,6 +135,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     private DataAccess dataAccess;
 
+    @SuppressWarnings("unused")
     private TaskScheduler taskScheduler;
 
     private DateTimeService dateTimeService;
@@ -219,9 +214,21 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
         dataPointFinders = ImmutableMap.<MetricType<?>, Func3<? extends MetricId<?>, Long, Long,
                 Observable<ResultSet>>>builder()
-                .put(GAUGE, dataAccess::findData)
-                .put(AVAILABILITY, dataAccess::findAvailabilityData)
-                .put(COUNTER, dataAccess::findCounterData)
+                .put(GAUGE, (metricId, start, end) -> {
+                    @SuppressWarnings("unchecked")
+                    MetricId<Double> gaugeId = (MetricId<Double>) metricId;
+                    return dataAccess.findGaugeData(gaugeId, start, end);
+                })
+                .put(AVAILABILITY, (metricId, start, end) -> {
+                    @SuppressWarnings("unchecked")
+                    MetricId<AvailabilityType> availabilityId = (MetricId<AvailabilityType>) metricId;
+                    return dataAccess.findAvailabilityData(availabilityId, start, end);
+                })
+                .put(COUNTER, (metricId, start, end) -> {
+                    @SuppressWarnings("unchecked")
+                    MetricId<Long> counterId = (MetricId<Long>) metricId;
+                    return dataAccess.findCounterData(counterId, start, end);
+                })
                 .build();
 
         dataPointMappers = ImmutableMap.<MetricType<?>, Func1<Row, ? extends DataPoint<?>>>builder()
@@ -273,36 +280,6 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                 .put(AVAILABILITY, metricRegistry.timer("availability-read-latency"))
                 .put(COUNTER, metricRegistry.timer("counter-read-latency"))
                 .build();
-    }
-
-    private static class MergeDataPointTagsFunction<T> implements
-            Func1<List<Map<MetricId<T>, Set<DataPoint<T>>>>, Map<MetricId<T>, Set<DataPoint<T>>>> {
-
-        @Override
-        public Map<MetricId<T>, Set<DataPoint<T>>> call(List<Map<MetricId<T>, Set<DataPoint<T>>>> taggedDataMaps) {
-            if (taggedDataMaps.isEmpty()) {
-                return emptyMap();
-            }
-            if (taggedDataMaps.size() == 1) {
-                return taggedDataMaps.get(0);
-            }
-
-            Set<MetricId<T>> ids = new HashSet<>(taggedDataMaps.get(0).keySet());
-            for (int i = 1; i < taggedDataMaps.size(); ++i) {
-                ids.retainAll(taggedDataMaps.get(i).keySet());
-            }
-
-            Map<MetricId<T>, Set<DataPoint<T>>> mergedDataMap = new HashMap<>();
-            for (MetricId<T> id : ids) {
-                TreeSet<DataPoint<T>> set = new TreeSet<>(comparingLong(DataPoint::getTimestamp));
-                for (Map<MetricId<T>, Set<DataPoint<T>>> taggedDataMap : taggedDataMaps) {
-                    set.addAll(taggedDataMap.get(id));
-                }
-                mergedDataMap.put(id, set);
-            }
-
-            return mergedDataMap;
-        }
     }
 
     private class DataRetentionsLoadedCallback implements FutureCallback<Set<Retention>> {
@@ -464,7 +441,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         }));
     }
 
-    private Observable<ResultSet> updateRetentionsIndex(Metric metric) {
+    private Observable<ResultSet> updateRetentionsIndex(Metric<?> metric) {
         ResultSetFuture dataRetentionFuture = dataAccess.updateRetentionsIndex(metric);
         Observable<ResultSet> dataRetentionUpdated = RxUtil.from(dataRetentionFuture, metricsTasks);
         // TODO Shouldn't we only update dataRetentions map when the retentions index update succeeds?
@@ -697,6 +674,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                 });
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public <T> Observable<T> findGaugeData(MetricId<Double> id, Long start, Long end,
                                            Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs) {
@@ -750,7 +728,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public Observable<List<long[]>> getPeriods(MetricId<Double> id, Predicate<Double> predicate, long start, long end) {
-        return dataAccess.findData(new Metric<>(id), start, end, Order.ASC)
+        return dataAccess.findGaugeData(new Metric<>(id), start, end, Order.ASC)
                 .flatMap(Observable::from)
                 .map(Functions::getGaugeDataPoint)
                 .toList().map(data -> {

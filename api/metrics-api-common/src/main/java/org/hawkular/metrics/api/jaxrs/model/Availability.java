@@ -53,7 +53,6 @@ public class Availability {
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
-    @SuppressWarnings("unused")
     public Availability(
             @JsonProperty("id")
             @org.codehaus.jackson.annotate.JsonProperty("id")

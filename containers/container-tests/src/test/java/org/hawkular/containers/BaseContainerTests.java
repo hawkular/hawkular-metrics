@@ -34,6 +34,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.util.HashMap;
 import java.util.Map;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 import javax.ws.rs.client.Entity;
@@ -159,7 +160,7 @@ public abstract class BaseContainerTests {
     }
 
 
-    private SSLContext setupSSL(byte[] certificateBytes) throws CertificateException, IOException, KeyStoreException,
+    public SSLContext setupSSL(byte[] certificateBytes) throws CertificateException, IOException, KeyStoreException,
             NoSuchAlgorithmException, KeyManagementException {
 
         CertificateFactory cFactory = CertificateFactory.getInstance("X.509");

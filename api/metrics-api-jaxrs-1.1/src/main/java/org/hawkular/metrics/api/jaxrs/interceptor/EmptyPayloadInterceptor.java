@@ -51,12 +51,12 @@ public class EmptyPayloadInterceptor implements MessageBodyReaderInterceptor {
             return object;
         }
         if (object instanceof Collection) {
-            Collection collection = (Collection) object;
+            Collection<?> collection = (Collection<?>) object;
             if (collection.isEmpty()) {
                 throw new EmptyPayloadException();
             }
         } else if (object instanceof Map) {
-            Map map = (Map) object;
+            Map<?, ?> map = (Map<?, ?>) object;
             if (map.isEmpty()) {
                 throw new EmptyPayloadException();
             }

@@ -37,14 +37,18 @@ public class LeaseService {
 
     public static final int DEFAULT_RENEWAL_RATE = 60;
 
+    @SuppressWarnings("unused")
     private RxSession session;
 
+    @SuppressWarnings("unused")
     private Queries queries;
 
     private ScheduledExecutorService renewals = Executors.newScheduledThreadPool(1);
 
+    @SuppressWarnings("unused")
     private int ttl = DEFAULT_LEASE_TTL;
 
+    @SuppressWarnings("unused")
     private int renewalRate = DEFAULT_RENEWAL_RATE;
 
     public LeaseService(RxSession session, Queries queries) {

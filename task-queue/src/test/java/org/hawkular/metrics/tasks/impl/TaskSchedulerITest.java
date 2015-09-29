@@ -65,6 +65,7 @@ public class TaskSchedulerITest extends BaseITest {
 
     private long startTime;
 
+    @SuppressWarnings("unused")
     private Observable<Lease> leaseObservable;
 
     private Observable<Long> finishedTimeSlices;

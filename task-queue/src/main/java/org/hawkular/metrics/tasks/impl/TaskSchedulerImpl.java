@@ -309,7 +309,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
         // should help a lot but it does not completely avoid the problem. It only
         // takes one really long running task to cause back pressure. We will need to
         // figure something out.
-        return Observable.timer(0, 1, TimeUnit.MINUTES, tickScheduler)
+        return Observable.interval(0, 1, TimeUnit.MINUTES, tickScheduler)
                 .map(tick -> currentTimeSlice())
                 .takeUntil(d -> !running)
                 .doOnNext(tick -> log.debugf("Tick %s", tick))

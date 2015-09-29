@@ -52,7 +52,6 @@ public class Gauge {
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
-    @SuppressWarnings("unused")
     public Gauge(
             @JsonProperty("id")
             @org.codehaus.jackson.annotate.JsonProperty("id")

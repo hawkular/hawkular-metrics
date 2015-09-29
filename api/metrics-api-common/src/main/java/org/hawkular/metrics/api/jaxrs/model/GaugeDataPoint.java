@@ -46,7 +46,6 @@ public class GaugeDataPoint {
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
-    @SuppressWarnings("unused")
     public GaugeDataPoint(
             @JsonProperty("timestamp")
             @org.codehaus.jackson.annotate.JsonProperty("timestamp")

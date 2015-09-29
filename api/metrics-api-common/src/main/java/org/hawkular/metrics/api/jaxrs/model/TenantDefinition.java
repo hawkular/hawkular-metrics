@@ -48,7 +48,6 @@ public class TenantDefinition {
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
-    @SuppressWarnings("unused")
     public TenantDefinition(
             @JsonProperty("id")
             @org.codehaus.jackson.annotate.JsonProperty("id")
@@ -84,7 +83,6 @@ public class TenantDefinition {
     @org.codehaus.jackson.map.annotate.JsonDeserialize(
             keyUsing = org.hawkular.metrics.api.jaxrs.codehaus.jackson.MetricTypeKeyDeserializer.class
     )
-    @SuppressWarnings("unused")
     public Map<MetricType<?>, Integer> getRetentionSettings() {
         return retentionSettings;
     }

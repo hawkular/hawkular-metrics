@@ -51,7 +51,6 @@ public class MetricDefinition {
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
-    @SuppressWarnings("unused")
     public MetricDefinition(
             @JsonProperty("id")
             @org.codehaus.jackson.annotate.JsonProperty("id")

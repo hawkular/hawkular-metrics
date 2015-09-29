@@ -27,7 +27,7 @@ import java.util.Objects;
  */
 public class DataPoint<T> {
 
-    public static final Comparator<DataPoint> TIMESTAMP_COMPARATOR = Comparator.comparing(DataPoint::getTimestamp);
+    public static final Comparator<DataPoint<?>> TIMESTAMP_COMPARATOR = Comparator.comparing(DataPoint::getTimestamp);
 
     private final long timestamp;
 

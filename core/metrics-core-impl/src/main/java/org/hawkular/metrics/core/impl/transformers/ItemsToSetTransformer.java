@@ -35,6 +35,6 @@ public class ItemsToSetTransformer<T> implements Observable.Transformer<T, Set<T
         return metricIndexObservable
                 .toList()
                 .switchIfEmpty(Observable.from(new HashSet<>()))
-                .map((Func1<List<T>, HashSet<T>>) HashSet::new);
+                .map((Func1<List<T>, HashSet<T>>) HashSet<T>::new);
     }
 }

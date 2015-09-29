@@ -34,9 +34,9 @@ import com.google.common.base.Objects;
  *
  * @author John Sanda
  */
-public class AggregationTemplate {
+public class AggregationTemplate<T> {
 
-    private MetricType type;
+    private MetricType<T> type;
 
     private Interval interval;
 
@@ -49,11 +49,11 @@ public class AggregationTemplate {
      *
      * @return type
      */
-    public MetricType getType() {
+    public MetricType<T> getType() {
         return type;
     }
 
-    public AggregationTemplate setType(MetricType type) {
+    public AggregationTemplate<T> setType(MetricType<T> type) {
         this.type = type;
         return this;
     }
@@ -68,7 +68,7 @@ public class AggregationTemplate {
         return interval;
     }
 
-    public AggregationTemplate setInterval(Interval interval) {
+    public AggregationTemplate<T> setInterval(Interval interval) {
         this.interval = interval;
         return this;
     }
@@ -85,11 +85,12 @@ public class AggregationTemplate {
         return functions;
     }
 
-    public AggregationTemplate setFunctions(Set<String> functions) {
+    public AggregationTemplate<T> setFunctions(Set<String> functions) {
         this.functions = functions;
         return this;
     }
 
+    @SuppressWarnings("rawtypes")
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
