@@ -326,7 +326,9 @@
     <profile>
       <id>default</id>
       <activation>
-        <activeByDefault>true</activeByDefault>
+        <property>
+          <name>!openshift</name>
+        </property>
       </activation>
       <modules>
         <module>rx-java-driver</module>
@@ -344,6 +346,11 @@
     </profile>
     <profile>
       <id>openshift</id>
+      <activation>
+        <property>
+          <name>openshift</name>
+        </property>
+      </activation>
       <properties>
         <skipTests>true</skipTests>
       </properties>
