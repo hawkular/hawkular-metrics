@@ -120,6 +120,11 @@
     </profile>
     <profile>
       <id>openshift</id>
+      <activation>
+        <property>
+          <name>openshift</name>
+        </property>
+      </activation>
       <modules>
         <module>cassandra-seed-provider</module>
         <module>hawkular-metrics-openshift-integration</module>
