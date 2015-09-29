@@ -106,9 +106,7 @@
     <profile>
       <id>eap-containers</id>
       <activation>
-        <property>
-          <name>!openshift</name>
-        </property>
+        <activeByDefault>true</activeByDefault>
       </activation>
       <modules>
         <module>cassandra-seed-provider</module>
@@ -122,11 +120,6 @@
     </profile>
     <profile>
       <id>openshift</id>
-      <activation>
-        <property>
-          <name>openshift</name>
-        </property>
-      </activation>
       <modules>
         <module>cassandra-seed-provider</module>
         <module>hawkular-metrics-openshift-integration</module>
