@@ -690,7 +690,12 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     @Override
     public Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end,
                                                              Buckets buckets) {
-        return findDataPoints(metricId, start, end)
+        return bucketize(findDataPoints(metricId, start, end), buckets);
+    }
+
+    private Observable<List<NumericBucketPoint>> bucketize(Observable<? extends DataPoint<? extends Number>> dataPoints,
+                                                           Buckets buckets) {
+        return dataPoints
                 .groupBy(dataPoint -> buckets.getIndex(dataPoint.getTimestamp()))
                 .flatMap(group -> group.collect(() -> new NumericDataPointCollector(buckets, group.getKey()),
                         NumericDataPointCollector::increment))
