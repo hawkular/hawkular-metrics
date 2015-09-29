@@ -94,11 +94,6 @@ import rx.functions.Func3;
 public class MetricsServiceImpl implements MetricsService, TenantsService {
     private static final CoreLogger log = CoreLogging.getCoreLogger(MetricsServiceImpl.class);
 
-    /**
-     * In seconds.
-     */
-    public static final int DEFAULT_TTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
-
     public static final String SYSTEM_TENANT_ID = makeSafe("system");
 
     private static class DataRetentionKey {
@@ -171,6 +166,8 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
      * Functions used to transform a row into a data point object.
      */
     private Map<MetricType<?>, Func1<Row, ? extends DataPoint<?>>> dataPointMappers;
+
+    private int defaultTTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
     public void startUp(Session session, String keyspace, boolean resetDb, MetricRegistry metricRegistry) {
         startUp(session, keyspace, resetDb, true, metricRegistry);
@@ -355,6 +352,14 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     public void setDateTimeService(DateTimeService dateTimeService) {
         this.dateTimeService = dateTimeService;
+    }
+
+    public int getDefaultTTL() {
+        return defaultTTL;
+    }
+
+    public void setDefaultTTL(int defaultTTL) {
+        this.defaultTTL = Duration.standardDays(defaultTTL).toStandardSeconds().getSeconds();
     }
 
     @Override
@@ -782,10 +787,8 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     private int getTTL(MetricId<?> metricId) {
         Integer ttl = dataRetentions.get(new DataRetentionKey(metricId));
         if (ttl == null) {
-            ttl = dataRetentions.get(new DataRetentionKey(metricId.getTenantId(), metricId.getType()));
-            if (ttl == null) {
-                ttl = DEFAULT_TTL;
-            }
+            ttl = dataRetentions.getOrDefault(new DataRetentionKey(metricId.getTenantId(), metricId.getType()),
+                    defaultTTL);
         }
         return ttl;
     }

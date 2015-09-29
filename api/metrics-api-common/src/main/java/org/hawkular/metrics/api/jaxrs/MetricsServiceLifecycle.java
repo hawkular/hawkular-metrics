@@ -26,6 +26,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_K
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_NODES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_RESETDB;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_USESSL;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.USE_VIRTUAL_CLOCK;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
@@ -138,6 +139,11 @@ public class MetricsServiceLifecycle {
     @ConfigurationProperty(CASSANDRA_USESSL)
     private String cassandraUseSSL;
 
+    @Inject
+    @Configurable
+    @ConfigurationProperty(DEFAULT_TTL)
+    private String defaultTTL;
+
     private volatile State state;
     private int connectionAttempts;
     private Session session;
@@ -219,6 +225,7 @@ public class MetricsServiceLifecycle {
             metricsService.setDataAccess(dataAcces);
             metricsService.setTaskScheduler(taskScheduler);
             metricsService.setDateTimeService(createDateTimeService());
+            metricsService.setDefaultTTL(getDefaultTTL());
 
             // TODO Set up a managed metric registry
             // We want a managed registry that can be shared by the JAX-RS endpoint and the core. Then we can expose
@@ -294,6 +301,15 @@ public class MetricsServiceLifecycle {
 
         }
         taskScheduler.start();
+    }
+
+    private int getDefaultTTL() {
+        try {
+            return Integer.parseInt(defaultTTL);
+        } catch (NumberFormatException e) {
+            log.warnInvalidDefaultTTL(defaultTTL, DEFAULT_TTL.defaultValue());
+            return Integer.parseInt(DEFAULT_TTL.defaultValue());
+        }
     }
 
     private void initJobs() {
