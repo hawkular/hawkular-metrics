@@ -347,6 +347,67 @@ Actual:   ${response.data}
     }
   }
 
+  @Test
+  void findRateStats() {
+    String counter = "C1"
+
+    // Create the tenant
+    def response = hawkularMetrics.post(
+        path: "tenants",
+        body: [id: tenantId]
+    )
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(
+        path: "counters/$counter/data",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [timestamp: 60_000 * 1.0, value: 0],
+            [timestamp: 60_000 * 1.5, value: 200],
+            [timestamp: 60_000 * 3.5, value: 400],
+            [timestamp: 60_000 * 5.0, value: 550],
+            [timestamp: 60_000 * 7.0, value: 950],
+            [timestamp: 60_000 * 7.5, value: 1000],
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(
+        path: "counters/$counter/rate",
+        headers: [(tenantHeaderName): tenantId],
+        query: [start: 60_000, end: 60_000 * 8, bucketDuration: '1mn']
+    )
+    assertEquals(200, response.status)
+
+    def expectedData = []
+    (1..7).each { i ->
+      def bucketPoint = [start: 60_000 * i, end: 60_000 * (i + 1)]
+      double val;
+      switch (i) {
+        case 1:
+          val = 400D;
+          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: false] as Map)
+          break;
+        case 3:
+        case 5:
+          val = Double.NaN
+          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: true] as Map)
+          break;
+        case 6:
+          val = 200D;
+          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: false] as Map)
+          break;
+        default:
+          val = 100D;
+          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: false] as Map)
+          break;
+      }
+      expectedData.push(bucketPoint);
+    }
+
+    assertNumericBucketsEquals(expectedData, response.data ?: [])
+  }
+
   static void assertRateEquals(String msg, def expected, def actual) {
     assertEquals(msg, expected.timestamp, actual.timestamp)
     assertDoubleEquals(msg, expected.value, actual.value)

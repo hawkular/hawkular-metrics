@@ -679,6 +679,12 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                 });
     }
 
+    @Override
+    public Observable<List<NumericBucketPoint>> findRateStats(MetricId<Long> id, long start, long end,
+                                                              Buckets buckets) {
+        return bucketize(findRateData(id, start, end), buckets);
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public <T> Observable<T> findGaugeData(MetricId<Double> id, Long start, Long end,
@@ -689,7 +695,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end,
-                                                             Buckets buckets) {
+                                                               Buckets buckets) {
         return bucketize(findDataPoints(metricId, start, end), buckets);
     }
 

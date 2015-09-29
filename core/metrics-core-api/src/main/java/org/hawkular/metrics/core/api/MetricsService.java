@@ -175,6 +175,18 @@ public interface MetricsService {
     Observable<DataPoint<Double>> findRateData(MetricId<Long> id, long start, long end);
 
     /**
+     * Computes stats on a counter rate.
+     *
+     * @param id      counter metric id
+     * @param start   start time, inclusive
+     * @param end     end time, exclusive
+     * @param buckets bucket configuration
+     *
+     * @return an {@link Observable} emitting a single {@link List} of {@link NumericBucketPoint}
+     */
+    Observable<List<NumericBucketPoint>> findRateStats(MetricId<Long> id, long start, long end, Buckets buckets);
+
+    /**
      * <p>
      * For a specified date range, return a list of periods in which the predicate evaluates to true for each
      * consecutive data point. The periods are returned in ascending order. Consider the following data points,

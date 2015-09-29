@@ -151,8 +151,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
         ]
     ]
 
-    assertEquals('The number of bucketed data points is wrong', expectedData.size(), response.data.size())
-    expectedData.size().times { assertBucketEquals(it, expectedData[it], response.data[it]) }
+    assertNumericBucketsEquals(expectedData, response.data ?: [])
   }
 
   @Test
@@ -212,8 +211,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
         headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
 
-    assertEquals('The number of bucketed data points is wrong', expectedData.size(), response.data.size())
-    expectedData.size().times { assertBucketEquals(it, expectedData[it], response.data[it]) }
+    assertNumericBucketsEquals(expectedData, response.data ?: [])
   }
 
   private static List<Double> createSample(int sampleSize) {
@@ -221,17 +219,5 @@ class GaugeMetricStatisticsITest extends RESTTest {
     def random = new Random()
     Arrays.setAll(values, { i -> random.nextDouble() * 1000D })
     return values;
-  }
-
-  private static void assertBucketEquals(def index, def expected, def actual) {
-    def msg = "Index ${index}, expected ${expected}, actual ${actual}"
-    assertEquals(msg, expected.start, actual.start)
-    assertEquals(msg, expected.end, actual.end)
-    assertEquals(msg, expected.empty, actual.empty)
-    assertDoubleEquals(msg, expected.min, actual.min)
-    assertDoubleEquals(msg, expected.avg, actual.avg)
-    assertDoubleEquals(msg, expected.median, actual.median)
-    assertDoubleEquals(msg, expected.max, actual.max)
-    assertDoubleEquals(msg, expected.percentile95th, actual.percentile95th)
   }
 }
