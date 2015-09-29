@@ -43,12 +43,12 @@ import org.hawkular.metrics.core.api.AvailabilityBucketPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.GaugeBucketPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.NumericBucketPoint;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
@@ -688,15 +688,15 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public Observable<List<GaugeBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end,
+    public Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end,
                                                              Buckets buckets) {
         return findDataPoints(metricId, start, end)
                 .groupBy(dataPoint -> buckets.getIndex(dataPoint.getTimestamp()))
-                .flatMap(group -> group.collect(() -> new GaugeDataPointCollector(buckets, group.getKey()),
-                        GaugeDataPointCollector::increment))
-                .map(GaugeDataPointCollector::toBucketPoint)
-                .toMap(GaugeBucketPoint::getStart)
-                .map(pointMap -> GaugeBucketPoint.toList(pointMap, buckets));
+                .flatMap(group -> group.collect(() -> new NumericDataPointCollector(buckets, group.getKey()),
+                        NumericDataPointCollector::increment))
+                .map(NumericDataPointCollector::toBucketPoint)
+                .toMap(NumericBucketPoint::getStart)
+                .map(pointMap -> NumericBucketPoint.toList(pointMap, buckets));
     }
 
     @Override

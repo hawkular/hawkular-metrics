@@ -148,7 +148,8 @@ public interface MetricsService {
     <T> Observable<T> findGaugeData(MetricId<Double> id, Long start, Long end,
                                     Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs);
 
-    Observable<List<GaugeBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end, Buckets buckets);
+    Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end, Buckets
+            buckets);
 
     Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId<AvailabilityType> id, long start, long end,
                                                                  boolean distinct);

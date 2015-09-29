@@ -23,18 +23,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * {@link BucketPoint} for gauge metrics.
+ * {@link BucketPoint} for numeric metrics.
  *
  * @author Thomas Segismont
  */
-public final class GaugeBucketPoint extends BucketPoint {
+public final class NumericBucketPoint extends BucketPoint {
     private final double min;
     private final double avg;
     private final double median;
     private final double max;
     private final double percentile95th;
 
-    private GaugeBucketPoint(long start, long end, double min, double avg, double median, double max, double
+    private NumericBucketPoint(long start, long end, double min, double avg, double median, double max, double
             percentile95th) {
         super(start, end);
         this.min = min;
@@ -71,7 +71,7 @@ public final class GaugeBucketPoint extends BucketPoint {
 
     @Override
     public String toString() {
-        return "GaugeBucketPoint[" +
+        return "NumericBucketPoint[" +
                 "start=" + getStart() +
                 ", end=" + getEnd() +
                 ", min=" + min +
@@ -86,7 +86,7 @@ public final class GaugeBucketPoint extends BucketPoint {
     /**
      * @see BucketPoint#toList(Map, Buckets, java.util.function.BiFunction)
      */
-    public static List<GaugeBucketPoint> toList(Map<Long, GaugeBucketPoint> pointMap, Buckets buckets) {
+    public static List<NumericBucketPoint> toList(Map<Long, NumericBucketPoint> pointMap, Buckets buckets) {
         return BucketPoint.toList(pointMap, buckets, (start, end) -> new Builder(start, end).build());
     }
 
@@ -135,8 +135,8 @@ public final class GaugeBucketPoint extends BucketPoint {
             return this;
         }
 
-        public GaugeBucketPoint build() {
-            return new GaugeBucketPoint(start, end, min, avg, median, max, percentile95th);
+        public NumericBucketPoint build() {
+            return new NumericBucketPoint(start, end, min, avg, median, max, percentile95th);
         }
     }
 
