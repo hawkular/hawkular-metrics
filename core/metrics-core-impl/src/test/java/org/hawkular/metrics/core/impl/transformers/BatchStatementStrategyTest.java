@@ -17,8 +17,8 @@
 
 package org.hawkular.metrics.core.impl.transformers;
 
-import static org.hawkular.metrics.core.impl.transformers.BatchStatementTransformer.DEFAULT_BATCH_STATEMENT_FACTORY;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 import java.util.List;
@@ -34,30 +34,36 @@ import rx.Observable;
 /**
  * @author Thomas Segismont
  */
-public class BatchStatementTransformerTest {
+public class BatchStatementStrategyTest {
 
     private int batchSize;
-    private BatchStatementTransformer batchStatementTransformer;
+    private BatchStatementStrategy batchStatementStrategy;
 
     @Before
     public void setUp() throws Exception {
         batchSize = 5;
-        batchStatementTransformer = new BatchStatementTransformer(DEFAULT_BATCH_STATEMENT_FACTORY, batchSize);
+        batchStatementStrategy = new BatchStatementStrategy(batchSize);
     }
 
     @Test
     public void testCall() throws Exception {
         int expected = 6;
         // Emit enough statements to get expected count of batches, with the last batch holding just one
-        List<BatchStatement> result = Observable.range(0, (expected - 1) * batchSize + 1)
+        List<Statement> result = Observable.range(0, (expected - 1) * batchSize + 1)
                 .map(i -> mock(Statement.class))
-                .compose(batchStatementTransformer)
+                .compose(batchStatementStrategy)
                 .toList()
                 .toBlocking()
                 .single();
         assertEquals(expected, result.size());
         for (int i = 0; i < result.size(); i++) {
-            assertEquals(i < (result.size() - 1) ? batchSize : 1, result.get(i).size());
+            Statement statement = result.get(i);
+            if (statement instanceof BatchStatement) {
+                BatchStatement batchStatement = (BatchStatement) statement;
+                assertEquals(i < (result.size() - 1) ? batchSize : 1, batchStatement.size());
+            } else {
+                fail("Not a batch statement: " + statement.getClass().getCanonicalName());
+            }
         }
     }
 }

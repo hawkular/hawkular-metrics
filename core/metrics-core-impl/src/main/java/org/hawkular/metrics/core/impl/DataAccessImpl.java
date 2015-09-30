@@ -36,7 +36,7 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Tenant;
-import org.hawkular.metrics.core.impl.transformers.BatchStatementTransformer;
+import org.hawkular.metrics.core.impl.transformers.BatchStatementStrategy;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
@@ -372,10 +372,11 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public <T> Observable<Integer> updateMetricsIndex(Observable<Metric<T>> metrics) {
+        BatchStatementStrategy transformer = new BatchStatementStrategy();
         return metrics.map(Metric::getId)
                 .map(id -> updateMetricsIndex.bind(id.getTenantId(), id.getType().getCode(), id.getName()))
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+                .compose(transformer)
+                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> transformer.sizeof(batch)));
     }
 
     @Override
@@ -385,20 +386,22 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
+        BatchStatementStrategy transformer = new BatchStatementStrategy();
         return Observable.from(gauge.getDataPoints())
                 .map(dataPoint -> bindDataPoint(insertGaugeData, gauge, dataPoint.getValue(),
                         dataPoint.getTimestamp(), ttl))
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+                .compose(transformer)
+                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> transformer.sizeof(batch)));
     }
 
     @Override
     public Observable<Integer> insertCounterData(Metric<Long> counter, int ttl) {
+        BatchStatementStrategy transformer = new BatchStatementStrategy();
         return Observable.from(counter.getDataPoints())
                 .map(dataPoint -> bindDataPoint(insertCounterData, counter, dataPoint.getValue(),
                         dataPoint.getTimestamp(), ttl))
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+                .compose(transformer)
+                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> transformer.sizeof(batch)));
     }
 
     private BoundStatement bindDataPoint(
@@ -500,11 +503,12 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
+        BatchStatementStrategy transformer = new BatchStatementStrategy();
         return Observable.from(metric.getDataPoints())
                 .map(dataPoint -> bindDataPoint(insertAvailability, metric, getBytes(dataPoint),
                         dataPoint.getTimestamp(), ttl))
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+                .compose(transformer)
+                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> transformer.sizeof(batch)));
     }
 
     private ByteBuffer getBytes(DataPoint<AvailabilityType> dataPoint) {
@@ -527,7 +531,7 @@ public class DataAccessImpl implements DataAccess {
                                                        Map<String, Integer> retentions) {
         return Observable.from(retentions.entrySet())
                 .map(entry -> updateRetentionsIndex.bind(tenantId, type.getCode(), entry.getKey(), entry.getValue()))
-                .compose(new BatchStatementTransformer())
+                .compose(new BatchStatementStrategy())
                 .flatMap(rxSession::execute);
     }
 
