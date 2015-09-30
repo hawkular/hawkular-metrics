@@ -22,7 +22,6 @@ import static java.util.Collections.singletonList;
 import static org.hawkular.metrics.core.api.AvailabilityType.UP;
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
-import static org.hawkular.metrics.core.impl.MetricsServiceImpl.DEFAULT_TTL;
 import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
@@ -50,6 +49,8 @@ import rx.Observable;
  * @author John Sanda
  */
 public class DataAccessITest extends MetricsITest {
+
+    private static int DEFAULT_TTL = 600;
 
     private DataAccessImpl dataAccess;
 

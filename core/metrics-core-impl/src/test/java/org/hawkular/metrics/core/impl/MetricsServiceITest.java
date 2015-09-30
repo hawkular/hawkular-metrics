@@ -29,7 +29,6 @@ import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.DataAccessImpl.DPART;
 import static org.hawkular.metrics.core.impl.Functions.makeSafe;
-import static org.hawkular.metrics.core.impl.MetricsServiceImpl.DEFAULT_TTL;
 import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Days.days;
@@ -85,6 +84,8 @@ import rx.Observable;
  */
 public class MetricsServiceITest extends MetricsITest {
 
+    private static final int DEFAULT_TTL = 7;    // 7 days
+
     private MetricsServiceImpl metricsService;
 
     private DataAccess dataAccess;
@@ -106,6 +107,7 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.setDataAccess(dataAccess);
         metricsService.setTaskScheduler(new FakeTaskScheduler());
         metricsService.setDateTimeService(dateTimeService);
+        metricsService.setDefaultTTL(DEFAULT_TTL);
         metricsService.startUp(session, getKeyspace(), false, new MetricRegistry());
 
 

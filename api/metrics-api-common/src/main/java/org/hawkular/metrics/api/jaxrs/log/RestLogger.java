@@ -77,4 +77,8 @@ public interface RestLogger extends BasicLogger {
     @LogMessage(level = ERROR)
     @Message(id = 200010, value = "Failed to process request")
     void errorRequestProblem(@Cause Throwable t);
+
+    @LogMessage(level = WARN)
+    @Message(id = 200011, value = "Invalid value [%s] for default TTL. Will use a default of %s days")
+    void warnInvalidDefaultTTL(String ttl, String defaultTTL);
 }
