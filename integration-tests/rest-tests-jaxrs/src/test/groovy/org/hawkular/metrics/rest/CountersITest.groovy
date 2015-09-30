@@ -296,6 +296,68 @@ class CountersITest extends RESTTest {
   }
 
   @Test
+  void findCounterStats() {
+    String counter = "C1"
+
+    // Create the tenant
+    def response = hawkularMetrics.post(
+        path: "tenants",
+        body: [id: tenantId]
+    )
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(
+        path: "counters/$counter/data",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [timestamp: 60_000 * 1.0, value: 0],
+            [timestamp: 60_000 * 1.5, value: 200],
+            [timestamp: 60_000 * 3.5, value: 400],
+            [timestamp: 60_000 * 5.0, value: 550],
+            [timestamp: 60_000 * 7.0, value: 950],
+            [timestamp: 60_000 * 7.5, value: 1000],
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(
+        path: "counters/$counter/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [start: 60_000, end: 60_000 * 8, bucketDuration: '1mn']
+    )
+    assertEquals(200, response.status)
+
+    def expectedData = []
+    (1..7).each { i ->
+      def bucketPoint = [start: 60_000 * i, end: 60_000 * (i + 1)]
+      double val;
+      switch (i) {
+        case 1:
+          bucketPoint.putAll([min: 0D, avg: 100D, median: 0D, max: 200D, percentile95th: 0D, empty: false] as Map)
+          break;
+        case 2:
+        case 4:
+        case 6:
+          val = Double.NaN
+          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: true] as Map)
+          break;
+        case 3:
+          bucketPoint.putAll([min: 400D, avg: 400D, median: 400D, max: 400D, percentile95th: 400D, empty: false] as Map)
+          break;
+        case 5:
+          bucketPoint.putAll([min: 550D, avg: 550D, median: 550D, max: 550D, percentile95th: 550D, empty: false] as Map)
+          break;
+        case 7:
+          bucketPoint.putAll([min: 950D, avg: 975D, median: 950D, max: 1000D, percentile95th: 950D, empty: false] as Map)
+          break;
+      }
+      expectedData.push(bucketPoint);
+    }
+
+    assertNumericBucketsEquals(expectedData, response.data ?: [])
+  }
+
+  @Test
   void findRate() {
     String counter = "C1"
 

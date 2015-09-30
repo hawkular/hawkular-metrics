@@ -743,6 +743,12 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
+    public Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, long start, long end, Buckets
+            buckets) {
+        return bucketize(findDataPoints(id, start, end), buckets);
+    }
+
+    @Override
     public Observable<List<long[]>> getPeriods(MetricId<Double> id, Predicate<Double> predicate, long start, long end) {
         return dataAccess.findGaugeData(new Metric<>(id), start, end, Order.ASC)
                 .flatMap(Observable::from)

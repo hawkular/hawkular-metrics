@@ -194,22 +194,51 @@ public class CounterHandler {
     @Path("/{id}/data")
     public Response findCounterData(
             @PathParam("id") String id,
-            @QueryParam("start") final Long start,
-            @QueryParam("end") final Long end
+            @QueryParam("start") Long start,
+            @QueryParam("end") Long end,
+            @QueryParam("buckets") Integer bucketsCount,
+            @QueryParam("bucketDuration") Duration bucketDuration
     ) {
         long now = System.currentTimeMillis();
         long startTime = start == null ? now - EIGHT_HOURS : start;
         long endTime = end == null ? now : end;
 
-        try {
-            return metricsService.findDataPoints(new MetricId<>(tenantId, COUNTER, id), startTime, endTime)
-                .map(CounterDataPoint::new)
-                .toList()
-                .map(ApiUtils::collectionToResponse)
-                .toBlocking()
-                .lastOrDefault(null);
-        } catch (Exception e) {
-            return serverError(e);
+        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+
+        if (bucketsCount == null && bucketDuration == null) {
+            try {
+                return metricsService.findDataPoints(metricId, startTime, endTime)
+                        .map(CounterDataPoint::new)
+                        .toList()
+                        .map(ApiUtils::collectionToResponse)
+                        .toBlocking()
+                        .lastOrDefault(null);
+            } catch (Exception e) {
+                return serverError(e);
+            }
+        } else if (bucketsCount != null && bucketDuration != null) {
+            return badRequest(new ApiError("Both buckets and bucketDuration parameters are used"));
+        } else {
+            Buckets buckets;
+            try {
+                if (bucketsCount != null) {
+                    buckets = Buckets.fromCount(startTime, endTime, bucketsCount);
+                } else {
+                    buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
+                }
+            } catch (IllegalArgumentException e) {
+                return badRequest(new ApiError("Bucket: " + e.getMessage()));
+            }
+
+            try {
+                return metricsService
+                        .findCounterStats(metricId, startTime, endTime, buckets)
+                        .map(ApiUtils::collectionToResponse)
+                        .toBlocking()
+                        .lastOrDefault(null);
+            } catch (Exception e) {
+                return serverError(e);
+            }
         }
     }
 

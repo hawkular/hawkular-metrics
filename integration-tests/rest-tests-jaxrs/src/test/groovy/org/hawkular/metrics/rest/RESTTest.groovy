@@ -148,7 +148,10 @@ ${entity}
   }
 
   static void assertNumericBucketsEquals(List expected, List actual) {
-    def msg = "Expected: ${expected}, actual: ${actual}"
+    def msg = """
+Expected:${expected}
+Actual: ${actual}
+"""
     assertEquals(msg, expected.size(), actual.size())
     expected.size().times { i ->
       assertNumericBucketEquals(msg, expected.get(i), actual.get(i))

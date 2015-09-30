@@ -575,6 +575,50 @@ public class MetricsServiceITest extends MetricsITest {
     }
 
     @Test
+    public void findCouterStats() {
+        String tenantId = "counter-stats-test";
+
+        Metric<Long> counter = new Metric<>(new MetricId<>(tenantId, COUNTER, "C1"), asList(
+                new DataPoint<>((long) (60_000 * 1.0), 0L),
+                new DataPoint<>((long) (60_000 * 1.5), 200L),
+                new DataPoint<>((long) (60_000 * 3.5), 400L),
+                new DataPoint<>((long) (60_000 * 5.0), 550L),
+                new DataPoint<>((long) (60_000 * 7.0), 950L),
+                new DataPoint<>((long) (60_000 * 7.5), 1000L)
+        ));
+
+        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
+
+        List<NumericBucketPoint> actual = metricsService.findCounterStats(counter.getId(),
+                0, now().getMillis(), Buckets.fromStep(60_000, 60_000 * 8, 60_000)).toBlocking().single();
+        List<NumericBucketPoint> expected = new ArrayList<>();
+        for (int i = 1; i < 8; i++) {
+            NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(60_000 * i, 60_000 * (i + 1));
+            switch (i) {
+                case 1:
+                    builder.setAvg(100D).setMax(200D).setMedian(0D).setMin(0D).setPercentile95th(0D);
+                    break;
+                case 2:
+                case 4:
+                case 6:
+                    break;
+                case 3:
+                    builder.setAvg(400D).setMax(400D).setMedian(400D).setMin(400D).setPercentile95th(400D);
+                    break;
+                case 5:
+                    builder.setAvg(550D).setMax(550D).setMedian(550D).setMin(550D).setPercentile95th(550D);
+                    break;
+                case 7:
+                    builder.setAvg(975D).setMax(1000D).setMedian(950D).setMin(950D).setPercentile95th(950D);
+                    break;
+            }
+            expected.add(builder.build());
+        }
+
+        assertNumericBucketsEquals(actual, expected);
+    }
+
+    @Test
     public void findRates() {
         String tenantId = "counter-rate-test";
 
@@ -647,7 +691,7 @@ public class MetricsServiceITest extends MetricsITest {
     }
 
     private static void assertNumericBucketsEquals(List<NumericBucketPoint> actual, List<NumericBucketPoint> expected) {
-        String msg = "Expected: " + expected + ", actual: " + actual;
+        String msg = String.format("%nExpected:%n%s%nActual:%n%s%n", expected, actual);
         assertEquals(actual.size(), expected.size(), msg);
         IntStream.range(0, actual.size()).forEach(i -> {
             NumericBucketPoint actualPoint = actual.get(i);
