@@ -113,6 +113,26 @@
 
     <!-- override here as a workaround for https://issues.jboss.org/browse/WFMP-14 -->
     <version.wildfly-maven-plugin>1.1.0.Alpha2</version.wildfly-maven-plugin>
+
+    <!-- from various submodules -->
+    <version.com.github.jnr.jnr-posix>3.0.9</version.com.github.jnr.jnr-posix>
+    <version.com.github.kongchen.swagger-maven-plugin>3.1.0</version.com.github.kongchen.swagger-maven-plugin>
+    <version.commons-cli.commons-cli>1.2</version.commons-cli.commons-cli>
+    <version.commons-codec>1.10</version.commons-codec>
+    <version.io.fabric8>2.2.16</version.io.fabric8>
+    <version.io.vertx.vertx-core>3.0.0</version.io.vertx.vertx-core>
+    <version.maven-surefire-report-plugin>2.6</version.maven-surefire-report-plugin>
+    <version.org.acplt.oncrpc>1.0.7</version.org.acplt.oncrpc>
+    <version.org.apache.commons.commons-math3>3.4.1</version.org.apache.commons.commons-math3>
+    <version.org.apache.felix.maven-bundle-plugin>2.5.3</version.org.apache.felix.maven-bundle-plugin>
+    <version.org.apache.maven.plugins.maven-jar-plugin>2.6</version.org.apache.maven.plugins.maven-jar-plugin>
+    <version.org.apache.maven.plugins.maven-project-info-reports-plugin>2.7</version.org.apache.maven.plugins.maven-project-info-reports-plugin>
+    <version.org.codehaus.groovy.groovy-all>2.3.8</version.org.codehaus.groovy.groovy-all>
+    <version.org.codehaus.groovy.modules.http-builder>0.7</version.org.codehaus.groovy.modules.http-builder>
+    <version.org.codehaus.jackson.jackson-mapper-asl>1.9.13</version.org.codehaus.jackson.jackson-mapper-asl>
+    <version.org.codehaus.mojo.dashboard-maven-plugin>1.0.0-beta-1</version.org.codehaus.mojo.dashboard-maven-plugin>
+    <version.org.jmxtrans.embedded.embedded-jmxtrans>1.0.15</version.org.jmxtrans.embedded.embedded-jmxtrans>
+    <version.org.influxdb.influxdb-java>1.5</version.org.influxdb.influxdb-java>
   </properties>
 
   <dependencyManagement>
@@ -201,6 +221,75 @@
         <artifactId>swagger-annotations</artifactId>
         <version>${version.io.swagger}</version>
       </dependency>
+
+      <dependency>
+        <groupId>org.codehaus.jackson</groupId>
+        <artifactId>jackson-mapper-asl</artifactId>
+        <version>${version.org.codehaus.jackson.jackson-mapper-asl}</version>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.codehaus.groovy</groupId>
+        <artifactId>groovy-all</artifactId>
+        <version>${version.org.codehaus.groovy.groovy-all}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>${version.commons-codec}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-log4j12</artifactId>
+        <version>${version.org.slf4j}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.fabric8</groupId>
+        <artifactId>fabric8-arquillian</artifactId>
+        <version>${version.io.fabric8}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-math3</artifactId>
+        <version>${version.org.apache.commons.commons-math3}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-core</artifactId>
+        <version>${version.io.vertx.vertx-core}</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-cli</groupId>
+        <artifactId>commons-cli</artifactId>
+        <version>${version.commons-cli.commons-cli}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.acplt</groupId>
+        <artifactId>oncrpc</artifactId>
+        <version>${version.org.acplt.oncrpc}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.jnr</groupId>
+        <artifactId>jnr-posix</artifactId>
+        <version>${version.com.github.jnr.jnr-posix}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jmxtrans.embedded</groupId>
+        <artifactId>embedded-jmxtrans</artifactId>
+        <version>${version.org.jmxtrans.embedded.embedded-jmxtrans}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.codehaus.groovy.modules.http-builder</groupId>
+        <artifactId>http-builder</artifactId>
+        <version>${version.org.codehaus.groovy.modules.http-builder}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.influxdb</groupId>
+        <artifactId>influxdb-java</artifactId>
+        <version>${version.org.influxdb.influxdb-java}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -220,33 +309,9 @@
           <artifactId>antlr4-maven-plugin</artifactId>
           <version>${version.org.antlr}</version>
         </plugin>
-
-        <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>animal-sniffer-maven-plugin</artifactId>
-          <version>1.11</version>
-        </plugin>
-
       </plugins>
     </pluginManagement>
     <plugins>
-
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>animal-sniffer-maven-plugin</artifactId>
-        <!-- This depedency upgrade is a workaround for MANIMALSNIFFER-45 -->
-        <!-- MANIMALSNIFFER-45 only affects users building with a JDK 8 -->
-        <!-- It can be removed once MANIMALSNIFFER-45 is fixed -->
-        <!-- See https://jira.codehaus.org/browse/MANIMALSNIFFER-45 -->
-        <dependencies>
-          <dependency>
-            <groupId>org.ow2.asm</groupId>
-            <artifactId>asm-all</artifactId>
-            <version>5.0.3</version>
-          </dependency>
-        </dependencies>
-      </plugin>
-
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
@@ -256,7 +321,7 @@
       <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
-        <version>2.5.3</version>
+        <version>${version.org.apache.felix.maven-bundle-plugin}</version>
         <extensions>true</extensions>
       </plugin>
 
@@ -283,6 +348,17 @@
         </configuration>
       </plugin>
 
+      <plugin>
+        <groupId>com.github.kongchen</groupId>
+        <artifactId>swagger-maven-plugin</artifactId>
+        <version>${version.com.github.kongchen.swagger-maven-plugin}</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>${version.org.apache.maven.plugins.maven-jar-plugin}</version>
+      </plugin>
     </plugins>
   </build>
 
@@ -302,20 +378,20 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-project-info-reports-plugin</artifactId>
-        <version>2.7</version>
+        <version>${version.org.apache.maven.plugins.aven-project-info-reports-plugin}</version>
         <configuration>
           <showAvatarImages>true</showAvatarImages>
         </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-surefire-report-plugin</artifactId>
-        <version>2.6</version>
+        <version>${version.maven-surefire-report-plugin}</version>
       </plugin>
       <plugin>
         <!-- must be last plugin in the list -->
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>dashboard-maven-plugin</artifactId>
-        <version>1.0.0-beta-1</version>
+        <version>${version.org.codehaus.mojo.dashboard-maven-plugin}</version>
       </plugin>
 
     </plugins>
