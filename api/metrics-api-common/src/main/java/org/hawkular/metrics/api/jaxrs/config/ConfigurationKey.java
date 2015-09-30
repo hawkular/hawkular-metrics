@@ -36,7 +36,11 @@ public enum ConfigurationKey {
     CASSANDRA_USESSL("hawkular-metrics.cassandra-use-ssl", "false", "CASSANDRA_USESSL", false),
     WAIT_FOR_SERVICE("hawkular.metrics.waitForService", null, null, true),
     USE_VIRTUAL_CLOCK("hawkular.metrics.use-virtual-clock", "false", "USE_VIRTUAL_CLOCK", false),
-    DEFAULT_TTL("hawkular.metrics.default-ttl", "7", "DEFAULT_TTL", false);
+    DEFAULT_TTL("hawkular.metrics.default-ttl", "7", "DEFAULT_TTL", false),
+    STATEMENT_BATCHING_STRATEGY("hawkular.metrics.statement-batching-strategy", null, null, false),
+    BATCH_STATEMENT_SIZE("hawkular.metrics.batch-statement-size", null, null, false),
+    /**/;
+
 
     private final String name;
     private final String env;
