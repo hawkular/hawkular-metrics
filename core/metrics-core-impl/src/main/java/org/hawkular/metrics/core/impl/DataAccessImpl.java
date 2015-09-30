@@ -333,12 +333,12 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findMetric(MetricId<?> id) {
+    public <T> Observable<ResultSet> findMetric(MetricId<T> id) {
         return rxSession.execute(findMetric.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
     }
 
     @Override
-    public Observable<ResultSet> getMetricTags(MetricId<?> id) {
+    public <T> Observable<ResultSet> getMetricTags(MetricId<T> id) {
         return rxSession.execute(getMetricTags.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
     }
 
@@ -512,7 +512,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findAvailabilityData(MetricId<?> id, long startTime, long endTime) {
+    public Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime) {
         return rxSession.execute(findAvailabilities.bind(id.getTenantId(), AVAILABILITY.getCode(), id.getName(), DPART,
                 getTimeUUID(startTime), getTimeUUID(endTime)));
     }
