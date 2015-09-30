@@ -660,35 +660,6 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.addDataPoints(AVAILABILITY, Observable.just(m3)).toBlocking();
     }
 
-    private void addGaugeDataInThePast(Metric<Double> metric, final Duration duration) throws Exception {
-        DataAccess originalDataAccess = metricsService.getDataAccess();
-        try {
-            metricsService.setDataAccess(new DelegatingDataAccess(dataAccess) {
-
-                @Override
-                public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
-                    return Observable.from(insertDataWithNewWriteTime(gauge, ttl))
-                            .map(resultSet -> gauge.getDataPoints().size());
-                }
-
-                public ResultSetFuture insertDataWithNewWriteTime(Metric<Double> m, int ttl) {
-                    int actualTTL = ttl - duration.toStandardSeconds().getSeconds();
-                    long writeTime = now().minus(duration).getMillis() * 1000;
-                    BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
-                    for (DataPoint<Double> d : m.getDataPoints()) {
-                        batchStatement.add(insertGaugeDataWithTimestamp.bind(m.getId().getTenantId(), GAUGE.getCode(),
-                                m.getId().getName(), DPART, getTimeUUID(d.getTimestamp()), d.getValue(), actualTTL,
-                                writeTime));
-                    }
-                    return session.executeAsync(batchStatement);
-                }
-            });
-            metricsService.addDataPoints(GAUGE, Observable.just(metric));
-        } finally {
-            metricsService.setDataAccess(originalDataAccess);
-        }
-    }
-
     private void addAvailabilityDataInThePast(Metric<AvailabilityType> metric, final Duration duration)
             throws Exception {
         DataAccess originalDataAccess = metricsService.getDataAccess();
