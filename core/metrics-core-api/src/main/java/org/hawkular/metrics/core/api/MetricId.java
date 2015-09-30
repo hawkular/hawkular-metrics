@@ -27,21 +27,14 @@ public class MetricId<T> {
     private final String tenantId;
     private final MetricType<T> type;
     private final String name;
-    private final Interval interval;
 
     public MetricId(String tenantId, MetricType<T> type, String name) {
-        this(tenantId, type, name, Interval.NONE);
-    }
-
-    public MetricId(String tenantId, MetricType<T> type, String name, Interval interval) {
         checkArgument(tenantId != null, "tenantId is null");
         checkArgument(type != null, "type is null");
         checkArgument(name != null, "name is null");
-        checkArgument(interval != null, "interval is null");
         this.tenantId = tenantId;
         this.type = type;
         this.name = name;
-        this.interval = interval;
     }
 
     public String getTenantId() {
@@ -56,24 +49,19 @@ public class MetricId<T> {
         return name;
     }
 
-    public Interval getInterval() {
-        return interval;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         MetricId<?> metricId = (MetricId<?>) o;
         return java.util.Objects.equals(name, metricId.name) &&
-                java.util.Objects.equals(interval, metricId.interval) &&
                 java.util.Objects.equals(tenantId, metricId.tenantId) &&
                 java.util.Objects.equals(type, metricId.type);
     }
 
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(name, interval, tenantId, type);
+        return java.util.Objects.hash(name, tenantId, type);
     }
 
     @Override
@@ -82,7 +70,6 @@ public class MetricId<T> {
                 .add("tenantId", tenantId)
                 .add("type", type)
                 .add("name", name)
-                .add("interval", interval)
                 .omitNullValues()
                 .toString();
     }
