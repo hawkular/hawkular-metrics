@@ -36,6 +36,9 @@
 
   <properties>
     <enforcer.skip>true</enforcer.skip>
+    <version.javax.enterprise.cdi-api>1.0-SP4-redhat-4</version.javax.enterprise.cdi-api>
+    <version.org.jboss.resteasy.jaxrs-api>2.3.10.Final-redhat-1</version.org.jboss.resteasy.jaxrs-api>
+    <version.org.jboss.spec.javax.servlet.jboss-servlet-api_3.0_spec>1.0.2.Final-redhat-1</version.org.jboss.spec.javax.servlet.jboss-servlet-api_3.0_spec>
   </properties>
 
   <repositories>
@@ -46,7 +49,6 @@
   </repositories>
 
   <dependencies>
-
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
       <artifactId>hawkular-metrics-core-impl</artifactId>
@@ -58,21 +60,21 @@
     <dependency>
       <groupId>javax.enterprise</groupId>
       <artifactId>cdi-api</artifactId>
-      <version>1.0-SP4-redhat-4</version>
+      <version>${version.javax.enterprise.cdi-api}</version>
       <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>jaxrs-api</artifactId>
-      <version>2.3.10.Final-redhat-1</version>
+      <version>${version.org.jboss.resteasy.jaxrs-api}</version>
       <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>org.jboss.spec.javax.servlet</groupId>
       <artifactId>jboss-servlet-api_3.0_spec</artifactId>
-      <version>1.0.2.Final-redhat-1</version>
+      <version>${version.org.jboss.spec.javax.servlet.jboss-servlet-api_3.0_spec}</version>
       <scope>provided</scope>
     </dependency>
 
@@ -89,7 +91,6 @@
     <dependency>
       <groupId>org.codehaus.jackson</groupId>
       <artifactId>jackson-mapper-asl</artifactId>
-      <version>1.9.13</version>
       <scope>provided</scope>
     </dependency>
 

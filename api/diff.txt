@@ -9,7 +9,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/met
 <   <artifactId>hawkular-metrics-api-jaxrs</artifactId>
 ---
 >   <artifactId>hawkular-metrics-api-jaxrs-1.1</artifactId>
-34,35c34,47
+34,35c34,50
 <   <name>Hawkular Metrics JAX-RS 2.0 API</name>
 <   <description>JAX-RS 2.0 REST API Implementation</description>
 ---
@@ -18,7 +18,10 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/met
 > 
 >   <properties>
 >     <enforcer.skip>true</enforcer.skip>
->     <container.bom.version>6.4.0.Beta1</container.bom.version>
+> 
+>     <version.container.bom>6.4.0.Beta1</version.container.bom>
+>     <version.org.jboss.as.plugins.jboss-as-maven-plugin>7.7.Final</version.org.jboss.as.plugins.jboss-as-maven-plugin>
+>     <version.org.jboss.as.container>7.5.0.Final-redhat-15</version.org.jboss.as.container>
 >   </properties>
 > 
 >   <repositories>
@@ -27,20 +30,20 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/met
 >       <url>https://maven.repository.redhat.com/earlyaccess/all/</url>
 >     </repository>
 >   </repositories>
-40,42c52,54
+40,42c55,57
 <         <groupId>org.wildfly.bom</groupId>
 <         <artifactId>jboss-javaee-7.0-wildfly</artifactId>
 <         <version>${version.org.wildfly}</version>
 ---
 >         <groupId>org.jboss.bom.eap</groupId>
 >         <artifactId>jboss-javaee-6.0-with-resteasy</artifactId>
->         <version>${container.bom.version}</version>
-51,54d62
+>         <version>${version.container.bom}</version>
+51,54d65
 <       <groupId>org.antlr</groupId>
 <       <artifactId>antlr4-runtime</artifactId>
 <     </dependency>
 <     <dependency>
-60,61c68,78
+60,61c71,81
 <     <!-- Wildfly provided -->
 <     <!-- No need to set the jboss-logging scope here since Wildfly BOM includes jboss-logging -->
 ---
@@ -55,15 +58,15 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/met
 >       -->
 >       <scope>provided</scope>
 >     </dependency>
-69c86
+69c89
 <       <artifactId>resteasy-jackson2-provider</artifactId>
 ---
 >       <artifactId>resteasy-jackson-provider</artifactId>
-74c91
+74c94
 <       <artifactId>jboss-servlet-api_3.1_spec</artifactId>
 ---
 >       <artifactId>jboss-servlet-api_3.0_spec</artifactId>
-82,100d98
+82,100d101
 < 
 <     <!-- documentation -->
 <     <dependency>
@@ -83,13 +86,13 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/met
 <       <artifactId>mockito-core</artifactId>
 <       <scope>test</scope>
 <     </dependency>
-104c102
+104c105
 <     <finalName>hawkular-metric-rest</finalName>
 ---
 >     <finalName>hawkular-metrics-api-rest-1.1</finalName>
-106d103
+106d106
 < 
-108,122c105,111
+108,122c108,114
 <         <groupId>org.antlr</groupId>
 <         <artifactId>antlr4-maven-plugin</artifactId>
 <         <executions>
@@ -108,20 +111,20 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/met
 ---
 >         <groupId>org.jboss.as.plugins</groupId>
 >         <artifactId>jboss-as-maven-plugin</artifactId>
->         <version>7.7.Final</version>
+>         <version>${version.org.jboss.as.plugins.jboss-as-maven-plugin}</version>
 >         <configuration>
->           <version>7.5.0.Final-redhat-15</version>
+>           <version>${version.org.jboss.as.container}</version>
 >           <port>${jboss-as.management.port}</port>
 >         </configuration>
-140c129
+140c132
 <                 <exclude>static/index.html</exclude>
 ---
 >                 <exclude>index.html</exclude>
-148c137
+148c140
 <                 <include>static/index.html</include>
 ---
 >                 <include>index.html</include>
-157,226d145
+157,225d148
 < 
 <   <profiles>
 <     <profile>
@@ -135,7 +138,6 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/met
 <           <plugin>
 <             <groupId>com.github.kongchen</groupId>
 <             <artifactId>swagger-maven-plugin</artifactId>
-<             <version>3.1.0</version>
 <             <configuration>
 <               <apiSources>
 <                 <apiSource>

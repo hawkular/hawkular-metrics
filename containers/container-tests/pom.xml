@@ -34,6 +34,7 @@
 
   <properties>
     <maven.test.skip>true</maven.test.skip>
+    <version.org.wildfly.bom.jboss-javaee-7.0-with-all>8.2.0.Final</version.org.wildfly.bom.jboss-javaee-7.0-with-all>
   </properties>
 
   <dependencyManagement>
@@ -43,7 +44,7 @@
       <dependency>
         <groupId>org.wildfly.bom</groupId>
         <artifactId>jboss-javaee-7.0-with-all</artifactId>
-        <version>8.2.0.Final</version>
+        <version>${version.org.wildfly.bom.jboss-javaee-7.0-with-all}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

@@ -36,7 +36,10 @@
 
   <properties>
     <enforcer.skip>true</enforcer.skip>
-    <container.bom.version>6.4.0.Beta1</container.bom.version>
+
+    <version.container.bom>6.4.0.Beta1</version.container.bom>
+    <version.org.jboss.as.plugins.jboss-as-maven-plugin>7.7.Final</version.org.jboss.as.plugins.jboss-as-maven-plugin>
+    <version.org.jboss.as.container>7.5.0.Final-redhat-15</version.org.jboss.as.container>
   </properties>
 
   <repositories>
@@ -51,7 +54,7 @@
       <dependency>
         <groupId>org.jboss.bom.eap</groupId>
         <artifactId>jboss-javaee-6.0-with-resteasy</artifactId>
-        <version>${container.bom.version}</version>
+        <version>${version.container.bom}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -104,9 +107,9 @@
       <plugin>
         <groupId>org.jboss.as.plugins</groupId>
         <artifactId>jboss-as-maven-plugin</artifactId>
-        <version>7.7.Final</version>
+        <version>${version.org.jboss.as.plugins.jboss-as-maven-plugin}</version>
         <configuration>
-          <version>7.5.0.Final-redhat-15</version>
+          <version>${version.org.jboss.as.container}</version>
           <port>${jboss-as.management.port}</port>
         </configuration>
       </plugin>

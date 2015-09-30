@@ -35,8 +35,8 @@
   <properties>
     <!-- Override version.org.apache.cassandra set in hawkular-parent -->
     <version.org.apache.cassandra>2.1.6</version.org.apache.cassandra>
-    <fabric8.version>2.2.16</fabric8.version>
-    <docker-maven-plugin.version>0.12.0</docker-maven-plugin.version>
+    <version.org.jolokia.docker-maven-plugin>0.12.0</version.org.jolokia.docker-maven-plugin>
+
     <docker.user>hawkular</docker.user>
     <hawkular-metrics.image>${docker.user}/hawkular-metrics:${project.version}</hawkular-metrics.image>
     <cassandra.build>devel</cassandra.build>
@@ -44,17 +44,6 @@
     <heapster.image>kubernetes/heapster:v0.17.0</heapster.image>
     <hawkular-deployment.image>${docker.user}/metrics-deployment:${project.version}</hawkular-deployment.image>
   </properties>
-
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>io.fabric8</groupId>
-        <artifactId>fabric8-arquillian</artifactId>
-        <version>${fabric8.version}</version>
-        <scope>test</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
 
   <build>
     <plugins>
@@ -74,12 +63,12 @@
         <plugin>
           <groupId>io.fabric8</groupId>
           <artifactId>fabric8-maven-plugin</artifactId>
-          <version>${fabric8.version}</version>
+          <version>${version.io.fabric8}</version>
         </plugin>
         <plugin>
           <groupId>org.jolokia</groupId>
           <artifactId>docker-maven-plugin</artifactId>
-          <version>${docker-maven-plugin.version}</version>
+          <version>${version.org.jolokia.docker-maven-plugin}</version>
         </plugin>
       </plugins>
     </pluginManagement>
