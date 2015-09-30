@@ -25,6 +25,7 @@ import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_N
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.valueToResponse;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 
 import java.net.URI;
@@ -55,8 +56,10 @@ import org.hawkular.metrics.api.jaxrs.model.Counter;
 import org.hawkular.metrics.api.jaxrs.model.CounterDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
@@ -146,8 +149,8 @@ public class CounterHandler {
             @PathParam("id") String id) {
         metricsService.getMetricTags(new MetricId<>(tenantId, COUNTER, id))
                 .subscribe(
-                        optional -> asyncResponse.resume(ApiUtils.valueToResponse(optional)),
-                        t -> asyncResponse.resume(ApiUtils.serverError(t)));
+                        optional -> asyncResponse.resume(valueToResponse(optional)),
+                        t -> asyncResponse.resume(serverError(t)));
     }
 
     @PUT
@@ -220,59 +223,111 @@ public class CounterHandler {
 
     @GET
     @Path("/{id}/data")
-    @ApiOperation(value = "Retrieve counter data points.", response = CounterDataPoint.class,
-            responseContainer = "List")
+    @ApiOperation(value = "Retrieve counter data points.", notes = "When buckets or bucketDuration query parameter " +
+            "is used, the time range between start and end will be divided in buckets of equal duration, and metric " +
+            "statistics will be computed for each bucket.", response = CounterDataPoint.class, responseContainer =
+            "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),
-            @ApiResponse(code = 400, message = "start or end parameter is invalid.",
-                         response = ApiError.class),
+            @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
+                    response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
                          response = ApiError.class) })
     public void findCounterData(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end) {
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration
+    ) {
 
         long now = System.currentTimeMillis();
         long startTime = start == null ? now - EIGHT_HOURS : start;
         long endTime = end == null ? now : end;
 
-        metricsService.findDataPoints(new MetricId<>(tenantId, COUNTER, id), startTime, endTime)
-                .map(CounterDataPoint::new)
-                .toList()
-                .map(ApiUtils::collectionToResponse)
-                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+
+        if (bucketsCount == null && bucketDuration == null) {
+            metricsService.findDataPoints(metricId, startTime, endTime)
+                    .map(CounterDataPoint::new)
+                    .toList()
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+        } else if (bucketsCount != null && bucketDuration != null) {
+            asyncResponse.resume(badRequest(new ApiError("Both buckets and bucketDuration parameters are used")));
+        } else {
+            Buckets buckets;
+            try {
+                if (bucketsCount != null) {
+                    buckets = Buckets.fromCount(startTime, endTime, bucketsCount);
+                } else {
+                    buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
+                }
+            } catch (IllegalArgumentException e) {
+                asyncResponse.resume(badRequest(new ApiError("Bucket: " + e.getMessage())));
+                return;
+            }
+
+            metricsService.findCounterStats(metricId, startTime, endTime, buckets)
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+        }
     }
 
     @GET
     @Path("/{id}/rate")
     @ApiOperation(
-            value = "Retrieve counter rate data points which are automatically generated on the server side.",
-            notes = "Rate data points are only generated for counters that are explicitly created.",
-            response = GaugeDataPoint.class, responseContainer = "List")
+            value = "Retrieve counter rate data points.", notes = "When buckets or bucketDuration query parameter is " +
+            "used, the time range between start and end will be divided in buckets of equal duration, and metric " +
+            "statistics will be computed for each bucket.", response = GaugeDataPoint.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),
-            @ApiResponse(code = 400, message = "start or end parameter is invalid.",
-                         response = ApiError.class),
+            @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
+                    response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
                          response = ApiError.class) })
     public void findRate(
         @Suspended AsyncResponse asyncResponse,
         @PathParam("id") String id,
-        @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
-        @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end) {
+        @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+        @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+        @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+        @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration
+    ) {
 
         long now = System.currentTimeMillis();
         long startTime = start == null ? now - EIGHT_HOURS : start;
         long endTime = end == null ? now : end;
 
-        metricsService.findRateData(new MetricId<>(tenantId, COUNTER, id), startTime, endTime)
-                .map(GaugeDataPoint::new)
-                .toList()
-                .map(ApiUtils::collectionToResponse)
-                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+
+        if (bucketsCount == null && bucketDuration == null) {
+            metricsService.findRateData(metricId, startTime, endTime)
+                    .map(GaugeDataPoint::new)
+                    .toList()
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+        } else if (bucketsCount != null && bucketDuration != null) {
+            asyncResponse.resume(badRequest(new ApiError("Both buckets and bucketDuration parameters are used")));
+        } else {
+            Buckets buckets;
+            try {
+                if (bucketsCount != null) {
+                    buckets = Buckets.fromCount(startTime, endTime, bucketsCount);
+                } else {
+                    buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
+                }
+            } catch (IllegalArgumentException e) {
+                asyncResponse.resume(badRequest(new ApiError("Bucket: " + e.getMessage())));
+                return;
+            }
+
+            metricsService.findRateStats(metricId, startTime, endTime, buckets)
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+        }
     }
 }

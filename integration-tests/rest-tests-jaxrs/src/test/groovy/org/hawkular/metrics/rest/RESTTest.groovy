@@ -147,15 +147,27 @@ ${entity}
     }
   }
 
-  def assertDefinitionArrayEquals = { expected, actual ->
-    assertEquals(expected.size(), actual.size())
+  static void assertNumericBucketsEquals(List expected, List actual) {
+    def msg = """
+Expected:${expected}
+Actual: ${actual}
+"""
+    assertEquals(msg, expected.size(), actual.size())
+    expected.size().times { i ->
+      assertNumericBucketEquals(msg, expected.get(i), actual.get(i))
+    }
+  }
 
-    def sortedExpectedArray =  expected.sort { a, b ->  a.id <=> b.id }
-    def sortedActualArray = actual.sort { a, b ->  a.id <=> b.id }
-
-    [sortedExpectedArray, sortedActualArray].transpose().collect {
-      assertEquals(it[0].id, it[1].id)
-      assertEquals(it[0].tags, it[1].tags)
+  static void assertNumericBucketEquals(String msg, def expected, def actual) {
+    assertEquals(msg, expected.start, actual.start)
+    assertEquals(msg, expected.end, actual.end)
+    assertEquals(msg, expected.empty, actual.empty)
+    if (!expected.empty) {
+      assertDoubleEquals(msg, expected.min, actual.min)
+      assertDoubleEquals(msg, expected.avg, actual.avg)
+      assertDoubleEquals(msg, expected.median, actual.median)
+      assertDoubleEquals(msg, expected.max, actual.max)
+      assertDoubleEquals(msg, expected.percentile95th, actual.percentile95th)
     }
   }
 }

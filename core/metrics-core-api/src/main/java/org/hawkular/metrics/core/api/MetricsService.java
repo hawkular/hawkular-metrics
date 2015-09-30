@@ -148,7 +148,8 @@ public interface MetricsService {
     <T> Observable<T> findGaugeData(MetricId<Double> id, Long start, Long end,
                                     Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs);
 
-    Observable<List<GaugeBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end, Buckets buckets);
+    Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end, Buckets
+            buckets);
 
     Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId<AvailabilityType> id, long start, long end,
                                                                  boolean distinct);
@@ -160,18 +161,40 @@ public interface MetricsService {
     Observable<Boolean> idExists(String id);
 
     /**
-     * Fetches counter data points and calculates per-minute rates. The start and end time are rounded down to the
-     * nearest minutes in order to separate data points into one minute buckets.
+     * Computes stats on a counter.
+     *
+     * @param id      counter metric id
+     * @param start   start time, inclusive
+     * @param end     end time, exclusive
+     * @param buckets bucket configuration
+     *
+     * @return an {@link Observable} emitting a single {@link List} of {@link NumericBucketPoint}
+     */
+    Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, long start, long end, Buckets buckets);
+
+    /**
+     * Fetches counter data points and calculates per-minute rates.
      *
      * @param id This is the id of the counter metric
      * @param start The start time which is inclusive
      * @param end The end time which is exclusive
      *
      * @return An Observable of {@link DataPoint data points} which are emitted in ascending order. In other words,
-     * the most recent data is emitted first. If there are no data points for a particular bucket (i.e., minute), then
-     * the data point will have Double.NaN as its value.
+     * the most recent data is emitted first.
      */
     Observable<DataPoint<Double>> findRateData(MetricId<Long> id, long start, long end);
+
+    /**
+     * Computes stats on a counter rate.
+     *
+     * @param id      counter metric id
+     * @param start   start time, inclusive
+     * @param end     end time, exclusive
+     * @param buckets bucket configuration
+     *
+     * @return an {@link Observable} emitting a single {@link List} of {@link NumericBucketPoint}
+     */
+    Observable<List<NumericBucketPoint>> findRateStats(MetricId<Long> id, long start, long end, Buckets buckets);
 
     /**
      * <p>

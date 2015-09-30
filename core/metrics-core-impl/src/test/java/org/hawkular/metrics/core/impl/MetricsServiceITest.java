@@ -48,14 +48,17 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.IntStream;
 
 import org.hawkular.metrics.core.api.Aggregate;
 import org.hawkular.metrics.core.api.AvailabilityType;
+import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.NumericBucketPoint;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
 import org.joda.time.DateTime;
@@ -572,6 +575,50 @@ public class MetricsServiceITest extends MetricsITest {
     }
 
     @Test
+    public void findCouterStats() {
+        String tenantId = "counter-stats-test";
+
+        Metric<Long> counter = new Metric<>(new MetricId<>(tenantId, COUNTER, "C1"), asList(
+                new DataPoint<>((long) (60_000 * 1.0), 0L),
+                new DataPoint<>((long) (60_000 * 1.5), 200L),
+                new DataPoint<>((long) (60_000 * 3.5), 400L),
+                new DataPoint<>((long) (60_000 * 5.0), 550L),
+                new DataPoint<>((long) (60_000 * 7.0), 950L),
+                new DataPoint<>((long) (60_000 * 7.5), 1000L)
+        ));
+
+        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
+
+        List<NumericBucketPoint> actual = metricsService.findCounterStats(counter.getId(),
+                0, now().getMillis(), Buckets.fromStep(60_000, 60_000 * 8, 60_000)).toBlocking().single();
+        List<NumericBucketPoint> expected = new ArrayList<>();
+        for (int i = 1; i < 8; i++) {
+            NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(60_000 * i, 60_000 * (i + 1));
+            switch (i) {
+                case 1:
+                    builder.setAvg(100D).setMax(200D).setMedian(0D).setMin(0D).setPercentile95th(0D);
+                    break;
+                case 2:
+                case 4:
+                case 6:
+                    break;
+                case 3:
+                    builder.setAvg(400D).setMax(400D).setMedian(400D).setMin(400D).setPercentile95th(400D);
+                    break;
+                case 5:
+                    builder.setAvg(550D).setMax(550D).setMedian(550D).setMin(550D).setPercentile95th(550D);
+                    break;
+                case 7:
+                    builder.setAvg(975D).setMax(1000D).setMedian(950D).setMin(950D).setPercentile95th(950D);
+                    break;
+            }
+            expected.add(builder.build());
+        }
+
+        assertNumericBucketsEquals(actual, expected);
+    }
+
+    @Test
     public void findRates() {
         String tenantId = "counter-rate-test";
 
@@ -597,6 +644,73 @@ public class MetricsServiceITest extends MetricsITest {
         );
 
         assertEquals(actual, expected, "The rates do not match");
+    }
+
+    @Test
+    public void findRateStats() {
+        String tenantId = "counter-rate-stats-test";
+
+        Metric<Long> counter = new Metric<>(new MetricId<>(tenantId, COUNTER, "C1"), asList(
+                new DataPoint<>((long) (60_000 * 1.0), 0L),
+                new DataPoint<>((long) (60_000 * 1.5), 200L),
+                new DataPoint<>((long) (60_000 * 3.5), 400L),
+                new DataPoint<>((long) (60_000 * 5.0), 550L),
+                new DataPoint<>((long) (60_000 * 7.0), 950L),
+                new DataPoint<>((long) (60_000 * 7.5), 1000L)
+        ));
+
+        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
+
+        List<NumericBucketPoint> actual = metricsService.findRateStats(counter.getId(),
+                0, now().getMillis(), Buckets.fromStep(60_000, 60_000 * 8, 60_000)).toBlocking().single();
+        List<NumericBucketPoint> expected = new ArrayList<>();
+        for (int i = 1; i < 8; i++) {
+            NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(60_000 * i, 60_000 * (i + 1));
+            double val;
+            switch (i) {
+                case 1:
+                    val = 400D;
+                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentile95th(val);
+                    break;
+                case 3:
+                case 5:
+                    break;
+                case 6:
+                    val = 200D;
+                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentile95th(val);
+                    break;
+                default:
+                    val = 100D;
+                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentile95th(val);
+                    break;
+            }
+            expected.add(builder.build());
+        }
+
+        assertNumericBucketsEquals(actual, expected);
+    }
+
+    private static void assertNumericBucketsEquals(List<NumericBucketPoint> actual, List<NumericBucketPoint> expected) {
+        String msg = String.format("%nExpected:%n%s%nActual:%n%s%n", expected, actual);
+        assertEquals(actual.size(), expected.size(), msg);
+        IntStream.range(0, actual.size()).forEach(i -> {
+            NumericBucketPoint actualPoint = actual.get(i);
+            NumericBucketPoint expectedPoint = expected.get(i);
+            assertNumericBucketEquals(actualPoint, expectedPoint, msg);
+        });
+    }
+
+    private static void assertNumericBucketEquals(NumericBucketPoint actual, NumericBucketPoint expected, String msg) {
+        assertEquals(actual.getStart(), expected.getStart(), msg);
+        assertEquals(actual.getEnd(), expected.getEnd(), msg);
+        assertEquals(actual.isEmpty(), expected.isEmpty(), msg);
+        if (!actual.isEmpty()) {
+            assertEquals(actual.getAvg(), expected.getAvg(), 0.001, msg);
+            assertEquals(actual.getMax(), expected.getMax(), 0.001, msg);
+            assertEquals(actual.getMedian(), expected.getMedian(), 0.001, msg);
+            assertEquals(actual.getMin(), expected.getMin(), 0.001, msg);
+            assertEquals(actual.getPercentile95th(), expected.getPercentile95th(), 0.001, msg);
+        }
     }
 
     @Test

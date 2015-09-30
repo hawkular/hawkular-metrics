@@ -43,12 +43,12 @@ import org.hawkular.metrics.core.api.AvailabilityBucketPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.GaugeBucketPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.NumericBucketPoint;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
@@ -679,6 +679,12 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                 });
     }
 
+    @Override
+    public Observable<List<NumericBucketPoint>> findRateStats(MetricId<Long> id, long start, long end,
+                                                              Buckets buckets) {
+        return bucketize(findRateData(id, start, end), buckets);
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public <T> Observable<T> findGaugeData(MetricId<Double> id, Long start, Long end,
@@ -688,15 +694,20 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public Observable<List<GaugeBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end,
-                                                             Buckets buckets) {
-        return findDataPoints(metricId, start, end)
+    public Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end,
+                                                               Buckets buckets) {
+        return bucketize(findDataPoints(metricId, start, end), buckets);
+    }
+
+    private Observable<List<NumericBucketPoint>> bucketize(Observable<? extends DataPoint<? extends Number>> dataPoints,
+                                                           Buckets buckets) {
+        return dataPoints
                 .groupBy(dataPoint -> buckets.getIndex(dataPoint.getTimestamp()))
-                .flatMap(group -> group.collect(() -> new GaugeDataPointCollector(buckets, group.getKey()),
-                        GaugeDataPointCollector::increment))
-                .map(GaugeDataPointCollector::toBucketPoint)
-                .toMap(GaugeBucketPoint::getStart)
-                .map(pointMap -> GaugeBucketPoint.toList(pointMap, buckets));
+                .flatMap(group -> group.collect(() -> new NumericDataPointCollector(buckets, group.getKey()),
+                        NumericDataPointCollector::increment))
+                .map(NumericDataPointCollector::toBucketPoint)
+                .toMap(NumericBucketPoint::getStart)
+                .map(pointMap -> NumericBucketPoint.toList(pointMap, buckets));
     }
 
     @Override
@@ -729,6 +740,12 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                 .take(1)
                 .map(r -> Boolean.TRUE)
                 .defaultIfEmpty(Boolean.FALSE);
+    }
+
+    @Override
+    public Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, long start, long end, Buckets
+            buckets) {
+        return bucketize(findDataPoints(id, start, end), buckets);
     }
 
     @Override

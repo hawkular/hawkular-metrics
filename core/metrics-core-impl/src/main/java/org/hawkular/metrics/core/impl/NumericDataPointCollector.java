@@ -22,14 +22,14 @@ import org.apache.commons.math3.stat.descriptive.rank.Min;
 import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.GaugeBucketPoint;
+import org.hawkular.metrics.core.api.NumericBucketPoint;
 
 /**
- * Accumulates gauge data points to produce a {@link GaugeBucketPoint}.
+ * Accumulates numeric data points to produce a {@link NumericBucketPoint}.
  *
  * @author Thomas Segismont
  */
-final class GaugeDataPointCollector {
+final class NumericDataPointCollector {
     private final Buckets buckets;
     private final int bucketIndex;
 
@@ -39,24 +39,24 @@ final class GaugeDataPointCollector {
     private Max max = new Max();
     private PSquarePercentile percentile95th = new PSquarePercentile(95.0);
 
-    GaugeDataPointCollector(Buckets buckets, int bucketIndex) {
+    NumericDataPointCollector(Buckets buckets, int bucketIndex) {
         this.buckets = buckets;
         this.bucketIndex = bucketIndex;
     }
 
-    void increment(DataPoint<Double> dataPoint) {
-        Double value = dataPoint.getValue();
-        min.increment(value);
-        average.increment(value);
-        median.increment(value);
-        max.increment(value);
-        percentile95th.increment(value);
+    void increment(DataPoint<? extends Number> dataPoint) {
+        Number value = dataPoint.getValue();
+        min.increment(value.doubleValue());
+        average.increment(value.doubleValue());
+        median.increment(value.doubleValue());
+        max.increment(value.doubleValue());
+        percentile95th.increment(value.doubleValue());
     }
 
-    GaugeBucketPoint toBucketPoint() {
+    NumericBucketPoint toBucketPoint() {
         long from = buckets.getBucketStart(bucketIndex);
         long to = from + buckets.getStep();
-        return new GaugeBucketPoint.Builder(from, to)
+        return new NumericBucketPoint.Builder(from, to)
                 .setMin(min.getResult())
                 .setAvg(average.getResult())
                 .setMedian(median.getResult())
