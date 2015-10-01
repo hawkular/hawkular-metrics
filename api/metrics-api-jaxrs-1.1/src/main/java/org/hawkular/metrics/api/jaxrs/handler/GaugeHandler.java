@@ -16,13 +16,12 @@
  */
 package org.hawkular.metrics.api.jaxrs.handler;
 
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 import java.net.URI;
@@ -49,8 +48,10 @@ import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Gauge;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.param.BucketParams;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
+import org.hawkular.metrics.api.jaxrs.param.TimeRange;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.Metric;
@@ -69,7 +70,6 @@ import rx.Observable;
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
 public class GaugeHandler {
-    private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
     @Inject
     private MetricsService metricsService;
@@ -85,7 +85,7 @@ public class GaugeHandler {
             @Context UriInfo uriInfo
     ) {
         if(metricDefinition.getType() != null && MetricType.GAUGE != metricDefinition.getType()) {
-            return ApiUtils.badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+            return badRequest(new ApiError("MetricDefinition type does not match " + MetricType
                     .GAUGE.getText()));
         }
         Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metricDefinition.getId()),
@@ -99,7 +99,7 @@ public class GaugeHandler {
             String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
             return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
         } catch (Exception e) {
-            return ApiUtils.serverError(e);
+            return serverError(e);
         }
     }
 
@@ -111,9 +111,9 @@ public class GaugeHandler {
             return metricsService.findMetric(new MetricId<>(tenantId, GAUGE, id))
                 .map(MetricDefinition::new)
                 .map(metricDef -> Response.ok(metricDef).build())
-                .switchIfEmpty(Observable.just(ApiUtils.noContent())).toBlocking().lastOrDefault(null);
+                    .switchIfEmpty(Observable.just(noContent())).toBlocking().lastOrDefault(null);
         } catch (Exception e) {
-            return ApiUtils.serverError(e);
+            return serverError(e);
         }
     }
 
@@ -126,7 +126,7 @@ public class GaugeHandler {
                     .map(ApiUtils::valueToResponse)
                     .toBlocking().lastOrDefault(null);
         } catch (Exception e) {
-            return ApiUtils.serverError(e);
+            return serverError(e);
         }
     }
 
@@ -143,7 +143,7 @@ public class GaugeHandler {
         } catch (IllegalArgumentException e1) {
             return badRequest(new ApiError(e1.getMessage()));
         } catch (Exception e) {
-            return ApiUtils.serverError(e);
+            return serverError(e);
         }
     }
 
@@ -159,7 +159,7 @@ public class GaugeHandler {
             metricsService.deleteTags(metric, tags.getTags()).toBlocking().lastOrDefault(null);
             return Response.ok().build();
         } catch (Exception e) {
-            return ApiUtils.serverError(e);
+            return serverError(e);
         }
     }
 
@@ -175,7 +175,7 @@ public class GaugeHandler {
             metricsService.addDataPoints(GAUGE, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
         } catch (Exception e) {
-            return ApiUtils.serverError(e);
+            return serverError(e);
         }
     }
 
@@ -190,7 +190,7 @@ public class GaugeHandler {
             metricsService.addDataPoints(GAUGE, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
         } catch (Exception e) {
-            return ApiUtils.serverError(e);
+            return serverError(e);
         }
     }
 
@@ -204,47 +204,35 @@ public class GaugeHandler {
             @QueryParam("buckets") Integer bucketsCount,
             @QueryParam("bucketDuration") Duration bucketDuration
     ) {
-        long now = System.currentTimeMillis();
-        long startTime = start == null ? now - EIGHT_HOURS : start;
-        long endTime = end == null ? now : end;
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            return badRequest(new ApiError(timeRange.getProblem()));
+        }
+        BucketParams bucketParams = new BucketParams(bucketsCount, bucketDuration, timeRange);
+        if (!bucketParams.isValid()) {
+            return badRequest(new ApiError(bucketParams.getProblem()));
+        }
 
         MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
-
-        if (bucketsCount == null && bucketDuration == null) {
-            try {
+        Buckets buckets = bucketParams.getBuckets();
+        try {
+            if (buckets == null) {
                 return metricsService
-                        .findDataPoints(metricId, startTime, endTime)
+                        .findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
                         .map(GaugeDataPoint::new)
                         .toList()
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()
                         .lastOrDefault(null);
-            } catch (Exception e) {
-                return ApiUtils.serverError(e);
-            }
-        } else if (bucketsCount != null && bucketDuration != null) {
-            return badRequest(new ApiError("Both buckets and bucketDuration parameters are used"));
-        } else {
-            Buckets buckets;
-            try {
-                if (bucketsCount != null) {
-                    buckets = Buckets.fromCount(startTime, endTime, bucketsCount);
-                } else {
-                    buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
-                }
-            } catch (IllegalArgumentException e) {
-                return badRequest(new ApiError("Bucket: " + e.getMessage()));
-            }
-
-            try {
+            } else {
                 return metricsService
-                        .findGaugeStats(metricId, startTime, endTime, buckets)
+                        .findGaugeStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets)
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()
                         .lastOrDefault(null);
-            } catch (Exception e) {
-                return ApiUtils.serverError(e);
             }
+        } catch (Exception e) {
+            return serverError(e);
         }
     }
 
@@ -258,14 +246,9 @@ public class GaugeHandler {
             @QueryParam("threshold") double threshold,
             @QueryParam("op") String operator
     ) {
-        long now = System.currentTimeMillis();
-        Long startTime = start;
-        Long endTime = end;
-        if (start == null) {
-            startTime = now - EIGHT_HOURS;
-        }
-        if (end == null) {
-            endTime = now;
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            return badRequest(new ApiError(timeRange.getProblem()));
         }
 
         Predicate<Double> predicate;
@@ -297,10 +280,12 @@ public class GaugeHandler {
                     new ApiError("Invalid value for op parameter. Supported values are lt, lte, eq, gt, gte."));
         } else {
             try {
-                return metricsService.getPeriods(new MetricId<>(tenantId, GAUGE, id), predicate, startTime, endTime)
-                        .map(ApiUtils::collectionToResponse).toBlocking().lastOrDefault(null);
+                MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+                return metricsService.getPeriods(metricId, predicate, timeRange.getStart(), timeRange.getEnd())
+                        .map(ApiUtils::collectionToResponse)
+                        .toBlocking().lastOrDefault(null);
             } catch (Exception e) {
-                return ApiUtils.serverError(e);
+                return serverError(e);
             }
         }
     }

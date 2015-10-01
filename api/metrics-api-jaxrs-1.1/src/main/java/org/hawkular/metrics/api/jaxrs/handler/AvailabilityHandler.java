@@ -16,9 +16,6 @@
  */
 package org.hawkular.metrics.api.jaxrs.handler;
 
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
@@ -52,8 +49,10 @@ import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.param.BucketParams;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
+import org.hawkular.metrics.api.jaxrs.param.TimeRange;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Buckets;
@@ -73,7 +72,6 @@ import rx.Observable;
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
 public class AvailabilityHandler {
-    private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
     @Inject
     private MetricsService metricsService;
@@ -211,42 +209,32 @@ public class AvailabilityHandler {
             @QueryParam("bucketDuration") Duration bucketDuration,
             @QueryParam("distinct") @DefaultValue("false") Boolean distinct
     ) {
-        long now = System.currentTimeMillis();
-        Long startTime = start == null ? now - EIGHT_HOURS : start;
-        Long endTime = end == null ? now : end;
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            return badRequest(new ApiError(timeRange.getProblem()));
+        }
+        BucketParams bucketParams = new BucketParams(bucketsCount, bucketDuration, timeRange);
+        if (!bucketParams.isValid()) {
+            return badRequest(new ApiError(bucketParams.getProblem()));
+        }
 
         MetricId<AvailabilityType> metricId = new MetricId<>(tenantId, AVAILABILITY, id);
-        if (bucketsCount == null && bucketDuration == null) {
-            try {
-                return metricsService.findAvailabilityData(metricId, startTime, endTime, distinct)
-                    .map(AvailabilityDataPoint::new)
-                    .toList()
-                    .map(ApiUtils::collectionToResponse)
-                    .toBlocking()
-                    .lastOrDefault(null);
-            } catch (Exception e) {
-                return serverError(e);
-            }
-        } else if (bucketsCount != null && bucketDuration != null) {
-            return badRequest(new ApiError("Both buckets and bucketDuration parameters are used"));
-        } else {
-            Buckets buckets;
-            try {
-                if (bucketsCount != null) {
-                    buckets = Buckets.fromCount(startTime, endTime, bucketsCount);
-                } else {
-                    buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
-                }
-            } catch (IllegalArgumentException e) {
-                return badRequest(new ApiError("Bucket: " + e.getMessage()));
-            }
-            try {
-                return metricsService.findAvailabilityStats(metricId, startTime, endTime, buckets)
+        Buckets buckets = bucketParams.getBuckets();
+        try {
+            if (buckets == null) {
+                return metricsService.findAvailabilityData(metricId, timeRange.getStart(), timeRange.getEnd(), distinct)
+                        .map(AvailabilityDataPoint::new)
+                        .toList()
+                        .map(ApiUtils::collectionToResponse)
+                        .toBlocking()
+                        .lastOrDefault(null);
+            } else {
+                return metricsService.findAvailabilityStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets)
                         .map(ApiUtils::collectionToResponse).toBlocking()
                         .lastOrDefault(null);
-            } catch (Exception e) {
-                return serverError(e);
             }
+        } catch (Exception e) {
+            return serverError(e);
         }
     }
 }

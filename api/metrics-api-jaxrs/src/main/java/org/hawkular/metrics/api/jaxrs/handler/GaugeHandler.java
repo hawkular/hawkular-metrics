@@ -16,9 +16,6 @@
  */
 package org.hawkular.metrics.api.jaxrs.handler;
 
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
@@ -53,8 +50,10 @@ import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Gauge;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.param.BucketParams;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
+import org.hawkular.metrics.api.jaxrs.param.TimeRange;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.Metric;
@@ -78,7 +77,6 @@ import rx.Observable;
 @Produces(APPLICATION_JSON)
 @Api(tags = "Gauge")
 public class GaugeHandler {
-    private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
     @Inject
     private MetricsService metricsService;
@@ -229,45 +227,39 @@ public class GaugeHandler {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),
             @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
-                response = ApiError.class),
+                    response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
-                response = ApiError.class) })
+                    response = ApiError.class)
+    })
     public void findGaugeData(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
-            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration) {
-
-        long now = System.currentTimeMillis();
-        long startTime = start == null ? now - EIGHT_HOURS : start;
-        long endTime = end == null ? now : end;
+            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration
+    ) {
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+        BucketParams bucketParams = new BucketParams(bucketsCount, bucketDuration, timeRange);
+        if (!bucketParams.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(bucketParams.getProblem())));
+            return;
+        }
 
         MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
-
-        if (bucketsCount == null && bucketDuration == null) {
-            metricsService.findDataPoints(metricId, startTime, endTime)
+        Buckets buckets = bucketParams.getBuckets();
+        if (buckets == null) {
+            metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
                     .map(GaugeDataPoint::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
-        } else if (bucketsCount != null && bucketDuration != null) {
-            asyncResponse.resume(badRequest(new ApiError("Both buckets and bucketDuration parameters are used")));
         } else {
-            Buckets buckets;
-            try {
-                if (bucketsCount != null) {
-                    buckets = Buckets.fromCount(startTime, endTime, bucketsCount);
-                } else {
-                    buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
-                }
-            } catch (IllegalArgumentException e) {
-                asyncResponse.resume(badRequest(new ApiError("Bucket: " + e.getMessage())));
-                return;
-            }
-
-            metricsService.findGaugeStats(metricId, startTime, endTime, buckets)
+            metricsService.findGaugeStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets)
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         }
@@ -285,22 +277,18 @@ public class GaugeHandler {
     public void findPeriods(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") final Long start,
-            @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") final Long end,
+            @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") Long start,
+            @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") Long end,
             @ApiParam(value = "A threshold against which values are compared", required = true)
             @QueryParam("threshold") double threshold,
             @ApiParam(value = "A comparison operation to perform between values and the threshold.", required = true,
                     allowableValues = "ge, gte, lt, lte, eq, neq")
             @QueryParam("op") String operator
     ) {
-        long now = System.currentTimeMillis();
-        Long startTime = start;
-        Long endTime = end;
-        if (start == null) {
-            startTime = now - EIGHT_HOURS;
-        }
-        if (end == null) {
-            endTime = now;
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
         }
 
         Predicate<Double> predicate;
@@ -335,7 +323,8 @@ public class GaugeHandler {
                     )
             ));
         } else {
-            metricsService.getPeriods(new MetricId<>(tenantId, GAUGE, id), predicate, startTime, endTime)
+            MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+            metricsService.getPeriods(metricId, predicate, timeRange.getStart(), timeRange.getEnd())
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         }

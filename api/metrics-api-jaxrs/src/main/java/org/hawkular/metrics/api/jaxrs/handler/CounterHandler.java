@@ -16,9 +16,6 @@
  */
 package org.hawkular.metrics.api.jaxrs.handler;
 
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
@@ -56,8 +53,10 @@ import org.hawkular.metrics.api.jaxrs.model.Counter;
 import org.hawkular.metrics.api.jaxrs.model.CounterDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.param.BucketParams;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
+import org.hawkular.metrics.api.jaxrs.param.TimeRange;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.Metric;
@@ -81,7 +80,6 @@ import rx.Observable;
 @Produces(APPLICATION_JSON)
 @Api(tags = "Counter")
 public class CounterHandler {
-    private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
     @Inject
     private MetricsService metricsService;
@@ -233,7 +231,8 @@ public class CounterHandler {
             @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
                     response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
-                         response = ApiError.class) })
+                    response = ApiError.class)
+    })
     public void findCounterData(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
@@ -242,35 +241,27 @@ public class CounterHandler {
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration
     ) {
-
-        long now = System.currentTimeMillis();
-        long startTime = start == null ? now - EIGHT_HOURS : start;
-        long endTime = end == null ? now : end;
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+        BucketParams bucketParams = new BucketParams(bucketsCount, bucketDuration, timeRange);
+        if (!bucketParams.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(bucketParams.getProblem())));
+            return;
+        }
 
         MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
-
-        if (bucketsCount == null && bucketDuration == null) {
-            metricsService.findDataPoints(metricId, startTime, endTime)
+        Buckets buckets = bucketParams.getBuckets();
+        if (buckets == null) {
+            metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
                     .map(CounterDataPoint::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
-        } else if (bucketsCount != null && bucketDuration != null) {
-            asyncResponse.resume(badRequest(new ApiError("Both buckets and bucketDuration parameters are used")));
         } else {
-            Buckets buckets;
-            try {
-                if (bucketsCount != null) {
-                    buckets = Buckets.fromCount(startTime, endTime, bucketsCount);
-                } else {
-                    buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
-                }
-            } catch (IllegalArgumentException e) {
-                asyncResponse.resume(badRequest(new ApiError("Bucket: " + e.getMessage())));
-                return;
-            }
-
-            metricsService.findCounterStats(metricId, startTime, endTime, buckets)
+            metricsService.findCounterStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets)
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
         }
@@ -288,44 +279,37 @@ public class CounterHandler {
             @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
                     response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
-                         response = ApiError.class) })
+                    response = ApiError.class)
+    })
     public void findRate(
-        @Suspended AsyncResponse asyncResponse,
-        @PathParam("id") String id,
-        @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
-        @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
-        @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
-        @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration
+            @Suspended AsyncResponse asyncResponse,
+            @PathParam("id") String id,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration
     ) {
-
-        long now = System.currentTimeMillis();
-        long startTime = start == null ? now - EIGHT_HOURS : start;
-        long endTime = end == null ? now : end;
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+        BucketParams bucketParams = new BucketParams(bucketsCount, bucketDuration, timeRange);
+        if (!bucketParams.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(bucketParams.getProblem())));
+            return;
+        }
 
         MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
-
-        if (bucketsCount == null && bucketDuration == null) {
-            metricsService.findRateData(metricId, startTime, endTime)
+        Buckets buckets = bucketParams.getBuckets();
+        if (buckets == null) {
+            metricsService.findRateData(metricId, timeRange.getStart(), timeRange.getEnd())
                     .map(GaugeDataPoint::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
-        } else if (bucketsCount != null && bucketDuration != null) {
-            asyncResponse.resume(badRequest(new ApiError("Both buckets and bucketDuration parameters are used")));
         } else {
-            Buckets buckets;
-            try {
-                if (bucketsCount != null) {
-                    buckets = Buckets.fromCount(startTime, endTime, bucketsCount);
-                } else {
-                    buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
-                }
-            } catch (IllegalArgumentException e) {
-                asyncResponse.resume(badRequest(new ApiError("Bucket: " + e.getMessage())));
-                return;
-            }
-
-            metricsService.findRateStats(metricId, startTime, endTime, buckets)
+            metricsService.findRateStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets)
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
         }
