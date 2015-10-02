@@ -268,14 +268,14 @@ public class MetricsServiceLifecycle {
             clusterBuilder.withSSL();
         }
 
-        Cluster cluster = null;
+        Cluster cluster = clusterBuilder.build();
+        cluster.init();
         Session createdSession = null;
         try {
-            cluster = clusterBuilder.build();
             createdSession = cluster.connect("system");
             return createdSession;
         } finally {
-            if (createdSession == null && cluster != null) {
+            if (createdSession == null) {
                 cluster.close();
             }
         }
