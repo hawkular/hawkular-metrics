@@ -47,6 +47,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.IntStream;
 
@@ -98,12 +99,16 @@ public class MetricsServiceITest extends MetricsITest {
 
     private DateTimeService dateTimeService;
 
+    private Function<Double, Percentile> defaultCreatePercentile;
+
     @BeforeClass
     public void initClass() {
         initSession();
 
         dataAccess = new DataAccessImpl(session);
         dateTimeService = new DateTimeService();
+
+        defaultCreatePercentile = NumericDataPointCollector.createPercentile;
 
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
@@ -135,6 +140,7 @@ public class MetricsServiceITest extends MetricsITest {
         session.execute("TRUNCATE metrics_tags_idx");
         session.execute("TRUNCATE tenants_by_time");
         metricsService.setDataAccess(dataAccess);
+        NumericDataPointCollector.createPercentile = defaultCreatePercentile;
     }
 
     @Test
@@ -688,6 +694,89 @@ public class MetricsServiceITest extends MetricsITest {
         }
 
         assertNumericBucketsEquals(actual, expected);
+    }
+
+    @Test
+    public void findGaugeStatsByTags() {
+        NumericDataPointCollector.createPercentile = p -> new Percentile() {
+
+            List<Double> values = new ArrayList<>();
+            org.apache.commons.math3.stat.descriptive.rank.Percentile percentile =
+                    new org.apache.commons.math3.stat.descriptive.rank.Percentile(p);
+
+            @Override public void addValue(double value) {
+                values.add(value);
+            }
+
+            @Override public double getResult() {
+                org.apache.commons.math3.stat.descriptive.rank.Percentile percentile =
+                        new org.apache.commons.math3.stat.descriptive.rank.Percentile(p);
+                double[] array = new double[values.size()];
+                for (int i = 0; i < array.length; ++i) {
+                    array[i] = values.get(i++);
+                }
+                percentile.setData(array);
+
+                return percentile.getQuantile();
+            }
+        };
+
+        String tenantId = "findGaugeStatsByTags";
+        DateTime start = now().minusMinutes(10);
+
+        Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M1"), asList(
+                new DataPoint<>(start.getMillis(), 12.23),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 9.745),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 14.01),
+                new DataPoint<>(start.plusMinutes(3).getMillis(), 16.18),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 18.94)
+        ));
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m1)));
+        doAction(() -> metricsService.addTags(m1, ImmutableMap.of("type", "cpu_usage", "node", "server1")));
+
+        Metric<Double> m2 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M2"), asList(
+                new DataPoint<>(start.getMillis(), 15.47),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 8.08),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 14.39),
+                new DataPoint<>(start.plusMinutes(3).getMillis(), 17.76),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 17.502)
+        ));
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m2)));
+        doAction(() -> metricsService.addTags(m2, ImmutableMap.of("type", "cpu_usage", "node", "server2")));
+
+        Metric<Double> m3 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M3"), asList(
+                new DataPoint<>(start.getMillis(), 11.456),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 18.32)
+        ));
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m3)));
+        doAction(() -> metricsService.addTags(m3, ImmutableMap.of("type", "cpu_usage", "node", "server3")));
+
+        Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
+        Map<String, String> tagFilters = ImmutableMap.of("type", "cpu_usage", "node", "server1|server2");
+
+        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findGaugeStats(tenantId,
+                tagFilters, start.getMillis(), start.plusMinutes(5).getMillis(), buckets));
+
+        assertEquals(actual.size(), 1);
+
+        NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(start.getMillis(),
+                start.plusMinutes(5).getMillis());
+        m1.getDataPoints().forEach(dataPoint -> updateBuilder(builder, dataPoint));
+
+        List<NumericBucketPoint> expected = getOnNextEvents(() ->
+                Observable.concat(Observable.from(m1.getDataPoints()), Observable.from(m2.getDataPoints()))
+                .collect(() -> new NumericDataPointCollector(buckets, 0), NumericDataPointCollector::increment)
+                .map(NumericDataPointCollector::toBucketPoint));
+
+        assertNumericBucketsEquals(actual.get(0), expected);
+    }
+
+    private static void updateBuilder(NumericBucketPoint.Builder builder, DataPoint<Double> dataPoint) {
+        builder.setAvg(dataPoint.getValue())
+                .setMax(dataPoint.getValue())
+                .setMin(dataPoint.getValue())
+                .setMedian(dataPoint.getValue())
+                .setPercentile95th(dataPoint.getValue());
     }
 
     private static void assertNumericBucketsEquals(List<NumericBucketPoint> actual, List<NumericBucketPoint> expected) {

@@ -266,6 +266,41 @@ public class GaugeHandler {
     }
 
     @GET
+    @Path("/data")
+    public void findGaugeData(
+            @Suspended AsyncResponse asyncResponse,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
+            @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration) {
+
+        long now = System.currentTimeMillis();
+        long startTime = start == null ? now - EIGHT_HOURS : start;
+        long endTime = end == null ? now : end;
+
+        if (bucketsCount == null && bucketDuration == null) {
+            asyncResponse.resume(badRequest(new ApiError("Not supported!")));
+        } else if (bucketsCount != null && bucketDuration != null) {
+            asyncResponse.resume(badRequest(new ApiError("Both buckets and bucketDuration parameters are used")));
+        } else {
+            Buckets buckets;
+            try {
+                if (bucketsCount != null) {
+                    buckets = Buckets.fromCount(startTime, endTime, bucketsCount);
+                } else {
+                    buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
+                }
+                metricsService.findGaugeStats(tenantId, tags.getTags(), startTime, endTime, buckets)
+                        .map(ApiUtils::collectionToResponse)
+                        .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+            } catch (IllegalArgumentException e) {
+                asyncResponse.resume(badRequest(new ApiError("Bucket: " + e.getMessage())));
+            }
+        }
+    }
+
+    @GET
     @Path("/{id}/periods")
     @ApiOperation(value = "Retrieve periods for which the condition holds true for each consecutive data point.",
             response = List.class)

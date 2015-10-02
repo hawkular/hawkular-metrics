@@ -64,7 +64,7 @@ public class MetricsITest {
             .addContactPoints(nodeAddresses.split(","))
             // Due to JAVA-500 and JAVA-509 we need to explicitly set the protocol to V3.
             // These bugs are fixed upstream and will be in version 2.1.3 of the driver.
-            .withProtocolVersion(ProtocolVersion.V3)
+            .withProtocolVersion(ProtocolVersion.V4)
             .build();
         session = cluster.connect(getKeyspace());
         rxSession = new RxSessionImpl(session);

@@ -237,6 +237,47 @@ public class GaugeHandler {
     }
 
     @GET
+    @Path("/data")
+    public Response findGaugeData(
+            @QueryParam("start") final Long start,
+            @QueryParam("end") final Long end,
+            @QueryParam("tags") Tags tags,
+            @QueryParam("buckets") Integer bucketsCount,
+            @QueryParam("bucketDuration") Duration bucketDuration) {
+
+        long now = System.currentTimeMillis();
+        long startTime = start == null ? now - EIGHT_HOURS : start;
+        long endTime = end == null ? now : end;
+
+        if (bucketsCount == null && bucketDuration == null) {
+            return badRequest(new ApiError("Not supported!"));
+        } else if (bucketsCount != null && bucketDuration != null) {
+            return badRequest(new ApiError("Both buckets and bucketDuration parameters are used"));
+        } else {
+            Buckets buckets;
+            try {
+                if (bucketsCount != null) {
+                    buckets = Buckets.fromCount(startTime, endTime, bucketsCount);
+                } else {
+                    buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
+                }
+            } catch (IllegalArgumentException e) {
+                return badRequest(new ApiError("Bucket: " + e.getMessage()));
+            }
+
+            try {
+                return metricsService
+                        .findGaugeStats(tenantId, tags.getTags(), startTime, endTime, buckets)
+                        .map(ApiUtils::collectionToResponse)
+                        .toBlocking()
+                        .lastOrDefault(null);
+            } catch (Exception e) {
+                return ApiUtils.serverError(e);
+            }
+        }
+    }
+
+    @GET
     @Produces(APPLICATION_JSON)
     @Path("/{id}/periods")
     public Response findPeriods(
