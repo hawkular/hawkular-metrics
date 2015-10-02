@@ -30,6 +30,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.USE_VIRTUAL_CLOCK;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
@@ -44,6 +45,7 @@ import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
+import javax.net.ssl.SSLContext;
 
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
@@ -68,6 +70,7 @@ import org.joda.time.DateTime;
 
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
@@ -265,7 +268,14 @@ public class MetricsServiceLifecycle {
         Arrays.stream(nodes.split(",")).forEach(clusterBuilder::addContactPoint);
 
         if (Boolean.parseBoolean(cassandraUseSSL)) {
-            clusterBuilder.withSSL();
+            SSLOptions sslOptions = null;
+            try {
+                sslOptions = new SSLOptions(SSLContext.getDefault(), SSLOptions
+                        .DEFAULT_SSL_CIPHER_SUITES);
+                clusterBuilder.withSSL(sslOptions);
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException("SSL support is required but is not available in the JVM.", e);
+            }
         }
 
         Cluster cluster = null;
