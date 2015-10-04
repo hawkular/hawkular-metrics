@@ -30,6 +30,7 @@ import java.util.function.Predicate;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
@@ -60,6 +61,7 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.NumericBucketPoint;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -267,11 +269,23 @@ public class GaugeHandler {
 
     @GET
     @Path("/data")
+    @ApiOperation(value = "Fetches data points from one or more metrics that are determined using a tags filter. The " +
+        "time range between start and end is divided into buckets of equal size (i.e., duration) using either the " +
+        "buckets or bucketDuration parameter. Functions are applied to the data points in each bucket to produce " +
+        "statistics or aggregated metrics.", response = NumericBucketPoint.class, responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+            @ApiResponse(code = 204, message = "No metric data was found."),
+            @ApiResponse(code = 400, message = "The tags parameter is required. Either the buckets or the " +
+                    "bucketDuration parameter is required but not both.",
+                    response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                    response = ApiError.class) })
     public void findGaugeData(
             @Suspended AsyncResponse asyncResponse,
             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
             @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
-            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
+            @ApiParam(value = "List of tags filters", required = true) @QueryParam("tags") @DefaultValue("") Tags tags,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration) {
 
@@ -279,10 +293,14 @@ public class GaugeHandler {
         long startTime = start == null ? now - EIGHT_HOURS : start;
         long endTime = end == null ? now : end;
 
-        if (bucketsCount == null && bucketDuration == null) {
-            asyncResponse.resume(badRequest(new ApiError("Not supported!")));
+        if (tags.getTags().isEmpty()) {
+            asyncResponse.resume(badRequest(new ApiError("tags parameter is required")));
+        } else if (bucketsCount == null && bucketDuration == null) {
+            asyncResponse.resume(badRequest(new ApiError("Either the buckets or bucketsDuration parameter must be "
+                    + "used")));
         } else if (bucketsCount != null && bucketDuration != null) {
-            asyncResponse.resume(badRequest(new ApiError("Both buckets and bucketDuration parameters are used")));
+            asyncResponse.resume(badRequest(new ApiError("Only one of the buckets and bucketDuration parameters " +
+                    "can be used")));
         } else {
             Buckets buckets;
             try {

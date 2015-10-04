@@ -32,6 +32,7 @@ import java.util.function.Predicate;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
@@ -241,7 +242,7 @@ public class GaugeHandler {
     public Response findGaugeData(
             @QueryParam("start") final Long start,
             @QueryParam("end") final Long end,
-            @QueryParam("tags") Tags tags,
+            @QueryParam("tags") @DefaultValue("") Tags tags,
             @QueryParam("buckets") Integer bucketsCount,
             @QueryParam("bucketDuration") Duration bucketDuration) {
 
@@ -249,10 +250,12 @@ public class GaugeHandler {
         long startTime = start == null ? now - EIGHT_HOURS : start;
         long endTime = end == null ? now : end;
 
-        if (bucketsCount == null && bucketDuration == null) {
-            return badRequest(new ApiError("Not supported!"));
+        if (tags.getTags().isEmpty()) {
+            return badRequest(new ApiError("tags parameter is required"));
+        } else if (bucketsCount == null && bucketDuration == null) {
+            return badRequest(new ApiError("Either the buckets or bucketsDuration parameter must be used"));
         } else if (bucketsCount != null && bucketDuration != null) {
-            return badRequest(new ApiError("Both buckets and bucketDuration parameters are used"));
+            return badRequest(new ApiError("Only one of the buckets and bucketDuration parameters can be used"));
         } else {
             Buckets buckets;
             try {

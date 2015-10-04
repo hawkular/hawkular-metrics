@@ -29,7 +29,6 @@ import static org.joda.time.DateTime.now
 import static org.joda.time.Seconds.seconds
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
-
 /**
  * @author Thomas Segismont
  */
@@ -299,6 +298,66 @@ class GaugeMetricStatisticsITest extends RESTTest {
     assertEquals("The [empty] property is wrong", false, bucket.empty)
     assertTrue("Expected the [median] property to be set", bucket.median != null)
     assertTrue("Expected the [percentile95th] property to be set", bucket.percentile95th != null)
+  }
+
+  @Test
+  void tagsParamIsRequiredWhenQueryingForDataFromMultipleMetrics() {
+    String tenantId = nextTenantId()
+    DateTime start = now().minusMinutes(10)
+
+    // Create some metrics
+    def response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'G1',
+        tags: ['type': 'cpu_usage', 'host': 'server1', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'G2',
+        tags: ['type': 'cpu_usage', 'host': 'server2', 'env': 'dev']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    // query for data
+    response = hawkularMetrics.get(
+        path: 'gauges/data',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(3).millis,
+            buckets: 1
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(400, response.status)
+  }
+
+  @Test
+  void bucketParamIsRequiredWhenQueryingForDataFromMultipleMetrics() {
+    // This test verifies that a 400 response is returned when neither the buckets nor bucketsDuration parameter is
+    // included in the request.
+
+    String tenantId = nextTenantId()
+    DateTime start = now().minusMinutes(10)
+
+    // Create some metrics
+    // Create some metrics
+    def response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'G1',
+        tags: ['type': 'cpu_usage', 'host': 'server1', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    // query for data
+    response = hawkularMetrics.get(
+        path: 'gauges/data',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(3).millis,
+            tags: 'type:cpu_usage,host:server1|server2'
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(400, response.status)
   }
 
   private static double avg(List values) {
