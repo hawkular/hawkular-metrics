@@ -87,6 +87,6 @@ public class DataAccessFactory {
             }
         }
         log.debugf("Using %s with default batch size", BatchStatementStrategy.class.getCanonicalName());
-        return new DataAccessImpl(session, s -> new BatchStatementStrategy(s, false));
+        return new DataAccessImpl(session, s -> new BatchStatementStrategy(s, groupByReplica));
     }
 }
