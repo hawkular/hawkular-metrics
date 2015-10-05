@@ -16,9 +16,6 @@
  */
 package org.hawkular.metrics.api.jaxrs.handler;
 
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
@@ -56,8 +53,10 @@ import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.param.BucketConfig;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
+import org.hawkular.metrics.api.jaxrs.param.TimeRange;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Buckets;
@@ -82,7 +81,6 @@ import rx.Observable;
 @Produces(APPLICATION_JSON)
 @Api(tags = "Availability")
 public class AvailabilityHandler {
-    private static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
     @Inject
     private MetricsService metricsService;
@@ -231,47 +229,41 @@ public class AvailabilityHandler {
             @ApiResponse(code = 200, message = "Successfully fetched availability data."),
             @ApiResponse(code = 204, message = "No availability data was found."),
             @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
-                response = ApiError.class),
+                    response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching availability data.",
-                response = ApiError.class), })
+                    response = ApiError.class)
+    })
     public void findAvailabilityData(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Set to true to return only distinct, contiguous values")
             @QueryParam("distinct") @DefaultValue("false") Boolean distinct
     ) {
-        long now = System.currentTimeMillis();
-        Long startTime = start == null ? now - EIGHT_HOURS : start;
-        Long endTime = end == null ? now : end;
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+        if (!bucketConfig.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+            return;
+        }
 
         MetricId<AvailabilityType> metricId = new MetricId<>(tenantId, AVAILABILITY, id);
-
-        if (bucketsCount == null && bucketDuration == null) {
-            metricsService.findAvailabilityData(metricId, startTime, endTime, distinct)
+        Buckets buckets = bucketConfig.getBuckets();
+        if (buckets == null) {
+            metricsService.findAvailabilityData(metricId, timeRange.getStart(), timeRange.getEnd(), distinct)
                     .map(AvailabilityDataPoint::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
-        } else if (bucketsCount != null && bucketDuration != null) {
-            asyncResponse.resume(badRequest(new ApiError("Both buckets and bucketDuration parameters are used")));
         } else {
-            Buckets buckets;
-            try {
-                if (bucketsCount != null) {
-                    buckets = Buckets.fromCount(startTime, endTime, bucketsCount);
-                } else {
-                    buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
-                }
-            } catch (IllegalArgumentException e) {
-                asyncResponse.resume(badRequest(new ApiError("Bucket: " + e.getMessage())));
-                return;
-            }
-
-            metricsService.findAvailabilityStats(metricId, startTime, endTime, buckets)
+            metricsService.findAvailabilityStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets)
                 .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
         }

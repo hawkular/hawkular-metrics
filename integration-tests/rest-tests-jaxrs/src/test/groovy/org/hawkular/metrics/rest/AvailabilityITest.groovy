@@ -30,6 +30,22 @@ class AvailabilityITest extends RESTTest {
   def tenantId = nextTenantId()
 
   @Test
+  void shouldNotAcceptInvalidTimeRange() {
+    badGet(path: "availability/test/data", headers: [(tenantHeaderName): tenantId],
+        query: [start: 1000, end: 500]) { exception ->
+      assertEquals(400, exception.response.status)
+    }
+  }
+
+  @Test
+  void shouldNotAcceptInvalidBucketConfig() {
+    badGet(path: "availability/test/data", headers: [(tenantHeaderName): tenantId],
+        query: [start: 500, end: 100, buckets: '10', bucketDuration: '10ms']) { exception ->
+      assertEquals("Should fail when both bucket params are specified", 400, exception.response.status)
+    }
+  }
+
+  @Test
   void shouldNotCreateMetricWithEmptyPayload() {
     badPost(path: "availability", headers: [(tenantHeaderName): tenantId], body: "" /* Empty Body */) { exception ->
       assertEquals(400, exception.response.status)
