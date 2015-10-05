@@ -20,6 +20,7 @@ import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
+import static org.hawkular.metrics.core.api.Utils.isValidTimeRange;
 import static org.hawkular.metrics.core.impl.Functions.isValidTagMap;
 import static org.hawkular.metrics.core.impl.Functions.makeSafe;
 import static org.joda.time.Duration.standardMinutes;
@@ -626,7 +627,8 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> metricId, Long start, Long end) {
+    public <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> metricId, long start, long end) {
+        checkArgument(isValidTimeRange(start, end), "Invalid time range");
         MetricType<T> metricType = metricId.getType();
         Timer timer = getDataPointFindTimer(metricType);
         Func3<MetricId<T>, Long, Long, Observable<ResultSet>> finder = getDataPointFinder(metricType);
@@ -665,6 +667,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public Observable<DataPoint<Double>> findRateData(MetricId<Long> id, long start, long end) {
+        checkArgument(isValidTimeRange(start, end), "Invalid time range");
         return findDataPoints(id, start, end)
                 .buffer(2, 1) // emit previous/next pairs
                 .filter(l -> l.size() == 2) // drop last buffer
@@ -682,13 +685,15 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     @Override
     public Observable<List<NumericBucketPoint>> findRateStats(MetricId<Long> id, long start, long end,
                                                               Buckets buckets) {
+        checkArgument(isValidTimeRange(start, end), "Invalid time range");
         return bucketize(findRateData(id, start, end), buckets);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> Observable<T> findGaugeData(MetricId<Double> id, Long start, Long end,
+    public <T> Observable<T> findGaugeData(MetricId<Double> id, long start, long end,
                                            Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs) {
+        checkArgument(isValidTimeRange(start, end), "Invalid time range");
         Observable<DataPoint<Double>> dataCache = findDataPoints(id, start, end).cache();
         return Observable.from(funcs).flatMap(fn -> fn.call(dataCache));
     }
@@ -696,6 +701,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     @Override
     public Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end,
                                                                Buckets buckets) {
+        checkArgument(isValidTimeRange(start, end), "Invalid time range");
         return bucketize(findDataPoints(metricId, start, end), buckets);
     }
 
@@ -713,6 +719,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     @Override
     public Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId<AvailabilityType> id, long start,
             long end, boolean distinct) {
+        checkArgument(isValidTimeRange(start, end), "Invalid time range");
         Observable<DataPoint<AvailabilityType>> availabilityData = findDataPoints(id, start, end);
         if (distinct) {
             return availabilityData.distinctUntilChanged(DataPoint::getValue);
@@ -724,6 +731,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     @Override
     public Observable<List<AvailabilityBucketPoint>> findAvailabilityStats(MetricId<AvailabilityType> metricId,
                                                                            long start, long end, Buckets buckets) {
+        checkArgument(isValidTimeRange(start, end), "Invalid time range");
         return findDataPoints(metricId, start, end)
                 .groupBy(dataPoint -> buckets.getIndex(dataPoint.getTimestamp()))
                 .flatMap(group -> group.collect(() -> new AvailabilityDataPointCollector(buckets, group.getKey()),
@@ -745,11 +753,13 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     @Override
     public Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, long start, long end, Buckets
             buckets) {
+        checkArgument(isValidTimeRange(start, end), "Invalid time range");
         return bucketize(findDataPoints(id, start, end), buckets);
     }
 
     @Override
     public Observable<List<long[]>> getPeriods(MetricId<Double> id, Predicate<Double> predicate, long start, long end) {
+        checkArgument(isValidTimeRange(start, end), "Invalid time range");
         return dataAccess.findGaugeData(new Metric<>(id), start, end, Order.ASC)
                 .flatMap(Observable::from)
                 .map(Functions::getGaugeDataPoint)

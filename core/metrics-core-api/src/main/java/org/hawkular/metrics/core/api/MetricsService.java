@@ -131,7 +131,7 @@ public interface MetricsService {
      *
      * @return an {@link Observable} that emits {@link DataPoint data points}
      */
-    <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> id, Long start, Long end);
+    <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> id, long start, long end);
 
     /**
      * This method applies one or more functions to an Observable that emits data points of a gauge metric. The data
@@ -145,7 +145,7 @@ public interface MetricsService {
      * @see Aggregate
      */
     @SuppressWarnings("unchecked")
-    <T> Observable<T> findGaugeData(MetricId<Double> id, Long start, Long end,
+    <T> Observable<T> findGaugeData(MetricId<Double> id, long start, long end,
                                     Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs);
 
     Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end, Buckets

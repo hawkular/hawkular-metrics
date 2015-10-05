@@ -19,6 +19,8 @@ package org.hawkular.metrics.api.jaxrs.param;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import static org.hawkular.metrics.core.api.Utils.isValidTimeRange;
+
 import com.google.common.base.Objects;
 
 /**
@@ -38,7 +40,7 @@ public class TimeRange {
         long now = System.currentTimeMillis();
         this.start = start == null ? now - EIGHT_HOURS : start;
         this.end = end == null ? now : end;
-        if (this.end <= this.start) {
+        if (!isValidTimeRange(this.start, this.end)) {
             valid = false;
             problem = "Range end must be strictly greater than start";
         } else {
