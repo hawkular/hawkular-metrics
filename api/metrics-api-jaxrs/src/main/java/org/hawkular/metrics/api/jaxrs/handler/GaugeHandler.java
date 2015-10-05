@@ -30,7 +30,6 @@ import java.util.function.Predicate;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
@@ -285,9 +284,9 @@ public class GaugeHandler {
             @Suspended AsyncResponse asyncResponse,
             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
             @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
-            @ApiParam(value = "List of tags filters", required = true) @QueryParam("tags") @DefaultValue("") Tags tags,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
-            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration) {
+            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+            @ApiParam(value = "List of tags filters", required = true) @QueryParam("tags") Tags tags) {
 
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
@@ -304,7 +303,7 @@ public class GaugeHandler {
             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
             return;
         }
-        if (tags.getTags().isEmpty()) {
+        if (tags == null || tags.getTags().isEmpty()) {
             asyncResponse.resume(badRequest(new ApiError("tags parameter is required")));
             return;
         }

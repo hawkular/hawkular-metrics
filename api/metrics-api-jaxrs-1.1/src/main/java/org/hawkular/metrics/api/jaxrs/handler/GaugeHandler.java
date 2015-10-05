@@ -32,7 +32,6 @@ import java.util.function.Predicate;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
@@ -242,7 +241,7 @@ public class GaugeHandler {
     public Response findGaugeData(
             @QueryParam("start") final Long start,
             @QueryParam("end") final Long end,
-            @QueryParam("tags") @DefaultValue("") Tags tags,
+            @QueryParam("tags") Tags tags,
             @QueryParam("buckets") Integer bucketsCount,
             @QueryParam("bucketDuration") Duration bucketDuration) {
 
@@ -257,7 +256,7 @@ public class GaugeHandler {
         if (!bucketConfig.isValid()) {
             return badRequest(new ApiError(bucketConfig.getProblem()));
         }
-        if (tags.getTags().isEmpty()) {
+        if (tags == null || tags.getTags().isEmpty()) {
             return badRequest(new ApiError("tags parameter is required"));
         }
 
