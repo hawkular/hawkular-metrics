@@ -704,10 +704,10 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 ---
 >             return badRequest(new ApiError(timeRange.getProblem()));
 253,254c218
-<             asyncResponse.resume(badRequest(new ApiError(bucketParams.getProblem())));
+<             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
 <             return;
 ---
->             return badRequest(new ApiError(bucketParams.getProblem()));
+>             return badRequest(new ApiError(bucketConfig.getProblem()));
 259,268c223,237
 <         if (buckets == null) {
 <             metricsService.findAvailabilityData(metricId, timeRange.getStart(), timeRange.getEnd(), distinct)
@@ -981,10 +981,10 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 ---
 >             return badRequest(new ApiError(timeRange.getProblem()));
 251,252c206
-<             asyncResponse.resume(badRequest(new ApiError(bucketParams.getProblem())));
+<             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
 <             return;
 ---
->             return badRequest(new ApiError(bucketParams.getProblem()));
+>             return badRequest(new ApiError(bucketConfig.getProblem()));
 257,266c211,227
 <         if (buckets == null) {
 <             metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
@@ -1047,10 +1047,10 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 ---
 >             return badRequest(new ApiError(timeRange.getProblem()));
 299,300c246
-<             asyncResponse.resume(badRequest(new ApiError(bucketParams.getProblem())));
+<             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
 <             return;
 ---
->             return badRequest(new ApiError(bucketParams.getProblem()));
+>             return badRequest(new ApiError(bucketConfig.getProblem()));
 305,314c251,268
 <         if (buckets == null) {
 <             metricsService.findRateData(metricId, timeRange.getStart(), timeRange.getEnd())
@@ -1331,10 +1331,10 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 ---
 >             return badRequest(new ApiError(timeRange.getProblem()));
 249,250c213
-<             asyncResponse.resume(badRequest(new ApiError(bucketParams.getProblem())));
+<             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
 <             return;
 ---
->             return badRequest(new ApiError(bucketParams.getProblem()));
+>             return badRequest(new ApiError(bucketConfig.getProblem()));
 255,264c218,235
 <         if (buckets == null) {
 <             metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())

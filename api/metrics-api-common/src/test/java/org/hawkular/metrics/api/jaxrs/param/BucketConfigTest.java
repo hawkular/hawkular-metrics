@@ -29,55 +29,55 @@ import org.junit.Test;
 /**
  * @author Thomas Segismont
  */
-public class BucketParamsTest {
+public class BucketConfigTest {
 
     @Test
     public void testNoBuckets() {
         TimeRange timeRange = new TimeRange(5L, 7L);
-        BucketParams bucketParams = new BucketParams(null, null, timeRange);
-        assertTrue(bucketParams.getProblem(), bucketParams.isValid());
-        assertNull(bucketParams.getBuckets());
+        BucketConfig bucketConfig = new BucketConfig(null, null, timeRange);
+        assertTrue(bucketConfig.getProblem(), bucketConfig.isValid());
+        assertNull(bucketConfig.getBuckets());
     }
 
     @Test
     public void testCreateFromBucketCount() {
         TimeRange timeRange = new TimeRange(100L, 200L);
-        BucketParams bucketParams = new BucketParams(10, null, timeRange);
-        assertTrue(bucketParams.getProblem(), bucketParams.isValid());
-        assertNotNull(bucketParams.getBuckets());
+        BucketConfig bucketConfig = new BucketConfig(10, null, timeRange);
+        assertTrue(bucketConfig.getProblem(), bucketConfig.isValid());
+        assertNotNull(bucketConfig.getBuckets());
     }
 
     @Test
     public void testCreateFromBucketDuration() {
         TimeRange timeRange = new TimeRange(100L, 200L);
-        BucketParams bucketParams = new BucketParams(null, new Duration(10, MILLISECONDS), timeRange);
-        assertTrue(bucketParams.getProblem(), bucketParams.isValid());
-        assertNotNull(bucketParams.getBuckets());
+        BucketConfig bucketConfig = new BucketConfig(null, new Duration(10, MILLISECONDS), timeRange);
+        assertTrue(bucketConfig.getProblem(), bucketConfig.isValid());
+        assertNotNull(bucketConfig.getBuckets());
     }
 
     @Test
     public void testInvalidConfig() {
         TimeRange timeRange = new TimeRange(1L, Long.MAX_VALUE);
-        BucketParams bucketParams = new BucketParams(null, new Duration(1, MILLISECONDS), timeRange);
-        assertFalse(bucketParams.isValid());
-        assertNull(bucketParams.getBuckets());
+        BucketConfig bucketConfig = new BucketConfig(null, new Duration(1, MILLISECONDS), timeRange);
+        assertFalse(bucketConfig.isValid());
+        assertNull(bucketConfig.getBuckets());
     }
 
     @Test
     public void testBothParamsSpecified() {
         TimeRange timeRange = new TimeRange(5L, 7L);
-        BucketParams bucketParams = new BucketParams(5, new Duration(2, MILLISECONDS), timeRange);
-        assertFalse(bucketParams.isValid());
-        assertNull(bucketParams.getBuckets());
+        BucketConfig bucketConfig = new BucketConfig(5, new Duration(2, MILLISECONDS), timeRange);
+        assertFalse(bucketConfig.isValid());
+        assertNull(bucketConfig.getBuckets());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testNullTimeRange() {
-        new BucketParams(5, null, new TimeRange(7L, 5L));
+        new BucketConfig(5, null, new TimeRange(7L, 5L));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testInvalidTimeRange() {
-        new BucketParams(5, null, new TimeRange(7L, 5L));
+        new BucketConfig(5, null, new TimeRange(7L, 5L));
     }
 }

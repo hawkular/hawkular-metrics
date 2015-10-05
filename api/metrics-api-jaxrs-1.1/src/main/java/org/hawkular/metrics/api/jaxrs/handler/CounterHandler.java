@@ -48,7 +48,7 @@ import org.hawkular.metrics.api.jaxrs.model.Counter;
 import org.hawkular.metrics.api.jaxrs.model.CounterDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
-import org.hawkular.metrics.api.jaxrs.param.BucketParams;
+import org.hawkular.metrics.api.jaxrs.param.BucketConfig;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.param.TimeRange;
@@ -201,13 +201,13 @@ public class CounterHandler {
         if (!timeRange.isValid()) {
             return badRequest(new ApiError(timeRange.getProblem()));
         }
-        BucketParams bucketParams = new BucketParams(bucketsCount, bucketDuration, timeRange);
-        if (!bucketParams.isValid()) {
-            return badRequest(new ApiError(bucketParams.getProblem()));
+        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+        if (!bucketConfig.isValid()) {
+            return badRequest(new ApiError(bucketConfig.getProblem()));
         }
 
         MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
-        Buckets buckets = bucketParams.getBuckets();
+        Buckets buckets = bucketConfig.getBuckets();
         try {
             if (buckets == null) {
                 return metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
@@ -241,13 +241,13 @@ public class CounterHandler {
         if (!timeRange.isValid()) {
             return badRequest(new ApiError(timeRange.getProblem()));
         }
-        BucketParams bucketParams = new BucketParams(bucketsCount, bucketDuration, timeRange);
-        if (!bucketParams.isValid()) {
-            return badRequest(new ApiError(bucketParams.getProblem()));
+        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+        if (!bucketConfig.isValid()) {
+            return badRequest(new ApiError(bucketConfig.getProblem()));
         }
 
         MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
-        Buckets buckets = bucketParams.getBuckets();
+        Buckets buckets = bucketConfig.getBuckets();
         try {
             if (buckets == null) {
                 return metricsService

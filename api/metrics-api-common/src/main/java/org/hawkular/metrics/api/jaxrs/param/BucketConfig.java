@@ -26,12 +26,12 @@ import org.hawkular.metrics.core.api.Buckets;
  *
  * @author Thomas Segismont
  */
-public class BucketParams {
+public class BucketConfig {
     private final Buckets buckets;
     private final boolean valid;
     private final String problem;
 
-    public BucketParams(Integer bucketsCount, Duration bucketDuration, TimeRange timeRange) {
+    public BucketConfig(Integer bucketsCount, Duration bucketDuration, TimeRange timeRange) {
         checkArgument(timeRange != null, "Time range is null");
         if (!timeRange.isValid()) {
             throw new IllegalArgumentException("Invalid time range: " + timeRange.getProblem());

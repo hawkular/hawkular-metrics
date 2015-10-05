@@ -49,7 +49,7 @@ import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
-import org.hawkular.metrics.api.jaxrs.param.BucketParams;
+import org.hawkular.metrics.api.jaxrs.param.BucketConfig;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.param.TimeRange;
@@ -213,13 +213,13 @@ public class AvailabilityHandler {
         if (!timeRange.isValid()) {
             return badRequest(new ApiError(timeRange.getProblem()));
         }
-        BucketParams bucketParams = new BucketParams(bucketsCount, bucketDuration, timeRange);
-        if (!bucketParams.isValid()) {
-            return badRequest(new ApiError(bucketParams.getProblem()));
+        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+        if (!bucketConfig.isValid()) {
+            return badRequest(new ApiError(bucketConfig.getProblem()));
         }
 
         MetricId<AvailabilityType> metricId = new MetricId<>(tenantId, AVAILABILITY, id);
-        Buckets buckets = bucketParams.getBuckets();
+        Buckets buckets = bucketConfig.getBuckets();
         try {
             if (buckets == null) {
                 return metricsService.findAvailabilityData(metricId, timeRange.getStart(), timeRange.getEnd(), distinct)
