@@ -289,33 +289,30 @@ public class GaugeHandler {
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration) {
 
-        long now = System.currentTimeMillis();
-        long startTime = start == null ? now - EIGHT_HOURS : start;
-        long endTime = end == null ? now : end;
-
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+        if (bucketConfig.isEmpty()) {
+            asyncResponse.resume(badRequest(new ApiError(
+                    "Either the buckets or bucketsDuration parameter must be used")));
+            return;
+        }
+        if (!bucketConfig.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+            return;
+        }
         if (tags.getTags().isEmpty()) {
             asyncResponse.resume(badRequest(new ApiError("tags parameter is required")));
-        } else if (bucketsCount == null && bucketDuration == null) {
-            asyncResponse.resume(badRequest(new ApiError("Either the buckets or bucketsDuration parameter must be "
-                    + "used")));
-        } else if (bucketsCount != null && bucketDuration != null) {
-            asyncResponse.resume(badRequest(new ApiError("Only one of the buckets and bucketDuration parameters " +
-                    "can be used")));
-        } else {
-            Buckets buckets;
-            try {
-                if (bucketsCount != null) {
-                    buckets = Buckets.fromCount(startTime, endTime, bucketsCount);
-                } else {
-                    buckets = Buckets.fromStep(startTime, endTime, bucketDuration.toMillis());
-                }
-                metricsService.findGaugeStats(tenantId, tags.getTags(), startTime, endTime, buckets)
-                        .map(ApiUtils::collectionToResponse)
-                        .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
-            } catch (IllegalArgumentException e) {
-                asyncResponse.resume(badRequest(new ApiError("Bucket: " + e.getMessage())));
-            }
+            return;
         }
+
+        metricsService.findGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
+                bucketConfig.getBuckets())
+                .map(ApiUtils::collectionToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
 
     @GET
