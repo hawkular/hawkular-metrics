@@ -28,7 +28,6 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
@@ -50,6 +49,7 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.utils.UUIDs;
 
 import rx.Observable;
+import rx.functions.Func1;
 
 /**
  *
@@ -59,7 +59,7 @@ public class DataAccessImpl implements DataAccess {
     public static final long DPART = 0;
 
     private final Session session;
-    private final Supplier<BatchingStrategy> batchingStrategySupplier;
+    private final Func1<Session, BatchingStrategy> batchingStrategySupplier;
 
     private RxSession rxSession;
 
@@ -137,10 +137,10 @@ public class DataAccessImpl implements DataAccess {
 
     public DataAccessImpl(Session session) {
         // By default, use batch statement strategy with max batch size
-        this(session, () -> new BatchStatementStrategy());
+        this(session, s -> new BatchStatementStrategy(s, false));
     }
 
-    public DataAccessImpl(Session session, Supplier<BatchingStrategy> batchingStrategySupplier) {
+    public DataAccessImpl(Session session, Func1<Session, BatchingStrategy> batchingStrategySupplier) {
         this.session = session;
         this.batchingStrategySupplier = batchingStrategySupplier;
         rxSession = new RxSessionImpl(session);
@@ -382,7 +382,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public <T> Observable<Integer> updateMetricsIndex(Observable<Metric<T>> metrics) {
-        BatchingStrategy batchingStrategy = batchingStrategySupplier.get();
+        BatchingStrategy batchingStrategy = batchingStrategySupplier.call(session);
         return metrics.map(Metric::getId)
                 .map(id -> updateMetricsIndex.bind(id.getTenantId(), id.getType().getCode(), id.getName()))
                 .compose(batchingStrategy)
@@ -396,7 +396,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
-        BatchingStrategy batchingStrategy = batchingStrategySupplier.get();
+        BatchingStrategy batchingStrategy = batchingStrategySupplier.call(session);
         return Observable.from(gauge.getDataPoints())
                 .map(dataPoint -> bindDataPoint(insertGaugeData, gauge, dataPoint.getValue(),
                         dataPoint.getTimestamp(), ttl))
@@ -406,7 +406,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<Integer> insertCounterData(Metric<Long> counter, int ttl) {
-        BatchingStrategy batchingStrategy = batchingStrategySupplier.get();
+        BatchingStrategy batchingStrategy = batchingStrategySupplier.call(session);
         return Observable.from(counter.getDataPoints())
                 .map(dataPoint -> bindDataPoint(insertCounterData, counter, dataPoint.getValue(),
                         dataPoint.getTimestamp(), ttl))
@@ -513,7 +513,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
-        BatchingStrategy batchingStrategy = batchingStrategySupplier.get();
+        BatchingStrategy batchingStrategy = batchingStrategySupplier.call(session);
         return Observable.from(metric.getDataPoints())
                 .map(dataPoint -> bindDataPoint(insertAvailability, metric, getBytes(dataPoint),
                         dataPoint.getTimestamp(), ttl))
@@ -539,7 +539,7 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public <T> Observable<ResultSet> updateRetentionsIndex(String tenantId, MetricType<T> type,
                                                        Map<String, Integer> retentions) {
-        BatchingStrategy batchingStrategy = batchingStrategySupplier.get();
+        BatchingStrategy batchingStrategy = batchingStrategySupplier.call(session);
         return Observable.from(retentions.entrySet())
                 .map(entry -> updateRetentionsIndex.bind(tenantId, type.getCode(), entry.getKey(), entry.getValue()))
                 .compose(batchingStrategy)

@@ -39,6 +39,7 @@ public enum ConfigurationKey {
     DEFAULT_TTL("hawkular.metrics.default-ttl", "7", "DEFAULT_TTL", false),
     STATEMENT_BATCHING_STRATEGY("hawkular.metrics.statement-batching-strategy", null, null, false),
     BATCH_STATEMENT_SIZE("hawkular.metrics.batch-statement-size", null, null, false),
+    BATCH_GROUPBY_REPLICA("hawkular.metrics.batch-groupby-replica", null, null, true),
     /**/;
 
 

@@ -50,26 +50,35 @@ public class DataAccessFactory {
     @ConfigurationProperty(ConfigurationKey.BATCH_STATEMENT_SIZE)
     private String batchStatementSize;
 
+    @Inject
+    @Configurable
+    @ConfigurationProperty(ConfigurationKey.BATCH_GROUPBY_REPLICA)
+    private String batchGroupByReplica;
+
     public DataAccess create(Session session) {
         if (statementBatchingStrategy != null) {
             String strategy = statementBatchingStrategy.trim();
             if (NoBatchStatementStrategy.class.getCanonicalName().equals(strategy)) {
                 log.debugf("Using %s", NoBatchStatementStrategy.class.getCanonicalName());
-                return new DataAccessImpl(session, () -> new NoBatchStatementStrategy());
+                return new DataAccessImpl(session, s -> new NoBatchStatementStrategy());
             }
         }
         return createForBatchStatementStrategy(session);
     }
 
     private DataAccessImpl createForBatchStatementStrategy(Session session) {
+        boolean groupByReplica = batchGroupByReplica != null;
+        if (groupByReplica) {
+            log.debug("Will group statements by replica");
+        }
         if (batchStatementSize != null) {
             String size = batchStatementSize.trim();
             try {
                 int batchSize = Integer.parseInt(size);
                 if (batchSize <= MAX_BATCH_SIZE) {
-                    log.debugf("Using %s with batch size of %d", BatchStatementStrategy.class.getCanonicalName(),
-                            batchSize);
-                    return new DataAccessImpl(session, () -> new BatchStatementStrategy(batchSize));
+                    log.debugf("Using %s with batch size of %s", BatchStatementStrategy.class.getCanonicalName(),
+                            String.valueOf(batchSize));
+                    return new DataAccessImpl(session, s -> new BatchStatementStrategy(s, groupByReplica, batchSize));
                 } else {
                     log.debug("Batch statement size is too big, will use the default");
                 }
@@ -78,6 +87,6 @@ public class DataAccessFactory {
             }
         }
         log.debugf("Using %s with default batch size", BatchStatementStrategy.class.getCanonicalName());
-        return new DataAccessImpl(session, () -> new BatchStatementStrategy());
+        return new DataAccessImpl(session, s -> new BatchStatementStrategy(s, false));
     }
 }
