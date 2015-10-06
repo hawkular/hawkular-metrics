@@ -86,6 +86,11 @@
       <artifactId>swagger-annotations</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>io.swagger</groupId>
+      <artifactId>swagger-core</artifactId>
+      <scope>provided</scope>
+    </dependency>
 
     <!-- test -->
     <dependency>
@@ -131,6 +136,8 @@
               <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
             </manifest>
           </archive>
+          <!-- Exclude Swagger output customization classes from the WAR file -->
+          <packagingExcludes>WEB-INF/classes/org/hawkular/metrics/api/jaxrs/swagger/**/*</packagingExcludes>
           <webResources>
             <resource>
               <filtering>false</filtering>
@@ -178,6 +185,7 @@
                     <title>Hawkular Metrics REST API</title>
                     <version>1.0</version>
                   </info>
+                  <swaggerInternalFilter>org.hawkular.metrics.api.jaxrs.swagger.SwaggerFilter</swaggerInternalFilter>
                   <swaggerDirectory>${swaggerDirectory}</swaggerDirectory>
                 </apiSource>
               </apiSources>

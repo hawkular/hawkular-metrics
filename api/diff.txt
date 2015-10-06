@@ -66,12 +66,17 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/met
 <       <artifactId>jboss-servlet-api_3.1_spec</artifactId>
 ---
 >       <artifactId>jboss-servlet-api_3.0_spec</artifactId>
-82,100d101
+82,105d101
 < 
 <     <!-- documentation -->
 <     <dependency>
 <       <groupId>io.swagger</groupId>
 <       <artifactId>swagger-annotations</artifactId>
+<       <scope>provided</scope>
+<     </dependency>
+<     <dependency>
+<       <groupId>io.swagger</groupId>
+<       <artifactId>swagger-core</artifactId>
 <       <scope>provided</scope>
 <     </dependency>
 < 
@@ -86,13 +91,13 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/met
 <       <artifactId>mockito-core</artifactId>
 <       <scope>test</scope>
 <     </dependency>
-104c105
+109c105
 <     <finalName>hawkular-metric-rest</finalName>
 ---
 >     <finalName>hawkular-metrics-api-rest-1.1</finalName>
-106d106
+111d106
 < 
-108,122c108,114
+113,127c108,114
 <         <groupId>org.antlr</groupId>
 <         <artifactId>antlr4-maven-plugin</artifactId>
 <         <executions>
@@ -116,15 +121,18 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/met
 >           <version>${version.org.jboss.as.container}</version>
 >           <port>${jboss-as.management.port}</port>
 >         </configuration>
-140c132
+139,140d125
+<           <!-- Exclude Swagger output customization classes from the WAR file -->
+<           <packagingExcludes>WEB-INF/classes/org/hawkular/metrics/api/jaxrs/swagger/**/*</packagingExcludes>
+147c132
 <                 <exclude>static/index.html</exclude>
 ---
 >                 <exclude>index.html</exclude>
-148c140
+155c140
 <                 <include>static/index.html</include>
 ---
 >                 <include>index.html</include>
-157,227d148
+164,235d148
 < 
 <   <profiles>
 <     <profile>
@@ -149,6 +157,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/met
 <                     <title>Hawkular Metrics REST API</title>
 <                     <version>1.0</version>
 <                   </info>
+<                   <swaggerInternalFilter>org.hawkular.metrics.api.jaxrs.swagger.SwaggerFilter</swaggerInternalFilter>
 <                   <swaggerDirectory>${swaggerDirectory}</swaggerDirectory>
 <                 </apiSource>
 <               </apiSources>
@@ -2051,6 +2060,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 ---
 > @Provider
 > public class TagsConverter implements StringConverter<Tags> {
+Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs: swagger
 diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/util/JacksonConfig.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/util/JacksonConfig.java
 25,28c25,28
 < import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -2072,7 +2082,6 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >         mapper.setSerializationInclusion(Inclusion.NON_NULL);
 >         mapper.configure(SerializationConfig.Feature.WRITE_EMPTY_JSON_ARRAYS, false);
 >         mapper.configure(SerializationConfig.Feature.WRITE_NULL_MAP_VALUES, false);
-Only in api/metrics-api-jaxrs/src/main: resources
 diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/webapp/WEB-INF/beans.xml api/metrics-api-jaxrs-1.1/src/main/webapp/WEB-INF/beans.xml
 20c20
 < <beans xmlns="http://xmlns.jcp.org/xml/ns/javaee"

@@ -28,3 +28,40 @@ TBW: about start and end params, and default values, and order constraint
 === Bucket parameters
 
 TBW: about bucket parameters (should use just one of the two parameters, ... etc)
+
+=== Custom string formats
+
+Some path or query parameters in the Metrics REST API use custom string formats.
+
+==== Tags list
+
+The parameter represents a list of tags, comma separated. A tag has the form `name:value`.
+Name and values cannot contain commas or colons.
+
+Throughout this document, this string format is identified as `tag-list`.
+
+.Tags List format example
+----
+/metrics?tags=host:web001.example.com,dc:paris01,type:system
+----
+
+==== Duration
+
+The parameter represents an amount of time. Duration is formed of a length and a unit.
+
+Length is a long integer (`int64`).
+
+Allowed units are the following:
+
+* `ms` for milliseconds
+* `s` for seconds
+* `mn` for minutes
+* `h` for hours
+* `d` for days
+
+Throughout this document, this string format is identified as `duration`.
+
+.Duration format example
+----
+/gauges/paris01.web001.example.com.cpu.usage/data?bucketDuration=1h
+----
