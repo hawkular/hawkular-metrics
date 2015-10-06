@@ -276,10 +276,11 @@ public class GaugeHandler {
 
     @GET
     @Path("/data")
-    @ApiOperation(value = "Fetches data points from one or more metrics that are determined using either a tags " +
-            "filter or a list of metric names. The time range between start and end is divided into buckets of equal " +
-            "size (i.e., duration) using either the buckets or bucketDuration parameter. Functions are applied to " +
-            "the data points in each bucket to produce statistics or aggregated metrics.",
+    @ApiOperation(value = "Find stats for multiple metrics.", notes = "Fetches data points from one or more metrics"
+            + " that are determined using either a tags filter or a list of metric names. The time range between " +
+            "start and end is divided into buckets of equal size (i.e., duration) using either the buckets or " +
+            "bucketDuration parameter. Functions are applied to the data points in each bucket to produce statistics " +
+            "or aggregated metrics.",
             response = NumericBucketPoint.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
@@ -344,8 +345,8 @@ public class GaugeHandler {
 
     @GET
     @Path("/{id}/periods")
-    @ApiOperation(value = "Retrieve periods for which the condition holds true for each consecutive data point.",
-            response = List.class)
+    @ApiOperation(value = "Find condition periods.", notes = "Retrieve periods for which the condition holds true for" +
+            " each consecutive data point.", response = List.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched periods."),
             @ApiResponse(code = 204, message = "No data was found."),

@@ -51,6 +51,14 @@ apidocFile.withWriterAppend('UTF-8') { writer ->
     swagger.paths.sort { p1, p2 -> p1.key.compareTo(p2.key) }.each { Entry path ->
       path.value.each { Entry method ->
         if (method.value.tags.contains(tag.name)) {
+          writeEndpointLink(writer, path, method)
+        }
+      }
+    }
+
+    swagger.paths.sort { p1, p2 -> p1.key.compareTo(p2.key) }.each { Entry path ->
+      path.value.each { Entry method ->
+        if (method.value.tags.contains(tag.name)) {
 
           writeEndpointHeader(writer, path, method)
 
@@ -74,12 +82,26 @@ apidocFile.withWriterAppend('UTF-8') { writer ->
   writeDataTypes(writer, swagger.definitions ?: [:])
 }
 
+private writeEndpointLink(Writer writer, Entry path, Entry method) {
+  def summary = method.value.summary.trim()
+  String endpoint = path.key
+  def httpMethod = method.key.toUpperCase()
+  Object anchor = getEndpointAnchor(httpMethod, endpoint)
+
+  writer.println ". link:#++${anchor}++[${summary}]"
+}
+
+def String getEndpointAnchor(def httpMethod, String endpoint) {
+  def anchor = httpMethod + '_' + endpoint.replace('/', '_').replace('{', '_').replace('}', '_')
+  anchor
+}
+
 private writeEndpointHeader(Writer writer, Entry path, Entry method) {
   def summary = method.value.summary.trim()
   def description = method.value.description?.trim()
   String endpoint = path.key
   def httpMethod = method.key.toUpperCase()
-  def anchor = httpMethod + '_' + endpoint.replace('/', '_').replace('{', '_').replace('}', '_')
+  def anchor = getEndpointAnchor(httpMethod, endpoint)
 
   writer.println """
 
