@@ -159,6 +159,7 @@
     <profile>
       <id>docgen</id>
       <properties>
+        <restDocDirectory>${project.basedir}/src/main/rest-doc</restDocDirectory>
         <swaggerDirectory>${project.build.directory}/generated/swagger-ui</swaggerDirectory>
       </properties>
       <build>
@@ -206,7 +207,7 @@
                 <outputFile>${project.build.directory}/generated/rest-metrics.adoc</outputFile>
               </properties>
               <scripts>
-                <script>file:///${project.basedir}/src/main/script/apidoc.groovy</script>
+                <script>file:///${restDocDirectory}/apidoc.groovy</script>
               </scripts>
             </configuration>
             <executions>
