@@ -698,28 +698,7 @@ public class MetricsServiceITest extends MetricsITest {
 
     @Test
     public void findGaugeStatsByTags() {
-        NumericDataPointCollector.createPercentile = p -> new Percentile() {
-
-            List<Double> values = new ArrayList<>();
-            org.apache.commons.math3.stat.descriptive.rank.Percentile percentile =
-                    new org.apache.commons.math3.stat.descriptive.rank.Percentile(p);
-
-            @Override public void addValue(double value) {
-                values.add(value);
-            }
-
-            @Override public double getResult() {
-                org.apache.commons.math3.stat.descriptive.rank.Percentile percentile =
-                        new org.apache.commons.math3.stat.descriptive.rank.Percentile(p);
-                double[] array = new double[values.size()];
-                for (int i = 0; i < array.length; ++i) {
-                    array[i] = values.get(i++);
-                }
-                percentile.setData(array);
-
-                return percentile.getQuantile();
-            }
-        };
+        NumericDataPointCollector.createPercentile = InMemoryPercentile::new;
 
         String tenantId = "findGaugeStatsByTags";
         DateTime start = now().minusMinutes(10);
@@ -767,6 +746,56 @@ public class MetricsServiceITest extends MetricsITest {
                 Observable.concat(Observable.from(m1.getDataPoints()), Observable.from(m2.getDataPoints()))
                 .collect(() -> new NumericDataPointCollector(buckets, 0), NumericDataPointCollector::increment)
                 .map(NumericDataPointCollector::toBucketPoint));
+
+        assertNumericBucketsEquals(actual.get(0), expected);
+    }
+
+    @Test
+    public void findGaugeStatsByMetricNames() {
+        NumericDataPointCollector.createPercentile = InMemoryPercentile::new;
+
+        String tenantId = "findGaugeStatsByMetricNames";
+        DateTime start = now().minusMinutes(10);
+
+        Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M1"), asList(
+                new DataPoint<>(start.getMillis(), 12.23),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 9.745),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 14.01),
+                new DataPoint<>(start.plusMinutes(3).getMillis(), 16.18),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 18.94)
+        ));
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m1)));
+
+        Metric<Double> m2 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M2"), asList(
+                new DataPoint<>(start.getMillis(), 15.47),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 8.08),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 14.39),
+                new DataPoint<>(start.plusMinutes(3).getMillis(), 17.76),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 17.502)
+        ));
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m2)));
+
+        Metric<Double> m3 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M3"), asList(
+                new DataPoint<>(start.getMillis(), 11.456),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 18.32)
+        ));
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m3)));
+
+        Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
+
+        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findGaugeStats(tenantId,
+                asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets));
+
+        assertEquals(actual.size(), 1);
+
+        NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(start.getMillis(),
+                start.plusMinutes(5).getMillis());
+        m1.getDataPoints().forEach(dataPoint -> updateBuilder(builder, dataPoint));
+
+        List<NumericBucketPoint> expected = getOnNextEvents(() ->
+                Observable.concat(Observable.from(m1.getDataPoints()), Observable.from(m2.getDataPoints()))
+                        .collect(() -> new NumericDataPointCollector(buckets, 0), NumericDataPointCollector::increment)
+                        .map(NumericDataPointCollector::toBucketPoint));
 
         assertNumericBucketsEquals(actual.get(0), expected);
     }
@@ -1268,6 +1297,31 @@ public class MetricsServiceITest extends MetricsITest {
             assertEquals(ttl, availabilityTTL, "The availability data TTL does not match the expected value when " +
                 "inserting data");
             return super.insertAvailabilityData(metric, ttl);
+        }
+    }
+
+    private static class InMemoryPercentile implements Percentile {
+        List<Double> values = new ArrayList<>();
+        double percentile;
+
+        public InMemoryPercentile(double percentile) {
+            this.percentile = percentile;
+        }
+
+        @Override public void addValue(double value) {
+            values.add(value);
+        }
+
+        @Override public double getResult() {
+            org.apache.commons.math3.stat.descriptive.rank.Percentile percentileCalculator =
+                    new org.apache.commons.math3.stat.descriptive.rank.Percentile(percentile);
+            double[] array = new double[values.size()];
+            for (int i = 0; i < array.length; ++i) {
+                array[i] = values.get(i++);
+            }
+            percentileCalculator.setData(array);
+
+            return percentileCalculator.getQuantile();
         }
     }
 }

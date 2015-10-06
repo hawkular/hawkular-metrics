@@ -268,10 +268,11 @@ public class GaugeHandler {
 
     @GET
     @Path("/data")
-    @ApiOperation(value = "Fetches data points from one or more metrics that are determined using a tags filter. The " +
-        "time range between start and end is divided into buckets of equal size (i.e., duration) using either the " +
-        "buckets or bucketDuration parameter. Functions are applied to the data points in each bucket to produce " +
-        "statistics or aggregated metrics.", response = NumericBucketPoint.class, responseContainer = "List")
+    @ApiOperation(value = "Fetches data points from one or more metrics that are determined using either a tags " +
+            "filter or a list of metric names. The time range between start and end is divided into buckets of equal " +
+            "size (i.e., duration) using either the buckets or bucketDuration parameter. Functions are applied to " +
+            "the data points in each bucket to produce statistics or aggregated metrics.",
+            response = NumericBucketPoint.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),
@@ -286,7 +287,9 @@ public class GaugeHandler {
             @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
-            @ApiParam(value = "List of tags filters", required = true) @QueryParam("tags") Tags tags) {
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
+            @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics")
+            List<String> metricNames) {
 
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
@@ -303,15 +306,26 @@ public class GaugeHandler {
             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
             return;
         }
-        if (tags == null || tags.getTags().isEmpty()) {
-            asyncResponse.resume(badRequest(new ApiError("tags parameter is required")));
+        if (metricNames.isEmpty() && (tags == null || tags.getTags().isEmpty())) {
+            asyncResponse.resume(badRequest(new ApiError("Either metrics or tags parameter must be used")));
+            return;
+        }
+        if (!metricNames.isEmpty() && !(tags == null || tags.getTags().isEmpty())) {
+            asyncResponse.resume(badRequest(new ApiError("Cannot use both the metrics and tags parameters")));
             return;
         }
 
-        metricsService.findGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
-                bucketConfig.getBuckets())
-                .map(ApiUtils::collectionToResponse)
-                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+        if (metricNames.isEmpty()) {
+            metricsService.findGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
+                    bucketConfig.getBuckets())
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+        } else {
+            metricsService.findGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
+                    bucketConfig.getBuckets())
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+        }
     }
 
     @GET

@@ -712,6 +712,14 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                 .flatMap(metric -> findDataPoints(metric.getId(), start, end)), buckets);
     }
 
+    @Override
+    public Observable<List<NumericBucketPoint>> findGaugeStats(String tenantId, List<String> metrics, long start,
+                                                               long end, Buckets buckets) {
+        return bucketize(Observable.from(metrics)
+                .flatMap(metricName -> findMetric(new MetricId<>(tenantId, GAUGE, metricName)))
+                .flatMap(metric -> findDataPoints(metric.getId(), start, end)), buckets);
+    }
+
     private Observable<List<NumericBucketPoint>> bucketize(Observable<? extends DataPoint<? extends Number>> dataPoints,
                                                            Buckets buckets) {
         return dataPoints
