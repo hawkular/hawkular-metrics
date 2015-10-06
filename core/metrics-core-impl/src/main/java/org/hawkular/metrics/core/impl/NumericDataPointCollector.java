@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.core.impl;
 
+import java.util.function.Function;
+
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.rank.Max;
 import org.apache.commons.math3.stat.descriptive.rank.Min;
@@ -30,14 +32,36 @@ import org.hawkular.metrics.core.api.NumericBucketPoint;
  * @author Thomas Segismont
  */
 final class NumericDataPointCollector {
+
+    /**
+     * This is a test hook. See {@link Percentile} for details.
+     */
+    static Function<Double, Percentile> createPercentile = p -> new Percentile() {
+
+        PSquarePercentile percentile = new PSquarePercentile(p);
+
+        // Note that these methods need to be synchronized because PSquarePecentile is not synchronized and we need to
+        // support concurrent access.
+
+        @Override
+        public synchronized void addValue(double value) {
+            percentile.increment(value);
+        }
+
+        @Override
+        public synchronized double getResult() {
+            return percentile.getResult();
+        }
+    };
+
     private final Buckets buckets;
     private final int bucketIndex;
 
     private Min min = new Min();
     private Mean average = new Mean();
-    private PSquarePercentile median = new PSquarePercentile(50.0);
+    private Percentile median = createPercentile.apply(50.0);
     private Max max = new Max();
-    private PSquarePercentile percentile95th = new PSquarePercentile(95.0);
+    private Percentile percentile95th = createPercentile.apply(95.0);
 
     NumericDataPointCollector(Buckets buckets, int bucketIndex) {
         this.buckets = buckets;
@@ -48,9 +72,9 @@ final class NumericDataPointCollector {
         Number value = dataPoint.getValue();
         min.increment(value.doubleValue());
         average.increment(value.doubleValue());
-        median.increment(value.doubleValue());
+        median.addValue(value.doubleValue());
         max.increment(value.doubleValue());
-        percentile95th.increment(value.doubleValue());
+        percentile95th.addValue(value.doubleValue());
     }
 
     NumericBucketPoint toBucketPoint() {

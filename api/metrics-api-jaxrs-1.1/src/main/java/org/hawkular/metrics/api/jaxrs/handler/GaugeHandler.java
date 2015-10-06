@@ -237,6 +237,49 @@ public class GaugeHandler {
     }
 
     @GET
+    @Path("/data")
+    public Response findGaugeData(
+            @QueryParam("start") final Long start,
+            @QueryParam("end") final Long end,
+            @QueryParam("tags") Tags tags,
+            @QueryParam("buckets") Integer bucketsCount,
+            @QueryParam("bucketDuration") Duration bucketDuration,
+            @QueryParam("metrics") List<String> metricNames) {
+
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            return badRequest(new ApiError(timeRange.getProblem()));
+        }
+        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+        if (bucketConfig.isEmpty()) {
+            return badRequest(new ApiError("Either the buckets or bucketsDuration parameter must be used"));
+        }
+        if (!bucketConfig.isValid()) {
+            return badRequest(new ApiError(bucketConfig.getProblem()));
+        }
+        if (metricNames.isEmpty() && (tags == null || tags.getTags().isEmpty())) {
+            return badRequest(new ApiError("Either metrics or tags parameter must be used"));
+        }
+        if (!metricNames.isEmpty() && !(tags == null || tags.getTags().isEmpty())) {
+            return badRequest(new ApiError("Cannot use both the metrics and tags parameters"));
+        }
+
+        if (metricNames.isEmpty()) {
+            return metricsService.findGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
+                    bucketConfig.getBuckets())
+                    .map(ApiUtils::collectionToResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
+        } else {
+            return metricsService.findGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
+                    bucketConfig.getBuckets())
+                    .map(ApiUtils::collectionToResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
+        }
+    }
+
+    @GET
     @Produces(APPLICATION_JSON)
     @Path("/{id}/periods")
     public Response findPeriods(

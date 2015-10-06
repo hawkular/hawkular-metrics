@@ -15,12 +15,6 @@
  * limitations under the License.
  */
 package org.hawkular.metrics.rest
-
-import static java.lang.Double.NaN
-
-import static org.joda.time.Seconds.seconds
-import static org.junit.Assert.assertEquals
-
 import org.apache.commons.math3.stat.descriptive.moment.Mean
 import org.apache.commons.math3.stat.descriptive.rank.Max
 import org.apache.commons.math3.stat.descriptive.rank.Min
@@ -30,6 +24,11 @@ import org.joda.time.DateTime
 import org.joda.time.Duration
 import org.junit.Test
 
+import static java.lang.Double.NaN
+import static org.joda.time.DateTime.now
+import static org.joda.time.Seconds.seconds
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertTrue
 /**
  * @author Thomas Segismont
  */
@@ -212,6 +211,279 @@ class GaugeMetricStatisticsITest extends RESTTest {
     assertEquals(200, response.status)
 
     assertNumericBucketsEquals(expectedData, response.data ?: [])
+  }
+
+  @Test
+  void findDataForMultipleMetricsByTags() {
+    String tenantId = nextTenantId()
+    DateTime start = now().minusMinutes(10)
+
+    // Create some metrics
+    def response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'G1',
+        tags: ['type': 'cpu_usage', 'host': 'server1', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'G2',
+        tags: ['type': 'cpu_usage', 'host': 'server2', 'env': 'dev']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'G3',
+        tags: ['type': 'cpu_usage', 'host': 'server3', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    // insert data points
+    response = hawkularMetrics.post(path: "gauges/data", body: [
+        [
+            id: 'G1',
+            data: [
+                [timestamp: start.millis, value: 37.45],
+                [timestamp: start.plusMinutes(1).millis, value: 37.609],
+                [timestamp: start.plusMinutes(2).millis, value: 39.11],
+                [timestamp: start.plusMinutes(3).millis, value: 44.07],
+                [timestamp: start.plusMinutes(4).millis, value: 42.335]
+            ]
+        ],
+        [
+            id: 'G2',
+            data: [
+                [timestamp: start.millis, value: 41.18],
+                [timestamp: start.plusMinutes(1).millis, value: 39.55],
+                [timestamp: start.plusMinutes(2).millis, value: 40.72],
+                [timestamp: start.plusMinutes(3).millis, value: 36.94],
+                [timestamp: start.plusMinutes(4).millis, value: 37.64]
+            ]
+        ],
+        [
+            id: 'G3',
+            data: [
+                [timestamp: start.millis, value: 57.12],
+                [timestamp: start.plusMinutes(1).millis, value: 57.73],
+                [timestamp: start.plusMinutes(2).millis, value: 55.49],
+                [timestamp: start.plusMinutes(3).millis, value: 49.19],
+                [timestamp: start.plusMinutes(4).millis, value: 35.48]
+            ]
+        ]
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    // query for data
+    response = hawkularMetrics.get(
+        path: 'gauges/data',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(4).millis,
+            buckets: 1,
+            tags: 'type:cpu_usage,host:server1|server2'
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(200, response.status)
+
+    assertEquals("Expected to get back one bucket", 1, response.data.size())
+
+    def bucket = response.data[0]
+
+    assertEquals("The start time is wrong", start.millis, bucket.start)
+    assertEquals("The end time is wrong", start.plusMinutes(4).millis, bucket.end)
+    assertDoubleEquals("The min is wrong", 36.94, bucket.min)
+    assertDoubleEquals("The max is wrong", 44.07, bucket.max)
+    assertDoubleEquals("The avg is wrong",
+        avg([37.45, 37.609, 39.11, 44.07, 41.18, 39.55, 40.72, 36.94]), bucket.avg)
+    assertEquals("The [empty] property is wrong", false, bucket.empty)
+    assertTrue("Expected the [median] property to be set", bucket.median != null)
+    assertTrue("Expected the [percentile95th] property to be set", bucket.percentile95th != null)
+  }
+
+  @Test
+  void findDataForMultipleMetricsByMetricNames() {
+    String tenantId = nextTenantId()
+    DateTime start = now().minusMinutes(10)
+
+    // Create some metrics
+    def response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'G1',
+        tags: ['type': 'cpu_usage', 'host': 'server1', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'G2',
+        tags: ['type': 'cpu_usage', 'host': 'server2', 'env': 'dev']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'G3',
+        tags: ['type': 'cpu_usage', 'host': 'server3', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    // insert data points
+    response = hawkularMetrics.post(path: "gauges/data", body: [
+        [
+            id: 'G1',
+            data: [
+                [timestamp: start.millis, value: 37.45],
+                [timestamp: start.plusMinutes(1).millis, value: 37.609],
+                [timestamp: start.plusMinutes(2).millis, value: 39.11],
+                [timestamp: start.plusMinutes(3).millis, value: 44.07],
+                [timestamp: start.plusMinutes(4).millis, value: 42.335]
+            ]
+        ],
+        [
+            id: 'G2',
+            data: [
+                [timestamp: start.millis, value: 41.18],
+                [timestamp: start.plusMinutes(1).millis, value: 39.55],
+                [timestamp: start.plusMinutes(2).millis, value: 40.72],
+                [timestamp: start.plusMinutes(3).millis, value: 36.94],
+                [timestamp: start.plusMinutes(4).millis, value: 37.64]
+            ]
+        ],
+        [
+            id: 'G3',
+            data: [
+                [timestamp: start.millis, value: 57.12],
+                [timestamp: start.plusMinutes(1).millis, value: 57.73],
+                [timestamp: start.plusMinutes(2).millis, value: 55.49],
+                [timestamp: start.plusMinutes(3).millis, value: 49.19],
+                [timestamp: start.plusMinutes(4).millis, value: 35.48]
+            ]
+        ]
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    // query for data
+    response = hawkularMetrics.get(
+        path: 'gauges/data',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(4).millis,
+            buckets: 1,
+            metrics: ['G1', 'G2']
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(200, response.status)
+
+    assertEquals("Expected to get back one bucket", 1, response.data.size())
+
+    def bucket = response.data[0]
+
+    assertEquals("The start time is wrong", start.millis, bucket.start)
+    assertEquals("The end time is wrong", start.plusMinutes(4).millis, bucket.end)
+    assertDoubleEquals("The min is wrong", 36.94, bucket.min)
+    assertDoubleEquals("The max is wrong", 44.07, bucket.max)
+    assertDoubleEquals("The avg is wrong",
+        avg([37.45, 37.609, 39.11, 44.07, 41.18, 39.55, 40.72, 36.94]), bucket.avg)
+    assertEquals("The [empty] property is wrong", false, bucket.empty)
+    assertTrue("Expected the [median] property to be set", bucket.median != null)
+    assertTrue("Expected the [percentile95th] property to be set", bucket.percentile95th != null)
+  }
+
+  @Test
+  void tagsOrMetricsParamIsRequiredWhenQueryingForDataFromMultipleMetrics() {
+    String tenantId = nextTenantId()
+    DateTime start = now().minusMinutes(10)
+
+    // Create some metrics
+    def response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'G1',
+        tags: ['type': 'cpu_usage', 'host': 'server1', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'G2',
+        tags: ['type': 'cpu_usage', 'host': 'server2', 'env': 'dev']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    // query for data
+    response = hawkularMetrics.get(
+        path: 'gauges/data',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(3).millis,
+            buckets: 1
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(400, response.status)
+  }
+
+  @Test
+  void shouldNotAllowTagsAndMetricNameWhenQueryingForDataFromMultipleMetrics() {
+    String tenantId = nextTenantId()
+    DateTime start = now().minusMinutes(10)
+
+    // Create some metrics
+    def response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'G1',
+        tags: ['type': 'cpu_usage', 'host': 'server1', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'G2',
+        tags: ['type': 'cpu_usage', 'host': 'server2', 'env': 'dev']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    // query for data
+    response = hawkularMetrics.get(
+        path: 'gauges/data',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(3).millis,
+            buckets: 1,
+            tags: [type: 'cpu_usage'],
+            metrics: ['G2']
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(400, response.status)
+  }
+
+  @Test
+  void bucketParamIsRequiredWhenQueryingForDataFromMultipleMetrics() {
+    // This test verifies that a 400 response is returned when neither the buckets nor bucketsDuration parameter is
+    // included in the request.
+
+    String tenantId = nextTenantId()
+    DateTime start = now().minusMinutes(10)
+
+    // Create some metrics
+    // Create some metrics
+    def response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'G1',
+        tags: ['type': 'cpu_usage', 'host': 'server1', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    // query for data
+    response = hawkularMetrics.get(
+        path: 'gauges/data',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(3).millis,
+            tags: 'type:cpu_usage,host:server1|server2'
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(400, response.status)
+  }
+
+  private static double avg(List values) {
+    Mean mean = new Mean()
+    values.each { mean.increment(it) }
+    return mean.result
   }
 
   private static List<Double> createSample(int sampleSize) {

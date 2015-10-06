@@ -148,8 +148,40 @@ public interface MetricsService {
     <T> Observable<T> findGaugeData(MetricId<Double> id, long start, long end,
                                     Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs);
 
-    Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end, Buckets
-            buckets);
+    Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end,
+                                                        Buckets buckets);
+
+    /**
+     * Fetches data points from multiple metrics that are determined by a tags filter query. Down sampling is performed
+     * such that data points from all matching metrics will go into one of the buckets. Functions are then applied to
+     * each bucket to produce a single {@link NumericBucketPoint} for each bucket.
+     *
+     * @param tenantId The id of the tenant to which the metrics belong
+     * @param tagFilters The metric tag filter used to query for metrics
+     * @param start The start time inclusive as a Unix timestamp in milliseconds
+     * @param end The end time exclusive as a Unix timestamp in milliseconds
+     * @param buckets Determines the number of data points to be returned and how data points will be grouped based
+     *                on which time slice or bucket they fall into.
+     * @return An {@link Observable} that emits a single list of {@link NumericBucketPoint}
+     */
+    Observable<List<NumericBucketPoint>> findGaugeStats(String tenantId, Map<String, String> tagFilters, long start,
+                                                        long end, Buckets buckets);
+
+    /**
+     * Fetches data points from multiple metrics. Down sampling is performed such that data points from all matching
+     * metrics will go into one of the buckets. Functions are then applied to each bucket to produce a single
+     * {@link NumericBucketPoint} for each bucket.
+     *
+     * @param tenantId The id of the tenant to which the metrics belong
+     * @param metrics The names of the gauge metrics that will be queried
+     * @param start The start time inclusive as a Unix timestamp in milliseconds
+     * @param end The end time exclusive as a Unix timestamp in milliseconds
+     * @param buckets Determines the number of data points to be returned and how data points will be grouped based
+     *                on which time slice or bucket they fall into.
+     * @return An {@link Observable} that emits a single list of {@link NumericBucketPoint}
+     */
+    Observable<List<NumericBucketPoint>> findGaugeStats(String tenantId, List<String> metrics, long start, long end,
+                                                        Buckets buckets);
 
     Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId<AvailabilityType> id, long start, long end,
                                                                  boolean distinct);

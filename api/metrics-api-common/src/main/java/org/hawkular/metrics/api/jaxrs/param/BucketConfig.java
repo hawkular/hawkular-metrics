@@ -75,6 +75,10 @@ public class BucketConfig {
         return valid;
     }
 
+    public boolean isEmpty() {
+        return buckets == null;
+    }
+
     public String getProblem() {
         return problem;
     }
