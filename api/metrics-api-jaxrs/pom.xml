@@ -203,6 +203,7 @@
             </dependencies>
             <configuration>
               <properties>
+                <baseFile>${restDocDirectory}/base.adoc</baseFile>
                 <swaggerFile>${swaggerDirectory}/swagger.json</swaggerFile>
                 <outputFile>${project.build.directory}/generated/rest-metrics.adoc</outputFile>
               </properties>

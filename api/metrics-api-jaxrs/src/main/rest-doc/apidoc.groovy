@@ -19,17 +19,25 @@ import java.util.Map.Entry
 
 import groovy.json.JsonSlurper
 
+def baseFile = new File(baseFile)
+if (!baseFile.canRead()) throw new RuntimeException("${baseFile.path} is not readable")
+
 def swaggerFile = new File(swaggerFile)
-if (!swaggerFile.canRead()) throw new RuntimeException("${swaggerFile.canonicalPath} is not readable")
+if (!swaggerFile.canRead()) throw new RuntimeException("${swaggerFile.path} is not readable")
 
 def jsonSlurper = new JsonSlurper()
 def swagger = jsonSlurper.parse(swaggerFile)
 
 def apidocFile = new File(outputFile)
 
-apidocFile.withWriter('UTF-8') { writer ->
+baseFile.withInputStream { stream ->
+  apidocFile.append(stream)
+}
+
+apidocFile.withWriterAppend('UTF-8') { writer ->
 
   writer.println """
+
 == Base Path
 `${swagger.basePath}`
 

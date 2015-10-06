@@ -1,0 +1,30 @@
+
+== Overview
+
+=== Media Type
+
+TBW
+
+=== Tenant Header
+
+TBW
+
+=== Timezone
+
+TBW: about UTC timestamps
+
+=== Response codes
+
+TBW: about usual response codes
+
+=== Errors
+
+TBW: about error format and usual errors
+
+=== Time ranges
+
+TBW: about start and end params, and default values, and order constraint
+
+=== Bucket parameters
+
+TBW: about bucket parameters (should use just one of the two parameters, ... etc)
