@@ -11,3 +11,6 @@ target
 *.tmp
 *.DS_Store
 *~
+antlr4
+rest-doc
+influx

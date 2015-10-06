@@ -196,7 +196,6 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/met
 <       </build>
 <     </profile>
 <   </profiles>
-Only in api/metrics-api-jaxrs/src/main: antlr4
 diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/HawkularMetricsRestApp.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/HawkularMetricsRestApp.java
 32,33d31
 < import org.hawkular.metrics.api.jaxrs.filter.CorsRequestFilter;
@@ -1964,7 +1963,6 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >             return ApiUtils.serverError(e);
 >         }
 Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler: observer
-Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs: influx
 diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/interceptor/EmptyPayloadInterceptor.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/interceptor/EmptyPayloadInterceptor.java
 30,31c30,33
 < import javax.ws.rs.ext.ReaderInterceptor;
@@ -2074,7 +2072,6 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >         mapper.configure(SerializationConfig.Feature.WRITE_EMPTY_JSON_ARRAYS, false);
 >         mapper.configure(SerializationConfig.Feature.WRITE_NULL_MAP_VALUES, false);
 Only in api/metrics-api-jaxrs/src/main: resources
-Only in api/metrics-api-jaxrs/src/main: rest-doc
 diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/webapp/WEB-INF/beans.xml api/metrics-api-jaxrs-1.1/src/main/webapp/WEB-INF/beans.xml
 20c20
 < <beans xmlns="http://xmlns.jcp.org/xml/ns/javaee"
