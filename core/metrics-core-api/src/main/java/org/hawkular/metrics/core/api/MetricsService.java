@@ -21,6 +21,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import org.hawkular.metrics.core.api.Downsample.Method;
+import org.hawkular.metrics.core.api.Downsample.Operation;
+
 import rx.Observable;
 import rx.functions.Func1;
 

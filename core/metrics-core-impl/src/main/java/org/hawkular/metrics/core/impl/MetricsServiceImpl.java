@@ -44,6 +44,8 @@ import org.hawkular.metrics.core.api.AvailabilityBucketPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.DataPoint;
+import org.hawkular.metrics.core.api.Downsample.Method;
+import org.hawkular.metrics.core.api.Downsample.Operation;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;

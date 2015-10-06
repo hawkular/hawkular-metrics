@@ -52,6 +52,7 @@ import org.hawkular.metrics.api.jaxrs.model.Gauge;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.param.BucketConfig;
+import org.hawkular.metrics.api.jaxrs.param.DownsampleConfig;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Percentiles;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
@@ -296,8 +297,10 @@ public class GaugeHandler {
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
-            @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics")
-            List<String> metricNames) {
+            @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
+            @ApiParam(value = "Downsamplig method", required = false) @QueryParam("downsampling") String downsampling,
+            @ApiParam(value = "Downsamplig operation", required = false) @QueryParam("downsamplingOperation")
+                String downsamplingOperation) {
 
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
