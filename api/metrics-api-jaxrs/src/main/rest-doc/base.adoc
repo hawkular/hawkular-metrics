@@ -3,19 +3,102 @@
 
 === Media Type
 
-TBW
+The API uses *JSON* to communicate with clients.
+
+You _should_ add the following accept header to your requests:
+
+----
+Accept: application/json
+----
+
+When you send JSON data with a `POST` or `PUT` request, you _must_ add the following content type header:
+
+----
+Content-Type: application/json
+----
+
+=== JSON format
+
+The server does not include null or empty entity properties in JSON representations.
+
+[source,javascript]
+----
+// Metric with data
+{
+  "id": "paris01.web001.example.com.cpu.usage",
+  "data": [
+    {"timestamp": 10101010101, "value": 25.73}
+  ]
+}
+
+// Metric without data
+{
+  "id": "paris01.web001.example.com.cpu.usage"
+}
+----
 
 === Tenant Header
 
-TBW
+Hawkular Metrics is a multi-tenant time-series data store. Your requests to tenant-dependent resources must include
+a tenant header:
 
-=== Timezone
+----
+Hawkular-Tenant: my-tenant
+----
 
-TBW: about UTC timestamps
+=== Timestamps
+
+The API understands all timestamps as milliseconds since January 1, 1970, 00:00:00 UTC.
 
 === Response codes
 
-TBW: about usual response codes
+Resources in the API follow response codes conventions, listed below.
+
+.Response codes conventions
+[cols="30,70a", options="header"]
+|===
+|Response code |Meaning
+
+|200 Ok
+|The operation completed successfully.
+
+|201 Created
+|A `POST` or `PUT` operation to create an entity completed successfully.
+The reponse should contain a `Location` header.
+
+|204 No Content
+|The operation completed successfully but result entity is null (`object`) or empty (`array`).
+Empty arrays are not sent in the response body.
+
+|400 Bad Request
+|The operation could not be processed. It could be due to:
+
+* Missing or malformed request entity
+* Missing header/query parameter
+* Malformed path/header/query parameter
+* Invalid parameters (breaking business rules)
+
+|404 Not Found
+|Resource denoted by the URI does not exist.
+
+|405 Method Not Allowed
+|Resource denoted by the URI does not support the operation type.
+
+|406 Not Acceptable
+|Cannot reply in a format accepted by the client (specified in `Accept` request header).
+
+|409 Conflict
+|A `POST` or `PUT` operation could not be performed because it conflicts with an existing entity.
+
+|415 Unsupported Media Type
+|Invalid request entity format. For example, `text/plain` whereas `application/json` is expected.
+
+|500 Internal Server Error
+|Resource operation failed unexpectedly.
+
+|503 Service Unavailable
+|The server failed to initialize or the storage backend is not ready yet.
+|===
 
 === Errors
 
