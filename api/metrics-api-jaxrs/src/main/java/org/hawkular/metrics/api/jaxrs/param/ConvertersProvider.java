@@ -42,6 +42,7 @@ public class ConvertersProvider implements ParamConverterProvider {
                 .put(Duration.class, new DurationConverter())
                 .put(Tags.class, new TagsConverter())
                 .put(MetricType.class, new MetricTypeConverter())
+                .put(Percentiles.class, new PercentilesConverter())
                 .build();
     }
 

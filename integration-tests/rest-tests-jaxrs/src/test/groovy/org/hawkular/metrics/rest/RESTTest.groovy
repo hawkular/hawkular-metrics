@@ -162,6 +162,7 @@ Actual: ${actual}
     assertEquals(msg, expected.start, actual.start)
     assertEquals(msg, expected.end, actual.end)
     assertEquals(msg, expected.empty, actual.empty)
+    assertEquals(msg, expected.samples, actual.samples)
     if (!expected.empty) {
       assertDoubleEquals(msg, expected.min, actual.min)
       assertDoubleEquals(msg, expected.avg, actual.avg)

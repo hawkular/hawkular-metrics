@@ -26,7 +26,7 @@ package org.hawkular.metrics.core.impl;
  *
  * @author jsanda
  */
-public interface Percentile {
+public interface PercentileWrapper {
 
     void addValue(double value);
 

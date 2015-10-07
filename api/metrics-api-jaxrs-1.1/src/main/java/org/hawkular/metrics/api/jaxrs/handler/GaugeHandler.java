@@ -25,6 +25,7 @@ import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -50,6 +51,7 @@ import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.param.BucketConfig;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
+import org.hawkular.metrics.api.jaxrs.param.Percentiles;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.param.TimeRange;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
@@ -202,7 +204,8 @@ public class GaugeHandler {
             @QueryParam("start") final Long start,
             @QueryParam("end") final Long end,
             @QueryParam("buckets") Integer bucketsCount,
-            @QueryParam("bucketDuration") Duration bucketDuration
+            @QueryParam("bucketDuration") Duration bucketDuration,
+            @QueryParam("percentiles") Percentiles percentiles
     ) {
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
@@ -225,8 +228,13 @@ public class GaugeHandler {
                         .toBlocking()
                         .lastOrDefault(null);
             } else {
+                if (percentiles == null) {
+                    percentiles = new Percentiles(Collections.<Double>emptyList());
+                }
+
                 return metricsService
-                        .findGaugeStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets)
+                        .findGaugeStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets,
+                                percentiles.getPercentiles())
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()
                         .lastOrDefault(null);
@@ -244,6 +252,7 @@ public class GaugeHandler {
             @QueryParam("tags") Tags tags,
             @QueryParam("buckets") Integer bucketsCount,
             @QueryParam("bucketDuration") Duration bucketDuration,
+            @QueryParam("percentiles") Percentiles percentiles,
             @QueryParam("metrics") List<String> metricNames) {
 
         TimeRange timeRange = new TimeRange(start, end);
@@ -264,15 +273,19 @@ public class GaugeHandler {
             return badRequest(new ApiError("Cannot use both the metrics and tags parameters"));
         }
 
+        if(percentiles == null) {
+            percentiles = new Percentiles(Collections.<Double>emptyList());
+        }
+
         if (metricNames.isEmpty()) {
             return metricsService.findGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
-                    bucketConfig.getBuckets())
+                    bucketConfig.getBuckets(), percentiles.getPercentiles())
                     .map(ApiUtils::collectionToResponse)
                     .toBlocking()
                     .lastOrDefault(null);
         } else {
             return metricsService.findGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
-                    bucketConfig.getBuckets())
+                    bucketConfig.getBuckets(), percentiles.getPercentiles())
                     .map(ApiUtils::collectionToResponse)
                     .toBlocking()
                     .lastOrDefault(null);
