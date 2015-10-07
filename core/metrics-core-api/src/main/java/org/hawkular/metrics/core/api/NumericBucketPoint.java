@@ -28,7 +28,7 @@ import java.util.Map;
  *
  * @author Thomas Segismont
  */
-public final class NumericBucketPoint extends BucketPoint {
+public class NumericBucketPoint extends BucketPoint {
     private final double min;
     private final double avg;
     private final double median;

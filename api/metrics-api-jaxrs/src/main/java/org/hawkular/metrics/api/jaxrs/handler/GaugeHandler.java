@@ -59,6 +59,7 @@ import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.param.TimeRange;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.Downsample.Method;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
@@ -335,11 +336,13 @@ public class GaugeHandler {
                     bucketConfig.getBuckets(), percentiles.getPercentiles())
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+            }
         } else {
             metricsService.findGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
                     bucketConfig.getBuckets(), percentiles.getPercentiles())
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+            }
         }
     }
 
