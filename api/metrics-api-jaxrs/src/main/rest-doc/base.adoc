@@ -100,17 +100,72 @@ Empty arrays are not sent in the response body.
 |The server failed to initialize or the storage backend is not ready yet.
 |===
 
-=== Errors
+=== Error responses
 
-TBW: about error format and usual errors
+Error responses may include an <<ApiError>> entity in the body.
+
+.Sample error entity
+[source,javascript]
+----
+{"errorMsg":"Tenant is not specified. Use 'Hawkular-Tenant' header."}
+----
 
 === Time ranges
 
-TBW: about start and end params, and default values, and order constraint
+Many resource operations need a time range restriction to be processed.
+
+Such operations accept two <<_timestamps,timestamp>> query parameters:
+
+* `start`: the beginning of the time range, inclusive
+* `end`: the end of the time range, exclusive
+
+Either or both of them can be omitted. `start` defaults to _now_ minus 8 eight hours. `end` defaults to _now_.
+
+`end` must be strictly bigger than `start` otherwise the resource operation returns a `400 Bad Request` response.
+
+.Sample operations with time range query parameters
+[source,bash]
+----
+# Implicit time range
+/hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data
+
+# Implicit time range
+/hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data?start=10101010
+
+# Explicit time range
+/hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data?start=10101010&end=20202020
+
+# Implicit time range
+/hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data?end=20202020
+----
 
 === Bucket parameters
 
-TBW: about bucket parameters (should use just one of the two parameters, ... etc)
+The API offers the ability to retrieve statistics on gauges, counter and availability metrics.
+To compute these statistics, Hawkular Metrics slices a given <<_time_ranges,time range>> into _buckets_.
+
+The size of _buckets_ is configurable. This allows to send a query to get, for example,
+monthly statistics over a year of data, or hourly statistics over a week of data.
+
+Bucket size is configured with either the `buckets` or the `bucketDuration` query parameter, exclusively:
+
+* `buckets` indicates the desired number of buckets over the specified timerange
+* `bucketDuration` forces bucket size to the specified amount of time
+
+`bucketDuration` is a <<_duration, duration>>-formatted string.
+
+If both parameters are specified, the resource operation returns a `400 Bad Request` response.
+
+
+.Sample operations with bucket query parameters
+[source,bash]
+----
+# Desired number of buckets
+/hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data?start=10101010&end=20202020&buckets=10
+
+# Desired bucket size
+/hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data?start=10101010&end=20202020&bucketDuration=1mn
+----
 
 === Custom string formats
 
@@ -119,13 +174,13 @@ Some path or query parameters in the Metrics REST API use custom string formats.
 ==== Tags list
 
 The parameter represents a list of tags, comma separated. A tag has the form `name:value`.
-Name and values cannot contain commas or colons.
+Names and values cannot contain commas or colons.
 
 Throughout this document, this string format is identified as `tag-list`.
 
 .Tags List format example
 ----
-/metrics?tags=host:web001.example.com,dc:paris01,type:system
+/hawkular/metrics/metrics?tags=host:web001.example.com,dc:paris01,type:system
 ----
 
 ==== Duration
@@ -146,5 +201,5 @@ Throughout this document, this string format is identified as `duration`.
 
 .Duration format example
 ----
-/gauges/paris01.web001.example.com.cpu.usage/data?bucketDuration=1h
+/hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data?bucketDuration=1h
 ----
