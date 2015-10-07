@@ -21,11 +21,11 @@ package org.hawkular.metrics.core.api;
  *
  * @author Stefan Negrea
  */
-public final class NumericBucketPointIdentified<T> extends NumericBucketPoint {
+public final class NumericBucketPointWithId<T> extends NumericBucketPoint {
 
     MetricId<T> id;
 
-    public NumericBucketPointIdentified(NumericBucketPoint numericBucketPoint, MetricId<T> id) {
+    public NumericBucketPointWithId(NumericBucketPoint numericBucketPoint, MetricId<T> id) {
         super(numericBucketPoint.getStart(), numericBucketPoint.getEnd(), numericBucketPoint.getMin(),
                 numericBucketPoint.getAvg(), numericBucketPoint.getMedian(), numericBucketPoint.getMax(),
                 numericBucketPoint.getPercentile95th());

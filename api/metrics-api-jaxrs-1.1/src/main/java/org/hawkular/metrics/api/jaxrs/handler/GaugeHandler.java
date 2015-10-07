@@ -63,6 +63,7 @@ import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.NumericBucketPoint;
 
 import rx.Observable;
 
@@ -281,18 +282,63 @@ public class GaugeHandler {
             percentiles = new Percentiles(Collections.<Double>emptyList());
         }
 
+        DownsampleConfig downsamplingConfig = new DownsampleConfig(downsampling, downsamplingOperation);
+        if (!downsamplingConfig.isValid()) {
+            return badRequest(new ApiError(downsamplingConfig.getProblem()));
+        }
+
         if (metricNames.isEmpty()) {
-            return metricsService.findGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
-                    bucketConfig.getBuckets(), percentiles.getPercentiles())
-                    .map(ApiUtils::collectionToResponse)
-                    .toBlocking()
-                    .lastOrDefault(null);
+            if (Method.Group.equals(downsamplingConfig.getMethod())) {
+                return metricsService
+                        .findGroupGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
+                        bucketConfig.getBuckets(), percentiles.getPercentiles())
+                        .map(ApiUtils::collectionToResponse)
+                        .toBlocking()
+                        .lastOrDefault(null);
+            } else {
+                return metricsService
+                        .findIndividualGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
+                                bucketConfig.getBuckets())
+                        .groupBy(arg1 -> arg1.getStart())
+                        .flatMap(g -> {
+                            return g.toMap(arg1 -> arg1.getId().getName(),
+                                    arg2 -> new NumericBucketPoint.Builder(arg2).build());
+                        })
+                        .map(g -> {
+                            //add group buckets aggregation here
+
+                            return g;
+                        })
+                        .map(ApiUtils::mapToResponse)
+                        .toBlocking()
+                        .lastOrDefault(null);
+            }
         } else {
-            return metricsService.findGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
-                    bucketConfig.getBuckets(), percentiles.getPercentiles())
-                    .map(ApiUtils::collectionToResponse)
-                    .toBlocking()
-                    .lastOrDefault(null);
+            if (Method.Group.equals(downsamplingConfig.getMethod())) {
+                return metricsService
+                        .findGroupGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
+                        bucketConfig.getBuckets(), percentiles.getPercentiles())
+                        .map(ApiUtils::collectionToResponse)
+                        .toBlocking()
+                        .lastOrDefault(null);
+            } else {
+                return metricsService
+                        .findIndividualGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
+                                bucketConfig.getBuckets())
+                        .groupBy(arg1 -> arg1.getStart())
+                        .flatMap(g -> {
+                            return g.toMap(arg1 -> arg1.getId().getName(),
+                                    arg2 -> new NumericBucketPoint.Builder(arg2).build());
+                        })
+                        .map(g -> {
+                            //add group buckets aggregation here
+
+                            return g;
+                        })
+                        .map(ApiUtils::mapToResponse)
+                        .toBlocking()
+                        .lastOrDefault(null);
+            }
         }
     }
 

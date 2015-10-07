@@ -127,6 +127,16 @@ public class NumericBucketPoint extends BucketPoint {
             this.end = end;
         }
 
+        public Builder(NumericBucketPoint numericBucketPoint) {
+            this.start = numericBucketPoint.getStart();
+            this.end = numericBucketPoint.getEnd();
+            this.setMin(numericBucketPoint.getMin());
+            this.setAvg(numericBucketPoint.getAvg());
+            this.setMedian(numericBucketPoint.getMedian());
+            this.setMax(numericBucketPoint.getMax());
+            this.setPercentile95th(numericBucketPoint.getPercentile95th());
+        }
+
         public Builder setMin(double min) {
             this.min = min;
             return this;

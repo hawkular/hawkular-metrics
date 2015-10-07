@@ -28,7 +28,6 @@ import static org.joda.time.Duration.standardMinutes;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -51,7 +50,7 @@ import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericBucketPoint;
-import org.hawkular.metrics.core.api.NumericBucketPointIdentified;
+import org.hawkular.metrics.core.api.NumericBucketPointWithId;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
@@ -707,11 +706,23 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public Observable<List<NumericBucketPoint>> findGaugeStats(String tenantId, Map<String, String> tagFilters,
-                                                               long start, long end, Buckets buckets,
-                                                               List<Double> percentiles) {
-        return bucketize(findMetricsWithFilters(tenantId, tagFilters, GAUGE)
-                .flatMap(metric -> findDataPoints(metric.getId(), start, end)), buckets, percentiles);
+    public Observable<List<NumericBucketPoint>> findGroupGaugeStats(String tenantId, Map<String, String> tagFilters,
+            long start, long end, Buckets buckets, List<Double> percentiles) {
+
+            return bucketize(findMetricsWithFilters(tenantId, tagFilters, GAUGE)
+                    .flatMap(metric -> findDataPoints(metric.getId(), start, end)), buckets, percentiles);
+    }
+
+    @Override
+    public Observable<NumericBucketPointWithId<Double>> findIndividualGaugeStats(String tenantId,
+            Map<String, String> tagFilters, long start, long end, Buckets buckets) {
+
+        Observable<Observable<NumericBucketPointWithId<Double>>> individualStats =
+                        findMetricsWithFilters(tenantId, tagFilters, GAUGE)
+                        .map(metric -> bucketize(findDataPoints(metric.getId(), start, end), buckets)
+                                .flatMap(Observable::from)
+                                .map(obj -> new NumericBucketPointWithId<Double>(obj, metric.getId())));
+        return Observable.merge(individualStats);
     }
 
     @Override
@@ -720,6 +731,18 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         return bucketize(Observable.from(metrics)
                 .flatMap(metricName -> findMetric(new MetricId<>(tenantId, GAUGE, metricName)))
                 .flatMap(metric -> findDataPoints(metric.getId(), start, end)), buckets, percentiles);
+    }
+
+    @Override
+    public Observable<NumericBucketPointWithId<Double>> findIndividualGaugeStats(String tenantId,
+            List<String> metrics, long start, long end, Buckets buckets) {
+
+        Observable<Observable<NumericBucketPointWithId<Double>>> individualStats = Observable.from(metrics)
+                .flatMap(metricName -> findMetric(new MetricId<>(tenantId, GAUGE, metricName)))
+                .map(metric -> bucketize(findDataPoints(metric.getId(), start, end), buckets)
+                        .flatMap(Observable::from)
+                        .map(obj -> new NumericBucketPointWithId<Double>(obj, metric.getId())));
+        return Observable.merge(individualStats);
     }
 
     private Observable<List<NumericBucketPoint>> bucketize(Observable<? extends DataPoint<? extends Number>> dataPoints,
