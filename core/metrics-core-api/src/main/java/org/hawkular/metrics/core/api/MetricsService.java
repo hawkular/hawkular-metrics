@@ -206,7 +206,8 @@ public interface MetricsService {
                                                           List<Double> percentiles);
 
     /**
-     * Fetches counter data points and calculates per-minute rates.
+     * Fetches counter data points and calculates per-minute rates. Resets events are detected and values reported
+     * after a reset are filtered out before doing calculations in order to avoid inaccurate rates.
      *
      * @param id This is the id of the counter metric
      * @param start The start time which is inclusive

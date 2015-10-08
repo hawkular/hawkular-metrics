@@ -670,11 +670,12 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         return findDataPoints(id, start, end)
                 .buffer(2, 1) // emit previous/next pairs
-                .filter(l -> l.size() == 2) // drop last buffer
+                // The first filter condition drops the last buffer and the second condition checks for resets
+                .filter(l -> l.size() == 2 && l.get(1).getValue() >= l.get(0).getValue())
                 .map(l -> {
                     DataPoint<Long> point1 = l.get(0);
                     DataPoint<Long> point2 = l.get(1);
-                    long timestamp = (point1.getTimestamp() + point2.getTimestamp()) / 2;
+                    long timestamp = point2.getTimestamp();
                     long value_diff = point2.getValue() - point1.getValue();
                     double time_diff = point2.getTimestamp() - point1.getTimestamp();
                     double rate = 60_000D * value_diff / time_diff;

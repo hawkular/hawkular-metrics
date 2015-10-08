@@ -682,11 +682,42 @@ public class MetricsServiceITest extends MetricsITest {
         List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getId(),
                 0, now().getMillis()));
         List<DataPoint<Double>> expected = asList(
-                new DataPoint<>((long) (60_000 * 1.25), 400D),
-                new DataPoint<>((long) (60_000 * 2.5), 100D),
-                new DataPoint<>((long) (60_000 * 4.25), 100D),
-                new DataPoint<>((long) (60_000 * 6.0), 200D),
-                new DataPoint<>((long) (60_000 * 7.25), 100D)
+                new DataPoint<>((long) (60_000 * 1.5), 400D),
+                new DataPoint<>((long) (60_000 * 3.5), 100D),
+                new DataPoint<>((long) (60_000 * 5.0), 100D),
+                new DataPoint<>((long) (60_000 * 7.0), 200D),
+                new DataPoint<>((long) (60_000 * 7.5), 100D)
+        );
+
+        assertEquals(actual, expected, "The rates do not match");
+    }
+
+    @Test
+    public void findRatesWhenTherAreCounterResets() {
+        String tenantId = "counter-reset-test";
+
+        Metric<Long> counter = new Metric<>(new MetricId<>(tenantId, COUNTER, "C1"), asList(
+                new DataPoint<>((long) (60_000 * 1.0), 1L),
+                new DataPoint<>((long) (60_000 * 1.5), 2L),
+                new DataPoint<>((long) (60_000 * 3.5), 3L),
+                new DataPoint<>((long) (60_000 * 5.0), 1L),
+                new DataPoint<>((long) (60_000 * 7.0), 2L),
+                new DataPoint<>((long) (60_000 * 7.5), 3L),
+                new DataPoint<>((long) (60_000 * 8.0), 1L),
+                new DataPoint<>((long) (60_000 * 8.5), 2L),
+                new DataPoint<>((long) (60_000 * 9.0), 3L)
+        ));
+        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
+
+        List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getId(),
+                0, now().getMillis()));
+        List<DataPoint<Double>> expected = asList(
+                new DataPoint<>((long) (60_000 * 1.5), 2D),
+                new DataPoint<>((long) (60_000 * 3.5), 0.5),
+                new DataPoint<>((long) (60_000 * 7.0), 0.5),
+                new DataPoint<>((long) (60_000 * 7.5), 2D),
+                new DataPoint<>((long) (60_000 * 8.5), 2D),
+                new DataPoint<>((long) (60_000 * 9.0), 2D)
         );
 
         assertEquals(actual, expected, "The rates do not match");
@@ -720,15 +751,18 @@ public class MetricsServiceITest extends MetricsITest {
                     builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentile95th(val).setSamples(1);
                     break;
                 case 3:
-                case 5:
-                    break;
-                case 6:
-                    val = 200D;
-                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentile95th(val).setSamples(1);
-                    break;
-                default:
                     val = 100D;
                     builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentile95th(val).setSamples(1);
+                    break;
+                case 5:
+                    val = 100;
+                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentile95th(val).setSamples(1);
+                case 6:
+                    break;
+                case 7:
+                    builder.setAvg(150.0).setMax(200.0).setMin(100.0).setMedian(100.0).setPercentile95th(100.0)
+                            .setSamples(2);
+                default:
                     break;
             }
             expected.add(builder.build());
