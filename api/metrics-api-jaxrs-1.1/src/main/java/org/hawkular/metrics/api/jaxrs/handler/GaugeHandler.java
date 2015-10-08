@@ -287,14 +287,14 @@ public class GaugeHandler {
         if (metricNames.isEmpty()) {
             if (DownsampleConfig.Method.Simple.equals(downsampleConfig.getDownsampleMethod())) {
                 return metricsService
-                        .findGroupGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
+                        .findSimpleGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
                         bucketConfig.getBuckets(), percentiles.getPercentiles())
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()
                         .lastOrDefault(null);
             } else {
                 return metricsService
-                        .findIndividualGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
+                        .findSumGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
                                 bucketConfig.getBuckets())
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()
@@ -303,14 +303,14 @@ public class GaugeHandler {
         } else {
             if (DownsampleConfig.Method.Simple.equals(downsampleConfig.getDownsampleMethod())) {
                 return metricsService
-                        .findGroupGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
-                        bucketConfig.getBuckets(), percentiles.getPercentiles())
+                        .findSimpleGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
+                               bucketConfig.getBuckets(),percentiles.getPercentiles())
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()
                         .lastOrDefault(null);
             } else {
                 return metricsService
-                        .findIndividualGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
+                        .findSumGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
                                 bucketConfig.getBuckets())
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()

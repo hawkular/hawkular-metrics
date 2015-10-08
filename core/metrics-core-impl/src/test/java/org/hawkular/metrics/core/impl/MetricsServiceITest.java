@@ -774,7 +774,7 @@ public class MetricsServiceITest extends MetricsITest {
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
         Map<String, String> tagFilters = ImmutableMap.of("type", "cpu_usage", "node", "server1|server2");
 
-        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findGaugeStats(tenantId,
+        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findSimpleGaugeStats(tenantId,
                 tagFilters, start.getMillis(), start.plusMinutes(5).getMillis(), buckets, Collections.emptyList()));
 
         assertEquals(actual.size(), 1);
@@ -785,8 +785,7 @@ public class MetricsServiceITest extends MetricsITest {
 
         List<NumericBucketPoint> expected = getOnNextEvents(() ->
                 Observable.concat(Observable.from(m1.getDataPoints()), Observable.from(m2.getDataPoints()))
-                .collect(() -> new NumericDataPointCollector(buckets, 0, Collections.emptyList()),
-                        NumericDataPointCollector::increment)
+                .collect(() -> new NumericDataPointCollector(buckets, 0, Collections.emptyList()), NumericDataPointCollector::increment)
                 .map(NumericDataPointCollector::toBucketPoint));
 
         assertNumericBucketsEquals(actual.get(0), expected);
@@ -825,9 +824,8 @@ public class MetricsServiceITest extends MetricsITest {
 
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
 
-        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findGaugeStats(tenantId,
-                asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets
-                , Collections.emptyList()));
+        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findSimpleGaugeStats(tenantId,
+                asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets, Collections.emptyList()));
 
         assertEquals(actual.size(), 1);
 

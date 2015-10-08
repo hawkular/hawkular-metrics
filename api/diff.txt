@@ -1389,7 +1389,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 <             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
 <             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
 <             @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
-<             @ApiParam(value = "Downsample method; simple and sum supported", required = false)
+<             @ApiParam(value = "Downsample method (simple or sum; defaults to simple)", required = false)
 <                         @QueryParam("downsample") String downsample) {
 ---
 >     public Response findGaugeData(
@@ -1432,13 +1432,13 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 ---
 >             return badRequest(new ApiError(downsampleConfig.getProblem()));
 328,331c276,281
-<                 metricsService.findGroupGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
+<                 metricsService.findSimpleGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
 <                     bucketConfig.getBuckets())
 <                     .map(ApiUtils::collectionToResponse)
 <                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
 ---
 >                 return metricsService
->                         .findGroupGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
+>                         .findSimpleGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
 >                         bucketConfig.getBuckets())
 >                         .map(ApiUtils::collectionToResponse)
 >                         .toBlocking()
@@ -1453,13 +1453,13 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >                         .toBlocking()
 >                         .lastOrDefault(null);
 341,344c292,297
-<                 metricsService.findGroupGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
+<                 metricsService.findSimpleGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
 <                     bucketConfig.getBuckets())
 <                     .map(ApiUtils::collectionToResponse)
 <                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
 ---
 >                 return metricsService
->                         .findGroupGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
+>                         .findSimpleGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
 >                                 bucketConfig.getBuckets())
 >                         .map(ApiUtils::collectionToResponse)
 >                         .toBlocking()
