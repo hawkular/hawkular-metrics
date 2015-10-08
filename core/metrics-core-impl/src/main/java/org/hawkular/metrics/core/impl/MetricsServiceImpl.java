@@ -684,47 +684,48 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public Observable<List<NumericBucketPoint>> findRateStats(MetricId<Long> id, long start, long end,
-                                                              Buckets buckets) {
+                                                              Buckets buckets, List<Double> percentiles) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        return bucketize(findRateData(id, start, end), buckets);
+        return bucketize(findRateData(id, start, end), buckets, percentiles);
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public <T> Observable<T> findGaugeData(MetricId<Double> id, long start, long end,
                                            Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs) {
-        checkArgument(isValidTimeRange(start, end), "Invalid time range");
         Observable<DataPoint<Double>> dataCache = findDataPoints(id, start, end).cache();
         return Observable.from(funcs).flatMap(fn -> fn.call(dataCache));
     }
 
     @Override
     public Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end,
-                                                               Buckets buckets) {
+                                                               Buckets buckets, List<Double> percentiles) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        return bucketize(findDataPoints(metricId, start, end), buckets);
+        return bucketize(findDataPoints(metricId, start, end), buckets, percentiles);
     }
 
     @Override
     public Observable<List<NumericBucketPoint>> findGaugeStats(String tenantId, Map<String, String> tagFilters,
-                                                               long start, long end, Buckets buckets) {
+                                                               long start, long end, Buckets buckets,
+                                                               List<Double> percentiles) {
         return bucketize(findMetricsWithFilters(tenantId, tagFilters, GAUGE)
-                .flatMap(metric -> findDataPoints(metric.getId(), start, end)), buckets);
+                .flatMap(metric -> findDataPoints(metric.getId(), start, end)), buckets, percentiles);
     }
 
     @Override
     public Observable<List<NumericBucketPoint>> findGaugeStats(String tenantId, List<String> metrics, long start,
-                                                               long end, Buckets buckets) {
+                                                               long end, Buckets buckets, List<Double> percentiles) {
         return bucketize(Observable.from(metrics)
                 .flatMap(metricName -> findMetric(new MetricId<>(tenantId, GAUGE, metricName)))
-                .flatMap(metric -> findDataPoints(metric.getId(), start, end)), buckets);
+                .flatMap(metric -> findDataPoints(metric.getId(), start, end)), buckets, percentiles);
     }
 
     private Observable<List<NumericBucketPoint>> bucketize(Observable<? extends DataPoint<? extends Number>> dataPoints,
-                                                           Buckets buckets) {
+                                                           Buckets buckets, List<Double> percentiles) {
         return dataPoints
                 .groupBy(dataPoint -> buckets.getIndex(dataPoint.getTimestamp()))
-                .flatMap(group -> group.collect(() -> new NumericDataPointCollector(buckets, group.getKey()),
+                .flatMap(group -> group.collect(()
+                                -> new NumericDataPointCollector(buckets, group.getKey(), percentiles),
                         NumericDataPointCollector::increment))
                 .map(NumericDataPointCollector::toBucketPoint)
                 .toMap(NumericBucketPoint::getStart)
@@ -767,9 +768,9 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, long start, long end, Buckets
-            buckets) {
+            buckets, List<Double> percentiles) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        return bucketize(findDataPoints(id, start, end), buckets);
+        return bucketize(findDataPoints(id, start, end), buckets, percentiles);
     }
 
     @Override

@@ -349,22 +349,27 @@ class CountersITest extends RESTTest {
       double val;
       switch (i) {
         case 1:
-          bucketPoint.putAll([min: 0D, avg: 100D, median: 0D, max: 200D, percentile95th: 0D, empty: false] as Map)
+          bucketPoint.putAll([min: 0D, avg: 100D, median: 0D, max: 200D, percentile95th: 0D, empty: false,
+          samples: 2] as Map)
           break;
         case 2:
         case 4:
         case 6:
           val = Double.NaN
-          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: true] as Map)
+          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: true,
+          samples: 0] as Map)
           break;
         case 3:
-          bucketPoint.putAll([min: 400D, avg: 400D, median: 400D, max: 400D, percentile95th: 400D, empty: false] as Map)
+          bucketPoint.putAll([min: 400D, avg: 400D, median: 400D, max: 400D, percentile95th: 400D, empty: false,
+          samples: 1] as Map)
           break;
         case 5:
-          bucketPoint.putAll([min: 550D, avg: 550D, median: 550D, max: 550D, percentile95th: 550D, empty: false] as Map)
+          bucketPoint.putAll([min: 550D, avg: 550D, median: 550D, max: 550D, percentile95th: 550D, empty: false,
+          samples: 1] as Map)
           break;
         case 7:
-          bucketPoint.putAll([min: 950D, avg: 975D, median: 950D, max: 1000D, percentile95th: 950D, empty: false] as Map)
+          bucketPoint.putAll([min: 950D, avg: 975D, median: 950D, max: 1000D, percentile95th: 950D, empty: false,
+          samples: 2] as Map)
           break;
       }
       expectedData.push(bucketPoint);
@@ -464,20 +469,24 @@ Actual:   ${response.data}
       switch (i) {
         case 1:
           val = 400D;
-          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: false] as Map)
+          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: false,
+          samples: 1] as Map)
           break;
         case 3:
         case 5:
           val = Double.NaN
-          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: true] as Map)
+          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: true,
+          samples: 0] as Map)
           break;
         case 6:
           val = 200D;
-          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: false] as Map)
+          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: false,
+          samples: 1] as Map)
           break;
         default:
           val = 100D;
-          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: false] as Map)
+          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: false,
+          samples: 1] as Map)
           break;
       }
       expectedData.push(bucketPoint);
@@ -524,5 +533,44 @@ Actual:   ${response.data}
   @Test
   void shouldNotAcceptDataWithInvalidValue() {
     invalidPointCheck("counters", tenantId, [[timestamp: 13, value: ["dsqdqs"]]])
+  }
+
+  @Test
+  void percentileParameter() {
+      String counter = "C1"
+
+      // Create the tenant
+      def response = hawkularMetrics.post(
+          path: "tenants",
+          body: [id: tenantId]
+      )
+      assertEquals(201, response.status)
+
+      response = hawkularMetrics.post(
+          path: "counters/$counter/data",
+          headers: [(tenantHeaderName): tenantId],
+          body: [
+              [timestamp: 60_000 * 1.0, value: 0],
+              [timestamp: 60_000 * 1.5, value: 200],
+              [timestamp: 60_000 * 3.5, value: 400],
+              [timestamp: 60_000 * 5.0, value: 550],
+              [timestamp: 60_000 * 7.0, value: 950],
+              [timestamp: 60_000 * 7.5, value: 1000],
+          ]
+      )
+      assertEquals(200, response.status)
+
+      response = hawkularMetrics.get(
+          path: "counters/$counter/data",
+          headers: [(tenantHeaderName): tenantId],
+          query: [start: 60_000, end: 60_000 * 8, buckets: '1', percentiles: '50.0,90.0,99.9']
+      )
+      assertEquals(200, response.status)
+
+      assertEquals(1, response.data.size)
+      assertEquals(3, response.data[0].percentiles.size)
+
+      assertEquals(0.5, response.data[0].percentiles[0].quantile, 0.01)
+      assertEquals(400, response.data[0].percentiles[0].value, 0.1)
   }
 }

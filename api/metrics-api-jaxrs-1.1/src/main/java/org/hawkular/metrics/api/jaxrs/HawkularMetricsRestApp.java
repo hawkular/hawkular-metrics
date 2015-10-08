@@ -46,6 +46,7 @@ import org.hawkular.metrics.api.jaxrs.log.RestLogger;
 import org.hawkular.metrics.api.jaxrs.log.RestLogging;
 import org.hawkular.metrics.api.jaxrs.param.DurationConverter;
 import org.hawkular.metrics.api.jaxrs.param.MetricTypeConverter;
+import org.hawkular.metrics.api.jaxrs.param.PercentilesConverter;
 import org.hawkular.metrics.api.jaxrs.param.TagsConverter;
 
 /**
@@ -116,6 +117,7 @@ public class HawkularMetricsRestApp extends Application {
         classes.add(DurationConverter.class);
         classes.add(MetricTypeConverter.class);
         classes.add(TagsConverter.class);
+        classes.add(PercentilesConverter.class);
 
         return classes;
     }

@@ -149,7 +149,7 @@ public interface MetricsService {
                                     Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs);
 
     Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end,
-                                                        Buckets buckets);
+                                                        Buckets buckets, List<Double> percentiles);
 
     /**
      * Fetches data points from multiple metrics that are determined by a tags filter query. Down sampling is performed
@@ -165,7 +165,7 @@ public interface MetricsService {
      * @return An {@link Observable} that emits a single list of {@link NumericBucketPoint}
      */
     Observable<List<NumericBucketPoint>> findGaugeStats(String tenantId, Map<String, String> tagFilters, long start,
-                                                        long end, Buckets buckets);
+                                                        long end, Buckets buckets, List<Double> percentiles);
 
     /**
      * Fetches data points from multiple metrics. Down sampling is performed such that data points from all matching
@@ -181,7 +181,7 @@ public interface MetricsService {
      * @return An {@link Observable} that emits a single list of {@link NumericBucketPoint}
      */
     Observable<List<NumericBucketPoint>> findGaugeStats(String tenantId, List<String> metrics, long start, long end,
-                                                        Buckets buckets);
+                                                        Buckets buckets, List<Double> percentiles);
 
     Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId<AvailabilityType> id, long start, long end,
                                                                  boolean distinct);
@@ -202,7 +202,8 @@ public interface MetricsService {
      *
      * @return an {@link Observable} emitting a single {@link List} of {@link NumericBucketPoint}
      */
-    Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, long start, long end, Buckets buckets);
+    Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, long start, long end, Buckets buckets,
+                                                          List<Double> percentiles);
 
     /**
      * Fetches counter data points and calculates per-minute rates.
@@ -226,7 +227,8 @@ public interface MetricsService {
      *
      * @return an {@link Observable} emitting a single {@link List} of {@link NumericBucketPoint}
      */
-    Observable<List<NumericBucketPoint>> findRateStats(MetricId<Long> id, long start, long end, Buckets buckets);
+    Observable<List<NumericBucketPoint>> findRateStats(MetricId<Long> id, long start, long end, Buckets buckets,
+                                                       List<Double> percentiles);
 
     /**
      * <p>

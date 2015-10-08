@@ -16,7 +16,10 @@
  */
 package org.hawkular.metrics.core.impl;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.rank.Max;
@@ -25,6 +28,7 @@ import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.NumericBucketPoint;
+import org.hawkular.metrics.core.api.Percentile;
 
 /**
  * Accumulates numeric data points to produce a {@link NumericBucketPoint}.
@@ -36,7 +40,7 @@ final class NumericDataPointCollector {
     /**
      * This is a test hook. See {@link Percentile} for details.
      */
-    static Function<Double, Percentile> createPercentile = p -> new Percentile() {
+    static Function<Double, PercentileWrapper> createPercentile = p -> new PercentileWrapper() {
 
         PSquarePercentile percentile = new PSquarePercentile(p);
 
@@ -57,15 +61,19 @@ final class NumericDataPointCollector {
     private final Buckets buckets;
     private final int bucketIndex;
 
+    private int samples = 0;
     private Min min = new Min();
     private Mean average = new Mean();
-    private Percentile median = createPercentile.apply(50.0);
+    private PercentileWrapper median = createPercentile.apply(50.0);
     private Max max = new Max();
-    private Percentile percentile95th = createPercentile.apply(95.0);
+    private PercentileWrapper percentile95th = createPercentile.apply(95.0);
+    private List<PSquarePercentile> percentiles;
 
-    NumericDataPointCollector(Buckets buckets, int bucketIndex) {
+    NumericDataPointCollector(Buckets buckets, int bucketIndex, List<Double> percentileList) {
         this.buckets = buckets;
         this.bucketIndex = bucketIndex;
+        this.percentiles = new ArrayList<>();
+        percentileList.stream().forEach(d -> percentiles.add(new PSquarePercentile(d)));
     }
 
     void increment(DataPoint<? extends Number> dataPoint) {
@@ -75,6 +83,8 @@ final class NumericDataPointCollector {
         median.addValue(value.doubleValue());
         max.increment(value.doubleValue());
         percentile95th.addValue(value.doubleValue());
+        samples++;
+        percentiles.stream().forEach(p -> p.increment(value.doubleValue()));
     }
 
     NumericBucketPoint toBucketPoint() {
@@ -86,6 +96,9 @@ final class NumericDataPointCollector {
                 .setMedian(median.getResult())
                 .setMax(max.getResult())
                 .setPercentile95th(percentile95th.getResult())
+                .setSamples(samples)
+                .setPercentiles(percentiles.stream()
+                        .map(p -> new Percentile(p.quantile(), p.getResult())).collect(Collectors.toList()))
                 .build();
     }
 }

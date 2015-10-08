@@ -40,6 +40,7 @@ import static org.testng.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,7 @@ import java.util.function.Function;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.IntStream;
 
+import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile;
 import org.hawkular.metrics.core.api.Aggregate;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Buckets;
@@ -99,7 +101,7 @@ public class MetricsServiceITest extends MetricsITest {
 
     private DateTimeService dateTimeService;
 
-    private Function<Double, Percentile> defaultCreatePercentile;
+    private Function<Double, PercentileWrapper> defaultCreatePercentile;
 
     @BeforeClass
     public void initClass() {
@@ -581,7 +583,7 @@ public class MetricsServiceITest extends MetricsITest {
     }
 
     @Test
-    public void findCouterStats() {
+    public void findCounterStats() {
         String tenantId = "counter-stats-test";
 
         Metric<Long> counter = new Metric<>(new MetricId<>(tenantId, COUNTER, "C1"), asList(
@@ -596,32 +598,70 @@ public class MetricsServiceITest extends MetricsITest {
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
         List<NumericBucketPoint> actual = metricsService.findCounterStats(counter.getId(),
-                0, now().getMillis(), Buckets.fromStep(60_000, 60_000 * 8, 60_000)).toBlocking().single();
+                0, now().getMillis(), Buckets.fromStep(60_000, 60_000 * 8, 60_000),
+                Collections.emptyList()).toBlocking()
+                .single();
         List<NumericBucketPoint> expected = new ArrayList<>();
         for (int i = 1; i < 8; i++) {
             NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(60_000 * i, 60_000 * (i + 1));
             switch (i) {
                 case 1:
-                    builder.setAvg(100D).setMax(200D).setMedian(0D).setMin(0D).setPercentile95th(0D);
+                    builder.setAvg(100D).setMax(200D).setMedian(0D).setMin(0D).setPercentile95th(0D).setSamples(2);
                     break;
                 case 2:
                 case 4:
                 case 6:
                     break;
                 case 3:
-                    builder.setAvg(400D).setMax(400D).setMedian(400D).setMin(400D).setPercentile95th(400D);
+                    builder.setAvg(400D).setMax(400D).setMedian(400D).setMin(400D).setPercentile95th(400D)
+                            .setSamples(1);
                     break;
                 case 5:
-                    builder.setAvg(550D).setMax(550D).setMedian(550D).setMin(550D).setPercentile95th(550D);
+                    builder.setAvg(550D).setMax(550D).setMedian(550D).setMin(550D).setPercentile95th(550D)
+                            .setSamples(1);
                     break;
                 case 7:
-                    builder.setAvg(975D).setMax(1000D).setMedian(950D).setMin(950D).setPercentile95th(950D);
+                    builder.setAvg(975D).setMax(1000D).setMedian(950D).setMin(950D).setPercentile95th(950D)
+                            .setSamples(2);
                     break;
             }
             expected.add(builder.build());
         }
 
         assertNumericBucketsEquals(actual, expected);
+    }
+
+    @Test
+    public void testBucketPercentiles() {
+        String tenantId = "counter-stats-test";
+
+        int testSize = 100;
+        List<DataPoint<Long>> counterList = new ArrayList<>(testSize);
+
+        PSquarePercentile top = new PSquarePercentile(99.9);
+
+        for(long i = 0; i < testSize; i++) {
+            counterList.add(new DataPoint<Long>((long) 60000+i, i));
+            top.increment(i);
+        }
+
+        List<Double> percentiles = asList(50.0, 90.0, 99.0, 99.9);
+
+        Metric<Long> counter = new Metric<>(new MetricId<>(tenantId, COUNTER, "C1"), counterList);
+
+        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
+
+        List<NumericBucketPoint> actual = metricsService.findCounterStats(counter.getId(),
+                0, now().getMillis(), Buckets.fromStep(60_000, 60_100, 60_100), percentiles).toBlocking()
+                .single();
+
+        assertEquals(1, actual.size());
+
+        NumericBucketPoint bucket = actual.get(0);
+
+        assertEquals(testSize, bucket.getSamples());
+        assertEquals(percentiles.size(), bucket.getPercentiles().size());
+        assertEquals(top.getResult(), bucket.getPercentiles().get(3).getValue());
     }
 
     @Test
@@ -668,7 +708,8 @@ public class MetricsServiceITest extends MetricsITest {
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
         List<NumericBucketPoint> actual = metricsService.findRateStats(counter.getId(),
-                0, now().getMillis(), Buckets.fromStep(60_000, 60_000 * 8, 60_000)).toBlocking().single();
+                0, now().getMillis(), Buckets.fromStep(60_000, 60_000 * 8, 60_000),
+                Collections.emptyList()).toBlocking().single();
         List<NumericBucketPoint> expected = new ArrayList<>();
         for (int i = 1; i < 8; i++) {
             NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(60_000 * i, 60_000 * (i + 1));
@@ -676,18 +717,18 @@ public class MetricsServiceITest extends MetricsITest {
             switch (i) {
                 case 1:
                     val = 400D;
-                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentile95th(val);
+                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentile95th(val).setSamples(1);
                     break;
                 case 3:
                 case 5:
                     break;
                 case 6:
                     val = 200D;
-                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentile95th(val);
+                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentile95th(val).setSamples(1);
                     break;
                 default:
                     val = 100D;
-                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentile95th(val);
+                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentile95th(val).setSamples(1);
                     break;
             }
             expected.add(builder.build());
@@ -698,7 +739,7 @@ public class MetricsServiceITest extends MetricsITest {
 
     @Test
     public void findGaugeStatsByTags() {
-        NumericDataPointCollector.createPercentile = InMemoryPercentile::new;
+        NumericDataPointCollector.createPercentile = InMemoryPercentileWrapper::new;
 
         String tenantId = "findGaugeStatsByTags";
         DateTime start = now().minusMinutes(10);
@@ -734,7 +775,7 @@ public class MetricsServiceITest extends MetricsITest {
         Map<String, String> tagFilters = ImmutableMap.of("type", "cpu_usage", "node", "server1|server2");
 
         List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findGaugeStats(tenantId,
-                tagFilters, start.getMillis(), start.plusMinutes(5).getMillis(), buckets));
+                tagFilters, start.getMillis(), start.plusMinutes(5).getMillis(), buckets, Collections.emptyList()));
 
         assertEquals(actual.size(), 1);
 
@@ -744,7 +785,8 @@ public class MetricsServiceITest extends MetricsITest {
 
         List<NumericBucketPoint> expected = getOnNextEvents(() ->
                 Observable.concat(Observable.from(m1.getDataPoints()), Observable.from(m2.getDataPoints()))
-                .collect(() -> new NumericDataPointCollector(buckets, 0), NumericDataPointCollector::increment)
+                .collect(() -> new NumericDataPointCollector(buckets, 0, Collections.emptyList()),
+                        NumericDataPointCollector::increment)
                 .map(NumericDataPointCollector::toBucketPoint));
 
         assertNumericBucketsEquals(actual.get(0), expected);
@@ -752,7 +794,7 @@ public class MetricsServiceITest extends MetricsITest {
 
     @Test
     public void findGaugeStatsByMetricNames() {
-        NumericDataPointCollector.createPercentile = InMemoryPercentile::new;
+        NumericDataPointCollector.createPercentile = InMemoryPercentileWrapper::new;
 
         String tenantId = "findGaugeStatsByMetricNames";
         DateTime start = now().minusMinutes(10);
@@ -784,7 +826,8 @@ public class MetricsServiceITest extends MetricsITest {
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
 
         List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findGaugeStats(tenantId,
-                asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets));
+                asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets
+                , Collections.emptyList()));
 
         assertEquals(actual.size(), 1);
 
@@ -794,7 +837,8 @@ public class MetricsServiceITest extends MetricsITest {
 
         List<NumericBucketPoint> expected = getOnNextEvents(() ->
                 Observable.concat(Observable.from(m1.getDataPoints()), Observable.from(m2.getDataPoints()))
-                        .collect(() -> new NumericDataPointCollector(buckets, 0), NumericDataPointCollector::increment)
+                        .collect(() -> new NumericDataPointCollector(buckets, 0, Collections.emptyList()),
+                                NumericDataPointCollector::increment)
                         .map(NumericDataPointCollector::toBucketPoint));
 
         assertNumericBucketsEquals(actual.get(0), expected);
@@ -827,6 +871,7 @@ public class MetricsServiceITest extends MetricsITest {
             assertEquals(actual.getMax(), expected.getMax(), 0.001, msg);
             assertEquals(actual.getMedian(), expected.getMedian(), 0.001, msg);
             assertEquals(actual.getMin(), expected.getMin(), 0.001, msg);
+            assertEquals(actual.getSamples(), expected.getSamples(), 0, msg);
             assertEquals(actual.getPercentile95th(), expected.getPercentile95th(), 0.001, msg);
         }
     }
@@ -1300,11 +1345,11 @@ public class MetricsServiceITest extends MetricsITest {
         }
     }
 
-    private static class InMemoryPercentile implements Percentile {
+    private static class InMemoryPercentileWrapper implements PercentileWrapper {
         List<Double> values = new ArrayList<>();
         double percentile;
 
-        public InMemoryPercentile(double percentile) {
+        public InMemoryPercentileWrapper(double percentile) {
             this.percentile = percentile;
         }
 
