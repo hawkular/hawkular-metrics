@@ -14,11 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.core.impl;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
+import static java.util.concurrent.TimeUnit.MINUTES;
 
 import static org.hawkular.metrics.core.api.AvailabilityType.DOWN;
 import static org.hawkular.metrics.core.api.AvailabilityType.UNKNOWN;
@@ -33,10 +35,10 @@ import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Days.days;
 import static org.joda.time.Hours.hours;
-import static org.junit.Assert.fail;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -1489,6 +1491,69 @@ public class MetricsServiceITest extends MetricsITest {
         for (int i = 0; i < expected.size(); ++i) {
             assertArrayEquals(actual.get(i), expected.get(i), "The period does not match the expected value");
         }
+    }
+
+    @Test
+    public void shouldReceiveInsertedDataNotifications() throws Exception {
+        String tenantId = "shouldReceiveInsertedDataNotifications";
+        ImmutableList<MetricType<?>> metricTypes = ImmutableList.of(GAUGE, COUNTER, AVAILABILITY);
+        AvailabilityType[] availabilityTypes = AvailabilityType.values();
+
+        int numberOfPoints = 10;
+
+        List<Metric<?>> actual = Collections.synchronizedList(new ArrayList<>());
+        CountDownLatch latch = new CountDownLatch(metricTypes.size() * numberOfPoints);
+        metricsService.insertedDataEvents()
+                .filter(metric -> metric.getId().getTenantId().equals(tenantId))
+                .subscribe(metric -> {
+                    actual.add(metric);
+                    latch.countDown();
+                });
+
+        List<Metric<?>> expected = new ArrayList<>();
+        for (MetricType<?> metricType : metricTypes) {
+            for (int i = 0; i < numberOfPoints; i++) {
+                if (metricType == GAUGE) {
+
+                    DataPoint<Double> dataPoint = new DataPoint<>(i, (double) i);
+                    MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, "gauge");
+                    Metric<Double> metric = new Metric<>(metricId, ImmutableList.of(dataPoint));
+
+                    metricsService.addDataPoints(GAUGE, Observable.just(metric)).subscribe();
+
+                    expected.add(metric);
+
+                } else if (metricType == COUNTER) {
+
+                    DataPoint<Long> dataPoint = new DataPoint<>(i, (long) i);
+                    MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, "counter");
+                    Metric<Long> metric = new Metric<>(metricId, ImmutableList.of(dataPoint));
+
+                    metricsService.addDataPoints(COUNTER, Observable.just(metric)).subscribe();
+
+                    expected.add(metric);
+
+                } else if (metricType == AVAILABILITY) {
+
+                    AvailabilityType availabilityType = availabilityTypes[i % availabilityTypes.length];
+                    DataPoint<AvailabilityType> dataPoint = new DataPoint<>(i, availabilityType);
+                    MetricId<AvailabilityType> metricId = new MetricId<>(tenantId, AVAILABILITY, "avail");
+                    Metric<AvailabilityType> metric = new Metric<>(metricId, ImmutableList.of(dataPoint));
+
+                    metricsService.addDataPoints(AVAILABILITY, Observable.just(metric)).subscribe();
+
+                    expected.add(metric);
+
+                } else {
+                    fail("Unexpected metric type: " + metricType);
+                }
+            }
+        }
+
+        assertTrue(latch.await(1, MINUTES), "Did not receive all notifications");
+
+        assertEquals(actual.size(), expected.size());
+        assertTrue(actual.containsAll(expected));
     }
 
     @Test

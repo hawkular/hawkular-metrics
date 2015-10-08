@@ -255,4 +255,9 @@ public interface MetricsService {
      * the predicate matches, and the second element is the end time inclusive for which the predicate matches.
      */
     Observable<List<long[]>> getPeriods(MetricId<Double> id, Predicate<Double> predicate, long start, long end);
+
+    /**
+     * @return a hot {@link Observable} emitting {@link Metric} events after data has been inserted
+     */
+    Observable<Metric<?>> insertedDataEvents();
 }

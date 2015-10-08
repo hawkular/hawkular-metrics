@@ -82,6 +82,7 @@ import rx.Observable;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func3;
+import rx.subjects.PublishSubject;
 
 /**
  * @author John Sanda
@@ -126,6 +127,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
      * Note that while user specifies the durations in hours, we store them in seconds.
      */
     private final Map<DataRetentionKey, Integer> dataRetentions = new ConcurrentHashMap<>();
+    private final PublishSubject<Metric<?>> insertedDataPointEvents = PublishSubject.create();
 
     private ListeningExecutorService metricsTasks;
 
@@ -585,8 +587,11 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
         Observable<Integer> updates = metrics
                 .filter(metric -> !metric.getDataPoints().isEmpty())
-                .flatMap(metric -> inserter.call(metric, getTTL(metric.getId())))
-                .doOnNext(meter::mark);
+                .flatMap(metric -> {
+                    return inserter.call(metric, getTTL(metric.getId())).doOnNext(i -> {
+                        insertedDataPointEvents.onNext(metric);
+                    });
+                }).doOnNext(meter::mark);
 
         Observable<Integer> tenantUpdates = updateTenantBuckets(metrics);
 
@@ -874,6 +879,11 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                 });
     }
 
+    @Override
+    public Observable<Metric<?>> insertedDataEvents() {
+        return insertedDataPointEvents;
+    }
+
     private int getTTL(MetricId<?> metricId) {
         Integer ttl = dataRetentions.get(new DataRetentionKey(metricId));
         if (ttl == null) {
@@ -884,6 +894,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     public void shutdown() {
+        insertedDataPointEvents.onCompleted();
         metricsTasks.shutdown();
         unloadDataRetentions();
     }
