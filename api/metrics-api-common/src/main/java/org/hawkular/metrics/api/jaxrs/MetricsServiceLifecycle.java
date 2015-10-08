@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.api.jaxrs;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -43,6 +44,7 @@ import java.util.concurrent.ThreadFactory;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Event;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 import javax.net.ssl.SSLContext;
@@ -147,6 +149,10 @@ public class MetricsServiceLifecycle {
     @ConfigurationProperty(DEFAULT_TTL)
     private String defaultTTL;
 
+    @Inject
+    @ServiceReady
+    Event<MetricsService> metricsServiceReady;
+
     private volatile State state;
     private int connectionAttempts;
     private Session session;
@@ -235,11 +241,14 @@ public class MetricsServiceLifecycle {
             // the registered metrics in various ways such as new REST endpoints, JMX, or via different
             // com.codahale.metrics.Reporter instances.
             metricsService.startUp(session, keyspace, false, false, new MetricRegistry());
-            log.infoServiceStarted();
 
             initJobs();
 
+            metricsServiceReady.fire(metricsService);
+
             state = State.STARTED;
+            log.infoServiceStarted();
+
         } catch (Exception e) {
             log.fatalCannotConnectToCassandra(e);
             state = State.FAILED;
