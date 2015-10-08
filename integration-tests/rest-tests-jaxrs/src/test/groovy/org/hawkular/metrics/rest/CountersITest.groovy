@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.rest
 
+import static java.lang.Double.NaN
 import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
 
@@ -355,7 +356,7 @@ class CountersITest extends RESTTest {
         case 2:
         case 4:
         case 6:
-          val = Double.NaN
+          val = NaN
           bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: true,
           samples: 0] as Map)
           break;
@@ -411,11 +412,67 @@ class CountersITest extends RESTTest {
     assertEquals(200, response.status)
 
     def expectedData = [
-        [timestamp: (60_000 * 1.25).toLong(), value: 400],
-        [timestamp: (60_000 * 2.5).toLong(), value: 100],
-        [timestamp: (60_000 * 4.25).toLong(), value: 100],
-        [timestamp: (60_000 * 6.0).toLong(), value: 200],
-        [timestamp: (60_000 * 7.25).toLong(), value: 100],
+        [timestamp: (60_000 * 1.5).toLong(), value: 400],
+        [timestamp: (60_000 * 3.5).toLong(), value: 100],
+        [timestamp: (60_000 * 5.0).toLong(), value: 100],
+        [timestamp: (60_000 * 7.0).toLong(), value: 200],
+        [timestamp: (60_000 * 7.5).toLong(), value: 100],
+    ]
+
+    def actualData = response.data ?: []
+
+    def msg = """
+Expected: ${expectedData}
+Actual:   ${response.data}
+"""
+    assertEquals(msg, expectedData.size(), actualData.size())
+    for (i in 0..actualData.size() - 1) {
+      assertRateEquals(msg, expectedData[i], actualData[i])
+    }
+  }
+
+  @Test
+  void findRateWhenThereAreResets() {
+    String counter = 'C1'
+
+    // Create the tenant
+    def response = hawkularMetrics.post(
+        path: 'tenants',
+        body: [id: tenantId]
+    )
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(
+        path: "counters/$counter/data",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [timestamp: 60_000 * 1.0, value: 1],
+            [timestamp: 60_000 * 1.5, value: 2],
+            [timestamp: 60_000 * 3.5, value: 3],
+            [timestamp: 60_000 * 5.0, value: 1],
+            [timestamp: 60_000 * 7.0, value: 2],
+            [timestamp: 60_000 * 7.5, value: 3],
+            [timestamp: 60_000 * 8.0, value: 1],
+            [timestamp: 60_000 * 8.5, value: 2],
+            [timestamp: 60_000 * 9.0, value: 3]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(
+        path: "counters/$counter/rate",
+        headers: [(tenantHeaderName): tenantId],
+        query: [start: 0]
+    )
+    assertEquals(200, response.status)
+
+    def expectedData = [
+        [timestamp: (60_000 * 1.5) as Long, value: 2],
+        [timestamp: (60_000 * 3.5) as Long, value: 0.5],
+        [timestamp: (60_000 * 7.0) as Long, value: 0.5],
+        [timestamp: (60_000 * 7.5) as Long, value: 2],
+        [timestamp: (60_000 * 8.5) as Long, value: 2],
+        [timestamp: (60_000 * 9.0) as Long, value: 2]
     ]
 
     def actualData = response.data ?: []
@@ -464,30 +521,28 @@ Actual:   ${response.data}
 
     def expectedData = []
     (1..7).each { i ->
-      def bucketPoint = [start: 60_000 * i, end: 60_000 * (i + 1)]
-      double val;
+      Map bucketPoint = [start: 60_000 * i, end: 60_000 * (i + 1)]
+      double val
       switch (i) {
         case 1:
-          val = 400D;
-          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: false,
-          samples: 1] as Map)
-          break;
+          val = 400D
+          bucketPoint << [min: val, avg: val, median: val, max: val, percentile95th: val, empty: false, samples: 1]
+          break
         case 3:
+          val = 100D
+          bucketPoint << [min: val, avg: val, median: val, max: val, percentile95th: val, empty: false, samples: 1]
+          break
         case 5:
-          val = Double.NaN
-          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: true,
-          samples: 0] as Map)
-          break;
-        case 6:
-          val = 200D;
-          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: false,
-          samples: 1] as Map)
-          break;
+          val = 100D
+          bucketPoint << [min: val, avg: val, median: val, max: val, percentile95th: val, empty: false, samples: 1]
+          break
+        case 7:
+          bucketPoint << [min: 100.0, max: 200.0, avg: 150.0, median: 100.0, percentile95th: 100.0, empty:false,
+                          samples: 2]
+          break
         default:
-          val = 100D;
-          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: false,
-          samples: 1] as Map)
-          break;
+          bucketPoint << [min: NaN, max: NaN, avg: NaN, median: NaN, percentile95th: NaN, empty: true, samples: 0]
+          break
       }
       expectedData.push(bucketPoint);
     }
