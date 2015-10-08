@@ -288,14 +288,14 @@ public class GaugeHandler {
             if (DownsampleConfig.Method.simple.equals(downsampleConfig.getDownsampleMethod())) {
                 return metricsService
                         .findSimpleGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
-                        bucketConfig.getBuckets(), percentiles.getPercentiles())
+                                bucketConfig.getBuckets(), percentiles.getPercentiles())
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()
                         .lastOrDefault(null);
             } else {
                 return metricsService
                         .findSumGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
-                                bucketConfig.getBuckets())
+                                bucketConfig.getBuckets(), percentiles.getPercentiles())
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()
                         .lastOrDefault(null);
@@ -304,14 +304,14 @@ public class GaugeHandler {
             if (DownsampleConfig.Method.simple.equals(downsampleConfig.getDownsampleMethod())) {
                 return metricsService
                         .findSimpleGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
-                               bucketConfig.getBuckets(),percentiles.getPercentiles())
+                                bucketConfig.getBuckets(), percentiles.getPercentiles())
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()
                         .lastOrDefault(null);
             } else {
                 return metricsService
                         .findSumGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
-                                bucketConfig.getBuckets())
+                                bucketConfig.getBuckets(), percentiles.getPercentiles())
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()
                         .lastOrDefault(null);

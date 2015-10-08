@@ -181,7 +181,7 @@ public interface MetricsService {
      * @return An {@link Observable} that emits a single list of {@link NumericBucketPoint}
      */
     Observable<List<NumericBucketPoint>> findSumGaugeStats(String tenantId,
-            Map<String, String> tagFilters, long start, long end, Buckets buckets);
+            Map<String, String> tagFilters, long start, long end, Buckets buckets, List<Double> percentiles);
 
     /**
      * Fetches data points from multiple metrics. Down sampling is performed such that data points from all matching
@@ -213,7 +213,7 @@ public interface MetricsService {
      * @return An {@link Observable} that emits a single list of {@link NumericBucketPoint}
      */
     Observable<List<NumericBucketPoint>> findSumGaugeStats(String tenantId, List<String> metrics,
-            long start, long end, Buckets buckets);
+            long start, long end, Buckets buckets, List<Double> percentiles);
 
     Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId<AvailabilityType> id, long start, long end,
                                                                  boolean distinct);

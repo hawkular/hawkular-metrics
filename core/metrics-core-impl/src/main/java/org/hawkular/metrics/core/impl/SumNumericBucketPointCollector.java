@@ -31,6 +31,7 @@ final class SumNumericBucketPointCollector {
     private Sum median = new Sum();
     private Sum max = new Sum();
     private Sum percentile95th = new Sum();
+    private Sum samples = new Sum();
     private Long start;
     private Long end;
 
@@ -43,18 +44,25 @@ final class SumNumericBucketPointCollector {
         median.increment(bucketPoint.getMedian());
         max.increment(bucketPoint.getMax());
         percentile95th.increment(bucketPoint.getPercentile95th());
+        samples.increment(bucketPoint.getSamples());
 
         start = bucketPoint.getStart();
         end = bucketPoint.getEnd();
     }
 
     NumericBucketPoint toBucketPoint() {
+        int localSamples = Integer.MAX_VALUE;
+        if (samples.getN() >= Integer.MIN_VALUE && samples.getN() <= Integer.MAX_VALUE) {
+            localSamples = (int) samples.getN();
+        }
+
         return new NumericBucketPoint.Builder(start, end)
                 .setMin(min.getResult())
                 .setAvg(average.getResult())
                 .setMedian(median.getResult())
                 .setMax(max.getResult())
                 .setPercentile95th(percentile95th.getResult())
+                .setSamples(localSamples)
                 .build();
     }
 }

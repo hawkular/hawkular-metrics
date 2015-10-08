@@ -786,7 +786,8 @@ public class MetricsServiceITest extends MetricsITest {
 
         List<NumericBucketPoint> expected = getOnNextEvents(() ->
                 Observable.concat(Observable.from(m1.getDataPoints()), Observable.from(m2.getDataPoints()))
-                .collect(() -> new NumericDataPointCollector(buckets, 0, Collections.emptyList()), NumericDataPointCollector::increment)
+                .collect(() -> new NumericDataPointCollector(buckets, 0, Collections.emptyList()),
+                        NumericDataPointCollector::increment)
                 .map(NumericDataPointCollector::toBucketPoint));
 
         assertNumericBucketsEquals(actual.get(0), expected);
@@ -794,7 +795,7 @@ public class MetricsServiceITest extends MetricsITest {
 
     @Test
     public void findSumGaugeStatsByTags() {
-        NumericDataPointCollector.createPercentile = InMemoryPercentile::new;
+        NumericDataPointCollector.createPercentile = InMemoryPercentileWrapper::new;
 
         String tenantId = "findGaugeStatsByTags";
         DateTime start = now().minusMinutes(10);
@@ -827,13 +828,13 @@ public class MetricsServiceITest extends MetricsITest {
         Map<String, String> tagFilters = ImmutableMap.of("type", "cpu_usage", "node", "server1|server2");
 
         List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findSumGaugeStats(tenantId,
-                tagFilters, start.getMillis(), start.plusMinutes(5).getMillis(), buckets));
+                tagFilters, start.getMillis(), start.plusMinutes(5).getMillis(), buckets, Collections.emptyList()));
 
         assertEquals(actual.size(), 1);
 
-        NumericDataPointCollector collectorM1 = new NumericDataPointCollector(buckets, 0);
+        NumericDataPointCollector collectorM1 = new NumericDataPointCollector(buckets, 0, Collections.emptyList());
         m1.getDataPoints().forEach(dataPoint -> collectorM1.increment(dataPoint));
-        NumericDataPointCollector collectorM2 = new NumericDataPointCollector(buckets, 0);
+        NumericDataPointCollector collectorM2 = new NumericDataPointCollector(buckets, 0, Collections.emptyList());
         m2.getDataPoints().forEach(dataPoint -> collectorM2.increment(dataPoint));
 
         final Sum min = new Sum();
@@ -890,7 +891,8 @@ public class MetricsServiceITest extends MetricsITest {
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
 
         List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findSimpleGaugeStats(tenantId,
-                asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets, Collections.emptyList()));
+                asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
+                Collections.emptyList()));
 
         assertEquals(actual.size(), 1);
 
@@ -909,7 +911,7 @@ public class MetricsServiceITest extends MetricsITest {
 
     @Test
     public void findSumGaugeStatsByMetricNames() {
-        NumericDataPointCollector.createPercentile = InMemoryPercentile::new;
+        NumericDataPointCollector.createPercentile = InMemoryPercentileWrapper::new;
 
         String tenantId = "findGaugeStatsByMetricNames";
         DateTime start = now().minusMinutes(10);
@@ -938,13 +940,14 @@ public class MetricsServiceITest extends MetricsITest {
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
 
         List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findSumGaugeStats(tenantId,
-                asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets));
+                asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
+                Collections.emptyList()));
 
         assertEquals(actual.size(), 1);
 
-        NumericDataPointCollector collectorM1 = new NumericDataPointCollector(buckets, 0);
+        NumericDataPointCollector collectorM1 = new NumericDataPointCollector(buckets, 0, Collections.emptyList());
         m1.getDataPoints().forEach(dataPoint -> collectorM1.increment(dataPoint));
-        NumericDataPointCollector collectorM2 = new NumericDataPointCollector(buckets, 0);
+        NumericDataPointCollector collectorM2 = new NumericDataPointCollector(buckets, 0, Collections.emptyList());
         m2.getDataPoints().forEach(dataPoint -> collectorM2.increment(dataPoint));
 
         final Sum min = new Sum();

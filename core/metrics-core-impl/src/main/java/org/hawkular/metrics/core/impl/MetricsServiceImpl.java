@@ -714,10 +714,10 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public Observable<List<NumericBucketPoint>> findSumGaugeStats(String tenantId,
-            Map<String, String> tagFilters, long start, long end, Buckets buckets) {
+            Map<String, String> tagFilters, long start, long end, Buckets buckets, List<Double> percentiles) {
         Observable<Observable<NumericBucketPoint>> individualStats =
                         findMetricsWithFilters(tenantId, tagFilters, GAUGE)
-                        .map(metric -> bucketize(findDataPoints(metric.getId(), start, end), buckets)
+                        .map(metric -> bucketize(findDataPoints(metric.getId(), start, end), buckets, percentiles)
                                 .flatMap(Observable::from));
 
         return Observable.merge(individualStats)
@@ -738,10 +738,10 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public Observable<List<NumericBucketPoint>> findSumGaugeStats(String tenantId,
-            List<String> metrics, long start, long end, Buckets buckets) {
+            List<String> metrics, long start, long end, Buckets buckets, List<Double> percentiles) {
         Observable<Observable<NumericBucketPoint>> individualStats = Observable.from(metrics)
                 .flatMap(metricName -> findMetric(new MetricId<>(tenantId, GAUGE, metricName)))
-                .map(metric -> bucketize(findDataPoints(metric.getId(), start, end), buckets)
+                .map(metric -> bucketize(findDataPoints(metric.getId(), start, end), buckets, percentiles)
                         .flatMap(Observable::from));
 
         return Observable.merge(individualStats)
