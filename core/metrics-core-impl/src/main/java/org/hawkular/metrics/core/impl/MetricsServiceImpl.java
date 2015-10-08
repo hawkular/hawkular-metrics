@@ -50,7 +50,6 @@ import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericBucketPoint;
-import org.hawkular.metrics.core.api.NumericBucketPointWithId;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
@@ -714,15 +713,19 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public Observable<NumericBucketPointWithId<Double>> findIndividualGaugeStats(String tenantId,
+    public Observable<List<NumericBucketPoint>> findIndividualGaugeStats(String tenantId,
             Map<String, String> tagFilters, long start, long end, Buckets buckets) {
-
-        Observable<Observable<NumericBucketPointWithId<Double>>> individualStats =
+        Observable<Observable<NumericBucketPoint>> individualStats =
                         findMetricsWithFilters(tenantId, tagFilters, GAUGE)
                         .map(metric -> bucketize(findDataPoints(metric.getId(), start, end), buckets)
-                                .flatMap(Observable::from)
-                                .map(obj -> new NumericBucketPointWithId<Double>(obj, metric.getId())));
-        return Observable.merge(individualStats);
+                                .flatMap(Observable::from));
+
+        return Observable.merge(individualStats)
+                .groupBy(g -> g.getStart())
+                .flatMap(group -> group.collect(() -> new SumNumericBucketPointCollector(),
+                        SumNumericBucketPointCollector::increment))
+                .map(SumNumericBucketPointCollector::toBucketPoint)
+                .toList();
     }
 
     @Override
@@ -734,15 +737,19 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public Observable<NumericBucketPointWithId<Double>> findIndividualGaugeStats(String tenantId,
+    public Observable<List<NumericBucketPoint>> findIndividualGaugeStats(String tenantId,
             List<String> metrics, long start, long end, Buckets buckets) {
-
-        Observable<Observable<NumericBucketPointWithId<Double>>> individualStats = Observable.from(metrics)
+        Observable<Observable<NumericBucketPoint>> individualStats = Observable.from(metrics)
                 .flatMap(metricName -> findMetric(new MetricId<>(tenantId, GAUGE, metricName)))
                 .map(metric -> bucketize(findDataPoints(metric.getId(), start, end), buckets)
-                        .flatMap(Observable::from)
-                        .map(obj -> new NumericBucketPointWithId<Double>(obj, metric.getId())));
-        return Observable.merge(individualStats);
+                        .flatMap(Observable::from));
+
+        return Observable.merge(individualStats)
+                .groupBy(g -> g.getStart())
+                .flatMap(group -> group.collect(() -> new SumNumericBucketPointCollector(),
+                        SumNumericBucketPointCollector::increment))
+                .map(SumNumericBucketPointCollector::toBucketPoint)
+                .toList();
     }
 
     private Observable<List<NumericBucketPoint>> bucketize(Observable<? extends DataPoint<? extends Number>> dataPoints,

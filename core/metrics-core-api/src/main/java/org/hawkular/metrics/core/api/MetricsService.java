@@ -180,7 +180,7 @@ public interface MetricsService {
      *                on which time slice or bucket they fall into.
      * @return An {@link Observable} that emits a single list of {@link NumericBucketPoint}
      */
-    Observable<NumericBucketPointWithId<Double>> findIndividualGaugeStats(String tenantId,
+    Observable<List<NumericBucketPoint>> findIndividualGaugeStats(String tenantId,
             Map<String, String> tagFilters, long start, long end, Buckets buckets);
 
     /**
@@ -212,7 +212,7 @@ public interface MetricsService {
      *                on which time slice or bucket they fall into.
      * @return An {@link Observable} that emits a single list of {@link NumericBucketPoint}
      */
-    Observable<NumericBucketPointWithId<Double>> findIndividualGaugeStats(String tenantId, List<String> metrics,
+    Observable<List<NumericBucketPoint>> findIndividualGaugeStats(String tenantId, List<String> metrics,
             long start, long end, Buckets buckets);
 
     Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId<AvailabilityType> id, long start, long end,

@@ -340,17 +340,7 @@ public class GaugeHandler {
                 metricsService
                         .findIndividualGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
                                 bucketConfig.getBuckets())
-                        .groupBy(arg1 -> arg1.getStart())
-                        .flatMap(g -> {
-                            return g.toMap(arg1 -> arg1.getId().getName(),
-                                    arg2 -> new NumericBucketPoint.Builder(arg2).build());
-                        })
-                        .map(g -> {
-                            //add group buckets aggregation here
-
-                            return g;
-                        })
-                        .map(ApiUtils::mapToResponse)
+                        .map(ApiUtils::collectionToResponse)
                         .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
             }
         } else {
@@ -362,17 +352,7 @@ public class GaugeHandler {
                 metricsService
                         .findIndividualGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
                                 bucketConfig.getBuckets())
-                        .groupBy(arg1 -> arg1.getStart())
-                        .flatMap(g -> {
-                            return g.toMap(arg1 -> arg1.getId().getName(),
-                                    arg2 -> new NumericBucketPoint.Builder(arg2).build());
-                        })
-                        .map(g -> {
-                            //add group buckets aggregation here
-
-                            return g;
-                        })
-                        .map(ApiUtils::mapToResponse)
+                        .map(ApiUtils::collectionToResponse)
                         .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
             }
         }
