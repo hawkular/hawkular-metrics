@@ -59,7 +59,6 @@ import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.param.TimeRange;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Buckets;
-import org.hawkular.metrics.core.api.Downsample.Method;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
@@ -299,9 +298,8 @@ public class GaugeHandler {
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
             @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
-            @ApiParam(value = "Downsamplig method", required = false) @QueryParam("downsampling") String downsampling,
-            @ApiParam(value = "Downsamplig operation", required = false) @QueryParam("downsamplingOperation")
-                String downsamplingOperation) {
+            @ApiParam(value = "Downsample method; simple and sum supported", required = false)
+                        @QueryParam("downsample") String downsample) {
 
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
@@ -331,8 +329,15 @@ public class GaugeHandler {
             percentiles = new Percentiles(Collections.<Double>emptyList());
         }
 
+        DownsampleConfig downsampleConfig = new DownsampleConfig(downsample);
+        if (!downsampleConfig.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(downsampleConfig.getProblem())));
+            return;
+        }
+
         if (metricNames.isEmpty()) {
-            metricsService.findGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
+            if (DownsampleConfig.Method.Simple.equals(downsampleConfig.getDownsampleMethod())) {
+                metricsService.findGroupGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
                     bucketConfig.getBuckets(), percentiles.getPercentiles())
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
@@ -344,7 +349,8 @@ public class GaugeHandler {
                         .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
             }
         } else {
-            metricsService.findGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
+            if (DownsampleConfig.Method.Simple.equals(downsampleConfig.getDownsampleMethod())) {
+                metricsService.findGroupGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
                     bucketConfig.getBuckets(), percentiles.getPercentiles())
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));

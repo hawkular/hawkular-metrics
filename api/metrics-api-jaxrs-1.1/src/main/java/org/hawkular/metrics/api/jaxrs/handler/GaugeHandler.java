@@ -57,7 +57,6 @@ import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.param.TimeRange;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.Buckets;
-import org.hawkular.metrics.core.api.Downsample.Method;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
@@ -256,8 +255,7 @@ public class GaugeHandler {
             @QueryParam("bucketDuration") Duration bucketDuration,
             @QueryParam("percentiles") Percentiles percentiles,
             @QueryParam("metrics") List<String> metricNames,
-            @QueryParam("downsampling") String downsampling,
-            @QueryParam("downsamplingOperation") String downsamplingOperation) {
+            @QueryParam("downsample") String downsample) {
 
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
@@ -281,13 +279,13 @@ public class GaugeHandler {
             percentiles = new Percentiles(Collections.<Double>emptyList());
         }
 
-        DownsampleConfig downsamplingConfig = new DownsampleConfig(downsampling, downsamplingOperation);
-        if (!downsamplingConfig.isValid()) {
-            return badRequest(new ApiError(downsamplingConfig.getProblem()));
+        DownsampleConfig downsampleConfig = new DownsampleConfig(downsample);
+        if (!downsampleConfig.isValid()) {
+            return badRequest(new ApiError(downsampleConfig.getProblem()));
         }
 
         if (metricNames.isEmpty()) {
-            if (Method.Group.equals(downsamplingConfig.getMethod())) {
+            if (DownsampleConfig.Method.Simple.equals(downsampleConfig.getDownsampleMethod())) {
                 return metricsService
                         .findGroupGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
                         bucketConfig.getBuckets(), percentiles.getPercentiles())
@@ -303,7 +301,7 @@ public class GaugeHandler {
                         .lastOrDefault(null);
             }
         } else {
-            if (Method.Group.equals(downsamplingConfig.getMethod())) {
+            if (DownsampleConfig.Method.Simple.equals(downsampleConfig.getDownsampleMethod())) {
                 return metricsService
                         .findGroupGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
                         bucketConfig.getBuckets(), percentiles.getPercentiles())

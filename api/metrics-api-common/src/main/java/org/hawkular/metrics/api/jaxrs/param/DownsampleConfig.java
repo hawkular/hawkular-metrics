@@ -17,9 +17,6 @@
 
 package org.hawkular.metrics.api.jaxrs.param;
 
-import org.hawkular.metrics.core.api.Downsample.Method;
-import org.hawkular.metrics.core.api.Downsample.Operation;
-
 /**
  * A JAX-RS parameter object used to build downsampling configuration from query params.
  *
@@ -27,57 +24,35 @@ import org.hawkular.metrics.core.api.Downsample.Operation;
  */
 public class DownsampleConfig {
 
-    private Method method;
-    private Operation operation;
+    public enum Method {
+        Simple, Sum
+    }
+
+    private Method downsampleMethod;
     private String problem;
     private boolean valid;
 
-    public DownsampleConfig(String method, String operation) {
+    public DownsampleConfig(String method) {
         if (method == null) {
-            this.method = Method.Group;
-            this.operation = null;
+            this.downsampleMethod = Method.Simple;
             this.valid = true;
             this.problem = null;
         } else {
             try {
-                this.method = Method.valueOf(method);
-            } catch (IllegalArgumentException e) {
-                this.method = null;
-                this.operation = null;
-                this.valid = false;
-                this.problem = "Invalid downsampling method. Only Group and Individual are supported.";
-                return;
-            }
-
-            if (Method.Group.equals(this.method)) {
-                this.operation = null;
+                this.downsampleMethod = Method.valueOf(method);
                 this.valid = true;
                 this.problem = null;
-            } else {
-                if (operation == null) {
-                    this.operation = Operation.Sum;
-                } else {
-                    try {
-                        this.operation = Operation.valueOf(operation);
-                        this.valid = true;
-                        this.problem = null;
-                    } catch (IllegalArgumentException e) {
-                        this.method = null;
-                        this.operation = null;
-                        this.valid = false;
-                        this.problem = "Invalid downsampling operation. Only Average and Sum are supported.";
-                    }
-                }
+            } catch (IllegalArgumentException e) {
+                this.downsampleMethod = null;
+                this.valid = false;
+                this.problem = "Invalid downsampling method. Only Simple and Sum are supported.";
+                return;
             }
         }
     }
 
-    public Method getMethod() {
-        return method;
-    }
-
-    public Operation getOperation() {
-        return operation;
+    public Method getDownsampleMethod() {
+        return downsampleMethod;
     }
 
     public boolean isValid() {
@@ -91,8 +66,7 @@ public class DownsampleConfig {
     @Override
     public String toString() {
         return com.google.common.base.Objects.toStringHelper(this)
-                .add("method", method.toString())
-                .add("operation", operation.toString())
+                .add("downsampleMethod", downsampleMethod.toString())
                 .add("valid", valid)
                 .add("problem", problem)
                 .omitNullValues()
