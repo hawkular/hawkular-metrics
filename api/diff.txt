@@ -1,0 +1,1951 @@
+Only in api/metrics-api-jaxrs: README.adoc
+Only in api/metrics-api-jaxrs: ping.html
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/metrics-api-jaxrs-1.1/pom.xml
+21c21
+<   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+---
+>          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+31c31
+<   <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+---
+>   <artifactId>hawkular-metrics-api-jaxrs-1.1</artifactId>
+34,35c34,50
+<   <name>Hawkular Metrics JAX-RS 2.0 API</name>
+<   <description>JAX-RS 2.0 REST API Implementation</description>
+---
+>   <name>Hawkular Metrics JAX-RS 1.1 API</name>
+>   <description>JAX-RS 1.1 REST API Implementation</description>
+> 
+>   <properties>
+>     <enforcer.skip>true</enforcer.skip>
+> 
+>     <version.container.bom>6.4.0.Beta1</version.container.bom>
+>     <version.org.jboss.as.plugins.jboss-as-maven-plugin>7.7.Final</version.org.jboss.as.plugins.jboss-as-maven-plugin>
+>     <version.org.jboss.as.container>7.5.0.Final-redhat-15</version.org.jboss.as.container>
+>   </properties>
+> 
+>   <repositories>
+>     <repository>
+>       <id>eap_6_early_access</id>
+>       <url>https://maven.repository.redhat.com/earlyaccess/all/</url>
+>     </repository>
+>   </repositories>
+40,42c55,57
+<         <groupId>org.wildfly.bom</groupId>
+<         <artifactId>jboss-javaee-7.0-wildfly</artifactId>
+<         <version>${version.org.wildfly}</version>
+---
+>         <groupId>org.jboss.bom.eap</groupId>
+>         <artifactId>jboss-javaee-6.0-with-resteasy</artifactId>
+>         <version>${version.container.bom}</version>
+51,54d65
+<       <groupId>org.antlr</groupId>
+<       <artifactId>antlr4-runtime</artifactId>
+<     </dependency>
+<     <dependency>
+60,61c71,81
+<     <!-- Wildfly provided -->
+<     <!-- No need to set the jboss-logging scope here since Wildfly BOM includes jboss-logging -->
+---
+>     <!-- AS7 provided -->
+>     <!-- Set the jboss-logging scope here since EAP6.4 BOM does not include jboss-logging -->
+>     <dependency>
+>       <groupId>org.jboss.logging</groupId>
+>       <artifactId>jboss-logging</artifactId>
+>       <!--
+>       This version is "almost" compatible with the version included in EAP6.4:
+>       we can't use logger methods with primitive arguments
+>       -->
+>       <scope>provided</scope>
+>     </dependency>
+69c89
+<       <artifactId>resteasy-jackson2-provider</artifactId>
+---
+>       <artifactId>resteasy-jackson-provider</artifactId>
+74c94
+<       <artifactId>jboss-servlet-api_3.1_spec</artifactId>
+---
+>       <artifactId>jboss-servlet-api_3.0_spec</artifactId>
+82,100d101
+< 
+<     <!-- documentation -->
+<     <dependency>
+<       <groupId>io.swagger</groupId>
+<       <artifactId>swagger-annotations</artifactId>
+<       <scope>provided</scope>
+<     </dependency>
+< 
+<     <!-- test -->
+<     <dependency>
+<       <groupId>junit</groupId>
+<       <artifactId>junit</artifactId>
+<       <scope>test</scope>
+<     </dependency>
+<     <dependency>
+<       <groupId>org.mockito</groupId>
+<       <artifactId>mockito-core</artifactId>
+<       <scope>test</scope>
+<     </dependency>
+104c105
+<     <finalName>hawkular-metric-rest</finalName>
+---
+>     <finalName>hawkular-metrics-api-rest-1.1</finalName>
+106d106
+< 
+108,122c108,114
+<         <groupId>org.antlr</groupId>
+<         <artifactId>antlr4-maven-plugin</artifactId>
+<         <executions>
+<           <execution>
+<             <id>antlr4</id>
+<             <goals>
+<               <goal>antlr4</goal>
+<             </goals>
+<             <phase>generate-sources</phase>
+<             <configuration>
+<               <listener>true</listener>
+<               <visitor>true</visitor>
+<             </configuration>
+<           </execution>
+<         </executions>
+---
+>         <groupId>org.jboss.as.plugins</groupId>
+>         <artifactId>jboss-as-maven-plugin</artifactId>
+>         <version>${version.org.jboss.as.plugins.jboss-as-maven-plugin}</version>
+>         <configuration>
+>           <version>${version.org.jboss.as.container}</version>
+>           <port>${jboss-as.management.port}</port>
+>         </configuration>
+140c132
+<                 <exclude>static/index.html</exclude>
+---
+>                 <exclude>index.html</exclude>
+148c140
+<                 <include>static/index.html</include>
+---
+>                 <include>index.html</include>
+157,225d148
+< 
+<   <profiles>
+<     <profile>
+<       <id>docgen</id>
+<       <properties>
+<         <swaggerDirectory>${project.build.directory}/generated/swagger-ui</swaggerDirectory>
+<       </properties>
+<       <build>
+<         <!-- Document generation from the Swagger annotations on the REST-API. -->
+<         <plugins>
+<           <plugin>
+<             <groupId>com.github.kongchen</groupId>
+<             <artifactId>swagger-maven-plugin</artifactId>
+<             <configuration>
+<               <apiSources>
+<                 <apiSource>
+<                   <springmvc>false</springmvc>
+<                   <locations>org.hawkular.metrics.api.jaxrs</locations>
+<                   <basePath>/hawkular/metrics/</basePath>
+<                   <info>
+<                     <title>Hawkular Metrics REST API</title>
+<                     <version>1.0</version>
+<                   </info>
+<                   <swaggerDirectory>${swaggerDirectory}</swaggerDirectory>
+<                 </apiSource>
+<               </apiSources>
+<             </configuration>
+<             <executions>
+<               <execution>
+<                 <phase>compile</phase>
+<                 <goals>
+<                   <goal>generate</goal>
+<                 </goals>
+<               </execution>
+<             </executions>
+<           </plugin>
+<           <plugin>
+<             <groupId>org.codehaus.gmavenplus</groupId>
+<             <artifactId>gmavenplus-plugin</artifactId>
+<             <dependencies>
+<               <dependency>
+<                 <groupId>org.codehaus.groovy</groupId>
+<                 <artifactId>groovy-all</artifactId>
+<                 <version>${version.org.codehaus.groovy}</version>
+<               </dependency>
+<             </dependencies>
+<             <configuration>
+<               <properties>
+<                 <swaggerFile>${swaggerDirectory}/swagger.json</swaggerFile>
+<                 <outputFile>${project.build.directory}/generated/rest-metrics.adoc</outputFile>
+<               </properties>
+<               <scripts>
+<                 <script>file:///${project.basedir}/src/main/script/apidoc.groovy</script>
+<               </scripts>
+<             </configuration>
+<             <executions>
+<               <execution>
+<                 <id>generate-api-doc</id>
+<                 <phase>compile</phase>
+<                 <goals>
+<                   <goal>execute</goal>
+<                 </goals>
+<               </execution>
+<             </executions>
+<           </plugin>
+<         </plugins>
+<       </build>
+<     </profile>
+<   </profiles>
+Only in api/metrics-api-jaxrs/src/main: antlr4
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/HawkularMetricsRestApp.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/HawkularMetricsRestApp.java
+32,33d31
+< import org.hawkular.metrics.api.jaxrs.filter.CorsRequestFilter;
+< import org.hawkular.metrics.api.jaxrs.filter.CorsResponseFilter;
+46d43
+< import org.hawkular.metrics.api.jaxrs.influx.InfluxSeriesHandler;
+50,51c47,50
+< import org.hawkular.metrics.api.jaxrs.param.ConvertersProvider;
+< import org.hawkular.metrics.api.jaxrs.util.JacksonConfig;
+---
+> import org.hawkular.metrics.api.jaxrs.param.DurationConverter;
+> import org.hawkular.metrics.api.jaxrs.param.MetricTypeConverter;
+> import org.hawkular.metrics.api.jaxrs.param.PercentilesConverter;
+> import org.hawkular.metrics.api.jaxrs.param.TagsConverter;
+80d78
+<         classes.add(InfluxSeriesHandler.class);
+116,117d113
+<         classes.add(CorsResponseFilter.class);
+<         classes.add(CorsRequestFilter.class);
+121,123c117,120
+<         classes.add(ConvertersProvider.class);
+<         classes.add(org.hawkular.metrics.api.jaxrs.influx.param.ConvertersProvider.class);
+<         classes.add(JacksonConfig.class);
+---
+>         classes.add(DurationConverter.class);
+>         classes.add(MetricTypeConverter.class);
+>         classes.add(TagsConverter.class);
+>         classes.add(PercentilesConverter.class);
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ApplicationExceptionMapper.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ApplicationExceptionMapper.java
+21d20
+< import javax.ws.rs.core.Response.Status;
+37c36
+<         return ExceptionMapperUtils.buildResponse(exception, Status.INTERNAL_SERVER_ERROR);
+---
+>         return ExceptionMapperUtils.buildResponse(exception, 500);
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ExceptionMapperUtils.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/ExceptionMapperUtils.java
+20a21
+> import javax.ws.rs.core.Response.ResponseBuilder;
+33a35,39
+>     public static Response buildResponse(Throwable exception, int statusCode) {
+>         ResponseBuilder responseBuilder = Response.status(statusCode);
+>         return buildErrorResponse(exception, responseBuilder);
+>     }
+> 
+35c41,46
+<         Response response = Response.status(status)
+---
+>         ResponseBuilder responseBuilder = Response.status(status);
+>         return buildErrorResponse(exception, responseBuilder);
+>     }
+> 
+>     private static Response buildErrorResponse(Throwable exception, ResponseBuilder responseBuilder) {
+>         Response response = responseBuilder
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotAcceptableExceptionMapper.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotAcceptableExceptionMapper.java
+19d18
+< import javax.ws.rs.NotAcceptableException;
+22a22,23
+> 
+> import org.jboss.resteasy.spi.NotAcceptableException;
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotAllowedExceptionMapper.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotAllowedExceptionMapper.java
+19d18
+< import javax.ws.rs.NotAllowedException;
+23a23,24
+> import org.jboss.resteasy.spi.MethodNotAllowedException;
+> 
+33c34
+< public class NotAllowedExceptionMapper implements ExceptionMapper<NotAllowedException> {
+---
+> public class NotAllowedExceptionMapper implements ExceptionMapper<MethodNotAllowedException> {
+36,37c37,38
+<     public Response toResponse(NotAllowedException exception) {
+<         return ExceptionMapperUtils.buildResponse(exception, Response.Status.METHOD_NOT_ALLOWED);
+---
+>     public Response toResponse(MethodNotAllowedException exception) {
+>         return ExceptionMapperUtils.buildResponse(exception, 405);
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotFoundExceptionMapper.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotFoundExceptionMapper.java
+19d18
+< import javax.ws.rs.NotFoundException;
+22a22,23
+> 
+> import org.jboss.resteasy.spi.NotFoundException;
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotSupportedExceptionMapper.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/exception/mappers/NotSupportedExceptionMapper.java
+16a17
+> 
+19d19
+< import javax.ws.rs.NotSupportedException;
+23a24,25
+> import org.jboss.resteasy.spi.UnsupportedMediaTypeException;
+> 
+33c35
+< public class NotSupportedExceptionMapper implements ExceptionMapper<NotSupportedException> {
+---
+> public class NotSupportedExceptionMapper implements ExceptionMapper<UnsupportedMediaTypeException> {
+36c38
+<     public Response toResponse(NotSupportedException exception) {
+---
+>     public Response toResponse(UnsupportedMediaTypeException exception) {
+Only in api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/filter: CorsFilter.java
+Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/filter: CorsRequestFilter.java
+Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/filter: CorsResponseFilter.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/filter/EmptyPayloadFilter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/filter/EmptyPayloadFilter.java
+20,21c20
+< import java.io.IOException;
+< 
+---
+> import javax.servlet.http.HttpServletRequest;
+23,25c22,23
+< import javax.ws.rs.container.ContainerRequestContext;
+< import javax.ws.rs.container.ContainerRequestFilter;
+< import javax.ws.rs.core.UriInfo;
+---
+> import javax.ws.rs.WebApplicationException;
+> import javax.ws.rs.core.Context;
+27a26,32
+> import org.jboss.resteasy.annotations.interception.ServerInterceptor;
+> import org.jboss.resteasy.core.ResourceMethod;
+> import org.jboss.resteasy.core.ServerResponse;
+> import org.jboss.resteasy.spi.Failure;
+> import org.jboss.resteasy.spi.HttpRequest;
+> import org.jboss.resteasy.spi.interception.PreProcessInterceptor;
+> 
+32a38
+>  * @author Stefan Negrea
+35c41,42
+< public class EmptyPayloadFilter implements ContainerRequestFilter {
+---
+> @ServerInterceptor
+> public class EmptyPayloadFilter implements PreProcessInterceptor {
+37a45,47
+>     @Context
+>     HttpServletRequest servletRequest;
+> 
+39,49c49,54
+<     public void filter(ContainerRequestContext requestContext) throws IOException {
+<         if (!HttpMethod.POST.equals(requestContext.getMethod()) &&
+<                 !HttpMethod.PUT.equals(requestContext.getMethod())) {
+<             return;
+<         }
+<         UriInfo uriInfo = requestContext.getUriInfo();
+<         String path = uriInfo.getPath();
+<         if (path.startsWith("/db")) {
+<             // Skip some endpoints:
+<             // - Influx
+<             return;
+---
+>     public ServerResponse preProcess(HttpRequest request,
+>             ResourceMethod resourceMethod) throws Failure,
+>             WebApplicationException {
+> 
+>         if (!HttpMethod.POST.equals(request.getHttpMethod())) {
+>             return null;
+51c56,58
+<         requestContext.setProperty(EMPTY_PAYLOAD, Boolean.TRUE);
+---
+> 
+>         servletRequest.setAttribute(EMPTY_PAYLOAD, Boolean.TRUE);
+>         return null;
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/filter/MetricsServiceStateFilter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/filter/MetricsServiceStateFilter.java
+21,22d20
+< import java.io.IOException;
+< 
+24,25c22
+< import javax.ws.rs.container.ContainerRequestContext;
+< import javax.ws.rs.container.ContainerRequestFilter;
+---
+> import javax.ws.rs.WebApplicationException;
+28d24
+< import javax.ws.rs.core.UriInfo;
+34a31,36
+> import org.jboss.resteasy.annotations.interception.ServerInterceptor;
+> import org.jboss.resteasy.core.ResourceMethod;
+> import org.jboss.resteasy.core.ServerResponse;
+> import org.jboss.resteasy.spi.Failure;
+> import org.jboss.resteasy.spi.HttpRequest;
+> import org.jboss.resteasy.spi.interception.PreProcessInterceptor;
+40c42,43
+< public class MetricsServiceStateFilter implements ContainerRequestFilter {
+---
+> @ServerInterceptor
+> public class MetricsServiceStateFilter implements PreProcessInterceptor {
+50,52c53,55
+<     public void filter(ContainerRequestContext containerRequestContext) throws IOException {
+<         UriInfo uriInfo = containerRequestContext.getUriInfo();
+<         String path = uriInfo.getPath();
+---
+>     public ServerResponse preProcess(HttpRequest request, ResourceMethod method) throws Failure,
+>             WebApplicationException {
+>         String path = request.getUri().getPath();
+56c59
+<             return;
+---
+>             return null;
+65c68
+<             containerRequestContext.abortWith(response);
+---
+>             return ServerResponse.copyIfNotServerResponse(response);
+72c75
+<             containerRequestContext.abortWith(response);
+---
+>             return ServerResponse.copyIfNotServerResponse(response);
+74c77
+<                    metricsServiceLifecycle.getState() == State.STOPPING) {
+---
+>                 metricsServiceLifecycle.getState() == State.STOPPING) {
+79c82
+<             containerRequestContext.abortWith(response);
+---
+>             return ServerResponse.copyIfNotServerResponse(response);
+80a84,85
+> 
+>         return null;
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/filter/TenantFilter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/filter/TenantFilter.java
+21c21
+< import java.io.IOException;
+---
+> import java.util.List;
+23,24c23
+< import javax.ws.rs.container.ContainerRequestContext;
+< import javax.ws.rs.container.ContainerRequestFilter;
+---
+> import javax.ws.rs.WebApplicationException;
+27d25
+< import javax.ws.rs.core.UriInfo;
+33a32,37
+> import org.jboss.resteasy.annotations.interception.ServerInterceptor;
+> import org.jboss.resteasy.core.ResourceMethod;
+> import org.jboss.resteasy.core.ServerResponse;
+> import org.jboss.resteasy.spi.Failure;
+> import org.jboss.resteasy.spi.HttpRequest;
+> import org.jboss.resteasy.spi.interception.PreProcessInterceptor;
+39c43,44
+< public class TenantFilter implements ContainerRequestFilter {
+---
+> @ServerInterceptor
+> public class TenantFilter implements PreProcessInterceptor {
+51,53c56,58
+<     public void filter(ContainerRequestContext requestContext) throws IOException {
+<         UriInfo uriInfo = requestContext.getUriInfo();
+<         String path = uriInfo.getPath();
+---
+>     public ServerResponse preProcess(HttpRequest request, ResourceMethod method) throws Failure,
+>             WebApplicationException {
+>         String path = request.getUri().getPath();
+56c61,63
+<             || path.equals(BaseHandler.PATH) || path.startsWith(VirtualClockHandler.PATH)) {
+---
+>                 //On older version, the path value from localhost:8080/hawkular/metrics is an empty String instead of /
+>                 || path.equals(BaseHandler.PATH) || path.equals("")
+>                 || path.startsWith(VirtualClockHandler.PATH)) {
+58c65
+<             return;
+---
+>             return null;
+61c68,69
+<         String tenant = requestContext.getHeaders().getFirst(TENANT_HEADER_NAME);
+---
+>         List<String> requestHeader = request.getHttpHeaders().getRequestHeader(TENANT_HEADER_NAME);
+>         String tenant = requestHeader != null && !requestHeader.isEmpty() ? requestHeader.get(0) : null;
+64c72
+<             return;
+---
+>             return null;
+69,72c77,80
+<                                     .type(APPLICATION_JSON_TYPE)
+<                                     .entity(new ApiError(MISSING_TENANT_MSG))
+<                                     .build();
+<         requestContext.abortWith(response);
+---
+>                 .type(APPLICATION_JSON_TYPE)
+>                 .entity(new ApiError(MISSING_TENANT_MSG))
+>                 .build();
+>         return ServerResponse.copyIfNotServerResponse(response);
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/AvailabilityHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/AvailabilityHandler.java
+25d24
+< import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.valueToResponse;
+30a30
+> import java.util.Optional;
+44,45d43
+< import javax.ws.rs.container.AsyncResponse;
+< import javax.ws.rs.container.Suspended;
+50,51d47
+< import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
+< import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
+63a60
+> import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
+68,72d64
+< import io.swagger.annotations.Api;
+< import io.swagger.annotations.ApiOperation;
+< import io.swagger.annotations.ApiParam;
+< import io.swagger.annotations.ApiResponse;
+< import io.swagger.annotations.ApiResponses;
+82d73
+< @Api(tags = "Availability")
+93,104c84,85
+<     @ApiOperation(value = "Create availability metric. Same notes as creating gauge metric apply.")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 201, message = "Metric created successfully"),
+<             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
+<             @ApiResponse(code = 409, message = "Availability metric with given id already exists",
+<                     response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Metric creation failed due to an unexpected error",
+<                     response = ApiError.class)
+<     })
+<     public void createAvailabilityMetric(
+<             @Suspended final AsyncResponse asyncResponse,
+<             @ApiParam(required = true) MetricDefinition metricDefinition,
+---
+>     public Response createAvailabilityMetric(
+>             MetricDefinition metricDefinition,
+108,109c89,90
+<             asyncResponse.resume(badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+<                     .AVAILABILITY.getText())));
+---
+>             return ApiUtils.badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+>                     .AVAILABILITY.getText()));
+114c95,104
+<         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
+---
+>         try {
+>             Observable<Void> observable = metricsService.createMetric(metric);
+>             observable.toBlocking().lastOrDefault(null);
+>             return Response.created(location).build();
+>         } catch (MetricAlreadyExistsException e) {
+>             String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
+>             return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+119,127c109,111
+<     @ApiOperation(value = "Retrieve single metric definition.", response = MetricDefinition.class)
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Metric's definition was successfully retrieved."),
+<             @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.",
+<                          response = ApiError.class) })
+<     public void getAvailabilityMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
+< 
+<         metricsService.findMetric(new MetricId<>(tenantId, AVAILABILITY, id))
+---
+>     public Response getAvailabilityMetric(@PathParam("id") String id) {
+>         try {
+>             return metricsService.findMetric(new MetricId<>(tenantId, AVAILABILITY, id))
+131c115,119
+<                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+---
+>                 .toBlocking()
+>                 .firstOrDefault(null);
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+136,144c124
+<     @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = String.class,
+<                   responseContainer = "Map")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Metric's tags were successfully retrieved."),
+<             @ApiResponse(code = 204, message = "Query was successful, but no metrics were found."),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's tags.",
+<                 response = ApiError.class) })
+<     public void getMetricTags(
+<             @Suspended final AsyncResponse asyncResponse,
+---
+>     public Response getMetricTags(
+147,149c127,136
+<         metricsService.getMetricTags(new MetricId<>(tenantId, AVAILABILITY, id)).subscribe(
+<                 optional -> asyncResponse.resume(valueToResponse(optional)),
+<                 t -> asyncResponse.resume(serverError(t)));
+---
+>         Observable<Optional<Map<String, String>>> something = metricsService
+>                 .getMetricTags(new MetricId<>(tenantId, AVAILABILITY, id));
+>         try {
+>             return something
+>                     .map(ApiUtils::valueToResponse)
+>                     .toBlocking()
+>                     .lastOrDefault(null);
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+151a139
+> 
+154,160c142
+<     @ApiOperation(value = "Update tags associated with the metric definition.")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while updating metric's tags.",
+<                 response = ApiError.class) })
+<     public void updateMetricTags(
+<             @Suspended final AsyncResponse asyncResponse,
+---
+>     public Response updateMetricTags(
+162c144
+<             @ApiParam(required = true) Map<String, String> tags
+---
+>             Map<String, String> tags
+165c147,154
+<         metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
+---
+>         try {
+>             metricsService.addTags(metric, tags).toBlocking().lastOrDefault(null);
+>             return Response.ok().build();
+>         } catch (IllegalArgumentException e1) {
+>             return badRequest(new ApiError(e1.getMessage()));
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+170,177c159
+<     @ApiOperation(value = "Delete tags associated with the metric definition.")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
+<             @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.",
+<                 response = ApiError.class) })
+<     public void deleteMetricTags(
+<             @Suspended final AsyncResponse asyncResponse,
+---
+>     public Response deleteMetricTags(
+179c161
+<             @ApiParam("Tag list") @PathParam("tags") Tags tags
+---
+>             @PathParam("tags") Tags tags
+182c164,170
+<         metricsService.deleteTags(metric, tags.getTags()).subscribe(new ResultSetObserver(asyncResponse));
+---
+> 
+>         try {
+>             metricsService.deleteTags(metric, tags.getTags()).toBlocking().lastOrDefault(null);
+>             return Response.ok().build();
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+187,196c175,177
+<     @ApiOperation(value = "Add data for a single availability metric.")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Adding data succeeded."),
+<             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
+<                     response = ApiError.class)
+<     })
+<     public void addAvailabilityForMetric(
+<             @Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
+<             @ApiParam(value = "List of availability datapoints", required = true) List<AvailabilityDataPoint> data
+---
+>     public Response addAvailabilityForMetric(
+>             @PathParam("id") String id,
+>             List<AvailabilityDataPoint> data
+199,200c180,185
+<         Observable<Void> observable = metricsService.addDataPoints(AVAILABILITY, metrics);
+<         observable.subscribe(new ResultSetObserver(asyncResponse));
+---
+>         try {
+>             metricsService.addDataPoints(AVAILABILITY, metrics).toBlocking().lastOrDefault(null);
+>             return Response.ok().build();
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+205,214c190
+<     @ApiOperation(value = "Add metric data for multiple availability metrics in a single call.")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Adding data succeeded."),
+<             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
+<                     response = ApiError.class)
+<     })
+<     public void addAvailabilityData(
+<             @Suspended final AsyncResponse asyncResponse,
+<             @ApiParam(value = "List of availability metrics", required = true)
+---
+>     public Response addAvailabilityData(
+218,219c194,199
+<         Observable<Void> observable = metricsService.addDataPoints(AVAILABILITY, metrics);
+<         observable.subscribe(new ResultSetObserver(asyncResponse));
+---
+>         try {
+>             metricsService.addDataPoints(AVAILABILITY, metrics).toBlocking().lastOrDefault(null);
+>             return Response.ok().build();
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+224,237c204
+<     @ApiOperation(value = "Retrieve availability data.", notes = "When buckets or bucketDuration query parameter is " +
+<             "used, the time range between start and end will be divided in buckets of equal duration, and " +
+<             "availability statistics will be computed for each bucket.", response = AvailabilityDataPoint.class,
+<             responseContainer = "List")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Successfully fetched availability data."),
+<             @ApiResponse(code = 204, message = "No availability data was found."),
+<             @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
+<                     response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching availability data.",
+<                     response = ApiError.class)
+<     })
+<     public void findAvailabilityData(
+<             @Suspended AsyncResponse asyncResponse,
+---
+>     public Response findAvailabilityData(
+239,243c206,209
+<             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+<             @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+<             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+<             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+<             @ApiParam(value = "Set to true to return only distinct, contiguous values")
+---
+>             @QueryParam("start") final Long start,
+>             @QueryParam("end") final Long end,
+>             @QueryParam("buckets") Integer bucketsCount,
+>             @QueryParam("bucketDuration") Duration bucketDuration,
+248,249c214
+<             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+<             return;
+---
+>             return badRequest(new ApiError(timeRange.getProblem()));
+253,254c218
+<             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+<             return;
+---
+>             return badRequest(new ApiError(bucketConfig.getProblem()));
+259,268c223,237
+<         if (buckets == null) {
+<             metricsService.findAvailabilityData(metricId, timeRange.getStart(), timeRange.getEnd(), distinct)
+<                     .map(AvailabilityDataPoint::new)
+<                     .toList()
+<                     .map(ApiUtils::collectionToResponse)
+<                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+<         } else {
+<             metricsService.findAvailabilityStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets)
+<                 .map(ApiUtils::collectionToResponse)
+<                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+---
+>         try {
+>             if (buckets == null) {
+>                 return metricsService.findAvailabilityData(metricId, timeRange.getStart(), timeRange.getEnd(), distinct)
+>                         .map(AvailabilityDataPoint::new)
+>                         .toList()
+>                         .map(ApiUtils::collectionToResponse)
+>                         .toBlocking()
+>                         .lastOrDefault(null);
+>             } else {
+>                 return metricsService.findAvailabilityStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets)
+>                         .map(ApiUtils::collectionToResponse).toBlocking()
+>                         .lastOrDefault(null);
+>             }
+>         } catch (Exception e) {
+>             return serverError(e);
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/BaseHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/BaseHandler.java
+39,40d38
+< import io.swagger.annotations.ApiOperation;
+< 
+53,54d50
+<     @ApiOperation(value = "Returns some basic information about the Hawkular Metrics service.",
+<             response = String.class, responseContainer = "Map")
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/CounterHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/CounterHandler.java
+25d24
+< import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.valueToResponse;
+44,45d42
+< import javax.ws.rs.container.AsyncResponse;
+< import javax.ws.rs.container.Suspended;
+50,51d46
+< import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
+< import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
+64a60
+> import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
+69,73d64
+< import io.swagger.annotations.Api;
+< import io.swagger.annotations.ApiOperation;
+< import io.swagger.annotations.ApiParam;
+< import io.swagger.annotations.ApiResponse;
+< import io.swagger.annotations.ApiResponses;
+83d73
+< @Api(tags = "Counter")
+94,109c84,85
+<     @ApiOperation(
+<             value = "Create counter metric. This operation also causes the rate to be calculated and " +
+<                     "persisted periodically after raw count data is persisted.",
+<             notes = "Clients are not required to explicitly create a metric before storing data. Doing so however " +
+<                     "allows clients to prevent naming collisions and to specify tags and data retention.")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 201, message = "Metric created successfully"),
+<             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
+<             @ApiResponse(code = 409, message = "Counter metric with given id already exists", response = ApiError
+<                     .class),
+<             @ApiResponse(code = 500, message = "Metric creation failed due to an unexpected error",
+<                     response = ApiError.class)
+<     })
+<     public void createCounter(
+<             @Suspended final AsyncResponse asyncResponse,
+<             @ApiParam(required = true) MetricDefinition metricDefinition,
+---
+>     public Response createCounter(
+>             MetricDefinition metricDefinition,
+113,114c89,90
+<             asyncResponse.resume(badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+<                     .COUNTER.getText())));
+---
+>             return badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+>                     .COUNTER.getText()));
+119c95,104
+<         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
+---
+>         try {
+>             Observable<Void> observable = metricsService.createMetric(metric);
+>             observable.toBlocking().lastOrDefault(null);
+>             return Response.created(location).build();
+>         } catch (MetricAlreadyExistsException e) {
+>             String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
+>             return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+124,132c109,111
+<     @ApiOperation(value = "Retrieve a counter definition", response = MetricDefinition.class)
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Metric's definition was successfully retrieved."),
+<             @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.",
+<                          response = ApiError.class) })
+<     public void getCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
+< 
+<         metricsService.findMetric(new MetricId<>(tenantId, COUNTER, id))
+---
+>     public Response getCounter(@PathParam("id") String id) {
+>         try {
+>             return metricsService.findMetric(new MetricId<>(tenantId, COUNTER, id))
+135,136c114,118
+<                 .switchIfEmpty(Observable.just(noContent()))
+<                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+---
+>                     .switchIfEmpty(Observable.just(noContent()))
+>                 .toBlocking().lastOrDefault(null);
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+139a122
+>     @Produces(APPLICATION_JSON)
+141,153c124,131
+<     @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = Map.class)
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Metric's tags were successfully retrieved."),
+<             @ApiResponse(code = 204, message = "Query was successful, but no metrics were found."),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's tags.",
+<                          response = ApiError.class) })
+<     public void getMetricTags(
+<             @Suspended final AsyncResponse asyncResponse,
+<             @PathParam("id") String id) {
+<         metricsService.getMetricTags(new MetricId<>(tenantId, COUNTER, id))
+<                 .subscribe(
+<                         optional -> asyncResponse.resume(valueToResponse(optional)),
+<                         t -> asyncResponse.resume(serverError(t)));
+---
+>     public Response getMetricTags(@PathParam("id") String id) {
+>         try {
+>             return metricsService.getMetricTags(new MetricId<>(tenantId, COUNTER, id))
+>                     .map(ApiUtils::valueToResponse)
+>                     .toBlocking().lastOrDefault(null);
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+156a135
+>     @Produces(APPLICATION_JSON)
+158,164c137
+<     @ApiOperation(value = "Update tags associated with the metric definition.")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while updating metric's tags.",
+<                         response = ApiError.class) })
+<     public void updateMetricTags(
+<             @Suspended final AsyncResponse asyncResponse,
+---
+>     public Response updateMetricTags(
+166c139
+<             @ApiParam(required = true) Map<String, String> tags) {
+---
+>             Map<String, String> tags) {
+168c141,148
+<         metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
+---
+>         try {
+>             metricsService.addTags(metric, tags).toBlocking().lastOrDefault(null);
+>             return Response.ok().build();
+>         } catch (IllegalArgumentException e1) {
+>             return badRequest(new ApiError(e1.getMessage()));
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+171a152
+>     @Produces(APPLICATION_JSON)
+173,180c154
+<     @ApiOperation(value = "Delete tags associated with the metric definition.")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
+<             @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.",
+<                         response = ApiError.class) })
+<     public void deleteMetricTags(
+<             @Suspended final AsyncResponse asyncResponse,
+---
+>     public Response deleteMetricTags(
+182,184c156,163
+<             @ApiParam("Tag list") @PathParam("tags") Tags tags) {
+<         Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id));
+<         metricsService.deleteTags(metric, tags.getTags()).subscribe(new ResultSetObserver(asyncResponse));
+---
+>             @PathParam("tags") Tags tags) {
+>         try {
+>             Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id));
+>             metricsService.deleteTags(metric, tags.getTags()).toBlocking().lastOrDefault(null);
+>             return Response.ok().build();
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+189,198c168
+<     @ApiOperation(value = "Add data points for multiple counters")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Adding data points succeeded."),
+<             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data points",
+<                     response = ApiError.class)
+<     })
+<     public void addData(@Suspended final AsyncResponse asyncResponse,
+<                         @ApiParam(value = "List of metrics", required = true) List<Counter> counters
+<     ) {
+---
+>     public Response addData(List<Counter> counters) {
+200,201c170,175
+<         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
+<         observable.subscribe(new ResultSetObserver(asyncResponse));
+---
+>         try {
+>             metricsService.addDataPoints(COUNTER, metrics).toBlocking().lastOrDefault(null);
+>             return Response.ok().build();
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+206,214c180
+<     @ApiOperation(value = "Add data for a single counter")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Adding data succeeded."),
+<             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
+<                     response = ApiError.class),
+<     })
+<     public void addData(
+<             @Suspended final AsyncResponse asyncResponse,
+---
+>     public Response addData(
+216d181
+<             @ApiParam(value = "List of data points containing timestamp and value", required = true)
+220,221c185,190
+<         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
+<         observable.subscribe(new ResultSetObserver(asyncResponse));
+---
+>         try {
+>             metricsService.addDataPoints(COUNTER, metrics).toBlocking().lastOrDefault(null);
+>             return Response.ok().build();
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+226,239c195
+<     @ApiOperation(value = "Retrieve counter data points.", notes = "When buckets or bucketDuration query parameter " +
+<             "is used, the time range between start and end will be divided in buckets of equal duration, and metric " +
+<             "statistics will be computed for each bucket.", response = CounterDataPoint.class, responseContainer =
+<             "List")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+<             @ApiResponse(code = 204, message = "No metric data was found."),
+<             @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
+<                     response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+<                     response = ApiError.class)
+<     })
+<     public void findCounterData(
+<             @Suspended AsyncResponse asyncResponse,
+---
+>     public Response findCounterData(
+241,245c197,201
+<             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+<             @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+<             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+<             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+<             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles
+---
+>             @QueryParam("start") Long start,
+>             @QueryParam("end") Long end,
+>             @QueryParam("buckets") Integer bucketsCount,
+>             @QueryParam("bucketDuration") Duration bucketDuration,
+>             @QueryParam("percentiles") Percentiles percentiles
+249,250c205
+<             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+<             return;
+---
+>             return badRequest(new ApiError(timeRange.getProblem()));
+254,255c209
+<             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+<             return;
+---
+>             return badRequest(new ApiError(bucketConfig.getProblem()));
+260,274c214,235
+<         if (buckets == null) {
+<             metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
+<                     .map(CounterDataPoint::new)
+<                     .toList()
+<                     .map(ApiUtils::collectionToResponse)
+<                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+<         } else {
+<             if(percentiles == null) {
+<                 percentiles = new Percentiles(Collections.<Double>emptyList());
+<             }
+< 
+<             metricsService.findCounterStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets,
+<                     percentiles.getPercentiles())
+<                     .map(ApiUtils::collectionToResponse)
+<                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+---
+>         try {
+>             if (buckets == null) {
+>                 return metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
+>                         .map(CounterDataPoint::new)
+>                         .toList()
+>                         .map(ApiUtils::collectionToResponse)
+>                         .toBlocking()
+>                         .lastOrDefault(null);
+>             } else {
+>                 if(percentiles == null) {
+>                     percentiles = new Percentiles(Collections.<Double>emptyList());
+>                 }
+> 
+>                 return metricsService
+>                         .findCounterStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets,
+>                                 percentiles.getPercentiles())
+>                         .map(ApiUtils::collectionToResponse)
+>                         .toBlocking()
+>                         .lastOrDefault(null);
+>            }
+>         } catch (Exception e) {
+>             return serverError(e);
+280,299c241,247
+<     @ApiOperation(
+<             value = "Retrieve counter rate data points.", notes = "When buckets or bucketDuration query parameter is " +
+<             "used, the time range between start and end will be divided in buckets of equal duration, and metric " +
+<             "statistics will be computed for each bucket.", response = GaugeDataPoint.class, responseContainer = "List")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+<             @ApiResponse(code = 204, message = "No metric data was found."),
+<             @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
+<                     response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+<                     response = ApiError.class)
+<     })
+<     public void findRate(
+<             @Suspended AsyncResponse asyncResponse,
+<             @PathParam("id") String id,
+<             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+<             @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+<             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+<             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+<             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles
+---
+>     public Response findRate(
+>         @PathParam("id") String id,
+>         @QueryParam("start") Long start,
+>         @QueryParam("end") Long end,
+>         @QueryParam("buckets") Integer bucketsCount,
+>         @QueryParam("bucketDuration") Duration bucketDuration,
+>         @QueryParam("percentiles") Percentiles percentiles
+303,304c251
+<             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+<             return;
+---
+>             return badRequest(new ApiError(timeRange.getProblem()));
+308,309c255
+<             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+<             return;
+---
+>             return badRequest(new ApiError(bucketConfig.getProblem()));
+314,322c260,279
+<         if (buckets == null) {
+<             metricsService.findRateData(metricId, timeRange.getStart(), timeRange.getEnd())
+<                     .map(GaugeDataPoint::new)
+<                     .toList()
+<                     .map(ApiUtils::collectionToResponse)
+<                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+<         } else {
+<             if(percentiles == null) {
+<                 percentiles = new Percentiles(Collections.<Double>emptyList());
+---
+>         try {
+>             if (buckets == null) {
+>                 return metricsService
+>                         .findRateData(metricId, timeRange.getStart(), timeRange.getEnd())
+>                         .map(GaugeDataPoint::new)
+>                         .toList()
+>                         .map(ApiUtils::collectionToResponse)
+>                         .toBlocking()
+>                         .lastOrDefault(null);
+>             } else {
+>                 if(percentiles == null) {
+>                     percentiles = new Percentiles(Collections.<Double>emptyList());
+>                 }
+> 
+>                 return metricsService
+>                         .findRateStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets,
+>                                 percentiles.getPercentiles())
+>                         .map(ApiUtils::collectionToResponse)
+>                         .toBlocking()
+>                         .lastOrDefault(null);
+324,328c281,282
+< 
+<             metricsService.findRateStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets,
+<                     percentiles.getPercentiles())
+<                     .map(ApiUtils::collectionToResponse)
+<                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+---
+>         } catch (Exception e) {
+>             return serverError(e);
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/GaugeHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/GaugeHandler.java
+22a23,24
+> import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
+> import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
+42,43d43
+< import javax.ws.rs.container.AsyncResponse;
+< import javax.ws.rs.container.Suspended;
+48,49d47
+< import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
+< import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
+61a60
+> import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
+65d63
+< import org.hawkular.metrics.core.api.NumericBucketPoint;
+67,71d64
+< import io.swagger.annotations.Api;
+< import io.swagger.annotations.ApiOperation;
+< import io.swagger.annotations.ApiParam;
+< import io.swagger.annotations.ApiResponse;
+< import io.swagger.annotations.ApiResponses;
+81d73
+< @Api(tags = "Gauge")
+90a83
+>     @Produces(APPLICATION_JSON)
+92,105c85,86
+<     @ApiOperation(value = "Create gauge metric.", notes = "Clients are not required to explicitly create "
+<             + "a metric before storing data. Doing so however allows clients to prevent naming collisions and to "
+<             + "specify tags and data retention.")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 201, message = "Metric created successfully"),
+<             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
+<             @ApiResponse(code = 409, message = "Gauge metric with given id already exists",
+<                     response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Metric creation failed due to an unexpected error",
+<                     response = ApiError.class)
+<     })
+<     public void createGaugeMetric(
+<             @Suspended final AsyncResponse asyncResponse,
+<             @ApiParam(required = true) MetricDefinition metricDefinition,
+---
+>     public Response createGaugeMetric(
+>             MetricDefinition metricDefinition,
+109,110c90,91
+<             asyncResponse.resume(badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+<                     .GAUGE.getText())));
+---
+>             return badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+>                     .GAUGE.getText()));
+115c96,105
+<         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
+---
+>         try {
+>             Observable<Void> observable = metricsService.createMetric(metric);
+>             observable.toBlocking().lastOrDefault(null);
+>             return Response.created(location).build();
+>         } catch (MetricAlreadyExistsException e) {
+>             String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
+>             return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+118a109
+>     @Produces(APPLICATION_JSON)
+120,127c111,113
+<     @ApiOperation(value = "Retrieve single metric definition.", response = MetricDefinition.class)
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Metric's definition was successfully retrieved."),
+<             @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.",
+<                          response = ApiError.class) })
+<     public void getGaugeMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
+<         metricsService.findMetric(new MetricId<>(tenantId, GAUGE, id))
+---
+>     public Response getGaugeMetric(@PathParam("id") String id) {
+>         try {
+>             return metricsService.findMetric(new MetricId<>(tenantId, GAUGE, id))
+130,131c116,119
+<                 .switchIfEmpty(Observable.just(ApiUtils.noContent()))
+<                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+---
+>                     .switchIfEmpty(Observable.just(noContent())).toBlocking().lastOrDefault(null);
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+134a123
+>     @Produces(APPLICATION_JSON)
+136,150c125,132
+<     @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = Map.class)
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Metric's tags were successfully retrieved."),
+<             @ApiResponse(code = 204, message = "Query was successful, but no metrics were found."),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's tags.",
+<                 response = ApiError.class) })
+<     public void getMetricTags(
+<             @Suspended final AsyncResponse asyncResponse,
+<             @PathParam("id") String id
+<     ) {
+<         metricsService.getMetricTags(new MetricId<>(tenantId, GAUGE, id))
+<                 .subscribe(
+<                         optional -> asyncResponse.resume(ApiUtils.valueToResponse(optional)),
+<                         t ->asyncResponse.resume(ApiUtils.serverError(t))
+<                 );
+---
+>     public Response getMetricTags(@PathParam("id") String id) {
+>         try {
+>             return metricsService.getMetricTags(new MetricId<>(tenantId, GAUGE, id))
+>                     .map(ApiUtils::valueToResponse)
+>                     .toBlocking().lastOrDefault(null);
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+153a136
+>     @Produces(APPLICATION_JSON)
+155,161c138
+<     @ApiOperation(value = "Update tags associated with the metric definition.")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while updating metric's tags.",
+<                 response = ApiError.class) })
+<     public void updateMetricTags(
+<             @Suspended final AsyncResponse asyncResponse,
+---
+>     public Response updateMetricTags(
+163,164c140
+<             @ApiParam(required = true) Map<String, String> tags
+<     ) {
+---
+>             Map<String, String> tags) {
+166c142,149
+<         metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
+---
+>         try {
+>             metricsService.addTags(metric, tags).toBlocking().lastOrDefault(null);
+>             return Response.ok().build();
+>         } catch (IllegalArgumentException e1) {
+>             return badRequest(new ApiError(e1.getMessage()));
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+169a153
+>     @Produces(APPLICATION_JSON)
+171,178c155
+<     @ApiOperation(value = "Delete tags associated with the metric definition.")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
+<             @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.",
+<                 response = ApiError.class) })
+<     public void deleteMetricTags(
+<             @Suspended final AsyncResponse asyncResponse,
+---
+>     public Response deleteMetricTags(
+180c157
+<             @ApiParam("Tag list") @PathParam("tags") Tags tags
+---
+>             @PathParam("tags") Tags tags
+182,183c159,165
+<         Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
+<         metricsService.deleteTags(metric, tags.getTags()).subscribe(new ResultSetObserver(asyncResponse));
+---
+>         try {
+>             Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
+>             metricsService.deleteTags(metric, tags.getTags()).toBlocking().lastOrDefault(null);
+>             return Response.ok().build();
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+186a169
+>     @Produces(APPLICATION_JSON)
+188,196c171
+<     @ApiOperation(value = "Add data for a single gauge metric.")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Adding data succeeded."),
+<             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
+<                     response = ApiError.class),
+<     })
+<     public void addDataForMetric(
+<             @Suspended final AsyncResponse asyncResponse,
+---
+>     public Response addDataForMetric(
+198d172
+<             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
+202,203c176,181
+<         Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
+<         observable.subscribe(new ResultSetObserver(asyncResponse));
+---
+>         try {
+>             metricsService.addDataPoints(GAUGE, metrics).toBlocking().lastOrDefault(null);
+>             return Response.ok().build();
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+206a185
+>     @Produces(APPLICATION_JSON)
+208,217c187,188
+<     @ApiOperation(value = "Add data for multiple gauge metrics in a single call.")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Adding data succeeded."),
+<             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
+<                     response = ApiError.class)
+<     })
+<     public void addGaugeData(
+<             @Suspended final AsyncResponse asyncResponse,
+<             @ApiParam(value = "List of metrics", required = true) List<Gauge> gauges
+---
+>     public Response addGaugeData(
+>             List<Gauge> gauges
+220,221c191,196
+<         Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
+<         observable.subscribe(new ResultSetObserver(asyncResponse));
+---
+>         try {
+>             metricsService.addDataPoints(GAUGE, metrics).toBlocking().lastOrDefault(null);
+>             return Response.ok().build();
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+226,238c201,202
+<     @ApiOperation(value = "Retrieve gauge data.", notes = "When buckets or bucketDuration query parameter is used, " +
+<             "the time range between start and end will be divided in buckets of equal duration, and metric statistics" +
+<             " will be computed for each bucket.", response = GaugeDataPoint.class, responseContainer = "List")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+<             @ApiResponse(code = 204, message = "No metric data was found."),
+<             @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
+<                     response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+<                     response = ApiError.class)
+<     })
+<     public void findGaugeData(
+<             @Suspended AsyncResponse asyncResponse,
+---
+>     @Produces(APPLICATION_JSON)
+>     public Response findGaugeData(
+240,244c204,209
+<             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+<             @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+<             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+<             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+<             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles) {
+---
+>             @QueryParam("start") final Long start,
+>             @QueryParam("end") final Long end,
+>             @QueryParam("buckets") Integer bucketsCount,
+>             @QueryParam("bucketDuration") Duration bucketDuration,
+>             @QueryParam("percentiles") Percentiles percentiles
+>     ) {
+247,248c212
+<             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+<             return;
+---
+>             return badRequest(new ApiError(timeRange.getProblem()));
+252,253c216
+<             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+<             return;
+---
+>             return badRequest(new ApiError(bucketConfig.getProblem()));
+258,266c221,240
+<         if (buckets == null) {
+<             metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
+<                     .map(GaugeDataPoint::new)
+<                     .toList()
+<                     .map(ApiUtils::collectionToResponse)
+<                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+<         } else {
+<             if(percentiles == null) {
+<                 percentiles = new Percentiles(Collections.<Double>emptyList());
+---
+>         try {
+>             if (buckets == null) {
+>                 return metricsService
+>                         .findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
+>                         .map(GaugeDataPoint::new)
+>                         .toList()
+>                         .map(ApiUtils::collectionToResponse)
+>                         .toBlocking()
+>                         .lastOrDefault(null);
+>             } else {
+>                 if (percentiles == null) {
+>                     percentiles = new Percentiles(Collections.<Double>emptyList());
+>                 }
+> 
+>                 return metricsService
+>                         .findGaugeStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets,
+>                                 percentiles.getPercentiles())
+>                         .map(ApiUtils::collectionToResponse)
+>                         .toBlocking()
+>                         .lastOrDefault(null);
+268,272c242,243
+< 
+<             metricsService.findGaugeStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets,
+<                     percentiles.getPercentiles())
+<                     .map(ApiUtils::collectionToResponse)
+<                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+---
+>         } catch (Exception e) {
+>             return serverError(e);
+278,300c249,256
+<     @ApiOperation(value = "Fetches data points from one or more metrics that are determined using either a tags " +
+<             "filter or a list of metric names. The time range between start and end is divided into buckets of equal " +
+<             "size (i.e., duration) using either the buckets or bucketDuration parameter. Functions are applied to " +
+<             "the data points in each bucket to produce statistics or aggregated metrics.",
+<             response = NumericBucketPoint.class, responseContainer = "List")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+<             @ApiResponse(code = 204, message = "No metric data was found."),
+<             @ApiResponse(code = 400, message = "The tags parameter is required. Either the buckets or the " +
+<                     "bucketDuration parameter is required but not both.",
+<                     response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+<                     response = ApiError.class) })
+<     public void findGaugeData(
+<             @Suspended AsyncResponse asyncResponse,
+<             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
+<             @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
+<             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+<             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+<             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
+<             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
+<             @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics")
+<             List<String> metricNames) {
+---
+>     public Response findGaugeData(
+>             @QueryParam("start") final Long start,
+>             @QueryParam("end") final Long end,
+>             @QueryParam("tags") Tags tags,
+>             @QueryParam("buckets") Integer bucketsCount,
+>             @QueryParam("bucketDuration") Duration bucketDuration,
+>             @QueryParam("percentiles") Percentiles percentiles,
+>             @QueryParam("metrics") List<String> metricNames) {
+304,305c260
+<             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+<             return;
+---
+>             return badRequest(new ApiError(timeRange.getProblem()));
+309,311c264
+<             asyncResponse.resume(badRequest(new ApiError(
+<                     "Either the buckets or bucketsDuration parameter must be used")));
+<             return;
+---
+>             return badRequest(new ApiError("Either the buckets or bucketsDuration parameter must be used"));
+314,315c267
+<             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+<             return;
+---
+>             return badRequest(new ApiError(bucketConfig.getProblem()));
+318,319c270
+<             asyncResponse.resume(badRequest(new ApiError("Either metrics or tags parameter must be used")));
+<             return;
+---
+>             return badRequest(new ApiError("Either metrics or tags parameter must be used"));
+322,323c273
+<             asyncResponse.resume(badRequest(new ApiError("Cannot use both the metrics and tags parameters")));
+<             return;
+---
+>             return badRequest(new ApiError("Cannot use both the metrics and tags parameters"));
+331c281
+<             metricsService.findGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
+---
+>             return metricsService.findGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
+334c284,285
+<                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+---
+>                     .toBlocking()
+>                     .lastOrDefault(null);
+336c287
+<             metricsService.findGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
+---
+>             return metricsService.findGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
+339c290,291
+<                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+---
+>                     .toBlocking()
+>                     .lastOrDefault(null);
+343a296
+>     @Produces(APPLICATION_JSON)
+345,353c298
+<     @ApiOperation(value = "Retrieve periods for which the condition holds true for each consecutive data point.",
+<             response = List.class)
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Successfully fetched periods."),
+<             @ApiResponse(code = 204, message = "No data was found."),
+<             @ApiResponse(code = 400, message = "Missing or invalid query parameters", response = ApiError.class)
+<     })
+<     public void findPeriods(
+<             @Suspended final AsyncResponse asyncResponse,
+---
+>     public Response findPeriods(
+355,357c300,301
+<             @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") Long start,
+<             @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") Long end,
+<             @ApiParam(value = "A threshold against which values are compared", required = true)
+---
+>             @QueryParam("start") final Long start,
+>             @QueryParam("end") final Long end,
+359,360d302
+<             @ApiParam(value = "A comparison operation to perform between values and the threshold.", required = true,
+<                     allowableValues = "ge, gte, lt, lte, eq, neq")
+365,366c307
+<             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+<             return;
+---
+>             return badRequest(new ApiError(timeRange.getProblem()));
+394,399c335,336
+<             asyncResponse.resume(badRequest(
+<                     new ApiError(
+<                             "Invalid value for op parameter. Supported values are lt, "
+<                                     + "lte, eq, gt, gte."
+<                     )
+<             ));
+---
+>             return badRequest(
+>                     new ApiError("Invalid value for op parameter. Supported values are lt, lte, eq, gt, gte."));
+401,404c338,345
+<             MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+<             metricsService.getPeriods(metricId, predicate, timeRange.getStart(), timeRange.getEnd())
+<                     .map(ApiUtils::collectionToResponse)
+<                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+---
+>             try {
+>                 MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+>                 return metricsService.getPeriods(metricId, predicate, timeRange.getStart(), timeRange.getEnd())
+>                         .map(ApiUtils::collectionToResponse)
+>                         .toBlocking().lastOrDefault(null);
+>             } catch (Exception e) {
+>                 return serverError(e);
+>             }
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/MetricHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/MetricHandler.java
+40,41d39
+< import javax.ws.rs.container.AsyncResponse;
+< import javax.ws.rs.container.Suspended;
+46d43
+< import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
+57a55
+> import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
+62,66d59
+< import io.swagger.annotations.Api;
+< import io.swagger.annotations.ApiOperation;
+< import io.swagger.annotations.ApiParam;
+< import io.swagger.annotations.ApiResponse;
+< import io.swagger.annotations.ApiResponses;
+69d61
+< 
+78d69
+< @Api(tags = "Metric")
+79a71
+> 
+88,101c80,81
+<     @ApiOperation(value = "Create metric.", notes = "Clients are not required to explicitly create "
+<             + "a metric before storing data. Doing so however allows clients to prevent naming collisions and to "
+<             + "specify tags and data retention.")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 201, message = "Metric created successfully"),
+<             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
+<             @ApiResponse(code = 409, message = "Metric with given id already exists",
+<                     response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Metric creation failed due to an unexpected error",
+<                     response = ApiError.class)
+<     })
+<     public void createMetric(
+<             @Suspended final AsyncResponse asyncResponse,
+<             @ApiParam(required = true) MetricDefinition metricDefinition,
+---
+>     public Response createMetric(
+>             MetricDefinition metricDefinition,
+105c85
+<             asyncResponse.resume(badRequest(new ApiError("MetricDefinition type is invalid")));
+---
+>             return badRequest(new ApiError("MetricDefinition type is invalid"));
+111c91,101
+<         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
+---
+> 
+>         try {
+>             Observable<Void> observable = metricsService.createMetric(metric);
+>             observable.toBlocking().lastOrDefault(null);
+>             return Response.created(location).build();
+>         } catch (MetricAlreadyExistsException e) {
+>             String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
+>             return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+116,132c106,108
+<     @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ",
+<             response = MetricDefinition.class, responseContainer = "List")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Successfully retrieved at least one metric definition."),
+<             @ApiResponse(code = 204, message = "No metrics found."),
+<             @ApiResponse(code = 400, message = "Invalid type parameter type.", response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Failed to retrieve metrics due to unexpected error.",
+<                     response = ApiError.class)
+<     })
+<     public <T> void findMetrics(
+<             @Suspended
+<             AsyncResponse asyncResponse,
+<             @ApiParam(value = "Queried metric type", required = false, allowableValues = "gauge, availability, counter")
+<             @QueryParam("type")
+<             MetricType<T> metricType,
+<             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags")
+<             Tags tags
+---
+>     public <T> Response findMetrics(
+>             @QueryParam("type") MetricType<T> metricType,
+>             @QueryParam("tags") Tags tags
+135,136c111
+<             asyncResponse.resume(badRequest(new ApiError("Incorrect type param " + metricType.toString())));
+<             return;
+---
+>             return badRequest(new ApiError("Incorrect type param " + metricType.toString()));
+143,153c118,129
+<         metricObservable
+<                 .map(MetricDefinition::new)
+<                 .toList()
+<                 .map(ApiUtils::collectionToResponse)
+<                 .subscribe(asyncResponse::resume, t -> {
+<                     if (t instanceof PatternSyntaxException) {
+<                         asyncResponse.resume(badRequest(t));
+<                     } else {
+<                         asyncResponse.resume(serverError(t));
+<                     }
+<                 });
+---
+>         try {
+>             return metricObservable
+>                     .map(MetricDefinition::new)
+>                     .toList()
+>                     .map(ApiUtils::collectionToResponse)
+>                     .toBlocking()
+>                     .lastOrDefault(null);
+>         } catch (PatternSyntaxException e) {
+>             return badRequest(e);
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+158,167c134,135
+<     @ApiOperation(value = "Add data for multiple metrics in a single call.")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Adding data succeeded."),
+<             @ApiResponse(code = 400, message = "Missing or invalid payload.", response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
+<                     response = ApiError.class)
+<     })
+<     public void addMetricsData(
+<             @Suspended final AsyncResponse asyncResponse,
+<             @ApiParam(value = "List of metrics", required = true) MixedMetricsRequest metricsRequest
+---
+>     public Response addMetricsData(
+>             MixedMetricsRequest metricsRequest
+170,171c138
+<             asyncResponse.resume(emptyPayload());
+<             return;
+---
+>             return emptyPayload();
+179,187c146,154
+<         metricsService.addDataPoints(GAUGE, gauges)
+<                 .mergeWith(metricsService.addDataPoints(AVAILABILITY, availabilities))
+<                 .mergeWith(metricsService.addDataPoints(COUNTER, counters))
+<                 .subscribe(
+<                         aVoid -> {
+<                         },
+<                         t -> asyncResponse.resume(serverError(t)),
+<                         () -> asyncResponse.resume(Response.ok().build())
+<                 );
+---
+>         try {
+>             metricsService.addDataPoints(GAUGE, gauges)
+>                     .mergeWith(metricsService.addDataPoints(AVAILABILITY, availabilities))
+>                     .mergeWith(metricsService.addDataPoints(COUNTER, counters))
+>                     .toBlocking().lastOrDefault(null);
+>             return Response.ok().build();
+>         } catch (Exception e) {
+>             return serverError(e);
+>         }
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/PingHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/PingHandler.java
+22d21
+< import java.util.Map;
+33,34d31
+< import io.swagger.annotations.ApiOperation;
+< 
+45,46d41
+<     @ApiOperation(value = "Returns the current time and serves to check for the availability of the api.", response =
+<             Map.class)
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/StatusHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/StatusHandler.java
+36,37d35
+< import io.swagger.annotations.ApiOperation;
+< 
+54,55d51
+<     @ApiOperation(value = "Returns the current status for various components.",
+<             response = Map.class)
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/TenantsHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/TenantsHandler.java
+21,23d20
+< import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.collectionToResponse;
+< import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
+< 
+32,33d28
+< import javax.ws.rs.container.AsyncResponse;
+< import javax.ws.rs.container.Suspended;
+34a30
+> import javax.ws.rs.core.Response;
+37d32
+< import org.hawkular.metrics.api.jaxrs.handler.observer.TenantCreatedObserver;
+39a35
+> import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+41,46c37
+< 
+< import io.swagger.annotations.Api;
+< import io.swagger.annotations.ApiOperation;
+< import io.swagger.annotations.ApiParam;
+< import io.swagger.annotations.ApiResponse;
+< import io.swagger.annotations.ApiResponses;
+---
+> import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
+54d44
+< @Api(tags = "Tenant")
+61,75c51,52
+<     @ApiOperation(value = "Create a new tenant.", notes = "Clients are not required to create explicitly create a "
+<             + "tenant before starting to store metric data. It is recommended to do so however to ensure that there "
+<             + "are no tenant id naming collisions and to provide default data retention settings.")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 201, message = "Tenant has been succesfully created."),
+<             @ApiResponse(code = 400, message = "Missing or invalid retention properties. ",
+<                     response = ApiError.class),
+<             @ApiResponse(code = 409, message = "Given tenant id has already been created.",
+<                     response = ApiError.class),
+<             @ApiResponse(code = 500, message = "An unexpected error occured while trying to create a tenant.",
+<                     response = ApiError.class)
+<     })
+<     public void createTenant(
+<             @Suspended AsyncResponse asyncResponse,
+<             @ApiParam(required = true) TenantDefinition tenantDefinition,
+---
+>     public Response createTenant(
+>             TenantDefinition tenantDefinition,
+79,80c56,65
+<         metricsService.createTenant(tenantDefinition.toTenant())
+<                 .subscribe(new TenantCreatedObserver(asyncResponse, location));
+---
+>         try {
+>             metricsService.createTenant(tenantDefinition.toTenant())
+>                     .toBlocking().lastOrDefault(null);
+>             return Response.created(location).build();
+>         } catch (TenantAlreadyExistsException e) {
+>             String message = "A tenant with id [" + e.getTenantId() + "] already exists";
+>             return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
+>         } catch (Exception e) {
+>             return ApiUtils.serverError(e);
+>         }
+84,95c69,75
+<     @ApiOperation(value = "Returns a list of tenants.", response = TenantDefinition.class, responseContainer = "List")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Returned a list of tenants successfully."),
+<             @ApiResponse(code = 204, message = "No tenants were found."),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching tenants.",
+<                     response = ApiError.class)
+<     })
+<     public void findTenants(@Suspended AsyncResponse asyncResponse) {
+<         metricsService.getTenants().map(TenantDefinition::new).toList().subscribe(
+<                 tenants -> asyncResponse.resume(collectionToResponse(tenants)),
+<                 error -> asyncResponse.resume(serverError(error))
+<         );
+---
+>     public Response findTenants() {
+>         try {
+>             return metricsService.getTenants().map(TenantDefinition::new).toList()
+>                     .map(ApiUtils::collectionToResponse).toBlocking().lastOrDefault(null);
+>         } catch (Exception e) {
+>             return ApiUtils.serverError(e);
+>         }
+Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler: observer
+Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs: influx
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/interceptor/EmptyPayloadInterceptor.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/interceptor/EmptyPayloadInterceptor.java
+30,31c30,33
+< import javax.ws.rs.ext.ReaderInterceptor;
+< import javax.ws.rs.ext.ReaderInterceptorContext;
+---
+> 
+> import org.jboss.resteasy.annotations.interception.ServerInterceptor;
+> import org.jboss.resteasy.spi.interception.MessageBodyReaderContext;
+> import org.jboss.resteasy.spi.interception.MessageBodyReaderInterceptor;
+37a40
+>  * @author Stefan Negrea
+41c44,45
+< public class EmptyPayloadInterceptor implements ReaderInterceptor {
+---
+> @ServerInterceptor
+> public class EmptyPayloadInterceptor implements MessageBodyReaderInterceptor {
+44c48
+<     public Object aroundReadFrom(ReaderInterceptorContext context) throws IOException, WebApplicationException {
+---
+>     public Object read(MessageBodyReaderContext context) throws IOException, WebApplicationException {
+46c50
+<         if (context.getProperty(EMPTY_PAYLOAD) != TRUE) {
+---
+>         if (context.getAttribute(EMPTY_PAYLOAD) != TRUE) {
+Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param: ConvertersProvider.java
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param/DurationConverter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/param/DurationConverter.java
+27c27,29
+< import javax.ws.rs.ext.ParamConverter;
+---
+> import javax.ws.rs.ext.Provider;
+> 
+> import org.jboss.resteasy.spi.StringConverter;
+36c38,39
+< public class DurationConverter implements ParamConverter<Duration> {
+---
+> @Provider
+> public class DurationConverter implements StringConverter<Duration> {
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param/MetricTypeConverter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/param/MetricTypeConverter.java
+16a17
+> 
+19c20
+< import javax.ws.rs.ext.ParamConverter;
+---
+> import javax.ws.rs.ext.Provider;
+21a23
+> import org.jboss.resteasy.spi.StringConverter;
+28c30,31
+< public class MetricTypeConverter implements ParamConverter<MetricType<?>> {
+---
+> @Provider
+> public class MetricTypeConverter implements StringConverter<MetricType<?>> {
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param/PercentilesConverter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/param/PercentilesConverter.java
+22c22,24
+< import javax.ws.rs.ext.ParamConverter;
+---
+> import javax.ws.rs.ext.Provider;
+> 
+> import org.jboss.resteasy.spi.StringConverter;
+25c27
+<  * A JAX-RS ParamConverter from number,number,number input string to a Percentiles or vice-versa.
+---
+>  * A RestEasy StringConverter from number,number,number input string to a Percentiles or vice-versa.
+29,31c31,33
+< public class PercentilesConverter implements ParamConverter<Percentiles> {
+<     @Override
+<     public Percentiles fromString(String param) {
+---
+> @Provider
+> public class PercentilesConverter implements StringConverter<Percentiles> {
+>     @Override public Percentiles fromString(String param) {
+35,36c37
+<     @Override
+<     public String toString(Percentiles percentiles) {
+---
+>     @Override public String toString(Percentiles percentiles) {
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param/TagsConverter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/param/TagsConverter.java
+28c28,30
+< import javax.ws.rs.ext.ParamConverter;
+---
+> import javax.ws.rs.ext.Provider;
+> 
+> import org.jboss.resteasy.spi.StringConverter;
+36c38,39
+< public class TagsConverter implements ParamConverter<Tags> {
+---
+> @Provider
+> public class TagsConverter implements StringConverter<Tags> {
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/util/JacksonConfig.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/util/JacksonConfig.java
+25,28c25,28
+< import com.fasterxml.jackson.annotation.JsonInclude.Include;
+< import com.fasterxml.jackson.core.JsonParser;
+< import com.fasterxml.jackson.databind.ObjectMapper;
+< import com.fasterxml.jackson.databind.SerializationFeature;
+---
+> import org.codehaus.jackson.JsonParser;
+> import org.codehaus.jackson.map.ObjectMapper;
+> import org.codehaus.jackson.map.SerializationConfig;
+> import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
+43,46c43,46
+<         mapper.setSerializationInclusion(Include.NON_EMPTY);
+<         mapper.setSerializationInclusion(Include.NON_NULL);
+<         mapper.configure(SerializationFeature.WRITE_EMPTY_JSON_ARRAYS, false);
+<         mapper.configure(SerializationFeature.WRITE_NULL_MAP_VALUES, false);
+---
+>         mapper.setSerializationInclusion(Inclusion.NON_EMPTY);
+>         mapper.setSerializationInclusion(Inclusion.NON_NULL);
+>         mapper.configure(SerializationConfig.Feature.WRITE_EMPTY_JSON_ARRAYS, false);
+>         mapper.configure(SerializationConfig.Feature.WRITE_NULL_MAP_VALUES, false);
+Only in api/metrics-api-jaxrs/src/main: resources
+Only in api/metrics-api-jaxrs/src/main: script
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/webapp/WEB-INF/beans.xml api/metrics-api-jaxrs-1.1/src/main/webapp/WEB-INF/beans.xml
+20c20
+< <beans xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+---
+> <beans xmlns="http://java.sun.com/xml/ns/javaee"
+22,24c22,23
+<        xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/beans_1_1.xsd"
+<        version="1.1" bean-discovery-mode="annotated">
+< </beans>
+---
+>        xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/beans_1_0.xsd">
+> </beans>
+\ No newline at end of file
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/webapp/WEB-INF/jboss-deployment-structure.xml api/metrics-api-jaxrs-1.1/src/main/webapp/WEB-INF/jboss-deployment-structure.xml
+22,25d21
+<     <exclusions>
+<       <module name="org.jboss.resteasy.resteasy-jackson-provider"/>
+<       <module name="org.jboss.resteasy.resteasy-jettison-provider"/>
+<     </exclusions>
+27c23,24
+<       <module name="org.jboss.resteasy.resteasy-jackson2-provider" services="import"/>
+---
+>       <module name="org.codehaus.jackson.jackson-core-asl" />
+>       <module name="org.codehaus.jackson.jackson-mapper-asl" />
+diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/webapp/WEB-INF/web.xml api/metrics-api-jaxrs-1.1/src/main/webapp/WEB-INF/web.xml
+25c25
+<   <display-name>Hawkular Metrics Rest interface</display-name>
+---
+>   <display-name>Hawkular Metrics Rest interface - JAX-RS 1.1</display-name>
+31a32,40
+>   <filter>
+>     <filter-name>CorsFilter</filter-name>
+>     <filter-class>org.hawkular.metrics.api.jaxrs.filter.CorsFilter</filter-class>
+>   </filter>
+>   <filter-mapping>
+>     <filter-name>CorsFilter</filter-name>
+>     <url-pattern>/*</url-pattern>
+>   </filter-mapping>
+> 
+34c43
+<     <servlet-class>io.undertow.servlet.handlers.DefaultServlet</servlet-class>
+---
+>     <servlet-class>org.apache.catalina.servlets.DefaultServlet</servlet-class>
+36,37c45,46
+<       <param-name>resolve-against-context-root</param-name>
+<       <param-value>true</param-value>
+---
+>       <param-name>listings</param-name>
+>       <param-value>false</param-value>
+44a54
+> 
+Only in api/metrics-api-jaxrs-1.1/src/main/webapp: favicon.ico
+Only in api/metrics-api-jaxrs-1.1/src/main/webapp: hawkular_logo.png
+Only in api/metrics-api-jaxrs-1.1/src/main/webapp: index.html
+Only in api/metrics-api-jaxrs/src/main/webapp: static
+Only in api/metrics-api-jaxrs-1.1/src/main/webapp: status.js
+Only in api/metrics-api-jaxrs-1.1/src/main/webapp: welcome.css
+Only in api/metrics-api-jaxrs/src/main: xsl
+Only in api/metrics-api-jaxrs/src: test
