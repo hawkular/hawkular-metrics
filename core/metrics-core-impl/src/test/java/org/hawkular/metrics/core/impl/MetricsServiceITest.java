@@ -53,6 +53,7 @@ import java.util.regex.PatternSyntaxException;
 import java.util.stream.IntStream;
 
 import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile;
+import org.apache.commons.math3.stat.descriptive.summary.Sum;
 import org.hawkular.metrics.core.api.Aggregate;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Buckets;
@@ -738,7 +739,7 @@ public class MetricsServiceITest extends MetricsITest {
     }
 
     @Test
-    public void findGaugeStatsByTags() {
+    public void findSimpleGaugeStatsByTags() {
         NumericDataPointCollector.createPercentile = InMemoryPercentileWrapper::new;
 
         String tenantId = "findGaugeStatsByTags";
@@ -792,7 +793,71 @@ public class MetricsServiceITest extends MetricsITest {
     }
 
     @Test
-    public void findGaugeStatsByMetricNames() {
+    public void findSumGaugeStatsByTags() {
+        NumericDataPointCollector.createPercentile = InMemoryPercentile::new;
+
+        String tenantId = "findGaugeStatsByTags";
+        DateTime start = now().minusMinutes(10);
+
+        Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M1"), asList(
+                new DataPoint<>(start.getMillis(), 12.23),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 9.745),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 14.01),
+                new DataPoint<>(start.plusMinutes(3).getMillis(), 16.18),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 18.94)));
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m1)));
+        doAction(() -> metricsService.addTags(m1, ImmutableMap.of("type", "cpu_usage", "node", "server1")));
+
+        Metric<Double> m2 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M2"), asList(
+                new DataPoint<>(start.getMillis(), 15.47),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 8.08),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 14.39),
+                new DataPoint<>(start.plusMinutes(3).getMillis(), 17.76),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 17.502)));
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m2)));
+        doAction(() -> metricsService.addTags(m2, ImmutableMap.of("type", "cpu_usage", "node", "server2")));
+
+        Metric<Double> m3 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M3"), asList(
+                new DataPoint<>(start.getMillis(), 11.456),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 18.32)));
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m3)));
+        doAction(() -> metricsService.addTags(m3, ImmutableMap.of("type", "cpu_usage", "node", "server3")));
+
+        Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
+        Map<String, String> tagFilters = ImmutableMap.of("type", "cpu_usage", "node", "server1|server2");
+
+        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findSumGaugeStats(tenantId,
+                tagFilters, start.getMillis(), start.plusMinutes(5).getMillis(), buckets));
+
+        assertEquals(actual.size(), 1);
+
+        NumericDataPointCollector collectorM1 = new NumericDataPointCollector(buckets, 0);
+        m1.getDataPoints().forEach(dataPoint -> collectorM1.increment(dataPoint));
+        NumericDataPointCollector collectorM2 = new NumericDataPointCollector(buckets, 0);
+        m2.getDataPoints().forEach(dataPoint -> collectorM2.increment(dataPoint));
+
+        final Sum min = new Sum();
+        final Sum average = new Sum();
+        final Sum median = new Sum();
+        final Sum max = new Sum();
+        final Sum percentile95th = new Sum();
+        Observable.just(collectorM1, collectorM2).map(d -> d.toBucketPoint()).forEach(d -> {
+            min.increment(d.getMin());
+            max.increment(d.getMax());
+            average.increment(d.getAvg());
+            median.increment(d.getMedian());
+            percentile95th.increment(d.getPercentile95th());
+        });
+
+        assertEquals(actual.get(0).get(0).getMin(), min.getResult());
+        assertEquals(actual.get(0).get(0).getMax(), max.getResult());
+        assertEquals(actual.get(0).get(0).getMedian(), median.getResult());
+        assertEquals(actual.get(0).get(0).getAvg(), average.getResult());
+        assertEquals(actual.get(0).get(0).getPercentile95th(), percentile95th.getResult());
+    }
+
+    @Test
+    public void findSimpleGaugeStatsByMetricNames() {
         NumericDataPointCollector.createPercentile = InMemoryPercentileWrapper::new;
 
         String tenantId = "findGaugeStatsByMetricNames";
@@ -840,6 +905,66 @@ public class MetricsServiceITest extends MetricsITest {
                         .map(NumericDataPointCollector::toBucketPoint));
 
         assertNumericBucketsEquals(actual.get(0), expected);
+    }
+
+    @Test
+    public void findSumGaugeStatsByMetricNames() {
+        NumericDataPointCollector.createPercentile = InMemoryPercentile::new;
+
+        String tenantId = "findGaugeStatsByMetricNames";
+        DateTime start = now().minusMinutes(10);
+
+        Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M1"), asList(
+                new DataPoint<>(start.getMillis(), 12.23),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 9.745),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 14.01),
+                new DataPoint<>(start.plusMinutes(3).getMillis(), 16.18),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 18.94)));
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m1)));
+
+        Metric<Double> m2 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M2"), asList(
+                new DataPoint<>(start.getMillis(), 15.47),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 8.08),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 14.39),
+                new DataPoint<>(start.plusMinutes(3).getMillis(), 17.76),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 17.502)));
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m2)));
+
+        Metric<Double> m3 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M3"), asList(
+                new DataPoint<>(start.getMillis(), 11.456),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 18.32)));
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m3)));
+
+        Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
+
+        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findSumGaugeStats(tenantId,
+                asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets));
+
+        assertEquals(actual.size(), 1);
+
+        NumericDataPointCollector collectorM1 = new NumericDataPointCollector(buckets, 0);
+        m1.getDataPoints().forEach(dataPoint -> collectorM1.increment(dataPoint));
+        NumericDataPointCollector collectorM2 = new NumericDataPointCollector(buckets, 0);
+        m2.getDataPoints().forEach(dataPoint -> collectorM2.increment(dataPoint));
+
+        final Sum min = new Sum();
+        final Sum average = new Sum();
+        final Sum median = new Sum();
+        final Sum max = new Sum();
+        final Sum percentile95th = new Sum();
+        Observable.just(collectorM1, collectorM2).map(d -> d.toBucketPoint()).forEach(d -> {
+            min.increment(d.getMin());
+            max.increment(d.getMax());
+            average.increment(d.getAvg());
+            median.increment(d.getMedian());
+            percentile95th.increment(d.getPercentile95th());
+        });
+
+        assertEquals(actual.get(0).get(0).getMin(), min.getResult());
+        assertEquals(actual.get(0).get(0).getMax(), max.getResult());
+        assertEquals(actual.get(0).get(0).getMedian(), median.getResult());
+        assertEquals(actual.get(0).get(0).getAvg(), average.getResult());
+        assertEquals(actual.get(0).get(0).getPercentile95th(), percentile95th.getResult());
     }
 
     private static void updateBuilder(NumericBucketPoint.Builder builder, DataPoint<Double> dataPoint) {
