@@ -25,7 +25,7 @@ package org.hawkular.metrics.api.jaxrs.param;
 public class DownsampleConfig {
 
     public enum Method {
-        Simple, Sum
+        simple, sum
     }
 
     private Method downsampleMethod;
@@ -34,18 +34,18 @@ public class DownsampleConfig {
 
     public DownsampleConfig(String method) {
         if (method == null) {
-            this.downsampleMethod = Method.Simple;
+            this.downsampleMethod = Method.simple;
             this.valid = true;
             this.problem = null;
         } else {
             try {
-                this.downsampleMethod = Method.valueOf(method);
+                this.downsampleMethod = Method.valueOf(method.toLowerCase());
                 this.valid = true;
                 this.problem = null;
             } catch (IllegalArgumentException e) {
                 this.downsampleMethod = null;
                 this.valid = false;
-                this.problem = "Invalid downsampling method. Only Simple and Sum are supported.";
+                this.problem = "Invalid downsampling method <" + method + ">. Only Simple and Sum are supported.";
                 return;
             }
         }

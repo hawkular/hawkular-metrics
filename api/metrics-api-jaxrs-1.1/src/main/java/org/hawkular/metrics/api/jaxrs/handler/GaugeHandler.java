@@ -285,7 +285,7 @@ public class GaugeHandler {
         }
 
         if (metricNames.isEmpty()) {
-            if (DownsampleConfig.Method.Simple.equals(downsampleConfig.getDownsampleMethod())) {
+            if (DownsampleConfig.Method.simple.equals(downsampleConfig.getDownsampleMethod())) {
                 return metricsService
                         .findSimpleGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
                         bucketConfig.getBuckets(), percentiles.getPercentiles())
@@ -301,7 +301,7 @@ public class GaugeHandler {
                         .lastOrDefault(null);
             }
         } else {
-            if (DownsampleConfig.Method.Simple.equals(downsampleConfig.getDownsampleMethod())) {
+            if (DownsampleConfig.Method.simple.equals(downsampleConfig.getDownsampleMethod())) {
                 return metricsService
                         .findSimpleGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
                                bucketConfig.getBuckets(),percentiles.getPercentiles())
