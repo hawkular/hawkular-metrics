@@ -1196,8 +1196,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 ---
 >                     .toBlocking()
 >                     .lastOrDefault(null);
-407,430c343,352
-<     @Path("/data/rate")
+408,430c344,352
 <     @ApiOperation(value = "Fetches data points from one or more metrics that are determined using either a tags " +
 <             "filter or a list of metric names. The time range between start and end is divided into buckets of " +
 <             "equal size (i.e., duration) using either the buckets or bucketDuration parameter. Functions are " +
@@ -1222,7 +1221,6 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 <             @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
 <                 required = false) @QueryParam("stacked") Boolean stacked) {
 ---
->     @Path("/data")
 >     public Response findCounterRateDataStats(
 >             @QueryParam("start") final Long start,
 >             @QueryParam("end") final Long end,
