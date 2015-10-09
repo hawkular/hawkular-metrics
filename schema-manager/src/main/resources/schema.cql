@@ -81,7 +81,7 @@ CREATE TYPE ${keyspace}.aggregate_data (
 
 CREATE TABLE ${keyspace}.data (
     tenant_id text,
-    type int,
+    type tinyint,
     metric text,
     dpart bigint,
     time timeuuid,
@@ -100,7 +100,7 @@ CREATE TABLE ${keyspace}.metrics_tags_idx (
     tenant_id text,
     tname text,
     tvalue text,
-    type int,
+    type tinyint,
     metric text,
     PRIMARY KEY ((tenant_id, tname), tvalue, type, metric)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' };
@@ -109,7 +109,7 @@ CREATE TABLE ${keyspace}.metrics_tags_idx (
 
 CREATE TABLE ${keyspace}.metrics_idx (
     tenant_id text,
-    type int,
+    type tinyint,
     metric text,
     tags map<text, text>,
     data_retention int,
@@ -124,7 +124,7 @@ CREATE TABLE ${keyspace}.metrics_idx (
 
 CREATE TABLE ${keyspace}.retentions_idx (
     tenant_id text,
-    type int,
+    type tinyint,
     metric text,
     retention int,
     PRIMARY KEY ((tenant_id, type), metric)

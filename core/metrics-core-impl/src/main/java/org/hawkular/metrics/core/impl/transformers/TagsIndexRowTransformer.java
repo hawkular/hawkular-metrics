@@ -42,11 +42,11 @@ public class TagsIndexRowTransformer<T> implements Transformer<Row, MetricId<T>>
     @Override
     public Observable<MetricId<T>> call(Observable<Row> rows) {
         return rows.filter(row -> {
-            MetricType<?> metricType = MetricType.fromCode(row.getInt(0));
+            MetricType<?> metricType = MetricType.fromCode(row.getByte(0));
             return (type == null && metricType.isUserType()) || metricType == type;
         }).map(row1 -> {
             @SuppressWarnings("unchecked")
-            MetricType<T> metricType = (MetricType<T>) MetricType.fromCode(row1.getInt(0));
+            MetricType<T> metricType = (MetricType<T>) MetricType.fromCode(row1.getByte(0));
             return new MetricId<>(tenantId, metricType, row1.getString(1));
         });
     }

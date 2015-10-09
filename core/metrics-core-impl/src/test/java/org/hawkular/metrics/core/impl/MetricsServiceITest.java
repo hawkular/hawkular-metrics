@@ -1278,7 +1278,7 @@ public class MetricsServiceITest extends MetricsITest {
         List<MetricsTagsIndexEntry> actual = new ArrayList<>();
 
         for (Row row : resultSet) {
-            MetricType<?> type = MetricType.fromCode(row.getInt(0));
+            MetricType<?> type = MetricType.fromCode(row.getByte(0));
             MetricId<?> id = new MetricId<>(tenantId, type, row.getString(1));
             actual.add(new MetricsTagsIndexEntry(row.getString(2), id)); // Need value here.. pff.
         }

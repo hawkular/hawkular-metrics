@@ -30,21 +30,21 @@ import com.google.common.collect.ImmutableSet;
  * @author John Sanda
  */
 public final class MetricType<T> {
-    public static final MetricType<Double> GAUGE = new MetricType<>(0, "gauge", true);
-    public static final MetricType<AvailabilityType> AVAILABILITY = new MetricType<>(1, "availability", true);
-    public static final MetricType<Long> COUNTER = new MetricType<>(2, "counter", true);
-    public static final MetricType<Double> COUNTER_RATE = new MetricType<>(3, "counter_rate", false);
+    public static final MetricType<Double> GAUGE = new MetricType<>((byte) 0, "gauge", true);
+    public static final MetricType<AvailabilityType> AVAILABILITY = new MetricType<>((byte) 1, "availability", true);
+    public static final MetricType<Long> COUNTER = new MetricType<>((byte) 2, "counter", true);
+    public static final MetricType<Double> COUNTER_RATE = new MetricType<>((byte) 3, "counter_rate", false);
     // If you add a new type: don't forget to update the "all" and "userTypes" sets
 
     private static final Set<MetricType<?>> all = ImmutableSet.of(GAUGE, AVAILABILITY, COUNTER, COUNTER_RATE);
 
     private static final Set<MetricType<?>> userTypes;
-    private static final Map<Integer, MetricType<?>> codes;
+    private static final Map<Byte, MetricType<?>> codes;
     private static final Map<String, MetricType<?>> texts;
 
     static {
         ImmutableSet.Builder<MetricType<?>> userTypesBuilder = ImmutableSet.builder();
-        ImmutableMap.Builder<Integer, MetricType<?>> codesBuilder = ImmutableMap.builder();
+        ImmutableMap.Builder<Byte, MetricType<?>> codesBuilder = ImmutableMap.builder();
         ImmutableMap.Builder<String, MetricType<?>> textsBuilder = ImmutableMap.builder();
         all.forEach(type -> {
             if (type.isUserType()) {
@@ -60,17 +60,17 @@ public final class MetricType<T> {
         checkArgument(texts.size() == all.size(), "Some metric types have the same string value");
     }
 
-    private final int code;
+    private final byte code;
     private final String text;
     private final boolean userType;
 
-    private MetricType(int code, String text, boolean userType) {
+    private MetricType(byte code, String text, boolean userType) {
         this.code = code;
         this.text = text;
         this.userType = userType;
     }
 
-    public int getCode() {
+    public byte getCode() {
         return code;
     }
 
@@ -87,7 +87,7 @@ public final class MetricType<T> {
         return getText();
     }
 
-    public static MetricType<?> fromCode(int code) {
+    public static MetricType<?> fromCode(byte code) {
         MetricType<?> type = codes.get(code);
         if (type == null) {
             throw new IllegalArgumentException(code + " is not a recognized metric type");
