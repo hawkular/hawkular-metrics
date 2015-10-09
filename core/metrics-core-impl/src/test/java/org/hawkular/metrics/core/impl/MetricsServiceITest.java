@@ -809,8 +809,10 @@ public class MetricsServiceITest extends MetricsITest {
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
         Map<String, String> tagFilters = ImmutableMap.of("type", "cpu_usage", "node", "server1|server2");
 
-        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findSimpleGaugeStats(tenantId,
-                tagFilters, start.getMillis(), start.plusMinutes(5).getMillis(), buckets, Collections.emptyList()));
+        List<List<NumericBucketPoint>> actual = getOnNextEvents(
+                () -> metricsService.findNumericStats(tenantId, MetricType.GAUGE,
+                        tagFilters, start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
+                        Collections.emptyList(), false));
 
         assertEquals(actual.size(), 1);
 
@@ -861,8 +863,9 @@ public class MetricsServiceITest extends MetricsITest {
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
         Map<String, String> tagFilters = ImmutableMap.of("type", "cpu_usage", "node", "server1|server2");
 
-        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findSumGaugeStats(tenantId,
-                tagFilters, start.getMillis(), start.plusMinutes(5).getMillis(), buckets, Collections.emptyList()));
+        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findNumericStats(tenantId,
+                MetricType.GAUGE, tagFilters, start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
+                Collections.emptyList(), true));
 
         assertEquals(actual.size(), 1);
 
@@ -924,9 +927,9 @@ public class MetricsServiceITest extends MetricsITest {
 
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
 
-        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findSimpleGaugeStats(tenantId,
-                asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
-                Collections.emptyList()));
+        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findNumericStats(tenantId,
+                MetricType.GAUGE, asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
+                Collections.emptyList(), false));
 
         assertEquals(actual.size(), 1);
 
@@ -973,9 +976,9 @@ public class MetricsServiceITest extends MetricsITest {
 
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
 
-        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findSumGaugeStats(tenantId,
-                asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
-                Collections.emptyList()));
+        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findNumericStats(tenantId,
+                MetricType.GAUGE, asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
+                Collections.emptyList(), true));
 
         assertEquals(actual.size(), 1);
 

@@ -755,15 +755,17 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 < import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 64a60
 > import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
-69,73d64
+68d63
+< import org.hawkular.metrics.core.api.NumericBucketPoint;
+70,74d64
 < import io.swagger.annotations.Api;
 < import io.swagger.annotations.ApiOperation;
 < import io.swagger.annotations.ApiParam;
 < import io.swagger.annotations.ApiResponse;
 < import io.swagger.annotations.ApiResponses;
-83d73
+84d73
 < @Api(tags = "Counter")
-94,109c84,85
+95,110c84,85
 <     @ApiOperation(
 <             value = "Create counter metric. This operation also causes the rate to be calculated and " +
 <                     "persisted periodically after raw count data is persisted.",
@@ -783,13 +785,13 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 ---
 >     public Response createCounter(
 >             MetricDefinition metricDefinition,
-113,114c89,90
+114,115c89,90
 <             asyncResponse.resume(badRequest(new ApiError("MetricDefinition type does not match " + MetricType
 <                     .COUNTER.getText())));
 ---
 >             return badRequest(new ApiError("MetricDefinition type does not match " + MetricType
 >                     .COUNTER.getText()));
-119c95,104
+120c95,104
 <         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
 ---
 >         try {
@@ -802,7 +804,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-124,132c109,111
+125,133c109,111
 <     @ApiOperation(value = "Retrieve a counter definition", response = MetricDefinition.class)
 <     @ApiResponses(value = {
 <             @ApiResponse(code = 200, message = "Metric's definition was successfully retrieved."),
@@ -816,7 +818,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >     public Response getCounter(@PathParam("id") String id) {
 >         try {
 >             return metricsService.findMetric(new MetricId<>(tenantId, COUNTER, id))
-135,136c114,118
+136,137c114,118
 <                 .switchIfEmpty(Observable.just(noContent()))
 <                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
 ---
@@ -825,9 +827,9 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-139a122
+140a122
 >     @Produces(APPLICATION_JSON)
-141,153c124,131
+142,154c124,131
 <     @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = Map.class)
 <     @ApiResponses(value = {
 <             @ApiResponse(code = 200, message = "Metric's tags were successfully retrieved."),
@@ -850,9 +852,9 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-156a135
+157a135
 >     @Produces(APPLICATION_JSON)
-158,164c137
+159,165c137
 <     @ApiOperation(value = "Update tags associated with the metric definition.")
 <     @ApiResponses(value = {
 <             @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
@@ -862,11 +864,11 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 <             @Suspended final AsyncResponse asyncResponse,
 ---
 >     public Response updateMetricTags(
-166c139
+167c139
 <             @ApiParam(required = true) Map<String, String> tags) {
 ---
 >             Map<String, String> tags) {
-168c141,148
+169c141,148
 <         metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
 ---
 >         try {
@@ -877,9 +879,9 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-171a152
+172a152
 >     @Produces(APPLICATION_JSON)
-173,180c154
+174,181c154
 <     @ApiOperation(value = "Delete tags associated with the metric definition.")
 <     @ApiResponses(value = {
 <             @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
@@ -890,7 +892,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 <             @Suspended final AsyncResponse asyncResponse,
 ---
 >     public Response deleteMetricTags(
-182,184c156,163
+183,185c156,163
 <             @ApiParam("Tag list") @PathParam("tags") Tags tags) {
 <         Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id));
 <         metricsService.deleteTags(metric, tags.getTags()).subscribe(new ResultSetObserver(asyncResponse));
@@ -903,7 +905,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-189,198c168
+190,199c168
 <     @ApiOperation(value = "Add data points for multiple counters")
 <     @ApiResponses(value = {
 <             @ApiResponse(code = 200, message = "Adding data points succeeded."),
@@ -916,7 +918,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 <     ) {
 ---
 >     public Response addData(List<Counter> counters) {
-200,201c170,175
+201,202c170,175
 <         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
 <         observable.subscribe(new ResultSetObserver(asyncResponse));
 ---
@@ -926,7 +928,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-206,214c180
+207,215c180
 <     @ApiOperation(value = "Add data for a single counter")
 <     @ApiResponses(value = {
 <             @ApiResponse(code = 200, message = "Adding data succeeded."),
@@ -938,9 +940,9 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 <             @Suspended final AsyncResponse asyncResponse,
 ---
 >     public Response addData(
-216d181
+217d181
 <             @ApiParam(value = "List of data points containing timestamp and value", required = true)
-220,221c185,190
+221,222c185,190
 <         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
 <         observable.subscribe(new ResultSetObserver(asyncResponse));
 ---
@@ -950,7 +952,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-226,239c195
+227,240c195
 <     @ApiOperation(value = "Retrieve counter data points.", notes = "When buckets or bucketDuration query parameter " +
 <             "is used, the time range between start and end will be divided in buckets of equal duration, and metric " +
 <             "statistics will be computed for each bucket.", response = CounterDataPoint.class, responseContainer =
@@ -967,7 +969,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 <             @Suspended AsyncResponse asyncResponse,
 ---
 >     public Response findCounterData(
-241,245c197,201
+242,246c197,201
 <             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
 <             @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
 <             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
@@ -979,17 +981,17 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >             @QueryParam("buckets") Integer bucketsCount,
 >             @QueryParam("bucketDuration") Duration bucketDuration,
 >             @QueryParam("percentiles") Percentiles percentiles
-249,250c205
+250,251c205
 <             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
 <             return;
 ---
 >             return badRequest(new ApiError(timeRange.getProblem()));
-254,255c209
+255,256c209
 <             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
 <             return;
 ---
 >             return badRequest(new ApiError(bucketConfig.getProblem()));
-260,274c214,235
+261,275c214,235
 <         if (buckets == null) {
 <             metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
 <                     .map(CounterDataPoint::new)
@@ -1028,11 +1030,13 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >            }
 >         } catch (Exception e) {
 >             return serverError(e);
-280,299c241,247
+281,302c241,247
 <     @ApiOperation(
 <             value = "Retrieve counter rate data points.", notes = "When buckets or bucketDuration query parameter is " +
 <             "used, the time range between start and end will be divided in buckets of equal duration, and metric " +
-<             "statistics will be computed for each bucket.", response = GaugeDataPoint.class, responseContainer = "List")
+<             "statistics will be computed for each bucket. Reset events are detected and data points that immediately " +
+<             "follow such events are filtered out prior to calculating the rates. This avoid misleading or inaccurate " +
+<             "rates when resets occur.", response = GaugeDataPoint.class, responseContainer = "List")
 <     @ApiResponses(value = {
 <             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
 <             @ApiResponse(code = 204, message = "No metric data was found."),
@@ -1057,17 +1061,17 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >         @QueryParam("buckets") Integer bucketsCount,
 >         @QueryParam("bucketDuration") Duration bucketDuration,
 >         @QueryParam("percentiles") Percentiles percentiles
-303,304c251
+306,307c251
 <             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
 <             return;
 ---
 >             return badRequest(new ApiError(timeRange.getProblem()));
-308,309c255
+311,312c255
 <             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
 <             return;
 ---
 >             return badRequest(new ApiError(bucketConfig.getProblem()));
-314,322c260,279
+317,325c260,279
 <         if (buckets == null) {
 <             metricsService.findRateData(metricId, timeRange.getStart(), timeRange.getEnd())
 <                     .map(GaugeDataPoint::new)
@@ -1098,7 +1102,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >                         .map(ApiUtils::collectionToResponse)
 >                         .toBlocking()
 >                         .lastOrDefault(null);
-324,328c281,282
+327,331c281,282
 < 
 <             metricsService.findRateStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets,
 <                     percentiles.getPercentiles())
@@ -1107,6 +1111,178 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 ---
 >         } catch (Exception e) {
 >             return serverError(e);
+337,359c288,296
+<     @ApiOperation(value = "Fetches data points from one or more metrics that are determined using either a tags " +
+<             "filter or a list of metric names. The time range between start and end is divided into buckets of " +
+<             "equal size (i.e., duration) using either the buckets or bucketDuration parameter. Functions  " +
+<             " are applied tothe data points in each bucket to produce statistics or aggregated metrics.",
+<             response = NumericBucketPoint.class, responseContainer = "List")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+<             @ApiResponse(code = 204, message = "No metric data was found."),
+<             @ApiResponse(code = 400, message = "The tags parameter is required. Either the buckets or the " +
+<                     "bucketDuration parameter is required but not both.", response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+<                 response = ApiError.class) })
+<     public void findCounterDataStats(
+<             @Suspended AsyncResponse asyncResponse,
+<             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
+<             @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
+<             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+<             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+<             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
+<             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
+<             @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
+<             @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
+<                 required = false) @QueryParam("stacked") Boolean stacked) {
+---
+>     public Response findCounterDataStats(
+>             @QueryParam("start") final Long start,
+>             @QueryParam("end") final Long end,
+>             @QueryParam("tags") Tags tags,
+>             @QueryParam("buckets") Integer bucketsCount,
+>             @QueryParam("bucketDuration") Duration bucketDuration,
+>             @QueryParam("percentiles") Percentiles percentiles,
+>             @QueryParam("metrics") List<String> metricNames,
+>             @QueryParam("stacked") Boolean stacked) {
+363,364c300
+<             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+<             return;
+---
+>             return badRequest(new ApiError(timeRange.getProblem()));
+368,370c304
+<             asyncResponse.resume(badRequest(new ApiError(
+<                     "Either the buckets or bucketsDuration parameter must be used")));
+<             return;
+---
+>             return badRequest(new ApiError("Either the buckets or bucketsDuration parameter must be used"));
+373,374c307
+<             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+<             return;
+---
+>             return badRequest(new ApiError(bucketConfig.getProblem()));
+377,378c310
+<             asyncResponse.resume(badRequest(new ApiError("Either metrics or tags parameter must be used")));
+<             return;
+---
+>             return badRequest(new ApiError("Either metrics or tags parameter must be used"));
+381,382c313
+<             asyncResponse.resume(badRequest(new ApiError("Cannot use both the metrics and tags parameters")));
+<             return;
+---
+>             return badRequest(new ApiError("Cannot use both the metrics and tags parameters"));
+394,395c325,328
+<             metricsService.findNumericStats(tenantId, MetricType.COUNTER, tags.getTags(), timeRange.getStart(),
+<                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+---
+>             return metricsService
+>                     .findNumericStats(tenantId, MetricType.COUNTER, tags.getTags(), timeRange.getStart(),
+>                             timeRange.getEnd(),
+>                             bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+397c330,331
+<                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+---
+>                     .toBlocking()
+>                     .lastOrDefault(null);
+399,400c333,335
+<             metricsService.findNumericStats(tenantId, MetricType.COUNTER, metricNames, timeRange.getStart(),
+<                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+---
+>             return metricsService
+>                     .findNumericStats(tenantId, MetricType.COUNTER, metricNames, timeRange.getStart(),
+>                             timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+402c337,338
+<                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+---
+>                     .toBlocking()
+>                     .lastOrDefault(null);
+407,430c343,352
+<     @Path("/data/rate")
+<     @ApiOperation(value = "Fetches data points from one or more metrics that are determined using either a tags " +
+<             "filter or a list of metric names. The time range between start and end is divided into buckets of " +
+<             "equal size (i.e., duration) using either the buckets or bucketDuration parameter. Functions are " +
+<             "applied to the data points in each bucket to produce statistics or aggregated metrics.",
+<                 response = NumericBucketPoint.class, responseContainer = "List")
+<     @ApiResponses(value = {
+<             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+<             @ApiResponse(code = 204, message = "No metric data was found."),
+<             @ApiResponse(code = 400, message = "The tags parameter is required. Either the buckets or the " +
+<                     "bucketDuration parameter is required but not both.", response = ApiError.class),
+<             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+<                 response = ApiError.class) })
+<     public void findCounterRateDataStats(
+<             @Suspended AsyncResponse asyncResponse,
+<             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
+<             @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
+<             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+<             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+<             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
+<             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
+<             @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
+<             @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
+<                 required = false) @QueryParam("stacked") Boolean stacked) {
+---
+>     @Path("/data")
+>     public Response findCounterRateDataStats(
+>             @QueryParam("start") final Long start,
+>             @QueryParam("end") final Long end,
+>             @QueryParam("tags") Tags tags,
+>             @QueryParam("buckets") Integer bucketsCount,
+>             @QueryParam("bucketDuration") Duration bucketDuration,
+>             @QueryParam("percentiles") Percentiles percentiles,
+>             @QueryParam("metrics") List<String> metricNames,
+>             @QueryParam("stacked") Boolean stacked) {
+434,435c356
+<             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+<             return;
+---
+>             return badRequest(new ApiError(timeRange.getProblem()));
+439,441c360
+<             asyncResponse.resume(badRequest(new ApiError(
+<                     "Either the buckets or bucketsDuration parameter must be used")));
+<             return;
+---
+>             return badRequest(new ApiError("Either the buckets or bucketsDuration parameter must be used"));
+444,445c363
+<             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+<             return;
+---
+>             return badRequest(new ApiError(bucketConfig.getProblem()));
+448,449c366
+<             asyncResponse.resume(badRequest(new ApiError("Either metrics or tags parameter must be used")));
+<             return;
+---
+>             return badRequest(new ApiError("Either metrics or tags parameter must be used"));
+452,453c369
+<             asyncResponse.resume(badRequest(new ApiError("Cannot use both the metrics and tags parameters")));
+<             return;
+---
+>             return badRequest(new ApiError("Cannot use both the metrics and tags parameters"));
+465,466c381,384
+<             metricsService.findNumericStats(tenantId, MetricType.COUNTER_RATE, tags.getTags(), timeRange.getStart(),
+<                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+---
+>             return metricsService
+>                     .findNumericStats(tenantId, MetricType.COUNTER_RATE, tags.getTags(), timeRange.getStart(),
+>                             timeRange.getEnd(),
+>                             bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+468c386,387
+<                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+---
+>                     .toBlocking()
+>                     .lastOrDefault(null);
+470,471c389,391
+<             metricsService.findNumericStats(tenantId, MetricType.COUNTER_RATE, metricNames, timeRange.getStart(),
+<                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+---
+>             return metricsService
+>                     .findNumericStats(tenantId, MetricType.COUNTER_RATE, metricNames, timeRange.getStart(),
+>                             timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+473c393,394
+<                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+---
+>                     .toBlocking()
+>                     .lastOrDefault(null);
 diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/GaugeHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/GaugeHandler.java
 22a23,24
 > import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
@@ -1467,51 +1643,34 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 <             return;
 ---
 >             return badRequest(new ApiError("Cannot use both the metrics and tags parameters"));
-333,336c283,288
-<                 metricsService.findSimpleGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
-<                         bucketConfig.getBuckets(), percentiles.getPercentiles())
-<                     .map(ApiUtils::collectionToResponse)
+336,337c286,289
+<             metricsService.findNumericStats(tenantId, MetricType.GAUGE, tags.getTags(), timeRange.getStart(),
+<                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+---
+>             return metricsService
+>                     .findNumericStats(tenantId, MetricType.GAUGE, tags.getTags(), timeRange.getStart(),
+>                             timeRange.getEnd(),
+>                             bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+339c291,292
 <                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
 ---
->                 return metricsService
->                         .findSimpleGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
->                                 bucketConfig.getBuckets(), percentiles.getPercentiles())
->                         .map(ApiUtils::collectionToResponse)
->                         .toBlocking()
->                         .lastOrDefault(null);
-338c290
-<                 metricsService
+>                     .toBlocking()
+>                     .lastOrDefault(null);
+341,342c294,296
+<             metricsService.findNumericStats(tenantId, MetricType.GAUGE, metricNames, timeRange.getStart(),
+<                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
 ---
->                 return metricsService
-342c294,295
-<                         .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
----
->                         .toBlocking()
->                         .lastOrDefault(null);
-346,349c299,304
-<                 metricsService.findSimpleGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
-<                         bucketConfig.getBuckets(), percentiles.getPercentiles())
-<                     .map(ApiUtils::collectionToResponse)
+>             return metricsService
+>                     .findNumericStats(tenantId, MetricType.GAUGE, metricNames, timeRange.getStart(),
+>                             timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+344c298,299
 <                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
 ---
->                 return metricsService
->                         .findSimpleGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
->                                 bucketConfig.getBuckets(), percentiles.getPercentiles())
->                         .map(ApiUtils::collectionToResponse)
->                         .toBlocking()
->                         .lastOrDefault(null);
-351c306
-<                 metricsService
----
->                 return metricsService
-355c310,311
-<                         .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
----
->                         .toBlocking()
->                         .lastOrDefault(null);
-360a317
+>                     .toBlocking()
+>                     .lastOrDefault(null);
+348a304
 >     @Produces(APPLICATION_JSON)
-362,370c319
+350,358c306
 <     @ApiOperation(value = "Retrieve periods for which the condition holds true for each consecutive data point.",
 <             response = List.class)
 <     @ApiResponses(value = {
@@ -1523,22 +1682,22 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 <             @Suspended final AsyncResponse asyncResponse,
 ---
 >     public Response findPeriods(
-372,374c321,322
+360,362c308,309
 <             @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") Long start,
 <             @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") Long end,
 <             @ApiParam(value = "A threshold against which values are compared", required = true)
 ---
 >             @QueryParam("start") final Long start,
 >             @QueryParam("end") final Long end,
-376,377d323
+364,365d310
 <             @ApiParam(value = "A comparison operation to perform between values and the threshold.", required = true,
 <                     allowableValues = "ge, gte, lt, lte, eq, neq")
-382,383c328
+370,371c315
 <             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
 <             return;
 ---
 >             return badRequest(new ApiError(timeRange.getProblem()));
-411,416c356,357
+399,404c343,344
 <             asyncResponse.resume(badRequest(
 <                     new ApiError(
 <                             "Invalid value for op parameter. Supported values are lt, "
@@ -1548,7 +1707,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 ---
 >             return badRequest(
 >                     new ApiError("Invalid value for op parameter. Supported values are lt, lte, eq, gt, gte."));
-418,421c359,366
+406,409c346,353
 <             MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
 <             metricsService.getPeriods(metricId, predicate, timeRange.getStart(), timeRange.getEnd())
 <                     .map(ApiUtils::collectionToResponse)

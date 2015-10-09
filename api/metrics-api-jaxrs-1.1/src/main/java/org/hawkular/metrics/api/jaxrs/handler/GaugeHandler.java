@@ -278,38 +278,25 @@ public class GaugeHandler {
             percentiles = new Percentiles(Collections.<Double>emptyList());
         }
 
+        if (stacked == null) {
+            stacked = Boolean.FALSE;
+        }
+
         if (metricNames.isEmpty()) {
-            if (stacked == null || Boolean.FALSE.equals(stacked)) {
-                return metricsService
-                        .findSimpleGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
-                                bucketConfig.getBuckets(), percentiles.getPercentiles())
-                        .map(ApiUtils::collectionToResponse)
-                        .toBlocking()
-                        .lastOrDefault(null);
-            } else {
-                return metricsService
-                        .findSumGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
-                                bucketConfig.getBuckets(), percentiles.getPercentiles())
-                        .map(ApiUtils::collectionToResponse)
-                        .toBlocking()
-                        .lastOrDefault(null);
-            }
+            return metricsService
+                    .findNumericStats(tenantId, MetricType.GAUGE, tags.getTags(), timeRange.getStart(),
+                            timeRange.getEnd(),
+                            bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+                    .map(ApiUtils::collectionToResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
         } else {
-            if (stacked == null || Boolean.FALSE.equals(stacked)) {
-                return metricsService
-                        .findSimpleGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
-                                bucketConfig.getBuckets(), percentiles.getPercentiles())
-                        .map(ApiUtils::collectionToResponse)
-                        .toBlocking()
-                        .lastOrDefault(null);
-            } else {
-                return metricsService
-                        .findSumGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
-                                bucketConfig.getBuckets(), percentiles.getPercentiles())
-                        .map(ApiUtils::collectionToResponse)
-                        .toBlocking()
-                        .lastOrDefault(null);
-            }
+            return metricsService
+                    .findNumericStats(tenantId, MetricType.GAUGE, metricNames, timeRange.getStart(),
+                            timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+                    .map(ApiUtils::collectionToResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
         }
     }
 

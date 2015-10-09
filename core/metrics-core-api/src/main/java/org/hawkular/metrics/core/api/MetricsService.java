@@ -164,24 +164,9 @@ public interface MetricsService {
      *                on which time slice or bucket they fall into.
      * @return An {@link Observable} that emits a single list of {@link NumericBucketPoint}
      */
-    Observable<List<NumericBucketPoint>> findSimpleGaugeStats(String tenantId, Map<String, String> tagFilters,
-            long start, long end, Buckets buckets, List<Double> percentiles);
-
-    /**
-     * Fetches data points from multiple metrics that are determined by a tags filter query. Down sampling is performed
-     * such that data points from all matching metrics are bucketed individually. Functions are then applied to
-     * each bucket to produce a single {@link NumericBucketPoint} for each bucket by summing individual stats.
-     *
-     * @param tenantId The id of the tenant to which the metrics belong
-     * @param tagFilters The metric tag filter used to query for metrics
-     * @param start The start time inclusive as a Unix timestamp in milliseconds
-     * @param end The end time exclusive as a Unix timestamp in milliseconds
-     * @param buckets Determines the number of data points to be returned and how data points will be grouped based
-     *                on which time slice or bucket they fall into.
-     * @return An {@link Observable} that emits a single list of {@link NumericBucketPoint}
-     */
-    Observable<List<NumericBucketPoint>> findSumGaugeStats(String tenantId,
-            Map<String, String> tagFilters, long start, long end, Buckets buckets, List<Double> percentiles);
+    <T extends Number> Observable<List<NumericBucketPoint>> findNumericStats(String tenantId, MetricType<T> metricType,
+            Map<String, String> tagFilters, long start, long end, Buckets buckets, List<Double> percentiles,
+            boolean stacked);
 
     /**
      * Fetches data points from multiple metrics. Down sampling is performed such that data points from all matching
@@ -196,24 +181,8 @@ public interface MetricsService {
      *                on which time slice or bucket they fall into.
      * @return An {@link Observable} that emits a single list of {@link NumericBucketPoint}
      */
-    Observable<List<NumericBucketPoint>> findSimpleGaugeStats(String tenantId, List<String> metrics, long start,
-            long end, Buckets buckets, List<Double> percentiles);
-
-    /**
-     * Fetches data points from multiple metrics. Down sampling is performed such that data points from all matching
-     * metrics are bucketed individually. Functions are then applied to each bucket to produce a single
-     * {@link NumericBucketPoint} for each bucket by summing individual stats.
-     *
-     * @param tenantId The id of the tenant to which the metrics belong
-     * @param metrics The names of the gauge metrics that will be queried
-     * @param start The start time inclusive as a Unix timestamp in milliseconds
-     * @param end The end time exclusive as a Unix timestamp in milliseconds
-     * @param buckets Determines the number of data points to be returned and how data points will be grouped based
-     *                on which time slice or bucket they fall into.
-     * @return An {@link Observable} that emits a single list of {@link NumericBucketPoint}
-     */
-    Observable<List<NumericBucketPoint>> findSumGaugeStats(String tenantId, List<String> metrics,
-            long start, long end, Buckets buckets, List<Double> percentiles);
+    <T extends Number> Observable<List<NumericBucketPoint>> findNumericStats(String tenantId, MetricType<T> metricType,
+            List<String> metrics, long start, long end, Buckets buckets, List<Double> percentiles, boolean stacked);
 
     Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId<AvailabilityType> id, long start, long end,
                                                                  boolean distinct);

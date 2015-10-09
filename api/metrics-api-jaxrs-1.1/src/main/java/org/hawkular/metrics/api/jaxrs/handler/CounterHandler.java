@@ -282,4 +282,116 @@ public class CounterHandler {
             return serverError(e);
         }
     }
+
+    @GET
+    @Path("/data")
+    public Response findCounterDataStats(
+            @QueryParam("start") final Long start,
+            @QueryParam("end") final Long end,
+            @QueryParam("tags") Tags tags,
+            @QueryParam("buckets") Integer bucketsCount,
+            @QueryParam("bucketDuration") Duration bucketDuration,
+            @QueryParam("percentiles") Percentiles percentiles,
+            @QueryParam("metrics") List<String> metricNames,
+            @QueryParam("stacked") Boolean stacked) {
+
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            return badRequest(new ApiError(timeRange.getProblem()));
+        }
+        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+        if (bucketConfig.isEmpty()) {
+            return badRequest(new ApiError("Either the buckets or bucketsDuration parameter must be used"));
+        }
+        if (!bucketConfig.isValid()) {
+            return badRequest(new ApiError(bucketConfig.getProblem()));
+        }
+        if (metricNames.isEmpty() && (tags == null || tags.getTags().isEmpty())) {
+            return badRequest(new ApiError("Either metrics or tags parameter must be used"));
+        }
+        if (!metricNames.isEmpty() && !(tags == null || tags.getTags().isEmpty())) {
+            return badRequest(new ApiError("Cannot use both the metrics and tags parameters"));
+        }
+
+        if (percentiles == null) {
+            percentiles = new Percentiles(Collections.<Double> emptyList());
+        }
+
+        if (stacked == null) {
+            stacked = Boolean.FALSE;
+        }
+
+        if (metricNames.isEmpty()) {
+            return metricsService
+                    .findNumericStats(tenantId, MetricType.COUNTER, tags.getTags(), timeRange.getStart(),
+                            timeRange.getEnd(),
+                            bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+                    .map(ApiUtils::collectionToResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
+        } else {
+            return metricsService
+                    .findNumericStats(tenantId, MetricType.COUNTER, metricNames, timeRange.getStart(),
+                            timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+                    .map(ApiUtils::collectionToResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
+        }
+    }
+
+    @GET
+    @Path("/data")
+    public Response findCounterRateDataStats(
+            @QueryParam("start") final Long start,
+            @QueryParam("end") final Long end,
+            @QueryParam("tags") Tags tags,
+            @QueryParam("buckets") Integer bucketsCount,
+            @QueryParam("bucketDuration") Duration bucketDuration,
+            @QueryParam("percentiles") Percentiles percentiles,
+            @QueryParam("metrics") List<String> metricNames,
+            @QueryParam("stacked") Boolean stacked) {
+
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            return badRequest(new ApiError(timeRange.getProblem()));
+        }
+        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+        if (bucketConfig.isEmpty()) {
+            return badRequest(new ApiError("Either the buckets or bucketsDuration parameter must be used"));
+        }
+        if (!bucketConfig.isValid()) {
+            return badRequest(new ApiError(bucketConfig.getProblem()));
+        }
+        if (metricNames.isEmpty() && (tags == null || tags.getTags().isEmpty())) {
+            return badRequest(new ApiError("Either metrics or tags parameter must be used"));
+        }
+        if (!metricNames.isEmpty() && !(tags == null || tags.getTags().isEmpty())) {
+            return badRequest(new ApiError("Cannot use both the metrics and tags parameters"));
+        }
+
+        if (percentiles == null) {
+            percentiles = new Percentiles(Collections.<Double> emptyList());
+        }
+
+        if (stacked == null) {
+            stacked = Boolean.FALSE;
+        }
+
+        if (metricNames.isEmpty()) {
+            return metricsService
+                    .findNumericStats(tenantId, MetricType.COUNTER_RATE, tags.getTags(), timeRange.getStart(),
+                            timeRange.getEnd(),
+                            bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+                    .map(ApiUtils::collectionToResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
+        } else {
+            return metricsService
+                    .findNumericStats(tenantId, MetricType.COUNTER_RATE, metricNames, timeRange.getStart(),
+                            timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+                    .map(ApiUtils::collectionToResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
+        }
+    }
 }

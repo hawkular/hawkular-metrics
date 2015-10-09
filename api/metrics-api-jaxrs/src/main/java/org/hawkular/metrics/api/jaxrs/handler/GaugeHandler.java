@@ -328,32 +328,20 @@ public class GaugeHandler {
             percentiles = new Percentiles(Collections.<Double>emptyList());
         }
 
+        if (stacked == null) {
+            stacked = Boolean.FALSE;
+        }
+
         if (metricNames.isEmpty()) {
-            if (stacked == null || Boolean.FALSE.equals(stacked)) {
-                metricsService.findSimpleGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
-                        bucketConfig.getBuckets(), percentiles.getPercentiles())
+            metricsService.findNumericStats(tenantId, MetricType.GAUGE, tags.getTags(), timeRange.getStart(),
+                    timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
-            } else {
-                metricsService
-                        .findSumGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
-                                bucketConfig.getBuckets(), percentiles.getPercentiles())
-                        .map(ApiUtils::collectionToResponse)
-                        .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
-            }
         } else {
-            if (stacked == null || Boolean.FALSE.equals(stacked)) {
-                metricsService.findSimpleGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
-                        bucketConfig.getBuckets(), percentiles.getPercentiles())
+            metricsService.findNumericStats(tenantId, MetricType.GAUGE, metricNames, timeRange.getStart(),
+                    timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
-            } else {
-                metricsService
-                        .findSumGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
-                                bucketConfig.getBuckets(), percentiles.getPercentiles())
-                        .map(ApiUtils::collectionToResponse)
-                        .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
-            }
         }
     }
 
