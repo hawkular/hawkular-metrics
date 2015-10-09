@@ -50,7 +50,6 @@ import org.hawkular.metrics.api.jaxrs.model.Gauge;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.param.BucketConfig;
-import org.hawkular.metrics.api.jaxrs.param.DownsampleConfig;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Percentiles;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
@@ -255,7 +254,7 @@ public class GaugeHandler {
             @QueryParam("bucketDuration") Duration bucketDuration,
             @QueryParam("percentiles") Percentiles percentiles,
             @QueryParam("metrics") List<String> metricNames,
-            @QueryParam("downsample") String downsample) {
+            @QueryParam("stacked") Boolean stacked) {
 
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
@@ -279,13 +278,8 @@ public class GaugeHandler {
             percentiles = new Percentiles(Collections.<Double>emptyList());
         }
 
-        DownsampleConfig downsampleConfig = new DownsampleConfig(downsample);
-        if (!downsampleConfig.isValid()) {
-            return badRequest(new ApiError(downsampleConfig.getProblem()));
-        }
-
         if (metricNames.isEmpty()) {
-            if (DownsampleConfig.Method.simple.equals(downsampleConfig.getDownsampleMethod())) {
+            if (stacked == null || Boolean.FALSE.equals(stacked)) {
                 return metricsService
                         .findSimpleGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
                                 bucketConfig.getBuckets(), percentiles.getPercentiles())
@@ -301,7 +295,7 @@ public class GaugeHandler {
                         .lastOrDefault(null);
             }
         } else {
-            if (DownsampleConfig.Method.simple.equals(downsampleConfig.getDownsampleMethod())) {
+            if (stacked == null || Boolean.FALSE.equals(stacked)) {
                 return metricsService
                         .findSimpleGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
                                 bucketConfig.getBuckets(), percentiles.getPercentiles())

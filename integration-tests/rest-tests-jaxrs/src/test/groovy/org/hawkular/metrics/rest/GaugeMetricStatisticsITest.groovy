@@ -374,7 +374,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
             end: start.plusMinutes(4).millis,
             buckets: 1,
             tags: 'type:cpu_usage,host:server1|server2',
-            downsample: 'sum'
+            stacked: true
         ],
         headers: [(tenantHeaderName): tenantId]
     )
@@ -468,7 +468,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
             end: start.plusMinutes(4).millis,
             buckets: 1,
             metrics: ['G1', 'G2'],
-            downsample: 'sum'
+            stacked: true
         ],
         headers: [(tenantHeaderName): tenantId]
     )

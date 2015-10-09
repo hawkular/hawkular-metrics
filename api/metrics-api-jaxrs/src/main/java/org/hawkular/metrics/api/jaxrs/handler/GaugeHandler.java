@@ -52,7 +52,6 @@ import org.hawkular.metrics.api.jaxrs.model.Gauge;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
 import org.hawkular.metrics.api.jaxrs.param.BucketConfig;
-import org.hawkular.metrics.api.jaxrs.param.DownsampleConfig;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Percentiles;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
@@ -298,8 +297,8 @@ public class GaugeHandler {
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
             @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
-            @ApiParam(value = "Downsample method (simple or sum; defaults to simple)", required = false)
-                        @QueryParam("downsample") String downsample) {
+            @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
+                    required = false) @QueryParam("stacked") Boolean stacked) {
 
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
@@ -329,14 +328,8 @@ public class GaugeHandler {
             percentiles = new Percentiles(Collections.<Double>emptyList());
         }
 
-        DownsampleConfig downsampleConfig = new DownsampleConfig(downsample);
-        if (!downsampleConfig.isValid()) {
-            asyncResponse.resume(badRequest(new ApiError(downsampleConfig.getProblem())));
-            return;
-        }
-
         if (metricNames.isEmpty()) {
-            if (DownsampleConfig.Method.simple.equals(downsampleConfig.getDownsampleMethod())) {
+            if (stacked == null || Boolean.FALSE.equals(stacked)) {
                 metricsService.findSimpleGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
                         bucketConfig.getBuckets(), percentiles.getPercentiles())
                     .map(ApiUtils::collectionToResponse)
@@ -349,7 +342,7 @@ public class GaugeHandler {
                         .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
             }
         } else {
-            if (DownsampleConfig.Method.simple.equals(downsampleConfig.getDownsampleMethod())) {
+            if (stacked == null || Boolean.FALSE.equals(stacked)) {
                 metricsService.findSimpleGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
                         bucketConfig.getBuckets(), percentiles.getPercentiles())
                     .map(ApiUtils::collectionToResponse)
