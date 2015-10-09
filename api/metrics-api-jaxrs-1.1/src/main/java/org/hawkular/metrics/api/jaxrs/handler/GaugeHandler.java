@@ -253,7 +253,8 @@ public class GaugeHandler {
             @QueryParam("buckets") Integer bucketsCount,
             @QueryParam("bucketDuration") Duration bucketDuration,
             @QueryParam("percentiles") Percentiles percentiles,
-            @QueryParam("metrics") List<String> metricNames) {
+            @QueryParam("metrics") List<String> metricNames,
+            @QueryParam("stacked") Boolean stacked) {
 
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
@@ -278,17 +279,37 @@ public class GaugeHandler {
         }
 
         if (metricNames.isEmpty()) {
-            return metricsService.findGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
-                    bucketConfig.getBuckets(), percentiles.getPercentiles())
-                    .map(ApiUtils::collectionToResponse)
-                    .toBlocking()
-                    .lastOrDefault(null);
+            if (stacked == null || Boolean.FALSE.equals(stacked)) {
+                return metricsService
+                        .findSimpleGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
+                                bucketConfig.getBuckets(), percentiles.getPercentiles())
+                        .map(ApiUtils::collectionToResponse)
+                        .toBlocking()
+                        .lastOrDefault(null);
+            } else {
+                return metricsService
+                        .findSumGaugeStats(tenantId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
+                                bucketConfig.getBuckets(), percentiles.getPercentiles())
+                        .map(ApiUtils::collectionToResponse)
+                        .toBlocking()
+                        .lastOrDefault(null);
+            }
         } else {
-            return metricsService.findGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
-                    bucketConfig.getBuckets(), percentiles.getPercentiles())
-                    .map(ApiUtils::collectionToResponse)
-                    .toBlocking()
-                    .lastOrDefault(null);
+            if (stacked == null || Boolean.FALSE.equals(stacked)) {
+                return metricsService
+                        .findSimpleGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
+                                bucketConfig.getBuckets(), percentiles.getPercentiles())
+                        .map(ApiUtils::collectionToResponse)
+                        .toBlocking()
+                        .lastOrDefault(null);
+            } else {
+                return metricsService
+                        .findSumGaugeStats(tenantId, metricNames, timeRange.getStart(), timeRange.getEnd(),
+                                bucketConfig.getBuckets(), percentiles.getPercentiles())
+                        .map(ApiUtils::collectionToResponse)
+                        .toBlocking()
+                        .lastOrDefault(null);
+            }
         }
     }
 

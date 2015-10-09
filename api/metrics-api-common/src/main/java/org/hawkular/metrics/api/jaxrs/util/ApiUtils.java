@@ -17,6 +17,7 @@
 package org.hawkular.metrics.api.jaxrs.util;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 
 import javax.ws.rs.core.MediaType;
@@ -36,6 +37,10 @@ public class ApiUtils {
 
     public static Response collectionToResponse(Collection<?> collection) {
         return collection.isEmpty() ? noContent() : Response.ok(collection).type(MediaType.APPLICATION_JSON).build();
+    }
+
+    public static Response mapToResponse(Map<?, ?> map) {
+        return map.isEmpty() ? noContent() : Response.ok(map).type(MediaType.APPLICATION_JSON).build();
     }
 
     public static Response serverError(Throwable t, String message) {

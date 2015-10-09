@@ -706,19 +706,51 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public Observable<List<NumericBucketPoint>> findGaugeStats(String tenantId, Map<String, String> tagFilters,
-                                                               long start, long end, Buckets buckets,
-                                                               List<Double> percentiles) {
-        return bucketize(findMetricsWithFilters(tenantId, tagFilters, GAUGE)
+    public Observable<List<NumericBucketPoint>> findSimpleGaugeStats(String tenantId, Map<String, String> tagFilters,
+            long start, long end, Buckets buckets, List<Double> percentiles) {
+
+            return bucketize(findMetricsWithFilters(tenantId, tagFilters, GAUGE)
+                    .flatMap(metric -> findDataPoints(metric.getId(), start, end)), buckets, percentiles);
+    }
+
+    @Override
+    public Observable<List<NumericBucketPoint>> findSumGaugeStats(String tenantId,
+            Map<String, String> tagFilters, long start, long end, Buckets buckets, List<Double> percentiles) {
+        Observable<Observable<NumericBucketPoint>> individualStats =
+                        findMetricsWithFilters(tenantId, tagFilters, GAUGE)
+                        .map(metric -> bucketize(findDataPoints(metric.getId(), start, end), buckets, percentiles)
+                                .flatMap(Observable::from));
+
+        return Observable.merge(individualStats)
+                .groupBy(g -> g.getStart())
+                .flatMap(group -> group.collect(() -> new SumNumericBucketPointCollector(),
+                        SumNumericBucketPointCollector::increment))
+                .map(SumNumericBucketPointCollector::toBucketPoint)
+                .toList();
+    }
+
+    @Override
+    public Observable<List<NumericBucketPoint>> findSimpleGaugeStats(String tenantId, List<String> metrics, long start,
+            long end, Buckets buckets, List<Double> percentiles) {
+        return bucketize(Observable.from(metrics)
+                .flatMap(metricName -> findMetric(new MetricId<>(tenantId, GAUGE, metricName)))
                 .flatMap(metric -> findDataPoints(metric.getId(), start, end)), buckets, percentiles);
     }
 
     @Override
-    public Observable<List<NumericBucketPoint>> findGaugeStats(String tenantId, List<String> metrics, long start,
-                                                               long end, Buckets buckets, List<Double> percentiles) {
-        return bucketize(Observable.from(metrics)
+    public Observable<List<NumericBucketPoint>> findSumGaugeStats(String tenantId,
+            List<String> metrics, long start, long end, Buckets buckets, List<Double> percentiles) {
+        Observable<Observable<NumericBucketPoint>> individualStats = Observable.from(metrics)
                 .flatMap(metricName -> findMetric(new MetricId<>(tenantId, GAUGE, metricName)))
-                .flatMap(metric -> findDataPoints(metric.getId(), start, end)), buckets, percentiles);
+                .map(metric -> bucketize(findDataPoints(metric.getId(), start, end), buckets, percentiles)
+                        .flatMap(Observable::from));
+
+        return Observable.merge(individualStats)
+                .groupBy(g -> g.getStart())
+                .flatMap(group -> group.collect(() -> new SumNumericBucketPointCollector(),
+                        SumNumericBucketPointCollector::increment))
+                .map(SumNumericBucketPointCollector::toBucketPoint)
+                .toList();
     }
 
     private Observable<List<NumericBucketPoint>> bucketize(Observable<? extends DataPoint<? extends Number>> dataPoints,

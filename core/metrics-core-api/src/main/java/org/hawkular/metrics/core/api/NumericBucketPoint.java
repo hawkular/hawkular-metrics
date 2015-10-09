@@ -28,7 +28,7 @@ import java.util.Map;
  *
  * @author Thomas Segismont
  */
-public final class NumericBucketPoint extends BucketPoint {
+public class NumericBucketPoint extends BucketPoint {
     private final double min;
     private final double avg;
     private final double median;
@@ -125,6 +125,16 @@ public final class NumericBucketPoint extends BucketPoint {
         public Builder(long start, long end) {
             this.start = start;
             this.end = end;
+        }
+
+        public Builder(NumericBucketPoint numericBucketPoint) {
+            this.start = numericBucketPoint.getStart();
+            this.end = numericBucketPoint.getEnd();
+            this.setMin(numericBucketPoint.getMin());
+            this.setAvg(numericBucketPoint.getAvg());
+            this.setMedian(numericBucketPoint.getMedian());
+            this.setMax(numericBucketPoint.getMax());
+            this.setPercentile95th(numericBucketPoint.getPercentile95th());
         }
 
         public Builder setMin(double min) {
