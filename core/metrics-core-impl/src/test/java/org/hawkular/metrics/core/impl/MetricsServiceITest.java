@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -832,32 +833,39 @@ public class MetricsServiceITest extends MetricsITest {
     public void findSimpleCounterStats() {
         //Setup the counter data
         NumericDataPointCollector.createPercentile = InMemoryPercentileWrapper::new;
+
         Random r = new Random(123);
+        List<Long> randomList = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            randomList.add((long) r.nextInt(100));
+        }
+        Collections.sort(randomList);
+        Iterator<Long> randoms = randomList.iterator();
 
         String tenantId = "findCounterStats";
         DateTime start = now().minusMinutes(10);
 
         Metric<Long> c1 = new Metric<>(new MetricId<>(tenantId, COUNTER, "C1"), asList(
-                new DataPoint<>(start.getMillis(), 222L + r.nextInt(100)),
-                new DataPoint<>(start.plusMinutes(1).getMillis(), 224L + r.nextInt(100)),
-                new DataPoint<>(start.plusMinutes(2).getMillis(), 226L + r.nextInt(100)),
-                new DataPoint<>(start.plusMinutes(3).getMillis(), 228L + r.nextInt(100)),
-                new DataPoint<>(start.plusMinutes(4).getMillis(), 229L + r.nextInt(100))));
+                new DataPoint<>(start.getMillis(), 222L + randoms.next()),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 224L + randoms.next()),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 226L + randoms.next()),
+                new DataPoint<>(start.plusMinutes(3).getMillis(), 228L + randoms.next()),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 229L + randoms.next())));
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(c1)));
         doAction(() -> metricsService.addTags(c1, ImmutableMap.of("type", "counter_cpu_usage", "node", "server1")));
 
         Metric<Long> c2 = new Metric<>(new MetricId<>(tenantId, COUNTER, "C2"), asList(
                 new DataPoint<>(start.getMillis(), 150L),
-                new DataPoint<>(start.plusMinutes(1).getMillis(), 153L + r.nextInt(100)),
-                new DataPoint<>(start.plusMinutes(2).getMillis(), 156L + r.nextInt(100)),
-                new DataPoint<>(start.plusMinutes(3).getMillis(), 159L + r.nextInt(100)),
-                new DataPoint<>(start.plusMinutes(4).getMillis(), 162L + r.nextInt(100))));
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 153L + randoms.next()),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 156L + randoms.next()),
+                new DataPoint<>(start.plusMinutes(3).getMillis(), 159L + randoms.next()),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 162L + randoms.next())));
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(c2)));
         doAction(() -> metricsService.addTags(c2, ImmutableMap.of("type", "counter_cpu_usage", "node", "server2")));
 
         Metric<Long> c3 = new Metric<>(new MetricId<>(tenantId, COUNTER, "C3"), asList(
-                new DataPoint<>(start.getMillis(), 11456L + r.nextInt(100)),
-                new DataPoint<>(start.plusMinutes(1).getMillis(), 183332L + r.nextInt(100))));
+                new DataPoint<>(start.getMillis(), 11456L + randoms.next()),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 183332L + randoms.next())));
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(c3)));
         doAction(() -> metricsService.addTags(c3, ImmutableMap.of("type", "counter_cpu_usage", "node", "server3")));
 
