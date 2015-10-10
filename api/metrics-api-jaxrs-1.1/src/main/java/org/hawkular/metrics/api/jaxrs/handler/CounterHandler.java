@@ -32,6 +32,7 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
@@ -293,7 +294,7 @@ public class CounterHandler {
             @QueryParam("bucketDuration") Duration bucketDuration,
             @QueryParam("percentiles") Percentiles percentiles,
             @QueryParam("metrics") List<String> metricNames,
-            @QueryParam("stacked") Boolean stacked) {
+            @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
 
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
@@ -315,10 +316,6 @@ public class CounterHandler {
 
         if (percentiles == null) {
             percentiles = new Percentiles(Collections.<Double> emptyList());
-        }
-
-        if (stacked == null) {
-            stacked = Boolean.FALSE;
         }
 
         if (metricNames.isEmpty()) {
@@ -349,7 +346,7 @@ public class CounterHandler {
             @QueryParam("bucketDuration") Duration bucketDuration,
             @QueryParam("percentiles") Percentiles percentiles,
             @QueryParam("metrics") List<String> metricNames,
-            @QueryParam("stacked") Boolean stacked) {
+            @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
 
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
@@ -371,10 +368,6 @@ public class CounterHandler {
 
         if (percentiles == null) {
             percentiles = new Percentiles(Collections.<Double> emptyList());
-        }
-
-        if (stacked == null) {
-            stacked = Boolean.FALSE;
         }
 
         if (metricNames.isEmpty()) {
