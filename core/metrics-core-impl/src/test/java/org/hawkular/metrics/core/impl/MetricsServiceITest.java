@@ -40,6 +40,7 @@ import static org.testng.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -51,8 +52,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
+import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile;
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
 import org.hawkular.metrics.core.api.Aggregate;
@@ -817,15 +821,9 @@ public class MetricsServiceITest extends MetricsITest {
 
         assertEquals(actual.size(), 1);
 
-        NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(start.getMillis(),
-                start.plusMinutes(5).getMillis());
-        m1.getDataPoints().forEach(dataPoint -> updateBuilder(builder, dataPoint));
-
-        List<NumericBucketPoint> expected = getOnNextEvents(() ->
-                Observable.concat(Observable.from(m1.getDataPoints()), Observable.from(m2.getDataPoints()))
-                .collect(() -> new NumericDataPointCollector(buckets, 0, Collections.emptyList()),
-                        NumericDataPointCollector::increment)
-                .map(NumericDataPointCollector::toBucketPoint));
+        List<NumericBucketPoint> expected = Arrays.asList(createSingleBucket(
+                Stream.concat(m1.getDataPoints().stream(), m2.getDataPoints().stream()).collect(Collectors.toList()),
+                start, start.plusMinutes(5)));
 
         assertNumericBucketsEquals(actual.get(0), expected);
     }
@@ -883,11 +881,9 @@ public class MetricsServiceITest extends MetricsITest {
                         start.getMillis(), start.plusMinutes(5).getMillis(), buckets, Collections.emptyList(), false));
         assertEquals(actualCounterStatsById.size(), 1);
 
-        List<NumericBucketPoint> expectedCounterStats = getOnNextEvents(
-                () -> Observable.concat(Observable.from(c1.getDataPoints()), Observable.from(c2.getDataPoints()))
-                        .collect(() -> new NumericDataPointCollector(buckets, 0, Collections.emptyList()),
-                                NumericDataPointCollector::increment)
-                        .map(NumericDataPointCollector::toBucketPoint));
+        List<NumericBucketPoint> expectedCounterStats = Arrays.asList(createSingleBucket(
+                Stream.concat(c1.getDataPoints().stream(), c2.getDataPoints().stream()).collect(Collectors.toList()),
+                start, start.plusMinutes(5)));
 
         assertNumericBucketsEquals(actualCounterStatsByTag.get(0), expectedCounterStats);
         assertNumericBucketsEquals(actualCounterStatsById.get(0), expectedCounterStats);
@@ -903,17 +899,15 @@ public class MetricsServiceITest extends MetricsITest {
                         start.getMillis(), start.plusMinutes(5).getMillis(), buckets, Collections.emptyList(), true));
         assertEquals(actualStackedCounterStatsByTag.size(), 1);
 
-        NumericDataPointCollector collectorC1 = new NumericDataPointCollector(buckets, 0, Collections.emptyList());
-        c1.getDataPoints().forEach(dataPoint -> collectorC1.increment(dataPoint));
-        NumericDataPointCollector collectorC2 = new NumericDataPointCollector(buckets, 0, Collections.emptyList());
-        c2.getDataPoints().forEach(dataPoint -> collectorC2.increment(dataPoint));
+        NumericBucketPoint collectorC1 = createSingleBucket(c1.getDataPoints(), start, start.plusMinutes(5));
+        NumericBucketPoint collectorC2 = createSingleBucket(c2.getDataPoints(), start, start.plusMinutes(5));
 
         final Sum min = new Sum();
         final Sum average = new Sum();
         final Sum median = new Sum();
         final Sum max = new Sum();
         final Sum percentile95th = new Sum();
-        Observable.just(collectorC1, collectorC2).map(d -> d.toBucketPoint()).forEach(d -> {
+        Observable.just(collectorC1, collectorC2).forEach(d -> {
             min.increment(d.getMin());
             max.increment(d.getMax());
             average.increment(d.getAvg());
@@ -946,11 +940,9 @@ public class MetricsServiceITest extends MetricsITest {
                         start.getMillis(), start.plusMinutes(5).getMillis(), buckets, Collections.emptyList(), false));
         assertEquals(actualCounterRateStatsById.size(), 1);
 
-        List<NumericBucketPoint> expectedCounterRateStats = getOnNextEvents(
-                () -> Observable.concat(Observable.from(c1Rate), Observable.from(c2Rate))
-                        .collect(() -> new NumericDataPointCollector(buckets, 0, Collections.emptyList()),
-                                NumericDataPointCollector::increment)
-                        .map(NumericDataPointCollector::toBucketPoint));
+        List<NumericBucketPoint> expectedCounterRateStats = Arrays.asList(createSingleBucket(
+                Stream.concat(c1Rate.stream(), c2Rate.stream()).collect(Collectors.toList()),
+                start, start.plusMinutes(5)));
 
         assertNumericBucketsEquals(actualCounterRateStatsByTag.get(0), expectedCounterRateStats);
         assertNumericBucketsEquals(actualCounterRateStatsById.get(0), expectedCounterRateStats);
@@ -966,17 +958,15 @@ public class MetricsServiceITest extends MetricsITest {
                         start.getMillis(), start.plusMinutes(5).getMillis(), buckets, Collections.emptyList(), true));
         assertEquals(actualStackedCounterStatsByTag.size(), 1);
 
-        NumericDataPointCollector collectorC1Rate = new NumericDataPointCollector(buckets, 0, Collections.emptyList());
-        c1Rate.forEach(dataPoint -> collectorC1Rate.increment(dataPoint));
-        NumericDataPointCollector collectorC2Rate = new NumericDataPointCollector(buckets, 0, Collections.emptyList());
-        c2Rate.forEach(dataPoint -> collectorC2Rate.increment(dataPoint));
+        NumericBucketPoint collectorC1Rate = createSingleBucket(c1Rate, start, start.plusMinutes(5));
+        NumericBucketPoint collectorC2Rate = createSingleBucket(c2Rate, start, start.plusMinutes(5));
 
         final Sum counterRateMin = new Sum();
         final Sum counterRateMax = new Sum();
         final Sum counterRateAverage = new Sum();
         final Sum counterRateMedian = new Sum();
         final Sum counterRatePercentile95th = new Sum();
-        Observable.just(collectorC1Rate, collectorC2Rate).map(d -> d.toBucketPoint()).forEach(d -> {
+        Observable.just(collectorC1Rate, collectorC2Rate).forEach(d -> {
             counterRateMin.increment(d.getMin());
             counterRateMax.increment(d.getMax());
             counterRateAverage.increment(d.getAvg());
@@ -997,6 +987,37 @@ public class MetricsServiceITest extends MetricsITest {
 
         assertNumericBucketsEquals(actualStackedCounterRateStatsByTag.get(0), expectedStackedCounterRateStatsList);
         assertNumericBucketsEquals(actualStackedCounterRateStatsById.get(0), expectedStackedCounterRateStatsList);
+    }
+
+    private <T extends Number> NumericBucketPoint createSingleBucket(List<DataPoint<T>> combinedData, DateTime start,
+            DateTime end) {
+        T expectedMin = combinedData.stream()
+                .min((x, y) -> Double.compare(x.getValue().doubleValue(), y.getValue().doubleValue()))
+                .get()
+                .getValue();
+        T expectedMax = combinedData.stream()
+                .max((x, y) -> Double.compare(x.getValue().doubleValue(), y.getValue().doubleValue()))
+                .get()
+                .getValue();
+        PercentileWrapper expectedMedian = NumericDataPointCollector.createPercentile.apply(50.0);
+        PercentileWrapper expectedPercentile95th = NumericDataPointCollector.createPercentile.apply(95.0);
+        Mean expectedAverage = new Mean();
+        Sum expectedSamples = new Sum();
+        combinedData.stream().forEach(arg -> {
+            expectedMedian.addValue(arg.getValue().doubleValue());
+            expectedPercentile95th.addValue(arg.getValue().doubleValue());
+            expectedAverage.increment(arg.getValue().doubleValue());
+            expectedSamples.increment(1);
+        });
+
+        return new NumericBucketPoint.Builder(start.getMillis(), end.getMillis())
+                .setMin(expectedMin.doubleValue())
+                .setMax(expectedMax.doubleValue())
+                .setAvg(expectedAverage.getResult())
+                .setMedian(expectedMedian.getResult())
+                .setPercentile95th(expectedPercentile95th.getResult())
+                .setSamples(new Double(expectedSamples.getResult()).intValue())
+                .build();
     }
 
     @Test
@@ -1039,17 +1060,15 @@ public class MetricsServiceITest extends MetricsITest {
 
         assertEquals(actual.size(), 1);
 
-        NumericDataPointCollector collectorM1 = new NumericDataPointCollector(buckets, 0, Collections.emptyList());
-        m1.getDataPoints().forEach(dataPoint -> collectorM1.increment(dataPoint));
-        NumericDataPointCollector collectorM2 = new NumericDataPointCollector(buckets, 0, Collections.emptyList());
-        m2.getDataPoints().forEach(dataPoint -> collectorM2.increment(dataPoint));
+        NumericBucketPoint collectorM1 = createSingleBucket(m1.getDataPoints(), start, start.plusMinutes(5));
+        NumericBucketPoint collectorM2 = createSingleBucket(m2.getDataPoints(), start, start.plusMinutes(5));
 
         final Sum min = new Sum();
         final Sum average = new Sum();
         final Sum median = new Sum();
         final Sum max = new Sum();
         final Sum percentile95th = new Sum();
-        Observable.just(collectorM1, collectorM2).map(d -> d.toBucketPoint()).forEach(d -> {
+        Observable.just(collectorM1, collectorM2).forEach(d -> {
             min.increment(d.getMin());
             max.increment(d.getMax());
             average.increment(d.getAvg());
@@ -1103,15 +1122,9 @@ public class MetricsServiceITest extends MetricsITest {
 
         assertEquals(actual.size(), 1);
 
-        NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(start.getMillis(),
-                start.plusMinutes(5).getMillis());
-        m1.getDataPoints().forEach(dataPoint -> updateBuilder(builder, dataPoint));
-
-        List<NumericBucketPoint> expected = getOnNextEvents(() ->
-                Observable.concat(Observable.from(m1.getDataPoints()), Observable.from(m2.getDataPoints()))
-                        .collect(() -> new NumericDataPointCollector(buckets, 0, Collections.emptyList()),
-                                NumericDataPointCollector::increment)
-                        .map(NumericDataPointCollector::toBucketPoint));
+        List<NumericBucketPoint> expected = Arrays.asList(createSingleBucket(
+                Stream.concat(m1.getDataPoints().stream(), m2.getDataPoints().stream()).collect(Collectors.toList()),
+                start, start.plusMinutes(5)));
 
         assertNumericBucketsEquals(actual.get(0), expected);
     }
@@ -1152,17 +1165,15 @@ public class MetricsServiceITest extends MetricsITest {
 
         assertEquals(actual.size(), 1);
 
-        NumericDataPointCollector collectorM1 = new NumericDataPointCollector(buckets, 0, Collections.emptyList());
-        m1.getDataPoints().forEach(dataPoint -> collectorM1.increment(dataPoint));
-        NumericDataPointCollector collectorM2 = new NumericDataPointCollector(buckets, 0, Collections.emptyList());
-        m2.getDataPoints().forEach(dataPoint -> collectorM2.increment(dataPoint));
+        NumericBucketPoint collectorM1 = createSingleBucket(m1.getDataPoints(), start, start.plusMinutes(5));
+        NumericBucketPoint collectorM2 = createSingleBucket(m2.getDataPoints(), start, start.plusMinutes(5));
 
         final Sum min = new Sum();
         final Sum average = new Sum();
         final Sum median = new Sum();
         final Sum max = new Sum();
         final Sum percentile95th = new Sum();
-        Observable.just(collectorM1, collectorM2).map(d -> d.toBucketPoint()).forEach(d -> {
+        Observable.just(collectorM1, collectorM2).forEach(d -> {
             min.increment(d.getMin());
             max.increment(d.getMax());
             average.increment(d.getAvg());
@@ -1175,14 +1186,6 @@ public class MetricsServiceITest extends MetricsITest {
         assertEquals(actual.get(0).get(0).getMedian(), median.getResult());
         assertEquals(actual.get(0).get(0).getAvg(), average.getResult());
         assertEquals(actual.get(0).get(0).getPercentile95th(), percentile95th.getResult());
-    }
-
-    private static void updateBuilder(NumericBucketPoint.Builder builder, DataPoint<Double> dataPoint) {
-        builder.setAvg(dataPoint.getValue())
-                .setMax(dataPoint.getValue())
-                .setMin(dataPoint.getValue())
-                .setMedian(dataPoint.getValue())
-                .setPercentile95th(dataPoint.getValue());
     }
 
     private static void assertNumericBucketsEquals(List<NumericBucketPoint> actual, List<NumericBucketPoint> expected) {
