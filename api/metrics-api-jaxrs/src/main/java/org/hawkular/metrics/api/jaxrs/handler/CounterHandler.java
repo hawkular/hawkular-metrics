@@ -33,6 +33,7 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
@@ -65,6 +66,7 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.NumericBucketPoint;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -328,6 +330,140 @@ public class CounterHandler {
                     percentiles.getPercentiles())
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+        }
+    }
+
+    @GET
+    @Path("/data")
+    @ApiOperation(value = "Fetches data points from one or more metrics that are determined using either a tags " +
+            "filter or a list of metric names. The time range between start and end is divided into buckets of " +
+            "equal size (i.e., duration) using either the buckets or bucketDuration parameter. Functions  " +
+            " are applied tothe data points in each bucket to produce statistics or aggregated metrics.",
+            response = NumericBucketPoint.class, responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+            @ApiResponse(code = 204, message = "No metric data was found."),
+            @ApiResponse(code = 400, message = "The tags parameter is required. Either the buckets or the " +
+                    "bucketDuration parameter is required but not both.", response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                response = ApiError.class) })
+    public void findCounterDataStats(
+            @Suspended AsyncResponse asyncResponse,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
+            @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+            @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
+            @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
+            @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
+                required = false) @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
+
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+        if (bucketConfig.isEmpty()) {
+            asyncResponse.resume(badRequest(new ApiError(
+                    "Either the buckets or bucketsDuration parameter must be used")));
+            return;
+        }
+        if (!bucketConfig.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+            return;
+        }
+        if (metricNames.isEmpty() && (tags == null || tags.getTags().isEmpty())) {
+            asyncResponse.resume(badRequest(new ApiError("Either metrics or tags parameter must be used")));
+            return;
+        }
+        if (!metricNames.isEmpty() && !(tags == null || tags.getTags().isEmpty())) {
+            asyncResponse.resume(badRequest(new ApiError("Cannot use both the metrics and tags parameters")));
+            return;
+        }
+
+        if (percentiles == null) {
+            percentiles = new Percentiles(Collections.<Double> emptyList());
+        }
+
+        if (metricNames.isEmpty()) {
+            metricsService.findNumericStats(tenantId, MetricType.COUNTER, tags.getTags(), timeRange.getStart(),
+                    timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+        } else {
+            metricsService.findNumericStats(tenantId, MetricType.COUNTER, metricNames, timeRange.getStart(),
+                    timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+        }
+    }
+
+    @GET
+    @Path("/data/rate")
+    @ApiOperation(value = "Fetches data points from one or more metrics that are determined using either a tags " +
+            "filter or a list of metric names. The time range between start and end is divided into buckets of " +
+            "equal size (i.e., duration) using either the buckets or bucketDuration parameter. Functions are " +
+            "applied to the data points in each bucket to produce statistics or aggregated metrics.",
+                response = NumericBucketPoint.class, responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+            @ApiResponse(code = 204, message = "No metric data was found."),
+            @ApiResponse(code = 400, message = "The tags parameter is required. Either the buckets or the " +
+                    "bucketDuration parameter is required but not both.", response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                response = ApiError.class) })
+    public void findCounterRateDataStats(
+            @Suspended AsyncResponse asyncResponse,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
+            @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+            @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
+            @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
+            @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
+                required = false) @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
+
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+        if (bucketConfig.isEmpty()) {
+            asyncResponse.resume(badRequest(new ApiError(
+                    "Either the buckets or bucketsDuration parameter must be used")));
+            return;
+        }
+        if (!bucketConfig.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+            return;
+        }
+        if (metricNames.isEmpty() && (tags == null || tags.getTags().isEmpty())) {
+            asyncResponse.resume(badRequest(new ApiError("Either metrics or tags parameter must be used")));
+            return;
+        }
+        if (!metricNames.isEmpty() && !(tags == null || tags.getTags().isEmpty())) {
+            asyncResponse.resume(badRequest(new ApiError("Cannot use both the metrics and tags parameters")));
+            return;
+        }
+
+        if (percentiles == null) {
+            percentiles = new Percentiles(Collections.<Double> emptyList());
+        }
+
+        if (metricNames.isEmpty()) {
+            metricsService.findNumericStats(tenantId, MetricType.COUNTER_RATE, tags.getTags(), timeRange.getStart(),
+                    timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+        } else {
+            metricsService.findNumericStats(tenantId, MetricType.COUNTER_RATE, metricNames, timeRange.getStart(),
+                    timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         }
     }
 }

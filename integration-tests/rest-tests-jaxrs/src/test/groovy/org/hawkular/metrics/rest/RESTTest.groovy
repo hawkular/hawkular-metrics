@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals
 
 import java.util.concurrent.atomic.AtomicInteger
 
+import org.apache.commons.math3.stat.descriptive.moment.Mean
 import org.joda.time.DateTime
 import org.junit.BeforeClass
 
@@ -170,5 +171,11 @@ Actual: ${actual}
       assertDoubleEquals(msg, expected.max, actual.max)
       assertDoubleEquals(msg, expected.percentile95th, actual.percentile95th)
     }
+  }
+
+  static double avg(List values) {
+    Mean mean = new Mean()
+    values.each { mean.increment(it) }
+    return mean.result
   }
 }

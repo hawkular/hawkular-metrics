@@ -671,12 +671,6 @@ class GaugeMetricStatisticsITest extends RESTTest {
     assertEquals(400, response.status)
   }
 
-  private static double avg(List values) {
-    Mean mean = new Mean()
-    values.each { mean.increment(it) }
-    return mean.result
-  }
-
   private static List<Double> createSample(int sampleSize) {
     def values = new double[sampleSize];
     def random = new Random()

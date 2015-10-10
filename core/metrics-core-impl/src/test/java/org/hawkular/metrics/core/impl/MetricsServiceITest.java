@@ -40,18 +40,24 @@ import static org.testng.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
+import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile;
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
 import org.hawkular.metrics.core.api.Aggregate;
@@ -809,26 +815,221 @@ public class MetricsServiceITest extends MetricsITest {
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
         Map<String, String> tagFilters = ImmutableMap.of("type", "cpu_usage", "node", "server1|server2");
 
-        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findSimpleGaugeStats(tenantId,
-                tagFilters, start.getMillis(), start.plusMinutes(5).getMillis(), buckets, Collections.emptyList()));
+        List<List<NumericBucketPoint>> actual = getOnNextEvents(
+                () -> metricsService.findNumericStats(tenantId, MetricType.GAUGE,
+                        tagFilters, start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
+                        Collections.emptyList(), false));
 
         assertEquals(actual.size(), 1);
 
-        NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(start.getMillis(),
-                start.plusMinutes(5).getMillis());
-        m1.getDataPoints().forEach(dataPoint -> updateBuilder(builder, dataPoint));
-
-        List<NumericBucketPoint> expected = getOnNextEvents(() ->
-                Observable.concat(Observable.from(m1.getDataPoints()), Observable.from(m2.getDataPoints()))
-                .collect(() -> new NumericDataPointCollector(buckets, 0, Collections.emptyList()),
-                        NumericDataPointCollector::increment)
-                .map(NumericDataPointCollector::toBucketPoint));
+        List<NumericBucketPoint> expected = Arrays.asList(createSingleBucket(
+                Stream.concat(m1.getDataPoints().stream(), m2.getDataPoints().stream()).collect(Collectors.toList()),
+                start, start.plusMinutes(5)));
 
         assertNumericBucketsEquals(actual.get(0), expected);
     }
 
     @Test
-    public void findSumGaugeStatsByTags() {
+    public void findSimpleCounterStats() {
+        //Setup the counter data
+        NumericDataPointCollector.createPercentile = InMemoryPercentileWrapper::new;
+
+        Random r = new Random(123);
+        List<Long> randomList = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            randomList.add((long) r.nextInt(100));
+        }
+        Collections.sort(randomList);
+        Iterator<Long> randoms = randomList.iterator();
+
+        String tenantId = "findCounterStats";
+        DateTime start = now().minusMinutes(10);
+
+        Metric<Long> c1 = new Metric<>(new MetricId<>(tenantId, COUNTER, "C1"), asList(
+                new DataPoint<>(start.getMillis(), 222L + randoms.next()),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 224L + randoms.next()),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 226L + randoms.next()),
+                new DataPoint<>(start.plusMinutes(3).getMillis(), 228L + randoms.next()),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 229L + randoms.next())));
+        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(c1)));
+        doAction(() -> metricsService.addTags(c1, ImmutableMap.of("type", "counter_cpu_usage", "node", "server1")));
+
+        Metric<Long> c2 = new Metric<>(new MetricId<>(tenantId, COUNTER, "C2"), asList(
+                new DataPoint<>(start.getMillis(), 150L),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 153L + randoms.next()),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 156L + randoms.next()),
+                new DataPoint<>(start.plusMinutes(3).getMillis(), 159L + randoms.next()),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 162L + randoms.next())));
+        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(c2)));
+        doAction(() -> metricsService.addTags(c2, ImmutableMap.of("type", "counter_cpu_usage", "node", "server2")));
+
+        Metric<Long> c3 = new Metric<>(new MetricId<>(tenantId, COUNTER, "C3"), asList(
+                new DataPoint<>(start.getMillis(), 11456L + randoms.next()),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), 183332L + randoms.next())));
+        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(c3)));
+        doAction(() -> metricsService.addTags(c3, ImmutableMap.of("type", "counter_cpu_usage", "node", "server3")));
+
+        Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
+        Map<String, String> tagFilters = ImmutableMap.of("type", "counter_cpu_usage", "node", "server1|server2");
+
+        List<DataPoint<Double>> c1Rate = getOnNextEvents(
+                () -> metricsService.findRateData(c1.getId(), start.getMillis(), start.plusMinutes(5).getMillis()));
+
+        List<DataPoint<Double>> c2Rate = getOnNextEvents(
+                () -> metricsService.findRateData(c2.getId(), start.getMillis(), start.plusMinutes(5).getMillis()));
+
+        //Test simple counter stats
+        List<List<NumericBucketPoint>> actualCounterStatsByTag = getOnNextEvents(
+                () -> metricsService.findNumericStats(tenantId, MetricType.COUNTER, tagFilters, start.getMillis(),
+                        start.plusMinutes(5).getMillis(), buckets, Collections.emptyList(), false));
+        assertEquals(actualCounterStatsByTag.size(), 1);
+
+        List<List<NumericBucketPoint>> actualCounterStatsById = getOnNextEvents(
+                () -> metricsService.findNumericStats(tenantId, MetricType.COUNTER, asList("C1", "C2"),
+                        start.getMillis(), start.plusMinutes(5).getMillis(), buckets, Collections.emptyList(), false));
+        assertEquals(actualCounterStatsById.size(), 1);
+
+        List<NumericBucketPoint> expectedCounterStats = Arrays.asList(createSingleBucket(
+                Stream.concat(c1.getDataPoints().stream(), c2.getDataPoints().stream()).collect(Collectors.toList()),
+                start, start.plusMinutes(5)));
+
+        assertNumericBucketsEquals(actualCounterStatsByTag.get(0), expectedCounterStats);
+        assertNumericBucketsEquals(actualCounterStatsById.get(0), expectedCounterStats);
+
+        //Test stacked counter stats
+        List<List<NumericBucketPoint>> actualStackedCounterStatsByTag = getOnNextEvents(
+                () -> metricsService.findNumericStats(tenantId, MetricType.COUNTER, tagFilters, start.getMillis(),
+                        start.plusMinutes(5).getMillis(), buckets, Collections.emptyList(), true));
+        assertEquals(actualStackedCounterStatsByTag.size(), 1);
+
+        List<List<NumericBucketPoint>> actualStackedCounterStatsById = getOnNextEvents(
+                () -> metricsService.findNumericStats(tenantId, MetricType.COUNTER, asList("C1", "C2"),
+                        start.getMillis(), start.plusMinutes(5).getMillis(), buckets, Collections.emptyList(), true));
+        assertEquals(actualStackedCounterStatsByTag.size(), 1);
+
+        NumericBucketPoint collectorC1 = createSingleBucket(c1.getDataPoints(), start, start.plusMinutes(5));
+        NumericBucketPoint collectorC2 = createSingleBucket(c2.getDataPoints(), start, start.plusMinutes(5));
+
+        final Sum min = new Sum();
+        final Sum average = new Sum();
+        final Sum median = new Sum();
+        final Sum max = new Sum();
+        final Sum percentile95th = new Sum();
+        Observable.just(collectorC1, collectorC2).forEach(d -> {
+            min.increment(d.getMin());
+            max.increment(d.getMax());
+            average.increment(d.getAvg());
+            median.increment(d.getMedian());
+            percentile95th.increment(d.getPercentile95th());
+        });
+        NumericBucketPoint expectedStackedRateBucketPoint = new NumericBucketPoint.Builder(start.getMillis(),
+                start.plusMinutes(5).getMillis())
+                        .setMin(min.getResult())
+                        .setMax(max.getResult())
+                        .setAvg(average.getResult())
+                        .setMedian(median.getResult())
+                        .setPercentile95th(percentile95th.getResult())
+                        .setSamples(2)
+                        .build();
+        List<NumericBucketPoint> expectedStackedCounterStatsList = new ArrayList<NumericBucketPoint>();
+        expectedStackedCounterStatsList.add(expectedStackedRateBucketPoint);
+
+        assertNumericBucketsEquals(actualStackedCounterStatsByTag.get(0), expectedStackedCounterStatsList);
+        assertNumericBucketsEquals(actualStackedCounterStatsById.get(0), expectedStackedCounterStatsList);
+
+        //Test simple counter rate stats
+        List<List<NumericBucketPoint>> actualCounterRateStatsByTag = getOnNextEvents(
+                () -> metricsService.findNumericStats(tenantId, MetricType.COUNTER_RATE, tagFilters, start.getMillis(),
+                        start.plusMinutes(5).getMillis(), buckets, Collections.emptyList(), false));
+        assertEquals(actualCounterRateStatsByTag.size(), 1);
+
+        List<List<NumericBucketPoint>> actualCounterRateStatsById = getOnNextEvents(
+                () -> metricsService.findNumericStats(tenantId, MetricType.COUNTER_RATE, asList("C1", "C2"),
+                        start.getMillis(), start.plusMinutes(5).getMillis(), buckets, Collections.emptyList(), false));
+        assertEquals(actualCounterRateStatsById.size(), 1);
+
+        List<NumericBucketPoint> expectedCounterRateStats = Arrays.asList(createSingleBucket(
+                Stream.concat(c1Rate.stream(), c2Rate.stream()).collect(Collectors.toList()),
+                start, start.plusMinutes(5)));
+
+        assertNumericBucketsEquals(actualCounterRateStatsByTag.get(0), expectedCounterRateStats);
+        assertNumericBucketsEquals(actualCounterRateStatsById.get(0), expectedCounterRateStats);
+
+        //Test stacked counter rate stats
+        List<List<NumericBucketPoint>> actualStackedCounterRateStatsByTag = getOnNextEvents(
+                () -> metricsService.findNumericStats(tenantId, MetricType.COUNTER_RATE, tagFilters, start.getMillis(),
+                        start.plusMinutes(5).getMillis(), buckets, Collections.emptyList(), true));
+        assertEquals(actualStackedCounterStatsByTag.size(), 1);
+
+        List<List<NumericBucketPoint>> actualStackedCounterRateStatsById = getOnNextEvents(
+                () -> metricsService.findNumericStats(tenantId, MetricType.COUNTER_RATE, asList("C1", "C2"),
+                        start.getMillis(), start.plusMinutes(5).getMillis(), buckets, Collections.emptyList(), true));
+        assertEquals(actualStackedCounterStatsByTag.size(), 1);
+
+        NumericBucketPoint collectorC1Rate = createSingleBucket(c1Rate, start, start.plusMinutes(5));
+        NumericBucketPoint collectorC2Rate = createSingleBucket(c2Rate, start, start.plusMinutes(5));
+
+        final Sum counterRateMin = new Sum();
+        final Sum counterRateMax = new Sum();
+        final Sum counterRateAverage = new Sum();
+        final Sum counterRateMedian = new Sum();
+        final Sum counterRatePercentile95th = new Sum();
+        Observable.just(collectorC1Rate, collectorC2Rate).forEach(d -> {
+            counterRateMin.increment(d.getMin());
+            counterRateMax.increment(d.getMax());
+            counterRateAverage.increment(d.getAvg());
+            counterRateMedian.increment(d.getMedian());
+            counterRatePercentile95th.increment(d.getPercentile95th());
+        });
+        NumericBucketPoint expectedStackedCounterRateBucketPoint = new NumericBucketPoint.Builder(start.getMillis(),
+                start.plusMinutes(5).getMillis())
+                        .setMin(counterRateMin.getResult())
+                        .setMax(counterRateMax.getResult())
+                        .setAvg(counterRateAverage.getResult())
+                        .setMedian(counterRateMedian.getResult())
+                        .setPercentile95th(counterRatePercentile95th.getResult())
+                        .setSamples(2)
+                        .build();
+        List<NumericBucketPoint> expectedStackedCounterRateStatsList = new ArrayList<NumericBucketPoint>();
+        expectedStackedCounterRateStatsList.add(expectedStackedCounterRateBucketPoint);
+
+        assertNumericBucketsEquals(actualStackedCounterRateStatsByTag.get(0), expectedStackedCounterRateStatsList);
+        assertNumericBucketsEquals(actualStackedCounterRateStatsById.get(0), expectedStackedCounterRateStatsList);
+    }
+
+    private <T extends Number> NumericBucketPoint createSingleBucket(List<DataPoint<T>> combinedData, DateTime start,
+            DateTime end) {
+        T expectedMin = combinedData.stream()
+                .min((x, y) -> Double.compare(x.getValue().doubleValue(), y.getValue().doubleValue()))
+                .get()
+                .getValue();
+        T expectedMax = combinedData.stream()
+                .max((x, y) -> Double.compare(x.getValue().doubleValue(), y.getValue().doubleValue()))
+                .get()
+                .getValue();
+        PercentileWrapper expectedMedian = NumericDataPointCollector.createPercentile.apply(50.0);
+        PercentileWrapper expectedPercentile95th = NumericDataPointCollector.createPercentile.apply(95.0);
+        Mean expectedAverage = new Mean();
+        Sum expectedSamples = new Sum();
+        combinedData.stream().forEach(arg -> {
+            expectedMedian.addValue(arg.getValue().doubleValue());
+            expectedPercentile95th.addValue(arg.getValue().doubleValue());
+            expectedAverage.increment(arg.getValue().doubleValue());
+            expectedSamples.increment(1);
+        });
+
+        return new NumericBucketPoint.Builder(start.getMillis(), end.getMillis())
+                .setMin(expectedMin.doubleValue())
+                .setMax(expectedMax.doubleValue())
+                .setAvg(expectedAverage.getResult())
+                .setMedian(expectedMedian.getResult())
+                .setPercentile95th(expectedPercentile95th.getResult())
+                .setSamples(new Double(expectedSamples.getResult()).intValue())
+                .build();
+    }
+
+    @Test
+    public void findStackedGaugeStatsByTags() {
         NumericDataPointCollector.createPercentile = InMemoryPercentileWrapper::new;
 
         String tenantId = "findGaugeStatsByTags";
@@ -861,22 +1062,21 @@ public class MetricsServiceITest extends MetricsITest {
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
         Map<String, String> tagFilters = ImmutableMap.of("type", "cpu_usage", "node", "server1|server2");
 
-        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findSumGaugeStats(tenantId,
-                tagFilters, start.getMillis(), start.plusMinutes(5).getMillis(), buckets, Collections.emptyList()));
+        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findNumericStats(tenantId,
+                MetricType.GAUGE, tagFilters, start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
+                Collections.emptyList(), true));
 
         assertEquals(actual.size(), 1);
 
-        NumericDataPointCollector collectorM1 = new NumericDataPointCollector(buckets, 0, Collections.emptyList());
-        m1.getDataPoints().forEach(dataPoint -> collectorM1.increment(dataPoint));
-        NumericDataPointCollector collectorM2 = new NumericDataPointCollector(buckets, 0, Collections.emptyList());
-        m2.getDataPoints().forEach(dataPoint -> collectorM2.increment(dataPoint));
+        NumericBucketPoint collectorM1 = createSingleBucket(m1.getDataPoints(), start, start.plusMinutes(5));
+        NumericBucketPoint collectorM2 = createSingleBucket(m2.getDataPoints(), start, start.plusMinutes(5));
 
         final Sum min = new Sum();
         final Sum average = new Sum();
         final Sum median = new Sum();
         final Sum max = new Sum();
         final Sum percentile95th = new Sum();
-        Observable.just(collectorM1, collectorM2).map(d -> d.toBucketPoint()).forEach(d -> {
+        Observable.just(collectorM1, collectorM2).forEach(d -> {
             min.increment(d.getMin());
             max.increment(d.getMax());
             average.increment(d.getAvg());
@@ -924,27 +1124,21 @@ public class MetricsServiceITest extends MetricsITest {
 
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
 
-        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findSimpleGaugeStats(tenantId,
-                asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
-                Collections.emptyList()));
+        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findNumericStats(tenantId,
+                MetricType.GAUGE, asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
+                Collections.emptyList(), false));
 
         assertEquals(actual.size(), 1);
 
-        NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(start.getMillis(),
-                start.plusMinutes(5).getMillis());
-        m1.getDataPoints().forEach(dataPoint -> updateBuilder(builder, dataPoint));
-
-        List<NumericBucketPoint> expected = getOnNextEvents(() ->
-                Observable.concat(Observable.from(m1.getDataPoints()), Observable.from(m2.getDataPoints()))
-                        .collect(() -> new NumericDataPointCollector(buckets, 0, Collections.emptyList()),
-                                NumericDataPointCollector::increment)
-                        .map(NumericDataPointCollector::toBucketPoint));
+        List<NumericBucketPoint> expected = Arrays.asList(createSingleBucket(
+                Stream.concat(m1.getDataPoints().stream(), m2.getDataPoints().stream()).collect(Collectors.toList()),
+                start, start.plusMinutes(5)));
 
         assertNumericBucketsEquals(actual.get(0), expected);
     }
 
     @Test
-    public void findSumGaugeStatsByMetricNames() {
+    public void findStackedGaugeStatsByMetricNames() {
         NumericDataPointCollector.createPercentile = InMemoryPercentileWrapper::new;
 
         String tenantId = "findGaugeStatsByMetricNames";
@@ -973,23 +1167,21 @@ public class MetricsServiceITest extends MetricsITest {
 
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
 
-        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findSumGaugeStats(tenantId,
-                asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
-                Collections.emptyList()));
+        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findNumericStats(tenantId,
+                MetricType.GAUGE, asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
+                Collections.emptyList(), true));
 
         assertEquals(actual.size(), 1);
 
-        NumericDataPointCollector collectorM1 = new NumericDataPointCollector(buckets, 0, Collections.emptyList());
-        m1.getDataPoints().forEach(dataPoint -> collectorM1.increment(dataPoint));
-        NumericDataPointCollector collectorM2 = new NumericDataPointCollector(buckets, 0, Collections.emptyList());
-        m2.getDataPoints().forEach(dataPoint -> collectorM2.increment(dataPoint));
+        NumericBucketPoint collectorM1 = createSingleBucket(m1.getDataPoints(), start, start.plusMinutes(5));
+        NumericBucketPoint collectorM2 = createSingleBucket(m2.getDataPoints(), start, start.plusMinutes(5));
 
         final Sum min = new Sum();
         final Sum average = new Sum();
         final Sum median = new Sum();
         final Sum max = new Sum();
         final Sum percentile95th = new Sum();
-        Observable.just(collectorM1, collectorM2).map(d -> d.toBucketPoint()).forEach(d -> {
+        Observable.just(collectorM1, collectorM2).forEach(d -> {
             min.increment(d.getMin());
             max.increment(d.getMax());
             average.increment(d.getAvg());
@@ -1002,14 +1194,6 @@ public class MetricsServiceITest extends MetricsITest {
         assertEquals(actual.get(0).get(0).getMedian(), median.getResult());
         assertEquals(actual.get(0).get(0).getAvg(), average.getResult());
         assertEquals(actual.get(0).get(0).getPercentile95th(), percentile95th.getResult());
-    }
-
-    private static void updateBuilder(NumericBucketPoint.Builder builder, DataPoint<Double> dataPoint) {
-        builder.setAvg(dataPoint.getValue())
-                .setMax(dataPoint.getValue())
-                .setMin(dataPoint.getValue())
-                .setMedian(dataPoint.getValue())
-                .setPercentile95th(dataPoint.getValue());
     }
 
     private static void assertNumericBucketsEquals(List<NumericBucketPoint> actual, List<NumericBucketPoint> expected) {

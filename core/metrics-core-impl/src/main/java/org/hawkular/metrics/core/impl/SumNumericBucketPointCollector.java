@@ -44,7 +44,7 @@ final class SumNumericBucketPointCollector {
         median.increment(bucketPoint.getMedian());
         max.increment(bucketPoint.getMax());
         percentile95th.increment(bucketPoint.getPercentile95th());
-        samples.increment(bucketPoint.getSamples());
+        samples.increment(1);
 
         start = bucketPoint.getStart();
         end = bucketPoint.getEnd();
