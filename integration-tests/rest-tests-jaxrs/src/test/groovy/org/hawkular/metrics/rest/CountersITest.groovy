@@ -654,19 +654,26 @@ Actual:   ${response.data}
     ], headers: [(tenantHeaderName): tenantId])
     assertEquals(201, response.status)
 
+    Random rand = new Random()
+    def randomList = []
+    (1..10).each {
+      randomList << rand.nextInt(100)
+    }
+    randomList.sort()
+
     def c1 = [
-      [timestamp: start.millis, value: 510],
-      [timestamp: start.plusMinutes(1).millis, value: 512],
-      [timestamp: start.plusMinutes(2).millis, value: 514],
-      [timestamp: start.plusMinutes(3).millis, value: 516],
-      [timestamp: start.plusMinutes(4).millis, value: 518]
+      [timestamp: start.millis, value: 510 + randomList[0]],
+      [timestamp: start.plusMinutes(1).millis, value: 512 + randomList[1]],
+      [timestamp: start.plusMinutes(2).millis, value: 514 + randomList[2]],
+      [timestamp: start.plusMinutes(3).millis, value: 516 + randomList[3]],
+      [timestamp: start.plusMinutes(4).millis, value: 518 + randomList[4]]
     ]
     def c2 = [
-      [timestamp: start.millis, value: 378],
-      [timestamp: start.plusMinutes(1).millis, value: 381],
-      [timestamp: start.plusMinutes(2).millis, value: 384],
-      [timestamp: start.plusMinutes(3).millis, value: 387],
-      [timestamp: start.plusMinutes(4).millis, value: 390]
+      [timestamp: start.millis, value: 378 + randomList[5]],
+      [timestamp: start.plusMinutes(1).millis, value: 381 + randomList[6]],
+      [timestamp: start.plusMinutes(2).millis, value: 384 + randomList[7]],
+      [timestamp: start.plusMinutes(3).millis, value: 387 + randomList[8]],
+      [timestamp: start.plusMinutes(4).millis, value: 390 + randomList[9]]
     ]
 
     // insert data points
@@ -694,6 +701,30 @@ Actual:   ${response.data}
 
     c1 = c1.take(c1.size() - 1)
     c2 = c2.take(c2.size() - 1)
+    def combinedData = c1 + c2;
+
+    //Get counter rates
+    response = hawkularMetrics.get(
+        path: 'counters/C1/rate',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(4).millis,
+            buckets: 1,
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    def c1Rates = response.data[0];
+
+    response = hawkularMetrics.get(
+        path: 'counters/C2/rate',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(4).millis,
+            buckets: 1,
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    def c2Rates = response.data[0];
 
     //Stacked counter stats tests
     response = hawkularMetrics.get(
@@ -757,8 +788,6 @@ Actual:   ${response.data}
 
     def expectedSimpleCounterBucketByTag = response.data[0]
 
-    def combinedData = c1 + c2;
-
     assertEquals("The start time is wrong", start.millis, expectedSimpleCounterBucketByTag.start)
     assertEquals("The end time is wrong", start.plusMinutes(4).millis, expectedSimpleCounterBucketByTag.end)
     assertDoubleEquals("The min is wrong", (combinedData.min {it.value}).value, expectedSimpleCounterBucketByTag.min)
@@ -791,30 +820,6 @@ Actual:   ${response.data}
     assertEquals("The [empty] property is wrong", false, actualSimpleCounterBucketById.empty)
     assertTrue("Expected the [median] property to be set", actualSimpleCounterBucketById.median != null)
     assertTrue("Expected the [percentile95th] property to be set", actualSimpleCounterBucketById.percentile95th != null)
-
-    //Get counter rates
-    response = hawkularMetrics.get(
-        path: 'counters/C1/rate',
-        query: [
-            start: start.millis,
-            end: start.plusMinutes(4).millis,
-            buckets: 1,
-        ],
-        headers: [(tenantHeaderName): tenantId]
-    )
-    def c1Rates = response.data[0];
-
-    response = hawkularMetrics.get(
-        path: 'counters/C2/rate',
-        query: [
-            start: start.millis,
-            end: start.plusMinutes(4).millis,
-            buckets: 1,
-        ],
-        headers: [(tenantHeaderName): tenantId]
-    )
-    def c2Rates = response.data[0];
-    System.out.println(c2Rates);
 
     //Stacked counter rate stats tests
     response = hawkularMetrics.get(
