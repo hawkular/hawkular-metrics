@@ -1060,7 +1060,14 @@ Actual:   ${response.data}
     def actualCounterRateBucketById = response.data[0]
 
     assertEquals("Expected to get back one bucket", 1, response.data.size())
-    assertEquals("Stacked stats when queried by tag are different than when queried by id", actualCounterRateBucketById, actualCounterRateBucketByTag)
+    assertEquals("The start time is wrong", start.millis, actualCounterRateBucketById.start)
+    assertEquals("The end time is wrong", start.plusMinutes(4).millis, actualCounterRateBucketById.end)
+    assertDoubleEquals("The min is wrong", (c1Rates.min + c2Rates.min), actualCounterRateBucketById.min)
+    assertDoubleEquals("The max is wrong", (c1Rates.max + c2Rates.max), actualCounterRateBucketById.max)
+    assertDoubleEquals("The avg is wrong", (c1Rates.avg + c2Rates.avg), actualCounterRateBucketById.avg)
+    assertEquals("The [empty] property is wrong", false, actualCounterRateBucketById.empty)
+    assertTrue("Expected the [median] property to be set", actualCounterRateBucketById.median != null)
+    assertTrue("Expected the [percentile95th] property to be set", actualCounterRateBucketById.percentile95th != null)
   }
 
   @Test
@@ -1204,6 +1211,13 @@ Actual:   ${response.data}
     def actualCounterRateBucketById = response.data[0]
 
     assertEquals("Expected to get back one bucket", 1, response.data.size())
-    assertEquals("Stacked stats when queried by tag are different than when queried by id", actualCounterRateBucketById, actualCounterRateBucketByTag)
+    assertEquals("The start time is wrong", start.millis, actualCounterRateBucketById.start)
+    assertEquals("The end time is wrong", start.plusMinutes(4).millis, actualCounterRateBucketById.end)
+    assertDoubleEquals("The min is wrong", Math.min(c1Rates.min, c2Rates.min), actualCounterRateBucketById.min)
+    assertDoubleEquals("The max is wrong", Math.max(c1Rates.max, c2Rates.max), actualCounterRateBucketById.max)
+    assertDoubleEquals("The avg is wrong", (c1Rates.avg + c2Rates.avg)/2, actualCounterRateBucketById.avg)
+    assertEquals("The [empty] property is wrong", false, actualCounterRateBucketById.empty)
+    assertTrue("Expected the [median] property to be set", actualCounterRateBucketById.median != null)
+    assertTrue("Expected the [percentile95th] property to be set", actualCounterRateBucketById.percentile95th != null)
   }
 }
