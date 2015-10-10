@@ -1,3 +1,5 @@
+= DEPRECATED: PLEASE SEE https://github.com/openshift/origin-metrics
+
 = Hawkular Metric Containers
 :type: article
 
