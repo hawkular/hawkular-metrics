@@ -631,7 +631,7 @@ Actual:   ${response.data}
   }
 
   @Test
-  void findStatsForMultipleCounters() {
+  void findStackedStatsForMultipleCounters() {
     String tenantId = nextTenantId()
     DateTime start = now().minusMinutes(10)
 
@@ -726,7 +726,7 @@ Actual:   ${response.data}
     )
     def c2Rates = response.data[0];
 
-    //Stacked counter stats tests
+    //Tests start here
     response = hawkularMetrics.get(
         path: 'counters/data',
         query: [
@@ -770,8 +770,105 @@ Actual:   ${response.data}
 
     assertEquals("Expected to get back one bucket", 1, response.data.size())
     assertEquals("Stacked stats when queried by tag are different than when queried by id", actualCounterBucketById, actualCounterBucketByTag)
+  }
 
-    //Simple counter stats tests
+  @Test
+  void findSimpleStatsForMultipleCounters() {
+    String tenantId = nextTenantId()
+    DateTime start = now().minusMinutes(10)
+
+    // Create some metrics
+    def response = hawkularMetrics.post(path: 'counters', body: [
+        id  : 'C1',
+        tags: ['type': 'counter_cpu_usage', 'host': 'server1', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: 'counters', body: [
+        id  : 'C2',
+        tags: ['type': 'counter_cpu_usage', 'host': 'server2', 'env': 'dev']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: 'counters', body: [
+        id  : 'C3',
+        tags: ['type': 'counter_cpu_usage', 'host': 'server3', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    Random rand = new Random()
+    def randomList = []
+    (1..10).each {
+      randomList << rand.nextInt(100)
+    }
+    randomList.sort()
+
+    def c1 = [
+      [timestamp: start.millis, value: 510 + randomList[0]],
+      [timestamp: start.plusMinutes(1).millis, value: 512 + randomList[1]],
+      [timestamp: start.plusMinutes(2).millis, value: 514 + randomList[2]],
+      [timestamp: start.plusMinutes(3).millis, value: 516 + randomList[3]],
+      [timestamp: start.plusMinutes(4).millis, value: 518 + randomList[4]]
+    ]
+    def c2 = [
+      [timestamp: start.millis, value: 378 + randomList[5]],
+      [timestamp: start.plusMinutes(1).millis, value: 381 + randomList[6]],
+      [timestamp: start.plusMinutes(2).millis, value: 384 + randomList[7]],
+      [timestamp: start.plusMinutes(3).millis, value: 387 + randomList[8]],
+      [timestamp: start.plusMinutes(4).millis, value: 390 + randomList[9]]
+    ]
+
+    // insert data points
+    response = hawkularMetrics.post(path: "counters/data", body: [
+        [
+            id: 'C1',
+            data: c1
+        ],
+        [
+            id: 'C2',
+            data: c2
+        ],
+        [
+            id: 'C3',
+            data: [
+                [timestamp: start.millis, value: 5712],
+                [timestamp: start.plusMinutes(1).millis, value: 5773],
+                [timestamp: start.plusMinutes(2).millis, value: 5949],
+                [timestamp: start.plusMinutes(3).millis, value: 5979],
+                [timestamp: start.plusMinutes(4).millis, value: 6548]
+            ]
+        ]
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    c1 = c1.take(c1.size() - 1)
+    c2 = c2.take(c2.size() - 1)
+    def combinedData = c1 + c2;
+
+    //Get counter rates
+    response = hawkularMetrics.get(
+        path: 'counters/C1/rate',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(4).millis,
+            buckets: 1,
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    def c1Rates = response.data[0];
+
+    response = hawkularMetrics.get(
+        path: 'counters/C2/rate',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(4).millis,
+            buckets: 1,
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    def c2Rates = response.data[0];
+
+    //Tests start here
     response = hawkularMetrics.get(
         path: 'counters/data',
         query: [
@@ -820,8 +917,105 @@ Actual:   ${response.data}
     assertEquals("The [empty] property is wrong", false, actualSimpleCounterBucketById.empty)
     assertTrue("Expected the [median] property to be set", actualSimpleCounterBucketById.median != null)
     assertTrue("Expected the [percentile95th] property to be set", actualSimpleCounterBucketById.percentile95th != null)
+  }
 
-    //Stacked counter rate stats tests
+  @Test
+  void findStackedStatsForMultipleCounterRates() {
+    String tenantId = nextTenantId()
+    DateTime start = now().minusMinutes(10)
+
+    // Create some metrics
+    def response = hawkularMetrics.post(path: 'counters', body: [
+        id  : 'C1',
+        tags: ['type': 'counter_cpu_usage', 'host': 'server1', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: 'counters', body: [
+        id  : 'C2',
+        tags: ['type': 'counter_cpu_usage', 'host': 'server2', 'env': 'dev']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: 'counters', body: [
+        id  : 'C3',
+        tags: ['type': 'counter_cpu_usage', 'host': 'server3', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    Random rand = new Random()
+    def randomList = []
+    (1..10).each {
+      randomList << rand.nextInt(100)
+    }
+    randomList.sort()
+
+    def c1 = [
+      [timestamp: start.millis, value: 510 + randomList[0]],
+      [timestamp: start.plusMinutes(1).millis, value: 512 + randomList[1]],
+      [timestamp: start.plusMinutes(2).millis, value: 514 + randomList[2]],
+      [timestamp: start.plusMinutes(3).millis, value: 516 + randomList[3]],
+      [timestamp: start.plusMinutes(4).millis, value: 518 + randomList[4]]
+    ]
+    def c2 = [
+      [timestamp: start.millis, value: 378 + randomList[5]],
+      [timestamp: start.plusMinutes(1).millis, value: 381 + randomList[6]],
+      [timestamp: start.plusMinutes(2).millis, value: 384 + randomList[7]],
+      [timestamp: start.plusMinutes(3).millis, value: 387 + randomList[8]],
+      [timestamp: start.plusMinutes(4).millis, value: 390 + randomList[9]]
+    ]
+
+    // insert data points
+    response = hawkularMetrics.post(path: "counters/data", body: [
+        [
+            id: 'C1',
+            data: c1
+        ],
+        [
+            id: 'C2',
+            data: c2
+        ],
+        [
+            id: 'C3',
+            data: [
+                [timestamp: start.millis, value: 5712],
+                [timestamp: start.plusMinutes(1).millis, value: 5773],
+                [timestamp: start.plusMinutes(2).millis, value: 5949],
+                [timestamp: start.plusMinutes(3).millis, value: 5979],
+                [timestamp: start.plusMinutes(4).millis, value: 6548]
+            ]
+        ]
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    c1 = c1.take(c1.size() - 1)
+    c2 = c2.take(c2.size() - 1)
+    def combinedData = c1 + c2;
+
+    //Get counter rates
+    response = hawkularMetrics.get(
+        path: 'counters/C1/rate',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(4).millis,
+            buckets: 1,
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    def c1Rates = response.data[0];
+
+    response = hawkularMetrics.get(
+        path: 'counters/C2/rate',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(4).millis,
+            buckets: 1,
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    def c2Rates = response.data[0];
+
+    //Tests start here
     response = hawkularMetrics.get(
         path: 'counters/data/rate',
         query: [
@@ -866,9 +1060,106 @@ Actual:   ${response.data}
     def actualCounterRateBucketById = response.data[0]
 
     assertEquals("Expected to get back one bucket", 1, response.data.size())
-    assertEquals("Stacked stats when queried by tag are different than when queried by id", actualCounterBucketById, actualCounterBucketByTag)
+    assertEquals("Stacked stats when queried by tag are different than when queried by id", actualCounterRateBucketById, actualCounterRateBucketByTag)
+  }
 
-    //Simple counter rate stats tests
+  @Test
+  void findSimpleStatsForMultipleCounterRates() {
+    String tenantId = nextTenantId()
+    DateTime start = now().minusMinutes(10)
+
+    // Create some metrics
+    def response = hawkularMetrics.post(path: 'counters', body: [
+        id  : 'C1',
+        tags: ['type': 'counter_cpu_usage', 'host': 'server1', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: 'counters', body: [
+        id  : 'C2',
+        tags: ['type': 'counter_cpu_usage', 'host': 'server2', 'env': 'dev']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: 'counters', body: [
+        id  : 'C3',
+        tags: ['type': 'counter_cpu_usage', 'host': 'server3', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    Random rand = new Random()
+    def randomList = []
+    (1..10).each {
+      randomList << rand.nextInt(100)
+    }
+    randomList.sort()
+
+    def c1 = [
+      [timestamp: start.millis, value: 510 + randomList[0]],
+      [timestamp: start.plusMinutes(1).millis, value: 512 + randomList[1]],
+      [timestamp: start.plusMinutes(2).millis, value: 514 + randomList[2]],
+      [timestamp: start.plusMinutes(3).millis, value: 516 + randomList[3]],
+      [timestamp: start.plusMinutes(4).millis, value: 518 + randomList[4]]
+    ]
+    def c2 = [
+      [timestamp: start.millis, value: 378 + randomList[5]],
+      [timestamp: start.plusMinutes(1).millis, value: 381 + randomList[6]],
+      [timestamp: start.plusMinutes(2).millis, value: 384 + randomList[7]],
+      [timestamp: start.plusMinutes(3).millis, value: 387 + randomList[8]],
+      [timestamp: start.plusMinutes(4).millis, value: 390 + randomList[9]]
+    ]
+
+    // insert data points
+    response = hawkularMetrics.post(path: "counters/data", body: [
+        [
+            id: 'C1',
+            data: c1
+        ],
+        [
+            id: 'C2',
+            data: c2
+        ],
+        [
+            id: 'C3',
+            data: [
+                [timestamp: start.millis, value: 5712],
+                [timestamp: start.plusMinutes(1).millis, value: 5773],
+                [timestamp: start.plusMinutes(2).millis, value: 5949],
+                [timestamp: start.plusMinutes(3).millis, value: 5979],
+                [timestamp: start.plusMinutes(4).millis, value: 6548]
+            ]
+        ]
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    c1 = c1.take(c1.size() - 1)
+    c2 = c2.take(c2.size() - 1)
+    def combinedData = c1 + c2;
+
+    //Get counter rates
+    response = hawkularMetrics.get(
+        path: 'counters/C1/rate',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(4).millis,
+            buckets: 1,
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    def c1Rates = response.data[0];
+
+    response = hawkularMetrics.get(
+        path: 'counters/C2/rate',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(4).millis,
+            buckets: 1,
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    def c2Rates = response.data[0];
+
+    //Tests start here
     response = hawkularMetrics.get(
         path: 'counters/data/rate',
         query: [
@@ -884,7 +1175,7 @@ Actual:   ${response.data}
 
     assertEquals("Expected to get back one bucket", 1, response.data.size())
 
-    actualCounterRateBucketByTag = response.data[0]
+    def actualCounterRateBucketByTag = response.data[0]
 
     assertEquals("The start time is wrong", start.millis, actualCounterRateBucketByTag.start)
     assertEquals("The end time is wrong", start.plusMinutes(4).millis, actualCounterRateBucketByTag.end)
@@ -910,9 +1201,9 @@ Actual:   ${response.data}
 
     assertEquals("Expected to get back one bucket", 1, response.data.size())
 
-    actualCounterRateBucketById = response.data[0]
+    def actualCounterRateBucketById = response.data[0]
 
     assertEquals("Expected to get back one bucket", 1, response.data.size())
-    assertEquals("Stacked stats when queried by tag are different than when queried by id", actualCounterBucketById, actualCounterBucketByTag)
+    assertEquals("Stacked stats when queried by tag are different than when queried by id", actualCounterRateBucketById, actualCounterRateBucketByTag)
   }
 }
