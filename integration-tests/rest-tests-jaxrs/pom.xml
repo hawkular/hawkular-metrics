@@ -167,7 +167,6 @@
                   <goal>start</goal>
                 </goals>
                 <configuration>
-                  <serverConfig>standalone-test.xml</serverConfig>
                   <javaOpts>
                     <javaOpt>-Xms64m</javaOpt>
                     <javaOpt>-Xmx512m</javaOpt>
@@ -176,7 +175,6 @@
                     <javaOpt>-Dsun.rmi.dgc.client.gcInterval=3600000</javaOpt>
                     <javaOpt>-Dsun.rmi.dgc.server.gcInterval=3600000</javaOpt>
                     <javaOpt>-Djboss.socket.binding.port-offset=${wildfly.port.offset}</javaOpt>
-                    <javaOpt>-Djboss.server.config.dir=${project.build.directory}/wildfly-configuration</javaOpt>
                     <javaOpt>-Dcassandra.keyspace=${cassandra.keyspace}</javaOpt>
                     <javaOpt>-Dcassandra.resetdb</javaOpt>
                     <javaOpt>-Dhawkular.metrics.waitForService</javaOpt>
@@ -187,6 +185,29 @@
                     <javaOpt>-Xdebug</javaOpt>
                     <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
                   </javaOpts>
+                </configuration>
+              </execution>
+              <execution>
+                <id>configure-loggers</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>execute-commands</goal>
+                </goals>
+                <configuration>
+                  <jbossHome>${project.build.directory}/wildfly-run/wildfly-${version.org.wildfly}</jbossHome>
+                  <executeCommands>
+                    <commands>
+                      <command>
+                        /subsystem=logging/console-handler=CONSOLE:write-attribute(name="level",value="${wildfly.logging.console.level}")
+                      </command>
+                      <command>
+                        /subsystem=logging/periodic-rotating-file-handler=FILE:write-attribute(name="level",value="${wildfly.logging.file.level}")
+                      </command>
+                      <commmand>
+                        /subsystem=logging/periodic-rotating-file-handler=FILE:write-attribute(name="file",value={path="${project.build.directory}/wildfly-test.log"})
+                      </commmand>
+                    </commands>
+                  </executeCommands>
                 </configuration>
               </execution>
               <execution>
@@ -232,45 +253,6 @@
         <wildfly.logging.file.level>ERROR</wildfly.logging.file.level>
         <terminal-event.timeout>10</terminal-event.timeout>
       </properties>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-resources-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>copy-standalone-test</id>
-                <phase>process-test-resources</phase>
-                <goals>
-                  <goal>copy-resources</goal>
-                </goals>
-                <configuration>
-                  <!--
-                    We cannot specify an arbitrary path to standalone-test.xml, so we include the necessary
-                    configuration files and override the default configuration directory. See
-                    https://issues.jboss.org/browse/JBASMP-75 for details.
-                  -->
-                  <outputDirectory>${project.build.directory}/wildfly-configuration</outputDirectory>
-                  <overwrite>true</overwrite>
-                  <useDefaultDelimiters>false</useDefaultDelimiters>
-                  <delimiters>
-                    <delimiter>@@@</delimiter>
-                  </delimiters>
-                  <resources>
-                    <resource>
-                      <directory>${project.basedir}/src/test/wildfly-configuration</directory>
-                      <includes>
-                        <include>*</include>
-                      </includes>
-                      <filtering>true</filtering>
-                    </resource>
-                  </resources>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
     </profile>
 
   </profiles>

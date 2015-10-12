@@ -204,13 +204,34 @@
                   <jvmArgs>-Xms64m -Xmx512m -Xss256k -Djava.net.preferIPv4Stack=true
                     -Dsun.rmi.dgc.client.gcInterval=3600000 -Dsun.rmi.dgc.server.gcInterval=3600000
                     -Djboss.socket.binding.port-offset=${jboss-as.port.offset}
-                    -Djboss.server.config.dir=${project.build.directory}/jboss-as-configuration
                     -Dcassandra.keyspace=${cassandra.keyspace} -Dcassandra.resetdb -Dhawkular.metrics.waitForService
                     -Dhawkular.metrics.use-virtual-clock=true -Dterminal-event.timeout=${terminal-event.timeout}
                     -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787
                     -Dhawkular.metrics.allowed-cors-origins=http://test.hawkular.org,https://secure.hawkular.io
                     -Dhawkular.metrics.allowed-cors-access-control-allow-headers=random-header1,random-header2
                   </jvmArgs>
+                </configuration>
+              </execution>
+              <execution>
+                <id>configure-loggers</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>execute-commands</goal>
+                </goals>
+                <configuration>
+                  <executeCommands>
+                    <commands>
+                      <command>
+                        /subsystem=logging/console-handler=CONSOLE:write-attribute(name="level",value="${jboss-as.logging.console.level}")
+                      </command>
+                      <command>
+                        /subsystem=logging/periodic-rotating-file-handler=FILE:write-attribute(name="level",value="${jboss-as.logging.file.level}")
+                      </command>
+                      <commmand>
+                        /subsystem=logging/periodic-rotating-file-handler=FILE:write-attribute(name="file",value={path="${project.build.directory}/jboss-as-test.log"})
+                      </commmand>
+                    </commands>
+                  </executeCommands>
                 </configuration>
               </execution>
               <execution>
@@ -255,40 +276,6 @@
         <jboss-as.logging.console.level>ERROR</jboss-as.logging.console.level>
         <jboss-as.logging.file.level>DEBUG</jboss-as.logging.file.level>
       </properties>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-resources-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>copy-standalone-test</id>
-                <phase>process-test-resources</phase>
-                <goals>
-                  <goal>copy-resources</goal>
-                </goals>
-                <configuration>
-                  <outputDirectory>${project.build.directory}/jboss-as-configuration</outputDirectory>
-                  <overwrite>true</overwrite>
-                  <useDefaultDelimiters>false</useDefaultDelimiters>
-                  <delimiters>
-                    <delimiter>@@@</delimiter>
-                  </delimiters>
-                  <resources>
-                    <resource>
-                      <directory>${project.basedir}/src/test/jboss-as-configuration</directory>
-                      <includes>
-                        <include>*</include>
-                      </includes>
-                      <filtering>true</filtering>
-                    </resource>
-                  </resources>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
     </profile>
 
   </profiles>
