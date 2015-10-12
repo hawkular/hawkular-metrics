@@ -86,6 +86,11 @@
       <artifactId>swagger-annotations</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>io.swagger</groupId>
+      <artifactId>swagger-core</artifactId>
+      <scope>provided</scope>
+    </dependency>
 
     <!-- test -->
     <dependency>
@@ -131,6 +136,8 @@
               <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
             </manifest>
           </archive>
+          <!-- Exclude Swagger output customization classes from the WAR file -->
+          <packagingExcludes>WEB-INF/classes/org/hawkular/metrics/api/jaxrs/swagger/**/*</packagingExcludes>
           <webResources>
             <resource>
               <filtering>false</filtering>
@@ -159,6 +166,7 @@
     <profile>
       <id>docgen</id>
       <properties>
+        <restDocDirectory>${project.basedir}/src/main/rest-doc</restDocDirectory>
         <swaggerDirectory>${project.build.directory}/generated/swagger-ui</swaggerDirectory>
       </properties>
       <build>
@@ -177,6 +185,7 @@
                     <title>Hawkular Metrics REST API</title>
                     <version>1.0</version>
                   </info>
+                  <swaggerInternalFilter>org.hawkular.metrics.api.jaxrs.swagger.SwaggerFilter</swaggerInternalFilter>
                   <swaggerDirectory>${swaggerDirectory}</swaggerDirectory>
                 </apiSource>
               </apiSources>
@@ -202,11 +211,12 @@
             </dependencies>
             <configuration>
               <properties>
+                <baseFile>${restDocDirectory}/base.adoc</baseFile>
                 <swaggerFile>${swaggerDirectory}/swagger.json</swaggerFile>
                 <outputFile>${project.build.directory}/generated/rest-metrics.adoc</outputFile>
               </properties>
               <scripts>
-                <script>file:///${project.basedir}/src/main/script/apidoc.groovy</script>
+                <script>file:///${restDocDirectory}/apidoc.groovy</script>
               </scripts>
             </configuration>
             <executions>

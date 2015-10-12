@@ -94,10 +94,10 @@ public class CounterHandler {
     @POST
     @Path("/")
     @ApiOperation(
-            value = "Create counter metric. This operation also causes the rate to be calculated and " +
-                    "persisted periodically after raw count data is persisted.",
-            notes = "Clients are not required to explicitly create a metric before storing data. Doing so however " +
-                    "allows clients to prevent naming collisions and to specify tags and data retention.")
+            value = "Create counter metric.", notes = "This operation also causes the rate to be calculated and " +
+            "persisted periodically after raw count data is persisted. Clients are not required to explicitly create " +
+            "a metric before storing data. Doing so however allows clients to prevent naming collisions and to " +
+            "specify tags and data retention.")
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "Metric created successfully"),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
@@ -123,7 +123,7 @@ public class CounterHandler {
 
     @GET
     @Path("/{id}")
-    @ApiOperation(value = "Retrieve a counter definition", response = MetricDefinition.class)
+    @ApiOperation(value = "Retrieve a counter definition.", response = MetricDefinition.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's definition was successfully retrieved."),
             @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
@@ -188,7 +188,7 @@ public class CounterHandler {
 
     @POST
     @Path("/data")
-    @ApiOperation(value = "Add data points for multiple counters")
+    @ApiOperation(value = "Add data points for multiple counters.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data points succeeded."),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
@@ -205,7 +205,7 @@ public class CounterHandler {
 
     @POST
     @Path("/{id}/data")
-    @ApiOperation(value = "Add data for a single counter")
+    @ApiOperation(value = "Add data for a single counter.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),

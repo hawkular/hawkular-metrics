@@ -19,17 +19,25 @@ import java.util.Map.Entry
 
 import groovy.json.JsonSlurper
 
+def baseFile = new File(baseFile)
+if (!baseFile.canRead()) throw new RuntimeException("${baseFile.path} is not readable")
+
 def swaggerFile = new File(swaggerFile)
-if (!swaggerFile.canRead()) throw new RuntimeException("${swaggerFile.canonicalPath} is not readable")
+if (!swaggerFile.canRead()) throw new RuntimeException("${swaggerFile.path} is not readable")
 
 def jsonSlurper = new JsonSlurper()
 def swagger = jsonSlurper.parse(swaggerFile)
 
 def apidocFile = new File(outputFile)
 
-apidocFile.withWriter('UTF-8') { writer ->
+baseFile.withInputStream { stream ->
+  apidocFile.append(stream)
+}
+
+apidocFile.withWriterAppend('UTF-8') { writer ->
 
   writer.println """
+
 == Base Path
 `${swagger.basePath}`
 
@@ -39,6 +47,14 @@ apidocFile.withWriter('UTF-8') { writer ->
 
   swagger.tags.sort { t1, t2 -> t1.name.compareTo(t2.name) }.each { tag ->
     writer.println "=== ${tag.name}"
+
+    swagger.paths.sort { p1, p2 -> p1.key.compareTo(p2.key) }.each { Entry path ->
+      path.value.each { Entry method ->
+        if (method.value.tags.contains(tag.name)) {
+          writeEndpointLink(writer, path, method)
+        }
+      }
+    }
 
     swagger.paths.sort { p1, p2 -> p1.key.compareTo(p2.key) }.each { Entry path ->
       path.value.each { Entry method ->
@@ -66,12 +82,26 @@ apidocFile.withWriter('UTF-8') { writer ->
   writeDataTypes(writer, swagger.definitions ?: [:])
 }
 
+private writeEndpointLink(Writer writer, Entry path, Entry method) {
+  def summary = method.value.summary.trim()
+  String endpoint = path.key
+  def httpMethod = method.key.toUpperCase()
+  Object anchor = getEndpointAnchor(httpMethod, endpoint)
+
+  writer.println ". link:#++${anchor}++[${summary}]"
+}
+
+def String getEndpointAnchor(def httpMethod, String endpoint) {
+  def anchor = httpMethod + '_' + endpoint.replace('/', '_').replace('{', '_').replace('}', '_')
+  anchor
+}
+
 private writeEndpointHeader(Writer writer, Entry path, Entry method) {
   def summary = method.value.summary.trim()
   def description = method.value.description?.trim()
   String endpoint = path.key
   def httpMethod = method.key.toUpperCase()
-  def anchor = httpMethod + '_' + endpoint.replace('/', '_').replace('{', '_').replace('}', '_')
+  def anchor = getEndpointAnchor(httpMethod, endpoint)
 
   writer.println """
 
