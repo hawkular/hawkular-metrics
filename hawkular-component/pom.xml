@@ -65,6 +65,23 @@
       <artifactId>hawkular-bus-common</artifactId>
       <version>${version.org.hawkular.bus}</version>
       <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.activemq</groupId>
+          <artifactId>activemq-all</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.activemq</groupId>
+          <artifactId>activemq-jaas</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <!-- Nest provided -->
+    <dependency>
+      <groupId>org.apache.activemq</groupId>
+      <artifactId>activemq-client</artifactId>
+      <version>${version.org.apache.activemq}</version>
+      <scope>provided</scope>
     </dependency>
     <!-- Wildfly provided -->
     <!-- No need to set the jboss-logging scope here since Wildfly BOM includes jboss-logging -->
@@ -77,6 +94,10 @@
       <groupId>org.jboss.spec.javax.ejb</groupId>
       <artifactId>jboss-ejb-api_3.2_spec</artifactId>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.spec.javax.jms</groupId>
+      <artifactId>jboss-jms-api_2.0_spec</artifactId>
     </dependency>
     <dependency>
       <groupId>org.jboss.spec.javax.enterprise.concurrent</groupId>
@@ -109,6 +130,11 @@
     <dependency>
       <groupId>org.codehaus.groovy.modules.http-builder</groupId>
       <artifactId>http-builder</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
