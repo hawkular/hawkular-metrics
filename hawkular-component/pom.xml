@@ -203,10 +203,6 @@
           <plugin>
             <groupId>org.wildfly.plugins</groupId>
             <artifactId>wildfly-maven-plugin</artifactId>
-            <configuration>
-              <skip>${wildfly-maven-plugin.skip}</skip>
-              <port>${component.wildfly.management.port}</port>
-            </configuration>
             <executions>
               <execution>
                 <id>start-wildfly</id>
@@ -215,6 +211,8 @@
                   <goal>start</goal>
                 </goals>
                 <configuration>
+                  <skip>${wildfly-maven-plugin.skip}</skip>
+                  <port>${component.wildfly.management.port}</port>
                   <javaOpts>
                     <javaOpt>-Xms64m</javaOpt>
                     <javaOpt>-Xmx512m</javaOpt>
@@ -237,6 +235,10 @@
                 <goals>
                   <goal>deploy-only</goal>
                 </goals>
+                <configuration>
+                  <skip>${wildfly-maven-plugin.skip}</skip>
+                  <port>${component.wildfly.management.port}</port>
+                </configuration>
               </execution>
               <execution>
                 <id>stop-wildfly</id>
@@ -244,6 +246,10 @@
                 <goals>
                   <goal>shutdown</goal>
                 </goals>
+                <configuration>
+                  <skip>${wildfly-maven-plugin.skip}</skip>
+                  <port>${component.wildfly.management.port}</port>
+                </configuration>
               </execution>
             </executions>
           </plugin>
