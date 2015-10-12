@@ -238,6 +238,7 @@
                 <configuration>
                   <skip>${wildfly-maven-plugin.skip}</skip>
                   <port>${component.wildfly.management.port}</port>
+                  <jbossHome>${project.build.directory}/wildfly-run/wildfly-${version.org.wildfly}</jbossHome>
                   <executeCommands>
                     <commands>
                       <command>
