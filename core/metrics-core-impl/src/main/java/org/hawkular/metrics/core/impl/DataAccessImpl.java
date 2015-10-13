@@ -36,7 +36,8 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Tenant;
-import org.hawkular.metrics.core.impl.transformers.BatchStatementTransformer;
+import org.hawkular.metrics.core.impl.transformers.BatchStatementStrategy;
+import org.hawkular.metrics.core.impl.transformers.BatchingStrategy;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
@@ -48,15 +49,17 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.utils.UUIDs;
 
 import rx.Observable;
+import rx.functions.Func1;
 
 /**
  *
  * @author John Sanda
  */
 public class DataAccessImpl implements DataAccess {
-
     public static final long DPART = 0;
-    private Session session;
+
+    private final Session session;
+    private final Func1<Session, BatchingStrategy> batchingStrategySupplier;
 
     private RxSession rxSession;
 
@@ -133,7 +136,13 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement findMetricsByTagNameValue;
 
     public DataAccessImpl(Session session) {
+        // By default, use batch statement strategy with max batch size
+        this(session, s -> new BatchStatementStrategy(s, false));
+    }
+
+    public DataAccessImpl(Session session, Func1<Session, BatchingStrategy> batchingStrategySupplier) {
         this.session = session;
+        this.batchingStrategySupplier = batchingStrategySupplier;
         rxSession = new RxSessionImpl(session);
         initPreparedStatements();
     }
@@ -291,7 +300,8 @@ public class DataAccessImpl implements DataAccess {
                 "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
     }
 
-    @Override public Observable<ResultSet> insertTenant(String tenantId) {
+    @Override
+    public Observable<ResultSet> insertTenant(String tenantId) {
         return rxSession.execute(insertTenantId.bind(tenantId));
     }
 
@@ -372,10 +382,11 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public <T> Observable<Integer> updateMetricsIndex(Observable<Metric<T>> metrics) {
+        BatchingStrategy batchingStrategy = batchingStrategySupplier.call(session);
         return metrics.map(Metric::getId)
                 .map(id -> updateMetricsIndex.bind(id.getTenantId(), id.getType().getCode(), id.getName()))
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+                .compose(batchingStrategy)
+                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batchingStrategy.sizeof(batch)));
     }
 
     @Override
@@ -385,20 +396,22 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
+        BatchingStrategy batchingStrategy = batchingStrategySupplier.call(session);
         return Observable.from(gauge.getDataPoints())
                 .map(dataPoint -> bindDataPoint(insertGaugeData, gauge, dataPoint.getValue(),
                         dataPoint.getTimestamp(), ttl))
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+                .compose(batchingStrategy)
+                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batchingStrategy.sizeof(batch)));
     }
 
     @Override
     public Observable<Integer> insertCounterData(Metric<Long> counter, int ttl) {
+        BatchingStrategy batchingStrategy = batchingStrategySupplier.call(session);
         return Observable.from(counter.getDataPoints())
                 .map(dataPoint -> bindDataPoint(insertCounterData, counter, dataPoint.getValue(),
                         dataPoint.getTimestamp(), ttl))
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+                .compose(batchingStrategy)
+                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batchingStrategy.sizeof(batch)));
     }
 
     private BoundStatement bindDataPoint(
@@ -500,11 +513,12 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
+        BatchingStrategy batchingStrategy = batchingStrategySupplier.call(session);
         return Observable.from(metric.getDataPoints())
                 .map(dataPoint -> bindDataPoint(insertAvailability, metric, getBytes(dataPoint),
                         dataPoint.getTimestamp(), ttl))
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+                .compose(batchingStrategy)
+                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batchingStrategy.sizeof(batch)));
     }
 
     private ByteBuffer getBytes(DataPoint<AvailabilityType> dataPoint) {
@@ -525,9 +539,10 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public <T> Observable<ResultSet> updateRetentionsIndex(String tenantId, MetricType<T> type,
                                                        Map<String, Integer> retentions) {
+        BatchingStrategy batchingStrategy = batchingStrategySupplier.call(session);
         return Observable.from(retentions.entrySet())
                 .map(entry -> updateRetentionsIndex.bind(tenantId, type.getCode(), entry.getKey(), entry.getValue()))
-                .compose(new BatchStatementTransformer())
+                .compose(batchingStrategy)
                 .flatMap(rxSession::execute);
     }
 

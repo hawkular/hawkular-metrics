@@ -16,7 +16,7 @@
  */
 package org.hawkular.metrics.rest
 
-import static org.hawkular.metrics.core.impl.transformers.BatchStatementTransformer.MAX_BATCH_SIZE
+import static org.hawkular.metrics.core.impl.transformers.BatchStatementStrategy.MAX_BATCH_SIZE
 import static org.junit.Assert.assertEquals
 
 import java.util.concurrent.atomic.AtomicInteger

@@ -55,8 +55,6 @@ import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.api.jaxrs.util.TestClock;
 import org.hawkular.metrics.api.jaxrs.util.VirtualClock;
 import org.hawkular.metrics.core.api.MetricsService;
-import org.hawkular.metrics.core.impl.DataAccess;
-import org.hawkular.metrics.core.impl.DataAccessImpl;
 import org.hawkular.metrics.core.impl.DateTimeService;
 import org.hawkular.metrics.core.impl.MetricsServiceImpl;
 import org.hawkular.metrics.schema.SchemaManager;
@@ -147,11 +145,12 @@ public class MetricsServiceLifecycle {
     @ConfigurationProperty(DEFAULT_TTL)
     private String defaultTTL;
 
+    @Inject
+    private DataAccessFactory dataAccessFactory;
+
     private volatile State state;
     private int connectionAttempts;
     private Session session;
-
-    private DataAccess dataAcces;
 
     private Map<? super Action1<Task2>, Subscription> jobs = new HashMap<>();
 
@@ -221,11 +220,10 @@ public class MetricsServiceLifecycle {
             // will change at some point though because the task scheduling service will
             // probably move to the hawkular-commons repo.
             initSchema();
-            dataAcces = new DataAccessImpl(session);
             initTaskScheduler();
 
             metricsService = new MetricsServiceImpl();
-            metricsService.setDataAccess(dataAcces);
+            metricsService.setDataAccess(dataAccessFactory.create(session));
             metricsService.setTaskScheduler(taskScheduler);
             metricsService.setDateTimeService(createDateTimeService());
             metricsService.setDefaultTTL(getDefaultTTL());
