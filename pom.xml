@@ -223,6 +223,7 @@
         <artifactId>swagger-core</artifactId>
         <version>${version.io.swagger}</version>
       </dependency>
+      <!-- Other -->
       <dependency>
         <groupId>org.codehaus.jackson</groupId>
         <artifactId>jackson-mapper-asl</artifactId>
@@ -416,6 +417,7 @@
         <module>api/metrics-api-common</module>
         <module>api/metrics-api-jaxrs</module>
         <module>api/metrics-api-jaxrs-1.1</module>
+        <module>hawkular-component</module>
         <module>integration-tests</module>
         <module>clients</module>
         <module>containers</module>
