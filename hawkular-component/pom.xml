@@ -267,6 +267,10 @@
                   <jbossHome>${project.build.directory}/wildfly-run/wildfly-${version.org.wildfly}</jbossHome>
                   <executeCommands>
                     <commands>
+                      <!-- In the Nest, org.hawkular logger is already defined, we only need to set the level -->
+                      <command>
+                        /subsystem=logging/logger=org.hawkular:write-attribute(name="level",value="TRACE")
+                      </command>
                       <command>
                         /subsystem=logging/console-handler=CONSOLE:write-attribute(name="level",value="${wildfly.logging.console.level}")
                       </command>

@@ -222,6 +222,9 @@
                   <executeCommands>
                     <commands>
                       <command>
+                        /subsystem=logging/logger=org.hawkular:add(level="TRACE")
+                      </command>
+                      <command>
                         /subsystem=logging/console-handler=CONSOLE:write-attribute(name="level",value="${jboss-as.logging.console.level}")
                       </command>
                       <command>
