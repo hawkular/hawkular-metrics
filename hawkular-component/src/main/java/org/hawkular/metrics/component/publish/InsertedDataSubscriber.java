@@ -19,10 +19,7 @@ package org.hawkular.metrics.component.publish;
 
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.annotation.Resource;
-import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
@@ -35,7 +32,6 @@ import org.hawkular.metrics.core.api.MetricsService;
 import org.jboss.logging.Logger;
 
 import rx.Observable;
-import rx.Scheduler;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
 
@@ -49,25 +45,16 @@ import rx.schedulers.Schedulers;
 public class InsertedDataSubscriber {
     private static final Logger log = Logger.getLogger(InsertedDataSubscriber.class);
 
-    @Resource
-    ManagedExecutorService executor;
     @Inject
     MetricDataPublisher metricDataPublisher;
     @Inject
     AvailDataPublisher availDataPublisher;
 
-
-    private Scheduler scheduler;
     private Subscription subscription;
-
-    @PostConstruct
-    void init() {
-        scheduler = Schedulers.from(executor);
-    }
 
     @SuppressWarnings("unused")
     public void onMetricsServiceReady(@Observes @ServiceReady MetricsService metricsService) {
-        Observable<Metric<?>> events = metricsService.insertedDataEvents().observeOn(scheduler);
+        Observable<Metric<?>> events = metricsService.insertedDataEvents().observeOn(Schedulers.io());
         // We may want to buffer events in the future for better performance
         // events.buffer(50, TimeUnit.MILLISECONDS, 10, scheduler);
         subscription = events.subscribe(this::onInsertedData);
