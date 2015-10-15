@@ -19,6 +19,9 @@ package org.hawkular.metrics.component.publish;
 
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
@@ -54,10 +57,12 @@ public class InsertedDataSubscriber {
 
     @SuppressWarnings("unused")
     public void onMetricsServiceReady(@Observes @ServiceReady MetricsService metricsService) {
-        Observable<Metric<?>> events = metricsService.insertedDataEvents().observeOn(Schedulers.io());
-        // We may want to buffer events in the future for better performance
-        // events.buffer(50, TimeUnit.MILLISECONDS, 10, scheduler);
-        subscription = events.subscribe(this::onInsertedData);
+        Observable<List<Metric<?>>> events = metricsService.insertedDataEvents()
+                .buffer(50, TimeUnit.MILLISECONDS, 100)
+                .filter(list -> !list.isEmpty())
+                .onBackpressureBuffer()
+                .observeOn(Schedulers.io());
+        subscription = events.subscribe(list -> list.forEach(this::onInsertedData));
     }
 
     private void onInsertedData(Metric<?> metric) {

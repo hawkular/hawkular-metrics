@@ -88,7 +88,7 @@ public class AvailDataPublisher {
         List<AvailDataMessage.SingleAvail> availList = avail.getDataPoints().stream()
                 .map(dataPoint -> new AvailDataMessage.SingleAvail(availId.getTenantId(), availId.getName(),
                         dataPoint.getTimestamp(),
-                        dataPoint.getValue().getText()))
+                        dataPoint.getValue().getText().toUpperCase()))
                 .collect(toList());
         AvailDataMessage.AvailData metricData = new AvailDataMessage.AvailData();
         metricData.setData(availList);
