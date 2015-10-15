@@ -17,23 +17,18 @@
 
 package org.hawkular.metrics.component.publish;
 
-import static javax.ejb.ConcurrencyManagementType.BEAN;
-import static javax.ejb.TransactionAttributeType.NEVER;
-
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
-import javax.ejb.ConcurrencyManagement;
-import javax.ejb.Singleton;
-import javax.ejb.Startup;
-import javax.ejb.TransactionAttribute;
 import javax.enterprise.concurrent.ManagedExecutorService;
+import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import org.hawkular.metrics.api.jaxrs.ServiceReady;
+import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricsService;
@@ -49,10 +44,8 @@ import rx.schedulers.Schedulers;
  *
  * @author Thomas Segismont
  */
-@Startup
-@Singleton
-@TransactionAttribute(NEVER)
-@ConcurrencyManagement(BEAN)
+@ApplicationScoped
+@Eager
 public class InsertedDataSubscriber {
     private static final Logger log = Logger.getLogger(InsertedDataSubscriber.class);
 

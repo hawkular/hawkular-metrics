@@ -19,9 +19,6 @@ package org.hawkular.metrics.component.publish;
 
 import static java.util.stream.Collectors.toList;
 
-import static javax.ejb.ConcurrencyManagementType.BEAN;
-import static javax.ejb.TransactionAttributeType.NEVER;
-
 import static org.hawkular.bus.common.Endpoint.Type.TOPIC;
 
 import java.io.IOException;
@@ -30,9 +27,7 @@ import java.util.List;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
-import javax.ejb.ConcurrencyManagement;
-import javax.ejb.Singleton;
-import javax.ejb.TransactionAttribute;
+import javax.enterprise.context.ApplicationScoped;
 import javax.jms.JMSException;
 import javax.jms.TopicConnectionFactory;
 
@@ -41,6 +36,7 @@ import org.hawkular.bus.common.ConnectionContextFactory;
 import org.hawkular.bus.common.Endpoint;
 import org.hawkular.bus.common.MessageProcessor;
 import org.hawkular.bus.common.producer.ProducerConnectionContext;
+import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
@@ -51,9 +47,8 @@ import org.jboss.logging.Logger;
  *
  * @author Thomas Segismont
  */
-@Singleton
-@TransactionAttribute(NEVER)
-@ConcurrencyManagement(BEAN)
+@ApplicationScoped
+@Eager
 public class AvailDataPublisher {
     private static final Logger log = Logger.getLogger(AvailDataPublisher.class);
 
