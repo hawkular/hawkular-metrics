@@ -108,7 +108,7 @@ ${entity}
       }
     })
 
-    def metricName = 'test', timestamp = 13, value = 'up'
+    def metricName = 'test', timestamp = 13, value = 'UP'
 
     def response = hawkularMetrics.post(path: 'availability/data', body: [
         [
