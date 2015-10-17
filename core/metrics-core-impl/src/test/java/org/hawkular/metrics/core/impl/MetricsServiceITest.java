@@ -615,22 +615,22 @@ public class MetricsServiceITest extends MetricsITest {
             NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(60_000 * i, 60_000 * (i + 1));
             switch (i) {
                 case 1:
-                    builder.setAvg(100D).setMax(200D).setMedian(0D).setMin(0D).setPercentile95th(0D).setSamples(2);
+                    builder.setAvg(100D).setMax(200D).setMedian(0D).setMin(0D).setSamples(2);
                     break;
                 case 2:
                 case 4:
                 case 6:
                     break;
                 case 3:
-                    builder.setAvg(400D).setMax(400D).setMedian(400D).setMin(400D).setPercentile95th(400D)
+                    builder.setAvg(400D).setMax(400D).setMedian(400D).setMin(400D)
                             .setSamples(1);
                     break;
                 case 5:
-                    builder.setAvg(550D).setMax(550D).setMedian(550D).setMin(550D).setPercentile95th(550D)
+                    builder.setAvg(550D).setMax(550D).setMedian(550D).setMin(550D)
                             .setSamples(1);
                     break;
                 case 7:
-                    builder.setAvg(975D).setMax(1000D).setMedian(950D).setMin(950D).setPercentile95th(950D)
+                    builder.setAvg(975D).setMax(1000D).setMedian(950D).setMin(950D)
                             .setSamples(2);
                     break;
             }
@@ -757,19 +757,19 @@ public class MetricsServiceITest extends MetricsITest {
             switch (i) {
                 case 1:
                     val = 400D;
-                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentile95th(val).setSamples(1);
+                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setSamples(1);
                     break;
                 case 3:
                     val = 100D;
-                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentile95th(val).setSamples(1);
+                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setSamples(1);
                     break;
                 case 5:
                     val = 100;
-                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentile95th(val).setSamples(1);
+                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setSamples(1);
                 case 6:
                     break;
                 case 7:
-                    builder.setAvg(150.0).setMax(200.0).setMin(100.0).setMedian(100.0).setPercentile95th(100.0)
+                    builder.setAvg(150.0).setMax(200.0).setMin(100.0).setMedian(100.0)
                             .setSamples(2);
                 default:
                     break;
@@ -916,13 +916,11 @@ public class MetricsServiceITest extends MetricsITest {
         final Sum average = new Sum();
         final Sum median = new Sum();
         final Sum max = new Sum();
-        final Sum percentile95th = new Sum();
         Observable.just(collectorC1, collectorC2).forEach(d -> {
             min.increment(d.getMin());
             max.increment(d.getMax());
             average.increment(d.getAvg());
             median.increment(d.getMedian());
-            percentile95th.increment(d.getPercentile95th());
         });
         NumericBucketPoint expectedStackedRateBucketPoint = new NumericBucketPoint.Builder(start.getMillis(),
                 start.plusMinutes(5).getMillis())
@@ -930,7 +928,6 @@ public class MetricsServiceITest extends MetricsITest {
                         .setMax(max.getResult())
                         .setAvg(average.getResult())
                         .setMedian(median.getResult())
-                        .setPercentile95th(percentile95th.getResult())
                         .setSamples(2)
                         .build();
         List<NumericBucketPoint> expectedStackedCounterStatsList = new ArrayList<NumericBucketPoint>();
@@ -975,13 +972,11 @@ public class MetricsServiceITest extends MetricsITest {
         final Sum counterRateMax = new Sum();
         final Sum counterRateAverage = new Sum();
         final Sum counterRateMedian = new Sum();
-        final Sum counterRatePercentile95th = new Sum();
         Observable.just(collectorC1Rate, collectorC2Rate).forEach(d -> {
             counterRateMin.increment(d.getMin());
             counterRateMax.increment(d.getMax());
             counterRateAverage.increment(d.getAvg());
             counterRateMedian.increment(d.getMedian());
-            counterRatePercentile95th.increment(d.getPercentile95th());
         });
         NumericBucketPoint expectedStackedCounterRateBucketPoint = new NumericBucketPoint.Builder(start.getMillis(),
                 start.plusMinutes(5).getMillis())
@@ -989,7 +984,6 @@ public class MetricsServiceITest extends MetricsITest {
                         .setMax(counterRateMax.getResult())
                         .setAvg(counterRateAverage.getResult())
                         .setMedian(counterRateMedian.getResult())
-                        .setPercentile95th(counterRatePercentile95th.getResult())
                         .setSamples(2)
                         .build();
         List<NumericBucketPoint> expectedStackedCounterRateStatsList = new ArrayList<NumericBucketPoint>();
@@ -1010,12 +1004,10 @@ public class MetricsServiceITest extends MetricsITest {
                 .get()
                 .getValue();
         PercentileWrapper expectedMedian = NumericDataPointCollector.createPercentile.apply(50.0);
-        PercentileWrapper expectedPercentile95th = NumericDataPointCollector.createPercentile.apply(95.0);
         Mean expectedAverage = new Mean();
         Sum expectedSamples = new Sum();
         combinedData.stream().forEach(arg -> {
             expectedMedian.addValue(arg.getValue().doubleValue());
-            expectedPercentile95th.addValue(arg.getValue().doubleValue());
             expectedAverage.increment(arg.getValue().doubleValue());
             expectedSamples.increment(1);
         });
@@ -1025,7 +1017,6 @@ public class MetricsServiceITest extends MetricsITest {
                 .setMax(expectedMax.doubleValue())
                 .setAvg(expectedAverage.getResult())
                 .setMedian(expectedMedian.getResult())
-                .setPercentile95th(expectedPercentile95th.getResult())
                 .setSamples(new Double(expectedSamples.getResult()).intValue())
                 .build();
     }
@@ -1077,20 +1068,17 @@ public class MetricsServiceITest extends MetricsITest {
         final Sum average = new Sum();
         final Sum median = new Sum();
         final Sum max = new Sum();
-        final Sum percentile95th = new Sum();
         Observable.just(collectorM1, collectorM2).forEach(d -> {
             min.increment(d.getMin());
             max.increment(d.getMax());
             average.increment(d.getAvg());
             median.increment(d.getMedian());
-            percentile95th.increment(d.getPercentile95th());
         });
 
         assertEquals(actual.get(0).get(0).getMin(), min.getResult());
         assertEquals(actual.get(0).get(0).getMax(), max.getResult());
         assertEquals(actual.get(0).get(0).getMedian(), median.getResult());
         assertEquals(actual.get(0).get(0).getAvg(), average.getResult());
-        assertEquals(actual.get(0).get(0).getPercentile95th(), percentile95th.getResult());
     }
 
     @Test
@@ -1182,20 +1170,17 @@ public class MetricsServiceITest extends MetricsITest {
         final Sum average = new Sum();
         final Sum median = new Sum();
         final Sum max = new Sum();
-        final Sum percentile95th = new Sum();
         Observable.just(collectorM1, collectorM2).forEach(d -> {
             min.increment(d.getMin());
             max.increment(d.getMax());
             average.increment(d.getAvg());
             median.increment(d.getMedian());
-            percentile95th.increment(d.getPercentile95th());
         });
 
         assertEquals(actual.get(0).get(0).getMin(), min.getResult());
         assertEquals(actual.get(0).get(0).getMax(), max.getResult());
         assertEquals(actual.get(0).get(0).getMedian(), median.getResult());
         assertEquals(actual.get(0).get(0).getAvg(), average.getResult());
-        assertEquals(actual.get(0).get(0).getPercentile95th(), percentile95th.getResult());
     }
 
     private static void assertNumericBucketsEquals(List<NumericBucketPoint> actual, List<NumericBucketPoint> expected) {
@@ -1218,7 +1203,6 @@ public class MetricsServiceITest extends MetricsITest {
             assertEquals(actual.getMedian(), expected.getMedian(), 0.001, msg);
             assertEquals(actual.getMin(), expected.getMin(), 0.001, msg);
             assertEquals(actual.getSamples(), expected.getSamples(), 0, msg);
-            assertEquals(actual.getPercentile95th(), expected.getPercentile95th(), 0.001, msg);
         }
     }
 

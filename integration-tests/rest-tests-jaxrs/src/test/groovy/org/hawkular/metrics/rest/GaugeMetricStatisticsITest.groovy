@@ -119,36 +119,36 @@ class GaugeMetricStatisticsITest extends RESTTest {
     def expectedData = [
         [
             start: buckets[0], end: buckets[0] + bucketSize, empty: false, min: 12.22,
-            avg: avg0.getResult(), median: med0.getResult(), max: 15.37, percentile95th: perc95th0.getResult(),
+            avg: avg0.getResult(), median: med0.getResult(), max: 15.37,
             samples: 2
         ], [
             start: buckets[1], end: buckets[1] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, percentile95th: NaN, samples: 0
+            avg  : NaN, median: NaN, max: NaN, samples: 0
         ], [
             start: buckets[2], end: buckets[2] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, percentile95th: NaN, samples: 0
+            avg  : NaN, median: NaN, max: NaN, samples: 0
         ], [
             start: buckets[3], end: buckets[3] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, percentile95th: NaN, samples: 0
+            avg  : NaN, median: NaN, max: NaN, samples: 0
         ], [
             start: buckets[4], end: buckets[4] + bucketSize, empty: false, min: 25.0,
-            avg  : 25.0, median: 25.0, max: 25.0, percentile95th: 25.0, samples: 2
+            avg  : 25.0, median: 25.0, max: 25.0, samples: 2
         ],
         [
             start: buckets[5], end: buckets[5] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, percentile95th: NaN, samples: 0
+            avg  : NaN, median: NaN, max: NaN, samples: 0
         ], [
             start: buckets[6], end: buckets[6] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, percentile95th: NaN, samples: 0
+            avg  : NaN, median: NaN, max: NaN, samples: 0
         ], [
             start: buckets[7], end: buckets[7] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, percentile95th: NaN, samples: 0
+            avg  : NaN, median: NaN, max: NaN, samples: 0
         ], [
             start: buckets[8], end: buckets[8] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, percentile95th: NaN, samples: 0
+            avg  : NaN, median: NaN, max: NaN, samples: 0
         ], [
             start: buckets[9], end: buckets[9] + bucketSize, empty: false, min: 18.367,
-            avg: avg9.getResult(), median: med9.getResult(), max: 19.01, percentile95th: perc95th9.getResult(),
+            avg: avg9.getResult(), median: med9.getResult(), max: 19.01,
             samples: 2
         ]
     ]
@@ -201,7 +201,6 @@ class GaugeMetricStatisticsITest extends RESTTest {
           avg           : avg.getResult(),
           median        : median.getResult(),
           max           : max.getResult(),
-          percentile95th: perc95th.getResult(),
           samples       : sampleSize,
           empty         : false
       ])
@@ -301,7 +300,6 @@ class GaugeMetricStatisticsITest extends RESTTest {
         avg([37.45, 37.609, 39.11, 44.07, 41.18, 39.55, 40.72, 36.94]), bucket.avg)
     assertEquals("The [empty] property is wrong", false, bucket.empty)
     assertTrue("Expected the [median] property to be set", bucket.median != null)
-    assertTrue("Expected the [percentile95th] property to be set", bucket.percentile95th != null)
   }
 
   @Test
@@ -394,7 +392,6 @@ class GaugeMetricStatisticsITest extends RESTTest {
     assertDoubleEquals("The avg is wrong", avg(m1.collect {it.value}) + avg(m2.collect {it.value}), bucket.avg)
     assertEquals("The [empty] property is wrong", false, bucket.empty)
     assertTrue("Expected the [median] property to be set", bucket.median != null)
-    assertTrue("Expected the [percentile95th] property to be set", bucket.percentile95th != null)
   }
 
   @Test
@@ -488,7 +485,6 @@ class GaugeMetricStatisticsITest extends RESTTest {
     assertDoubleEquals("The avg is wrong", avg(g1.collect {it.value}) + avg(g2.collect {it.value}), bucket.avg)
     assertEquals("The [empty] property is wrong", false, bucket.empty)
     assertTrue("Expected the [median] property to be set", bucket.median != null)
-    assertTrue("Expected the [percentile95th] property to be set", bucket.percentile95th != null)
   }
 
   @Test
@@ -575,7 +571,6 @@ class GaugeMetricStatisticsITest extends RESTTest {
         avg([37.45, 37.609, 39.11, 44.07, 41.18, 39.55, 40.72, 36.94]), bucket.avg)
     assertEquals("The [empty] property is wrong", false, bucket.empty)
     assertTrue("Expected the [median] property to be set", bucket.median != null)
-    assertTrue("Expected the [percentile95th] property to be set", bucket.percentile95th != null)
   }
 
   @Test

@@ -351,26 +351,26 @@ class CountersITest extends RESTTest {
       double val;
       switch (i) {
         case 1:
-          bucketPoint.putAll([min: 0D, avg: 100D, median: 0D, max: 200D, percentile95th: 0D, empty: false,
+          bucketPoint.putAll([min: 0D, avg: 100D, median: 0D, max: 200D, empty: false,
           samples: 2] as Map)
           break;
         case 2:
         case 4:
         case 6:
           val = NaN
-          bucketPoint.putAll([min: val, avg: val, median: val, max: val, percentile95th: val, empty: true,
+          bucketPoint.putAll([min: val, avg: val, median: val, max: val, empty: true,
           samples: 0] as Map)
           break;
         case 3:
-          bucketPoint.putAll([min: 400D, avg: 400D, median: 400D, max: 400D, percentile95th: 400D, empty: false,
+          bucketPoint.putAll([min: 400D, avg: 400D, median: 400D, max: 400D, empty: false,
           samples: 1] as Map)
           break;
         case 5:
-          bucketPoint.putAll([min: 550D, avg: 550D, median: 550D, max: 550D, percentile95th: 550D, empty: false,
+          bucketPoint.putAll([min: 550D, avg: 550D, median: 550D, max: 550D, empty: false,
           samples: 1] as Map)
           break;
         case 7:
-          bucketPoint.putAll([min: 950D, avg: 975D, median: 950D, max: 1000D, percentile95th: 950D, empty: false,
+          bucketPoint.putAll([min: 950D, avg: 975D, median: 950D, max: 1000D, empty: false,
           samples: 2] as Map)
           break;
       }
@@ -527,22 +527,22 @@ Actual:   ${response.data}
       switch (i) {
         case 1:
           val = 400D
-          bucketPoint << [min: val, avg: val, median: val, max: val, percentile95th: val, empty: false, samples: 1]
+          bucketPoint << [min: val, avg: val, median: val, max: val, empty: false, samples: 1]
           break
         case 3:
           val = 100D
-          bucketPoint << [min: val, avg: val, median: val, max: val, percentile95th: val, empty: false, samples: 1]
+          bucketPoint << [min: val, avg: val, median: val, max: val, empty: false, samples: 1]
           break
         case 5:
           val = 100D
-          bucketPoint << [min: val, avg: val, median: val, max: val, percentile95th: val, empty: false, samples: 1]
+          bucketPoint << [min: val, avg: val, median: val, max: val, empty: false, samples: 1]
           break
         case 7:
-          bucketPoint << [min: 100.0, max: 200.0, avg: 150.0, median: 100.0, percentile95th: 100.0, empty:false,
+          bucketPoint << [min: 100.0, max: 200.0, avg: 150.0, median: 100.0, empty:false,
                           samples: 2]
           break
         default:
-          bucketPoint << [min: NaN, max: NaN, avg: NaN, median: NaN, percentile95th: NaN, empty: true, samples: 0]
+          bucketPoint << [min: NaN, max: NaN, avg: NaN, median: NaN, empty: true, samples: 0]
           break
       }
       expectedData.push(bucketPoint);
@@ -751,7 +751,6 @@ Actual:   ${response.data}
     assertDoubleEquals("The avg is wrong", avg(c1.collect {it.value}) + avg(c2.collect {it.value}), actualCounterBucketByTag.avg)
     assertEquals("The [empty] property is wrong", false, actualCounterBucketByTag.empty)
     assertTrue("Expected the [median] property to be set", actualCounterBucketByTag.median != null)
-    assertTrue("Expected the [percentile95th] property to be set", actualCounterBucketByTag.percentile95th != null)
 
     response = hawkularMetrics.get(
         path: 'counters/data',
@@ -892,7 +891,6 @@ Actual:   ${response.data}
     assertDoubleEquals("The avg is wrong", avg(combinedData.collect {it.value}), expectedSimpleCounterBucketByTag.avg)
     assertEquals("The [empty] property is wrong", false, expectedSimpleCounterBucketByTag.empty)
     assertTrue("Expected the [median] property to be set", expectedSimpleCounterBucketByTag.median != null)
-    assertTrue("Expected the [percentile95th] property to be set", expectedSimpleCounterBucketByTag.percentile95th != null)
 
     response = hawkularMetrics.get(
         path: 'counters/data',
@@ -916,7 +914,6 @@ Actual:   ${response.data}
     assertDoubleEquals("The avg is wrong", avg(combinedData.collect {it.value}), actualSimpleCounterBucketById.avg)
     assertEquals("The [empty] property is wrong", false, actualSimpleCounterBucketById.empty)
     assertTrue("Expected the [median] property to be set", actualSimpleCounterBucketById.median != null)
-    assertTrue("Expected the [percentile95th] property to be set", actualSimpleCounterBucketById.percentile95th != null)
   }
 
   @Test
@@ -1040,7 +1037,6 @@ Actual:   ${response.data}
     assertDoubleEquals("The avg is wrong", (c1Rates.avg + c2Rates.avg), actualCounterRateBucketByTag.avg)
     assertEquals("The [empty] property is wrong", false, actualCounterRateBucketByTag.empty)
     assertTrue("Expected the [median] property to be set", actualCounterRateBucketByTag.median != null)
-    assertTrue("Expected the [percentile95th] property to be set", actualCounterRateBucketByTag.percentile95th != null)
 
     response = hawkularMetrics.get(
         path: 'counters/data/rate',
@@ -1067,7 +1063,6 @@ Actual:   ${response.data}
     assertDoubleEquals("The avg is wrong", (c1Rates.avg + c2Rates.avg), actualCounterRateBucketById.avg)
     assertEquals("The [empty] property is wrong", false, actualCounterRateBucketById.empty)
     assertTrue("Expected the [median] property to be set", actualCounterRateBucketById.median != null)
-    assertTrue("Expected the [percentile95th] property to be set", actualCounterRateBucketById.percentile95th != null)
   }
 
   @Test
@@ -1191,7 +1186,6 @@ Actual:   ${response.data}
     assertDoubleEquals("The avg is wrong", (c1Rates.avg + c2Rates.avg)/2, actualCounterRateBucketByTag.avg)
     assertEquals("The [empty] property is wrong", false, actualCounterRateBucketByTag.empty)
     assertTrue("Expected the [median] property to be set", actualCounterRateBucketByTag.median != null)
-    assertTrue("Expected the [percentile95th] property to be set", actualCounterRateBucketByTag.percentile95th != null)
 
     response = hawkularMetrics.get(
         path: 'counters/data/rate',
@@ -1218,6 +1212,5 @@ Actual:   ${response.data}
     assertDoubleEquals("The avg is wrong", (c1Rates.avg + c2Rates.avg)/2, actualCounterRateBucketById.avg)
     assertEquals("The [empty] property is wrong", false, actualCounterRateBucketById.empty)
     assertTrue("Expected the [median] property to be set", actualCounterRateBucketById.median != null)
-    assertTrue("Expected the [percentile95th] property to be set", actualCounterRateBucketById.percentile95th != null)
   }
 }

@@ -169,7 +169,6 @@ Actual: ${actual}
       assertDoubleEquals(msg, expected.avg, actual.avg)
       assertDoubleEquals(msg, expected.median, actual.median)
       assertDoubleEquals(msg, expected.max, actual.max)
-      assertDoubleEquals(msg, expected.percentile95th, actual.percentile95th)
     }
   }
 
