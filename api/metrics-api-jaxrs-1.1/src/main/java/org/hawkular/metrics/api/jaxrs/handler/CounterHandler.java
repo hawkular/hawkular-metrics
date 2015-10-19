@@ -28,6 +28,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.PatternSyntaxException;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -100,6 +101,29 @@ public class CounterHandler {
         } catch (MetricAlreadyExistsException e) {
             String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
             return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
+        } catch (Exception e) {
+            return serverError(e);
+        }
+    }
+
+    @GET
+    @Path("/")
+    public Response findCounterMetrics(
+            @QueryParam("tags") Tags tags) {
+
+        Observable<Metric<Long>> metricObservable = (tags == null)
+                ? metricsService.findMetrics(tenantId, COUNTER)
+                : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), COUNTER);
+
+        try {
+            return metricObservable
+                    .map(MetricDefinition::new)
+                    .toList()
+                    .map(ApiUtils::collectionToResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
+        } catch (PatternSyntaxException e) {
+            return badRequest(e);
         } catch (Exception e) {
             return serverError(e);
         }

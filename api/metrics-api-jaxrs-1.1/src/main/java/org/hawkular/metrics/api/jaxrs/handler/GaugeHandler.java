@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.regex.PatternSyntaxException;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -100,6 +101,29 @@ public class GaugeHandler {
         } catch (MetricAlreadyExistsException e) {
             String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
             return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
+        } catch (Exception e) {
+            return serverError(e);
+        }
+    }
+
+    @GET
+    @Path("/")
+    public Response findGaugeMetrics(
+            @QueryParam("tags") Tags tags) {
+
+        Observable<Metric<Double>> metricObservable = (tags == null)
+                ? metricsService.findMetrics(tenantId, GAUGE)
+                : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), GAUGE);
+
+        try {
+            return metricObservable
+                    .map(MetricDefinition::new)
+                    .toList()
+                    .map(ApiUtils::collectionToResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
+        } catch (PatternSyntaxException e) {
+            return badRequest(e);
         } catch (Exception e) {
             return serverError(e);
         }
