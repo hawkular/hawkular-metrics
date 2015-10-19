@@ -253,7 +253,7 @@ public class MetricsServiceLifecycle {
             log.fatalCannotConnectToCassandra(e);
             state = State.FAILED;
         } finally {
-            if (state != State.STARTED) {
+            if (state != State.STARTED && metricsService != null) {
                 try {
                     metricsService.shutdown();
                 } catch (Exception e) {
