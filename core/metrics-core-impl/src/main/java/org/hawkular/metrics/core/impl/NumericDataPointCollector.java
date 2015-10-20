@@ -66,7 +66,6 @@ final class NumericDataPointCollector {
     private Mean average = new Mean();
     private PercentileWrapper median = createPercentile.apply(50.0);
     private Max max = new Max();
-    private PercentileWrapper percentile95th = createPercentile.apply(95.0);
     private List<PSquarePercentile> percentiles;
 
     NumericDataPointCollector(Buckets buckets, int bucketIndex, List<Double> percentileList) {
@@ -82,7 +81,6 @@ final class NumericDataPointCollector {
         average.increment(value.doubleValue());
         median.addValue(value.doubleValue());
         max.increment(value.doubleValue());
-        percentile95th.addValue(value.doubleValue());
         samples++;
         percentiles.stream().forEach(p -> p.increment(value.doubleValue()));
     }
@@ -95,7 +93,6 @@ final class NumericDataPointCollector {
                 .setAvg(average.getResult())
                 .setMedian(median.getResult())
                 .setMax(max.getResult())
-                .setPercentile95th(percentile95th.getResult())
                 .setSamples(samples)
                 .setPercentiles(percentiles.stream()
                         .map(p -> new Percentile(p.quantile(), p.getResult())).collect(Collectors.toList()))

@@ -30,7 +30,6 @@ final class SumNumericBucketPointCollector {
     private Sum average = new Sum();
     private Sum median = new Sum();
     private Sum max = new Sum();
-    private Sum percentile95th = new Sum();
     private Sum samples = new Sum();
     private Long start;
     private Long end;
@@ -43,7 +42,6 @@ final class SumNumericBucketPointCollector {
         average.increment(bucketPoint.getAvg());
         median.increment(bucketPoint.getMedian());
         max.increment(bucketPoint.getMax());
-        percentile95th.increment(bucketPoint.getPercentile95th());
         samples.increment(1);
 
         start = bucketPoint.getStart();
@@ -61,7 +59,6 @@ final class SumNumericBucketPointCollector {
                 .setAvg(average.getResult())
                 .setMedian(median.getResult())
                 .setMax(max.getResult())
-                .setPercentile95th(percentile95th.getResult())
                 .setSamples(localSamples)
                 .build();
     }
