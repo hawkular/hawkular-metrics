@@ -71,6 +71,7 @@ import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.NumericBucketPoint;
+import org.hawkular.metrics.core.api.Percentile;
 import org.hawkular.metrics.core.api.Retention;
 import org.hawkular.metrics.core.api.Tenant;
 import org.joda.time.DateTime;
@@ -608,29 +609,31 @@ public class MetricsServiceITest extends MetricsITest {
 
         List<NumericBucketPoint> actual = metricsService.findCounterStats(counter.getId(),
                 0, now().getMillis(), Buckets.fromStep(60_000, 60_000 * 8, 60_000),
-                Collections.emptyList()).toBlocking()
-                .single();
+                asList(95.0)).toBlocking().single();
         List<NumericBucketPoint> expected = new ArrayList<>();
         for (int i = 1; i < 8; i++) {
             NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(60_000 * i, 60_000 * (i + 1));
             switch (i) {
                 case 1:
-                    builder.setAvg(100D).setMax(200D).setMedian(0D).setMin(0D).setSamples(2);
+                    builder.setAvg(100D).setMax(200D).setMedian(0D).setMin(0D).setPercentiles(asList(new
+                            Percentile(0.95, 0D))).setSamples(2);
                     break;
                 case 2:
                 case 4:
                 case 6:
                     break;
                 case 3:
-                    builder.setAvg(400D).setMax(400D).setMedian(400D).setMin(400D)
-                            .setSamples(1);
+                    builder.setAvg(400D).setMax(400D).setMedian(400D).setMin(400D).setPercentiles(asList(new
+                            Percentile(0.95, 400D))).setSamples(1);
                     break;
                 case 5:
-                    builder.setAvg(550D).setMax(550D).setMedian(550D).setMin(550D)
+                    builder.setAvg(550D).setMax(550D).setMedian(550D).setMin(550D).setPercentiles(asList(new
+                            Percentile(0.95, 550D)))
                             .setSamples(1);
                     break;
                 case 7:
-                    builder.setAvg(975D).setMax(1000D).setMedian(950D).setMin(950D)
+                    builder.setAvg(975D).setMax(1000D).setMedian(950D).setMin(950D).setPercentiles(asList(new
+                            Percentile(0.95, 950D)))
                             .setSamples(2);
                     break;
             }
@@ -749,7 +752,7 @@ public class MetricsServiceITest extends MetricsITest {
 
         List<NumericBucketPoint> actual = metricsService.findRateStats(counter.getId(),
                 0, now().getMillis(), Buckets.fromStep(60_000, 60_000 * 8, 60_000),
-                Collections.emptyList()).toBlocking().single();
+                asList(99.0)).toBlocking().single();
         List<NumericBucketPoint> expected = new ArrayList<>();
         for (int i = 1; i < 8; i++) {
             NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(60_000 * i, 60_000 * (i + 1));
@@ -757,20 +760,23 @@ public class MetricsServiceITest extends MetricsITest {
             switch (i) {
                 case 1:
                     val = 400D;
-                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setSamples(1);
+                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentiles(asList(new Percentile
+                            (0.99, val))).setSamples(1);
                     break;
                 case 3:
                     val = 100D;
-                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setSamples(1);
+                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentiles(asList(new Percentile
+                            (0.99, val))).setSamples(1);
                     break;
                 case 5:
                     val = 100;
-                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setSamples(1);
+                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentiles(asList(new Percentile
+                            (0.99, val))).setSamples(1);
                 case 6:
                     break;
                 case 7:
-                    builder.setAvg(150.0).setMax(200.0).setMin(100.0).setMedian(100.0)
-                            .setSamples(2);
+                    builder.setAvg(150.0).setMax(200.0).setMin(100.0).setMedian(100.0).setPercentiles(
+                            asList(new Percentile(0.99, 100.0))).setSamples(2);
                 default:
                     break;
             }
@@ -1203,6 +1209,12 @@ public class MetricsServiceITest extends MetricsITest {
             assertEquals(actual.getMedian(), expected.getMedian(), 0.001, msg);
             assertEquals(actual.getMin(), expected.getMin(), 0.001, msg);
             assertEquals(actual.getSamples(), expected.getSamples(), 0, msg);
+            for(int i = 0; i < expected.getPercentiles().size(); i++) {
+                assertEquals(expected.getPercentiles().get(i).getQuantile(), actual.getPercentiles().get(i)
+                        .getQuantile(), 0.001, msg);
+                assertEquals(expected.getPercentiles().get(i).getValue(), actual.getPercentiles().get(i)
+                        .getValue(), 0.001, msg);
+            }
         }
     }
 
@@ -1464,7 +1476,7 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.addDataPoints(GAUGE, Observable.just(m1)).toBlocking().lastOrDefault(null);
 
         List<long[]> actual = metricsService.getPeriods(m1.getId(),
-            value -> value > threshold, start.getMillis(), now().getMillis()).toBlocking().lastOrDefault(null);
+                value -> value > threshold, start.getMillis(), now().getMillis()).toBlocking().lastOrDefault(null);
         List<long[]> expected = asList(
             new long[] {start.plusMinutes(2).getMillis(), start.plusMinutes(3).getMillis()},
             new long[] {start.plusMinutes(6).getMillis(), start.plusMinutes(6).getMillis()},
