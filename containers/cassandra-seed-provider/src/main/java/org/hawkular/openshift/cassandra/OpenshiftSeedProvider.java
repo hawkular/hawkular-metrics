@@ -58,10 +58,12 @@ public class OpenshiftSeedProvider implements SeedProvider {
 
 
     // The environment variables to set the KUBERNETES-MASTER
+    @SuppressWarnings("unused")
     private static final String KUBERNETES_MASTER_URL =
             getEnv("KUBERNETES_MASTER_URL", "https://kubernetes.default.svc.cluster.local:443");
 
     // The environment vairables to set the namespace
+    @SuppressWarnings("unused")
     private static final String POD_NAMESPACE = getEnv("POD_NAMESPACE", "default");
 
     private static final String KUBERNETES_MASTER_CERTIFICATE_FILENAME = "/var/run/secrets/kubernetes" +
@@ -82,6 +84,7 @@ public class OpenshiftSeedProvider implements SeedProvider {
     private static final int SERVICE_TRIES = 30;
     private static final int SERVICE_TRY_WAIT_TIME_MILLISECONDS = 2000;
 
+    @SuppressWarnings("unused")
     private SSLContext sslContext;
 
     //Required Constructor

@@ -105,6 +105,7 @@ public class MetricsServiceITest extends MetricsITest {
 
     private DataAccess dataAccess;
 
+    @SuppressWarnings("unused")
     private PreparedStatement insertGaugeDataWithTimestamp;
 
     private PreparedStatement insertAvailabilityDateWithTimestamp;
@@ -582,8 +583,9 @@ public class MetricsServiceITest extends MetricsITest {
         Observable<Void> insertObservable = metricsService.addDataPoints(GAUGE, Observable.just(m1));
         insertObservable.toBlocking().lastOrDefault(null);
 
+        @SuppressWarnings("unchecked")
         Observable<Double> observable = metricsService
-                .findGaugeData(new MetricId<>(tenantId, GAUGE, "m1"), start.getMillis(), (end.getMillis() + 1000),
+                .findGaugeData(new MetricId<Double>(tenantId, GAUGE, "m1"), start.getMillis(), (end.getMillis() + 1000),
                         Aggregate.Min, Aggregate.Max, Aggregate.Average, Aggregate.Sum);
         List<Double> actual = toList(observable);
         List<Double> expected = asList(10.0, 40.0, 25.0, 100.0);
