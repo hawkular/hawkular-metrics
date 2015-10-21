@@ -25,7 +25,7 @@ import java.util.Objects;
  *
  * @author jsanda
  */
-public class DataPoint<T> {
+public class DataPoint<T> implements Comparable<T> {
 
     public static final Comparator<DataPoint<?>> TIMESTAMP_COMPARATOR = Comparator.comparing(DataPoint::getTimestamp);
 
@@ -66,5 +66,10 @@ public class DataPoint<T> {
                 .add("timestamp", timestamp)
                 .add("value", value)
                 .toString();
+    }
+
+    @Override
+    public int compareTo(T t) {
+        return ((DataPoint) t).getTimestamp() > getTimestamp() ? 1 : 0;
     }
 }

@@ -92,7 +92,7 @@ public class GaugeHandler {
                     .GAUGE.getText()));
         }
         Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metricDefinition.getId()),
-                metricDefinition.getTags(), metricDefinition.getDataRetention());
+                metricDefinition.getTags(), metricDefinition.getDataRetention(), metricDefinition.getBucketSize());
         URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getId().getName());
         try {
             Observable<Void> observable = metricsService.createMetric(metric);

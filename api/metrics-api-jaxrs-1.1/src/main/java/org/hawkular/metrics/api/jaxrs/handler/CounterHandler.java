@@ -92,7 +92,7 @@ public class CounterHandler {
                     .COUNTER.getText()));
         }
         Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, metricDefinition.getId()),
-                metricDefinition.getTags(), metricDefinition.getDataRetention());
+                metricDefinition.getTags(), metricDefinition.getDataRetention(), metricDefinition.getBucketSize());
         URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getId().getName());
         try {
             Observable<Void> observable = metricsService.createMetric(metric);

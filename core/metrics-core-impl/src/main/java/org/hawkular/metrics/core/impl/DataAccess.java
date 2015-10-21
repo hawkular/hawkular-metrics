@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
@@ -53,8 +52,6 @@ public interface DataAccess {
 
     <T> Observable<ResultSet> findMetric(MetricId<T> id);
 
-    <T> Observable<ResultSet> addDataRetention(Metric<T> metric);
-
     <T> Observable<ResultSet> getMetricTags(MetricId<T> id);
 
     <T> Observable<ResultSet> addTags(Metric<T> metric, Map<String, String> tags);
@@ -65,9 +62,9 @@ public interface DataAccess {
 
     <T> Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType<T> type);
 
-    Observable<Integer> insertGaugeData(Metric<Double> metric, int ttl);
+    Observable<Integer> insertGaugeData(Metric<Double> metric);
 
-    Observable<Integer> insertCounterData(Metric<Long> counter, int ttl);
+    Observable<Integer> insertCounterData(Metric<Long> counter);
 
     Observable<ResultSet> findCounterData(MetricId<Long> id, long startTime, long endTime);
 
@@ -87,11 +84,11 @@ public interface DataAccess {
 
     Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long timestamp);
 
-    Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart);
+//    Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart);
 
     Observable<ResultSet> findAllGaugeMetrics();
 
-    Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl);
+    Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric);
 
     Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime);
 

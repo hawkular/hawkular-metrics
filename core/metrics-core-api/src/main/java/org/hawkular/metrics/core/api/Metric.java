@@ -33,21 +33,25 @@ public class Metric<T> {
     private final MetricId<T> id;
     private final Map<String, String> tags;
     private final Integer dataRetention;
+    private final Integer bucketSize;
     private final List<DataPoint<T>> dataPoints;
 
     public Metric(MetricId<T> id) {
-        this(id, Collections.emptyMap(), null, Collections.emptyList());
+        this(id, Collections.emptyMap(), null, null, Collections.emptyList());
     }
 
-    public Metric(MetricId<T> id, Map<String, String> tags, Integer dataRetention) {
-        this(id, tags, dataRetention, Collections.emptyList());
+    public Metric(MetricId<T> id, Map<String, String> tags, Integer dataRetention, Integer bucketSize) {
+        this(id, tags, dataRetention, bucketSize, Collections.emptyList());
     }
 
     public Metric(MetricId<T> id, List<DataPoint<T>> dataPoints) {
-        this(id, Collections.emptyMap(), null, dataPoints);
+        this(id, Collections.emptyMap(), null,
+                null, dataPoints);
     }
 
-    public Metric(MetricId<T> id, Map<String, String> tags, Integer dataRetention, List<DataPoint<T>> dataPoints) {
+    public Metric(MetricId<T> id, Map<String, String> tags, Integer dataRetention, Integer bucketSize,
+                  List<DataPoint<T>>
+            dataPoints) {
         checkArgument(id != null, "id is null");
         checkArgument(tags != null, "tags is null");
         checkArgument(dataPoints != null, "dataPoints is null");
@@ -61,6 +65,12 @@ public class Metric<T> {
         } else {
             this.dataRetention = dataRetention;
         }
+        if (bucketSize != null && bucketSize != 0) {
+            this.bucketSize = bucketSize;
+        } else {
+            this.bucketSize = null;
+        }
+
         this.dataPoints = unmodifiableList(dataPoints);
     }
 
@@ -88,6 +98,10 @@ public class Metric<T> {
 
     public List<DataPoint<T>> getDataPoints() {
         return dataPoints;
+    }
+
+    public Integer getBucketSize() {
+        return bucketSize;
     }
 
     @Override

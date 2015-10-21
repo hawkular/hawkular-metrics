@@ -85,7 +85,8 @@ public class MetricHandler {
             return badRequest(new ApiError("MetricDefinition type is invalid"));
         }
         MetricId<?> id = new MetricId<>(tenantId, metricDefinition.getType(), metricDefinition.getId());
-        Metric<?> metric = new Metric<>(id, metricDefinition.getTags(), metricDefinition.getDataRetention());
+        Metric<?> metric = new Metric<>(id, metricDefinition.getTags(), metricDefinition.getDataRetention(),
+                metricDefinition.getBucketSize());
         URI location = uriInfo.getBaseUriBuilder().path("/{type}/{id}").build(MetricTypeTextConverter.getLongForm(id
                 .getType()), id.getName());
 

@@ -110,7 +110,7 @@ public class DataAccessITest extends MetricsITest {
                 new DataPoint<>(end.getMillis(), 1.234)
         ));
 
-        dataAccess.insertGaugeData(metric, DEFAULT_TTL).toBlocking().last();
+        dataAccess.insertGaugeData(metric).toBlocking().last();
 
         Observable<ResultSet> observable = dataAccess.findGaugeData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
                 start.getMillis(), end.getMillis());
@@ -135,19 +135,19 @@ public class DataAccessITest extends MetricsITest {
         DateTime end = start.plusMinutes(6);
         String tenantId = "tenant-1";
 
-        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, "metric-1"),
-                ImmutableMap.of("units", "KB", "env", "test"), DEFAULT_TTL);
+//        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, "metric-1"),
+//                ImmutableMap.of("units", "KB", "env", "test"), DEFAULT_TTL);
+//
+//        dataAccess.addDataRetention(metric).toBlocking().last();
 
-        dataAccess.addDataRetention(metric).toBlocking().last();
-
-        metric = new Metric<>(new MetricId<>(tenantId, GAUGE, "metric-1"), asList(
+        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, "metric-1"), asList(
                 new DataPoint<>(start.getMillis(), 1.23),
                 new DataPoint<>(start.plusMinutes(2).getMillis(), 1.234),
                 new DataPoint<>(start.plusMinutes(4).getMillis(), 1.234),
                 new DataPoint<>(end.getMillis(), 1.234)
         ));
 
-        dataAccess.insertGaugeData(metric, DEFAULT_TTL).toBlocking().last();
+        dataAccess.insertGaugeData(metric).toBlocking().last();
 
         Observable<ResultSet> observable = dataAccess.findGaugeData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
                 start.getMillis(), end.getMillis());
@@ -174,7 +174,7 @@ public class DataAccessITest extends MetricsITest {
         Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, "m1"),
                 singletonList(new DataPoint<>(start.getMillis(), UP)));
 
-        dataAccess.insertAvailabilityData(metric, 360).toBlocking().lastOrDefault(null);
+        dataAccess.insertAvailabilityData(metric).toBlocking().lastOrDefault(null);
 
         List<DataPoint<AvailabilityType>> actual = dataAccess
                 .findAvailabilityData(new MetricId<>(tenantId, AVAILABILITY, "m1"), start.getMillis(), end.getMillis())
