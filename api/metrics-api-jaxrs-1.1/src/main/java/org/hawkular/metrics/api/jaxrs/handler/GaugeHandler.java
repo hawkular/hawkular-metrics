@@ -81,7 +81,6 @@ public class GaugeHandler {
     private String tenantId;
 
     @POST
-    @Produces(APPLICATION_JSON)
     @Path("/")
     public Response createGaugeMetric(
             MetricDefinition metricDefinition,
@@ -107,7 +106,6 @@ public class GaugeHandler {
     }
 
     @GET
-    @Produces(APPLICATION_JSON)
     @Path("/{id}")
     public Response getGaugeMetric(@PathParam("id") String id) {
         try {
@@ -121,7 +119,6 @@ public class GaugeHandler {
     }
 
     @GET
-    @Produces(APPLICATION_JSON)
     @Path("/{id}/tags")
     public Response getMetricTags(@PathParam("id") String id) {
         try {
@@ -134,7 +131,6 @@ public class GaugeHandler {
     }
 
     @PUT
-    @Produces(APPLICATION_JSON)
     @Path("/{id}/tags")
     public Response updateMetricTags(
             @PathParam("id") String id,
@@ -151,7 +147,6 @@ public class GaugeHandler {
     }
 
     @DELETE
-    @Produces(APPLICATION_JSON)
     @Path("/{id}/tags/{tags}")
     public Response deleteMetricTags(
             @PathParam("id") String id,
@@ -167,7 +162,6 @@ public class GaugeHandler {
     }
 
     @POST
-    @Produces(APPLICATION_JSON)
     @Path("/{id}/data")
     public Response addDataForMetric(
             @PathParam("id") String id,
@@ -183,7 +177,6 @@ public class GaugeHandler {
     }
 
     @POST
-    @Produces(APPLICATION_JSON)
     @Path("/data")
     public Response addGaugeData(
             List<Gauge> gauges
@@ -199,7 +192,6 @@ public class GaugeHandler {
 
     @GET
     @Path("/{id}/data")
-    @Produces(APPLICATION_JSON)
     public Response findGaugeData(
             @PathParam("id") String id,
             @QueryParam("start") final Long start,
@@ -298,7 +290,6 @@ public class GaugeHandler {
     }
 
     @GET
-    @Produces(APPLICATION_JSON)
     @Path("/{id}/periods")
     public Response findPeriods(
             @PathParam("id") String id,

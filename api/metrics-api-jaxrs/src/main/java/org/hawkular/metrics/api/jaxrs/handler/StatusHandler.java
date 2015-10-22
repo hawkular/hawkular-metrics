@@ -23,6 +23,7 @@ import java.util.Map;
 
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -39,6 +40,7 @@ import io.swagger.annotations.ApiOperation;
  * @author Matt Wringe
  */
 @Path(StatusHandler.PATH)
+@Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
 public class StatusHandler {
     public static final String PATH = "/status";

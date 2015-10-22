@@ -120,7 +120,6 @@ public class CounterHandler {
     }
 
     @GET
-    @Produces(APPLICATION_JSON)
     @Path("/{id}/tags")
     public Response getMetricTags(@PathParam("id") String id) {
         try {
@@ -133,7 +132,6 @@ public class CounterHandler {
     }
 
     @PUT
-    @Produces(APPLICATION_JSON)
     @Path("/{id}/tags")
     public Response updateMetricTags(
             @PathParam("id") String id,
@@ -150,7 +148,6 @@ public class CounterHandler {
     }
 
     @DELETE
-    @Produces(APPLICATION_JSON)
     @Path("/{id}/tags/{tags}")
     public Response deleteMetricTags(
             @PathParam("id") String id,
