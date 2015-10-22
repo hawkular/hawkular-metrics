@@ -17,7 +17,6 @@
 package org.hawkular.metrics.tasks.impl;
 
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -32,10 +31,6 @@ import rx.observers.TestSubscriber;
  */
 public class TaskSubscriber extends TestSubscriber<Task2> {
     private static Logger log = Logger.getLogger(TaskSubscriber.class);
-
-    private Random random = new Random();
-
-    private int numberOfOnNextEvents;
 
     private CountDownLatch onNextEventsLatch = new CountDownLatch(0);
 
@@ -98,7 +93,6 @@ public class TaskSubscriber extends TestSubscriber<Task2> {
         if (count < 1) {
             throw new IllegalArgumentException("count must be positive");
         }
-        numberOfOnNextEvents = count;
         onNextEventsLatch = new CountDownLatch(1);
         try {
             onNextEventsLatch.await();
@@ -116,7 +110,6 @@ public class TaskSubscriber extends TestSubscriber<Task2> {
         if (getOnNextEvents().size() >= count) {
             unsubscribe();
         } else {
-            numberOfOnNextEvents = count;
             onNextEventsLatch = new CountDownLatch(1);
             try {
                 onNextEventsLatch.await(timeout, unit);

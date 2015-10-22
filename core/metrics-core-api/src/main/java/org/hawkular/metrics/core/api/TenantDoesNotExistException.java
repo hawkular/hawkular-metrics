@@ -19,6 +19,7 @@ package org.hawkular.metrics.core.api;
 /**
  * @author John Sanda
  */
+@SuppressWarnings("serial")
 public class TenantDoesNotExistException extends RuntimeException {
 
     private final String tenantId;

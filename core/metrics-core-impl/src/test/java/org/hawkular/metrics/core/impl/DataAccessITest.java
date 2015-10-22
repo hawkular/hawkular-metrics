@@ -58,8 +58,6 @@ public class DataAccessITest extends MetricsITest {
 
     private PreparedStatement truncateGaugeData;
 
-    private PreparedStatement truncateCounters;
-
     @BeforeClass
     public void initClass() {
         initSession();

@@ -373,7 +373,7 @@ public class MetricsServiceLifecycle {
 
     @PreDestroy
     void destroy() {
-        Future stopFuture = lifecycleExecutor.submit(this::stopMetricsService);
+        Future<?> stopFuture = lifecycleExecutor.submit(this::stopMetricsService);
         try {
             Futures.get(stopFuture, 1, MINUTES, Exception.class);
         } catch (Exception e) {
