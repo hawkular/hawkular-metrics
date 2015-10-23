@@ -20,6 +20,7 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 import java.net.URI;
@@ -27,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.regex.PatternSyntaxException;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -114,6 +116,39 @@ public class GaugeHandler {
                 metricDefinition.getTags(), metricDefinition.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getId().getName());
         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
+    }
+
+    @GET
+    @Path("/")
+    @ApiOperation(value = "Find tenant's metric definitions.",
+                    notes = "Does not include any metric values. ",
+                    response = MetricDefinition.class, responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully retrieved at least one metric definition."),
+            @ApiResponse(code = 204, message = "No metrics found."),
+            @ApiResponse(code = 400, message = "Invalid type parameter type.", response = ApiError.class),
+            @ApiResponse(code = 500, message = "Failed to retrieve metrics due to unexpected error.",
+                    response = ApiError.class)
+    })
+    public void findGaugeMetrics(
+            @Suspended AsyncResponse asyncResponse,
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags) {
+
+        Observable<Metric<Double>> metricObservable = (tags == null)
+                ? metricsService.findMetrics(tenantId, GAUGE)
+                : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), GAUGE);
+
+        metricObservable
+                .map(MetricDefinition::new)
+                .toList()
+                .map(ApiUtils::collectionToResponse)
+                .subscribe(asyncResponse::resume, t -> {
+                    if (t instanceof PatternSyntaxException) {
+                        asyncResponse.resume(badRequest(t));
+                    } else {
+                        asyncResponse.resume(serverError(t));
+                    }
+                });
     }
 
     @GET

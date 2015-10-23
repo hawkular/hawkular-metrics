@@ -140,7 +140,7 @@ class TagsITest extends RESTTest {
     metricTypes.each {
       def tenantId = nextTenantId()
 
-      // Create a metrics
+      // Create metric
       def response = hawkularMetrics.post(path: it.path, body: [
         id  : 'N1',
         tags: ['a1': 'A', 'd1': 'B']
@@ -158,33 +158,46 @@ class TagsITest extends RESTTest {
         query: [tags: "a1:*"],
         headers: [(tenantHeaderName): tenantId])
 
-      assertEquals(200, response.status)
-      assertTrue(response.data instanceof List)
-      assertEquals(2, response.data.size())
-      assertTrue((response.data ?: []).contains([
-        tenantId: tenantId,
-        id      : 'N1',
-        tags    : ['a1': 'A', 'd1': 'B'],
-        type: it.type
-      ]))
-      assertTrue((response.data ?: []).contains([
-        tenantId: tenantId,
-        id      : 'N2',
-        tags    : ['a1': 'A2'],
-        type: it.type
-      ]))
+      def alternateResponse = hawkularMetrics.get(path: it.path,
+        query: [tags: "a1:*"],
+        headers: [(tenantHeaderName): tenantId])
+
+      [response, alternateResponse].each { lresponse ->
+        assertEquals(200, lresponse.status)
+        assertTrue(lresponse.data instanceof List)
+        assertEquals(2, lresponse.data.size())
+        assertTrue((lresponse.data ?: []).contains([
+          tenantId: tenantId,
+          id      : 'N1',
+          tags    : ['a1': 'A', 'd1': 'B'],
+          type: it.type
+        ]))
+        assertTrue((lresponse.data ?: []).contains([
+          tenantId: tenantId,
+          id      : 'N2',
+          tags    : ['a1': 'A2'],
+          type: it.type
+        ]))
+      }
 
       // Fetch with tags & type
       response = hawkularMetrics.get(path: "metrics",
         query: [tags: "a1:A,d1:B", type: it.type],
         headers: [(tenantHeaderName): tenantId])
-      assertEquals(200, response.status)
-      assertEquals([[
-        tenantId: tenantId,
-        id      : 'N1',
-        tags    : ['a1': 'A', 'd1': 'B'],
-        type: it.type
-      ]], response.data)
+
+      alternateResponse =   hawkularMetrics.get(path: it.path,
+        query: [tags: "a1:A,d1:B"],
+        headers: [(tenantHeaderName): tenantId])
+
+      [response, alternateResponse].each {  lresponse ->
+        assertEquals(200, lresponse.status)
+        assertEquals([[
+          tenantId: tenantId,
+          id      : 'N1',
+          tags    : ['a1': 'A', 'd1': 'B'],
+          type: it.type
+        ]], lresponse.data)
+      }
 
       // Fetch with incorrect regexp
       badGet(path: "metrics", query: [tags: "a1:**", type: it.type],
