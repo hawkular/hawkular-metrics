@@ -28,6 +28,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
+import javax.jms.DeliveryMode;
 import javax.jms.JMSException;
 import javax.jms.TopicConnectionFactory;
 
@@ -67,6 +68,7 @@ public class MetricDataPublisher {
             connectionContextFactory = new ConnectionContextFactory(topicConnectionFactory);
             Endpoint endpoint = new Endpoint(TOPIC, HAWULAR_METRIC_DATA_TOPIC);
             producerConnectionContext = connectionContextFactory.createProducerConnectionContext(endpoint);
+            producerConnectionContext.getMessageProducer().setDeliveryMode(DeliveryMode.NON_PERSISTENT);
         } catch (JMSException e) {
             throw new RuntimeException(e);
         }
@@ -74,12 +76,12 @@ public class MetricDataPublisher {
 
     public void publish(Metric<? extends Number> metric) {
         BasicMessage basicMessage = createNumericMessage(metric);
-        try {
-            messageProcessor.send(producerConnectionContext, basicMessage);
-            log.tracef("Sent message: %s", basicMessage);
-        } catch (JMSException e) {
-            log.warnf(e, "Could not send metric: %s", metric);
-        }
+//        try {
+//            messageProcessor.send(producerConnectionContext, basicMessage);
+//            log.tracef("Sent message: %s", basicMessage);
+//        } catch (JMSException e) {
+//            log.warnf(e, "Could not send metric: %s", metric);
+//        }
     }
 
     private BasicMessage createNumericMessage(Metric<? extends Number> numeric) {

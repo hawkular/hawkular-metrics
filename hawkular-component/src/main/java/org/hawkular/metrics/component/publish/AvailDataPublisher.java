@@ -28,6 +28,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
+import javax.jms.DeliveryMode;
 import javax.jms.JMSException;
 import javax.jms.TopicConnectionFactory;
 
@@ -68,6 +69,7 @@ public class AvailDataPublisher {
             connectionContextFactory = new ConnectionContextFactory(topicConnectionFactory);
             Endpoint endpoint = new Endpoint(TOPIC, HAWULAR_AVAIL_DATA_TOPIC);
             producerConnectionContext = connectionContextFactory.createProducerConnectionContext(endpoint);
+            producerConnectionContext.getMessageProducer().setDeliveryMode(DeliveryMode.NON_PERSISTENT);
         } catch (JMSException e) {
             throw new RuntimeException(e);
         }
