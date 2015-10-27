@@ -19,6 +19,7 @@ package org.hawkular.metrics.core.impl;
 import static org.junit.Assert.assertEquals;
 
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.Duration;
 import org.junit.Test;
 
@@ -61,8 +62,13 @@ public class DateTimeServiceTest {
 
     @Test
     public void testAddDataToThePastTimes() throws Exception {
+        // Ensure this works elsewhere also
+        DateTimeZone aDefault = DateTimeZone.getDefault();
+        DateTimeZone zone = DateTimeZone.forID("Europe/Helsinki");
+        DateTimeZone.setDefault(zone);
+
         long startTime = 1445418388588L;
-        long endTime = 1445940268588L; // Not included slice: 1445896800000
+        long endTime = 1445940268588L;
 
         Duration slice = Duration.standardDays(1L);
 
@@ -73,5 +79,7 @@ public class DateTimeServiceTest {
         assertEquals(1445374800000L, dparts[0]);
         assertEquals(1445896800000L, dparts[dparts.length-1]);
         assertEquals(8, dparts.length);
+
+        DateTimeZone.setDefault(aDefault);
     }
 }
