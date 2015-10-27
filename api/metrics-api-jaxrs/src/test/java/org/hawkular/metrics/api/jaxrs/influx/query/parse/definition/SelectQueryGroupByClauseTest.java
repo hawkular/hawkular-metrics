@@ -18,7 +18,6 @@ package org.hawkular.metrics.api.jaxrs.influx.query.parse.definition;
 
 import static java.util.stream.Collectors.toList;
 
-import static org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit.MILLISECONDS;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
@@ -41,7 +40,6 @@ public class SelectQueryGroupByClauseTest {
     @Parameters(name = "{0}")
     public static Iterable<Object[]> testValidQueries() throws Exception {
         return Arrays.stream(InfluxTimeUnit.values())
-                .filter(timeUnit -> timeUnit != MILLISECONDS)
                 .map(timeUnit -> {
                     int bucketSize = timeUnit.ordinal() + 15;
                     return new Object[]{

@@ -42,9 +42,7 @@ select * from b where (a=7 AND )
 select a from "b" group by time (.15u) where (c=2 and ((d=7) OR 7 <> _qsk4jlj(a."56465"))) limit 15
 -- Timespan needs a unit
 select a from "b" group by time (7) where (c=2 and ((d=7) OR 7 <> _qsk4jlj(a."56465"))) limit 15
--- Timeunit is single letter
-select a from "b" group by time (7dd) where (c=2 and ((d=7) OR 7 <> _qsk4jlj(a."56465"))) limit 15
--- Timeunit must be u, s, m, h, d or w
+-- Timeunit must be u, ms, s, m, h, d or w
 select a from "b" group by time (7z) where (c=2 and ((d=7) OR 7 <> _qsk4jlj(a."56465"))) limit 15
 -- Broken dates
 select a from "b" where '2012-05-14' = '2007-0' OR '2007-05' > '2007-05-14 18:12:'

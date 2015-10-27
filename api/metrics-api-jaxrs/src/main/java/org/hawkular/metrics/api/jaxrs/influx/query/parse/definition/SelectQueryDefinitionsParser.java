@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.api.jaxrs.influx.query.parse.definition;
 
+import static java.util.stream.Collectors.joining;
+
 import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.AbsoluteMomentOperandContext;
 import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.AggregatedColumnDefinitionContext;
 import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.AliasContext;
@@ -52,9 +54,12 @@ import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParse
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -94,6 +99,15 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
             .appendOptional(timeParser) //
             .toFormatter() //
             .withZoneUTC();
+    }
+
+    private static final Pattern TIMESPAN_MATCHER;
+
+    static {
+        String regex = Arrays.stream(InfluxTimeUnit.values())
+                .map(InfluxTimeUnit::getId)
+                .collect(joining("|", "(\\d+)(", ")"));
+        TIMESPAN_MATCHER = Pattern.compile(regex);
     }
 
     private SelectQueryDefinitionsBuilder definitionsBuilder = new SelectQueryDefinitionsBuilder();
@@ -180,9 +194,13 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     public void exitGroupByClause(@NotNull GroupByClauseContext ctx) {
         String bucketType = ctx.ID().getText();
         String timespan = ctx.TIMESPAN().getText();
-        long bucketSize = Long.parseLong(timespan.substring(0, timespan.length() - 1));
-        char unitId = timespan.charAt(timespan.length() - 1);
-        InfluxTimeUnit bucketSizeUnit = InfluxTimeUnit.findById(String.valueOf(unitId));
+        Matcher matcher = TIMESPAN_MATCHER.matcher(timespan);
+        if (!matcher.matches()) {
+            throw new IllegalStateException("Unknown timespan format: " + timespan);
+        }
+        long bucketSize = Long.parseLong(matcher.group(1));
+        String unitId = matcher.group(2);
+        InfluxTimeUnit bucketSizeUnit = InfluxTimeUnit.findById(unitId);
         if (bucketSizeUnit == null) {
             throw new RuntimeException("Unknown time unit: " + unitId);
         }
@@ -263,9 +281,13 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     @Override
     public void exitAbsoluteMomentOperand(AbsoluteMomentOperandContext ctx) {
         String timespan = ctx.TIMESPAN().getText();
-        long amount = Long.parseLong(timespan.substring(0, timespan.length() - 1));
-        char unitId = timespan.charAt(timespan.length() - 1);
-        InfluxTimeUnit unit = InfluxTimeUnit.findById(String.valueOf(unitId));
+        Matcher matcher = TIMESPAN_MATCHER.matcher(timespan);
+        if (!matcher.matches()) {
+            throw new IllegalStateException("Unknown timespan format: " + timespan);
+        }
+        long amount = Long.parseLong(matcher.group(1));
+        String unitId = matcher.group(2);
+        InfluxTimeUnit unit = InfluxTimeUnit.findById(unitId);
         if (unit == null) {
             throw new RuntimeException("Unknown time unit: " + unitId);
         }
@@ -280,9 +302,13 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
         InfluxTimeUnit timeshiftUnit;
         if (intNode == null) {
             String timespan = ctx.TIMESPAN().getText();
-            timeshift = Long.parseLong(timespan.substring(0, timespan.length() - 1));
-            char unitId = timespan.charAt(timespan.length() - 1);
-            timeshiftUnit = InfluxTimeUnit.findById(String.valueOf(unitId));
+            Matcher matcher = TIMESPAN_MATCHER.matcher(timespan);
+            if (!matcher.matches()) {
+                throw new IllegalStateException("Unknown timespan format: " + timespan);
+            }
+            timeshift = Long.parseLong(matcher.group(1));
+            String unitId = matcher.group(2);
+            timeshiftUnit = InfluxTimeUnit.findById(unitId);
             if (timeshiftUnit == null) {
                 throw new RuntimeException("Unknown time unit: " + unitId);
             }
@@ -301,9 +327,13 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
         InfluxTimeUnit timeshiftUnit;
         if (intNode == null) {
             String timespan = ctx.TIMESPAN().getText();
-            timeshift = Long.parseLong(timespan.substring(0, timespan.length() - 1));
-            char unitId = timespan.charAt(timespan.length() - 1);
-            timeshiftUnit = InfluxTimeUnit.findById(String.valueOf(unitId));
+            Matcher matcher = TIMESPAN_MATCHER.matcher(timespan);
+            if (!matcher.matches()) {
+                throw new IllegalStateException("Unknown timespan format: " + timespan);
+            }
+            timeshift = Long.parseLong(matcher.group(1));
+            String unitId = matcher.group(2);
+            timeshiftUnit = InfluxTimeUnit.findById(unitId);
             if (timeshiftUnit == null) {
                 throw new RuntimeException("Unknown time unit: " + unitId);
             }

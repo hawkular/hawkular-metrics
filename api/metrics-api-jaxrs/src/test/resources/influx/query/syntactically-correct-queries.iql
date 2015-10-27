@@ -46,3 +46,4 @@ SeleCt dup.time as now, _agjsqdha(clui, -5, -33.1) as p from z as bi group by ti
 select * from test where time > 1501560s and time < 4560546h
 SeleCt dup.a fROm "z" as bi order desc
 SeleCt dup.b fROm "z" as bi order asc
+select mean(value) from "london01.web011.example.com.cpu.usage" where time > now()-5m group by time(100ms) order asc
