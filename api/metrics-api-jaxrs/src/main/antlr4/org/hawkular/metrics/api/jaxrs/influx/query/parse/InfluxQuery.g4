@@ -98,7 +98,7 @@ LIMIT: L I M I T;
 ORDER: O R D E R;
 
 TIMESPAN: INT TIMEUNIT;
-fragment TIMEUNIT: U | S | M | H | D | W;
+fragment TIMEUNIT: U | M S | S | M | H | D | W;
 
 ID: ID_LETTER (ID_LETTER | DIGIT)*;
 fragment ID_LETTER: [a-zA-Z] | '_';
