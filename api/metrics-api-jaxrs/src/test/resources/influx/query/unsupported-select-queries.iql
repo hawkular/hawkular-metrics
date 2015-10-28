@@ -55,3 +55,5 @@ select a.value as b from c as a where time > '2011-07-28' and time > now() + 50w
 select a.value as b from c as a where '2011-07-28' < a.time and now() + 50w < a.time
 -- not a simple time range
 select a.value as b from c as a where '2011-07-28' > a.time and now() + 50w > a.time
+-- group by bucket size smaller than maximum resolution
+select mean(value) from "london01.web011.example.com.cpu.usage" where time > now()-5m group by time(12u) order asc

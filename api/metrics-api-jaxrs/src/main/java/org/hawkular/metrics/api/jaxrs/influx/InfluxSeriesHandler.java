@@ -17,7 +17,6 @@
 package org.hawkular.metrics.api.jaxrs.influx;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.TEXT_PLAIN_TYPE;
@@ -35,7 +34,6 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -53,6 +51,7 @@ import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import org.hawkular.metrics.api.jaxrs.influx.query.InfluxQueryParseTreeWalker;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.ListSeriesContext;
@@ -77,6 +76,7 @@ import org.hawkular.metrics.api.jaxrs.influx.query.validation.IllegalQueryExcept
 import org.hawkular.metrics.api.jaxrs.influx.query.validation.QueryValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InfluxObjectValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InvalidObjectException;
+import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
@@ -281,6 +281,13 @@ public class InfluxSeriesHandler {
             return;
         }
         String columnName = getColumnName(queryDefinitions);
+        Buckets buckets;
+        try {
+            buckets = getBucketConfig(queryDefinitions, timeInterval);
+        } catch (IllegalArgumentException e) {
+            asyncResponse.resume(errorResponse(BAD_REQUEST, e.getMessage()));
+            return;
+        }
 
         metricsService.idExists(metric)
                   .flatMap(
@@ -299,13 +306,7 @@ public class InfluxSeriesHandler {
                         return null;
                     }
 
-                    if (shouldApplyMapping(queryDefinitions)) {
-                        GroupByClause groupByClause = queryDefinitions.getGroupByClause();
-                        InfluxTimeUnit bucketSizeUnit = groupByClause.getBucketSizeUnit();
-                        long bucketSizeSec = bucketSizeUnit.convertTo(
-                                SECONDS,
-                                groupByClause.getBucketSize()
-                        );
+                    if (buckets != null) {
                         AggregatedColumnDefinition aggregatedColumnDefinition =
                                 (AggregatedColumnDefinition) queryDefinitions
                                         .getColumnDefinitions().get(0);
@@ -313,9 +314,7 @@ public class InfluxSeriesHandler {
                                 aggregatedColumnDefinition.getAggregationFunction(),
                                 aggregatedColumnDefinition.getAggregationFunctionArguments(),
                                 metrics,
-                                (int) bucketSizeSec,
-                                timeInterval.getStartMillis(),
-                                timeInterval.getEndMillis()
+                                buckets
                         );
                     }
 
@@ -364,12 +363,6 @@ public class InfluxSeriesHandler {
         );
     }
 
-    private boolean shouldApplyMapping(SelectQueryDefinitions queryDefinitions) {
-        return !queryDefinitions.isStarColumn()
-               && queryDefinitions.getColumnDefinitions().get(0) instanceof AggregatedColumnDefinition
-               && queryDefinitions.getGroupByClause() != null;
-    }
-
     private String getColumnName(SelectQueryDefinitions queryDefinitions) {
         if (queryDefinitions.isStarColumn()) {
             return "value";
@@ -377,32 +370,28 @@ public class InfluxSeriesHandler {
         return queryDefinitions.getColumnDefinitions().get(0).getDisplayName();
     }
 
-    /**
-     * Apply a mapping function to the incoming data
-     *
-     * @param aggregationFunction
-     * @param aggregationFunctionArguments
-     * @param in                           Input list of data
-     * @param bucketLengthSec              the length of the buckets
-     * @param startTime                    Start time of the query
-     * @param endTime                      End time of the query
-     *
-     * @return The mapped list of values, which could be the input or a longer or shorter list
-     */
+    private Buckets getBucketConfig(SelectQueryDefinitions queryDefinitions, Interval timeInterval) {
+        if (queryDefinitions.isStarColumn()
+                || !(queryDefinitions.getColumnDefinitions().get(0) instanceof AggregatedColumnDefinition)) {
+            return null;
+        }
+        GroupByClause groupByClause = queryDefinitions.getGroupByClause();
+        InfluxTimeUnit bucketSizeUnit = groupByClause.getBucketSizeUnit();
+        long bucketSize = bucketSizeUnit.convertTo(MILLISECONDS, groupByClause.getBucketSize());
+        return Buckets.fromStep(timeInterval.getStartMillis(), timeInterval.getEndMillis(), bucketSize);
+    }
+
     private List<DataPoint<Double>> applyMapping(
             String aggregationFunction,
-            List<FunctionArgument> aggregationFunctionArguments, List<DataPoint<Double>> in, int bucketLengthSec,
-            long startTime,
-            long endTime
+            List<FunctionArgument> aggregationFunctionArguments,
+            List<DataPoint<Double>> in,
+            Buckets buckets
     ) {
-
-        long timeDiff = endTime - startTime; // Millis
-        int numBuckets = (int) ((timeDiff / 1000) / bucketLengthSec);
-        Map<Integer, List<DataPoint<Double>>> tmpMap = new HashMap<>(numBuckets);
+        Map<Integer, List<DataPoint<Double>>> tmpMap = new HashMap<>(buckets.getCount());
 
         // Bucketize
         for (DataPoint<Double> rnm : in) {
-            int pos = (int) ((rnm.getTimestamp() - startTime) / 1000) / bucketLengthSec;
+            int pos = (int) ((rnm.getTimestamp() - buckets.getStart()) / buckets.getStep());
             List<DataPoint<Double>> bucket = tmpMap.get(pos);
             if (bucket == null) {
                 bucket = new ArrayList<>();
@@ -411,7 +400,7 @@ public class InfluxSeriesHandler {
             bucket.add(rnm);
         }
 
-        List<DataPoint<Double>> out = new ArrayList<>(numBuckets);
+        List<DataPoint<Double>> out = new ArrayList<>(buckets.getCount());
         // Apply mapping to buckets to create final value
         SortedSet<Integer> keySet = new TreeSet<>(tmpMap.keySet());
         for (Integer pos : keySet) {
@@ -542,24 +531,12 @@ public class InfluxSeriesHandler {
         return out;
     }
 
-    /**
-     * Determine the quantil of the data
-     *
-     * @param in  data for computation
-     * @param val a value between 0 and 100 to determine the <i>val</i>th quantil
-     *
-     * @return quantil from data
-     */
-    private double quantil(List<DataPoint<Double>> in, double val) {
-        int n = in.size();
-        List<Double> bla = new ArrayList<>(n);
-        bla.addAll(in.stream().map(DataPoint::getValue).sorted().collect(Collectors.toList()));
-        float x = (float) (n * (val / 100));
-        if ((int) Math.floor(x) == (int) x) {
-            return 0.5 * (bla.get((int) x - 1) + bla.get((int) (x)));
-        } else {
-            return bla.get((int) Math.ceil(x - 1));
+    private double quantil(List<DataPoint<Double>> in, double quantil) {
+        double[] values = new double[in.size()];
+        for (int i = 0; i < in.size(); i++) {
+            values[i] = in.get(i).getValue();
         }
+        return new Percentile(quantil).evaluate(values);
     }
 
     private Response errorResponse(Status status, String message) {

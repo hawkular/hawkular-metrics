@@ -16,6 +16,9 @@
  */
 package org.hawkular.metrics.api.jaxrs.influx.query.validation;
 
+import static org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit.MICROSECONDS;
+import static org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit.MILLISECONDS;
+
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.GroupByClause;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.definition.SelectQueryDefinitions;
 
@@ -27,8 +30,15 @@ public class GroupByTimeRule implements SelectQueryValidationRule {
     @Override
     public void checkQuery(SelectQueryDefinitions queryDefinitions) throws IllegalQueryException {
         GroupByClause groupByClause = queryDefinitions.getGroupByClause();
-        if (groupByClause != null && !groupByClause.getBucketType().equalsIgnoreCase("time")) {
+        if (groupByClause == null) {
+            return;
+        }
+        if (!groupByClause.getBucketType().equalsIgnoreCase("time")) {
             throw new IllegalQueryException("Group by " + groupByClause.getBucketType());
+        }
+        if (groupByClause.getBucketSizeUnit() == MICROSECONDS
+                && groupByClause.getBucketSize() < MICROSECONDS.convert(1, MILLISECONDS)) {
+            throw new IllegalQueryException("Group by bucket size smaller than maximum resolution");
         }
     }
 }
