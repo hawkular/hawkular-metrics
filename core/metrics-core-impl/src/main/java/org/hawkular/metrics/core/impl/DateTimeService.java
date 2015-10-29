@@ -114,8 +114,10 @@ public class DateTimeService {
     public long[] getDparts(long from, long to, Duration interval) {
         DateTime start = new DateTime(from);
         DateTime end = new DateTime(to);
+        DateTime legacy = new DateTime(0);
 
         List<DateTime> slices = new LinkedList<>();
+        slices.add(legacy);
         DateTime startSlice = getTimeSlice(start, interval);
 
         while(startSlice.isBefore(end.getMillis())) {

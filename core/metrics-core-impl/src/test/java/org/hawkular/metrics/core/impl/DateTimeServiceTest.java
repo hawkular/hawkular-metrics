@@ -41,8 +41,8 @@ public class DateTimeServiceTest {
         long endTime = now.plusDays(3).getMillis(); // Advance by 3 days
 
         long[] dparts = service.getDparts(startTime, endTime, DateTimeService.DEFAULT_SLICE);
-        assertEquals(4, dparts.length); // StartDay 3 days
-        assertEquals("Matching dpart did not equal the first insert dpart", currentDpart, dparts[0]);
+        assertEquals(5, dparts.length); // StartDay 3 days + legacy
+        assertEquals("Matching dpart did not equal the first insert dpart", currentDpart, dparts[1]);
     }
 
     @Test
@@ -56,8 +56,8 @@ public class DateTimeServiceTest {
         long endTime = now.plusHours(3).getMillis(); // Advance by 3 hours
 
         long[] dparts = service.getDparts(startTime, endTime, slice);
-        assertEquals(2, dparts.length); // StartTime one 3 hour slot
-        assertEquals("Matching dpart did not equal the first insert dpart", currentDpart, dparts[0]);
+        assertEquals(3, dparts.length); // StartTime one 3 hour slot + legacy
+        assertEquals("Matching dpart did not equal the first insert dpart", currentDpart, dparts[1]);
     }
 
     @Test
@@ -76,9 +76,10 @@ public class DateTimeServiceTest {
         assertEquals(1445374800000L, currentDpart);
 
         long[] dparts = service.getDparts(startTime, endTime, slice);
-        assertEquals(1445374800000L, dparts[0]);
+        assertEquals(0L, dparts[0]);
+        assertEquals(1445374800000L, dparts[1]);
         assertEquals(1445896800000L, dparts[dparts.length-1]);
-        assertEquals(8, dparts.length);
+        assertEquals(9, dparts.length);
 
         DateTimeZone.setDefault(aDefault);
     }
