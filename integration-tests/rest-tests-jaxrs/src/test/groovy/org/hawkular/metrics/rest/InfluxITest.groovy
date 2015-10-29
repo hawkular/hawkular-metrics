@@ -16,12 +16,11 @@
  */
 package org.hawkular.metrics.rest
 
+import static groovyx.net.http.ContentType.TEXT
+import static groovyx.net.http.Method.POST
 import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.fail
-
-import static groovyx.net.http.ContentType.TEXT
-import static groovyx.net.http.Method.POST
 
 import org.apache.http.util.EntityUtils
 import org.joda.time.DateTime
@@ -261,6 +260,81 @@ class InfluxITest extends RESTTest {
                 points: [
                     [start.plus(2000).millis, 42.1],
                     [start.plus(1000).millis, 41.1]
+                ]
+            ]
+        ],
+        response.data
+    )
+  }
+
+  @Test
+  void testGroupByWhenBucketSizeIsMetricResolution() {
+    def response = hawkularMetrics.post(path: "db/${tenantId}/series", body: [
+        [
+            name   : timeseriesName,
+            columns: ['time', 'value'],
+            points : [
+                [100, 40.1],
+                [101, 41.1],
+                [102, 42.1],
+            ]
+        ]
+    ])
+    assertEquals(200, response.status)
+
+    def influxQuery = """select mean(value) from "${
+      timeseriesName
+    }" where time > 100ms and time < 150ms group by time(1000u)"""
+
+    response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
+    assertEquals(200, response.status)
+
+    assertEquals(
+        [
+            [
+                columns: ['time', 'mean'],
+                name   : timeseriesName,
+                points : [
+                    [100, 40.1],
+                    [101, 41.1],
+                    [102, 42.1],
+                ]
+            ]
+        ],
+        response.data
+    )
+  }
+
+  @Test
+  void testGroupByWithSubSecondBucketSize() {
+    def response = hawkularMetrics.post(path: "db/${tenantId}/series", body: [
+        [
+            name   : timeseriesName,
+            columns: ['time', 'value'],
+            points : [
+                [100, 40.1],
+                [108, 41.1],
+                [117, 42.1],
+            ]
+        ]
+    ])
+    assertEquals(200, response.status)
+
+    def influxQuery = """select mean(value) from "${
+      timeseriesName
+    }" where time > 100ms and time < 150ms group by time(10ms)"""
+
+    response = hawkularMetrics.get(path: "db/${tenantId}/series", query: [q: influxQuery])
+    assertEquals(200, response.status)
+
+    assertEquals(
+        [
+            [
+                columns: ['time', 'mean'],
+                name   : timeseriesName,
+                points : [
+                    [108, 40.6],
+                    [117, 42.1],
                 ]
             ]
         ],
