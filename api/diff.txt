@@ -43,30 +43,35 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/met
 <       <artifactId>antlr4-runtime</artifactId>
 <     </dependency>
 <     <dependency>
-60,61c71,81
+60,61c71,72
 <     <!-- Wildfly provided -->
 <     <!-- No need to set the jboss-logging scope here since Wildfly BOM includes jboss-logging -->
 ---
 >     <!-- AS7 provided -->
 >     <!-- Set the jboss-logging scope here since EAP6.4 BOM does not include jboss-logging -->
->     <dependency>
+63,64c74,79
+<       <groupId>org.jboss.resteasy</groupId>
+<       <artifactId>resteasy-jaxrs</artifactId>
+---
 >       <groupId>org.jboss.logging</groupId>
 >       <artifactId>jboss-logging</artifactId>
 >       <!--
 >       This version is "almost" compatible with the version included in EAP6.4:
 >       we can't use logger methods with primitive arguments
 >       -->
->       <scope>provided</scope>
->     </dependency>
-69c89
+69c84
+<       <artifactId>resteasy-client</artifactId>
+---
+>       <artifactId>resteasy-jaxrs</artifactId>
+74c89
 <       <artifactId>resteasy-jackson2-provider</artifactId>
 ---
 >       <artifactId>resteasy-jackson-provider</artifactId>
-74c94
+79c94
 <       <artifactId>jboss-servlet-api_3.1_spec</artifactId>
 ---
 >       <artifactId>jboss-servlet-api_3.0_spec</artifactId>
-82,105d101
+87,110d101
 < 
 <     <!-- documentation -->
 <     <dependency>
@@ -91,13 +96,13 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/met
 <       <artifactId>mockito-core</artifactId>
 <       <scope>test</scope>
 <     </dependency>
-109c105
+114c105
 <     <finalName>hawkular-metric-rest</finalName>
 ---
 >     <finalName>hawkular-metrics-api-rest-1.1</finalName>
-111d106
+116d106
 < 
-113,127c108,114
+118,132c108,114
 <         <groupId>org.antlr</groupId>
 <         <artifactId>antlr4-maven-plugin</artifactId>
 <         <executions>
@@ -121,18 +126,18 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/pom.xml api/met
 >           <version>${version.org.jboss.as.container}</version>
 >           <port>${jboss-as.management.port}</port>
 >         </configuration>
-139,140d125
+144,145d125
 <           <!-- Exclude Swagger output customization classes from the WAR file -->
 <           <packagingExcludes>WEB-INF/classes/org/hawkular/metrics/api/jaxrs/swagger/**/*</packagingExcludes>
-147c132
+152c132
 <                 <exclude>static/index.html</exclude>
 ---
 >                 <exclude>index.html</exclude>
-155c140
+160c140
 <                 <include>static/index.html</include>
 ---
 >                 <include>index.html</include>
-164,235d148
+169,240d148
 < 
 <   <profiles>
 <     <profile>
@@ -209,9 +214,11 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 32,33d31
 < import org.hawkular.metrics.api.jaxrs.filter.CorsRequestFilter;
 < import org.hawkular.metrics.api.jaxrs.filter.CorsResponseFilter;
-46d43
+43d40
+< import org.hawkular.metrics.api.jaxrs.handler.PipeHandler;
+47d43
 < import org.hawkular.metrics.api.jaxrs.influx.InfluxSeriesHandler;
-50,51c47,50
+51,52c47,50
 < import org.hawkular.metrics.api.jaxrs.param.ConvertersProvider;
 < import org.hawkular.metrics.api.jaxrs.util.JacksonConfig;
 ---
@@ -219,12 +226,14 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 > import org.hawkular.metrics.api.jaxrs.param.MetricTypeConverter;
 > import org.hawkular.metrics.api.jaxrs.param.PercentilesConverter;
 > import org.hawkular.metrics.api.jaxrs.param.TagsConverter;
-80d78
+81d78
 <         classes.add(InfluxSeriesHandler.class);
-116,117d113
+89d85
+<         classes.add(PipeHandler.class);
+118,119d113
 <         classes.add(CorsResponseFilter.class);
 <         classes.add(CorsRequestFilter.class);
-121,123c117,120
+123,125c117,120
 <         classes.add(ConvertersProvider.class);
 <         classes.add(org.hawkular.metrics.api.jaxrs.influx.param.ConvertersProvider.class);
 <         classes.add(JacksonConfig.class);
@@ -1832,6 +1841,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >             } catch (Exception e) {
 >                 return serverError(e);
 >             }
+Only in api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler: GaugeHandler.java.orig
 diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/MetricHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/MetricHandler.java
 40,41d39
 < import javax.ws.rs.container.AsyncResponse;
@@ -1988,6 +1998,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 45,46d41
 <     @ApiOperation(value = "Returns the current time and serves to check for the availability of the api.", response =
 <             Map.class)
+Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler: PipeHandler.java
 diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler/StatusHandler.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/handler/StatusHandler.java
 37,38d36
 < import io.swagger.annotations.ApiOperation;

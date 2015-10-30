@@ -40,6 +40,7 @@ import org.hawkular.metrics.api.jaxrs.handler.CounterHandler;
 import org.hawkular.metrics.api.jaxrs.handler.GaugeHandler;
 import org.hawkular.metrics.api.jaxrs.handler.MetricHandler;
 import org.hawkular.metrics.api.jaxrs.handler.PingHandler;
+import org.hawkular.metrics.api.jaxrs.handler.PipeHandler;
 import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
 import org.hawkular.metrics.api.jaxrs.handler.TenantsHandler;
 import org.hawkular.metrics.api.jaxrs.handler.VirtualClockHandler;
@@ -85,6 +86,7 @@ public class HawkularMetricsRestApp extends Application {
         classes.add(BaseHandler.class);
         classes.add(CounterHandler.class);
         classes.add(PingHandler.class);
+        classes.add(PipeHandler.class);
 
         // Initially I tried to inject this using @Configurable and @ConfigurableProperty
         // but null was returned. I assume it has something to do with initialization order.
