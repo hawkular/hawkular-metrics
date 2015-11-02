@@ -47,6 +47,7 @@ public class MetricDefinition {
     private final String id;
     private final Map<String, String> tags;
     private final Integer dataRetention;
+    private final Integer bucketSize;
     private final MetricType<?> type;
 
     @JsonCreator(mode = Mode.PROPERTIES)
@@ -61,6 +62,9 @@ public class MetricDefinition {
             @JsonProperty("dataRetention")
             @org.codehaus.jackson.annotate.JsonProperty("dataRetention")
             Integer dataRetention,
+            @JsonProperty("bucketSize")
+            @org.codehaus.jackson.annotate.JsonProperty("bucketSize")
+            Integer bucketSize,
             @JsonProperty("type")
             @org.codehaus.jackson.annotate.JsonProperty("type")
             @JsonDeserialize(using = MetricTypeDeserializer.class)
@@ -74,6 +78,7 @@ public class MetricDefinition {
         this.id = id;
         this.tags = tags == null ? emptyMap() : unmodifiableMap(tags);
         this.dataRetention = dataRetention;
+        this.bucketSize = bucketSize;
         this.type = type;
     }
 
@@ -82,6 +87,7 @@ public class MetricDefinition {
         this.id = metric.getId().getName();
         this.type = metric.getId().getType();
         this.tags = metric.getTags();
+        this.bucketSize = metric.getBucketSize();
         this.dataRetention = metric.getDataRetention();
     }
 
@@ -107,6 +113,11 @@ public class MetricDefinition {
     @ApiModelProperty("How long, in days, a data point of this metric stays in the system after it is stored")
     public Integer getDataRetention() {
         return dataRetention;
+    }
+
+    @ApiModelProperty("How long, in seconds, a data point of this metric is using the same partition in Cassandra")
+    public Integer getBucketSize() {
+        return bucketSize;
     }
 
     @ApiModelProperty(value = "Metric type", dataType = "string", allowableValues = "gauge, availability, counter")

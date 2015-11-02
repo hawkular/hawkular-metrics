@@ -18,8 +18,6 @@ package org.hawkular.metrics.core.impl;
 
 import static java.util.stream.Collectors.toMap;
 
-import static org.joda.time.DateTime.now;
-
 import java.util.List;
 import java.util.Map;
 
@@ -27,7 +25,6 @@ import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Tenant;
-import org.joda.time.Duration;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
@@ -41,21 +38,18 @@ public class Functions {
 
     private enum GAUGE_COLS {
         TIME,
-        DATA_RETENTION,
         VALUE,
         WRITE_TIME
     }
 
     private enum COUNTER_COLS {
         TIME,
-        DATA_RETENTION,
         VALUE,
         WRITE_TIME
     }
 
     private enum AVAILABILITY_COLS {
         TIME,
-        DATA_RETENTION,
         AVAILABILITY,
         WRITE_TIME
     }
@@ -75,22 +69,6 @@ public class Functions {
         return new DataPoint<>(
                 UUIDs.unixTimestamp(row.getUUID(COUNTER_COLS.TIME.ordinal())),
                 row.getLong(COUNTER_COLS.VALUE.ordinal()));
-    }
-
-    public static TTLDataPoint<Double> getTTLGaugeDataPoint(Row row, int originalTTL) {
-        long writeTime = row.getLong(GAUGE_COLS.WRITE_TIME.ordinal()) / 1000;
-        DataPoint<Double> dataPoint = getGaugeDataPoint(row);
-        Duration duration = new Duration(now().minus(writeTime).getMillis());
-        int newTTL = originalTTL - duration.toStandardSeconds().getSeconds();
-        return new TTLDataPoint<>(dataPoint, newTTL);
-    }
-
-    public static TTLDataPoint<AvailabilityType> getTTLAvailabilityDataPoint(Row row, int originalTTL) {
-        long writeTime = row.getLong(GAUGE_COLS.WRITE_TIME.ordinal()) / 1000;
-        DataPoint<AvailabilityType> dataPoint = getAvailabilityDataPoint(row);
-        Duration duration = new Duration(now().minus(writeTime).getMillis());
-        int newTTL = originalTTL - duration.toStandardSeconds().getSeconds();
-        return new TTLDataPoint<>(dataPoint, newTTL);
     }
 
     public static DataPoint<AvailabilityType> getAvailabilityDataPoint(Row row) {

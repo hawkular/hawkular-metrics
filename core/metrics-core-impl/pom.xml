@@ -79,6 +79,12 @@
       <scope>provided</scope>
     </dependency>
 
+    <!-- Infinispan -->
+    <dependency>
+      <groupId>org.infinispan</groupId>
+      <artifactId>infinispan-core</artifactId>
+    </dependency>
+
   </dependencies>
 
   <build>

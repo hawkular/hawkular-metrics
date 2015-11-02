@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.Interval;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
@@ -75,7 +74,7 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric) {
+    public <T> Observable<ResultSet> insertMetricInMetricsIndex(Metric<T> metric) {
         return delegate.insertMetricInMetricsIndex(metric);
     }
 
@@ -87,11 +86,6 @@ public class DelegatingDataAccess implements DataAccess {
     @Override
     public <T> Observable<ResultSet> getMetricTags(MetricId<T> id) {
         return delegate.getMetricTags(id);
-    }
-
-    @Override
-    public <T> Observable<ResultSet> addDataRetention(Metric<T> metric) {
-        return delegate.addDataRetention(metric);
     }
 
     @Override
@@ -115,13 +109,13 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
-        return delegate.insertGaugeData(gauge, ttl);
+    public Observable<Integer> insertGaugeData(Metric<Double> gauge) {
+        return delegate.insertGaugeData(gauge);
     }
 
     @Override
-    public Observable<Integer> insertCounterData(Metric<Long> counter, int ttl) {
-        return delegate.insertCounterData(counter, ttl);
+    public Observable<Integer> insertCounterData(Metric<Long> counter) {
+        return delegate.insertCounterData(counter);
     }
 
     @Override
@@ -169,10 +163,10 @@ public class DelegatingDataAccess implements DataAccess {
         return delegate.findAvailabilityData(metric, timestamp);
     }
 
-    @Override
-    public Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart) {
-        return delegate.deleteGaugeMetric(tenantId, metric, interval, dpart);
-    }
+//    @Override
+//    public Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart) {
+//        return delegate.deleteGaugeMetric(tenantId, metric, interval, dpart);
+//    }
 
     @Override
     public Observable<ResultSet> findAllGaugeMetrics() {
@@ -180,8 +174,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
-        return delegate.insertAvailabilityData(metric, ttl);
+    public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric) {
+        return delegate.insertAvailabilityData(metric);
     }
 
     @Override

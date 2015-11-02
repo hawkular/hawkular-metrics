@@ -90,8 +90,6 @@ import rx.subjects.PublishSubject;
 public class MetricsServiceImpl implements MetricsService, TenantsService {
     private static final CoreLogger log = CoreLogging.getCoreLogger(MetricsServiceImpl.class);
 
-    public static final String SYSTEM_TENANT_ID = makeSafe("system");
-
     private static class DataRetentionKey {
         private final MetricId<?> metricId;
 
@@ -193,22 +191,22 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                 .put(GAUGE, (metric, ttl) -> {
                     @SuppressWarnings("unchecked")
                     Metric<Double> gauge = (Metric<Double>) metric;
-                    return dataAccess.insertGaugeData(gauge, ttl);
+                    return dataAccess.insertGaugeData(gauge);
                 })
                 .put(AVAILABILITY, (metric, ttl) -> {
                     @SuppressWarnings("unchecked")
                     Metric<AvailabilityType> avail = (Metric<AvailabilityType>) metric;
-                    return dataAccess.insertAvailabilityData(avail, ttl);
+                    return dataAccess.insertAvailabilityData(avail);
                 })
                 .put(COUNTER, (metric, ttl) -> {
                     @SuppressWarnings("unchecked")
                     Metric<Long> counter = (Metric<Long>) metric;
-                    return dataAccess.insertCounterData(counter, ttl);
+                    return dataAccess.insertCounterData(counter);
                 })
                 .put(COUNTER_RATE, (metric, ttl) -> {
                     @SuppressWarnings("unchecked")
                     Metric<Double> gauge = (Metric<Double>) metric;
-                    return dataAccess.insertGaugeData(gauge, ttl);
+                    return dataAccess.insertGaugeData(gauge);
                 })
                 .build();
 
@@ -420,8 +418,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                     "internally generated metrics and cannot be created by clients.");
         }
 
-        ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric);
-        Observable<ResultSet> indexUpdated = RxUtil.from(future, metricsTasks);
+        Observable<ResultSet> indexUpdated = dataAccess.insertMetricInMetricsIndex(metric);
         return Observable.create(subscriber -> indexUpdated.subscribe(resultSet -> {
             if (!resultSet.wasApplied()) {
                 subscriber.onError(new MetricAlreadyExistsException(metric));
@@ -437,7 +434,6 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                 // eventually want to implement more fine-grained error handling where we can
                 // notify the subscriber of what exactly fails.
                 List<Observable<ResultSet>> updates = new ArrayList<>();
-                updates.add(dataAccess.addDataRetention(metric));
                 updates.add(dataAccess.insertIntoMetricsTagsIndex(metric, metric.getTags()));
 
                 if (metric.getDataRetention() != null) {
@@ -462,7 +458,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     public <T> Observable<Metric<T>> findMetric(final MetricId<T> id) {
         return dataAccess.findMetric(id)
                 .flatMap(Observable::from)
-                .map(row -> new Metric<>(id, row.getMap(1, String.class, String.class), row.getInt(2)));
+                .map(row -> new Metric<>(id, row.getMap(1, String.class, String.class), row.getInt(2), row.getInt(3)));
     }
 
     @Override

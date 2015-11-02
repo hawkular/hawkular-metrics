@@ -92,7 +92,7 @@ public class AvailabilityHandler {
         }
         URI location = uriInfo.getBaseUriBuilder().path("/availability/{id}").build(metricDefinition.getId());
         Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, metricDefinition.getId()),
-                metricDefinition.getTags(), metricDefinition.getDataRetention());
+                metricDefinition.getTags(), metricDefinition.getDataRetention(), metricDefinition.getBucketSize());
         try {
             Observable<Void> observable = metricsService.createMetric(metric);
             observable.toBlocking().lastOrDefault(null);

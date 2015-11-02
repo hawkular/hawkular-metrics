@@ -37,6 +37,7 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.policies.NoSpeculativeExecutionPolicy;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
 
@@ -64,7 +65,8 @@ public class MetricsITest {
             .addContactPoints(nodeAddresses.split(","))
             // Due to JAVA-500 and JAVA-509 we need to explicitly set the protocol to V3.
             // These bugs are fixed upstream and will be in version 2.1.3 of the driver.
-            .withProtocolVersion(ProtocolVersion.V4)
+                .withProtocolVersion(ProtocolVersion.V4)
+                .withSpeculativeExecutionPolicy(NoSpeculativeExecutionPolicy.INSTANCE)
             .build();
         session = cluster.connect(getKeyspace());
         rxSession = new RxSessionImpl(session);

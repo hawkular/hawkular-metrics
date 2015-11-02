@@ -65,7 +65,7 @@ public class CreateTenantsSchedulerITest extends MetricsITest {
         initSession();
         resetDB();
 
-        dataAccess = new DataAccessImpl(session);
+        dataAccess = new DataAccessImpl(session, TestCacheManager.getCacheManager());
         dateTimeService = new DateTimeService();
 
         DateTime startTime = dateTimeService.getTimeSlice(DateTime.now(), standardMinutes(1)).minusMinutes(20);

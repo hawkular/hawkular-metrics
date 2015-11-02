@@ -82,7 +82,7 @@ public class RatesITest extends MetricsITest {
 
         metricsService = new MetricsServiceImpl();
         metricsService.setTaskScheduler(taskScheduler);
-        metricsService.setDataAccess(new DataAccessImpl(session));
+        metricsService.setDataAccess(new DataAccessImpl(session, TestCacheManager.getCacheManager()));
         metricsService.setDateTimeService(dateTimeService);
 
         String keyspace = "hawkulartest";

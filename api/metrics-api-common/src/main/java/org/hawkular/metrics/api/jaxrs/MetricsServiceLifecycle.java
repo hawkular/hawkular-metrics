@@ -43,6 +43,7 @@ import java.util.concurrent.ThreadFactory;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Event;
 import javax.enterprise.inject.Produces;
@@ -68,6 +69,7 @@ import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.hawkular.metrics.tasks.impl.Queries;
 import org.hawkular.metrics.tasks.impl.TaskSchedulerImpl;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
+import org.infinispan.manager.EmbeddedCacheManager;
 import org.joda.time.DateTime;
 
 import com.codahale.metrics.MetricRegistry;
@@ -153,11 +155,14 @@ public class MetricsServiceLifecycle {
     @ServiceReady
     Event<MetricsService> metricsServiceReady;
 
+    @Resource(lookup="java:jboss/infinispan/container/hwkmetrics")
+    private static EmbeddedCacheManager container;
+
     private volatile State state;
     private int connectionAttempts;
     private Session session;
 
-    private DataAccess dataAcces;
+    private DataAccess dataAccess;
 
     private Map<? super Action1<Task2>, Subscription> jobs = new HashMap<>();
 
@@ -227,11 +232,13 @@ public class MetricsServiceLifecycle {
             // will change at some point though because the task scheduling service will
             // probably move to the hawkular-commons repo.
             initSchema();
-            dataAcces = new DataAccessImpl(session);
+
+            dataAccess = new DataAccessImpl(session, container);
+
             initTaskScheduler();
 
             metricsService = new MetricsServiceImpl();
-            metricsService.setDataAccess(dataAcces);
+            metricsService.setDataAccess(dataAccess);
             metricsService.setTaskScheduler(taskScheduler);
             metricsService.setDateTimeService(createDateTimeService());
             metricsService.setDefaultTTL(getDefaultTTL());
@@ -333,7 +340,7 @@ public class MetricsServiceLifecycle {
 
     private void initJobs() {
 //        GenerateRate generateRates = new GenerateRate(metricsService);
-//        CreateTenants createTenants = new CreateTenants(metricsService, dataAcces);
+//        CreateTenants createTenants = new CreateTenants(metricsService, dataAccess);
 //
 //      jobs.put(generateRates, taskScheduler.getTasks().filter(task -> task.getName().equals(GenerateRate.TASK_NAME))
 //                .subscribe(generateRates));
