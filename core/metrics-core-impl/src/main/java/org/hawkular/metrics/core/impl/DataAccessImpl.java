@@ -41,6 +41,8 @@ import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.impl.transformers.BatchStatementTransformer;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
+import org.infinispan.Cache;
+import org.infinispan.manager.CacheContainer;
 import org.joda.time.Duration;
 
 import com.datastax.driver.core.BoundStatement;
@@ -62,7 +64,11 @@ public class DataAccessImpl implements DataAccess {
 
     private RxSession rxSession;
 
+    private CacheContainer cacheContainer;
+
     private DateTimeService dateTimeService;
+
+    private Cache<MetricId<?>, Duration> bucketSizeCache;
 
     private PreparedStatement insertTenant;
 
@@ -136,11 +142,13 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findMetricsByTagNameValue;
 
-    public DataAccessImpl(Session session) {
+    public DataAccessImpl(Session session, CacheContainer cacheContainer) {
         this.session = session;
         this.dateTimeService = new DateTimeService();
         rxSession = new RxSessionImpl(session);
         initPreparedStatements();
+        this.cacheContainer = cacheContainer;
+        this.bucketSizeCache = cacheContainer.getCache("bucket_size");
     }
 
     protected void initPreparedStatements() {
@@ -325,10 +333,17 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric) {
+    public <T> Observable<ResultSet> insertMetricInMetricsIndex(Metric<T> metric) {
         MetricId<T> metricId = metric.getId();
-        return session.executeAsync(insertIntoMetricsIndex.bind(metricId.getTenantId(), metricId.getType().getCode(),
-                metricId.getName(), metric.getDataRetention(), metric.getBucketSize(), metric.getTags()));
+        return rxSession.execute(insertIntoMetricsIndex.bind(metricId.getTenantId(), metricId.getType().getCode(),
+                metricId.getName(), metric.getDataRetention(), metric.getBucketSize(), metric.getTags()))
+                .doOnCompleted(() -> {
+                    if(metric.getBucketSize() == null) {
+                        this.bucketSizeCache.putAsync(metricId, DateTimeService.DEFAULT_SLICE);
+                    } else {
+                        this.bucketSizeCache.putAsync(metricId, Duration.standardSeconds(metric.getBucketSize()));
+                    }
+                });
     }
 
     @Override
@@ -591,18 +606,22 @@ public class DataAccessImpl implements DataAccess {
         return longStream.concatMap(d -> Observable.from(d::iterator));
     }
 
-    /**
-     * @TODO If Metric was already requested from the db, this should use that information, not requery it
-     * @param id
-     * @return
-     */
     private Observable<Duration> getBucketSize(MetricId<?> id) {
-        // TODO Try first from cache, switchIfEmpty to this
+        Duration slice = bucketSizeCache.get(id);
+        if(slice == null) {
+            Observable<Duration> cache = getBucketSizeFromCassandra(id)
+                    .cache();
+            cache.subscribe(d -> bucketSizeCache.putAsync(id, d));
+            return cache;
+        }
+        return Observable.just(slice);
+    }
+
+    private Observable<Duration> getBucketSizeFromCassandra(MetricId<?> id) {
         return rxSession.execute(findBucketSize.bind(id.getTenantId(), id.getType().getCode(), id.getName()))
                 .flatMap(Observable::from)
                 .map(row -> (row.getInt(0) <= 0) ? DateTimeService.DEFAULT_SLICE : Duration.standardSeconds(row
                         .getInt(0)))
                 .switchIfEmpty(Observable.just(DateTimeService.DEFAULT_SLICE));
     }
-
 }

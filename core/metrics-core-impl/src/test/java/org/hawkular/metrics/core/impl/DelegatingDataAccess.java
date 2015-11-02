@@ -74,7 +74,7 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric) {
+    public <T> Observable<ResultSet> insertMetricInMetricsIndex(Metric<T> metric) {
         return delegate.insertMetricInMetricsIndex(metric);
     }
 

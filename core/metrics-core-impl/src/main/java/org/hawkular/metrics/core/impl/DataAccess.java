@@ -48,7 +48,7 @@ public interface DataAccess {
 
     Observable<ResultSet> deleteTenantsBucket(long time);
 
-    <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric);
+    <T> Observable<ResultSet> insertMetricInMetricsIndex(Metric<T> metric);
 
     <T> Observable<ResultSet> findMetric(MetricId<T> id);
 

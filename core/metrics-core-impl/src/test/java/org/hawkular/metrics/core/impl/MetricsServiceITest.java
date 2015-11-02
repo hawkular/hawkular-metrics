@@ -106,7 +106,8 @@ public class MetricsServiceITest extends MetricsITest {
     public void initClass() {
         initSession();
 
-        dataAccess = new DataAccessImpl(session);
+        dataAccess = new DataAccessImpl(session, TestCacheManager.getCacheManager());
+
         dateTimeService = new DateTimeService();
 
         defaultCreatePercentile = NumericDataPointCollector.createPercentile;

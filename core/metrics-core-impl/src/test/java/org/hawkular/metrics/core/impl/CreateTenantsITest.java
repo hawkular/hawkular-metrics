@@ -53,7 +53,7 @@ public class CreateTenantsITest extends MetricsITest {
     public void initClass() {
         initSession();
 
-        dataAccess = new DataAccessImpl(session);
+        dataAccess = new DataAccessImpl(session, TestCacheManager.getCacheManager());
         dateTimeService = new DateTimeService();
 
         metricsService = new MetricsServiceImpl();

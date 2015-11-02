@@ -55,7 +55,7 @@ public class GenerateRateITest extends MetricsITest {
     public void initClass() {
         initSession();
 
-        DataAccess dataAccess = new DataAccessImpl(session);
+        DataAccess dataAccess = new DataAccessImpl(session, TestCacheManager.getCacheManager());
         dateTimeService = new DateTimeService();
 
         metricsService = new MetricsServiceImpl();

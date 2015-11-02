@@ -418,8 +418,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                     "internally generated metrics and cannot be created by clients.");
         }
 
-        ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric);
-        Observable<ResultSet> indexUpdated = RxUtil.from(future, metricsTasks);
+        Observable<ResultSet> indexUpdated = dataAccess.insertMetricInMetricsIndex(metric);
         return Observable.create(subscriber -> indexUpdated.subscribe(resultSet -> {
             if (!resultSet.wasApplied()) {
                 subscriber.onError(new MetricAlreadyExistsException(metric));
