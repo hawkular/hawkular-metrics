@@ -414,6 +414,7 @@
         <module>task-queue</module>
         <module>core/metrics-core-api</module>
         <module>core/metrics-core-impl</module>
+        <module>api/model</module>
         <module>api/metrics-api-common</module>
         <module>api/metrics-api-jaxrs</module>
         <module>api/metrics-api-jaxrs-1.1</module>
@@ -439,6 +440,7 @@
         <module>task-queue</module>
         <module>core/metrics-core-api</module>
         <module>core/metrics-core-impl</module>
+        <module>api/model</module>
         <module>api/metrics-api-common</module>
         <module>api/metrics-api-jaxrs-1.1</module>
         <module>containers</module>
