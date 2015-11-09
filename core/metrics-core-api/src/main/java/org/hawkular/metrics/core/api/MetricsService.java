@@ -190,8 +190,10 @@ public interface MetricsService {
     Observable<List<AvailabilityBucketPoint>> findAvailabilityStats(MetricId<AvailabilityType> metricId, long start,
                                                                     long end, Buckets buckets);
 
-    /** Check if a metric with the passed {id} has been stored in the system */
-    Observable<Boolean> idExists(String id);
+    /**
+     * Check if a metric has been stored in the system.
+     */
+    Observable<Boolean> idExists(MetricId<?> metric);
 
     /**
      * Computes stats on a counter.

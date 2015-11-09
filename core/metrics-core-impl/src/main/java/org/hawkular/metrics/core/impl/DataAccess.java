@@ -89,8 +89,6 @@ public interface DataAccess {
 
     Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart);
 
-    Observable<ResultSet> findAllGaugeMetrics();
-
     Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl);
 
     Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime);

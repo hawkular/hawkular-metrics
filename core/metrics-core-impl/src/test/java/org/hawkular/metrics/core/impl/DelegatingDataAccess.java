@@ -175,11 +175,6 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findAllGaugeMetrics() {
-        return delegate.findAllGaugeMetrics();
-    }
-
-    @Override
     public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
         return delegate.insertAvailabilityData(metric, ttl);
     }
