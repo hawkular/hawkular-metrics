@@ -17,6 +17,8 @@
 package org.hawkular.metrics.api.jaxrs.influx;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.TEXT_PLAIN_TYPE;
@@ -24,7 +26,10 @@ import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
 import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 
+import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
+import static org.hawkular.metrics.core.api.MetricTypeFilter.COUNTER_FILTER;
+import static org.hawkular.metrics.core.api.MetricTypeFilter.GAUGE_FILTER;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -34,6 +39,7 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -80,6 +86,7 @@ import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.jboss.logging.Logger;
 import org.joda.time.Instant;
@@ -105,6 +112,9 @@ public class InfluxSeriesHandler {
 
     private static final EnumSet<InfluxTimeUnit> TIME_PRECISION_ALLOWED =
             EnumSet.of(InfluxTimeUnit.SECONDS, InfluxTimeUnit.MILLISECONDS, InfluxTimeUnit.MICROSECONDS);
+
+    private static final String GAUGE_PREFIX = "_gauge.";
+    private static final String COUNTER_PREFIX = "_counter.";
 
     @Inject
     MetricsService metricsService;
@@ -145,34 +155,56 @@ public class InfluxSeriesHandler {
             return;
         }
 
-        Observable<Metric<Double>> input = Observable.from(influxObjects)
-                .map(influxObject -> influxToGauge(tenantId, influxObject, timePrecision));
-        metricsService.addDataPoints(GAUGE, input).subscribe(new WriteObserver(asyncResponse));
+        Map<MetricType<?>, List<Metric<?>>> metrics = influxObjects.stream()
+                .map(influxObject -> influxToMetrics(tenantId, influxObject, timePrecision))
+                .collect(groupingBy(metric -> metric.getId().getType()));
+
+        Observable<Void> result = Observable.empty();
+        if (metrics.containsKey(GAUGE)) {
+            result = result.mergeWith(metricsService.addDataPoints(GAUGE, Observable.from(metrics.get(GAUGE))
+                    .compose(GAUGE_FILTER)));
+        }
+        if (metrics.containsKey(COUNTER)) {
+            result = result.mergeWith(metricsService.addDataPoints(COUNTER, Observable.from(metrics.get(COUNTER))
+                    .compose(COUNTER_FILTER)));
+        }
+        result.subscribe(new WriteObserver(asyncResponse));
     }
 
-    private static Metric<Double> influxToGauge(String tenantId, InfluxObject influxObject, InfluxTimeUnit
-            timePrecision) {
-        if (timePrecision == null) {
-            timePrecision = InfluxTimeUnit.MILLISECONDS;
-        }
+    private static Metric<?> influxToMetrics(String tenantId, InfluxObject influxObject, InfluxTimeUnit timePrecision) {
+        MetricTypeAndName metricTypeAndName = new MetricTypeAndName(influxObject.getName());
+        MetricType<?> type = metricTypeAndName.getType();
+        String name = metricTypeAndName.getName();
+
         List<String> influxObjectColumns = influxObject.getColumns();
         int valueColumnIndex = influxObjectColumns.indexOf("value");
-        List<List<?>> influxObjectPoints = influxObject.getPoints();
-        List<DataPoint<Double>> dataPoints = new ArrayList<>();
-        for (List<?> point : influxObjectPoints) {
-            double value;
+
+        Stream<DataPoint<Number>> dataPoints = influxObject.getPoints().stream().map(objects -> {
+            Number value;
             long timestamp;
             if (influxObjectColumns.size() == 1) {
                 timestamp = System.currentTimeMillis();
-                value = ((Number) point.get(0)).doubleValue();
+                value = (Number) objects.get(0);
             } else {
-                timestamp = ((Number) point.get((valueColumnIndex + 1) % 2)).longValue();
-                timestamp = timePrecision.convertTo(MILLISECONDS, timestamp);
-                value = ((Number) point.get(valueColumnIndex)).doubleValue();
+                timestamp = ((Number) objects.get((valueColumnIndex + 1) % 2)).longValue();
+                if (timePrecision != null) {
+                    timestamp = timePrecision.convertTo(MILLISECONDS, timestamp);
+                }
+                value = (Number) objects.get(valueColumnIndex);
             }
-            dataPoints.add(new DataPoint<>(timestamp, value));
+            return new DataPoint<>(timestamp, value);
+        });
+
+        if (type == COUNTER) {
+            List<DataPoint<Long>> counterPoints = dataPoints.map(p -> {
+                return new DataPoint<>(p.getTimestamp(), p.getValue().longValue());
+            }).collect(toList());
+            return new Metric<>(new MetricId<>(tenantId, COUNTER, name), counterPoints);
         }
-        return new Metric<>(new MetricId<>(tenantId, GAUGE, influxObject.getName()), dataPoints);
+        List<DataPoint<Double>> gaugePoints = dataPoints.map(p -> {
+            return new DataPoint<>(p.getTimestamp(), p.getValue().doubleValue());
+        }).collect(toList());
+        return new Metric<>(new MetricId<>(tenantId, GAUGE, name), gaugePoints);
     }
 
     @GET
@@ -206,14 +238,14 @@ public class InfluxSeriesHandler {
         }
 
         switch (queryType) {
-            case LIST_SERIES:
-                listSeries(asyncResponse, tenantId, queryContext.listSeries());
-                break;
-            case SELECT:
-                select(asyncResponse, tenantId, queryContext.selectQuery(), timePrecision);
-                break;
-            default:
-                asyncResponse.resume(errorResponse(BAD_REQUEST, "Query not yet supported: " + queryString));
+        case LIST_SERIES:
+            listSeries(asyncResponse, tenantId, queryContext.listSeries());
+            break;
+        case SELECT:
+            select(asyncResponse, tenantId, queryContext.selectQuery(), timePrecision);
+            break;
+        default:
+            asyncResponse.resume(errorResponse(BAD_REQUEST, "Query not yet supported: " + queryString));
         }
     }
 
@@ -235,26 +267,35 @@ public class InfluxSeriesHandler {
             pattern = null;
         }
 
-        metricsService.findMetrics(tenantId, GAUGE)
-                      .map(metric -> metric.getId().getName())
-                      .filter(name -> pattern == null || pattern.matcher(name).find())
-                      .toList()
-                      .map(InfluxSeriesHandler::metricsListToListSeries)
-                      .subscribe(new ReadObserver(asyncResponse));
+        Observable.merge(metricsService.findMetrics(tenantId, GAUGE), metricsService.findMetrics(tenantId, COUNTER))
+                .filter(metric -> pattern == null || pattern.matcher(metric.getId().getName()).find())
+                .toList()
+                .map(InfluxSeriesHandler::metricsListToListSeries)
+                .subscribe(new ReadObserver(asyncResponse));
     }
 
-    private static List<InfluxObject> metricsListToListSeries(List<String> metrics) {
+    private static List<InfluxObject> metricsListToListSeries(List<? extends Metric<?>> metrics) {
         List<String> columns = ImmutableList.of("time", "name");
         InfluxObject.Builder builder = new InfluxObject.Builder("list_series_result", columns)
                 .withForeseenPoints(metrics.size());
-        for (String metric : metrics) {
-            builder.addPoint(ImmutableList.of(0, metric));
+        for (Metric<?> metric : metrics) {
+            String prefix;
+            MetricType<?> type = metric.getId().getType();
+            if (type == GAUGE) {
+                prefix = GAUGE_PREFIX;
+            } else if (type == COUNTER) {
+                prefix = COUNTER_PREFIX;
+            } else {
+                log.tracef("List series query does not expect %s metric type", type);
+                continue;
+            }
+            builder.addPoint(ImmutableList.of(0, prefix + metric.getId().getName()));
         }
         return ImmutableList.of(builder.createInfluxObject());
     }
 
     private void select(AsyncResponse asyncResponse, String tenantId, SelectQueryContext selectQueryContext,
-                        InfluxTimeUnit timePrecision) {
+            InfluxTimeUnit timePrecision) {
 
         SelectQueryDefinitionsParser definitionsParser = new SelectQueryDefinitionsParser();
         parseTreeWalker.walk(definitionsParser, selectQueryContext);
@@ -268,7 +309,11 @@ public class InfluxSeriesHandler {
             return;
         }
 
-        String metric = queryDefinitions.getFromClause().getName(); // metric to query from backend
+        String influxObjectName = queryDefinitions.getFromClause().getName();
+        MetricTypeAndName metricTypeAndName = new MetricTypeAndName(influxObjectName);
+        MetricType<?> metricType = metricTypeAndName.getType();
+        String metricName = metricTypeAndName.getName();
+
         BooleanExpression whereClause = queryDefinitions.getWhereClause();
         Interval timeInterval;
         if (whereClause == null) {
@@ -289,78 +334,81 @@ public class InfluxSeriesHandler {
             return;
         }
 
-        metricsService.idExists(metric)
-                  .flatMap(
-                          idExists -> {
-                              if (idExists != Boolean.TRUE) {
-                                  return Observable.just(null);
-                              }
-                              return metricsService.findDataPoints(
-                                      new MetricId<>(tenantId, GAUGE, metric),
-                                      timeInterval.getStartMillis(), timeInterval.getEndMillis()
-                              ).toList();
-                          }
-                  ).map(
-                metrics -> {
-                    if (metrics == null) {
-                        return null;
-                    }
+        metricsService.idExists(new MetricId<>(tenantId, metricType, metricName)).flatMap(idExists -> {
+            if (idExists != Boolean.TRUE) {
+                return Observable.just(null);
+            }
+            long start = timeInterval.getStartMillis();
+            long end = timeInterval.getEndMillis();
+            MetricId<? extends Number> metricId;
+            if (metricType == GAUGE) {
+                metricId = new MetricId<>(tenantId, GAUGE, metricName);
+                return metricsService.findDataPoints(metricId, start, end).toList();
+            }
+            if (metricType == COUNTER) {
+                metricId = new MetricId<>(tenantId, COUNTER, metricName);
+                return metricsService.findDataPoints(metricId, start, end).toSortedList((dataPoint, dataPoint2) -> {
+                    return Long.compare(dataPoint2.getTimestamp(), dataPoint.getTimestamp());
+                });
+            }
+            return Observable.just(null);
+        }).map(metrics -> {
+            if (metrics == null) {
+                return null;
+            }
 
-                    if (buckets != null) {
-                        AggregatedColumnDefinition aggregatedColumnDefinition =
-                                (AggregatedColumnDefinition) queryDefinitions
-                                        .getColumnDefinitions().get(0);
-                        metrics = applyMapping(
-                                aggregatedColumnDefinition.getAggregationFunction(),
-                                aggregatedColumnDefinition.getAggregationFunctionArguments(),
-                                metrics,
-                                buckets
-                        );
-                    }
+            if (buckets != null) {
+                AggregatedColumnDefinition aggregatedColumnDefinition =
+                        (AggregatedColumnDefinition) queryDefinitions
+                                .getColumnDefinitions().get(0);
+                metrics = applyMapping(
+                        aggregatedColumnDefinition.getAggregationFunction(),
+                        aggregatedColumnDefinition.getAggregationFunctionArguments(),
+                        metrics,
+                        buckets
+                );
+            }
 
-                    if (!queryDefinitions.isOrderDesc()) {
-                        metrics = Lists.reverse(metrics);
-                    }
+            if (!queryDefinitions.isOrderDesc()) {
+                metrics = Lists.reverse(metrics);
+            }
 
-                    if (queryDefinitions.getLimitClause() != null) {
-                        metrics = metrics.subList(0, queryDefinitions.getLimitClause().getLimit());
-                    }
+            if (queryDefinitions.getLimitClause() != null) {
+                metrics = metrics.subList(0, queryDefinitions.getLimitClause().getLimit());
+            }
 
-                    List<InfluxObject> objects = new ArrayList<>(1);
+            List<InfluxObject> objects = new ArrayList<>(1);
 
-                    List<String> columns = new ArrayList<>(2);
-                    columns.add("time");
-                    columns.add(columnName);
+            List<String> columns = new ArrayList<>(2);
+            columns.add("time");
+            columns.add(columnName);
 
-                    InfluxObject.Builder builder = new InfluxObject.Builder(metric, columns)
-                            .withForeseenPoints(metrics.size());
+            InfluxObject.Builder builder = new InfluxObject.Builder(influxObjectName, columns)
+                    .withForeseenPoints(metrics.size());
 
-                    for (DataPoint<Double> m : metrics) {
-                        List<Object> data = new ArrayList<>();
-                        if (timePrecision == null) {
-                            data.add(m.getTimestamp());
-                        } else {
-                            data.add(timePrecision.convert(m.getTimestamp(), InfluxTimeUnit.MILLISECONDS));
-                        }
-                        data.add(m.getValue());
-                        builder.addPoint(data);
-                    }
-
-                    objects.add(builder.createInfluxObject());
-
-                    return objects;
+            for (DataPoint<? extends Number> m : metrics) {
+                List<Object> data = new ArrayList<>();
+                if (timePrecision == null) {
+                    data.add(m.getTimestamp());
+                } else {
+                    data.add(timePrecision.convert(m.getTimestamp(), InfluxTimeUnit.MILLISECONDS));
                 }
-        ).subscribe(
-                objects -> {
-                    if (objects == null) {
-                        String msg = "Metric with id [" + metric + "] not found. ";
-                        asyncResponse.resume(errorResponse(NOT_FOUND, msg));
-                    } else {
-                        ResponseBuilder builder = Response.ok(objects);
-                        asyncResponse.resume(builder.build());
-                    }
-                }, asyncResponse::resume
-        );
+                data.add(m.getValue());
+                builder.addPoint(data);
+            }
+
+            objects.add(builder.createInfluxObject());
+
+            return objects;
+        }).subscribe(objects -> {
+            if (objects == null) {
+                String msg = "Metric with id [" + influxObjectName + "] not found. ";
+                asyncResponse.resume(errorResponse(NOT_FOUND, msg));
+            } else {
+                ResponseBuilder builder = Response.ok(objects);
+                asyncResponse.resume(builder.build());
+            }
+        }, asyncResponse::resume);
     }
 
     private String getColumnName(SelectQueryDefinitions queryDefinitions) {
@@ -381,23 +429,23 @@ public class InfluxSeriesHandler {
         return Buckets.fromStep(timeInterval.getStartMillis(), timeInterval.getEndMillis(), bucketSize);
     }
 
-    private List<DataPoint<Double>> applyMapping(
+    private List<? extends DataPoint<? extends Number>> applyMapping(
             String aggregationFunction,
             List<FunctionArgument> aggregationFunctionArguments,
-            List<DataPoint<Double>> in,
+            List<? extends DataPoint<? extends Number>> in,
             Buckets buckets
     ) {
         Map<Integer, List<DataPoint<Double>>> tmpMap = new HashMap<>(buckets.getCount());
 
         // Bucketize
-        for (DataPoint<Double> rnm : in) {
+        for (DataPoint<? extends Number> rnm : in) {
             int pos = (int) ((rnm.getTimestamp() - buckets.getStart()) / buckets.getStep());
             List<DataPoint<Double>> bucket = tmpMap.get(pos);
             if (bucket == null) {
                 bucket = new ArrayList<>();
                 tmpMap.put(pos, bucket);
             }
-            bucket.add(rnm);
+            bucket.add(new DataPoint<>(rnm.getTimestamp(), rnm.getValue().doubleValue()));
         }
 
         List<DataPoint<Double>> out = new ArrayList<>(buckets.getCount());
@@ -477,7 +525,7 @@ public class InfluxSeriesHandler {
                     isSingleValue = false;
                     argument = (NumberFunctionArgument) aggregationFunctionArguments.get(1);
                     int numberOfTopElement = list.size() < (int) argument.getDoubleValue() ?
-                                             list.size() : (int) argument.getDoubleValue();
+                            list.size() : (int) argument.getDoubleValue();
                     for (int elementPos = 0; elementPos < numberOfTopElement; elementPos++) {
                         out.add(list.get(elementPos));
                     }
@@ -486,7 +534,7 @@ public class InfluxSeriesHandler {
                     isSingleValue = false;
                     argument = (NumberFunctionArgument) aggregationFunctionArguments.get(1);
                     int numberOfBottomElement = list.size() < (int) argument.getDoubleValue() ?
-                                                list.size() : (int) argument.getDoubleValue();
+                            list.size() : (int) argument.getDoubleValue();
                     for (int elementPos = 0; elementPos < numberOfBottomElement; elementPos++) {
                         out.add(list.get(list.size() - 1 - elementPos));
                     }
@@ -497,7 +545,7 @@ public class InfluxSeriesHandler {
                     for (DataPoint<Double> rnm : list) {
                         int count = 0;
                         for (DataPoint<Double> rnm2 : list) {
-                            if (rnm.getValue() == rnm2.getValue()) {
+                            if (rnm.getValue().doubleValue() == rnm2.getValue().doubleValue()) {
                                 ++count;
                             }
                         }
@@ -557,6 +605,7 @@ public class InfluxSeriesHandler {
 
         @Override
         public void onError(Throwable t) {
+            log.tracef(t, "Influx write query error");
             asyncResponse.resume(errorResponse(INTERNAL_SERVER_ERROR, Throwables.getRootCause(t).getMessage()));
         }
 
@@ -585,6 +634,33 @@ public class InfluxSeriesHandler {
         @Override
         public void onNext(List<InfluxObject> influxObjects) {
             asyncResponse.resume(Response.ok(influxObjects).build());
+        }
+    }
+
+    private static class MetricTypeAndName {
+        private final MetricType<?> type;
+        private final String name;
+
+        public MetricTypeAndName(String influxObjectName) {
+            if (influxObjectName.startsWith(COUNTER_PREFIX)) {
+                type = COUNTER;
+                name = influxObjectName.substring(COUNTER_PREFIX.length());
+            } else {
+                type = GAUGE;
+                if (influxObjectName.startsWith(GAUGE_PREFIX)) {
+                    name = influxObjectName.substring(GAUGE_PREFIX.length());
+                } else {
+                    name = influxObjectName;
+                }
+            }
+        }
+
+        public MetricType<?> getType() {
+            return type;
+        }
+
+        public String getName() {
+            return name;
         }
     }
 }

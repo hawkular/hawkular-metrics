@@ -16,6 +16,9 @@
  */
 package org.hawkular.metrics.core.impl;
 
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
+
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
@@ -832,12 +835,10 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public Observable<Boolean> idExists(final String id) {
-        return dataAccess.findAllGaugeMetrics().flatMap(Observable::from)
-                .filter(row -> id.equals(row.getString(2)))
-                .take(1)
-                .map(r -> Boolean.TRUE)
-                .defaultIfEmpty(Boolean.FALSE);
+    public Observable<Boolean> idExists(final MetricId<?> metricId) {
+        return findMetrics(metricId.getTenantId(), metricId.getType()).filter(m -> {
+            return metricId.getName().equals(m.getId().getName());
+        }).take(1).map(m -> TRUE).defaultIfEmpty(FALSE);
     }
 
     @Override

@@ -104,8 +104,6 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement deleteGaugeMetric;
 
-    private PreparedStatement findGaugeMetrics;
-
     private PreparedStatement insertAvailability;
 
     private PreparedStatement findAvailabilities;
@@ -243,9 +241,6 @@ public class DataAccessImpl implements DataAccess {
         deleteGaugeMetric = session.prepare(
             "DELETE FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ?");
-
-        findGaugeMetrics = session.prepare(
-            "SELECT DISTINCT tenant_id, type, metric, dpart FROM data;");
 
         insertAvailability = session.prepare(
             "UPDATE data " +
@@ -491,11 +486,6 @@ public class DataAccessImpl implements DataAccess {
     public Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart) {
         return rxSession.execute(deleteGaugeMetric.bind(tenantId, GAUGE.getCode(), metric,
                 interval.toString(), dpart));
-    }
-
-    @Override
-    public Observable<ResultSet> findAllGaugeMetrics() {
-        return rxSession.execute(findGaugeMetrics.bind());
     }
 
     @Override
