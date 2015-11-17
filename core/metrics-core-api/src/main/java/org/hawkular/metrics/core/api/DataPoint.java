@@ -29,9 +29,9 @@ public class DataPoint<T> {
 
     public static final Comparator<DataPoint<?>> TIMESTAMP_COMPARATOR = Comparator.comparing(DataPoint::getTimestamp);
 
-    private final long timestamp;
+    protected final long timestamp;
 
-    private final T value;
+    protected final T value;
 
     public DataPoint(long timestamp, T value) {
         this.timestamp = timestamp;
@@ -65,6 +65,7 @@ public class DataPoint<T> {
         return com.google.common.base.Objects.toStringHelper(this)
                 .add("timestamp", timestamp)
                 .add("value", value)
+                .omitNullValues()
                 .toString();
     }
 }

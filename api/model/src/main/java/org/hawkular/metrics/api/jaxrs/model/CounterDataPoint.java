@@ -21,7 +21,6 @@ import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.List;
-import java.util.Map;
 
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
@@ -40,9 +39,7 @@ import rx.Observable;
  * @author John Sanda
  */
 @ApiModel(description = "A timestamp and a value where the value is interpreted as a signed 64 bit integer")
-public class CounterDataPoint {
-    private final long timestamp;
-    private final long value;
+public class CounterDataPoint extends DataPoint<Long> {
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
@@ -52,20 +49,15 @@ public class CounterDataPoint {
             Long timestamp,
             @JsonProperty("value")
             @org.codehaus.jackson.annotate.JsonProperty("value")
-            Long value,
-            @JsonProperty("tags")
-            @org.codehaus.jackson.annotate.JsonProperty("tags")
-            Map<String, String> tags
+            Long value
     ) {
+        super(timestamp, value);
         checkArgument(timestamp != null, "Data point timestamp is null");
         checkArgument(value != null, "Data point value is null");
-        this.timestamp = timestamp;
-        this.value = value;
     }
 
-    public CounterDataPoint(DataPoint<Long> dataPoint) {
-        timestamp = dataPoint.getTimestamp();
-        value = dataPoint.getValue();
+    public CounterDataPoint(DataPoint<Long> other) {
+        super(other.getTimestamp(), other.getValue());
     }
 
     @ApiModelProperty(required = true)
@@ -74,35 +66,8 @@ public class CounterDataPoint {
     }
 
     @ApiModelProperty(required = true)
-    public long getValue() {
+    public Long getValue() {
         return value;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        CounterDataPoint that = (CounterDataPoint) o;
-        return timestamp == that.timestamp && value == that.value;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = (int) (timestamp ^ (timestamp >>> 32));
-        result = 31 * result + (int) (value ^ (value >>> 32));
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return com.google.common.base.Objects.toStringHelper(this)
-                .add("timestamp", timestamp)
-                .add("value", value)
-                .toString();
     }
 
     public static List<DataPoint<Long>> asDataPoints(List<CounterDataPoint> points) {

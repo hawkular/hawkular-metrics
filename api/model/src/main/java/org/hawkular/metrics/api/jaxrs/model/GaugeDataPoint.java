@@ -21,7 +21,6 @@ import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.List;
-import java.util.Map;
 
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
@@ -40,9 +39,7 @@ import rx.Observable;
  * @author John Sanda
  */
 @ApiModel(description = "A timestamp and a value where the value is interpreted as a floating point number")
-public class GaugeDataPoint {
-    private final long timestamp;
-    private final double value;
+public class GaugeDataPoint extends DataPoint<Double> {
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
@@ -52,20 +49,15 @@ public class GaugeDataPoint {
             Long timestamp,
             @JsonProperty("value")
             @org.codehaus.jackson.annotate.JsonProperty("value")
-            Double value,
-            @JsonProperty("tags")
-            @org.codehaus.jackson.annotate.JsonProperty("tags")
-            Map<String, String> tags
+            Double value
     ) {
+        super(timestamp, value);
         checkArgument(timestamp != null, "Data point timestamp is null");
         checkArgument(value != null, "Data point value is null");
-        this.timestamp = timestamp;
-        this.value = value;
     }
 
-    public GaugeDataPoint(DataPoint<Double> dataPoint) {
-        timestamp = dataPoint.getTimestamp();
-        value = dataPoint.getValue();
+    public GaugeDataPoint(DataPoint<Double> other) {
+        super(other.getTimestamp(), other.getValue());
     }
 
     @ApiModelProperty(required = true)
@@ -74,38 +66,8 @@ public class GaugeDataPoint {
     }
 
     @ApiModelProperty(required = true)
-    public double getValue() {
-        return value;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        GaugeDataPoint that = (GaugeDataPoint) o;
-        return timestamp == that.timestamp && Double.compare(that.value, value) == 0;
-    }
-
-    @Override
-    public int hashCode() {
-        int result;
-        long temp;
-        result = (int) (timestamp ^ (timestamp >>> 32));
-        temp = Double.doubleToLongBits(value);
-        result = 31 * result + (int) (temp ^ (temp >>> 32));
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return com.google.common.base.Objects.toStringHelper(this)
-                .add("timestamp", timestamp)
-                .add("value", value)
-                .toString();
+    public Double getValue() {
+        return value.doubleValue();
     }
 
     public static List<DataPoint<Double>> asDataPoints(List<GaugeDataPoint> points) {
