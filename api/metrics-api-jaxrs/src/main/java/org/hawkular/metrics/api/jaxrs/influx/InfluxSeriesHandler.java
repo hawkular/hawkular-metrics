@@ -465,7 +465,7 @@ public class InfluxSeriesHandler {
                     for (DataPoint<Double> rnm : list) {
                         retVal += rnm.getValue();
                     }
-                    log.debugf("Applying mean mapping, total = %d, size = %d", retVal, size);
+                    log.debugf("Applying mean mapping, total = %f, size = %d", retVal, size);
                     retVal /= size;
                     break;
                 case MAX:
