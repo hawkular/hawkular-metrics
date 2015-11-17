@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
-import static org.hawkular.metrics.model.MetricType.GAUGE;
+import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 import java.net.URI;
 import java.util.Collections;
@@ -50,22 +50,22 @@ import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
+import org.hawkular.metrics.api.jaxrs.model.ApiError;
+import org.hawkular.metrics.api.jaxrs.model.Gauge;
+import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
+import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.param.BucketConfig;
+import org.hawkular.metrics.api.jaxrs.param.Duration;
+import org.hawkular.metrics.api.jaxrs.param.Percentiles;
+import org.hawkular.metrics.api.jaxrs.param.Tags;
+import org.hawkular.metrics.api.jaxrs.param.TimeRange;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
-import org.hawkular.metrics.core.service.Functions;
-import org.hawkular.metrics.core.service.MetricsService;
-import org.hawkular.metrics.core.service.Order;
-import org.hawkular.metrics.model.ApiError;
-import org.hawkular.metrics.model.DataPoint;
-import org.hawkular.metrics.model.Metric;
-import org.hawkular.metrics.model.MetricId;
-import org.hawkular.metrics.model.MetricType;
-import org.hawkular.metrics.model.NumericBucketPoint;
-import org.hawkular.metrics.model.exception.RuntimeApiError;
-import org.hawkular.metrics.model.param.BucketConfig;
-import org.hawkular.metrics.model.param.Duration;
-import org.hawkular.metrics.model.param.Percentiles;
-import org.hawkular.metrics.model.param.Tags;
-import org.hawkular.metrics.model.param.TimeRange;
+import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.NumericBucketPoint;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -105,18 +105,16 @@ public class GaugeHandler {
     })
     public void createGaugeMetric(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(required = true) Metric<Double> metric,
+            @ApiParam(required = true) MetricDefinition metricDefinition,
             @Context UriInfo uriInfo
     ) {
-        if (metric.getType() != null
-                && MetricType.UNDEFINED != metric.getType()
-                && MetricType.GAUGE != metric.getType()) {
-            asyncResponse.resume(badRequest(new ApiError("Metric type does not match " + MetricType
+        if(metricDefinition.getType() != null && MetricType.GAUGE != metricDefinition.getType()) {
+            asyncResponse.resume(badRequest(new ApiError("MetricDefinition type does not match " + MetricType
                     .GAUGE.getText())));
         }
-        metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metric.getId()), metric.getTags(),
-                metric.getDataRetention());
-        URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getMetricId().getName());
+        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metricDefinition.getId()),
+                metricDefinition.getTags(), metricDefinition.getDataRetention());
+        URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getId().getName());
         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
     }
 
@@ -124,7 +122,7 @@ public class GaugeHandler {
     @Path("/")
     @ApiOperation(value = "Find tenant's metric definitions.",
                     notes = "Does not include any metric values. ",
-                    response = Metric.class, responseContainer = "List")
+                    response = MetricDefinition.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully retrieved at least one metric definition."),
             @ApiResponse(code = 204, message = "No metrics found."),
@@ -138,9 +136,10 @@ public class GaugeHandler {
 
         Observable<Metric<Double>> metricObservable = (tags == null)
                 ? metricsService.findMetrics(tenantId, GAUGE)
-                : metricsService.findMetricsWithFilters(tenantId, GAUGE, tags.getTags());
+                : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), GAUGE);
 
         metricObservable
+                .map(MetricDefinition::new)
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {
@@ -154,7 +153,7 @@ public class GaugeHandler {
 
     @GET
     @Path("/{id}")
-    @ApiOperation(value = "Retrieve single metric definition.", response = Metric.class)
+    @ApiOperation(value = "Retrieve single metric definition.", response = MetricDefinition.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's definition was successfully retrieved."),
             @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
@@ -162,6 +161,7 @@ public class GaugeHandler {
                          response = ApiError.class) })
     public void getGaugeMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
         metricsService.findMetric(new MetricId<>(tenantId, GAUGE, id))
+                .map(MetricDefinition::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(ApiUtils.noContent()))
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
@@ -232,9 +232,9 @@ public class GaugeHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
-            List<DataPoint<Double>> data
+            List<GaugeDataPoint> data
     ) {
-        Observable<Metric<Double>> metrics = Functions.dataPointToObservable(tenantId, id, data, GAUGE);
+        Observable<Metric<Double>> metrics = GaugeDataPoint.toObservable(tenantId, id, data);
         Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
@@ -250,7 +250,7 @@ public class GaugeHandler {
     })
     public void addGaugeData(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(value = "List of metrics", required = true) List<Metric<Double>> gauges
+            @ApiParam(value = "List of metrics", required = true) List<Gauge> gauges
     ) {
         Observable<Metric<Double>> metrics = Functions.metricToObservable(tenantId, gauges, GAUGE);
         Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
@@ -261,7 +261,7 @@ public class GaugeHandler {
     @Path("/{id}/data")
     @ApiOperation(value = "Retrieve gauge data.", notes = "When buckets or bucketDuration query parameter is used, " +
             "the time range between start and end will be divided in buckets of equal duration, and metric statistics" +
-            " will be computed for each bucket.", response = DataPoint.class, responseContainer = "List")
+            " will be computed for each bucket.", response = GaugeDataPoint.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),
@@ -275,112 +275,38 @@ public class GaugeHandler {
             @PathParam("id") String id,
             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
             @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
-            @ApiParam(value = "Use data from earliest received, subject to retention period")
-                @QueryParam("fromEarliest") Boolean fromEarliest,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
-            @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
-            @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
-            @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
-            ) {
-
-        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
-
-        if ((bucketsCount != null || bucketDuration != null) &&
-                (limit != null || order != null)) {
-            asyncResponse.resume(badRequest(new ApiError("Limit and order cannot be used with bucketed results")));
+            @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles) {
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+        if (!bucketConfig.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
             return;
         }
 
-        if (bucketsCount == null && bucketDuration == null && !Boolean.TRUE.equals(fromEarliest)) {
-            TimeRange timeRange = new TimeRange(start, end);
-            if (!timeRange.isValid()) {
-                asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
-                return;
-            }
-
-            if (limit != null) {
-                if (order == null) {
-                    if (start == null && end != null) {
-                        order = Order.DESC;
-                    } else if (start != null && end == null) {
-                        order = Order.ASC;
-                    } else {
-                        order = Order.DESC;
-                    }
-                }
-            } else {
-                limit = 0;
-            }
-
-            if (order == null) {
-                order = Order.DESC;
-            }
-
-            metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), limit, order)
+        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+        Buckets buckets = bucketConfig.getBuckets();
+        if (buckets == null) {
+            metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
+                    .map(GaugeDataPoint::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
-
-            return;
-        }
-
-        Observable<BucketConfig> observableConfig = null;
-
-        if (Boolean.TRUE.equals(fromEarliest)) {
-            if (start != null || end != null) {
-                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used without start & end")));
-                return;
-            }
-
-            if (bucketsCount == null && bucketDuration == null) {
-                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used with bucketed results")));
-                return;
-            }
-
-            observableConfig = metricsService.findMetric(metricId).map((metric) -> {
-                long dataRetention = metric.getDataRetention() * 24 * 60 * 60 * 1000L;
-                long now = System.currentTimeMillis();
-                long earliest = now - dataRetention;
-
-                BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration,
-                        new TimeRange(earliest, now));
-
-                if (!bucketConfig.isValid()) {
-                    throw new RuntimeApiError(bucketConfig.getProblem());
-                }
-
-                return bucketConfig;
-            });
         } else {
-            TimeRange timeRange = new TimeRange(start, end);
-            if (!timeRange.isValid()) {
-                asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
-                return;
+            if(percentiles == null) {
+                percentiles = new Percentiles(Collections.<Double>emptyList());
             }
 
-            BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
-            if (!bucketConfig.isValid()) {
-                asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
-                return;
-            }
-
-            observableConfig = Observable.just(bucketConfig);
+            metricsService.findGaugeStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets,
+                    percentiles.getPercentiles())
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         }
-
-        final Percentiles lPercentiles = percentiles != null ? percentiles
-                : new Percentiles(Collections.<Double> emptyList());
-
-        observableConfig
-                .flatMap((config) -> metricsService.findGaugeStats(metricId,
-                        config.getTimeRange().getStart(),
-                        config.getTimeRange().getEnd(),
-                        config.getBuckets(), lPercentiles.getPercentiles()))
-                .flatMap(Observable::from)
-                .skipWhile(bucket -> Boolean.TRUE.equals(fromEarliest) && bucket.isEmpty())
-                .toList()
-                .map(ApiUtils::collectionToResponse)
-                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.error(t)));
     }
 
     @GET
@@ -419,7 +345,7 @@ public class GaugeHandler {
         BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
         if (bucketConfig.isEmpty()) {
             asyncResponse.resume(badRequest(new ApiError(
-                    "Either the buckets or bucketDuration parameter must be used")));
+                    "Either the buckets or bucketsDuration parameter must be used")));
             return;
         }
         if (!bucketConfig.isValid()) {
