@@ -69,6 +69,8 @@ import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.HostDistance;
+import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
 import com.google.common.base.Throwables;
@@ -281,6 +283,13 @@ public class MetricsServiceLifecycle {
                 throw new RuntimeException("SSL support is required but is not available in the JVM.", e);
             }
         }
+
+        PoolingOptions poolingOptions = new PoolingOptions()
+                .setCoreConnectionsPerHost(HostDistance.LOCAL, 40)
+                .setMaxConnectionsPerHost(HostDistance.LOCAL, 100)
+                .setCoreConnectionsPerHost(HostDistance.REMOTE, 20)
+                .setMaxConnectionsPerHost(HostDistance.REMOTE, 40);
+        clusterBuilder.withPoolingOptions(poolingOptions);
 
         Cluster cluster = clusterBuilder.build();
         cluster.init();
