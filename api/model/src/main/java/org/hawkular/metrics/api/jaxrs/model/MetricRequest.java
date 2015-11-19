@@ -19,8 +19,6 @@ package org.hawkular.metrics.api.jaxrs.model;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 
-import static org.hawkular.metrics.core.api.MetricType.COUNTER;
-
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.List;
@@ -28,6 +26,7 @@ import java.util.List;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonCreator.Mode;
@@ -40,26 +39,27 @@ import io.swagger.annotations.ApiModelProperty;
 import rx.Observable;
 
 /**
- * A container for data points for a single counter metric.
+ * A container for gauge data points to be persisted. Note that the tenant id is not included because it is obtained
+ * from the tenant header in the HTTP request.
  *
  * @author John Sanda
  */
-@ApiModel(description = "A counter metric with one or more data points")
-public class Counter {
+@ApiModel(description = "A gauge metric with one or more data points")
+public class MetricRequest<S, T extends DataPoint<S>> {
     private final String id;
-    private final List<CounterDataPoint> data;
+    private final List<DataPoint<S>> data;
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
-    public Counter(
+    public MetricRequest(
             @JsonProperty("id")
             @org.codehaus.jackson.annotate.JsonProperty("id")
             String id,
             @JsonProperty("data")
             @org.codehaus.jackson.annotate.JsonProperty("data")
-            List<CounterDataPoint> data
+            List<T> data
     ) {
-        checkArgument(id != null, "Counter id is null");
+        checkArgument(id != null, "Gauge id is null");
         this.id = id;
         this.data = data == null || data.isEmpty() ? emptyList() : unmodifiableList(data);
     }
@@ -69,12 +69,12 @@ public class Counter {
         return id;
     }
 
-    @ApiModelProperty("Counter data points")
+    @ApiModelProperty("Gauge data points")
     @JsonSerialize(include = Inclusion.NON_EMPTY)
     @org.codehaus.jackson.map.annotate.JsonSerialize(
             include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY
     )
-    public List<CounterDataPoint> getData() {
+    public List<DataPoint<S>> getData() {
         return data;
     }
 
@@ -86,8 +86,8 @@ public class Counter {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        Counter counter = (Counter) o;
-        return id.equals(counter.id);
+        MetricRequest gauge = (MetricRequest) o;
+        return id.equals(gauge.id);
     }
 
     @Override
@@ -104,10 +104,10 @@ public class Counter {
                 .toString();
     }
 
-    public static Observable<Metric<Long>> toObservable(String tenantId, List<Counter> counters) {
-        return Observable.from(counters).map(c -> {
-            List<DataPoint<Long>> dataPoints = CounterDataPoint.asDataPoints(c.getData());
-            return new Metric<>(new MetricId<>(tenantId, COUNTER, c.getId()), dataPoints);
+    public static <S, U extends DataPoint<S>, T extends MetricRequest<S, U>> Observable<Metric<S>> toObservable(
+            String tenantId, List<T> gauges, MetricType<S> type) {
+        return Observable.from(gauges).map(g -> {
+            return new Metric<S>(new MetricId<S>(tenantId, type, g.getId()), g.getData());
         });
     }
 }

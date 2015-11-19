@@ -51,9 +51,9 @@ import javax.ws.rs.core.UriInfo;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.model.ApiError;
-import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.model.MetricRequest;
 import org.hawkular.metrics.api.jaxrs.param.BucketConfig;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
@@ -65,6 +65,8 @@ import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
+
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -246,9 +248,11 @@ public class AvailabilityHandler {
     public void addAvailabilityData(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of availability metrics", required = true)
-            List<Availability> availabilities
+ @JsonDeserialize()
+            List<MetricRequest<AvailabilityType, AvailabilityDataPoint>> availabilities
     ) {
-        Observable<Metric<AvailabilityType>> metrics = Availability.toObservable(tenantId, availabilities);
+        Observable<Metric<AvailabilityType>> metrics = MetricRequest.toObservable(tenantId, availabilities,
+                AVAILABILITY);
         Observable<Void> observable = metricsService.addDataPoints(AVAILABILITY, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }

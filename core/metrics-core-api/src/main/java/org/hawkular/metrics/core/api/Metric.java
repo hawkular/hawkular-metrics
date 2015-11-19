@@ -33,7 +33,7 @@ public class Metric<T> {
     private final MetricId<T> id;
     private final Map<String, String> tags;
     private final Integer dataRetention;
-    private final List<DataPoint<T>> dataPoints;
+    private final List<? extends DataPoint<T>> dataPoints;
 
     public Metric(MetricId<T> id) {
         this(id, Collections.emptyMap(), null, Collections.emptyList());
@@ -86,7 +86,7 @@ public class Metric<T> {
         return dataRetention;
     }
 
-    public List<DataPoint<T>> getDataPoints() {
+    public List<? extends DataPoint<T>> getDataPoints() {
         return dataPoints;
     }
 

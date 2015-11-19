@@ -47,10 +47,10 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.model.ApiError;
-import org.hawkular.metrics.api.jaxrs.model.Counter;
 import org.hawkular.metrics.api.jaxrs.model.CounterDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.model.MetricRequest;
 import org.hawkular.metrics.api.jaxrs.param.BucketConfig;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Percentiles;
@@ -187,8 +187,8 @@ public class CounterHandler {
 
     @POST
     @Path("/data")
-    public Response addData(List<Counter> counters) {
-        Observable<Metric<Long>> metrics = Counter.toObservable(tenantId, counters);
+    public Response addData(List<MetricRequest<Long, CounterDataPoint>> counters) {
+        Observable<Metric<Long>> metrics = MetricRequest.toObservable(tenantId, counters, COUNTER);
         try {
             metricsService.addDataPoints(COUNTER, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();

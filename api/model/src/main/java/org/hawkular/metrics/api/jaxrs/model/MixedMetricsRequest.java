@@ -21,6 +21,8 @@ import static java.util.Collections.unmodifiableList;
 
 import java.util.List;
 
+import org.hawkular.metrics.core.api.AvailabilityType;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonCreator.Mode;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -34,37 +36,37 @@ import io.swagger.annotations.ApiModel;
  */
 @ApiModel(description = "Data points to store, grouped by metric type")
 public class MixedMetricsRequest {
-    private final List<Gauge> gauges;
-    private final List<Availability> availabilities;
-    private final List<Counter> counters;
+    private final List<MetricRequest<Double, GaugeDataPoint>> gauges;
+    private final List<MetricRequest<AvailabilityType, AvailabilityDataPoint>> availabilities;
+    private final List<MetricRequest<Long, CounterDataPoint>> counters;
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
     public MixedMetricsRequest(
             @JsonProperty("gauges")
             @org.codehaus.jackson.annotate.JsonProperty("gauges")
-            List<Gauge> gauges,
+            List<MetricRequest<Double, GaugeDataPoint>> gauges,
             @JsonProperty("availabilities")
             @org.codehaus.jackson.annotate.JsonProperty("availabilities")
-            List<Availability> availabilities,
+            List<MetricRequest<AvailabilityType, AvailabilityDataPoint>> availabilities,
             @JsonProperty("counters")
             @org.codehaus.jackson.annotate.JsonProperty("counters")
-            List<Counter> counters
+            List<MetricRequest<Long, CounterDataPoint>> counters
     ) {
         this.gauges = gauges == null ? emptyList() : unmodifiableList(gauges);
         this.availabilities = availabilities == null ? emptyList() : unmodifiableList(availabilities);
         this.counters = counters == null ? emptyList() : unmodifiableList(counters);
     }
 
-    public List<Gauge> getGauges() {
+    public List<MetricRequest<Double, GaugeDataPoint>> getGauges() {
         return gauges;
     }
 
-    public List<Availability> getAvailabilities() {
+    public List<MetricRequest<AvailabilityType, AvailabilityDataPoint>> getAvailabilities() {
         return availabilities;
     }
 
-    public List<Counter> getCounters() {
+    public List<MetricRequest<Long, CounterDataPoint>> getCounters() {
         return counters;
     }
 

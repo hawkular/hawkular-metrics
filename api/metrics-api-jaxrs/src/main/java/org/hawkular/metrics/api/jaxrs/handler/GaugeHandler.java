@@ -51,9 +51,9 @@ import javax.ws.rs.core.UriInfo;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.model.ApiError;
-import org.hawkular.metrics.api.jaxrs.model.Gauge;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.model.MetricRequest;
 import org.hawkular.metrics.api.jaxrs.param.BucketConfig;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Percentiles;
@@ -250,9 +250,9 @@ public class GaugeHandler {
     })
     public void addGaugeData(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(value = "List of metrics", required = true) List<Gauge> gauges
+            @ApiParam(value = "List of metrics", required = true) List<MetricRequest<Double, GaugeDataPoint>> gauges
     ) {
-        Observable<Metric<Double>> metrics = Gauge.toObservable(tenantId, gauges);
+        Observable<Metric<Double>> metrics = MetricRequest.toObservable(tenantId, gauges, GAUGE);
         Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }

@@ -47,9 +47,9 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.model.ApiError;
-import org.hawkular.metrics.api.jaxrs.model.Availability;
 import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.model.MetricRequest;
 import org.hawkular.metrics.api.jaxrs.param.BucketConfig;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
@@ -212,9 +212,10 @@ public class AvailabilityHandler {
     @POST
     @Path("/data")
     public Response addAvailabilityData(
-            List<Availability> availabilities
+            List<MetricRequest<AvailabilityType, AvailabilityDataPoint>> availabilities
     ) {
-        Observable<Metric<AvailabilityType>> metrics = Availability.toObservable(tenantId, availabilities);
+        Observable<Metric<AvailabilityType>> metrics = MetricRequest.toObservable(tenantId, availabilities,
+                AVAILABILITY);
         try {
             metricsService.addDataPoints(AVAILABILITY, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();

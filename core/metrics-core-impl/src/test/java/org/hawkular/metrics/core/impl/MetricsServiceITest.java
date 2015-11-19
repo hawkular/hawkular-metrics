@@ -1001,8 +1001,8 @@ public class MetricsServiceITest extends MetricsITest {
         assertNumericBucketsEquals(actualStackedCounterRateStatsById.get(0), expectedStackedCounterRateStatsList);
     }
 
-    private <T extends Number> NumericBucketPoint createSingleBucket(List<DataPoint<T>> combinedData, DateTime start,
-            DateTime end) {
+    private <T extends Number> NumericBucketPoint createSingleBucket(List<? extends DataPoint<T>> combinedData,
+            DateTime start, DateTime end) {
         T expectedMin = combinedData.stream()
                 .min((x, y) -> Double.compare(x.getValue().doubleValue(), y.getValue().doubleValue()))
                 .get()

@@ -42,10 +42,8 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.model.ApiError;
-import org.hawkular.metrics.api.jaxrs.model.Availability;
-import org.hawkular.metrics.api.jaxrs.model.Counter;
-import org.hawkular.metrics.api.jaxrs.model.Gauge;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.model.MetricRequest;
 import org.hawkular.metrics.api.jaxrs.model.MixedMetricsRequest;
 import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
@@ -138,10 +136,11 @@ public class MetricHandler {
             return emptyPayload();
         }
 
-        Observable<Metric<Double>> gauges = Gauge.toObservable(tenantId, metricsRequest.getGauges());
-        Observable<Metric<AvailabilityType>> availabilities = Availability.toObservable(tenantId,
-                metricsRequest.getAvailabilities());
-        Observable<Metric<Long>> counters = Counter.toObservable(tenantId, metricsRequest.getCounters());
+        Observable<Metric<Double>> gauges = MetricRequest.toObservable(tenantId, metricsRequest.getGauges(), GAUGE);
+        Observable<Metric<AvailabilityType>> availabilities = MetricRequest.toObservable(tenantId,
+                metricsRequest.getAvailabilities(), AVAILABILITY);
+        Observable<Metric<Long>> counters = MetricRequest.toObservable(tenantId, metricsRequest.getCounters(),
+                COUNTER);
 
         try {
             metricsService.addDataPoints(GAUGE, gauges)

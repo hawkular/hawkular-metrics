@@ -52,10 +52,10 @@ import javax.ws.rs.core.UriInfo;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.model.ApiError;
-import org.hawkular.metrics.api.jaxrs.model.Counter;
 import org.hawkular.metrics.api.jaxrs.model.CounterDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
 import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
+import org.hawkular.metrics.api.jaxrs.model.MetricRequest;
 import org.hawkular.metrics.api.jaxrs.param.BucketConfig;
 import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.param.Percentiles;
@@ -230,9 +230,10 @@ public class CounterHandler {
                     response = ApiError.class)
     })
     public void addData(@Suspended final AsyncResponse asyncResponse,
-                        @ApiParam(value = "List of metrics", required = true) List<Counter> counters
+                        @ApiParam(value = "List of metrics", required = true)
+                        List<MetricRequest<Long, CounterDataPoint>> counters
     ) {
-        Observable<Metric<Long>> metrics = Counter.toObservable(tenantId, counters);
+        Observable<Metric<Long>> metrics = MetricRequest.toObservable(tenantId, counters, COUNTER);
         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
