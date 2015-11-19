@@ -14,17 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.model;
+package org.hawkular.metrics.core.api;
 
-import static org.hawkular.metrics.core.api.MetricType.GAUGE;
+import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.List;
-
-import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricId;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonCreator.Mode;
@@ -38,25 +34,25 @@ import rx.Observable;
 /**
  * @author John Sanda
  */
-@ApiModel(description = "A timestamp and a value where the value is interpreted as a floating point number")
-public class GaugeDataPoint extends DataPoint<Double> {
+@ApiModel(description = "A timestamp and a value where the value is interpreted as a signed 64 bit integer")
+public class CounterDataPoint extends DataPoint<Long> {
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
-    public GaugeDataPoint(
+    public CounterDataPoint(
             @JsonProperty("timestamp")
             @org.codehaus.jackson.annotate.JsonProperty("timestamp")
             Long timestamp,
             @JsonProperty("value")
             @org.codehaus.jackson.annotate.JsonProperty("value")
-            Double value
+            Long value
     ) {
         super(timestamp, value);
         checkArgument(timestamp != null, "Data point timestamp is null");
         checkArgument(value != null, "Data point value is null");
     }
 
-    public GaugeDataPoint(DataPoint<Double> other) {
+    public CounterDataPoint(DataPoint<Long> other) {
         super(other.getTimestamp(), other.getValue());
     }
 
@@ -66,18 +62,18 @@ public class GaugeDataPoint extends DataPoint<Double> {
     }
 
     @ApiModelProperty(required = true)
-    public Double getValue() {
-        return value.doubleValue();
+    public Long getValue() {
+        return value;
     }
 
-    public static List<DataPoint<Double>> asDataPoints(List<GaugeDataPoint> points) {
+    public static List<DataPoint<Long>> asDataPoints(List<CounterDataPoint> points) {
         return Lists.transform(points, p -> new DataPoint<>(p.getTimestamp(), p.getValue()));
     }
 
-    public static Observable<Metric<Double>> toObservable(String tenantId, String metricId, List<GaugeDataPoint>
+    public static Observable<Metric<Long>> toObservable(String tenantId, String metricId, List<CounterDataPoint>
             points) {
-        List<DataPoint<Double>> dataPoints = asDataPoints(points);
-        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metricId), dataPoints);
+        List<DataPoint<Long>> dataPoints = asDataPoints(points);
+        Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, metricId), dataPoints);
         return Observable.just(metric);
     }
 }

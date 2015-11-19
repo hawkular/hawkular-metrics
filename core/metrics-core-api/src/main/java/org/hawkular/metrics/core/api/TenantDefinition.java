@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.model;
+package org.hawkular.metrics.core.api;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableMap;
@@ -23,10 +23,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Map;
 
-import org.hawkular.metrics.api.jaxrs.fasterxml.jackson.MetricTypeKeyDeserializer;
-import org.hawkular.metrics.api.jaxrs.fasterxml.jackson.MetricTypeKeySerializer;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.Tenant;
+import org.hawkular.metrics.core.api.fasterxml.jackson.MetricTypeKeyDeserializer;
+import org.hawkular.metrics.core.api.fasterxml.jackson.MetricTypeKeySerializer;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonCreator.Mode;
@@ -77,11 +75,11 @@ public class TenantDefinition {
     @JsonSerialize(include = Inclusion.NON_EMPTY, keyUsing = MetricTypeKeySerializer.class)
     @org.codehaus.jackson.map.annotate.JsonSerialize(
             include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY,
-            keyUsing = org.hawkular.metrics.api.jaxrs.codehaus.jackson.MetricTypeKeySerializer.class
+            keyUsing = org.hawkular.metrics.core.api.codehause.jackson.MetricTypeKeySerializer.class
     )
     // Codehaus Jackson wants @JsonDeserialize here
     @org.codehaus.jackson.map.annotate.JsonDeserialize(
-            keyUsing = org.hawkular.metrics.api.jaxrs.codehaus.jackson.MetricTypeKeyDeserializer.class
+            keyUsing = org.hawkular.metrics.core.api.codehause.jackson.MetricTypeKeyDeserializer.class
     )
     public Map<MetricType<?>, Integer> getRetentionSettings() {
         return retentionSettings;

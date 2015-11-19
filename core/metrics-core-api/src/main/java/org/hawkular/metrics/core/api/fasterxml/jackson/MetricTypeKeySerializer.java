@@ -14,15 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.codehaus.jackson;
+package org.hawkular.metrics.core.api.fasterxml.jackson;
 
 import java.io.IOException;
 
-import org.codehaus.jackson.JsonGenerator;
-import org.codehaus.jackson.JsonProcessingException;
-import org.codehaus.jackson.map.JsonSerializer;
-import org.codehaus.jackson.map.SerializerProvider;
 import org.hawkular.metrics.core.api.MetricType;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
 
 /**
  * @author Thomas Segismont
@@ -30,8 +31,8 @@ import org.hawkular.metrics.core.api.MetricType;
 public class MetricTypeKeySerializer extends JsonSerializer<MetricType<?>> {
 
     @Override
-    public void serialize(MetricType<?> value, JsonGenerator jgen, SerializerProvider provider) throws IOException,
+    public void serialize(MetricType<?> value, JsonGenerator gen, SerializerProvider serializers) throws IOException,
             JsonProcessingException {
-        jgen.writeFieldName(value.getText());
+        gen.writeFieldName(value.getText());
     }
 }

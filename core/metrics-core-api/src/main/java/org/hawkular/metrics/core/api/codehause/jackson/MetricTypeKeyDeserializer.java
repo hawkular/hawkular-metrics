@@ -15,25 +15,22 @@
  * limitations under the License.
  */
 
-package org.hawkular.metrics.api.jaxrs.fasterxml.jackson;
+package org.hawkular.metrics.core.api.codehause.jackson;
 
 import java.io.IOException;
 
-import org.hawkular.metrics.core.api.AvailabilityType;
-
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
+import org.codehaus.jackson.JsonProcessingException;
+import org.codehaus.jackson.map.DeserializationContext;
+import org.codehaus.jackson.map.KeyDeserializer;
+import org.hawkular.metrics.core.api.MetricType;
 
 /**
  * @author Thomas Segismont
  */
-public class AvailabilityTypeSerializer extends JsonSerializer<AvailabilityType> {
+public class MetricTypeKeyDeserializer extends KeyDeserializer {
 
     @Override
-    public void serialize(AvailabilityType availabilityType, JsonGenerator jsonGenerator, SerializerProvider
-            serializerProvider) throws IOException, JsonProcessingException {
-        jsonGenerator.writeString(availabilityType.getText());
+    public Object deserializeKey(String key, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+        return MetricType.fromTextCode(key);
     }
 }

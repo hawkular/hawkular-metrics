@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.hawkular.metrics.api.jaxrs.codehaus.jackson;
+package org.hawkular.metrics.core.api.codehause.jackson;
 
 import java.io.IOException;
 

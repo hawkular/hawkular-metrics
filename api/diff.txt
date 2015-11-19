@@ -488,7 +488,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 51,52d48
 < import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 < import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
-64a61
+62a59
 > import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 69,75d65
 < import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -714,7 +714,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 <     public void addAvailabilityData(
 <             @Suspended final AsyncResponse asyncResponse,
 <             @ApiParam(value = "List of availability metrics", required = true)
-<  @JsonDeserialize()
+<             @JsonDeserialize()
 ---
 >     public Response addAvailabilityData(
 256,257c219,224
@@ -808,7 +808,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 52,53d48
 < import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 < import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
-66a62
+64a60
 > import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 70d65
 < import org.hawkular.metrics.core.api.NumericBucketPoint;
@@ -1382,7 +1382,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 51,52d49
 < import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 < import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
-64a62
+62a60
 > import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 68d65
 < import org.hawkular.metrics.core.api.NumericBucketPoint;
@@ -1842,7 +1842,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 < import javax.ws.rs.container.Suspended;
 46d43
 < import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
-55a53
+52a50
 > import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 60,64d57
 < import io.swagger.annotations.Api;
@@ -2009,19 +2009,19 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 < import javax.ws.rs.container.Suspended;
 34a30
 > import javax.ws.rs.core.Response;
-37d32
+37c33
 < import org.hawkular.metrics.api.jaxrs.handler.observer.TenantCreatedObserver;
-39a35
+---
 > import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
-41,46c37
-< 
+39a36
+> import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
+42,47d38
 < import io.swagger.annotations.Api;
 < import io.swagger.annotations.ApiOperation;
 < import io.swagger.annotations.ApiParam;
 < import io.swagger.annotations.ApiResponse;
 < import io.swagger.annotations.ApiResponses;
----
-> import org.hawkular.metrics.core.api.TenantAlreadyExistsException;
+< 
 54d44
 < @Api(tags = "Tenant")
 61,75c51,52

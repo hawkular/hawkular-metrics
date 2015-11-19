@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.model;
+package org.hawkular.metrics.core.api;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableMap;
@@ -23,10 +23,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Map;
 
-import org.hawkular.metrics.api.jaxrs.fasterxml.jackson.MetricTypeDeserializer;
-import org.hawkular.metrics.api.jaxrs.fasterxml.jackson.MetricTypeSerializer;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.fasterxml.jackson.MetricTypeDeserializer;
+import org.hawkular.metrics.core.api.fasterxml.jackson.MetricTypeSerializer;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonCreator.Mode;
@@ -65,7 +63,7 @@ public class MetricDefinition {
             @org.codehaus.jackson.annotate.JsonProperty("type")
             @JsonDeserialize(using = MetricTypeDeserializer.class)
             @org.codehaus.jackson.map.annotate.JsonDeserialize(
-                    using = org.hawkular.metrics.api.jaxrs.codehaus.jackson.MetricTypeDeserializer.class
+                    using = org.hawkular.metrics.core.api.codehause.jackson.MetricTypeDeserializer.class
             )
             MetricType<?> type
     ) {
@@ -112,7 +110,7 @@ public class MetricDefinition {
     @ApiModelProperty(value = "Metric type", dataType = "string", allowableValues = "gauge, availability, counter")
     @JsonSerialize(using = MetricTypeSerializer.class)
     @org.codehaus.jackson.map.annotate.JsonSerialize(
-            using = org.hawkular.metrics.api.jaxrs.codehaus.jackson.MetricTypeSerializer.class
+            using = org.hawkular.metrics.core.api.codehause.jackson.MetricTypeSerializer.class
     )
     public MetricType<?> getType() {
         return type;

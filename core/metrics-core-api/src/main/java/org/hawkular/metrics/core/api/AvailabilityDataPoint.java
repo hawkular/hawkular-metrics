@@ -14,21 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.model;
+package org.hawkular.metrics.core.api;
 
-import static org.hawkular.metrics.core.api.MetricType.COUNTER;
+import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.List;
 
-import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.fasterxml.jackson.AvailabilityTypeSerializer;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonCreator.Mode;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.Lists;
 
 import io.swagger.annotations.ApiModel;
@@ -38,25 +37,25 @@ import rx.Observable;
 /**
  * @author John Sanda
  */
-@ApiModel(description = "A timestamp and a value where the value is interpreted as a signed 64 bit integer")
-public class CounterDataPoint extends DataPoint<Long> {
+@ApiModel(description = "Consists of a timestamp and a textual value indicating a system availability")
+public class AvailabilityDataPoint extends DataPoint<AvailabilityType> {
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
-    public CounterDataPoint(
+    public AvailabilityDataPoint(
             @JsonProperty("timestamp")
             @org.codehaus.jackson.annotate.JsonProperty("timestamp")
             Long timestamp,
             @JsonProperty("value")
             @org.codehaus.jackson.annotate.JsonProperty("value")
-            Long value
+            String value
     ) {
-        super(timestamp, value);
+        super(timestamp, AvailabilityType.fromString(value));
         checkArgument(timestamp != null, "Data point timestamp is null");
         checkArgument(value != null, "Data point value is null");
     }
 
-    public CounterDataPoint(DataPoint<Long> other) {
+    public AvailabilityDataPoint(DataPoint<AvailabilityType> other) {
         super(other.getTimestamp(), other.getValue());
     }
 
@@ -65,19 +64,23 @@ public class CounterDataPoint extends DataPoint<Long> {
         return timestamp;
     }
 
-    @ApiModelProperty(required = true)
-    public Long getValue() {
+    @ApiModelProperty(required = true, dataType = "string", allowableValues = "up,down,unknown")
+    @JsonSerialize(using = AvailabilityTypeSerializer.class)
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            using = org.hawkular.metrics.core.api.codehause.jackson.AvailabilityTypeSerializer.class
+    )
+    public AvailabilityType getValue() {
         return value;
     }
 
-    public static List<DataPoint<Long>> asDataPoints(List<CounterDataPoint> points) {
+    public static List<DataPoint<AvailabilityType>> asDataPoints(List<AvailabilityDataPoint> points) {
         return Lists.transform(points, p -> new DataPoint<>(p.getTimestamp(), p.getValue()));
     }
 
-    public static Observable<Metric<Long>> toObservable(String tenantId, String metricId, List<CounterDataPoint>
-            points) {
-        List<DataPoint<Long>> dataPoints = asDataPoints(points);
-        Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, metricId), dataPoints);
+    public static Observable<Metric<AvailabilityType>> toObservable(String tenantId, String
+            metricId, List<AvailabilityDataPoint> points) {
+        List<DataPoint<AvailabilityType>> dataPoints = asDataPoints(points);
+        Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, metricId), dataPoints);
         return Observable.just(metric);
     }
 }

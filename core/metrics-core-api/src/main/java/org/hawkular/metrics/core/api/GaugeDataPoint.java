@@ -14,24 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.model;
+package org.hawkular.metrics.core.api;
 
-import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
+import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.List;
 
-import org.hawkular.metrics.api.jaxrs.fasterxml.jackson.AvailabilityTypeSerializer;
-import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricId;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonCreator.Mode;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.Lists;
 
 import io.swagger.annotations.ApiModel;
@@ -41,25 +34,25 @@ import rx.Observable;
 /**
  * @author John Sanda
  */
-@ApiModel(description = "Consists of a timestamp and a textual value indicating a system availability")
-public class AvailabilityDataPoint extends DataPoint<AvailabilityType> {
+@ApiModel(description = "A timestamp and a value where the value is interpreted as a floating point number")
+public class GaugeDataPoint extends DataPoint<Double> {
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
-    public AvailabilityDataPoint(
+    public GaugeDataPoint(
             @JsonProperty("timestamp")
             @org.codehaus.jackson.annotate.JsonProperty("timestamp")
             Long timestamp,
             @JsonProperty("value")
             @org.codehaus.jackson.annotate.JsonProperty("value")
-            String value
+            Double value
     ) {
-        super(timestamp, AvailabilityType.fromString(value));
+        super(timestamp, value);
         checkArgument(timestamp != null, "Data point timestamp is null");
         checkArgument(value != null, "Data point value is null");
     }
 
-    public AvailabilityDataPoint(DataPoint<AvailabilityType> other) {
+    public GaugeDataPoint(DataPoint<Double> other) {
         super(other.getTimestamp(), other.getValue());
     }
 
@@ -68,23 +61,19 @@ public class AvailabilityDataPoint extends DataPoint<AvailabilityType> {
         return timestamp;
     }
 
-    @ApiModelProperty(required = true, dataType = "string", allowableValues = "up,down,unknown")
-    @JsonSerialize(using = AvailabilityTypeSerializer.class)
-    @org.codehaus.jackson.map.annotate.JsonSerialize(
-            using = org.hawkular.metrics.api.jaxrs.codehaus.jackson.AvailabilityTypeSerializer.class
-    )
-    public AvailabilityType getValue() {
-        return value;
+    @ApiModelProperty(required = true)
+    public Double getValue() {
+        return value.doubleValue();
     }
 
-    public static List<DataPoint<AvailabilityType>> asDataPoints(List<AvailabilityDataPoint> points) {
+    public static List<DataPoint<Double>> asDataPoints(List<GaugeDataPoint> points) {
         return Lists.transform(points, p -> new DataPoint<>(p.getTimestamp(), p.getValue()));
     }
 
-    public static Observable<Metric<AvailabilityType>> toObservable(String tenantId, String
-            metricId, List<AvailabilityDataPoint> points) {
-        List<DataPoint<AvailabilityType>> dataPoints = asDataPoints(points);
-        Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, metricId), dataPoints);
+    public static Observable<Metric<Double>> toObservable(String tenantId, String metricId, List<GaugeDataPoint>
+            points) {
+        List<DataPoint<Double>> dataPoints = asDataPoints(points);
+        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metricId), dataPoints);
         return Observable.just(metric);
     }
 }

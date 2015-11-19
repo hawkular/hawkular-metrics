@@ -14,29 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.model;
+package org.hawkular.metrics.core.api.fasterxml.jackson;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.io.IOException;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import org.hawkular.metrics.core.api.MetricType;
+
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
 
 /**
- * Return information what failed in the REST-call.
  * @author Michael Burman
  */
-@ApiModel(description = "If REST-call returns other than success, detailed error is returned.")
-public class ApiError {
+public class MetricTypeDeserializer extends JsonDeserializer<MetricType<?>> {
 
-    @JsonProperty
-    private final String errorMsg;
-
-    public ApiError(String errorMsg) {
-        this.errorMsg = errorMsg != null && !errorMsg.trim().isEmpty() ? errorMsg : "No details";
-    }
-
-    @ApiModelProperty(value = "Detailed error message of what happened", required = true)
-    public String getErrorMsg() {
-        return errorMsg;
+    @Override
+    public MetricType<?> deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
+            throws IOException, JsonProcessingException {
+        return MetricType.fromTextCode(jsonParser.getText());
     }
 }
