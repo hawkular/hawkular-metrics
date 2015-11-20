@@ -61,7 +61,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryBaseListener;
@@ -123,23 +122,23 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     private Deque<Operand> operandQueue;
 
     @Override
-    public void enterColumnDefinitionList(@NotNull ColumnDefinitionListContext ctx) {
+    public void enterColumnDefinitionList(ColumnDefinitionListContext ctx) {
         columnDefinitions = new ArrayList<>((ctx.getChildCount() + 1) / 2);
     }
 
     @Override
-    public void exitColumnDefinitionList(@NotNull ColumnDefinitionListContext ctx) {
+    public void exitColumnDefinitionList(ColumnDefinitionListContext ctx) {
         definitionsBuilder.setColumnDefinitions(columnDefinitions);
     }
 
     @Override
-    public void enterColumnDefinition(@NotNull ColumnDefinitionContext ctx) {
+    public void enterColumnDefinition(ColumnDefinitionContext ctx) {
         alias = null;
         removeColumnDefinitionBuilder();
     }
 
     @Override
-    public void exitColumnDefinition(@NotNull ColumnDefinitionContext ctx) {
+    public void exitColumnDefinition(ColumnDefinitionContext ctx) {
         ColumnDefinitionBuilder columnDefinitionBuilder = getColumnDefinitionBuilder();
         columnDefinitionBuilder.setAlias(alias);
         columnDefinitions.add(columnDefinitionBuilder.createColumnDefinition());
@@ -148,14 +147,14 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     }
 
     @Override
-    public void enterRawColumnDefinition(@NotNull RawColumnDefinitionContext ctx) {
+    public void enterRawColumnDefinition(RawColumnDefinitionContext ctx) {
         rawColumnDefinitionBuilder = new RawColumnDefinitionBuilder();
         prefix = null;
         name = null;
     }
 
     @Override
-    public void exitRawColumnDefinition(@NotNull RawColumnDefinitionContext ctx) {
+    public void exitRawColumnDefinition(RawColumnDefinitionContext ctx) {
         rawColumnDefinitionBuilder.setPrefix(prefix);
         rawColumnDefinitionBuilder.setName(name);
         prefix = null;
@@ -163,14 +162,14 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     }
 
     @Override
-    public void enterAggregatedColumnDefinition(@NotNull AggregatedColumnDefinitionContext ctx) {
+    public void enterAggregatedColumnDefinition(AggregatedColumnDefinitionContext ctx) {
         aggregatedColumnDefinitionBuilder = new AggregatedColumnDefinitionBuilder();
         function = null;
         functionArguments = null;
     }
 
     @Override
-    public void exitAggregatedColumnDefinition(@NotNull AggregatedColumnDefinitionContext ctx) {
+    public void exitAggregatedColumnDefinition(AggregatedColumnDefinitionContext ctx) {
         aggregatedColumnDefinitionBuilder.setAggregationFunction(function);
         aggregatedColumnDefinitionBuilder.setAggregationFunctionArguments(functionArguments);
         function = null;
@@ -178,20 +177,20 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     }
 
     @Override
-    public void enterFromClause(@NotNull FromClauseContext ctx) {
+    public void enterFromClause(FromClauseContext ctx) {
         name = null;
         alias = null;
     }
 
     @Override
-    public void exitFromClause(@NotNull FromClauseContext ctx) {
+    public void exitFromClause(FromClauseContext ctx) {
         definitionsBuilder.setFromClause(new FromClause(name, alias));
         name = null;
         alias = null;
     }
 
     @Override
-    public void exitGroupByClause(@NotNull GroupByClauseContext ctx) {
+    public void exitGroupByClause(GroupByClauseContext ctx) {
         String bucketType = ctx.ID().getText();
         String timespan = ctx.TIMESPAN().getText();
         Matcher matcher = TIMESPAN_MATCHER.matcher(timespan);
@@ -208,71 +207,71 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     }
 
     @Override
-    public void enterWhereClause(@NotNull WhereClauseContext ctx) {
+    public void enterWhereClause(WhereClauseContext ctx) {
         booleanExpressionQueue = new ArrayDeque<>(10);
         operandQueue = new ArrayDeque<>(10);
     }
 
     @Override
-    public void exitWhereClause(@NotNull WhereClauseContext ctx) {
+    public void exitWhereClause(WhereClauseContext ctx) {
         definitionsBuilder.setWhereClause(booleanExpressionQueue.removeLast());
     }
 
     @Override
-    public void exitOrderAsc(@NotNull OrderAscContext ctx) {
+    public void exitOrderAsc(OrderAscContext ctx) {
         definitionsBuilder.setOrderDesc(false);
     }
 
     @Override
-    public void exitEqExpression(@NotNull EqExpressionContext ctx) {
+    public void exitEqExpression(EqExpressionContext ctx) {
         Operand rightOperand = operandQueue.removeLast();
         Operand leftOperand = operandQueue.removeLast();
         booleanExpressionQueue.addLast(new EqBooleanExpression(leftOperand, rightOperand));
     }
 
     @Override
-    public void exitGtExpression(@NotNull GtExpressionContext ctx) {
+    public void exitGtExpression(GtExpressionContext ctx) {
         Operand rightOperand = operandQueue.removeLast();
         Operand leftOperand = operandQueue.removeLast();
         booleanExpressionQueue.addLast(new GtBooleanExpression(leftOperand, rightOperand));
     }
 
     @Override
-    public void exitLtExpression(@NotNull LtExpressionContext ctx) {
+    public void exitLtExpression(LtExpressionContext ctx) {
         Operand rightOperand = operandQueue.removeLast();
         Operand leftOperand = operandQueue.removeLast();
         booleanExpressionQueue.addLast(new LtBooleanExpression(leftOperand, rightOperand));
     }
 
     @Override
-    public void exitNeqExpression(@NotNull NeqExpressionContext ctx) {
+    public void exitNeqExpression(NeqExpressionContext ctx) {
         Operand rightOperand = operandQueue.removeLast();
         Operand leftOperand = operandQueue.removeLast();
         booleanExpressionQueue.addLast(new NeqBooleanExpression(leftOperand, rightOperand));
     }
 
     @Override
-    public void exitAndExpression(@NotNull AndExpressionContext ctx) {
+    public void exitAndExpression(AndExpressionContext ctx) {
         BooleanExpression rightExpression = booleanExpressionQueue.removeLast();
         BooleanExpression leftExpression = booleanExpressionQueue.removeLast();
         booleanExpressionQueue.addLast(new AndBooleanExpression(leftExpression, rightExpression));
     }
 
     @Override
-    public void exitOrExpression(@NotNull OrExpressionContext ctx) {
+    public void exitOrExpression(OrExpressionContext ctx) {
         BooleanExpression rightExpression = booleanExpressionQueue.removeLast();
         BooleanExpression leftExpression = booleanExpressionQueue.removeLast();
         booleanExpressionQueue.addLast(new OrBooleanExpression(leftExpression, rightExpression));
     }
 
     @Override
-    public void enterNameOperand(@NotNull NameOperandContext ctx) {
+    public void enterNameOperand(NameOperandContext ctx) {
         prefix = null;
         name = null;
     }
 
     @Override
-    public void exitNameOperand(@NotNull NameOperandContext ctx) {
+    public void exitNameOperand(NameOperandContext ctx) {
         operandQueue.addLast(new NameOperand(prefix, name));
         prefix = null;
         name = null;
@@ -295,7 +294,7 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     }
 
     @Override
-    public void exitPastMomentOperand(@NotNull PastMomentOperandContext ctx) {
+    public void exitPastMomentOperand(PastMomentOperandContext ctx) {
         String functionName = ctx.ID().getText();
         TerminalNode intNode = ctx.INT();
         long timeshift;
@@ -320,7 +319,7 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     }
 
     @Override
-    public void exitFutureMomentOperand(@NotNull FutureMomentOperandContext ctx) {
+    public void exitFutureMomentOperand(FutureMomentOperandContext ctx) {
         String functionName = ctx.ID().getText();
         TerminalNode intNode = ctx.INT();
         long timeshift;
@@ -345,20 +344,20 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     }
 
     @Override
-    public void exitPresentMomentOperand(@NotNull PresentMomentOperandContext ctx) {
+    public void exitPresentMomentOperand(PresentMomentOperandContext ctx) {
         String functionName = ctx.ID().getText();
         operandQueue.addLast(new MomentOperand(functionName, 0, InfluxTimeUnit.SECONDS));
     }
 
     @Override
-    public void exitDateOperand(@NotNull DateOperandContext ctx) {
+    public void exitDateOperand(DateOperandContext ctx) {
         String dateString = ctx.DATE_STRING().getText();
         dateString = dateString.substring(1, dateString.length() - 1);
         operandQueue.addLast(new DateOperand(Instant.parse(dateString, DATE_FORMATTER)));
     }
 
     @Override
-    public void exitLongOperand(@NotNull LongOperandContext ctx) {
+    public void exitLongOperand(LongOperandContext ctx) {
         long value = Long.parseLong(ctx.INT().getText());
         if (ctx.DASH() != null) {
             value = -1 * value;
@@ -367,7 +366,7 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     }
 
     @Override
-    public void exitDoubleOperand(@NotNull DoubleOperandContext ctx) {
+    public void exitDoubleOperand(DoubleOperandContext ctx) {
         double value = Double.parseDouble(ctx.FLOAT().getText());
         if (ctx.DASH() != null) {
             value = -1 * value;
@@ -376,57 +375,57 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     }
 
     @Override
-    public void exitLimitClause(@NotNull LimitClauseContext ctx) {
+    public void exitLimitClause(LimitClauseContext ctx) {
         int limit = Integer.parseInt(ctx.INT().getText());
         definitionsBuilder.setLimitClause(new LimitClause(limit));
     }
 
     @Override
-    public void exitPrefix(@NotNull PrefixContext ctx) {
+    public void exitPrefix(PrefixContext ctx) {
         prefix = ctx.ID().getText();
     }
 
     @Override
-    public void exitIdName(@NotNull IdNameContext ctx) {
+    public void exitIdName(IdNameContext ctx) {
         name = ctx.ID().getText();
     }
 
     @Override
-    public void exitStringName(@NotNull StringNameContext ctx) {
+    public void exitStringName(StringNameContext ctx) {
         String doubleQuotedString = ctx.DOUBLE_QUOTED_STRING().getText();
         name = doubleQuotedString.substring(1, doubleQuotedString.length() - 1);
     }
 
     @Override
-    public void exitAlias(@NotNull AliasContext ctx) {
+    public void exitAlias(AliasContext ctx) {
         alias = ctx.ID().getText();
     }
 
     @Override
-    public void exitFunctionCall(@NotNull FunctionCallContext ctx) {
+    public void exitFunctionCall(FunctionCallContext ctx) {
         function = ctx.ID().getText();
     }
 
     @Override
-    public void enterFunctionArgumentList(@NotNull FunctionArgumentListContext ctx) {
+    public void enterFunctionArgumentList(FunctionArgumentListContext ctx) {
         functionArguments = new ArrayList<>((ctx.getChildCount() + 1) / 2);
     }
 
     @Override
-    public void enterNameFunctionArgument(@NotNull NameFunctionArgumentContext ctx) {
+    public void enterNameFunctionArgument(NameFunctionArgumentContext ctx) {
         prefix = null;
         name = null;
     }
 
     @Override
-    public void exitStringFunctionArgument(@NotNull StringFunctionArgumentContext ctx) {
+    public void exitStringFunctionArgument(StringFunctionArgumentContext ctx) {
         String singleQuotedString = ctx.SINGLE_QUOTED_STRING().getText();
         String value = singleQuotedString.substring(1, singleQuotedString.length() - 1);
         functionArguments.add(new StringFunctionArgument(value));
     }
 
     @Override
-    public void exitNameFunctionArgument(@NotNull NameFunctionArgumentContext ctx) {
+    public void exitNameFunctionArgument(NameFunctionArgumentContext ctx) {
         NameFunctionArgument functionArgument = new NameFunctionArgument(prefix, name);
         functionArguments.add(functionArgument);
         prefix = null;
@@ -434,7 +433,7 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     }
 
     @Override
-    public void exitDoubleFunctionArgument(@NotNull DoubleFunctionArgumentContext ctx) {
+    public void exitDoubleFunctionArgument(DoubleFunctionArgumentContext ctx) {
         double value = Double.parseDouble(ctx.FLOAT().getText());
         if (ctx.DASH() != null) {
             value = -1 * value;
@@ -443,7 +442,7 @@ public class SelectQueryDefinitionsParser extends InfluxQueryBaseListener {
     }
 
     @Override
-    public void exitLongFunctionArgument(@NotNull LongFunctionArgumentContext ctx) {
+    public void exitLongFunctionArgument(LongFunctionArgumentContext ctx) {
         long value = Long.parseLong(ctx.INT().getText());
         if (ctx.DASH() != null) {
             value = -1 * value;

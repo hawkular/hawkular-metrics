@@ -22,5 +22,6 @@ package org.hawkular.metrics.api.jaxrs.interceptor;
  *
  * @author Thomas Segismont
  */
+@SuppressWarnings("serial")
 public class EmptyPayloadException extends RuntimeException {
 }

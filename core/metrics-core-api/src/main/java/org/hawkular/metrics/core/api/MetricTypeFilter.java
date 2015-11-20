@@ -33,7 +33,7 @@ public class MetricTypeFilter<T> implements Transformer<Metric<?>, Metric<T>> {
     public static final MetricTypeFilter<Long> COUNTER_FILTER = new MetricTypeFilter<>(COUNTER);
     public static final MetricTypeFilter<AvailabilityType> AVAILABILITY_FILTER = new MetricTypeFilter<>(AVAILABILITY);
 
-    private final MetricType metricType;
+    private final MetricType<T> metricType;
 
     public MetricTypeFilter(MetricType<T> metricType) {
         this.metricType = metricType;

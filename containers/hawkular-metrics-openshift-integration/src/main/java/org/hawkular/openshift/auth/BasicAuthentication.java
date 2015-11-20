@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -30,8 +31,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.digest.Md5Crypt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author mwringe
@@ -45,8 +44,6 @@ public class BasicAuthentication {
 
     public static final String MD5_PREFIX = "$apr1$";
     public static final String SHA_PREFIX = "{SHA}";
-
-    private static final Logger logger = LoggerFactory.getLogger(BasicAuthentication.class);
 
     private Map<String, String> users = new HashMap<>();
 
