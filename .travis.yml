@@ -46,8 +46,7 @@ script:
 - mvn verify -Dtest.logging.console.level=INFO -Dwildfly.logging.console.level=INFO -Djboss-as.logging.console.level=INFO -Dterminal-event.timeout=25 -B
 after_failure: bash .travis.diagnose.sh
 after_success:
-- PROJECT_VERSION=`mvn org.apache.maven.plugins:maven-help-plugin:evaluate -Dexpression=project.version | grep -v '\['`
-- echo "$PROJECT_VERSION"
+- PROJECT_VERSION=`mvn --batch-mode org.apache.maven.plugins:maven-help-plugin:evaluate -Dexpression=project.version | grep -v '\['`
 - if [[ "$PROJECT_VERSION" =~ .*SNAPSHOT ]] && [[ "${TRAVIS_BRANCH}" = "master" ]] && [[ "${TRAVIS_PULL_REQUEST}" = "false" ]];
   then
     mvn -s .travis.maven.settings.xml deploy -DskipTests ;
