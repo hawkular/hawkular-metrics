@@ -21,6 +21,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
+
 import rx.Observable;
 import rx.functions.Func1;
 
@@ -45,7 +47,7 @@ public interface MetricsService {
      * @param tenant
      *            The {@link Tenant tenant} to create
      * @return void
-     * @throws org.hawkular.metrics.core.api.TenantAlreadyExistsException
+     * @throws org.hawkular.metrics.core.api.exception.TenantAlreadyExistsException
      *             tenant already exists
      */
     Observable<Void> createTenant(Tenant tenant);

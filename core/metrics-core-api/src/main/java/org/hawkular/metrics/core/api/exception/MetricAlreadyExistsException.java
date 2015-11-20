@@ -14,7 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.api;
+package org.hawkular.metrics.core.api.exception;
+
+import org.hawkular.metrics.core.api.Metric;
 
 /**
  * @author John Sanda

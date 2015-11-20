@@ -56,12 +56,12 @@ import org.hawkular.metrics.core.api.AvailabilityDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricDefinition;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricRequest;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
 
 import rx.Observable;
 

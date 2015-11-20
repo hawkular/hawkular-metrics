@@ -24,7 +24,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.hawkular.metrics.core.api.ApiError;
-import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
+import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
 
 /**
  * An implementation of {@code EntityCreatedObserver} for metric entities.
