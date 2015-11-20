@@ -29,7 +29,7 @@ import com.google.common.base.Objects;
  * @author Thomas Segismont
  */
 public class TimeRange {
-    public static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
+    static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
     private final long start;
     private final long end;

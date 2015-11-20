@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.hawkular.metrics.api.jaxrs.param;
+package org.hawkular.metrics.core.api.param;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
@@ -24,9 +24,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import org.hawkular.metrics.core.api.param.BucketConfig;
-import org.hawkular.metrics.core.api.param.Duration;
-import org.hawkular.metrics.core.api.param.TimeRange;
 import org.junit.Test;
 
 /**
