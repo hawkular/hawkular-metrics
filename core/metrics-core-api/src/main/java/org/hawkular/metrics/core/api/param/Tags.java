@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.param;
+package org.hawkular.metrics.core.api.param;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableMap;
  * Tags holder. This class is meant to be used only as a JAX−RS method parameter.
  *
  * @author Thomas Segismont
- * @see TagsConverter
  */
 @org.codehaus.jackson.map.annotate.JsonSerialize(
         include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)

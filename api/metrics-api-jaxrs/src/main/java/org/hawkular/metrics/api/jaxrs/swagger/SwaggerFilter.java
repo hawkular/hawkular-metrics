@@ -21,8 +21,8 @@ import java.lang.reflect.Type;
 import java.util.Iterator;
 import java.util.function.Supplier;
 
-import org.hawkular.metrics.api.jaxrs.param.Duration;
-import org.hawkular.metrics.api.jaxrs.param.Tags;
+import org.hawkular.metrics.core.api.param.Duration;
+import org.hawkular.metrics.core.api.param.Tags;
 
 import io.swagger.converter.ModelConverter;
 import io.swagger.converter.ModelConverterContext;

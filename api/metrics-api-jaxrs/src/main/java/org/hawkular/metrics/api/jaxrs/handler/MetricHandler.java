@@ -44,7 +44,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
-import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.api.jaxrs.util.MetricTypeTextConverter;
 import org.hawkular.metrics.core.api.ApiError;
@@ -56,6 +55,7 @@ import org.hawkular.metrics.core.api.MetricRequest;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.MixedMetricsRequest;
+import org.hawkular.metrics.core.api.param.Tags;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

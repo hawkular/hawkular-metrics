@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.hawkular.metrics.api.jaxrs.param;
+package org.hawkular.metrics.core.api.param;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

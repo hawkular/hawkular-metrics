@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.param;
+package org.hawkular.metrics.core.api.param;
 
 import java.util.List;
 

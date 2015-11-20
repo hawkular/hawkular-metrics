@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.param;
+package org.hawkular.metrics.core.api.param;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -29,7 +29,7 @@ import com.google.common.base.Objects;
  * @author Thomas Segismont
  */
 public class TimeRange {
-    static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
+    public static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
     private final long start;
     private final long end;

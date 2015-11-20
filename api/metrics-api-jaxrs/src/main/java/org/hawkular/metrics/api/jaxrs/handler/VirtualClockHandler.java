@@ -36,9 +36,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
-import org.hawkular.metrics.api.jaxrs.param.Duration;
 import org.hawkular.metrics.api.jaxrs.util.TestClock;
 import org.hawkular.metrics.api.jaxrs.util.VirtualClock;
+import org.hawkular.metrics.core.api.param.Duration;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.jboss.logging.Logger;
 

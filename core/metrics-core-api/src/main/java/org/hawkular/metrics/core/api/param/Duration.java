@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.param;
+package org.hawkular.metrics.core.api.param;
 
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.HOURS;
@@ -33,7 +33,6 @@ import com.google.common.collect.ImmutableBiMap;
  * duration, prefer usage of {@link org.joda.time.Duration}.
  *
  * @author Thomas Segismont
- * @see DurationConverter
  */
 public class Duration {
     public static final ImmutableBiMap<TimeUnit, String> UNITS = new ImmutableBiMap.Builder<TimeUnit, String>()

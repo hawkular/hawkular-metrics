@@ -488,7 +488,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 51,52d48
 < import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 < import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
-67a64
+63a60
 > import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
 69,75d65
 < import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -808,7 +808,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 52,53d48
 < import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 < import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
-70c65
+65c60
 < import org.hawkular.metrics.core.api.NumericBucketPoint;
 ---
 > import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
@@ -1382,7 +1382,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 51,52d49
 < import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 < import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
-68c65
+63c60
 < import org.hawkular.metrics.core.api.NumericBucketPoint;
 ---
 > import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
@@ -1842,7 +1842,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 < import javax.ws.rs.container.Suspended;
 46d43
 < import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
-58a56
+57a55
 > import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
 60,64d57
 < import io.swagger.annotations.Api;
@@ -2105,13 +2105,13 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >         if (context.getAttribute(EMPTY_PAYLOAD) != TRUE) {
 Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param: ConvertersProvider.java
 diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param/DurationConverter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/param/DurationConverter.java
-27c27,29
+27c27
 < import javax.ws.rs.ext.ParamConverter;
 ---
 > import javax.ws.rs.ext.Provider;
-> 
+29a30
 > import org.jboss.resteasy.spi.StringConverter;
-36c38,39
+38c39,40
 < public class DurationConverter implements ParamConverter<Duration> {
 ---
 > @Provider
@@ -2131,17 +2131,17 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 > @Provider
 > public class MetricTypeConverter implements StringConverter<MetricType<?>> {
 diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param/PercentilesConverter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/param/PercentilesConverter.java
-22c22,24
+22c22
 < import javax.ws.rs.ext.ParamConverter;
 ---
 > import javax.ws.rs.ext.Provider;
-> 
+24a25
 > import org.jboss.resteasy.spi.StringConverter;
-25c27
+27c28
 <  * A JAX-RS ParamConverter from number,number,number input string to a Percentiles or vice-versa.
 ---
 >  * A RestEasy StringConverter from number,number,number input string to a Percentiles or vice-versa.
-29,31c31,33
+31,33c32,34
 < public class PercentilesConverter implements ParamConverter<Percentiles> {
 <     @Override
 <     public Percentiles fromString(String param) {
@@ -2149,19 +2149,19 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 > @Provider
 > public class PercentilesConverter implements StringConverter<Percentiles> {
 >     @Override public Percentiles fromString(String param) {
-35,36c37
+37,38c38
 <     @Override
 <     public String toString(Percentiles percentiles) {
 ---
 >     @Override public String toString(Percentiles percentiles) {
 diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param/TagsConverter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/param/TagsConverter.java
-28c28,30
+28c28
 < import javax.ws.rs.ext.ParamConverter;
 ---
 > import javax.ws.rs.ext.Provider;
-> 
+30a31
 > import org.jboss.resteasy.spi.StringConverter;
-36c38,39
+38c39,40
 < public class TagsConverter implements ParamConverter<Tags> {
 ---
 > @Provider

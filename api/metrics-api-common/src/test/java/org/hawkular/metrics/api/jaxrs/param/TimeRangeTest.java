@@ -17,11 +17,12 @@
 
 package org.hawkular.metrics.api.jaxrs.param;
 
-import static org.hawkular.metrics.api.jaxrs.param.TimeRange.EIGHT_HOURS;
+import static org.hawkular.metrics.core.api.param.TimeRange.EIGHT_HOURS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.hawkular.metrics.core.api.param.TimeRange;
 import org.junit.Test;
 
 /**
