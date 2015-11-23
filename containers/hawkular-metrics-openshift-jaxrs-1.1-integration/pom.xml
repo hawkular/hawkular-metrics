@@ -28,7 +28,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>hawkular-metrics-openshift-integration</artifactId>
+  <artifactId>hawkular-metrics-jaxrs-1.1-openshift-integration</artifactId>
 
   <name>Hawkular Metrics OpenShift Integration</name>
 
@@ -41,19 +41,26 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>org.wildfly.bom</groupId>
-        <artifactId>jboss-javaee-7.0-wildfly</artifactId>
-        <version>${version.org.wildfly}</version>
+        <groupId>org.jboss.bom.eap</groupId>
+        <version>${container.bom.version}</version>
+        <artifactId>jboss-javaee-6.0-with-resteasy</artifactId>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
+  <repositories>
+    <repository>
+      <id>eap_6_early_access</id>
+      <url>https://maven.repository.redhat.com/earlyaccess/all/</url>
+    </repository>
+  </repositories>
+
 
   <dependencies>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
-      <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+      <artifactId>hawkular-metrics-api-jaxrs-1.1</artifactId>
       <scope>provided</scope>
       <version>${project.version}</version>
       <type>war</type>
@@ -75,17 +82,12 @@
     </dependency>
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-jaxrs</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-jackson2-provider</artifactId>
+      <artifactId>resteasy-jackson-provider</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.jboss.spec.javax.servlet</groupId>
-      <artifactId>jboss-servlet-api_3.1_spec</artifactId>
+      <artifactId>jboss-servlet-api_3.0_spec</artifactId>
       <scope>provided</scope>
     </dependency>
   </dependencies>
