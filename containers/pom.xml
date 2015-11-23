@@ -84,12 +84,8 @@
       </activation>
       <modules>
         <module>cassandra-seed-provider</module>
-        <module>cassandra-docker</module>
-        <module>container-tests</module>
-        <module>hawkular-deployer-docker</module>
         <module>hawkular-metrics-openshift-integration</module>
         <module>metrics-api-jaxrs-1.1-openshift</module>
-        <module>hawkular-metrics-docker</module>
       </modules>
     </profile>
     <profile>
@@ -99,12 +95,8 @@
       </activation>
       <modules>
         <module>cassandra-seed-provider</module>
-        <module>cassandra-docker</module>
-        <module>container-tests</module>
-        <module>hawkular-deployer-docker</module>
         <module>hawkular-metrics-openshift-integration</module>
         <module>metrics-api-jaxrs-1.1-openshift</module>
-        <module>hawkular-metrics-docker-eap</module>
       </modules>
     </profile>
     <profile>
