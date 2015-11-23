@@ -14,24 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.api.codehause.jackson;
+
+package org.hawkular.metrics.core.api.codehaus.jackson;
 
 import java.io.IOException;
 
-import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonProcessingException;
 import org.codehaus.jackson.map.DeserializationContext;
-import org.codehaus.jackson.map.JsonDeserializer;
+import org.codehaus.jackson.map.KeyDeserializer;
 import org.hawkular.metrics.core.api.MetricType;
 
 /**
- * @author Michael Burman
+ * @author Thomas Segismont
  */
-public class MetricTypeDeserializer extends JsonDeserializer<MetricType<?>> {
+public class MetricTypeKeyDeserializer extends KeyDeserializer {
 
     @Override
-    public MetricType<?> deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
-            throws IOException, JsonProcessingException {
-        return MetricType.fromTextCode(jsonParser.getText());
+    public Object deserializeKey(String key, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+        return MetricType.fromTextCode(key);
     }
 }

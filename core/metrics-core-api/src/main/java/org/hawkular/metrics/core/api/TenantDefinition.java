@@ -75,11 +75,11 @@ public class TenantDefinition {
     @JsonSerialize(include = Inclusion.NON_EMPTY, keyUsing = MetricTypeKeySerializer.class)
     @org.codehaus.jackson.map.annotate.JsonSerialize(
             include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY,
-            keyUsing = org.hawkular.metrics.core.api.codehause.jackson.MetricTypeKeySerializer.class
+            keyUsing = org.hawkular.metrics.core.api.codehaus.jackson.MetricTypeKeySerializer.class
     )
     // Codehaus Jackson wants @JsonDeserialize here
     @org.codehaus.jackson.map.annotate.JsonDeserialize(
-            keyUsing = org.hawkular.metrics.core.api.codehause.jackson.MetricTypeKeyDeserializer.class
+            keyUsing = org.hawkular.metrics.core.api.codehaus.jackson.MetricTypeKeyDeserializer.class
     )
     public Map<MetricType<?>, Integer> getRetentionSettings() {
         return retentionSettings;

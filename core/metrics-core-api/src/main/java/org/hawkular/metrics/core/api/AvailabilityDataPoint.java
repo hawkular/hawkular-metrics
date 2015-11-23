@@ -67,7 +67,7 @@ public class AvailabilityDataPoint extends DataPoint<AvailabilityType> {
     @ApiModelProperty(required = true, dataType = "string", allowableValues = "up,down,unknown")
     @JsonSerialize(using = AvailabilityTypeSerializer.class)
     @org.codehaus.jackson.map.annotate.JsonSerialize(
-            using = org.hawkular.metrics.core.api.codehause.jackson.AvailabilityTypeSerializer.class
+            using = org.hawkular.metrics.core.api.codehaus.jackson.AvailabilityTypeSerializer.class
     )
     public AvailabilityType getValue() {
         return value;

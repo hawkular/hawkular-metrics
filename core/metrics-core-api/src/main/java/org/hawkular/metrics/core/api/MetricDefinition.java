@@ -63,7 +63,7 @@ public class MetricDefinition {
             @org.codehaus.jackson.annotate.JsonProperty("type")
             @JsonDeserialize(using = MetricTypeDeserializer.class)
             @org.codehaus.jackson.map.annotate.JsonDeserialize(
-                    using = org.hawkular.metrics.core.api.codehause.jackson.MetricTypeDeserializer.class
+                    using = org.hawkular.metrics.core.api.codehaus.jackson.MetricTypeDeserializer.class
             )
             MetricType<?> type
     ) {
@@ -110,7 +110,7 @@ public class MetricDefinition {
     @ApiModelProperty(value = "Metric type", dataType = "string", allowableValues = "gauge, availability, counter")
     @JsonSerialize(using = MetricTypeSerializer.class)
     @org.codehaus.jackson.map.annotate.JsonSerialize(
-            using = org.hawkular.metrics.core.api.codehause.jackson.MetricTypeSerializer.class
+            using = org.hawkular.metrics.core.api.codehaus.jackson.MetricTypeSerializer.class
     )
     public MetricType<?> getType() {
         return type;
