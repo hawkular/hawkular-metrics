@@ -34,12 +34,12 @@ import io.swagger.annotations.ApiModelProperty;
 import rx.Observable;
 
 /**
- * A container for gauge data points to be persisted. Note that the tenant id is not included because it is obtained
+ * A container for metric data points to be persisted. Note that the tenant id is not included because it is obtained
  * from the tenant header in the HTTP request.
  *
  * @author John Sanda
  */
-@ApiModel(description = "A gauge metric with one or more data points")
+@ApiModel(description = "A typed metric with one or more data points")
 public class MetricRequest<S, T extends DataPoint<S>> {
     private final String id;
     private final List<DataPoint<S>> data;
@@ -54,7 +54,7 @@ public class MetricRequest<S, T extends DataPoint<S>> {
             @org.codehaus.jackson.annotate.JsonProperty("data")
             List<T> data
     ) {
-        checkArgument(id != null, "Gauge id is null");
+        checkArgument(id != null, "Data id is null");
         this.id = id;
         this.data = data == null || data.isEmpty() ? emptyList() : unmodifiableList(data);
     }
@@ -64,7 +64,7 @@ public class MetricRequest<S, T extends DataPoint<S>> {
         return id;
     }
 
-    @ApiModelProperty("Gauge data points")
+    @ApiModelProperty("Metric data points")
     @JsonSerialize(include = Inclusion.NON_EMPTY)
     @org.codehaus.jackson.map.annotate.JsonSerialize(
             include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY
@@ -81,8 +81,8 @@ public class MetricRequest<S, T extends DataPoint<S>> {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        MetricRequest gauge = (MetricRequest) o;
-        return id.equals(gauge.id);
+        MetricRequest metric = (MetricRequest) o;
+        return id.equals(metric.id);
     }
 
     @Override
@@ -100,8 +100,8 @@ public class MetricRequest<S, T extends DataPoint<S>> {
     }
 
     public static <S, U extends DataPoint<S>, T extends MetricRequest<S, U>> Observable<Metric<S>> toObservable(
-            String tenantId, List<T> gauges, MetricType<S> type) {
-        return Observable.from(gauges).map(g -> {
+            String tenantId, List<T> metrics, MetricType<S> type) {
+        return Observable.from(metrics).map(g -> {
             return new Metric<S>(new MetricId<S>(tenantId, type, g.getId()), g.getData());
         });
     }
