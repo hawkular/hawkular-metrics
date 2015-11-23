@@ -21,7 +21,6 @@ import static org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParse
 import static org.hawkular.metrics.api.jaxrs.influx.query.parse.type.QueryType.LIST_SERIES;
 import static org.hawkular.metrics.api.jaxrs.influx.query.parse.type.QueryType.SELECT;
 
-import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.tree.RuleNode;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryBaseVisitor;
 
@@ -37,18 +36,18 @@ public class QueryTypeVisitor extends InfluxQueryBaseVisitor<QueryType> {
     }
 
     @Override
-    protected boolean shouldVisitNextChild(@NotNull RuleNode node, QueryType currentResult) {
+    protected boolean shouldVisitNextChild(RuleNode node, QueryType currentResult) {
         return !stopVisiting;
     }
 
     @Override
-    public QueryType visitListSeries(@NotNull ListSeriesContext ctx) {
+    public QueryType visitListSeries(ListSeriesContext ctx) {
         stopVisiting = true;
         return LIST_SERIES;
     }
 
     @Override
-    public QueryType visitSelectQuery(@NotNull SelectQueryContext ctx) {
+    public QueryType visitSelectQuery(SelectQueryContext ctx) {
         stopVisiting = true;
         return SELECT;
     }

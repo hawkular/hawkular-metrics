@@ -2075,9 +2075,6 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >             return ApiUtils.serverError(e);
 >         }
 Only in api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/handler: observer
-diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/interceptor/EmptyPayloadException.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/interceptor/EmptyPayloadException.java
-24a25
-> @SuppressWarnings("serial")
 diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/interceptor/EmptyPayloadInterceptor.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/interceptor/EmptyPayloadInterceptor.java
 30,31c30,33
 < import javax.ws.rs.ext.ReaderInterceptor;

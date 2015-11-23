@@ -55,7 +55,6 @@ public class InsertedDataSubscriber {
 
     private Subscription subscription;
 
-    @SuppressWarnings("unused")
     public void onMetricsServiceReady(@Observes @ServiceReady MetricsService metricsService) {
         Observable<List<Metric<?>>> events = metricsService.insertedDataEvents()
                 .buffer(50, TimeUnit.MILLISECONDS, 100)
