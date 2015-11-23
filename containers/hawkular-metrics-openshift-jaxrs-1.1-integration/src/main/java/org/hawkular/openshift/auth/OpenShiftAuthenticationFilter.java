@@ -70,14 +70,6 @@ public class OpenShiftAuthenticationFilter implements Filter {
             return;
         }
 
-        // Skip authentication if we are dealing with a CORS preflight request
-        // CORS preflight removes any user credentials and doesn't perform an actual invocation.
-        // http://www.w3.org/TR/cors/#cross-origin-request-with-preflight-0
-        if (request.getMethod().equalsIgnoreCase("Options") && request.getHeader("Origin") != null) {
-            filterChain.doFilter(servletRequest, servletResponse);
-            return;
-        }
-
         // There are a few endpoint that should not be secured. If we secure the status endpoint when we cannot
         // tell if the container is up and it will always be marked as pending
         String servletPath = request.getServletPath();

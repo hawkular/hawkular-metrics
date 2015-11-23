@@ -22,7 +22,6 @@
   <filter>
     <filter-name>OpenShiftAuthFilter</filter-name>
     <filter-class>org.hawkular.openshift.auth.OpenShiftAuthenticationFilter</filter-class>
-    <async-supported>true</async-supported>
   </filter>
   <filter-mapping>
     <filter-name>OpenShiftAuthFilter</filter-name>

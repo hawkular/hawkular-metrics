@@ -85,7 +85,9 @@
       <modules>
         <module>cassandra-seed-provider</module>
         <module>hawkular-metrics-openshift-integration</module>
+        <module>hawkular-metrics-openshift-jaxrs-1.1-integration</module>
         <module>metrics-api-jaxrs-1.1-openshift</module>
+        <module>metrics-api-jaxrs-openshift</module>
       </modules>
     </profile>
     <profile>
@@ -96,7 +98,9 @@
       <modules>
         <module>cassandra-seed-provider</module>
         <module>hawkular-metrics-openshift-integration</module>
+        <module>hawkular-metrics-openshift-jaxrs-1.1-integration</module>
         <module>metrics-api-jaxrs-1.1-openshift</module>
+        <module>metrics-api-jaxrs-openshift</module>
       </modules>
     </profile>
     <profile>
@@ -108,7 +112,7 @@
       </activation>
       <modules>
         <module>cassandra-seed-provider</module>
-        <module>hawkular-metrics-openshift-integration</module>
+        <module>hawkular-metrics-openshift-jaxrs-1.1-integration</module>
         <module>metrics-api-jaxrs-1.1-openshift</module>
       </modules>
     </profile>
