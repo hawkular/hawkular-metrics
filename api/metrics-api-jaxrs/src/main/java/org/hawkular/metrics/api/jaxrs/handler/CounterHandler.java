@@ -228,9 +228,9 @@ public class CounterHandler {
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data points",
                     response = ApiError.class)
     })
-    public void addData(@Suspended final AsyncResponse asyncResponse,
-                        @ApiParam(value = "List of metrics", required = true)
-                        List<MetricRequest<Long, DataPoint<Long>>> counters
+    public void addData(
+            @Suspended final AsyncResponse asyncResponse,
+            @ApiParam(value = "List of metrics", required = true) List<MetricRequest<Long>> counters
     ) {
         Observable<Metric<Long>> metrics = MetricRequest.toObservable(tenantId, counters, COUNTER);
         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);

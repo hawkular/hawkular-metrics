@@ -186,7 +186,7 @@ public class CounterHandler {
 
     @POST
     @Path("/data")
-    public Response addData(List<MetricRequest<Long, DataPoint<Long>>> counters) {
+    public Response addData(List<MetricRequest<Long>> counters) {
         Observable<Metric<Long>> metrics = MetricRequest.toObservable(tenantId, counters, COUNTER);
         try {
             metricsService.addDataPoints(COUNTER, metrics).toBlocking().lastOrDefault(null);

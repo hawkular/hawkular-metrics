@@ -249,7 +249,7 @@ public class AvailabilityHandler {
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of availability metrics", required = true)
             @JsonDeserialize()
-            List<MetricRequest<AvailabilityType, DataPoint<AvailabilityType>>> availabilities
+            List<MetricRequest<AvailabilityType>> availabilities
     ) {
         Observable<Metric<AvailabilityType>> metrics = MetricRequest.toObservable(tenantId, availabilities,
                 AVAILABILITY);

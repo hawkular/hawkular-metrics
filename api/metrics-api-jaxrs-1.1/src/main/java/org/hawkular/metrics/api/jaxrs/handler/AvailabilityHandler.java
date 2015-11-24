@@ -212,7 +212,7 @@ public class AvailabilityHandler {
     @POST
     @Path("/data")
     public Response addAvailabilityData(
-            List<MetricRequest<AvailabilityType, DataPoint<AvailabilityType>>> availabilities
+            List<MetricRequest<AvailabilityType>> availabilities
     ) {
         Observable<Metric<AvailabilityType>> metrics = MetricRequest.toObservable(tenantId, availabilities,
                 AVAILABILITY);

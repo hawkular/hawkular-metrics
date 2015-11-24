@@ -250,7 +250,7 @@ public class GaugeHandler {
     })
     public void addGaugeData(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(value = "List of metrics", required = true) List<MetricRequest<Double, DataPoint<Double>>> gauges
+            @ApiParam(value = "List of metrics", required = true) List<MetricRequest<Double>> gauges
     ) {
         Observable<Metric<Double>> metrics = MetricRequest.toObservable(tenantId, gauges, GAUGE);
         Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);

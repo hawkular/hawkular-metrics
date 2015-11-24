@@ -203,7 +203,7 @@ public class GaugeHandler {
     @POST
     @Path("/data")
     public Response addGaugeData(
-            List<MetricRequest<Double, DataPoint<Double>>> gauges
+            List<MetricRequest<Double>> gauges
     ) {
         Observable<Metric<Double>> metrics = MetricRequest.toObservable(tenantId, gauges, GAUGE);
         try {

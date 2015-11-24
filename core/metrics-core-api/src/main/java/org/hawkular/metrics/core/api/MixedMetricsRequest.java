@@ -34,37 +34,37 @@ import io.swagger.annotations.ApiModel;
  */
 @ApiModel(description = "Data points to store, grouped by metric type")
 public class MixedMetricsRequest {
-    private final List<MetricRequest<Double, DataPoint<Double>>> gauges;
-    private final List<MetricRequest<AvailabilityType, DataPoint<AvailabilityType>>> availabilities;
-    private final List<MetricRequest<Long, DataPoint<Long>>> counters;
+    private final List<MetricRequest<Double>> gauges;
+    private final List<MetricRequest<AvailabilityType>> availabilities;
+    private final List<MetricRequest<Long>> counters;
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
     public MixedMetricsRequest(
             @JsonProperty("gauges")
             @org.codehaus.jackson.annotate.JsonProperty("gauges")
-            List<MetricRequest<Double, DataPoint<Double>>> gauges,
+            List<MetricRequest<Double>> gauges,
             @JsonProperty("availabilities")
             @org.codehaus.jackson.annotate.JsonProperty("availabilities")
-            List<MetricRequest<AvailabilityType, DataPoint<AvailabilityType>>> availabilities,
+            List<MetricRequest<AvailabilityType>> availabilities,
             @JsonProperty("counters")
             @org.codehaus.jackson.annotate.JsonProperty("counters")
-            List<MetricRequest<Long, DataPoint<Long>>> counters
+            List<MetricRequest<Long>> counters
     ) {
         this.gauges = gauges == null ? emptyList() : unmodifiableList(gauges);
         this.availabilities = availabilities == null ? emptyList() : unmodifiableList(availabilities);
         this.counters = counters == null ? emptyList() : unmodifiableList(counters);
     }
 
-    public List<MetricRequest<Double, DataPoint<Double>>> getGauges() {
+    public List<MetricRequest<Double>> getGauges() {
         return gauges;
     }
 
-    public List<MetricRequest<AvailabilityType, DataPoint<AvailabilityType>>> getAvailabilities() {
+    public List<MetricRequest<AvailabilityType>> getAvailabilities() {
         return availabilities;
     }
 
-    public List<MetricRequest<Long, DataPoint<Long>>> getCounters() {
+    public List<MetricRequest<Long>> getCounters() {
         return counters;
     }
 

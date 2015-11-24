@@ -40,7 +40,7 @@ import rx.Observable;
  * @author John Sanda
  */
 @ApiModel(description = "A typed metric with one or more data points")
-public class MetricRequest<S, T extends DataPoint<S>> {
+public class MetricRequest<S> {
     private final String id;
     private final List<DataPoint<S>> data;
 
@@ -52,7 +52,7 @@ public class MetricRequest<S, T extends DataPoint<S>> {
             String id,
             @JsonProperty("data")
             @org.codehaus.jackson.annotate.JsonProperty("data")
-            List<T> data
+            List<DataPoint<S>> data
     ) {
         checkArgument(id != null, "Data id is null");
         this.id = id;
@@ -81,6 +81,7 @@ public class MetricRequest<S, T extends DataPoint<S>> {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
+        @SuppressWarnings("rawtypes")
         MetricRequest metric = (MetricRequest) o;
         return id.equals(metric.id);
     }
@@ -99,7 +100,7 @@ public class MetricRequest<S, T extends DataPoint<S>> {
                 .toString();
     }
 
-    public static <S, U extends DataPoint<S>, T extends MetricRequest<S, U>> Observable<Metric<S>> toObservable(
+    public static <S, T extends MetricRequest<S>> Observable<Metric<S>> toObservable(
             String tenantId, List<T> metrics, MetricType<S> type) {
         return Observable.from(metrics).map(g -> {
             return new Metric<S>(new MetricId<S>(tenantId, type, g.getId()), g.getData());

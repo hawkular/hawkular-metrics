@@ -1002,12 +1002,12 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 <             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data points",
 <                     response = ApiError.class)
 <     })
-<     public void addData(@Suspended final AsyncResponse asyncResponse,
-<                         @ApiParam(value = "List of metrics", required = true)
-<                         List<MetricRequest<Long, DataPoint<Long>>> counters
+<     public void addData(
+<             @Suspended final AsyncResponse asyncResponse,
+<             @ApiParam(value = "List of metrics", required = true) List<MetricRequest<Long>> counters
 <     ) {
 ---
->     public Response addData(List<MetricRequest<Long, DataPoint<Long>>> counters) {
+>     public Response addData(List<MetricRequest<Long>> counters) {
 236,237c191,196
 <         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
 <         observable.subscribe(new ResultSetObserver(asyncResponse));
@@ -1599,10 +1599,10 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 <     })
 <     public void addGaugeData(
 <             @Suspended final AsyncResponse asyncResponse,
-<             @ApiParam(value = "List of metrics", required = true) List<MetricRequest<Double, DataPoint<Double>>> gauges
+<             @ApiParam(value = "List of metrics", required = true) List<MetricRequest<Double>> gauges
 ---
 >     public Response addGaugeData(
->             List<MetricRequest<Double, DataPoint<Double>>> gauges
+>             List<MetricRequest<Double>> gauges
 256,257c209,214
 <         Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
 <         observable.subscribe(new ResultSetObserver(asyncResponse));
