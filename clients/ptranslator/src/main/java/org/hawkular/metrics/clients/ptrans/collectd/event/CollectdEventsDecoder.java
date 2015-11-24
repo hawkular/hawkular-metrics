@@ -45,7 +45,7 @@ public final class CollectdEventsDecoder {
         String typeName = EMPTY_STRING_VALUE, typeInstance = EMPTY_STRING_VALUE;
         TimeSpan timestamp = null, interval = null;
         List<Event> events = new ArrayList<>(50);
-        for (Part part : packet.getParts()) {
+        for (Part<?> part : packet.getParts()) {
             PartType partType = part.getPartType();
             switch (partType) {
                 case HOST:
@@ -96,15 +96,15 @@ public final class CollectdEventsDecoder {
         return events;
     }
 
-    private String getString(Part part) {
+    private String getString(Part<?> part) {
         return ((StringPart) part).getValue();
     }
 
-    private Long getLong(Part part) {
+    private Long getLong(Part<?> part) {
         return ((NumericPart) part).getValue();
     }
 
-    private Values getValues(Part part) {
+    private Values getValues(Part<?> part) {
         return ((ValuePart) part).getValue();
     }
 }

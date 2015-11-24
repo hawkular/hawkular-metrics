@@ -199,12 +199,12 @@ public class PacketDecodingTest {
         return buffer;
     }
 
-    private void shouldDecodePart(Object value, PartType partType, ByteBuf buffer, Class<? extends Part> partClass) {
+    private void shouldDecodePart(Object value, PartType partType, ByteBuf buffer, Class<? extends Part<?>> partClass) {
         shouldDecodePart(partType, buffer, partClass, new IsEqual<>(value));
     }
 
     private void shouldDecodePart(
-            PartType partType, ByteBuf buffer, Class<? extends Part> partClass,
+            PartType partType, ByteBuf buffer, Class<? extends Part<?>> partClass,
             Matcher<Object> matcher
     ) {
         DatagramPacket datagramPacket = Mockito.mock(DatagramPacket.class);
@@ -214,10 +214,10 @@ public class PacketDecodingTest {
         CollectdPacket collectdPacket = packetDecoder.decode(datagramPacket);
         assertNotNull("Expected a CollectdPacket", collectdPacket);
 
-        List<Part> parts = collectdPacket.getParts();
+        List<Part<?>> parts = collectdPacket.getParts();
         assertEquals("Expected only one part in the packet", 1, parts.size());
 
-        Part part = parts.iterator().next();
+        Part<?> part = parts.iterator().next();
         assertEquals(partClass, part.getClass());
         assertEquals(partType, part.getPartType());
         assertThat(part.getValue(), matcher);
