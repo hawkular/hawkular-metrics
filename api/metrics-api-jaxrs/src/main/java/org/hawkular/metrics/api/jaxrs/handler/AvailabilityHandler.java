@@ -52,9 +52,9 @@ import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.ApiError;
-import org.hawkular.metrics.core.api.AvailabilityDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricDefinition;
 import org.hawkular.metrics.core.api.MetricId;
@@ -229,9 +229,9 @@ public class AvailabilityHandler {
     })
     public void addAvailabilityForMetric(
             @Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
-            @ApiParam(value = "List of availability datapoints", required = true) List<AvailabilityDataPoint> data
+            @ApiParam(value = "List of availability datapoints", required = true) List<DataPoint<AvailabilityType>> data
     ) {
-        Observable<Metric<AvailabilityType>> metrics = AvailabilityDataPoint.toObservable(tenantId, id, data);
+        Observable<Metric<AvailabilityType>> metrics = DataPoint.toObservable(tenantId, id, data, AVAILABILITY);
         Observable<Void> observable = metricsService.addDataPoints(AVAILABILITY, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
@@ -249,7 +249,7 @@ public class AvailabilityHandler {
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of availability metrics", required = true)
             @JsonDeserialize()
-            List<MetricRequest<AvailabilityType, AvailabilityDataPoint>> availabilities
+            List<MetricRequest<AvailabilityType, DataPoint<AvailabilityType>>> availabilities
     ) {
         Observable<Metric<AvailabilityType>> metrics = MetricRequest.toObservable(tenantId, availabilities,
                 AVAILABILITY);
@@ -261,7 +261,7 @@ public class AvailabilityHandler {
     @Path("/{id}/data")
     @ApiOperation(value = "Retrieve availability data.", notes = "When buckets or bucketDuration query parameter is " +
             "used, the time range between start and end will be divided in buckets of equal duration, and " +
-            "availability statistics will be computed for each bucket.", response = AvailabilityDataPoint.class,
+            "availability statistics will be computed for each bucket.", response = DataPoint.class,
             responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched availability data."),
@@ -296,7 +296,6 @@ public class AvailabilityHandler {
         Buckets buckets = bucketConfig.getBuckets();
         if (buckets == null) {
             metricsService.findAvailabilityData(metricId, timeRange.getStart(), timeRange.getEnd(), distinct)
-                    .map(AvailabilityDataPoint::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));

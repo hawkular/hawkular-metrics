@@ -22,10 +22,15 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
 
+import org.hawkular.metrics.core.api.AvailabilityType;
+import org.hawkular.metrics.core.api.fasterxml.jackson.AvailabilityTypeDeserializer;
+import org.hawkular.metrics.core.api.fasterxml.jackson.AvailabilityTypeSerializer;
+
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 
 @Provider
 @Produces(MediaType.APPLICATION_JSON)
@@ -44,6 +49,11 @@ public class JacksonConfig implements ContextResolver<ObjectMapper> {
         mapper.setSerializationInclusion(Include.NON_NULL);
         mapper.configure(SerializationFeature.WRITE_EMPTY_JSON_ARRAYS, false);
         mapper.configure(SerializationFeature.WRITE_NULL_MAP_VALUES, false);
+
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(AvailabilityType.class, new AvailabilityTypeDeserializer());
+        module.addSerializer(AvailabilityType.class, new AvailabilityTypeSerializer());
+        mapper.registerModule(module);
     }
 
     @Override

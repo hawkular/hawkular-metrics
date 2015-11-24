@@ -50,7 +50,7 @@ import javax.ws.rs.core.UriInfo;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.ApiError;
 import org.hawkular.metrics.core.api.Buckets;
-import org.hawkular.metrics.core.api.GaugeDataPoint;
+import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricDefinition;
 import org.hawkular.metrics.core.api.MetricId;
@@ -189,9 +189,9 @@ public class GaugeHandler {
     @Path("/{id}/data")
     public Response addDataForMetric(
             @PathParam("id") String id,
-            List<GaugeDataPoint> data
+            List<DataPoint<Double>> data
     ) {
-        Observable<Metric<Double>> metrics = GaugeDataPoint.toObservable(tenantId, id, data);
+        Observable<Metric<Double>> metrics = DataPoint.toObservable(tenantId, id, data, GAUGE);
         try {
             metricsService.addDataPoints(GAUGE, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
@@ -203,7 +203,7 @@ public class GaugeHandler {
     @POST
     @Path("/data")
     public Response addGaugeData(
-            List<MetricRequest<Double, GaugeDataPoint>> gauges
+            List<MetricRequest<Double, DataPoint<Double>>> gauges
     ) {
         Observable<Metric<Double>> metrics = MetricRequest.toObservable(tenantId, gauges, GAUGE);
         try {
@@ -239,7 +239,6 @@ public class GaugeHandler {
             if (buckets == null) {
                 return metricsService
                         .findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
-                        .map(GaugeDataPoint::new)
                         .toList()
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()

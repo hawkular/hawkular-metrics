@@ -16,8 +16,18 @@
  */
 package org.hawkular.metrics.core.api;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonCreator.Mode;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.swagger.annotations.ApiModelProperty;
+import rx.Observable;
 
 /**
  * A metric data point consists of a timestamp and a value. The data type of the value will vary depending on the metric
@@ -33,15 +43,28 @@ public class DataPoint<T> {
 
     protected final T value;
 
-    public DataPoint(long timestamp, T value) {
+    @JsonCreator(mode = Mode.PROPERTIES)
+    @org.codehaus.jackson.annotate.JsonCreator
+    public DataPoint(
+            @JsonProperty("timestamp")
+            @org.codehaus.jackson.annotate.JsonProperty("timestamp")
+            Long timestamp,
+            @JsonProperty("value")
+            @org.codehaus.jackson.annotate.JsonProperty("value")
+            T value
+    ) {
+        checkArgument(timestamp != null, "Data point timestamp is null");
+        checkArgument(value != null, "Data point value is null");
         this.timestamp = timestamp;
         this.value = value;
     }
 
+    @ApiModelProperty(required = true)
     public long getTimestamp() {
         return timestamp;
     }
 
+    @ApiModelProperty(required = true)
     public T getValue() {
         return value;
     }
@@ -67,5 +90,11 @@ public class DataPoint<T> {
                 .add("value", value)
                 .omitNullValues()
                 .toString();
+    }
+
+    public static <T> Observable<Metric<T>> toObservable(String tenantId, String metricId,
+            List<DataPoint<T>> points, MetricType<T> type) {
+        Metric<T> metric = new Metric<>(new MetricId<>(tenantId, type, metricId), points);
+        return Observable.just(metric);
     }
 }

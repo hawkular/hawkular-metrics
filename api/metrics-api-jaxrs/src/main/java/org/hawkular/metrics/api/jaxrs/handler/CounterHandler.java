@@ -54,8 +54,7 @@ import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.ApiError;
 import org.hawkular.metrics.core.api.Buckets;
-import org.hawkular.metrics.core.api.CounterDataPoint;
-import org.hawkular.metrics.core.api.GaugeDataPoint;
+import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricDefinition;
 import org.hawkular.metrics.core.api.MetricId;
@@ -231,7 +230,7 @@ public class CounterHandler {
     })
     public void addData(@Suspended final AsyncResponse asyncResponse,
                         @ApiParam(value = "List of metrics", required = true)
-                        List<MetricRequest<Long, CounterDataPoint>> counters
+                        List<MetricRequest<Long, DataPoint<Long>>> counters
     ) {
         Observable<Metric<Long>> metrics = MetricRequest.toObservable(tenantId, counters, COUNTER);
         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
@@ -251,9 +250,9 @@ public class CounterHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
             @ApiParam(value = "List of data points containing timestamp and value", required = true)
-            List<CounterDataPoint> data
+            List<DataPoint<Long>> data
     ) {
-        Observable<Metric<Long>> metrics = CounterDataPoint.toObservable(tenantId, id, data);
+        Observable<Metric<Long>> metrics = DataPoint.toObservable(tenantId, id, data, COUNTER);
         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
@@ -262,7 +261,7 @@ public class CounterHandler {
     @Path("/{id}/data")
     @ApiOperation(value = "Retrieve counter data points.", notes = "When buckets or bucketDuration query parameter " +
             "is used, the time range between start and end will be divided in buckets of equal duration, and metric " +
-            "statistics will be computed for each bucket.", response = CounterDataPoint.class, responseContainer =
+            "statistics will be computed for each bucket.", response = DataPoint.class, responseContainer =
             "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
@@ -296,7 +295,6 @@ public class CounterHandler {
         Buckets buckets = bucketConfig.getBuckets();
         if (buckets == null) {
             metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
-                    .map(CounterDataPoint::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
@@ -319,7 +317,7 @@ public class CounterHandler {
             "used, the time range between start and end will be divided in buckets of equal duration, and metric " +
             "statistics will be computed for each bucket. Reset events are detected and data points that immediately " +
             "follow such events are filtered out prior to calculating the rates. This avoid misleading or inaccurate " +
-            "rates when resets occur.", response = GaugeDataPoint.class, responseContainer = "List")
+            "rates when resets occur.", response = DataPoint.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),
@@ -352,7 +350,6 @@ public class CounterHandler {
         Buckets buckets = bucketConfig.getBuckets();
         if (buckets == null) {
             metricsService.findRateData(metricId, timeRange.getStart(), timeRange.getEnd())
-                    .map(GaugeDataPoint::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));

@@ -49,8 +49,7 @@ import javax.ws.rs.core.UriInfo;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.ApiError;
 import org.hawkular.metrics.core.api.Buckets;
-import org.hawkular.metrics.core.api.CounterDataPoint;
-import org.hawkular.metrics.core.api.GaugeDataPoint;
+import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricDefinition;
 import org.hawkular.metrics.core.api.MetricId;
@@ -187,7 +186,7 @@ public class CounterHandler {
 
     @POST
     @Path("/data")
-    public Response addData(List<MetricRequest<Long, CounterDataPoint>> counters) {
+    public Response addData(List<MetricRequest<Long, DataPoint<Long>>> counters) {
         Observable<Metric<Long>> metrics = MetricRequest.toObservable(tenantId, counters, COUNTER);
         try {
             metricsService.addDataPoints(COUNTER, metrics).toBlocking().lastOrDefault(null);
@@ -201,9 +200,9 @@ public class CounterHandler {
     @Path("/{id}/data")
     public Response addData(
             @PathParam("id") String id,
-            List<CounterDataPoint> data
+            List<DataPoint<Long>> data
     ) {
-        Observable<Metric<Long>> metrics = CounterDataPoint.toObservable(tenantId, id, data);
+        Observable<Metric<Long>> metrics = DataPoint.toObservable(tenantId, id, data, COUNTER);
         try {
             metricsService.addDataPoints(COUNTER, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
@@ -236,7 +235,6 @@ public class CounterHandler {
         try {
             if (buckets == null) {
                 return metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
-                        .map(CounterDataPoint::new)
                         .toList()
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()
@@ -283,7 +281,6 @@ public class CounterHandler {
             if (buckets == null) {
                 return metricsService
                         .findRateData(metricId, timeRange.getStart(), timeRange.getEnd())
-                        .map(GaugeDataPoint::new)
                         .toList()
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()

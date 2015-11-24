@@ -43,7 +43,7 @@ public class AvailabilityDataPointCollectorTest {
 
     @Test
     public void testWithOneUp() throws Exception {
-        DataPoint<AvailabilityType> a1 = new DataPoint<>(15, UP);
+        DataPoint<AvailabilityType> a1 = new DataPoint<>(15L, UP);
         collector.increment(a1);
         AvailabilityBucketPoint actual = collector.toBucketPoint();
         AvailabilityBucketPoint expected = new AvailabilityBucketPoint.Builder(10, 20)
@@ -55,7 +55,7 @@ public class AvailabilityDataPointCollectorTest {
 
     @Test
     public void testWithOneDown() throws Exception {
-        DataPoint<AvailabilityType> a1 = new DataPoint<>(15, DOWN);
+        DataPoint<AvailabilityType> a1 = new DataPoint<>(15L, DOWN);
         collector.increment(a1);
         AvailabilityBucketPoint actual = collector.toBucketPoint();
         AvailabilityBucketPoint expected = new AvailabilityBucketPoint.Builder(10, 20)
@@ -70,8 +70,8 @@ public class AvailabilityDataPointCollectorTest {
 
     @Test
     public void testWithOneDownOneUp() throws Exception {
-        DataPoint<AvailabilityType> a1 = new DataPoint<>(12, DOWN);
-        DataPoint<AvailabilityType> a2 = new DataPoint<>(18, UP);
+        DataPoint<AvailabilityType> a1 = new DataPoint<>(12L, DOWN);
+        DataPoint<AvailabilityType> a2 = new DataPoint<>(18L, UP);
         collector.increment(a1);
         collector.increment(a2);
         AvailabilityBucketPoint actual = collector.toBucketPoint();
@@ -87,8 +87,8 @@ public class AvailabilityDataPointCollectorTest {
 
     @Test
     public void testWithOneUpOneDown() throws Exception {
-        DataPoint<AvailabilityType> a1 = new DataPoint<>(13, UP);
-        DataPoint<AvailabilityType> a2 = new DataPoint<>(17, DOWN);
+        DataPoint<AvailabilityType> a1 = new DataPoint<>(13L, UP);
+        DataPoint<AvailabilityType> a2 = new DataPoint<>(17L, DOWN);
         collector.increment(a1);
         collector.increment(a2);
         AvailabilityBucketPoint actual = collector.toBucketPoint();
@@ -104,8 +104,8 @@ public class AvailabilityDataPointCollectorTest {
 
     @Test
     public void testWithTwoDown() throws Exception {
-        DataPoint<AvailabilityType> a1 = new DataPoint<>(13, DOWN);
-        DataPoint<AvailabilityType> a2 = new DataPoint<>(17, DOWN);
+        DataPoint<AvailabilityType> a1 = new DataPoint<>(13L, DOWN);
+        DataPoint<AvailabilityType> a2 = new DataPoint<>(17L, DOWN);
         collector.increment(a1);
         collector.increment(a2);
         AvailabilityBucketPoint actual = collector.toBucketPoint();
@@ -121,8 +121,8 @@ public class AvailabilityDataPointCollectorTest {
 
     @Test
     public void testWithTwoUp() throws Exception {
-        DataPoint<AvailabilityType> a1 = new DataPoint<>(13, UP);
-        DataPoint<AvailabilityType> a2 = new DataPoint<>(17, UP);
+        DataPoint<AvailabilityType> a1 = new DataPoint<>(13L, UP);
+        DataPoint<AvailabilityType> a2 = new DataPoint<>(17L, UP);
         collector.increment(a1);
         collector.increment(a2);
         AvailabilityBucketPoint actual = collector.toBucketPoint();

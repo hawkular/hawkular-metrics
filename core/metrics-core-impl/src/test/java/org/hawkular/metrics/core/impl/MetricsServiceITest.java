@@ -1513,7 +1513,7 @@ public class MetricsServiceITest extends MetricsITest {
             for (int i = 0; i < numberOfPoints; i++) {
                 if (metricType == GAUGE) {
 
-                    DataPoint<Double> dataPoint = new DataPoint<>(i, (double) i);
+                    DataPoint<Double> dataPoint = new DataPoint<>((long) i, (double) i);
                     MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, "gauge");
                     Metric<Double> metric = new Metric<>(metricId, ImmutableList.of(dataPoint));
 
@@ -1523,7 +1523,7 @@ public class MetricsServiceITest extends MetricsITest {
 
                 } else if (metricType == COUNTER) {
 
-                    DataPoint<Long> dataPoint = new DataPoint<>(i, (long) i);
+                    DataPoint<Long> dataPoint = new DataPoint<>((long) i, (long) i);
                     MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, "counter");
                     Metric<Long> metric = new Metric<>(metricId, ImmutableList.of(dataPoint));
 
@@ -1534,7 +1534,7 @@ public class MetricsServiceITest extends MetricsITest {
                 } else if (metricType == AVAILABILITY) {
 
                     AvailabilityType availabilityType = availabilityTypes[i % availabilityTypes.length];
-                    DataPoint<AvailabilityType> dataPoint = new DataPoint<>(i, availabilityType);
+                    DataPoint<AvailabilityType> dataPoint = new DataPoint<>((long) i, availabilityType);
                     MetricId<AvailabilityType> metricId = new MetricId<>(tenantId, AVAILABILITY, "avail");
                     Metric<AvailabilityType> metric = new Metric<>(metricId, ImmutableList.of(dataPoint));
 

@@ -48,9 +48,9 @@ import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.api.ApiError;
-import org.hawkular.metrics.core.api.AvailabilityDataPoint;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricDefinition;
 import org.hawkular.metrics.core.api.MetricId;
@@ -198,9 +198,9 @@ public class AvailabilityHandler {
     @Path("/{id}/data")
     public Response addAvailabilityForMetric(
             @PathParam("id") String id,
-            List<AvailabilityDataPoint> data
+            List<DataPoint<AvailabilityType>> data
     ) {
-        Observable<Metric<AvailabilityType>> metrics = AvailabilityDataPoint.toObservable(tenantId, id, data);
+        Observable<Metric<AvailabilityType>> metrics = DataPoint.toObservable(tenantId, id, data, AVAILABILITY);
         try {
             metricsService.addDataPoints(AVAILABILITY, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
@@ -212,7 +212,7 @@ public class AvailabilityHandler {
     @POST
     @Path("/data")
     public Response addAvailabilityData(
-            List<MetricRequest<AvailabilityType, AvailabilityDataPoint>> availabilities
+            List<MetricRequest<AvailabilityType, DataPoint<AvailabilityType>>> availabilities
     ) {
         Observable<Metric<AvailabilityType>> metrics = MetricRequest.toObservable(tenantId, availabilities,
                 AVAILABILITY);
@@ -248,7 +248,6 @@ public class AvailabilityHandler {
         try {
             if (buckets == null) {
                 return metricsService.findAvailabilityData(metricId, timeRange.getStart(), timeRange.getEnd(), distinct)
-                        .map(AvailabilityDataPoint::new)
                         .toList()
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()
