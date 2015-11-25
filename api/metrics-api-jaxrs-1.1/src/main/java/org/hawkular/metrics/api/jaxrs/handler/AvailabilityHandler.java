@@ -54,7 +54,6 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricDefinition;
 import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricRequest;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
@@ -83,7 +82,7 @@ public class AvailabilityHandler {
     @POST
     @Path("/")
     public Response createAvailabilityMetric(
-            MetricDefinition metricDefinition,
+            MetricDefinition<AvailabilityType> metricDefinition,
             @Context UriInfo uriInfo
     ) {
         if(metricDefinition.getType() != null && MetricType.AVAILABILITY != metricDefinition.getType()) {
@@ -116,7 +115,7 @@ public class AvailabilityHandler {
 
         try {
             return metricObservable
-                    .map(MetricDefinition::new)
+                    .map(MetricDefinition<AvailabilityType>::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .toBlocking()
@@ -133,7 +132,7 @@ public class AvailabilityHandler {
     public Response getAvailabilityMetric(@PathParam("id") String id) {
         try {
             return metricsService.findMetric(new MetricId<>(tenantId, AVAILABILITY, id))
-                .map(MetricDefinition::new)
+                    .map(MetricDefinition<AvailabilityType>::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(noContent()))
                 .toBlocking()
@@ -212,9 +211,9 @@ public class AvailabilityHandler {
     @POST
     @Path("/data")
     public Response addAvailabilityData(
-            List<MetricRequest<AvailabilityType>> availabilities
+            List<MetricDefinition<AvailabilityType>> availabilities
     ) {
-        Observable<Metric<AvailabilityType>> metrics = MetricRequest.toObservable(tenantId, availabilities,
+        Observable<Metric<AvailabilityType>> metrics = MetricDefinition.toObservable(tenantId, availabilities,
                 AVAILABILITY);
         try {
             metricsService.addDataPoints(AVAILABILITY, metrics).toBlocking().lastOrDefault(null);

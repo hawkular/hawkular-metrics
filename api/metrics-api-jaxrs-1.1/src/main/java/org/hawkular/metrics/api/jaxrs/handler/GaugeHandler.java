@@ -54,7 +54,6 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricDefinition;
 import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricRequest;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
@@ -84,7 +83,7 @@ public class GaugeHandler {
     @POST
     @Path("/")
     public Response createGaugeMetric(
-            MetricDefinition metricDefinition,
+            MetricDefinition<Double> metricDefinition,
             @Context UriInfo uriInfo
     ) {
         if(metricDefinition.getType() != null && MetricType.GAUGE != metricDefinition.getType()) {
@@ -117,7 +116,7 @@ public class GaugeHandler {
 
         try {
             return metricObservable
-                    .map(MetricDefinition::new)
+                    .map(MetricDefinition<Double>::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .toBlocking()
@@ -134,7 +133,7 @@ public class GaugeHandler {
     public Response getGaugeMetric(@PathParam("id") String id) {
         try {
             return metricsService.findMetric(new MetricId<>(tenantId, GAUGE, id))
-                .map(MetricDefinition::new)
+                    .map(MetricDefinition<Double>::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                     .switchIfEmpty(Observable.just(noContent())).toBlocking().lastOrDefault(null);
         } catch (Exception e) {
@@ -203,9 +202,9 @@ public class GaugeHandler {
     @POST
     @Path("/data")
     public Response addGaugeData(
-            List<MetricRequest<Double>> gauges
+            List<MetricDefinition<Double>> gauges
     ) {
-        Observable<Metric<Double>> metrics = MetricRequest.toObservable(tenantId, gauges, GAUGE);
+        Observable<Metric<Double>> metrics = MetricDefinition.toObservable(tenantId, gauges, GAUGE);
         try {
             metricsService.addDataPoints(GAUGE, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();

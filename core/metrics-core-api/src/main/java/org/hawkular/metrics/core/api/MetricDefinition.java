@@ -16,11 +16,14 @@
  */
 package org.hawkular.metrics.core.api;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.List;
 import java.util.Map;
 
 import org.hawkular.metrics.core.api.fasterxml.jackson.MetricTypeDeserializer;
@@ -35,17 +38,19 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import rx.Observable;
 
 /**
  * @author John Sanda
  */
 @ApiModel(value = "Metric", description = "The definition of a metric")
-public class MetricDefinition {
+public class MetricDefinition<S> {
     private final String tenantId;
     private final String id;
     private final Map<String, String> tags;
     private final Integer dataRetention;
     private final MetricType<?> type;
+    private final List<DataPoint<S>> data;
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
@@ -65,7 +70,9 @@ public class MetricDefinition {
             @org.codehaus.jackson.map.annotate.JsonDeserialize(
                     using = org.hawkular.metrics.core.api.codehaus.jackson.MetricTypeDeserializer.class
             )
-            MetricType<?> type
+            MetricType<?> type,
+            @JsonProperty("data") @org.codehaus.jackson.annotate.JsonProperty("data")
+            List<DataPoint<S>> data
     ) {
         checkArgument(id != null, "Metric id is null");
         this.tenantId = null;
@@ -73,6 +80,7 @@ public class MetricDefinition {
         this.tags = tags == null ? emptyMap() : unmodifiableMap(tags);
         this.dataRetention = dataRetention;
         this.type = type;
+        this.data = data == null || data.isEmpty() ? emptyList() : unmodifiableList(data);
     }
 
     public MetricDefinition(Metric<?> metric) {
@@ -81,6 +89,7 @@ public class MetricDefinition {
         this.type = metric.getId().getType();
         this.tags = metric.getTags();
         this.dataRetention = metric.getDataRetention();
+        this.data = emptyList();
     }
 
     @ApiModelProperty("Identifier of the tenant")
@@ -116,6 +125,15 @@ public class MetricDefinition {
         return type;
     }
 
+    @ApiModelProperty("Metric data points")
+    @JsonSerialize(include = Inclusion.NON_EMPTY)
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY
+    )
+    public List<DataPoint<S>> getData() {
+        return data;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -124,6 +142,7 @@ public class MetricDefinition {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
+        @SuppressWarnings("rawtypes")
         MetricDefinition that = (MetricDefinition) o;
         return id.equals(that.id) && type == that.type;
     }
@@ -143,7 +162,15 @@ public class MetricDefinition {
                 .add("tags", tags)
                 .add("dataRetention", dataRetention)
                 .add("type", type)
+                .add("data", data)
                 .omitNullValues()
                 .toString();
+    }
+
+    public static <S, T extends MetricDefinition<S>> Observable<Metric<S>> toObservable(
+            String tenantId, List<T> metrics, MetricType<S> type) {
+        return Observable.from(metrics).map(g -> {
+            return new Metric<S>(new MetricId<S>(tenantId, type, g.getId()), g.getData());
+        });
     }
 }

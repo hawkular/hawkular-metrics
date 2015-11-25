@@ -58,7 +58,6 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricDefinition;
 import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricRequest;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.param.BucketConfig;
@@ -104,7 +103,7 @@ public class AvailabilityHandler {
     })
     public void createAvailabilityMetric(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(required = true) MetricDefinition metricDefinition,
+            @ApiParam(required = true) MetricDefinition<AvailabilityType> metricDefinition,
             @Context UriInfo uriInfo
     ) {
         if(metricDefinition.getType() != null && MetricType.AVAILABILITY != metricDefinition.getType()) {
@@ -138,7 +137,7 @@ public class AvailabilityHandler {
                 : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), AVAILABILITY);
 
         metricObservable
-                .map(MetricDefinition::new)
+                .map(MetricDefinition<AvailabilityType>::new)
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {
@@ -161,7 +160,7 @@ public class AvailabilityHandler {
     public void getAvailabilityMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
 
         metricsService.findMetric(new MetricId<>(tenantId, AVAILABILITY, id))
-                .map(MetricDefinition::new)
+                .map(MetricDefinition<AvailabilityType>::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(noContent()))
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
@@ -249,9 +248,9 @@ public class AvailabilityHandler {
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of availability metrics", required = true)
             @JsonDeserialize()
-            List<MetricRequest<AvailabilityType>> availabilities
+            List<MetricDefinition<AvailabilityType>> availabilities
     ) {
-        Observable<Metric<AvailabilityType>> metrics = MetricRequest.toObservable(tenantId, availabilities,
+        Observable<Metric<AvailabilityType>> metrics = MetricDefinition.toObservable(tenantId, availabilities,
                 AVAILABILITY);
         Observable<Void> observable = metricsService.addDataPoints(AVAILABILITY, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));

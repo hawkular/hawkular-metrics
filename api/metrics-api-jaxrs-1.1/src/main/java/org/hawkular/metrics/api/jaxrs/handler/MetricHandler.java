@@ -48,7 +48,6 @@ import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricDefinition;
 import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricRequest;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.MixedMetricsRequest;
@@ -75,8 +74,8 @@ public class MetricHandler {
 
     @POST
     @Path("/")
-    public Response createMetric(
-            MetricDefinition metricDefinition,
+    public <T> Response createMetric(
+            MetricDefinition<T> metricDefinition,
             @Context UriInfo uriInfo
     ) {
         if (metricDefinition.getType() == null || !metricDefinition.getType().isUserType()) {
@@ -115,7 +114,7 @@ public class MetricHandler {
 
         try {
             return metricObservable
-                    .map(MetricDefinition::new)
+                    .map(MetricDefinition<T>::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .toBlocking()
@@ -136,10 +135,10 @@ public class MetricHandler {
             return emptyPayload();
         }
 
-        Observable<Metric<Double>> gauges = MetricRequest.toObservable(tenantId, metricsRequest.getGauges(), GAUGE);
-        Observable<Metric<AvailabilityType>> availabilities = MetricRequest.toObservable(tenantId,
+        Observable<Metric<Double>> gauges = MetricDefinition.toObservable(tenantId, metricsRequest.getGauges(), GAUGE);
+        Observable<Metric<AvailabilityType>> availabilities = MetricDefinition.toObservable(tenantId,
                 metricsRequest.getAvailabilities(), AVAILABILITY);
-        Observable<Metric<Long>> counters = MetricRequest.toObservable(tenantId, metricsRequest.getCounters(),
+        Observable<Metric<Long>> counters = MetricDefinition.toObservable(tenantId, metricsRequest.getCounters(),
                 COUNTER);
 
         try {

@@ -53,7 +53,6 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricDefinition;
 import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricRequest;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
@@ -83,7 +82,7 @@ public class CounterHandler {
     @POST
     @Path("/")
     public Response createCounter(
-            MetricDefinition metricDefinition,
+            MetricDefinition<Long> metricDefinition,
             @Context UriInfo uriInfo
     ) {
         if(metricDefinition.getType() != null && MetricType.COUNTER != metricDefinition.getType()) {
@@ -116,7 +115,7 @@ public class CounterHandler {
 
         try {
             return metricObservable
-                    .map(MetricDefinition::new)
+                    .map(MetricDefinition<Long>::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .toBlocking()
@@ -133,7 +132,7 @@ public class CounterHandler {
     public Response getCounter(@PathParam("id") String id) {
         try {
             return metricsService.findMetric(new MetricId<>(tenantId, COUNTER, id))
-                .map(MetricDefinition::new)
+                .map(MetricDefinition<Long>::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                     .switchIfEmpty(Observable.just(noContent()))
                 .toBlocking().lastOrDefault(null);
@@ -186,8 +185,8 @@ public class CounterHandler {
 
     @POST
     @Path("/data")
-    public Response addData(List<MetricRequest<Long>> counters) {
-        Observable<Metric<Long>> metrics = MetricRequest.toObservable(tenantId, counters, COUNTER);
+    public Response addData(List<MetricDefinition<Long>> counters) {
+        Observable<Metric<Long>> metrics = MetricDefinition.toObservable(tenantId, counters, COUNTER);
         try {
             metricsService.addDataPoints(COUNTER, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();

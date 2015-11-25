@@ -34,37 +34,37 @@ import io.swagger.annotations.ApiModel;
  */
 @ApiModel(description = "Data points to store, grouped by metric type")
 public class MixedMetricsRequest {
-    private final List<MetricRequest<Double>> gauges;
-    private final List<MetricRequest<AvailabilityType>> availabilities;
-    private final List<MetricRequest<Long>> counters;
+    private final List<MetricDefinition<Double>> gauges;
+    private final List<MetricDefinition<AvailabilityType>> availabilities;
+    private final List<MetricDefinition<Long>> counters;
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
     public MixedMetricsRequest(
             @JsonProperty("gauges")
             @org.codehaus.jackson.annotate.JsonProperty("gauges")
-            List<MetricRequest<Double>> gauges,
+            List<MetricDefinition<Double>> gauges,
             @JsonProperty("availabilities")
             @org.codehaus.jackson.annotate.JsonProperty("availabilities")
-            List<MetricRequest<AvailabilityType>> availabilities,
+            List<MetricDefinition<AvailabilityType>> availabilities,
             @JsonProperty("counters")
             @org.codehaus.jackson.annotate.JsonProperty("counters")
-            List<MetricRequest<Long>> counters
+            List<MetricDefinition<Long>> counters
     ) {
         this.gauges = gauges == null ? emptyList() : unmodifiableList(gauges);
         this.availabilities = availabilities == null ? emptyList() : unmodifiableList(availabilities);
         this.counters = counters == null ? emptyList() : unmodifiableList(counters);
     }
 
-    public List<MetricRequest<Double>> getGauges() {
+    public List<MetricDefinition<Double>> getGauges() {
         return gauges;
     }
 
-    public List<MetricRequest<AvailabilityType>> getAvailabilities() {
+    public List<MetricDefinition<AvailabilityType>> getAvailabilities() {
         return availabilities;
     }
 
-    public List<MetricRequest<Long>> getCounters() {
+    public List<MetricDefinition<Long>> getCounters() {
         return counters;
     }
 

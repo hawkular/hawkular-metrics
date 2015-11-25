@@ -57,7 +57,6 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricDefinition;
 import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricRequest;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericBucketPoint;
@@ -105,7 +104,7 @@ public class GaugeHandler {
     })
     public void createGaugeMetric(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(required = true) MetricDefinition metricDefinition,
+            @ApiParam(required = true) MetricDefinition<Double> metricDefinition,
             @Context UriInfo uriInfo
     ) {
         if(metricDefinition.getType() != null && MetricType.GAUGE != metricDefinition.getType()) {
@@ -139,7 +138,7 @@ public class GaugeHandler {
                 : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), GAUGE);
 
         metricObservable
-                .map(MetricDefinition::new)
+                .map(MetricDefinition<Double>::new)
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {
@@ -161,7 +160,7 @@ public class GaugeHandler {
                          response = ApiError.class) })
     public void getGaugeMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
         metricsService.findMetric(new MetricId<>(tenantId, GAUGE, id))
-                .map(MetricDefinition::new)
+                .map(MetricDefinition<Double>::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(ApiUtils.noContent()))
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
@@ -250,9 +249,9 @@ public class GaugeHandler {
     })
     public void addGaugeData(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(value = "List of metrics", required = true) List<MetricRequest<Double>> gauges
+            @ApiParam(value = "List of metrics", required = true) List<MetricDefinition<Double>> gauges
     ) {
-        Observable<Metric<Double>> metrics = MetricRequest.toObservable(tenantId, gauges, GAUGE);
+        Observable<Metric<Double>> metrics = MetricDefinition.toObservable(tenantId, gauges, GAUGE);
         Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }

@@ -51,7 +51,6 @@ import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricDefinition;
 import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricRequest;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.MixedMetricsRequest;
@@ -94,9 +93,9 @@ public class MetricHandler {
             @ApiResponse(code = 500, message = "Metric creation failed due to an unexpected error",
                     response = ApiError.class)
     })
-    public void createMetric(
+    public <T> void createMetric(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(required = true) MetricDefinition metricDefinition,
+            @ApiParam(required = true) MetricDefinition<T> metricDefinition,
             @Context UriInfo uriInfo
     ) {
         if (metricDefinition.getType() == null || !metricDefinition.getType().isUserType()) {
@@ -139,7 +138,7 @@ public class MetricHandler {
                 : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), metricType);
 
         metricObservable
-                .map(MetricDefinition::new)
+                .map(MetricDefinition<T>::new)
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {
@@ -169,10 +168,10 @@ public class MetricHandler {
             return;
         }
 
-        Observable<Metric<Double>> gauges = MetricRequest.toObservable(tenantId, metricsRequest.getGauges(), GAUGE);
-        Observable<Metric<AvailabilityType>> availabilities = MetricRequest.toObservable(tenantId,
+        Observable<Metric<Double>> gauges = MetricDefinition.toObservable(tenantId, metricsRequest.getGauges(), GAUGE);
+        Observable<Metric<AvailabilityType>> availabilities = MetricDefinition.toObservable(tenantId,
                 metricsRequest.getAvailabilities(), AVAILABILITY);
-        Observable<Metric<Long>> counters = MetricRequest.toObservable(tenantId, metricsRequest.getCounters(),
+        Observable<Metric<Long>> counters = MetricDefinition.toObservable(tenantId, metricsRequest.getCounters(),
                 COUNTER);
 
         metricsService.addDataPoints(GAUGE, gauges)
