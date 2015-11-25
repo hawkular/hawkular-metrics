@@ -358,8 +358,7 @@ public class InfluxSeriesHandler {
                 return null;
             }
 
-            List<? extends DataPoint<? extends Number>> metrics = null;
-
+            List<? extends DataPoint<? extends Number>> metrics = inputMetrics;
             if (buckets != null) {
                 AggregatedColumnDefinition aggregatedColumnDefinition =
                         (AggregatedColumnDefinition) queryDefinitions
