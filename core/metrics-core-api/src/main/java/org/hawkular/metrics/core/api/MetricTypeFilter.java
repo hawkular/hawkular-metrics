@@ -42,6 +42,7 @@ public class MetricTypeFilter<T> implements Transformer<Metric<?>, Metric<T>> {
     @SuppressWarnings("unchecked")
     @Override
     public Observable<Metric<T>> call(Observable<Metric<?>> observable) {
-        return observable.filter(metric -> metric.getId().getType() == metricType).map(metric -> (Metric<T>) metric);
+        return observable.filter(metric -> metric.getMetricId().getType() == metricType)
+                .map(metric -> (Metric<T>) metric);
     }
 }

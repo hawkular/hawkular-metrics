@@ -83,7 +83,7 @@ public class MetricDataPublisher {
     }
 
     private BasicMessage createNumericMessage(Metric<? extends Number> numeric) {
-        MetricId<? extends Number> numericId = numeric.getId();
+        MetricId<? extends Number> numericId = numeric.getMetricId();
         List<MetricDataMessage.SingleMetric> numericList = numeric.getDataPoints().stream()
                 .map(dataPoint -> new MetricDataMessage.SingleMetric(numericId.getName(), dataPoint.getTimestamp(),
                         dataPoint.getValue().doubleValue()))

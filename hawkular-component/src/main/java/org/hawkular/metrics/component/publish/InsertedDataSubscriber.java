@@ -66,7 +66,7 @@ public class InsertedDataSubscriber {
 
     private void onInsertedData(Metric<?> metric) {
         log.tracef("Inserted metric: %s", metric);
-        if (metric.getId().getType() == AVAILABILITY) {
+        if (metric.getMetricId().getType() == AVAILABILITY) {
             @SuppressWarnings("unchecked")
             Metric<AvailabilityType> avail = (Metric<AvailabilityType>) metric;
             availDataPublisher.publish(avail);

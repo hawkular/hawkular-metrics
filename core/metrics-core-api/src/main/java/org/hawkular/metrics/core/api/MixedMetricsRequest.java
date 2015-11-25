@@ -34,37 +34,37 @@ import io.swagger.annotations.ApiModel;
  */
 @ApiModel(description = "Data points to store, grouped by metric type")
 public class MixedMetricsRequest {
-    private final List<MetricDefinition<Double>> gauges;
-    private final List<MetricDefinition<AvailabilityType>> availabilities;
-    private final List<MetricDefinition<Long>> counters;
+    private final List<Metric<Double>> gauges;
+    private final List<Metric<AvailabilityType>> availabilities;
+    private final List<Metric<Long>> counters;
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
     public MixedMetricsRequest(
             @JsonProperty("gauges")
             @org.codehaus.jackson.annotate.JsonProperty("gauges")
-            List<MetricDefinition<Double>> gauges,
+            List<Metric<Double>> gauges,
             @JsonProperty("availabilities")
             @org.codehaus.jackson.annotate.JsonProperty("availabilities")
-            List<MetricDefinition<AvailabilityType>> availabilities,
+            List<Metric<AvailabilityType>> availabilities,
             @JsonProperty("counters")
             @org.codehaus.jackson.annotate.JsonProperty("counters")
-            List<MetricDefinition<Long>> counters
+            List<Metric<Long>> counters
     ) {
         this.gauges = gauges == null ? emptyList() : unmodifiableList(gauges);
         this.availabilities = availabilities == null ? emptyList() : unmodifiableList(availabilities);
         this.counters = counters == null ? emptyList() : unmodifiableList(counters);
     }
 
-    public List<MetricDefinition<Double>> getGauges() {
+    public List<Metric<Double>> getGauges() {
         return gauges;
     }
 
-    public List<MetricDefinition<AvailabilityType>> getAvailabilities() {
+    public List<Metric<AvailabilityType>> getAvailabilities() {
         return availabilities;
     }
 
-    public List<MetricDefinition<Long>> getCounters() {
+    public List<Metric<Long>> getCounters() {
         return counters;
     }
 

@@ -58,10 +58,10 @@ public class GenerateRate implements Action1<Task2> {
         long end = start + TimeUnit.MINUTES.toMillis(1);
 
         Observable<Metric<Double>> rates = metricsService.findMetrics(tenant, COUNTER)
-                .flatMap(counter -> metricsService.findDataPoints(counter.getId(), start, end)
+                .flatMap(counter -> metricsService.findDataPoints(counter.getMetricId(), start, end)
                         .take(1)
                         .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
-                        .map(rate -> new Metric<>(new MetricId<>(tenant, COUNTER_RATE, counter.getId().getName()),
+                        .map(rate -> new Metric<>(new MetricId<>(tenant, COUNTER_RATE, counter.getMetricId().getName()),
                                 singletonList(new DataPoint<>(start, rate)))));
         Observable<Void> updates = metricsService.addDataPoints(COUNTER_RATE, rates);
 

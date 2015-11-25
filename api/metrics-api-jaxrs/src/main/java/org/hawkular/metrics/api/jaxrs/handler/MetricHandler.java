@@ -49,7 +49,6 @@ import org.hawkular.metrics.api.jaxrs.util.MetricTypeTextConverter;
 import org.hawkular.metrics.core.api.ApiError;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricDefinition;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
@@ -95,14 +94,14 @@ public class MetricHandler {
     })
     public <T> void createMetric(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(required = true) MetricDefinition<T> metricDefinition,
+            @ApiParam(required = true) Metric<T> metric,
             @Context UriInfo uriInfo
     ) {
-        if (metricDefinition.getType() == null || !metricDefinition.getType().isUserType()) {
-            asyncResponse.resume(badRequest(new ApiError("MetricDefinition type is invalid")));
+        if (metric.getType() == null || !metric.getType().isUserType()) {
+            asyncResponse.resume(badRequest(new ApiError("Metric type is invalid")));
         }
-        MetricId<?> id = new MetricId<>(tenantId, metricDefinition.getType(), metricDefinition.getId());
-        Metric<?> metric = new Metric<>(id, metricDefinition.getTags(), metricDefinition.getDataRetention());
+        MetricId<T> id = new MetricId<T>(tenantId, metric.getMetricId().getType(), metric.getId());
+        metric = new Metric<>(id, metric.getTags(), metric.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/{type}/{id}").build(MetricTypeTextConverter.getLongForm(id
                 .getType()), id.getName());
         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
@@ -111,7 +110,7 @@ public class MetricHandler {
     @GET
     @Path("/")
     @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ",
-            response = MetricDefinition.class, responseContainer = "List")
+ response = Metric.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully retrieved at least one metric definition."),
             @ApiResponse(code = 204, message = "No metrics found."),
@@ -138,7 +137,6 @@ public class MetricHandler {
                 : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), metricType);
 
         metricObservable
-                .map(MetricDefinition<T>::new)
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {
@@ -168,10 +166,10 @@ public class MetricHandler {
             return;
         }
 
-        Observable<Metric<Double>> gauges = MetricDefinition.toObservable(tenantId, metricsRequest.getGauges(), GAUGE);
-        Observable<Metric<AvailabilityType>> availabilities = MetricDefinition.toObservable(tenantId,
+        Observable<Metric<Double>> gauges = Metric.toObservable(tenantId, metricsRequest.getGauges(), GAUGE);
+        Observable<Metric<AvailabilityType>> availabilities = Metric.toObservable(tenantId,
                 metricsRequest.getAvailabilities(), AVAILABILITY);
-        Observable<Metric<Long>> counters = MetricDefinition.toObservable(tenantId, metricsRequest.getCounters(),
+        Observable<Metric<Long>> counters = Metric.toObservable(tenantId, metricsRequest.getCounters(),
                 COUNTER);
 
         metricsService.addDataPoints(GAUGE, gauges)

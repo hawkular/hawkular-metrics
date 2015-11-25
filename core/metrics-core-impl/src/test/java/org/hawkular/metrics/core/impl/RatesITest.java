@@ -127,11 +127,11 @@ public class RatesITest extends MetricsITest {
         doAction(() -> metricsService.createMetric(c3));
 
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.from(asList(
-                new Metric<>(c1.getId(), asList(new DataPoint<>(start.getMillis(), 10L),
+                new Metric<>(c1.getMetricId(), asList(new DataPoint<>(start.getMillis(), 10L),
                         new DataPoint<>(start.plusSeconds(30).getMillis(), 25L))),
-                new Metric<>(c2.getId(), asList(new DataPoint<>(start.getMillis(), 100L),
+                new Metric<>(c2.getMetricId(), asList(new DataPoint<>(start.getMillis(), 100L),
                         new DataPoint<>(start.plusSeconds(30).getMillis(), 165L))),
-                new Metric<>(c3.getId(), asList(new DataPoint<>(start.getMillis(), 42L),
+                new Metric<>(c3.getMetricId(), asList(new DataPoint<>(start.getMillis(), 42L),
                         new DataPoint<>(start.plusSeconds(30).getMillis(), 77L)))
         ))));
 
@@ -144,11 +144,11 @@ public class RatesITest extends MetricsITest {
         subscriber.assertNoErrors();
         subscriber.assertTerminalEvent();
 
-        List<DataPoint<Double>> c1Rate = getOnNextEvents(() -> metricsService.findRateData(c1.getId(),
+        List<DataPoint<Double>> c1Rate = getOnNextEvents(() -> metricsService.findRateData(c1.getMetricId(),
                 start.getMillis(), start.plusMinutes(1).getMillis()));
-        List<DataPoint<Double>> c2Rate = getOnNextEvents(() -> metricsService.findRateData(c2.getId(),
+        List<DataPoint<Double>> c2Rate = getOnNextEvents(() -> metricsService.findRateData(c2.getMetricId(),
                 start.getMillis(), start.plusMinutes(1).getMillis()));
-        List<DataPoint<Double>> c3Rate = getOnNextEvents(() -> metricsService.findRateData(c3.getId(),
+        List<DataPoint<Double>> c3Rate = getOnNextEvents(() -> metricsService.findRateData(c3.getMetricId(),
                 start.getMillis(), start.plusMinutes(1).getMillis()));
 
         assertEquals(c1Rate, singletonList(new DataPoint<>(start.getMillis(), calculateRate(25, start,

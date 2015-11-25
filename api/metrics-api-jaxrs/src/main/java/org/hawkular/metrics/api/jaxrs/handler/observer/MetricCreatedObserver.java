@@ -43,7 +43,7 @@ public class MetricCreatedObserver extends EntityCreatedObserver<MetricAlreadyEx
     }
 
     private static Response getMetricAlreadyExistsResponse(MetricAlreadyExistsException e) {
-        String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
+        String message = "A metric with name [" + e.getMetric().getMetricId().getName() + "] already exists";
         return Response.status(Status.CONFLICT).entity(new ApiError(message)).build();
     }
 }

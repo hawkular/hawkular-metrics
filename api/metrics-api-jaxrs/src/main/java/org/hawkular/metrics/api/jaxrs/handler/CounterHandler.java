@@ -56,7 +56,6 @@ import org.hawkular.metrics.core.api.ApiError;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricDefinition;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
@@ -107,16 +106,19 @@ public class CounterHandler {
     })
     public void createCounter(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(required = true) MetricDefinition<Long> metricDefinition,
+            @ApiParam(required = true) Metric<Long> metric,
             @Context UriInfo uriInfo
     ) {
-        if(metricDefinition.getType() != null && MetricType.COUNTER != metricDefinition.getType()) {
-            asyncResponse.resume(badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+        if (metric.getType() != null
+                && MetricType.UNDEFINED != metric.getType()
+                && MetricType.COUNTER != metric.getType()) {
+            asyncResponse
+                    .resume(badRequest(new ApiError("Metric type does not match " + MetricType
                     .COUNTER.getText())));
         }
-        Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, metricDefinition.getId()),
-                metricDefinition.getTags(), metricDefinition.getDataRetention());
-        URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getId().getName());
+        metric = new Metric<>(new MetricId<>(tenantId, COUNTER, metric.getId()),
+                metric.getTags(), metric.getDataRetention());
+        URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getMetricId().getName());
         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
     }
 
@@ -124,7 +126,7 @@ public class CounterHandler {
     @Path("/")
     @ApiOperation(value = "Find tenant's counter metric definitions.",
                     notes = "Does not include any metric values. ",
-                    response = MetricDefinition.class, responseContainer = "List")
+                    response = Metric.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully retrieved at least one metric definition."),
             @ApiResponse(code = 204, message = "No metrics found."),
@@ -141,7 +143,6 @@ public class CounterHandler {
                 : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), COUNTER);
 
         metricObservable
-                .map(MetricDefinition<Long>::new)
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {
@@ -155,7 +156,7 @@ public class CounterHandler {
 
     @GET
     @Path("/{id}")
-    @ApiOperation(value = "Retrieve a counter definition.", response = MetricDefinition.class)
+    @ApiOperation(value = "Retrieve a counter definition.", response = Metric.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's definition was successfully retrieved."),
             @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
@@ -164,7 +165,6 @@ public class CounterHandler {
     public void getCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
 
         metricsService.findMetric(new MetricId<>(tenantId, COUNTER, id))
-                .map(MetricDefinition<Long>::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(noContent()))
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
@@ -229,9 +229,9 @@ public class CounterHandler {
     })
     public void addData(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(value = "List of metrics", required = true) List<MetricDefinition<Long>> counters
+            @ApiParam(value = "List of metrics", required = true) List<Metric<Long>> counters
     ) {
-        Observable<Metric<Long>> metrics = MetricDefinition.toObservable(tenantId, counters, COUNTER);
+        Observable<Metric<Long>> metrics = Metric.toObservable(tenantId, counters, COUNTER);
         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }

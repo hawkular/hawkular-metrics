@@ -157,7 +157,7 @@ public class InfluxSeriesHandler {
 
         Map<MetricType<?>, List<Metric<?>>> metrics = influxObjects.stream()
                 .map(influxObject -> influxToMetrics(tenantId, influxObject, timePrecision))
-                .collect(groupingBy(metric -> metric.getId().getType()));
+                .collect(groupingBy(metric -> metric.getMetricId().getType()));
 
         Observable<Void> result = Observable.empty();
         if (metrics.containsKey(GAUGE)) {
@@ -268,7 +268,7 @@ public class InfluxSeriesHandler {
         }
 
         Observable.merge(metricsService.findMetrics(tenantId, GAUGE), metricsService.findMetrics(tenantId, COUNTER))
-                .filter(metric -> pattern == null || pattern.matcher(metric.getId().getName()).find())
+                .filter(metric -> pattern == null || pattern.matcher(metric.getMetricId().getName()).find())
                 .toList()
                 .map(InfluxSeriesHandler::metricsListToListSeries)
                 .subscribe(new ReadObserver(asyncResponse));
@@ -280,7 +280,7 @@ public class InfluxSeriesHandler {
                 .withForeseenPoints(metrics.size());
         for (Metric<?> metric : metrics) {
             String prefix;
-            MetricType<?> type = metric.getId().getType();
+            MetricType<?> type = metric.getMetricId().getType();
             if (type == GAUGE) {
                 prefix = GAUGE_PREFIX;
             } else if (type == COUNTER) {
@@ -289,7 +289,7 @@ public class InfluxSeriesHandler {
                 log.tracef("List series query does not expect %s metric type", type);
                 continue;
             }
-            builder.addPoint(ImmutableList.of(0, prefix + metric.getId().getName()));
+            builder.addPoint(ImmutableList.of(0, prefix + metric.getMetricId().getName()));
         }
         return ImmutableList.of(builder.createInfluxObject());
     }

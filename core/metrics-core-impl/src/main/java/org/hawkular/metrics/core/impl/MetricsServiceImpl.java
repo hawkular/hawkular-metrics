@@ -107,7 +107,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         }
 
         public DataRetentionKey(Metric<?> metric) {
-            this.metricId = metric.getId();
+            this.metricId = metric.getMetricId();
         }
 
         @Override
@@ -417,7 +417,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public Observable<Void> createMetric(Metric<?> metric) {
-        MetricType<?> metricType = metric.getId().getType();
+        MetricType<?> metricType = metric.getMetricId().getType();
         if (!metricType.isUserType()) {
             throw new IllegalArgumentException(metric + " cannot be created. " + metricType + " metrics are " +
                     "internally generated metrics and cannot be created by clients.");
@@ -591,7 +591,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         Observable<Integer> updates = metrics
                 .filter(metric -> !metric.getDataPoints().isEmpty())
                 .flatMap(metric -> {
-                    return inserter.call(metric, getTTL(metric.getId())).doOnNext(i -> {
+                    return inserter.call(metric, getTTL(metric.getMetricId())).doOnNext(i -> {
                         insertedDataPointEvents.onNext(metric);
                     });
                 }).doOnNext(meter::mark);
@@ -626,7 +626,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     private Observable<Integer> updateTenantBuckets(Observable<? extends Metric<?>> metrics) {
         return metrics.flatMap(metric -> {
             return Observable.<DataPoint<?>>from(metric.getDataPoints()).map(dataPoint -> {
-                return new TenantBucket(metric.getId().getTenantId(),
+                return new TenantBucket(metric.getMetricId().getTenantId(),
                         dateTimeService.getTimeSlice(dataPoint.getTimestamp(), standardMinutes(30)));
             });
         }).distinct().flatMap(tenantBucket -> {
@@ -723,10 +723,10 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         if (!stacked) {
             if (MetricType.COUNTER.equals(metricType) || MetricType.GAUGE.equals(metricType)) {
                 return bucketize(findMetricsWithFilters(tenantId, tagFilters, metricType)
-                        .flatMap(metric -> findDataPoints(metric.getId(), start, end)), buckets, percentiles);
+                        .flatMap(metric -> findDataPoints(metric.getMetricId(), start, end)), buckets, percentiles);
             } else {
                 return bucketize(findMetricsWithFilters(tenantId, tagFilters, MetricType.COUNTER)
-                        .flatMap(metric -> findRateData(metric.getId(), start, end)),
+                        .flatMap(metric -> findRateData(metric.getMetricId(), start, end)),
                         buckets, percentiles);
             }
         } else {
@@ -734,11 +734,11 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
             if (MetricType.COUNTER.equals(metricType) || MetricType.GAUGE.equals(metricType)) {
                 individualStats = findMetricsWithFilters(tenantId, tagFilters, metricType)
-                        .map(metric -> bucketize(findDataPoints(metric.getId(), start, end), buckets, percentiles)
+                        .map(metric -> bucketize(findDataPoints(metric.getMetricId(), start, end), buckets, percentiles)
                                 .flatMap(Observable::from));
             } else {
                 individualStats = findMetricsWithFilters(tenantId, tagFilters, MetricType.COUNTER)
-                        .map(metric -> bucketize(findRateData(metric.getId(), start, end), buckets, percentiles)
+                        .map(metric -> bucketize(findRateData(metric.getMetricId(), start, end), buckets, percentiles)
                                 .flatMap(Observable::from));
             }
 
@@ -762,12 +762,12 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
             if (MetricType.COUNTER.equals(metricType) || MetricType.GAUGE.equals(metricType)) {
                 return bucketize(Observable.from(metrics)
                         .flatMap(metricName -> findMetric(new MetricId<>(tenantId, metricType, metricName)))
-                        .flatMap(metric -> findDataPoints(metric.getId(), start, end)), buckets, percentiles);
+                        .flatMap(metric -> findDataPoints(metric.getMetricId(), start, end)), buckets, percentiles);
             } else {
                 return bucketize(Observable.from(metrics)
                         .flatMap(metricName -> findMetric(new MetricId<>(tenantId, MetricType.COUNTER, metricName)))
                         .flatMap(metric -> findRateData(
-                                new MetricId<Long>(tenantId, MetricType.COUNTER, metric.getId().getName()), start,
+                                new MetricId<Long>(tenantId, MetricType.COUNTER, metric.getMetricId().getName()), start,
                                 end)),
                         buckets, percentiles);
             }
@@ -777,13 +777,13 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
             if (MetricType.COUNTER.equals(metricType) || MetricType.GAUGE.equals(metricType)) {
                 individualStats = Observable.from(metrics)
                         .flatMap(metricName -> findMetric(new MetricId<>(tenantId, metricType, metricName)))
-                        .map(metric -> bucketize(findDataPoints(metric.getId(), start, end), buckets, percentiles)
+                        .map(metric -> bucketize(findDataPoints(metric.getMetricId(), start, end), buckets, percentiles)
                                 .flatMap(Observable::from));
             } else {
                 individualStats = Observable.from(metrics)
                         .flatMap(metricName -> findMetric(new MetricId<>(tenantId, MetricType.COUNTER, metricName)))
                         .map(metric -> bucketize(findRateData(
-                                new MetricId<Long>(tenantId, MetricType.COUNTER, metric.getId().getName()), start,
+                                new MetricId<Long>(tenantId, MetricType.COUNTER, metric.getMetricId().getName()), start,
                                 end), buckets, percentiles)
                                 .flatMap(Observable::from));
             }
@@ -837,7 +837,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     @Override
     public Observable<Boolean> idExists(final MetricId<?> metricId) {
         return findMetrics(metricId.getTenantId(), metricId.getType()).filter(m -> {
-            return metricId.getName().equals(m.getId().getName());
+            return metricId.getName().equals(m.getMetricId().getName());
         }).take(1).map(m -> TRUE).defaultIfEmpty(FALSE);
     }
 

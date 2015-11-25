@@ -52,7 +52,6 @@ import org.hawkular.metrics.core.api.ApiError;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricDefinition;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
@@ -83,22 +82,24 @@ public class GaugeHandler {
     @POST
     @Path("/")
     public Response createGaugeMetric(
-            MetricDefinition<Double> metricDefinition,
+            Metric<Double> metric,
             @Context UriInfo uriInfo
     ) {
-        if(metricDefinition.getType() != null && MetricType.GAUGE != metricDefinition.getType()) {
-            return badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+        if (metric.getType() != null
+                && MetricType.UNDEFINED != metric.getType()
+                && MetricType.GAUGE != metric.getType()) {
+            return badRequest(new ApiError("Metric type does not match " + MetricType
                     .GAUGE.getText()));
         }
-        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metricDefinition.getId()),
-                metricDefinition.getTags(), metricDefinition.getDataRetention());
-        URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getId().getName());
+        metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metric.getId()),
+                metric.getTags(), metric.getDataRetention());
+        URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getMetricId().getName());
         try {
             Observable<Void> observable = metricsService.createMetric(metric);
             observable.toBlocking().lastOrDefault(null);
             return Response.created(location).build();
         } catch (MetricAlreadyExistsException e) {
-            String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
+            String message = "A metric with name [" + e.getMetric().getMetricId().getName() + "] already exists";
             return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
         } catch (Exception e) {
             return serverError(e);
@@ -116,7 +117,6 @@ public class GaugeHandler {
 
         try {
             return metricObservable
-                    .map(MetricDefinition<Double>::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .toBlocking()
@@ -133,7 +133,6 @@ public class GaugeHandler {
     public Response getGaugeMetric(@PathParam("id") String id) {
         try {
             return metricsService.findMetric(new MetricId<>(tenantId, GAUGE, id))
-                    .map(MetricDefinition<Double>::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                     .switchIfEmpty(Observable.just(noContent())).toBlocking().lastOrDefault(null);
         } catch (Exception e) {
@@ -202,9 +201,9 @@ public class GaugeHandler {
     @POST
     @Path("/data")
     public Response addGaugeData(
-            List<MetricDefinition<Double>> gauges
+            List<Metric<Double>> gauges
     ) {
-        Observable<Metric<Double>> metrics = MetricDefinition.toObservable(tenantId, gauges, GAUGE);
+        Observable<Metric<Double>> metrics = Metric.toObservable(tenantId, gauges, GAUGE);
         try {
             metricsService.addDataPoints(GAUGE, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();

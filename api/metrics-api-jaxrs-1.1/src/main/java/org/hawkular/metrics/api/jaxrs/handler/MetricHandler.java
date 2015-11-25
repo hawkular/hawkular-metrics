@@ -46,7 +46,6 @@ import org.hawkular.metrics.api.jaxrs.util.MetricTypeTextConverter;
 import org.hawkular.metrics.core.api.ApiError;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricDefinition;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
@@ -75,14 +74,14 @@ public class MetricHandler {
     @POST
     @Path("/")
     public <T> Response createMetric(
-            MetricDefinition<T> metricDefinition,
+            Metric<T> metric,
             @Context UriInfo uriInfo
     ) {
-        if (metricDefinition.getType() == null || !metricDefinition.getType().isUserType()) {
-            return badRequest(new ApiError("MetricDefinition type is invalid"));
+        if (metric.getType() == null || !metric.getType().isUserType()) {
+            return badRequest(new ApiError("Metric type is invalid"));
         }
-        MetricId<?> id = new MetricId<>(tenantId, metricDefinition.getType(), metricDefinition.getId());
-        Metric<?> metric = new Metric<>(id, metricDefinition.getTags(), metricDefinition.getDataRetention());
+        MetricId<T> id = new MetricId<>(tenantId, metric.getMetricId().getType(), metric.getId());
+        metric = new Metric<>(id, metric.getTags(), metric.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/{type}/{id}").build(MetricTypeTextConverter.getLongForm(id
                 .getType()), id.getName());
 
@@ -91,7 +90,7 @@ public class MetricHandler {
             observable.toBlocking().lastOrDefault(null);
             return Response.created(location).build();
         } catch (MetricAlreadyExistsException e) {
-            String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
+            String message = "A metric with name [" + e.getMetric().getMetricId().getName() + "] already exists";
             return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
         } catch (Exception e) {
             return serverError(e);
@@ -114,7 +113,6 @@ public class MetricHandler {
 
         try {
             return metricObservable
-                    .map(MetricDefinition<T>::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .toBlocking()
@@ -135,10 +133,10 @@ public class MetricHandler {
             return emptyPayload();
         }
 
-        Observable<Metric<Double>> gauges = MetricDefinition.toObservable(tenantId, metricsRequest.getGauges(), GAUGE);
-        Observable<Metric<AvailabilityType>> availabilities = MetricDefinition.toObservable(tenantId,
+        Observable<Metric<Double>> gauges = Metric.toObservable(tenantId, metricsRequest.getGauges(), GAUGE);
+        Observable<Metric<AvailabilityType>> availabilities = Metric.toObservable(tenantId,
                 metricsRequest.getAvailabilities(), AVAILABILITY);
-        Observable<Metric<Long>> counters = MetricDefinition.toObservable(tenantId, metricsRequest.getCounters(),
+        Observable<Metric<Long>> counters = Metric.toObservable(tenantId, metricsRequest.getCounters(),
                 COUNTER);
 
         try {

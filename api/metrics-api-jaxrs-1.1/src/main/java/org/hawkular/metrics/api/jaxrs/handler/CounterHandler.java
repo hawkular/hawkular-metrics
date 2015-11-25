@@ -51,7 +51,6 @@ import org.hawkular.metrics.core.api.ApiError;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricDefinition;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.MetricsService;
@@ -82,22 +81,24 @@ public class CounterHandler {
     @POST
     @Path("/")
     public Response createCounter(
-            MetricDefinition<Long> metricDefinition,
+            Metric<Long> metric,
             @Context UriInfo uriInfo
     ) {
-        if(metricDefinition.getType() != null && MetricType.COUNTER != metricDefinition.getType()) {
-            return badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+        if (metric.getType() != null
+                && MetricType.UNDEFINED != metric.getType()
+                && MetricType.COUNTER != metric.getType()) {
+            return badRequest(new ApiError("Metric type does not match " + MetricType
                     .COUNTER.getText()));
         }
-        Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, metricDefinition.getId()),
-                metricDefinition.getTags(), metricDefinition.getDataRetention());
-        URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getId().getName());
+        metric = new Metric<>(new MetricId<>(tenantId, COUNTER, metric.getId()),
+                metric.getTags(), metric.getDataRetention());
+        URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getMetricId().getName());
         try {
             Observable<Void> observable = metricsService.createMetric(metric);
             observable.toBlocking().lastOrDefault(null);
             return Response.created(location).build();
         } catch (MetricAlreadyExistsException e) {
-            String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
+            String message = "A metric with name [" + e.getMetric().getMetricId().getName() + "] already exists";
             return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
         } catch (Exception e) {
             return serverError(e);
@@ -115,7 +116,6 @@ public class CounterHandler {
 
         try {
             return metricObservable
-                    .map(MetricDefinition<Long>::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .toBlocking()
@@ -132,7 +132,6 @@ public class CounterHandler {
     public Response getCounter(@PathParam("id") String id) {
         try {
             return metricsService.findMetric(new MetricId<>(tenantId, COUNTER, id))
-                .map(MetricDefinition<Long>::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                     .switchIfEmpty(Observable.just(noContent()))
                 .toBlocking().lastOrDefault(null);
@@ -185,8 +184,8 @@ public class CounterHandler {
 
     @POST
     @Path("/data")
-    public Response addData(List<MetricDefinition<Long>> counters) {
-        Observable<Metric<Long>> metrics = MetricDefinition.toObservable(tenantId, counters, COUNTER);
+    public Response addData(List<Metric<Long>> counters) {
+        Observable<Metric<Long>> metrics = Metric.toObservable(tenantId, counters, COUNTER);
         try {
             metricsService.addDataPoints(COUNTER, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();

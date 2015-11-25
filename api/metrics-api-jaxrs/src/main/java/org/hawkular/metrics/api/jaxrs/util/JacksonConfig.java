@@ -23,8 +23,10 @@ import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
 
 import org.hawkular.metrics.core.api.AvailabilityType;
+import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.fasterxml.jackson.AvailabilityTypeDeserializer;
 import org.hawkular.metrics.core.api.fasterxml.jackson.AvailabilityTypeSerializer;
+import org.hawkular.metrics.core.api.fasterxml.jackson.MetricTypeDeserializer;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonParser;
@@ -52,6 +54,7 @@ public class JacksonConfig implements ContextResolver<ObjectMapper> {
 
         SimpleModule module = new SimpleModule();
         module.addDeserializer(AvailabilityType.class, new AvailabilityTypeDeserializer());
+        module.addDeserializer(MetricType.class, new MetricTypeDeserializer());
         module.addSerializer(AvailabilityType.class, new AvailabilityTypeSerializer());
         mapper.registerModule(module);
     }

@@ -195,7 +195,7 @@ public class MetricsServiceITest extends MetricsITest {
         Metric<Double> em1 = new Metric<>(new MetricId<Double>("t123", GAUGE, "em1"));
         metricsService.createMetric(em1).toBlocking().lastOrDefault(null);
 
-        Metric<Double> actual = metricsService.findMetric(em1.getId())
+        Metric<Double> actual = metricsService.findMetric(em1.getMetricId())
                 .toBlocking()
                 .lastOrDefault(null);
         assertNotNull(actual);
@@ -215,7 +215,7 @@ public class MetricsServiceITest extends MetricsITest {
     public void createAndFindMetrics() throws Exception {
         Metric<Double> em1 = new Metric<>(new MetricId<>("t1", GAUGE, "em1"));
         metricsService.createMetric(em1).toBlocking().lastOrDefault(null);
-        Metric<Double> actual = metricsService.findMetric(em1.getId())
+        Metric<Double> actual = metricsService.findMetric(em1.getMetricId())
                 .toBlocking()
                 .lastOrDefault(null);
         assertNotNull(actual);
@@ -224,7 +224,7 @@ public class MetricsServiceITest extends MetricsITest {
         Metric<Double> m1 = new Metric<>(new MetricId<>("t1", GAUGE, "m1"), ImmutableMap.of("a1", "1", "a2", "2"), 24);
         metricsService.createMetric(m1).toBlocking().lastOrDefault(null);
 
-        actual = metricsService.findMetric(m1.getId()).toBlocking().last();
+        actual = metricsService.findMetric(m1.getMetricId()).toBlocking().last();
         assertEquals(actual, m1, "The metric does not match the expected value");
 
         Metric<AvailabilityType> m2 = new Metric<>(new MetricId<>("t1", AVAILABILITY, "m2"),
@@ -241,7 +241,7 @@ public class MetricsServiceITest extends MetricsITest {
                 ImmutableMap.of("a3", "3", "a4", "3"), null);
         metricsService.createMetric(gm2).toBlocking().lastOrDefault(null);
 
-        Metric<AvailabilityType> actualAvail = metricsService.findMetric(m2.getId()).toBlocking()
+        Metric<AvailabilityType> actualAvail = metricsService.findMetric(m2.getMetricId()).toBlocking()
                 .last();
         assertEquals(actualAvail, m2, "The metric does not match the expected value");
 
@@ -269,12 +269,12 @@ public class MetricsServiceITest extends MetricsITest {
         assertMetricIndexMatches("t1", GAUGE, asList(em1, m1, gm2, m3, m4));
         assertMetricIndexMatches("t1", AVAILABILITY, singletonList(m2));
 
-        assertDataRetentionsIndexMatches("t1", GAUGE, ImmutableSet.of(new Retention(m3.getId(), 24),
-                                                                      new Retention(m1.getId(), 24)));
+        assertDataRetentionsIndexMatches("t1", GAUGE, ImmutableSet.of(new Retention(m3.getMetricId(), 24),
+                                                                      new Retention(m1.getMetricId(), 24)));
 
         assertMetricsTagsIndexMatches("t1", "a1", asList(
-                new MetricsTagsIndexEntry("1", m1.getId()),
-                new MetricsTagsIndexEntry("A", m4.getId())
+                new MetricsTagsIndexEntry("1", m1.getMetricId()),
+                new MetricsTagsIndexEntry("A", m4.getMetricId())
         ));
     }
 
@@ -495,13 +495,13 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.deleteTags(metric, deletions).toBlocking()
                 .lastOrDefault(null);
 
-        Metric<?> updatedMetric = metricsService.findMetric(metric.getId()).toBlocking()
+        Metric<?> updatedMetric = metricsService.findMetric(metric.getMetricId()).toBlocking()
                 .last();
 
         assertEquals(updatedMetric.getTags(), ImmutableMap.of("a2", "two", "a3", "3"),
                 "The updated meta data does not match the expected values");
 
-        assertMetricIndexMatches(metric.getId().getTenantId(), GAUGE, singletonList(updatedMetric));
+        assertMetricIndexMatches(metric.getMetricId().getTenantId(), GAUGE, singletonList(updatedMetric));
     }
 
     @Test
@@ -609,7 +609,7 @@ public class MetricsServiceITest extends MetricsITest {
 
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
-        List<NumericBucketPoint> actual = metricsService.findCounterStats(counter.getId(),
+        List<NumericBucketPoint> actual = metricsService.findCounterStats(counter.getMetricId(),
                 0, now().getMillis(), Buckets.fromStep(60_000, 60_000 * 8, 60_000),
                 asList(95.0)).toBlocking().single();
         List<NumericBucketPoint> expected = new ArrayList<>();
@@ -665,7 +665,7 @@ public class MetricsServiceITest extends MetricsITest {
 
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
-        List<NumericBucketPoint> actual = metricsService.findCounterStats(counter.getId(),
+        List<NumericBucketPoint> actual = metricsService.findCounterStats(counter.getMetricId(),
                 0, now().getMillis(), Buckets.fromStep(60_000, 60_100, 60_100), percentiles).toBlocking()
                 .single();
 
@@ -693,7 +693,7 @@ public class MetricsServiceITest extends MetricsITest {
 
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
-        List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getId(),
+        List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getMetricId(),
                 0, now().getMillis()));
         List<DataPoint<Double>> expected = asList(
                 new DataPoint<>((long) (60_000 * 1.5), 400D),
@@ -723,7 +723,7 @@ public class MetricsServiceITest extends MetricsITest {
         ));
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
-        List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getId(),
+        List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getMetricId(),
                 0, now().getMillis()));
         List<DataPoint<Double>> expected = asList(
                 new DataPoint<>((long) (60_000 * 1.5), 2D),
@@ -752,7 +752,7 @@ public class MetricsServiceITest extends MetricsITest {
 
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
-        List<NumericBucketPoint> actual = metricsService.findRateStats(counter.getId(),
+        List<NumericBucketPoint> actual = metricsService.findRateStats(counter.getMetricId(),
                 0, now().getMillis(), Buckets.fromStep(60_000, 60_000 * 8, 60_000),
                 asList(99.0)).toBlocking().single();
         List<NumericBucketPoint> expected = new ArrayList<>();
@@ -883,10 +883,12 @@ public class MetricsServiceITest extends MetricsITest {
         Map<String, String> tagFilters = ImmutableMap.of("type", "counter_cpu_usage", "node", "server1|server2");
 
         List<DataPoint<Double>> c1Rate = getOnNextEvents(
-                () -> metricsService.findRateData(c1.getId(), start.getMillis(), start.plusMinutes(5).getMillis()));
+                () -> metricsService.findRateData(c1.getMetricId(),
+                        start.getMillis(), start.plusMinutes(5).getMillis()));
 
         List<DataPoint<Double>> c2Rate = getOnNextEvents(
-                () -> metricsService.findRateData(c2.getId(), start.getMillis(), start.plusMinutes(5).getMillis()));
+                () -> metricsService.findRateData(c2.getMetricId(),
+                        start.getMillis(), start.plusMinutes(5).getMillis()));
 
         //Test simple counter stats
         List<List<NumericBucketPoint>> actualCounterStatsByTag = getOnNextEvents(
@@ -1233,7 +1235,7 @@ public class MetricsServiceITest extends MetricsITest {
 
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
-        List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getId(),
+        List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getMetricId(),
                 start.plusMinutes(3).getMillis(), start.plusMinutes(5).getMillis()));
 
         assertEquals(actual.size(), 0, "The rates do not match");
@@ -1294,8 +1296,8 @@ public class MetricsServiceITest extends MetricsITest {
                     long writeTime = now().minus(duration).getMillis() * 1000;
                     BatchStatement batchStatement = new BatchStatement(BatchStatement.Type.UNLOGGED);
                     for (DataPoint<AvailabilityType> a : m.getDataPoints()) {
-                        batchStatement.add(insertAvailabilityDateWithTimestamp.bind(m.getId().getTenantId(),
-                            AVAILABILITY.getCode(), m.getId().getName(), DPART, getTimeUUID(a.getTimestamp()),
+                        batchStatement.add(insertAvailabilityDateWithTimestamp.bind(m.getMetricId().getTenantId(),
+                            AVAILABILITY.getCode(), m.getMetricId().getName(), DPART, getTimeUUID(a.getTimestamp()),
                                 getBytes(a), actualTTL, writeTime));
                     }
                     return rxSession.execute(batchStatement).map(resultSet -> batchStatement.size());
@@ -1339,24 +1341,26 @@ public class MetricsServiceITest extends MetricsITest {
 
         metricsService.addDataPoints(GAUGE, Observable.just(m1, m2, m3, m4)).toBlocking().lastOrDefault(null);
 
-        Observable<DataPoint<Double>> observable1 = metricsService.findDataPoints(m1.getId(),
+        Observable<DataPoint<Double>> observable1 = metricsService.findDataPoints(m1.getMetricId(),
                 start.getMillis(), end.getMillis());
-        assertEquals(toList(observable1), m1.getDataPoints(), "The gauge data for " + m1.getId() + " does not match");
+        assertEquals(toList(observable1), m1.getDataPoints(),
+                "The gauge data for " + m1.getMetricId() + " does not match");
 
-        Observable<DataPoint<Double>> observable2 = metricsService.findDataPoints(m2.getId(),
+        Observable<DataPoint<Double>> observable2 = metricsService.findDataPoints(m2.getMetricId(),
                 start.getMillis(), end.getMillis());
-        assertEquals(toList(observable2), m2.getDataPoints(), "The gauge data for " + m2.getId() + " does not match");
+        assertEquals(toList(observable2), m2.getDataPoints(),
+                "The gauge data for " + m2.getMetricId() + " does not match");
 
-        Observable<DataPoint<Double>> observable3 = metricsService.findDataPoints(m3.getId(),
+        Observable<DataPoint<Double>> observable3 = metricsService.findDataPoints(m3.getMetricId(),
                 start.getMillis(), end.getMillis());
-        assertTrue(toList(observable3).isEmpty(), "Did not expect to get back results for " + m3.getId());
+        assertTrue(toList(observable3).isEmpty(), "Did not expect to get back results for " + m3.getMetricId());
 
-        Observable<DataPoint<Double>> observable4 = metricsService.findDataPoints(m4.getId(),
+        Observable<DataPoint<Double>> observable4 = metricsService.findDataPoints(m4.getMetricId(),
                 start.getMillis(), end.getMillis());
         Metric<Double> expected = new Metric<>(new MetricId<>(tenantId, GAUGE, "m4"), emptyMap(), 24,
                 singletonList(new DataPoint<>(start.plusSeconds(30).getMillis(), 55.5)));
         assertEquals(toList(observable4), expected.getDataPoints(),
-                "The gauge data for " + m4.getId() + " does not match");
+                "The gauge data for " + m4.getMetricId() + " does not match");
 
         assertMetricIndexMatches(tenantId, GAUGE, asList(m1, m2, m3, m4));
     }
@@ -1381,15 +1385,15 @@ public class MetricsServiceITest extends MetricsITest {
 
         metricsService.addDataPoints(AVAILABILITY, Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
 
-        List<DataPoint<AvailabilityType>> actual = metricsService.findDataPoints(m1.getId(),
+        List<DataPoint<AvailabilityType>> actual = metricsService.findDataPoints(m1.getMetricId(),
                 start.getMillis(), end.getMillis()).toList().toBlocking().last();
         assertEquals(actual, m1.getDataPoints(), "The availability data does not match expected values");
 
-        actual = metricsService.findDataPoints(m2.getId(), start.getMillis(), end.getMillis())
+        actual = metricsService.findDataPoints(m2.getMetricId(), start.getMillis(), end.getMillis())
                 .toList().toBlocking().last();
         assertEquals(actual, m2.getDataPoints(), "The availability data does not match expected values");
 
-        actual = metricsService.findDataPoints(m3.getId(), start.getMillis(), end.getMillis())
+        actual = metricsService.findDataPoints(m3.getMetricId(), start.getMillis(), end.getMillis())
                 .toList().toBlocking().last();
         assertEquals(actual.size(), 0, "Did not expect to get back results since there is no data for " + m3);
 
@@ -1400,9 +1404,9 @@ public class MetricsServiceITest extends MetricsITest {
 
         metricsService.addDataPoints(AVAILABILITY, Observable.just(m4)).toBlocking().lastOrDefault(null);
 
-        actual = metricsService.findDataPoints(m4.getId(), start.getMillis(), end.getMillis())
+        actual = metricsService.findDataPoints(m4.getMetricId(), start.getMillis(), end.getMillis())
                 .toList().toBlocking().last();
-        Metric<AvailabilityType> expected = new Metric<>(m4.getId(), emptyMap(), 24,
+        Metric<AvailabilityType> expected = new Metric<>(m4.getMetricId(), emptyMap(), 24,
                 singletonList(new DataPoint<>(start.plusMinutes(2).getMillis(), UP)));
         assertEquals(actual, expected.getDataPoints(), "The availability data does not match expected values");
 
@@ -1477,7 +1481,7 @@ public class MetricsServiceITest extends MetricsITest {
 
         metricsService.addDataPoints(GAUGE, Observable.just(m1)).toBlocking().lastOrDefault(null);
 
-        List<long[]> actual = metricsService.getPeriods(m1.getId(),
+        List<long[]> actual = metricsService.getPeriods(m1.getMetricId(),
                 value -> value > threshold, start.getMillis(), now().getMillis()).toBlocking().lastOrDefault(null);
         List<long[]> expected = asList(
             new long[] {start.plusMinutes(2).getMillis(), start.plusMinutes(3).getMillis()},
@@ -1502,7 +1506,7 @@ public class MetricsServiceITest extends MetricsITest {
         List<Metric<?>> actual = Collections.synchronizedList(new ArrayList<>());
         CountDownLatch latch = new CountDownLatch(metricTypes.size() * numberOfPoints);
         metricsService.insertedDataEvents()
-                .filter(metric -> metric.getId().getTenantId().equals(tenantId))
+                .filter(metric -> metric.getMetricId().getTenantId().equals(tenantId))
                 .subscribe(metric -> {
                     actual.add(metric);
                     latch.countDown();
