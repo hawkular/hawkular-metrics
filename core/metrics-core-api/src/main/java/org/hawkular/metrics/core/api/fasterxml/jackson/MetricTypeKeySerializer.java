@@ -28,10 +28,10 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 /**
  * @author Thomas Segismont
  */
-public class MetricTypeKeySerializer extends JsonSerializer<MetricType<?>> {
+public class MetricTypeKeySerializer extends JsonSerializer<MetricType> {
 
     @Override
-    public void serialize(MetricType<?> value, JsonGenerator gen, SerializerProvider serializers) throws IOException,
+    public void serialize(MetricType value, JsonGenerator gen, SerializerProvider serializers) throws IOException,
             JsonProcessingException {
         gen.writeFieldName(value.getText());
     }

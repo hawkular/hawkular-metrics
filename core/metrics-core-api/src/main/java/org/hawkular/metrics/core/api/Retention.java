@@ -25,16 +25,16 @@ import com.google.common.base.Objects;
  */
 public class Retention {
 
-    private MetricId<?> id;
+    private MetricId id;
 
     private int value;
 
-    public Retention(MetricId<?> id, int value) {
+    public Retention(MetricId id, int value) {
         this.id = id;
         this.value = value;
     }
 
-    public MetricId<?> getId() {
+    public MetricId getId() {
         return id;
     }
 

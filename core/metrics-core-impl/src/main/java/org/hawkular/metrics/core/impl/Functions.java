@@ -101,7 +101,7 @@ public class Functions {
 
     public static Tenant getTenant(Row row) {
         String tenantId = row.getString(0);
-        Map<MetricType<?>, Integer> retentions = row.getMap(1, String.class, Integer.class).entrySet().stream().collect(
+        Map<MetricType, Integer> retentions = row.getMap(1, String.class, Integer.class).entrySet().stream().collect(
                 toMap(entry -> MetricType.fromTextCode(entry.getKey()), Map.Entry::getValue));
 
         return new Tenant(tenantId, retentions);

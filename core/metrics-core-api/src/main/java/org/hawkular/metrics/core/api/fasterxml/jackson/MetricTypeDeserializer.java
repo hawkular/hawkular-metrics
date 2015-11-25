@@ -28,10 +28,10 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 /**
  * @author Michael Burman
  */
-public class MetricTypeDeserializer extends JsonDeserializer<MetricType<?>> {
+public class MetricTypeDeserializer extends JsonDeserializer<MetricType> {
 
     @Override
-    public MetricType<?> deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
+    public MetricType deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
             throws IOException, JsonProcessingException {
         return MetricType.fromTextCode(jsonParser.getText());
     }

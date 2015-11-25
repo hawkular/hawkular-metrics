@@ -54,7 +54,7 @@ public interface CoreLogger extends BasicLogger {
 
     @LogMessage(level = WARN)
     @Message(id = 100005, value = "Failed to load data retentions for {tenantId: %s, metricType: %s}")
-    void warnDataRetentionLoadingFailure(String tenantId, MetricType<?> metricType, @Cause Throwable t);
+    void warnDataRetentionLoadingFailure(String tenantId, MetricType metricType, @Cause Throwable t);
 
     @LogMessage(level = WARN)
     @Message(id = 100006, value = "There was an error persisting rates for {tenant= %s, start= %d, end= %d}")

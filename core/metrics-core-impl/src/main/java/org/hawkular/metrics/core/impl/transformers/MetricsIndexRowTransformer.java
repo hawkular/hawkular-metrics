@@ -33,10 +33,10 @@ import rx.Observable.Transformer;
  * @author Thomas Segismont
  */
 public class MetricsIndexRowTransformer<T> implements Transformer<Row, Metric<T>> {
-    private final MetricType<T> type;
+    private final MetricType type;
     private final String tenantId;
 
-    public MetricsIndexRowTransformer(String tenantId, MetricType<T> type) {
+    public MetricsIndexRowTransformer(String tenantId, MetricType type) {
         this.type = type;
         this.tenantId = tenantId;
     }
@@ -44,7 +44,7 @@ public class MetricsIndexRowTransformer<T> implements Transformer<Row, Metric<T>
     @Override
     public Observable<Metric<T>> call(Observable<Row> rows) {
         return rows.map(row -> {
-            MetricId<T> metricId = new MetricId<>(tenantId, type, row.getString(0));
+            MetricId metricId = new MetricId(tenantId, type, row.getString(0));
             return new Metric<>(metricId, row.getMap(1, String.class, String.class), row.getInt(2));
         });
     }

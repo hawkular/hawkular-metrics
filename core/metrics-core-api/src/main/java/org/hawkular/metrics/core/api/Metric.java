@@ -46,7 +46,7 @@ import rx.Observable;
  * @author jsanda
  */
 public class Metric<T> {
-    private final MetricId<T> id;
+    private final MetricId id;
     private final Map<String, String> tags;
     private final Integer dataRetention;
     private final List<DataPoint<T>> dataPoints;
@@ -69,7 +69,7 @@ public class Metric<T> {
             @org.codehaus.jackson.map.annotate.JsonDeserialize(
                     using = org.hawkular.metrics.core.api.codehaus.jackson.MetricTypeDeserializer.class
             )
-            MetricType<T> type,
+            MetricType type,
             @JsonProperty("data") @org.codehaus.jackson.annotate.JsonProperty("data")
             List<DataPoint<T>> data
     ) {
@@ -77,25 +77,25 @@ public class Metric<T> {
 
         type = type == null ? MetricType.UNDEFINED : type;
 
-        this.id = new MetricId<T>("hawkular-metrics-system", type, id);
+        this.id = new MetricId("hawkular-metrics-system", type, id);
         this.tags = tags == null ? emptyMap() : unmodifiableMap(tags);
         this.dataRetention = dataRetention;
         this.dataPoints = data == null || data.isEmpty() ? emptyList() : unmodifiableList(data);
     }
 
-    public Metric(MetricId<T> id) {
+    public Metric(MetricId id) {
         this(id, Collections.emptyMap(), null, Collections.emptyList());
     }
 
-    public Metric(MetricId<T> id, Map<String, String> tags, Integer dataRetention) {
+    public Metric(MetricId id, Map<String, String> tags, Integer dataRetention) {
         this(id, tags, dataRetention, Collections.emptyList());
     }
 
-    public Metric(MetricId<T> id, List<DataPoint<T>> dataPoints) {
+    public Metric(MetricId id, List<DataPoint<T>> dataPoints) {
         this(id, Collections.emptyMap(), null, dataPoints);
     }
 
-    public Metric(MetricId<T> id, Map<String, String> tags, Integer dataRetention, List<DataPoint<T>> dataPoints) {
+    public Metric(MetricId id, Map<String, String> tags, Integer dataRetention, List<DataPoint<T>> dataPoints) {
         checkArgument(id != null, "id is null");
         checkArgument(tags != null, "tags is null");
         checkArgument(dataPoints != null, "dataPoints is null");
@@ -124,13 +124,13 @@ public class Metric<T> {
     @JsonSerialize(using = MetricTypeSerializer.class)
     @org.codehaus.jackson.map.annotate.JsonSerialize(
             using = org.hawkular.metrics.core.api.codehaus.jackson.MetricTypeSerializer.class)
-    public MetricType<?> getType() {
+    public MetricType getType() {
         return getMetricId().getType();
     }
 
     @JsonIgnore
     @org.codehaus.jackson.annotate.JsonIgnore
-    public MetricId<T> getMetricId() {
+    public MetricId getMetricId() {
         return id;
     }
 
@@ -182,9 +182,9 @@ public class Metric<T> {
     }
 
     public static <S> Observable<Metric<S>> toObservable(
-            String tenantId, List<Metric<S>> metrics, MetricType<S> type) {
+            String tenantId, List<Metric<S>> metrics, MetricType type) {
         return Observable.from(metrics).map(g -> {
-            return new Metric<S>(new MetricId<S>(tenantId, type, g.getMetricId().getName()), g.getDataPoints());
+            return new Metric<>(new MetricId(tenantId, type, g.getMetricId().getName()), g.getDataPoints());
         });
     }
 }

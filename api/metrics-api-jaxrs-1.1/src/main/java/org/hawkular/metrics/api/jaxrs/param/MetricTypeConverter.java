@@ -28,15 +28,15 @@ import org.jboss.resteasy.spi.StringConverter;
  * @author Thomas Segismont
  */
 @Provider
-public class MetricTypeConverter implements StringConverter<MetricType<?>> {
+public class MetricTypeConverter implements StringConverter<MetricType> {
 
     @Override
-    public MetricType<?> fromString(String s) {
+    public MetricType fromString(String s) {
         return MetricType.fromTextCode(s);
     }
 
     @Override
-    public String toString(MetricType<?> metricType) {
+    public String toString(MetricType metricType) {
         return metricType.getText();
     }
 }

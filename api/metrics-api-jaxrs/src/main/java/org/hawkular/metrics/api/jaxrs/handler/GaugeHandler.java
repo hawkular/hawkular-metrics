@@ -112,7 +112,7 @@ public class GaugeHandler {
             asyncResponse.resume(badRequest(new ApiError("Metric type does not match " + MetricType
                     .GAUGE.getText())));
         }
-        metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metric.getId()), metric.getTags(),
+        metric = new Metric<>(new MetricId(tenantId, GAUGE, metric.getId()), metric.getTags(),
                 metric.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getMetricId().getName());
         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
@@ -159,7 +159,7 @@ public class GaugeHandler {
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.",
                          response = ApiError.class) })
     public void getGaugeMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
-        metricsService.findMetric(new MetricId<>(tenantId, GAUGE, id))
+        metricsService.findMetric(new MetricId(tenantId, GAUGE, id))
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(ApiUtils.noContent()))
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
@@ -177,7 +177,7 @@ public class GaugeHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id
     ) {
-        metricsService.getMetricTags(new MetricId<>(tenantId, GAUGE, id))
+        metricsService.getMetricTags(new MetricId(tenantId, GAUGE, id))
                 .subscribe(
                         optional -> asyncResponse.resume(ApiUtils.valueToResponse(optional)),
                         t ->asyncResponse.resume(ApiUtils.serverError(t))
@@ -196,7 +196,7 @@ public class GaugeHandler {
             @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags
     ) {
-        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
+        Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id));
         metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -213,7 +213,7 @@ public class GaugeHandler {
             @PathParam("id") String id,
             @ApiParam("Tag list") @PathParam("tags") Tags tags
     ) {
-        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
+        Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id));
         metricsService.deleteTags(metric, tags.getTags()).subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -287,7 +287,7 @@ public class GaugeHandler {
             return;
         }
 
-        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+        MetricId metricId = new MetricId(tenantId, GAUGE, id);
         Buckets buckets = bucketConfig.getBuckets();
         if (buckets == null) {
             metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
@@ -433,7 +433,7 @@ public class GaugeHandler {
                     )
             ));
         } else {
-            MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+            MetricId metricId = new MetricId(tenantId, GAUGE, id);
             metricsService.getPeriods(metricId, predicate, timeRange.getStart(), timeRange.getEnd())
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));

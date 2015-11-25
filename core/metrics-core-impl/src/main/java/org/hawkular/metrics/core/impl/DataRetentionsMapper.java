@@ -32,9 +32,9 @@ import com.google.common.base.Function;
  */
 public class DataRetentionsMapper implements Function<ResultSet, Set<Retention>> {
     private final String tenantId;
-    private final MetricType<?> type;
+    private final MetricType type;
 
-    public DataRetentionsMapper(String tenantId, MetricType<?> type) {
+    public DataRetentionsMapper(String tenantId, MetricType type) {
         this.tenantId = tenantId;
         this.type = type;
     }
@@ -43,7 +43,7 @@ public class DataRetentionsMapper implements Function<ResultSet, Set<Retention>>
     public Set<Retention> apply(ResultSet resultSet) {
         Set<Retention> dataRetentions = new HashSet<>();
         for (Row row : resultSet) {
-            dataRetentions.add(new Retention(new MetricId<>(tenantId, type, row.getString(2)), row.getInt(3)));
+            dataRetentions.add(new Retention(new MetricId(tenantId, type, row.getString(2)), row.getInt(3)));
         }
         return dataRetentions;
     }

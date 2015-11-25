@@ -29,24 +29,24 @@ import com.google.common.collect.ImmutableSet;
  *
  * @author John Sanda
  */
-public final class MetricType<T> {
-    public static final MetricType<Double> GAUGE = new MetricType<>((byte) 0, "gauge", true);
-    public static final MetricType<AvailabilityType> AVAILABILITY = new MetricType<>((byte) 1, "availability", true);
-    public static final MetricType<Long> COUNTER = new MetricType<>((byte) 2, "counter", true);
-    public static final MetricType<Double> COUNTER_RATE = new MetricType<>((byte) 3, "counter_rate", false);
-    public static final MetricType UNDEFINED = new MetricType<>((byte) 127, "undefined", false);
+public final class MetricType {
+    public static final MetricType GAUGE = new MetricType((byte) 0, "gauge", true);
+    public static final MetricType AVAILABILITY = new MetricType((byte) 1, "availability", true);
+    public static final MetricType COUNTER = new MetricType((byte) 2, "counter", true);
+    public static final MetricType COUNTER_RATE = new MetricType((byte) 3, "counter_rate", false);
+    public static final MetricType UNDEFINED = new MetricType((byte) 127, "undefined", false);
     // If you add a new type: don't forget to update the "all" and "userTypes" sets
 
-    private static final Set<MetricType<?>> all = ImmutableSet.of(GAUGE, AVAILABILITY, COUNTER, COUNTER_RATE);
+    private static final Set<MetricType> all = ImmutableSet.of(GAUGE, AVAILABILITY, COUNTER, COUNTER_RATE);
 
-    private static final Set<MetricType<?>> userTypes;
-    private static final Map<Byte, MetricType<?>> codes;
-    private static final Map<String, MetricType<?>> texts;
+    private static final Set<MetricType> userTypes;
+    private static final Map<Byte, MetricType> codes;
+    private static final Map<String, MetricType> texts;
 
     static {
-        ImmutableSet.Builder<MetricType<?>> userTypesBuilder = ImmutableSet.builder();
-        ImmutableMap.Builder<Byte, MetricType<?>> codesBuilder = ImmutableMap.builder();
-        ImmutableMap.Builder<String, MetricType<?>> textsBuilder = ImmutableMap.builder();
+        ImmutableSet.Builder<MetricType> userTypesBuilder = ImmutableSet.builder();
+        ImmutableMap.Builder<Byte, MetricType> codesBuilder = ImmutableMap.builder();
+        ImmutableMap.Builder<String, MetricType> textsBuilder = ImmutableMap.builder();
         all.forEach(type -> {
             if (type.isUserType()) {
                 userTypesBuilder.add(type);
@@ -88,31 +88,31 @@ public final class MetricType<T> {
         return getText();
     }
 
-    public static MetricType<?> fromCode(byte code) {
-        MetricType<?> type = codes.get(code);
+    public static MetricType fromCode(byte code) {
+        MetricType type = codes.get(code);
         if (type == null) {
             throw new IllegalArgumentException(code + " is not a recognized metric type");
         }
         return type;
     }
 
-    public static MetricType<?> fromTextCode(String textCode) {
+    public static MetricType fromTextCode(String textCode) {
         if (textCode == null || textCode.trim().isEmpty()) {
             return UNDEFINED;
         }
 
-        MetricType<?> type = texts.get(textCode);
+        MetricType type = texts.get(textCode);
         if (type == null) {
             throw new IllegalArgumentException(textCode + " is not a recognized metric type");
         }
         return type;
     }
 
-    public static Set<MetricType<?>> all() {
+    public static Set<MetricType> all() {
         return all;
     }
 
-    public static Set<MetricType<?>> userTypes() {
+    public static Set<MetricType> userTypes() {
         return userTypes;
     }
 }

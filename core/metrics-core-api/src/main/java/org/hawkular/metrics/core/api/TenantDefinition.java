@@ -42,7 +42,7 @@ import io.swagger.annotations.ApiModelProperty;
 @ApiModel(value = "Tenant", description = "The definition of a tenant")
 public class TenantDefinition {
     private final String id;
-    private final Map<MetricType<?>, Integer> retentionSettings;
+    private final Map<MetricType, Integer> retentionSettings;
 
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
@@ -53,7 +53,7 @@ public class TenantDefinition {
             @JsonProperty("retentions")
             @JsonDeserialize(keyUsing = MetricTypeKeyDeserializer.class)
             @org.codehaus.jackson.annotate.JsonProperty("retentions")
-            Map<MetricType<?>, Integer> retentionSettings) {
+            Map<MetricType, Integer> retentionSettings) {
         checkArgument(id != null, "Tenant id is null");
         this.id = id;
         this.retentionSettings = retentionSettings == null ? emptyMap() : unmodifiableMap(retentionSettings);
@@ -81,7 +81,7 @@ public class TenantDefinition {
     @org.codehaus.jackson.map.annotate.JsonDeserialize(
             keyUsing = org.hawkular.metrics.core.api.codehaus.jackson.MetricTypeKeyDeserializer.class
     )
-    public Map<MetricType<?>, Integer> getRetentionSettings() {
+    public Map<MetricType, Integer> getRetentionSettings() {
         return retentionSettings;
     }
 

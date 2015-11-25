@@ -77,9 +77,9 @@ public class GenerateRateITest extends MetricsITest {
         DateTime start = dateTimeService.getTimeSlice(DateTime.now(), standardMinutes(1)).minusMinutes(5);
         String tenant = "rates-test";
 
-        Metric<Long> c1 = new Metric<>(new MetricId<>(tenant, COUNTER, "C1"));
-        Metric<Long> c2 = new Metric<>(new MetricId<>(tenant, COUNTER, "C2"));
-        Metric<Long> c3 = new Metric<>(new MetricId<>(tenant, COUNTER, "C3"));
+        Metric<Long> c1 = new Metric<>(new MetricId(tenant, COUNTER, "C1"));
+        Metric<Long> c2 = new Metric<>(new MetricId(tenant, COUNTER, "C2"));
+        Metric<Long> c3 = new Metric<>(new MetricId(tenant, COUNTER, "C3"));
 
         doAction(() -> metricsService.createMetric(c1));
         doAction(() -> metricsService.createMetric(c2));

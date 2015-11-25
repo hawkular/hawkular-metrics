@@ -16,9 +16,6 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import static java.lang.Boolean.FALSE;
-import static java.lang.Boolean.TRUE;
-
 import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
@@ -96,13 +93,13 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     public static final String SYSTEM_TENANT_ID = makeSafe("system");
 
     private static class DataRetentionKey {
-        private final MetricId<?> metricId;
+        private final MetricId metricId;
 
-        public DataRetentionKey(String tenantId, MetricType<?> type) {
-            metricId = new MetricId<>(tenantId, type, makeSafe(type.getText()));
+        public DataRetentionKey(String tenantId, MetricType type) {
+            metricId = new MetricId(tenantId, type, makeSafe(type.getText()));
         }
 
-        public DataRetentionKey(MetricId<?> metricId) {
+        public DataRetentionKey(MetricId metricId) {
             this.metricId = metricId;
         }
 
@@ -146,27 +143,27 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     /**
      * Functions used to insert metric data points.
      */
-    private Map<MetricType<?>, Func2<? extends Metric<?>, Integer, Observable<Integer>>> dataPointInserters;
+    private Map<MetricType, Func2<? extends Metric<?>, Integer, Observable<Integer>>> dataPointInserters;
 
     /**
      * Measurements of the throughput of inserting data points.
      */
-    private Map<MetricType<?>, Meter> dataPointInsertMeters;
+    private Map<MetricType, Meter> dataPointInsertMeters;
 
     /**
      * Measures the latency of queries for data points.
      */
-    private Map<MetricType<?>, Timer> dataPointReadTimers;
+    private Map<MetricType, Timer> dataPointReadTimers;
 
     /**
      * Functions used to find metric data points.
      */
-    private Map<MetricType<?>, Func3<? extends MetricId<?>, Long, Long, Observable<ResultSet>>> dataPointFinders;
+    private Map<MetricType, Func3<? extends MetricId, Long, Long, Observable<ResultSet>>> dataPointFinders;
 
     /**
      * Functions used to transform a row into a data point object.
      */
-    private Map<MetricType<?>, Func1<Row, ? extends DataPoint<?>>> dataPointMappers;
+    private Map<MetricType, Func1<Row, ? extends DataPoint<?>>> dataPointMappers;
 
     private int defaultTTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
@@ -191,7 +188,8 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
         this.metricRegistry = metricRegistry;
 
-        dataPointInserters = ImmutableMap.<MetricType<?>, Func2<? extends Metric<?>, Integer,
+        dataPointInserters = ImmutableMap
+                .<MetricType, Func2<? extends Metric<?>, Integer,
                 Observable<Integer>>>builder()
                 .put(GAUGE, (metric, ttl) -> {
                     @SuppressWarnings("unchecked")
@@ -215,26 +213,21 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                 })
                 .build();
 
-        dataPointFinders = ImmutableMap.<MetricType<?>, Func3<? extends MetricId<?>, Long, Long,
+        dataPointFinders = ImmutableMap
+                .<MetricType, Func3<? extends MetricId, Long, Long,
                 Observable<ResultSet>>>builder()
                 .put(GAUGE, (metricId, start, end) -> {
-                    @SuppressWarnings("unchecked")
-                    MetricId<Double> gaugeId = (MetricId<Double>) metricId;
-                    return dataAccess.findGaugeData(gaugeId, start, end);
+                    return dataAccess.findGaugeData(metricId, start, end);
                 })
                 .put(AVAILABILITY, (metricId, start, end) -> {
-                    @SuppressWarnings("unchecked")
-                    MetricId<AvailabilityType> availabilityId = (MetricId<AvailabilityType>) metricId;
-                    return dataAccess.findAvailabilityData(availabilityId, start, end);
+                    return dataAccess.findAvailabilityData(metricId, start, end);
                 })
                 .put(COUNTER, (metricId, start, end) -> {
-                    @SuppressWarnings("unchecked")
-                    MetricId<Long> counterId = (MetricId<Long>) metricId;
-                    return dataAccess.findCounterData(counterId, start, end);
+                    return dataAccess.findCounterData(metricId, start, end);
                 })
                 .build();
 
-        dataPointMappers = ImmutableMap.<MetricType<?>, Func1<Row, ? extends DataPoint<?>>>builder()
+        dataPointMappers = ImmutableMap.<MetricType, Func1<Row, ? extends DataPoint<?>>> builder()
                 .put(GAUGE, Functions::getGaugeDataPoint)
                 .put(AVAILABILITY, Functions::getAvailabilityDataPoint)
                 .put(COUNTER, Functions::getCounterDataPoint)
@@ -272,13 +265,13 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     private void initMetrics() {
-        dataPointInsertMeters = ImmutableMap.<MetricType<?>, Meter>builder()
+        dataPointInsertMeters = ImmutableMap.<MetricType, Meter> builder()
                 .put(GAUGE, metricRegistry.meter("gauge-inserts"))
                 .put(AVAILABILITY, metricRegistry.meter("availability-inserts"))
                 .put(COUNTER, metricRegistry.meter("counter-inserts"))
                 .put(COUNTER_RATE, metricRegistry.meter("gauge-inserts"))
                 .build();
-        dataPointReadTimers = ImmutableMap.<MetricType<?>, Timer>builder()
+        dataPointReadTimers = ImmutableMap.<MetricType, Timer> builder()
                 .put(GAUGE, metricRegistry.timer("gauge-read-latency"))
                 .put(AVAILABILITY, metricRegistry.timer("availability-read-latency"))
                 .put(COUNTER, metricRegistry.timer("counter-read-latency"))
@@ -289,11 +282,11 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
         private final String tenantId;
 
-        private final MetricType<?> type;
+        private final MetricType type;
 
         private final CountDownLatch latch;
 
-        public DataRetentionsLoadedCallback(String tenantId, MetricType<?> type, CountDownLatch latch) {
+        public DataRetentionsLoadedCallback(String tenantId, MetricType type, CountDownLatch latch) {
             this.tenantId = tenantId;
             this.type = type;
             this.latch = latch;
@@ -417,7 +410,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public Observable<Void> createMetric(Metric<?> metric) {
-        MetricType<?> metricType = metric.getMetricId().getType();
+        MetricType metricType = metric.getMetricId().getType();
         if (!metricType.isUserType()) {
             throw new IllegalArgumentException(metric + " cannot be created. " + metricType + " metrics are " +
                     "internally generated metrics and cannot be created by clients.");
@@ -462,21 +455,16 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public <T> Observable<Metric<T>> findMetric(final MetricId<T> id) {
+    public <T> Observable<Metric<T>> findMetric(final MetricId id) {
         return dataAccess.findMetric(id)
                 .flatMap(Observable::from)
                 .map(row -> new Metric<>(id, row.getMap(1, String.class, String.class), row.getInt(2)));
     }
 
     @Override
-    public <T> Observable<Metric<T>> findMetrics(String tenantId, MetricType<T> metricType) {
+    public <T> Observable<Metric<T>> findMetrics(String tenantId, MetricType metricType) {
         if (metricType == null) {
             return Observable.from(MetricType.userTypes())
-                    .map(type -> {
-                        @SuppressWarnings("unchecked")
-                        MetricType<T> t = (MetricType<T>) type;
-                        return t;
-                    })
                     .flatMap(type -> dataAccess.findMetricsInMetricsIndex(tenantId, type)
                             .flatMap(Observable::from)
                             .compose(new MetricsIndexRowTransformer<>(tenantId, type)));
@@ -488,7 +476,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, Map<String, String> tagsQueries,
-                                                            MetricType<T> metricType) {
+                                                            MetricType metricType) {
         // Fetch everything from the tagsQueries
         return Observable.from(tagsQueries.entrySet())
                 .flatMap(entry -> {
@@ -500,7 +488,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                             .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
                                     .flatMap(Observable::from)
                                     .filter(r -> positive == p.matcher(r.getString(2)).matches()) // XNOR
-                                    .compose(new TagsIndexRowTransformer<>(tenantId, metricType))
+                                    .compose(new TagsIndexRowTransformer(tenantId, metricType))
                                     .compose(new ItemsToSetTransformer<>())
                                     .reduce((s1, s2) -> {
                                         s1.addAll(s2);
@@ -533,7 +521,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public Observable<Optional<Map<String, String>>> getMetricTags(MetricId<?> id) {
+    public Observable<Optional<Map<String, String>>> getMetricTags(MetricId id) {
         Observable<ResultSet> metricTags = dataAccess.getMetricTags(id);
 
         return metricTags.flatMap(Observable::from).take(1).map(row -> Optional.of(row.getMap(0, String.class, String
@@ -564,7 +552,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public <T> Observable<Void> addDataPoints(MetricType<T> metricType, Observable<Metric<T>> metrics) {
+    public <T> Observable<Void> addDataPoints(MetricType metricType, Observable<Metric<T>> metrics) {
         checkArgument(metricType != null, "metricType is null");
 
         // We write to both the data and the metrics_idx tables. Each metric can have one or more data points. We
@@ -605,7 +593,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                 .map(count -> null);
     }
 
-    private <T> Meter getInsertMeter(MetricType<T> metricType) {
+    private <T> Meter getInsertMeter(MetricType metricType) {
         Meter meter = dataPointInsertMeters.get(metricType);
         if (meter == null) {
             throw new UnsupportedOperationException(metricType.getText());
@@ -614,7 +602,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> Func2<Metric<T>, Integer, Observable<Integer>> getInserter(MetricType<T> metricType) {
+    private <T> Func2<Metric<T>, Integer, Observable<Integer>> getInserter(MetricType metricType) {
         Func2<Metric<T>, Integer, Observable<Integer>> inserter;
         inserter = (Func2<Metric<T>, Integer, Observable<Integer>>) dataPointInserters.get(metricType);
         if (inserter == null) {
@@ -635,18 +623,18 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> metricId, long start, long end) {
+    public <T> Observable<DataPoint<T>> findDataPoints(MetricId metricId, long start, long end) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        MetricType<T> metricType = metricId.getType();
+        MetricType metricType = metricId.getType();
         Timer timer = getDataPointFindTimer(metricType);
-        Func3<MetricId<T>, Long, Long, Observable<ResultSet>> finder = getDataPointFinder(metricType);
+        Func3<MetricId, Long, Long, Observable<ResultSet>> finder = getDataPointFinder(metricType);
         Func1<Row, DataPoint<T>> mapper = getDataPointMapper(metricType);
         return time(timer, () -> finder.call(metricId, start, end)
                 .flatMap(Observable::from)
                 .map(mapper));
     }
 
-    private <T> Timer getDataPointFindTimer(MetricType<T> metricType) {
+    private <T> Timer getDataPointFindTimer(MetricType metricType) {
         Timer timer = dataPointReadTimers.get(metricType);
         if (timer == null) {
             throw new UnsupportedOperationException(metricType.getText());
@@ -655,9 +643,9 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> Func3<MetricId<T>, Long, Long, Observable<ResultSet>> getDataPointFinder(MetricType<T> metricType) {
-        Func3<MetricId<T>, Long, Long, Observable<ResultSet>> finder;
-        finder = (Func3<MetricId<T>, Long, Long, Observable<ResultSet>>) dataPointFinders.get(metricType);
+    private <T> Func3<MetricId, Long, Long, Observable<ResultSet>> getDataPointFinder(MetricType metricType) {
+        Func3<MetricId, Long, Long, Observable<ResultSet>> finder;
+        finder = (Func3<MetricId, Long, Long, Observable<ResultSet>>) dataPointFinders.get(metricType);
         if (finder == null) {
             throw new UnsupportedOperationException(metricType.getText());
         }
@@ -665,7 +653,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> Func1<Row, DataPoint<T>> getDataPointMapper(MetricType<T> metricType) {
+    private <T> Func1<Row, DataPoint<T>> getDataPointMapper(MetricType metricType) {
         Func1<Row, DataPoint<T>> mapper = (Func1<Row, DataPoint<T>>) dataPointMappers.get(metricType);
         if (mapper == null) {
             throw new UnsupportedOperationException(metricType.getText());
@@ -674,9 +662,9 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public Observable<DataPoint<Double>> findRateData(MetricId<Long> id, long start, long end) {
+    public Observable<DataPoint<Double>> findRateData(MetricId id, long start, long end) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        return findDataPoints(id, start, end)
+        return this.<Long> findDataPoints(id, start, end)
                 .buffer(2, 1) // emit previous/next pairs
                 // The first filter condition drops the last buffer and the second condition checks for resets
                 .filter(l -> l.size() == 2 && l.get(1).getValue() >= l.get(0).getValue())
@@ -692,7 +680,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public Observable<List<NumericBucketPoint>> findRateStats(MetricId<Long> id, long start, long end,
+    public Observable<List<NumericBucketPoint>> findRateStats(MetricId id, long start, long end,
                                                               Buckets buckets, List<Double> percentiles) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         return bucketize(findRateData(id, start, end), buckets, percentiles);
@@ -700,14 +688,14 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> Observable<T> findGaugeData(MetricId<Double> id, long start, long end,
+    public <T> Observable<T> findGaugeData(MetricId id, long start, long end,
                                            Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs) {
-        Observable<DataPoint<Double>> dataCache = findDataPoints(id, start, end).cache();
+        Observable<DataPoint<Double>> dataCache = this.<Double> findDataPoints(id, start, end).cache();
         return Observable.from(funcs).flatMap(fn -> fn.call(dataCache));
     }
 
     @Override
-    public Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end,
+    public Observable<List<NumericBucketPoint>> findGaugeStats(MetricId metricId, long start, long end,
                                                                Buckets buckets, List<Double> percentiles) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         return bucketize(findDataPoints(metricId, start, end), buckets, percentiles);
@@ -715,7 +703,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public <T extends Number> Observable<List<NumericBucketPoint>> findNumericStats(String tenantId,
-            MetricType<T> metricType, Map<String, String> tagFilters, long start, long end, Buckets buckets,
+            MetricType metricType, Map<String, String> tagFilters, long start, long end, Buckets buckets,
             List<Double> percentiles, boolean stacked) {
 
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
@@ -753,7 +741,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
     @Override
     public <T extends Number> Observable<List<NumericBucketPoint>> findNumericStats(String tenantId,
-            MetricType<T> metricType, List<String> metrics, long start, long end, Buckets buckets,
+            MetricType metricType, List<String> metrics, long start, long end, Buckets buckets,
             List<Double> percentiles, boolean stacked) {
 
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
@@ -761,13 +749,13 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         if (!stacked) {
             if (MetricType.COUNTER.equals(metricType) || MetricType.GAUGE.equals(metricType)) {
                 return bucketize(Observable.from(metrics)
-                        .flatMap(metricName -> findMetric(new MetricId<>(tenantId, metricType, metricName)))
+                        .flatMap(metricName -> findMetric(new MetricId(tenantId, metricType, metricName)))
                         .flatMap(metric -> findDataPoints(metric.getMetricId(), start, end)), buckets, percentiles);
             } else {
                 return bucketize(Observable.from(metrics)
-                        .flatMap(metricName -> findMetric(new MetricId<>(tenantId, MetricType.COUNTER, metricName)))
+                        .flatMap(metricName -> findMetric(new MetricId(tenantId, MetricType.COUNTER, metricName)))
                         .flatMap(metric -> findRateData(
-                                new MetricId<Long>(tenantId, MetricType.COUNTER, metric.getMetricId().getName()), start,
+                                new MetricId(tenantId, MetricType.COUNTER, metric.getMetricId().getName()), start,
                                 end)),
                         buckets, percentiles);
             }
@@ -776,14 +764,14 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
             if (MetricType.COUNTER.equals(metricType) || MetricType.GAUGE.equals(metricType)) {
                 individualStats = Observable.from(metrics)
-                        .flatMap(metricName -> findMetric(new MetricId<>(tenantId, metricType, metricName)))
+                        .flatMap(metricName -> findMetric(new MetricId(tenantId, metricType, metricName)))
                         .map(metric -> bucketize(findDataPoints(metric.getMetricId(), start, end), buckets, percentiles)
                                 .flatMap(Observable::from));
             } else {
                 individualStats = Observable.from(metrics)
-                        .flatMap(metricName -> findMetric(new MetricId<>(tenantId, MetricType.COUNTER, metricName)))
+                        .flatMap(metricName -> findMetric(new MetricId(tenantId, MetricType.COUNTER, metricName)))
                         .map(metric -> bucketize(findRateData(
-                                new MetricId<Long>(tenantId, MetricType.COUNTER, metric.getMetricId().getName()), start,
+                                new MetricId(tenantId, MetricType.COUNTER, metric.getMetricId().getName()), start,
                                 end), buckets, percentiles)
                                 .flatMap(Observable::from));
             }
@@ -810,7 +798,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId<AvailabilityType> id, long start,
+    public Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId id, long start,
             long end, boolean distinct) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         Observable<DataPoint<AvailabilityType>> availabilityData = findDataPoints(id, start, end);
@@ -822,10 +810,10 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public Observable<List<AvailabilityBucketPoint>> findAvailabilityStats(MetricId<AvailabilityType> metricId,
+    public Observable<List<AvailabilityBucketPoint>> findAvailabilityStats(MetricId metricId,
                                                                            long start, long end, Buckets buckets) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        return findDataPoints(metricId, start, end)
+        return this.<AvailabilityType> findDataPoints(metricId, start, end)
                 .groupBy(dataPoint -> buckets.getIndex(dataPoint.getTimestamp()))
                 .flatMap(group -> group.collect(() -> new AvailabilityDataPointCollector(buckets, group.getKey()),
                         AvailabilityDataPointCollector::increment))
@@ -835,21 +823,25 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     }
 
     @Override
-    public Observable<Boolean> idExists(final MetricId<?> metricId) {
-        return findMetrics(metricId.getTenantId(), metricId.getType()).filter(m -> {
-            return metricId.getName().equals(m.getMetricId().getName());
-        }).take(1).map(m -> TRUE).defaultIfEmpty(FALSE);
+    public Observable<Boolean> idExists(final MetricId metricId) {
+        return this.findMetrics(metricId.getTenantId(), metricId.getType())
+                .filter(m -> {
+                    return metricId.getName().equals(m.getMetricId().getName());
+                })
+                .take(1)
+                .map(m -> Boolean.TRUE)
+                .defaultIfEmpty(Boolean.FALSE);
     }
 
     @Override
-    public Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, long start, long end, Buckets
+    public Observable<List<NumericBucketPoint>> findCounterStats(MetricId id, long start, long end, Buckets
             buckets, List<Double> percentiles) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         return bucketize(findDataPoints(id, start, end), buckets, percentiles);
     }
 
     @Override
-    public Observable<List<long[]>> getPeriods(MetricId<Double> id, Predicate<Double> predicate, long start, long end) {
+    public Observable<List<long[]>> getPeriods(MetricId id, Predicate<Double> predicate, long start, long end) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         return dataAccess.findGaugeData(new Metric<>(id), start, end, Order.ASC)
                 .flatMap(Observable::from)
@@ -885,7 +877,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         return insertedDataPointEvents;
     }
 
-    private int getTTL(MetricId<?> metricId) {
+    private int getTTL(MetricId metricId) {
         Integer ttl = dataRetentions.get(new DataRetentionKey(metricId));
         if (ttl == null) {
             ttl = dataRetentions.getOrDefault(new DataRetentionKey(metricId.getTenantId(), metricId.getType()),

@@ -116,7 +116,7 @@ public class CounterHandler {
                     .resume(badRequest(new ApiError("Metric type does not match " + MetricType
                     .COUNTER.getText())));
         }
-        metric = new Metric<>(new MetricId<>(tenantId, COUNTER, metric.getId()),
+        metric = new Metric<>(new MetricId(tenantId, COUNTER, metric.getId()),
                 metric.getTags(), metric.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getMetricId().getName());
         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
@@ -164,7 +164,7 @@ public class CounterHandler {
                          response = ApiError.class) })
     public void getCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
 
-        metricsService.findMetric(new MetricId<>(tenantId, COUNTER, id))
+        metricsService.findMetric(new MetricId(tenantId, COUNTER, id))
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(noContent()))
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
@@ -181,7 +181,7 @@ public class CounterHandler {
     public void getMetricTags(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id) {
-        metricsService.getMetricTags(new MetricId<>(tenantId, COUNTER, id))
+        metricsService.getMetricTags(new MetricId(tenantId, COUNTER, id))
                 .subscribe(
                         optional -> asyncResponse.resume(valueToResponse(optional)),
                         t -> asyncResponse.resume(serverError(t)));
@@ -198,7 +198,7 @@ public class CounterHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags) {
-        Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id));
+        Metric<Long> metric = new Metric<>(new MetricId(tenantId, COUNTER, id));
         metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -214,7 +214,7 @@ public class CounterHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
             @ApiParam("Tag list") @PathParam("tags") Tags tags) {
-        Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id));
+        Metric<Long> metric = new Metric<>(new MetricId(tenantId, COUNTER, id));
         metricsService.deleteTags(metric, tags.getTags()).subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -290,7 +290,7 @@ public class CounterHandler {
             return;
         }
 
-        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+        MetricId metricId = new MetricId(tenantId, COUNTER, id);
         Buckets buckets = bucketConfig.getBuckets();
         if (buckets == null) {
             metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
@@ -345,7 +345,7 @@ public class CounterHandler {
             return;
         }
 
-        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+        MetricId metricId = new MetricId(tenantId, COUNTER, id);
         Buckets buckets = bucketConfig.getBuckets();
         if (buckets == null) {
             metricsService.findRateData(metricId, timeRange.getStart(), timeRange.getEnd())

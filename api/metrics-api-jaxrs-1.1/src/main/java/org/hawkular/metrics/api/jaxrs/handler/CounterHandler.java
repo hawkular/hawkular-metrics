@@ -90,7 +90,7 @@ public class CounterHandler {
             return badRequest(new ApiError("Metric type does not match " + MetricType
                     .COUNTER.getText()));
         }
-        metric = new Metric<>(new MetricId<>(tenantId, COUNTER, metric.getId()),
+        metric = new Metric<>(new MetricId(tenantId, COUNTER, metric.getId()),
                 metric.getTags(), metric.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getMetricId().getName());
         try {
@@ -131,7 +131,7 @@ public class CounterHandler {
     @Path("/{id}")
     public Response getCounter(@PathParam("id") String id) {
         try {
-            return metricsService.findMetric(new MetricId<>(tenantId, COUNTER, id))
+            return metricsService.findMetric(new MetricId(tenantId, COUNTER, id))
                 .map(metricDef -> Response.ok(metricDef).build())
                     .switchIfEmpty(Observable.just(noContent()))
                 .toBlocking().lastOrDefault(null);
@@ -144,7 +144,7 @@ public class CounterHandler {
     @Path("/{id}/tags")
     public Response getMetricTags(@PathParam("id") String id) {
         try {
-            return metricsService.getMetricTags(new MetricId<>(tenantId, COUNTER, id))
+            return metricsService.getMetricTags(new MetricId(tenantId, COUNTER, id))
                     .map(ApiUtils::valueToResponse)
                     .toBlocking().lastOrDefault(null);
         } catch (Exception e) {
@@ -157,7 +157,7 @@ public class CounterHandler {
     public Response updateMetricTags(
             @PathParam("id") String id,
             Map<String, String> tags) {
-        Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id));
+        Metric<Long> metric = new Metric<>(new MetricId(tenantId, COUNTER, id));
         try {
             metricsService.addTags(metric, tags).toBlocking().lastOrDefault(null);
             return Response.ok().build();
@@ -174,7 +174,7 @@ public class CounterHandler {
             @PathParam("id") String id,
             @PathParam("tags") Tags tags) {
         try {
-            Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id));
+            Metric<Long> metric = new Metric<>(new MetricId(tenantId, COUNTER, id));
             metricsService.deleteTags(metric, tags.getTags()).toBlocking().lastOrDefault(null);
             return Response.ok().build();
         } catch (Exception e) {
@@ -228,7 +228,7 @@ public class CounterHandler {
             return badRequest(new ApiError(bucketConfig.getProblem()));
         }
 
-        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+        MetricId metricId = new MetricId(tenantId, COUNTER, id);
         Buckets buckets = bucketConfig.getBuckets();
         try {
             if (buckets == null) {
@@ -273,7 +273,7 @@ public class CounterHandler {
             return badRequest(new ApiError(bucketConfig.getProblem()));
         }
 
-        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+        MetricId metricId = new MetricId(tenantId, COUNTER, id);
         Buckets buckets = bucketConfig.getBuckets();
         try {
             if (buckets == null) {

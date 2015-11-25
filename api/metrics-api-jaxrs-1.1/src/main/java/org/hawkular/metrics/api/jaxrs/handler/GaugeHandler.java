@@ -91,7 +91,7 @@ public class GaugeHandler {
             return badRequest(new ApiError("Metric type does not match " + MetricType
                     .GAUGE.getText()));
         }
-        metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metric.getId()),
+        metric = new Metric<>(new MetricId(tenantId, GAUGE, metric.getId()),
                 metric.getTags(), metric.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getMetricId().getName());
         try {
@@ -132,7 +132,7 @@ public class GaugeHandler {
     @Path("/{id}")
     public Response getGaugeMetric(@PathParam("id") String id) {
         try {
-            return metricsService.findMetric(new MetricId<>(tenantId, GAUGE, id))
+            return metricsService.findMetric(new MetricId(tenantId, GAUGE, id))
                 .map(metricDef -> Response.ok(metricDef).build())
                     .switchIfEmpty(Observable.just(noContent())).toBlocking().lastOrDefault(null);
         } catch (Exception e) {
@@ -144,7 +144,7 @@ public class GaugeHandler {
     @Path("/{id}/tags")
     public Response getMetricTags(@PathParam("id") String id) {
         try {
-            return metricsService.getMetricTags(new MetricId<>(tenantId, GAUGE, id))
+            return metricsService.getMetricTags(new MetricId(tenantId, GAUGE, id))
                     .map(ApiUtils::valueToResponse)
                     .toBlocking().lastOrDefault(null);
         } catch (Exception e) {
@@ -157,7 +157,7 @@ public class GaugeHandler {
     public Response updateMetricTags(
             @PathParam("id") String id,
             Map<String, String> tags) {
-        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
+        Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id));
         try {
             metricsService.addTags(metric, tags).toBlocking().lastOrDefault(null);
             return Response.ok().build();
@@ -175,7 +175,7 @@ public class GaugeHandler {
             @PathParam("tags") Tags tags
     ) {
         try {
-            Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
+            Metric<Double> metric = new Metric<>(new MetricId(tenantId, GAUGE, id));
             metricsService.deleteTags(metric, tags.getTags()).toBlocking().lastOrDefault(null);
             return Response.ok().build();
         } catch (Exception e) {
@@ -231,7 +231,7 @@ public class GaugeHandler {
             return badRequest(new ApiError(bucketConfig.getProblem()));
         }
 
-        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+        MetricId metricId = new MetricId(tenantId, GAUGE, id);
         Buckets buckets = bucketConfig.getBuckets();
         try {
             if (buckets == null) {
@@ -353,7 +353,7 @@ public class GaugeHandler {
                     new ApiError("Invalid value for op parameter. Supported values are lt, lte, eq, gt, gte."));
         } else {
             try {
-                MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+                MetricId metricId = new MetricId(tenantId, GAUGE, id);
                 return metricsService.getPeriods(metricId, predicate, timeRange.getStart(), timeRange.getEnd())
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking().lastOrDefault(null);

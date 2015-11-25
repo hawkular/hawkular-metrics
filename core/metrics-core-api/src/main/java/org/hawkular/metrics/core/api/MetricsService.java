@@ -81,14 +81,14 @@ public interface MetricsService {
      */
     Observable<Void> createMetric(Metric<?> metric);
 
-    <T> Observable<Metric<T>> findMetric(MetricId<T> id);
+    <T> Observable<Metric<T>> findMetric(MetricId id);
 
     /**
      * Returns tenant's metric definitions. The results can be filtered using a type.
      *
      * @param type If type is null, all user definable metric definitions are returned.
      */
-    <T> Observable<Metric<T>> findMetrics(String tenantId, MetricType<T> type);
+    <T> Observable<Metric<T>> findMetrics(String tenantId, MetricType type);
 
     /**
      * Find tenant's metrics with filtering abilities. The filtering can take place at the type level or at the
@@ -105,9 +105,9 @@ public interface MetricsService {
      * @return Metric's that are filtered with given conditions
      */
     <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, Map<String, String> tagsQueries,
-                                                     MetricType<T> type);
+            MetricType type);
 
-    Observable<Optional<Map<String, String>>> getMetricTags(MetricId<?> id);
+    Observable<Optional<Map<String, String>>> getMetricTags(MetricId id);
 
     Observable<Void> addTags(Metric<?> metric, Map<String, String> tags);
 
@@ -122,7 +122,7 @@ public interface MetricsService {
      *
      * @return an {@link Observable} emitting just one item on complete
      */
-    <T> Observable<Void> addDataPoints(MetricType<T> metricType, Observable<Metric<T>> metrics);
+    <T> Observable<Void> addDataPoints(MetricType metricType, Observable<Metric<T>> metrics);
 
     /**
      * Fetch data points for a single metric.
@@ -133,7 +133,7 @@ public interface MetricsService {
      *
      * @return an {@link Observable} that emits {@link DataPoint data points}
      */
-    <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> id, long start, long end);
+    <T> Observable<DataPoint<T>> findDataPoints(MetricId id, long start, long end);
 
     /**
      * This method applies one or more functions to an Observable that emits data points of a gauge metric. The data
@@ -147,10 +147,10 @@ public interface MetricsService {
      * @see Aggregate
      */
     @SuppressWarnings("unchecked")
-    <T> Observable<T> findGaugeData(MetricId<Double> id, long start, long end,
+    <T> Observable<T> findGaugeData(MetricId id, long start, long end,
                                     Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs);
 
-    Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end,
+    Observable<List<NumericBucketPoint>> findGaugeStats(MetricId metricId, long start, long end,
                                                         Buckets buckets, List<Double> percentiles);
 
     /**
@@ -166,7 +166,7 @@ public interface MetricsService {
      *                on which time slice or bucket they fall into.
      * @return An {@link Observable} that emits a single list of {@link NumericBucketPoint}
      */
-    <T extends Number> Observable<List<NumericBucketPoint>> findNumericStats(String tenantId, MetricType<T> metricType,
+    <T extends Number> Observable<List<NumericBucketPoint>> findNumericStats(String tenantId, MetricType metricType,
             Map<String, String> tagFilters, long start, long end, Buckets buckets, List<Double> percentiles,
             boolean stacked);
 
@@ -183,19 +183,19 @@ public interface MetricsService {
      *                on which time slice or bucket they fall into.
      * @return An {@link Observable} that emits a single list of {@link NumericBucketPoint}
      */
-    <T extends Number> Observable<List<NumericBucketPoint>> findNumericStats(String tenantId, MetricType<T> metricType,
+    <T extends Number> Observable<List<NumericBucketPoint>> findNumericStats(String tenantId, MetricType metricType,
             List<String> metrics, long start, long end, Buckets buckets, List<Double> percentiles, boolean stacked);
 
-    Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId<AvailabilityType> id, long start, long end,
+    Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId id, long start, long end,
                                                                  boolean distinct);
 
-    Observable<List<AvailabilityBucketPoint>> findAvailabilityStats(MetricId<AvailabilityType> metricId, long start,
+    Observable<List<AvailabilityBucketPoint>> findAvailabilityStats(MetricId metricId, long start,
                                                                     long end, Buckets buckets);
 
     /**
      * Check if a metric has been stored in the system.
      */
-    Observable<Boolean> idExists(MetricId<?> metric);
+    Observable<Boolean> idExists(MetricId metric);
 
     /**
      * Computes stats on a counter.
@@ -207,7 +207,7 @@ public interface MetricsService {
      *
      * @return an {@link Observable} emitting a single {@link List} of {@link NumericBucketPoint}
      */
-    Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, long start, long end, Buckets buckets,
+    Observable<List<NumericBucketPoint>> findCounterStats(MetricId id, long start, long end, Buckets buckets,
                                                           List<Double> percentiles);
 
     /**
@@ -221,7 +221,7 @@ public interface MetricsService {
      * @return An Observable of {@link DataPoint data points} which are emitted in ascending order. In other words,
      * the most recent data is emitted first.
      */
-    Observable<DataPoint<Double>> findRateData(MetricId<Long> id, long start, long end);
+    Observable<DataPoint<Double>> findRateData(MetricId id, long start, long end);
 
     /**
      * Computes stats on a counter rate.
@@ -233,7 +233,7 @@ public interface MetricsService {
      *
      * @return an {@link Observable} emitting a single {@link List} of {@link NumericBucketPoint}
      */
-    Observable<List<NumericBucketPoint>> findRateStats(MetricId<Long> id, long start, long end, Buckets buckets,
+    Observable<List<NumericBucketPoint>> findRateStats(MetricId id, long start, long end, Buckets buckets,
                                                        List<Double> percentiles);
 
     /**
@@ -258,7 +258,7 @@ public interface MetricsService {
      * @return Each element in the list is a two element array. The first element is the start time inclusive for which
      * the predicate matches, and the second element is the end time inclusive for which the predicate matches.
      */
-    Observable<List<long[]>> getPeriods(MetricId<Double> id, Predicate<Double> predicate, long start, long end);
+    Observable<List<long[]>> getPeriods(MetricId id, Predicate<Double> predicate, long start, long end);
 
     /**
      * @return a hot {@link Observable} emitting {@link Metric} events after data has been inserted

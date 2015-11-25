@@ -93,8 +93,8 @@ public class DataPoint<T> {
     }
 
     public static <T> Observable<Metric<T>> toObservable(String tenantId, String metricId,
-            List<DataPoint<T>> points, MetricType<T> type) {
-        Metric<T> metric = new Metric<>(new MetricId<>(tenantId, type, metricId), points);
+            List<DataPoint<T>> points, MetricType type) {
+        Metric<T> metric = new Metric<T>(new MetricId(tenantId, type, metricId), points);
         return Observable.just(metric);
     }
 }

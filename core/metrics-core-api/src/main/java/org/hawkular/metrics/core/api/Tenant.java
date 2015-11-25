@@ -32,13 +32,13 @@ import com.google.common.collect.ImmutableMap;
  */
 public class Tenant {
     private final String id;
-    private final Map<MetricType<?>, Integer> retentionSettings;
+    private final Map<MetricType, Integer> retentionSettings;
 
     public Tenant(String id) {
         this(id, null);
     }
 
-    public Tenant(String id, Map<MetricType<?>, Integer> retentionSettings) {
+    public Tenant(String id, Map<MetricType, Integer> retentionSettings) {
         checkArgument(id != null, "Tenant id is null");
         this.id = id;
         this.retentionSettings = retentionSettings == null ? ImmutableMap.of() : ImmutableMap.copyOf(retentionSettings);
@@ -48,7 +48,7 @@ public class Tenant {
         return id;
     }
 
-    public Map<MetricType<?>, Integer> getRetentionSettings() {
+    public Map<MetricType, Integer> getRetentionSettings() {
         return retentionSettings;
     }
 
