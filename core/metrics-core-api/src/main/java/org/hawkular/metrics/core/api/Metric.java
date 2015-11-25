@@ -77,7 +77,7 @@ public class Metric<T> {
 
         type = type == null ? MetricType.UNDEFINED : type;
 
-        this.id = new MetricId("hawkular-metrics-system", type, id);
+        this.id = new MetricId("", type, id);
         this.tags = tags == null ? emptyMap() : unmodifiableMap(tags);
         this.dataRetention = dataRetention;
         this.dataPoints = data == null || data.isEmpty() ? emptyList() : unmodifiableList(data);
