@@ -23,7 +23,7 @@
   <parent>
     <artifactId>hawkular-metrics-parent</artifactId>
     <groupId>org.hawkular.metrics</groupId>
-    <version>0.10.0-SNAPSHOT</version>
+    <version>0.10.0.Final</version>
   </parent>
 
   <artifactId>hawkular-metrics-clients</artifactId>
