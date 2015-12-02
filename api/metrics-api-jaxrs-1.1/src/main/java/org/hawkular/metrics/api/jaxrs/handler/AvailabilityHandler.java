@@ -93,7 +93,7 @@ public class AvailabilityHandler {
                     .AVAILABILITY.getText()));
         }
         URI location = uriInfo.getBaseUriBuilder().path("/availability/{id}").build(metric.getId());
-        metric = new Metric<>(new MetricId(tenantId, AVAILABILITY, metric.getId()),
+        metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, metric.getId()),
                 metric.getTags(), metric.getDataRetention());
         try {
             Observable<Void> observable = metricsService.createMetric(metric);
@@ -133,7 +133,7 @@ public class AvailabilityHandler {
     @Path("/{id}")
     public Response getAvailabilityMetric(@PathParam("id") String id) {
         try {
-            return metricsService.findMetric(new MetricId(tenantId, AVAILABILITY, id))
+            return metricsService.findMetric(new MetricId<>(tenantId, AVAILABILITY, id))
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(noContent()))
                 .toBlocking()
@@ -149,7 +149,7 @@ public class AvailabilityHandler {
             @PathParam("id") String id
     ) {
         Observable<Optional<Map<String, String>>> something = metricsService
-                .getMetricTags(new MetricId(tenantId, AVAILABILITY, id));
+                .getMetricTags(new MetricId<>(tenantId, AVAILABILITY, id));
         try {
             return something
                     .map(ApiUtils::valueToResponse)
@@ -167,7 +167,7 @@ public class AvailabilityHandler {
             @PathParam("id") String id,
             Map<String, String> tags
     ) {
-        Metric<AvailabilityType> metric = new Metric<>(new MetricId(tenantId, AVAILABILITY, id));
+        Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id));
         try {
             metricsService.addTags(metric, tags).toBlocking().lastOrDefault(null);
             return Response.ok().build();
@@ -184,7 +184,7 @@ public class AvailabilityHandler {
             @PathParam("id") String id,
             @PathParam("tags") Tags tags
     ) {
-        Metric<AvailabilityType> metric = new Metric<>(new MetricId(tenantId, AVAILABILITY, id));
+        Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id));
 
         try {
             metricsService.deleteTags(metric, tags.getTags()).toBlocking().lastOrDefault(null);
@@ -244,7 +244,7 @@ public class AvailabilityHandler {
             return badRequest(new ApiError(bucketConfig.getProblem()));
         }
 
-        MetricId metricId = new MetricId(tenantId, AVAILABILITY, id);
+        MetricId<AvailabilityType> metricId = new MetricId<>(tenantId, AVAILABILITY, id);
         Buckets buckets = bucketConfig.getBuckets();
         try {
             if (buckets == null) {

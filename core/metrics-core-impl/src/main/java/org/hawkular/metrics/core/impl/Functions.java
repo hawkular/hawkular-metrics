@@ -105,22 +105,22 @@ public class Functions {
 
     public static Tenant getTenant(Row row) {
         String tenantId = row.getString(0);
-        Map<MetricType, Integer> retentions = row.getMap(1, String.class, Integer.class).entrySet().stream().collect(
-                toMap(entry -> MetricType.fromTextCode(entry.getKey()), Map.Entry::getValue));
+        Map<MetricType<?>, Integer> retentions = row.getMap(1, String.class, Integer.class).entrySet().stream()
+                .collect(toMap(entry -> MetricType.fromTextCode(entry.getKey()), Map.Entry::getValue));
 
         return new Tenant(tenantId, retentions);
     }
 
     public static <S> Observable<Metric<S>> metricToObservable(
-            String tenantId, List<Metric<S>> metrics, MetricType type) {
+            String tenantId, List<Metric<S>> metrics, MetricType<S> type) {
         return Observable.from(metrics).map(g -> {
-            return new Metric<>(new MetricId(tenantId, type, g.getMetricId().getName()), g.getDataPoints());
+            return new Metric<>(new MetricId<>(tenantId, type, g.getMetricId().getName()), g.getDataPoints());
         });
     }
 
     public static <T> Observable<Metric<T>> dataPointToObservable(String tenantId, String metricId,
-            List<DataPoint<T>> points, MetricType type) {
-        Metric<T> metric = new Metric<T>(new MetricId(tenantId, type, metricId), points);
+            List<DataPoint<T>> points, MetricType<T> type) {
+        Metric<T> metric = new Metric<T>(new MetricId<>(tenantId, type, metricId), points);
         return Observable.just(metric);
     }
 

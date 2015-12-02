@@ -101,7 +101,7 @@ public class MetricHandler {
         if (metric.getType() == null || !metric.getType().isUserType()) {
             asyncResponse.resume(badRequest(new ApiError("Metric type is invalid")));
         }
-        MetricId id = new MetricId(tenantId, metric.getMetricId().getType(), metric.getId());
+        MetricId<T> id = new MetricId<>(tenantId, metric.getMetricId().getType(), metric.getId());
         metric = new Metric<>(id, metric.getTags(), metric.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/{type}/{id}").build(MetricTypeTextConverter.getLongForm(id
                 .getType()), id.getName());
@@ -124,7 +124,7 @@ public class MetricHandler {
             AsyncResponse asyncResponse,
             @ApiParam(value = "Queried metric type", required = false, allowableValues = "gauge, availability, counter")
             @QueryParam("type")
-            MetricType metricType,
+            MetricType<T> metricType,
             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags")
             Tags tags
     ) {

@@ -27,7 +27,7 @@ public class MetricTypeTextConverter {
 
     private MetricTypeTextConverter() { }
 
-    public static String getLongForm(MetricType mt) {
+    public static String getLongForm(MetricType<?> mt) {
 
         if(mt == MetricType.GAUGE) {
             return "gauges";

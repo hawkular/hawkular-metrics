@@ -36,7 +36,7 @@ import com.google.common.base.Objects;
  */
 public class AggregationTemplate<T> {
 
-    private MetricType type;
+    private MetricType<T> type;
 
     private Interval interval;
 
@@ -49,11 +49,11 @@ public class AggregationTemplate<T> {
      *
      * @return type
      */
-    public MetricType getType() {
+    public MetricType<T> getType() {
         return type;
     }
 
-    public AggregationTemplate<T> setType(MetricType type) {
+    public AggregationTemplate<T> setType(MetricType<T> type) {
         this.type = type;
         return this;
     }

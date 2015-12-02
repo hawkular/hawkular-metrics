@@ -84,7 +84,7 @@ public class AvailDataPublisher {
     }
 
     private BasicMessage createAvailMessage(Metric<AvailabilityType> avail) {
-        MetricId availId = avail.getMetricId();
+        MetricId<AvailabilityType> availId = avail.getMetricId();
         List<AvailDataMessage.SingleAvail> availList = avail.getDataPoints().stream()
                 .map(dataPoint -> new AvailDataMessage.SingleAvail(availId.getTenantId(), availId.getName(),
                         dataPoint.getTimestamp(),

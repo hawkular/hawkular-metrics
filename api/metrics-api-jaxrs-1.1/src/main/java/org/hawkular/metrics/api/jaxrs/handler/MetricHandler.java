@@ -81,7 +81,7 @@ public class MetricHandler {
         if (metric.getType() == null || !metric.getType().isUserType()) {
             return badRequest(new ApiError("Metric type is invalid"));
         }
-        MetricId id = new MetricId(tenantId, metric.getMetricId().getType(), metric.getId());
+        MetricId<T> id = new MetricId<>(tenantId, metric.getMetricId().getType(), metric.getId());
         metric = new Metric<>(id, metric.getTags(), metric.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/{type}/{id}").build(MetricTypeTextConverter.getLongForm(id
                 .getType()), id.getName());
@@ -101,7 +101,7 @@ public class MetricHandler {
     @GET
     @Path("/")
     public <T> Response findMetrics(
-            @QueryParam("type") MetricType metricType,
+            @QueryParam("type") MetricType<T> metricType,
             @QueryParam("tags") Tags tags
     ) {
         if (metricType != null && !metricType.isUserType()) {

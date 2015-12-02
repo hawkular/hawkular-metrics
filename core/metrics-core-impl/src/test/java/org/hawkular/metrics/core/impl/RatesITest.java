@@ -116,9 +116,9 @@ public class RatesITest extends MetricsITest {
         String tenant = "rates-test";
         DateTime start = new DateTime(tickScheduler.now()).plusMinutes(1);
 
-        Metric<Long> c1 = new Metric<>(new MetricId(tenant, COUNTER, "C1"));
-        Metric<Long> c2 = new Metric<>(new MetricId(tenant, COUNTER, "C2"));
-        Metric<Long> c3 = new Metric<>(new MetricId(tenant, COUNTER, "C3"));
+        Metric<Long> c1 = new Metric<>(new MetricId<>(tenant, COUNTER, "C1"));
+        Metric<Long> c2 = new Metric<>(new MetricId<>(tenant, COUNTER, "C2"));
+        Metric<Long> c3 = new Metric<>(new MetricId<>(tenant, COUNTER, "C3"));
 
         doAction(() -> metricsService.createTenant(new Tenant(tenant)));
 

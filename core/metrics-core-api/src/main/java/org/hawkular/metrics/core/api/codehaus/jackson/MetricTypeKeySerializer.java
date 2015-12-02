@@ -27,10 +27,10 @@ import org.hawkular.metrics.core.api.MetricType;
 /**
  * @author Thomas Segismont
  */
-public class MetricTypeKeySerializer extends JsonSerializer<MetricType> {
+public class MetricTypeKeySerializer extends JsonSerializer<MetricType<?>> {
 
     @Override
-    public void serialize(MetricType value, JsonGenerator jgen, SerializerProvider provider) throws IOException,
+    public void serialize(MetricType<?> value, JsonGenerator jgen, SerializerProvider provider) throws IOException,
             JsonProcessingException {
         jgen.writeFieldName(value.getText());
     }

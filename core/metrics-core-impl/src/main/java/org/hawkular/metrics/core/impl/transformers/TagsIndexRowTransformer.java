@@ -30,23 +30,24 @@ import rx.Observable.Transformer;
  *
  * @author Michael Burman
  */
-public class TagsIndexRowTransformer implements Transformer<Row, MetricId> {
-    private final MetricType type;
+public class TagsIndexRowTransformer<T> implements Transformer<Row, MetricId<T>> {
+    private final MetricType<T> type;
     private final String tenantId;
 
-    public TagsIndexRowTransformer(String tenantId, MetricType type) {
+    public TagsIndexRowTransformer(String tenantId, MetricType<T> type) {
         this.type = type;
         this.tenantId = tenantId;
     }
 
     @Override
-    public Observable<MetricId> call(Observable<Row> rows) {
+    public Observable<MetricId<T>> call(Observable<Row> rows) {
         return rows.filter(row -> {
-            MetricType metricType = MetricType.fromCode(row.getByte(0));
+            MetricType<?> metricType = MetricType.fromCode(row.getByte(0));
             return (type == null && metricType.isUserType()) || metricType == type;
         }).map(row1 -> {
-            MetricType metricType = (MetricType) MetricType.fromCode(row1.getByte(0));
-            return new MetricId(tenantId, metricType, row1.getString(1));
+            @SuppressWarnings("unchecked")
+            MetricType<T> metricType = (MetricType<T>) MetricType.fromCode(row1.getByte(0));
+            return new MetricId<>(tenantId, metricType, row1.getString(1));
         });
     }
 }

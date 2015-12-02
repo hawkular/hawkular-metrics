@@ -23,12 +23,12 @@ import com.google.common.base.Objects;
 /**
  * @author John Sanda
  */
-public class MetricId {
+public class MetricId<T> {
     private final String tenantId;
-    private final MetricType type;
+    private final MetricType<T> type;
     private final String name;
 
-    public MetricId(String tenantId, MetricType type, String name) {
+    public MetricId(String tenantId, MetricType<T> type, String name) {
         checkArgument(tenantId != null, "tenantId is null");
         checkArgument(type != null, "type is null");
         checkArgument(name != null, "name is null");
@@ -41,7 +41,7 @@ public class MetricId {
         return tenantId;
     }
 
-    public MetricType getType() {
+    public MetricType<T> getType() {
         return type;
     }
 
@@ -53,6 +53,7 @@ public class MetricId {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
+        @SuppressWarnings("rawtypes")
         MetricId metricId = (MetricId) o;
         return java.util.Objects.equals(name, metricId.name) &&
                 java.util.Objects.equals(tenantId, metricId.tenantId) &&
