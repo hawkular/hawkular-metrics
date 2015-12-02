@@ -53,13 +53,14 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.param.BucketConfig;
 import org.hawkular.metrics.core.api.param.Duration;
 import org.hawkular.metrics.core.api.param.Percentiles;
 import org.hawkular.metrics.core.api.param.Tags;
 import org.hawkular.metrics.core.api.param.TimeRange;
+import org.hawkular.metrics.core.impl.Functions;
+import org.hawkular.metrics.core.impl.MetricsService;
 
 import rx.Observable;
 
@@ -185,7 +186,7 @@ public class CounterHandler {
     @POST
     @Path("/data")
     public Response addData(List<Metric<Long>> counters) {
-        Observable<Metric<Long>> metrics = Metric.toObservable(tenantId, counters, COUNTER);
+        Observable<Metric<Long>> metrics = Functions.metricToObservable(tenantId, counters, COUNTER);
         try {
             metricsService.addDataPoints(COUNTER, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
@@ -200,7 +201,7 @@ public class CounterHandler {
             @PathParam("id") String id,
             List<DataPoint<Long>> data
     ) {
-        Observable<Metric<Long>> metrics = DataPoint.toObservable(tenantId, id, data, COUNTER);
+        Observable<Metric<Long>> metrics = Functions.dataPointToObservable(tenantId, id, data, COUNTER);
         try {
             metricsService.addDataPoints(COUNTER, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();

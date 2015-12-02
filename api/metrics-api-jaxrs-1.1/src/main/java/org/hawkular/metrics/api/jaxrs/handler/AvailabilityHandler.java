@@ -54,12 +54,13 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.param.BucketConfig;
 import org.hawkular.metrics.core.api.param.Duration;
 import org.hawkular.metrics.core.api.param.Tags;
 import org.hawkular.metrics.core.api.param.TimeRange;
+import org.hawkular.metrics.core.impl.Functions;
+import org.hawkular.metrics.core.impl.MetricsService;
 
 import rx.Observable;
 
@@ -199,7 +200,8 @@ public class AvailabilityHandler {
             @PathParam("id") String id,
             List<DataPoint<AvailabilityType>> data
     ) {
-        Observable<Metric<AvailabilityType>> metrics = DataPoint.toObservable(tenantId, id, data, AVAILABILITY);
+        Observable<Metric<AvailabilityType>> metrics = Functions.dataPointToObservable(tenantId, id, data,
+                AVAILABILITY);
         try {
             metricsService.addDataPoints(AVAILABILITY, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
@@ -213,7 +215,7 @@ public class AvailabilityHandler {
     public Response addAvailabilityData(
             List<Metric<AvailabilityType>> availabilities
     ) {
-        Observable<Metric<AvailabilityType>> metrics = Metric.toObservable(tenantId, availabilities,
+        Observable<Metric<AvailabilityType>> metrics = Functions.metricToObservable(tenantId, availabilities,
                 AVAILABILITY);
         try {
             metricsService.addDataPoints(AVAILABILITY, metrics).toBlocking().lastOrDefault(null);

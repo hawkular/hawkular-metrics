@@ -27,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.impl.log.CoreLogger;
 import org.hawkular.metrics.core.impl.log.CoreLogging;
 import org.hawkular.metrics.tasks.api.Task2;

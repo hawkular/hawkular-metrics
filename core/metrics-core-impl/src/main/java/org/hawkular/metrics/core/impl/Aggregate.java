@@ -14,7 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.api;
+package org.hawkular.metrics.core.impl;
+
+import org.hawkular.metrics.core.api.DataPoint;
+import org.hawkular.metrics.core.api.MetricId;
 
 import rx.Observable;
 import rx.functions.Func1;

@@ -54,13 +54,14 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.param.BucketConfig;
 import org.hawkular.metrics.core.api.param.Duration;
 import org.hawkular.metrics.core.api.param.Percentiles;
 import org.hawkular.metrics.core.api.param.Tags;
 import org.hawkular.metrics.core.api.param.TimeRange;
+import org.hawkular.metrics.core.impl.Functions;
+import org.hawkular.metrics.core.impl.MetricsService;
 
 import rx.Observable;
 
@@ -189,7 +190,7 @@ public class GaugeHandler {
             @PathParam("id") String id,
             List<DataPoint<Double>> data
     ) {
-        Observable<Metric<Double>> metrics = DataPoint.toObservable(tenantId, id, data, GAUGE);
+        Observable<Metric<Double>> metrics = Functions.dataPointToObservable(tenantId, id, data, GAUGE);
         try {
             metricsService.addDataPoints(GAUGE, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
@@ -203,7 +204,7 @@ public class GaugeHandler {
     public Response addGaugeData(
             List<Metric<Double>> gauges
     ) {
-        Observable<Metric<Double>> metrics = Metric.toObservable(tenantId, gauges, GAUGE);
+        Observable<Metric<Double>> metrics = Functions.metricToObservable(tenantId, gauges, GAUGE);
         try {
             metricsService.addDataPoints(GAUGE, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();

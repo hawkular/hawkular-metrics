@@ -14,13 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.api;
+package org.hawkular.metrics.core.impl;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import org.hawkular.metrics.core.api.AvailabilityBucketPoint;
+import org.hawkular.metrics.core.api.AvailabilityType;
+import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.DataPoint;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.core.api.NumericBucketPoint;
+import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
 
 import rx.Observable;

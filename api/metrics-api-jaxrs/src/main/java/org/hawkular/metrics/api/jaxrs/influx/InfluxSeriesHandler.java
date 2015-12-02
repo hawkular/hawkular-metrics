@@ -28,8 +28,8 @@ import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 
 import static org.hawkular.metrics.core.api.MetricType.COUNTER;
 import static org.hawkular.metrics.core.api.MetricType.GAUGE;
-import static org.hawkular.metrics.core.api.MetricTypeFilter.COUNTER_FILTER;
-import static org.hawkular.metrics.core.api.MetricTypeFilter.GAUGE_FILTER;
+import static org.hawkular.metrics.core.impl.MetricTypeFilter.COUNTER_FILTER;
+import static org.hawkular.metrics.core.impl.MetricTypeFilter.GAUGE_FILTER;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -87,7 +87,7 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.impl.MetricsService;
 import org.jboss.logging.Logger;
 import org.joda.time.Instant;
 import org.joda.time.Interval;

@@ -58,11 +58,12 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.param.BucketConfig;
 import org.hawkular.metrics.core.api.param.Duration;
 import org.hawkular.metrics.core.api.param.Tags;
 import org.hawkular.metrics.core.api.param.TimeRange;
+import org.hawkular.metrics.core.impl.Functions;
+import org.hawkular.metrics.core.impl.MetricsService;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
@@ -230,7 +231,8 @@ public class AvailabilityHandler {
             @Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
             @ApiParam(value = "List of availability datapoints", required = true) List<DataPoint<AvailabilityType>> data
     ) {
-        Observable<Metric<AvailabilityType>> metrics = DataPoint.toObservable(tenantId, id, data, AVAILABILITY);
+        Observable<Metric<AvailabilityType>> metrics = Functions.dataPointToObservable(tenantId, id, data,
+                AVAILABILITY);
         Observable<Void> observable = metricsService.addDataPoints(AVAILABILITY, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
@@ -250,7 +252,7 @@ public class AvailabilityHandler {
             @JsonDeserialize()
             List<Metric<AvailabilityType>> availabilities
     ) {
-        Observable<Metric<AvailabilityType>> metrics = Metric.toObservable(tenantId, availabilities,
+        Observable<Metric<AvailabilityType>> metrics = Functions.metricToObservable(tenantId, availabilities,
                 AVAILABILITY);
         Observable<Void> observable = metricsService.addDataPoints(AVAILABILITY, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));

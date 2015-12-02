@@ -40,16 +40,6 @@
       <artifactId>guava</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>io.reactivex</groupId>
-      <artifactId>rxjava</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>io.reactivex</groupId>
-      <artifactId>rxjava-math</artifactId>
-    </dependency>
-
     <!-- Used with JAX-RS 2.0 -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>

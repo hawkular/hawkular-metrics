@@ -57,13 +57,14 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericBucketPoint;
 import org.hawkular.metrics.core.api.param.BucketConfig;
 import org.hawkular.metrics.core.api.param.Duration;
 import org.hawkular.metrics.core.api.param.Percentiles;
 import org.hawkular.metrics.core.api.param.Tags;
 import org.hawkular.metrics.core.api.param.TimeRange;
+import org.hawkular.metrics.core.impl.Functions;
+import org.hawkular.metrics.core.impl.MetricsService;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -232,7 +233,7 @@ public class GaugeHandler {
             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
             List<DataPoint<Double>> data
     ) {
-        Observable<Metric<Double>> metrics = DataPoint.toObservable(tenantId, id, data, GAUGE);
+        Observable<Metric<Double>> metrics = Functions.dataPointToObservable(tenantId, id, data, GAUGE);
         Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
@@ -250,7 +251,7 @@ public class GaugeHandler {
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of metrics", required = true) List<Metric<Double>> gauges
     ) {
-        Observable<Metric<Double>> metrics = Metric.toObservable(tenantId, gauges, GAUGE);
+        Observable<Metric<Double>> metrics = Functions.metricToObservable(tenantId, gauges, GAUGE);
         Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }

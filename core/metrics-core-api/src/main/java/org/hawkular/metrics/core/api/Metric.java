@@ -40,7 +40,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
 
 import io.swagger.annotations.ApiModelProperty;
-import rx.Observable;
 
 /**
  * @author jsanda
@@ -179,12 +178,5 @@ public class Metric<T> {
                 .add("dataRetention", dataRetention)
                 .add("dataPoints", dataPoints)
                 .toString();
-    }
-
-    public static <S> Observable<Metric<S>> toObservable(
-            String tenantId, List<Metric<S>> metrics, MetricType type) {
-        return Observable.from(metrics).map(g -> {
-            return new Metric<>(new MetricId(tenantId, type, g.getMetricId().getName()), g.getDataPoints());
-        });
     }
 }

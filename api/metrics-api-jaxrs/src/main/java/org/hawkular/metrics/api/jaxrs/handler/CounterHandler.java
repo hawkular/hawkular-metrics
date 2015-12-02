@@ -58,13 +58,14 @@ import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericBucketPoint;
 import org.hawkular.metrics.core.api.param.BucketConfig;
 import org.hawkular.metrics.core.api.param.Duration;
 import org.hawkular.metrics.core.api.param.Percentiles;
 import org.hawkular.metrics.core.api.param.Tags;
 import org.hawkular.metrics.core.api.param.TimeRange;
+import org.hawkular.metrics.core.impl.Functions;
+import org.hawkular.metrics.core.impl.MetricsService;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -231,7 +232,7 @@ public class CounterHandler {
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of metrics", required = true) List<Metric<Long>> counters
     ) {
-        Observable<Metric<Long>> metrics = Metric.toObservable(tenantId, counters, COUNTER);
+        Observable<Metric<Long>> metrics = Functions.metricToObservable(tenantId, counters, COUNTER);
         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
@@ -251,7 +252,7 @@ public class CounterHandler {
             @ApiParam(value = "List of data points containing timestamp and value", required = true)
             List<DataPoint<Long>> data
     ) {
-        Observable<Metric<Long>> metrics = DataPoint.toObservable(tenantId, id, data, COUNTER);
+        Observable<Metric<Long>> metrics = Functions.dataPointToObservable(tenantId, id, data, COUNTER);
         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }

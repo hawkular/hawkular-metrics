@@ -62,7 +62,6 @@ import java.util.stream.Stream;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile;
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
-import org.hawkular.metrics.core.api.Aggregate;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Buckets;
 import org.hawkular.metrics.core.api.DataPoint;

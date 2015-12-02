@@ -48,10 +48,11 @@ import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.MixedMetricsRequest;
 import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.param.Tags;
+import org.hawkular.metrics.core.impl.Functions;
+import org.hawkular.metrics.core.impl.MetricsService;
 
 import rx.Observable;
 
@@ -133,10 +134,10 @@ public class MetricHandler {
             return emptyPayload();
         }
 
-        Observable<Metric<Double>> gauges = Metric.toObservable(tenantId, metricsRequest.getGauges(), GAUGE);
-        Observable<Metric<AvailabilityType>> availabilities = Metric.toObservable(tenantId,
+        Observable<Metric<Double>> gauges = Functions.metricToObservable(tenantId, metricsRequest.getGauges(), GAUGE);
+        Observable<Metric<AvailabilityType>> availabilities = Functions.metricToObservable(tenantId,
                 metricsRequest.getAvailabilities(), AVAILABILITY);
-        Observable<Metric<Long>> counters = Metric.toObservable(tenantId, metricsRequest.getCounters(),
+        Observable<Metric<Long>> counters = Functions.metricToObservable(tenantId, metricsRequest.getCounters(),
                 COUNTER);
 
         try {

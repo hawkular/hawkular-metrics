@@ -19,7 +19,6 @@ package org.hawkular.metrics.core.api;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Comparator;
-import java.util.List;
 import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -27,7 +26,6 @@ import com.fasterxml.jackson.annotation.JsonCreator.Mode;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.swagger.annotations.ApiModelProperty;
-import rx.Observable;
 
 /**
  * A metric data point consists of a timestamp and a value. The data type of the value will vary depending on the metric
@@ -90,11 +88,5 @@ public class DataPoint<T> {
                 .add("value", value)
                 .omitNullValues()
                 .toString();
-    }
-
-    public static <T> Observable<Metric<T>> toObservable(String tenantId, String metricId,
-            List<DataPoint<T>> points, MetricType type) {
-        Metric<T> metric = new Metric<T>(new MetricId(tenantId, type, metricId), points);
-        return Observable.just(metric);
     }
 }
