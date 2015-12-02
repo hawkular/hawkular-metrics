@@ -50,6 +50,7 @@ public class Metric<T> {
     private final Integer dataRetention;
     private final List<DataPoint<T>> dataPoints;
 
+    @SuppressWarnings("unchecked")
     @JsonCreator(mode = Mode.PROPERTIES)
     @org.codehaus.jackson.annotate.JsonCreator
     public Metric(
@@ -74,7 +75,9 @@ public class Metric<T> {
     ) {
         checkArgument(id != null, "Metric id is null");
 
-        type = type == null ? MetricType.UNDEFINED : type;
+        if (type == null) {
+            type = MetricType.UNDEFINED;
+        }
 
         this.id = new MetricId<T>("", type, id);
         this.tags = tags == null ? emptyMap() : unmodifiableMap(tags);
