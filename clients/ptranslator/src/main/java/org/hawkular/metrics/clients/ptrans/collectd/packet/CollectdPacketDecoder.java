@@ -39,7 +39,7 @@ public final class CollectdPacketDecoder {
     public CollectdPacket decode(DatagramPacket packet) {
         long start = System.currentTimeMillis();
         ByteBuf content = packet.data().getByteBuf();
-        List<Part> parts = new ArrayList<>(100);
+        List<Part<?>> parts = new ArrayList<>(100);
         for (; ; ) {
             if (!hasReadableBytes(content, 4)) {
                 break;
@@ -55,7 +55,7 @@ public final class CollectdPacketDecoder {
                 content.skipBytes(valueLength);
                 continue;
             }
-            Part part;
+            Part<?> part;
             switch (partType) {
                 case HOST:
                 case PLUGIN:

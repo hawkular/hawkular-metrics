@@ -51,7 +51,7 @@ public class CollectdEventsDecoderTest {
 
     @Test
     public void handlerShouldNotOutputEventsWhenNoValuePartIsInCollectdPacket() throws Exception {
-        List<Part> parts = new ArrayList<>();
+        List<Part<?>> parts = new ArrayList<>();
         for (PartType partType : PartType.values()) {
             switch (partType) {
                 case HOST:
@@ -83,7 +83,7 @@ public class CollectdEventsDecoderTest {
 
     @Test
     public void handlerShouldDecodeSimplePacket() throws Exception {
-        List<Part> parts = new ArrayList<>();
+        List<Part<?>> parts = new ArrayList<>();
         parts.add(new StringPart(HOST, HOST.name()));
         parts.add(new StringPart(PLUGIN, PLUGIN.name()));
         parts.add(new StringPart(PLUGIN_INSTANCE, PLUGIN_INSTANCE.name()));
@@ -137,7 +137,7 @@ public class CollectdEventsDecoderTest {
 
     @Test
     public void handlerShouldNotUseNullWhenNoTypeInstancePartHasBeenSent() throws Exception {
-        List<Part> parts = new ArrayList<>();
+        List<Part<?>> parts = new ArrayList<>();
         parts.add(new StringPart(HOST, HOST.name()));
         parts.add(new StringPart(PLUGIN, PLUGIN.name()));
         parts.add(new StringPart(PLUGIN_INSTANCE, PLUGIN_INSTANCE.name()));

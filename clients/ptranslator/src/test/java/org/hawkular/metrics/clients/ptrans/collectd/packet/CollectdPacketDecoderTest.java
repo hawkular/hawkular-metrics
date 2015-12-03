@@ -55,7 +55,7 @@ public class CollectdPacketDecoderTest {
         int numberOfPartTypes = PartType.values().length;
         int numberOfParts = numberOfPartTypes * 50;
 
-        List<Part> parts = new ArrayList<>(numberOfParts);
+        List<Part<?>> parts = new ArrayList<>(numberOfParts);
         for (int i = 0; i < numberOfParts; i++) {
             PartType partType = PartType.values()[i % numberOfPartTypes];
             switch (partType) {
@@ -82,7 +82,7 @@ public class CollectdPacketDecoderTest {
         Collections.shuffle(parts);
 
         ByteBuf buffer = Unpooled.buffer();
-        for (Part part : parts) {
+        for (Part<?> part : parts) {
             PartType partType = part.getPartType();
             switch (partType) {
                 case HOST:
@@ -113,14 +113,12 @@ public class CollectdPacketDecoderTest {
         CollectdPacket collectdPacket = packetDecoder.decode(packet);
         assertNotNull("Expected CollectdPacket", collectdPacket);
 
-        List<Part> partsResult = collectdPacket.getParts();
+        List<Part<?>> partsResult = collectdPacket.getParts();
         assertEquals("Wrong number of parts in the packet", numberOfParts, partsResult.size());
         assertEquals("Wrong packet order", toPartTypeList(parts), toPartTypeList(partsResult));
     }
 
-    private List<PartType> toPartTypeList(List<Part> parts) {
-        return parts.stream()
-                    .map(Part::getPartType)
-                    .collect(toList());
+    private List<PartType> toPartTypeList(List<Part<?>> parts) {
+        return parts.stream().map(Part::getPartType).collect(toList());
     }
 }

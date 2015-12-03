@@ -28,14 +28,14 @@ import java.util.List;
  * @author Thomas Segismont
  */
 public final class CollectdPacket {
-    private final List<Part> parts;
+    private final List<Part<?>> parts;
 
-    public CollectdPacket(List<Part> parts) {
+    public CollectdPacket(List<Part<?>> parts) {
         checkArgument(parts != null, "parts is null");
         this.parts = Collections.unmodifiableList(parts);
     }
 
-    public List<Part> getParts() {
+    public List<Part<?>> getParts() {
         return parts;
     }
 
