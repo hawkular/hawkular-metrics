@@ -35,9 +35,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.handler.observer.TenantCreatedObserver;
-import org.hawkular.metrics.api.jaxrs.model.ApiError;
-import org.hawkular.metrics.api.jaxrs.model.TenantDefinition;
-import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.ApiError;
+import org.hawkular.metrics.core.api.TenantDefinition;
+import org.hawkular.metrics.core.impl.MetricsService;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

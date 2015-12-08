@@ -50,21 +50,22 @@ import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
-import org.hawkular.metrics.api.jaxrs.model.ApiError;
-import org.hawkular.metrics.api.jaxrs.model.Availability;
-import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
-import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
-import org.hawkular.metrics.api.jaxrs.param.BucketConfig;
-import org.hawkular.metrics.api.jaxrs.param.Duration;
-import org.hawkular.metrics.api.jaxrs.param.Tags;
-import org.hawkular.metrics.api.jaxrs.param.TimeRange;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.core.api.ApiError;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.param.BucketConfig;
+import org.hawkular.metrics.core.api.param.Duration;
+import org.hawkular.metrics.core.api.param.Tags;
+import org.hawkular.metrics.core.api.param.TimeRange;
+import org.hawkular.metrics.core.impl.Functions;
+import org.hawkular.metrics.core.impl.MetricsService;
+
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -102,16 +103,19 @@ public class AvailabilityHandler {
     })
     public void createAvailabilityMetric(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(required = true) MetricDefinition metricDefinition,
+            @ApiParam(required = true) Metric<AvailabilityType> metric,
             @Context UriInfo uriInfo
     ) {
-        if(metricDefinition.getType() != null && MetricType.AVAILABILITY != metricDefinition.getType()) {
-            asyncResponse.resume(badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+        if (metric.getType() != null
+                && MetricType.UNDEFINED != metric.getType()
+                && MetricType.AVAILABILITY != metric.getType()) {
+            asyncResponse.resume(badRequest(new ApiError("Metric type does not match " + MetricType
                     .AVAILABILITY.getText())));
         }
-        URI location = uriInfo.getBaseUriBuilder().path("/availability/{id}").build(metricDefinition.getId());
-        Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, metricDefinition.getId()),
-                metricDefinition.getTags(), metricDefinition.getDataRetention());
+        URI location = uriInfo.getBaseUriBuilder().path("/availability/{id}").build(metric.getId());
+        metric = new Metric<>(
+                new MetricId<>(tenantId, AVAILABILITY, metric.getMetricId().getName()), metric.getTags(),
+                metric.getDataRetention());
         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
     }
 
@@ -119,7 +123,7 @@ public class AvailabilityHandler {
     @Path("/")
     @ApiOperation(value = "Find tenant's metric definitions.",
                     notes = "Does not include any metric values. ",
-                    response = MetricDefinition.class, responseContainer = "List")
+ response = Metric.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully retrieved at least one metric definition."),
             @ApiResponse(code = 204, message = "No metrics found."),
@@ -136,7 +140,6 @@ public class AvailabilityHandler {
                 : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), AVAILABILITY);
 
         metricObservable
-                .map(MetricDefinition::new)
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {
@@ -150,7 +153,7 @@ public class AvailabilityHandler {
 
     @GET
     @Path("/{id}")
-    @ApiOperation(value = "Retrieve single metric definition.", response = MetricDefinition.class)
+    @ApiOperation(value = "Retrieve single metric definition.", response = Metric.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's definition was successfully retrieved."),
             @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
@@ -159,7 +162,6 @@ public class AvailabilityHandler {
     public void getAvailabilityMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
 
         metricsService.findMetric(new MetricId<>(tenantId, AVAILABILITY, id))
-                .map(MetricDefinition::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(noContent()))
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
@@ -227,9 +229,10 @@ public class AvailabilityHandler {
     })
     public void addAvailabilityForMetric(
             @Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
-            @ApiParam(value = "List of availability datapoints", required = true) List<AvailabilityDataPoint> data
+            @ApiParam(value = "List of availability datapoints", required = true) List<DataPoint<AvailabilityType>> data
     ) {
-        Observable<Metric<AvailabilityType>> metrics = AvailabilityDataPoint.toObservable(tenantId, id, data);
+        Observable<Metric<AvailabilityType>> metrics = Functions.dataPointToObservable(tenantId, id, data,
+                AVAILABILITY);
         Observable<Void> observable = metricsService.addDataPoints(AVAILABILITY, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
@@ -246,9 +249,11 @@ public class AvailabilityHandler {
     public void addAvailabilityData(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of availability metrics", required = true)
-            List<Availability> availabilities
+            @JsonDeserialize()
+            List<Metric<AvailabilityType>> availabilities
     ) {
-        Observable<Metric<AvailabilityType>> metrics = Availability.toObservable(tenantId, availabilities);
+        Observable<Metric<AvailabilityType>> metrics = Functions.metricToObservable(tenantId, availabilities,
+                AVAILABILITY);
         Observable<Void> observable = metricsService.addDataPoints(AVAILABILITY, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
@@ -257,7 +262,7 @@ public class AvailabilityHandler {
     @Path("/{id}/data")
     @ApiOperation(value = "Retrieve availability data.", notes = "When buckets or bucketDuration query parameter is " +
             "used, the time range between start and end will be divided in buckets of equal duration, and " +
-            "availability statistics will be computed for each bucket.", response = AvailabilityDataPoint.class,
+            "availability statistics will be computed for each bucket.", response = DataPoint.class,
             responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched availability data."),
@@ -292,7 +297,6 @@ public class AvailabilityHandler {
         Buckets buckets = bucketConfig.getBuckets();
         if (buckets == null) {
             metricsService.findAvailabilityData(metricId, timeRange.getStart(), timeRange.getEnd(), distinct)
-                    .map(AvailabilityDataPoint::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));

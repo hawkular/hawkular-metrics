@@ -75,8 +75,7 @@ public interface DataAccess {
 
     Observable<ResultSet> findGaugeData(Metric<Double> metric, long startTime, long endTime, Order order);
 
-    Observable<ResultSet> findGaugeData(MetricId<Double> id, long startTime, long endTime,
-            boolean includeWriteTime);
+    Observable<ResultSet> findGaugeData(MetricId<Double> id, long startTime, long endTime, boolean includeWriteTime);
 
     Observable<ResultSet> findGaugeData(Metric<Double> metric, long timestamp, boolean includeWriteTime);
 

@@ -322,7 +322,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric) {
-        MetricId<T> metricId = metric.getId();
+        MetricId<T> metricId = metric.getMetricId();
         return session.executeAsync(insertIntoMetricsIndex.bind(metricId.getTenantId(), metricId.getType().getCode(),
                 metricId.getName(), metric.getDataRetention(), metric.getTags()));
     }
@@ -344,14 +344,14 @@ public class DataAccessImpl implements DataAccess {
     // day, and then add the tags and retention to the new partition.
     @Override
     public <T> Observable<ResultSet> addDataRetention(Metric<T> metric) {
-        MetricId<T> metricId = metric.getId();
+        MetricId<T> metricId = metric.getMetricId();
         return rxSession.execute(addDataRetention.bind(metric.getDataRetention(),
                 metricId.getTenantId(), metricId.getType().getCode(), metricId.getName(), DPART));
     }
 
     @Override
     public <T> Observable<ResultSet> addTags(Metric<T> metric, Map<String, String> tags) {
-        MetricId<T> metricId = metric.getId();
+        MetricId<T> metricId = metric.getMetricId();
         BoundStatement stmt = addTagsToMetricsIndex.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
                 metricId.getName());
         return rxSession.execute(stmt);
@@ -359,7 +359,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public <T> Observable<ResultSet> deleteTags(Metric<T> metric, Set<String> tags) {
-        MetricId<T> metricId = metric.getId();
+        MetricId<T> metricId = metric.getMetricId();
         BoundStatement stmt = deleteTagsFromMetricsIndex.bind(tags, metricId.getTenantId(),
                 metricId.getType().getCode(), metricId.getName());
         return rxSession.execute(stmt);
@@ -367,7 +367,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public <T> Observable<Integer> updateMetricsIndex(Observable<Metric<T>> metrics) {
-        return metrics.map(Metric::getId)
+        return metrics.map(Metric::getMetricId)
                 .map(id -> updateMetricsIndex.bind(id.getTenantId(), id.getType().getCode(), id.getName()))
                 .compose(new BatchStatementTransformer())
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
@@ -399,7 +399,7 @@ public class DataAccessImpl implements DataAccess {
     private BoundStatement bindDataPoint(
             PreparedStatement statement, Metric<?> metric, Object value, long timestamp, int ttl
     ) {
-        MetricId<?> metricId = metric.getId();
+        MetricId<?> metricId = metric.getMetricId();
         return statement.bind(ttl, value, metricId.getTenantId(), metricId.getType().getCode(), metricId.getName(),
                 DPART, getTimeUUID(timestamp));
     }
@@ -418,7 +418,7 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<ResultSet> findGaugeData(Metric<Double> metric, long startTime, long endTime, Order
             order) {
-        MetricId<?> metricId = metric.getId();
+        MetricId<Double> metricId = metric.getMetricId();
         if (order == Order.ASC) {
             return rxSession.execute(findGaugeDataByDateRangeExclusiveASC.bind(metricId.getTenantId(),
                     GAUGE.getCode(), metricId.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
@@ -443,7 +443,7 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<ResultSet> findGaugeData(Metric<Double> metric, long timestamp,
             boolean includeWriteTime) {
-        MetricId<?> metricId = metric.getId();
+        MetricId<Double> metricId = metric.getMetricId();
         if (includeWriteTime) {
             return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeInclusive.bind(metricId.getTenantId(),
                     metricId.getType().getCode(), metricId.getName(), DPART, UUIDs.startOf(timestamp),
@@ -465,7 +465,7 @@ public class DataAccessImpl implements DataAccess {
     public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long startTime, long
             endTime, boolean
             includeWriteTime) {
-        MetricId<?> metricId = metric.getId();
+        MetricId<AvailabilityType> metricId = metric.getMetricId();
         if (includeWriteTime) {
             return rxSession.execute(findAvailabilitiesWithWriteTime.bind(metricId.getTenantId(),
                     AVAILABILITY.getCode(), metricId.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
@@ -477,7 +477,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long timestamp) {
-        MetricId<?> metricId = metric.getId();
+        MetricId<AvailabilityType> metricId = metric.getMetricId();
         return rxSession.execute(findAvailabilityByDateRangeInclusive.bind(metricId.getTenantId(),
                 AVAILABILITY.getCode(), metricId.getName(), DPART, UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
     }
@@ -523,14 +523,14 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public <T> Observable<ResultSet> insertIntoMetricsTagsIndex(Metric<T> metric, Map<String, String> tags) {
-        MetricId<T> metricId = metric.getId();
+        MetricId<T> metricId = metric.getMetricId();
         return tagsUpdates(tags, (name, value) -> insertMetricsTagsIndex.bind(metricId.getTenantId(), name, value,
                 metricId.getType().getCode(), metricId.getName()));
     }
 
     @Override
     public <T> Observable<ResultSet> deleteFromMetricsTagsIndex(Metric<T> metric, Map<String, String> tags) {
-        MetricId<T> metricId = metric.getId();
+        MetricId<T> metricId = metric.getMetricId();
         return tagsUpdates(tags, (name, value) -> deleteMetricsTagsIndex.bind(metricId.getTenantId(), name, value,
                 metricId.getType().getCode(), metricId.getName()));
     }
@@ -554,7 +554,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public <T> ResultSetFuture updateRetentionsIndex(Metric<T> metric) {
-        return session.executeAsync(updateRetentionsIndex.bind(metric.getId().getTenantId(),
-                metric.getId().getType().getCode(), metric.getId().getName(), metric.getDataRetention()));
+        return session.executeAsync(updateRetentionsIndex.bind(metric.getMetricId().getTenantId(),
+                metric.getMetricId().getType().getCode(), metric.getMetricId().getName(), metric.getDataRetention()));
     }
 }

@@ -53,7 +53,8 @@ public class MetricId<T> {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        MetricId<?> metricId = (MetricId<?>) o;
+        @SuppressWarnings("rawtypes")
+        MetricId metricId = (MetricId) o;
         return java.util.Objects.equals(name, metricId.name) &&
                 java.util.Objects.equals(tenantId, metricId.tenantId) &&
                 java.util.Objects.equals(type, metricId.type);

@@ -23,6 +23,7 @@ import static org.junit.runners.Parameterized.Parameters;
 import java.util.Arrays;
 import java.util.Collections;
 
+import org.hawkular.metrics.core.api.param.Tags;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;

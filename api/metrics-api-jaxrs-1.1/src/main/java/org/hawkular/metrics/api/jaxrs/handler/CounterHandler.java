@@ -46,23 +46,21 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import org.hawkular.metrics.api.jaxrs.model.ApiError;
-import org.hawkular.metrics.api.jaxrs.model.Counter;
-import org.hawkular.metrics.api.jaxrs.model.CounterDataPoint;
-import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
-import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
-import org.hawkular.metrics.api.jaxrs.param.BucketConfig;
-import org.hawkular.metrics.api.jaxrs.param.Duration;
-import org.hawkular.metrics.api.jaxrs.param.Percentiles;
-import org.hawkular.metrics.api.jaxrs.param.Tags;
-import org.hawkular.metrics.api.jaxrs.param.TimeRange;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.core.api.ApiError;
 import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
+import org.hawkular.metrics.core.api.param.BucketConfig;
+import org.hawkular.metrics.core.api.param.Duration;
+import org.hawkular.metrics.core.api.param.Percentiles;
+import org.hawkular.metrics.core.api.param.Tags;
+import org.hawkular.metrics.core.api.param.TimeRange;
+import org.hawkular.metrics.core.impl.Functions;
+import org.hawkular.metrics.core.impl.MetricsService;
 
 import rx.Observable;
 
@@ -84,22 +82,24 @@ public class CounterHandler {
     @POST
     @Path("/")
     public Response createCounter(
-            MetricDefinition metricDefinition,
+            Metric<Long> metric,
             @Context UriInfo uriInfo
     ) {
-        if(metricDefinition.getType() != null && MetricType.COUNTER != metricDefinition.getType()) {
-            return badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+        if (metric.getType() != null
+                && MetricType.UNDEFINED != metric.getType()
+                && MetricType.COUNTER != metric.getType()) {
+            return badRequest(new ApiError("Metric type does not match " + MetricType
                     .COUNTER.getText()));
         }
-        Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, metricDefinition.getId()),
-                metricDefinition.getTags(), metricDefinition.getDataRetention());
-        URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getId().getName());
+        metric = new Metric<>(new MetricId<>(tenantId, COUNTER, metric.getId()),
+                metric.getTags(), metric.getDataRetention());
+        URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getMetricId().getName());
         try {
             Observable<Void> observable = metricsService.createMetric(metric);
             observable.toBlocking().lastOrDefault(null);
             return Response.created(location).build();
         } catch (MetricAlreadyExistsException e) {
-            String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
+            String message = "A metric with name [" + e.getMetric().getMetricId().getName() + "] already exists";
             return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
         } catch (Exception e) {
             return serverError(e);
@@ -117,7 +117,6 @@ public class CounterHandler {
 
         try {
             return metricObservable
-                    .map(MetricDefinition::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .toBlocking()
@@ -134,7 +133,6 @@ public class CounterHandler {
     public Response getCounter(@PathParam("id") String id) {
         try {
             return metricsService.findMetric(new MetricId<>(tenantId, COUNTER, id))
-                .map(MetricDefinition::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                     .switchIfEmpty(Observable.just(noContent()))
                 .toBlocking().lastOrDefault(null);
@@ -187,8 +185,8 @@ public class CounterHandler {
 
     @POST
     @Path("/data")
-    public Response addData(List<Counter> counters) {
-        Observable<Metric<Long>> metrics = Counter.toObservable(tenantId, counters);
+    public Response addData(List<Metric<Long>> counters) {
+        Observable<Metric<Long>> metrics = Functions.metricToObservable(tenantId, counters, COUNTER);
         try {
             metricsService.addDataPoints(COUNTER, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
@@ -201,9 +199,9 @@ public class CounterHandler {
     @Path("/{id}/data")
     public Response addData(
             @PathParam("id") String id,
-            List<CounterDataPoint> data
+            List<DataPoint<Long>> data
     ) {
-        Observable<Metric<Long>> metrics = CounterDataPoint.toObservable(tenantId, id, data);
+        Observable<Metric<Long>> metrics = Functions.dataPointToObservable(tenantId, id, data, COUNTER);
         try {
             metricsService.addDataPoints(COUNTER, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
@@ -236,7 +234,6 @@ public class CounterHandler {
         try {
             if (buckets == null) {
                 return metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
-                        .map(CounterDataPoint::new)
                         .toList()
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()
@@ -283,7 +280,6 @@ public class CounterHandler {
             if (buckets == null) {
                 return metricsService
                         .findRateData(metricId, timeRange.getStart(), timeRange.getEnd())
-                        .map(GaugeDataPoint::new)
                         .toList()
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()

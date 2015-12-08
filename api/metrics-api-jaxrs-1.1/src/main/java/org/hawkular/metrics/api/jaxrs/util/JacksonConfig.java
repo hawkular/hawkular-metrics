@@ -23,9 +23,14 @@ import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
 
 import org.codehaus.jackson.JsonParser;
+import org.codehaus.jackson.Version;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
+import org.codehaus.jackson.map.module.SimpleModule;
+import org.hawkular.metrics.core.api.AvailabilityType;
+import org.hawkular.metrics.core.api.codehaus.jackson.AvailabilityTypeDeserializer;
+import org.hawkular.metrics.core.api.codehaus.jackson.AvailabilityTypeSerializer;
 
 @Provider
 @Produces(MediaType.APPLICATION_JSON)
@@ -44,6 +49,11 @@ public class JacksonConfig implements ContextResolver<ObjectMapper> {
         mapper.setSerializationInclusion(Inclusion.NON_NULL);
         mapper.configure(SerializationConfig.Feature.WRITE_EMPTY_JSON_ARRAYS, false);
         mapper.configure(SerializationConfig.Feature.WRITE_NULL_MAP_VALUES, false);
+
+        SimpleModule module = new SimpleModule("hawkular-metrics", new Version(1, 0, 0, ""));
+        module.addDeserializer(AvailabilityType.class, new AvailabilityTypeDeserializer());
+        module.addSerializer(AvailabilityType.class, new AvailabilityTypeSerializer());
+        mapper.registerModule(module);
     }
 
     @Override

@@ -51,23 +51,21 @@ import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
-import org.hawkular.metrics.api.jaxrs.model.ApiError;
-import org.hawkular.metrics.api.jaxrs.model.Counter;
-import org.hawkular.metrics.api.jaxrs.model.CounterDataPoint;
-import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
-import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
-import org.hawkular.metrics.api.jaxrs.param.BucketConfig;
-import org.hawkular.metrics.api.jaxrs.param.Duration;
-import org.hawkular.metrics.api.jaxrs.param.Percentiles;
-import org.hawkular.metrics.api.jaxrs.param.Tags;
-import org.hawkular.metrics.api.jaxrs.param.TimeRange;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.core.api.ApiError;
 import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
 import org.hawkular.metrics.core.api.NumericBucketPoint;
+import org.hawkular.metrics.core.api.param.BucketConfig;
+import org.hawkular.metrics.core.api.param.Duration;
+import org.hawkular.metrics.core.api.param.Percentiles;
+import org.hawkular.metrics.core.api.param.Tags;
+import org.hawkular.metrics.core.api.param.TimeRange;
+import org.hawkular.metrics.core.impl.Functions;
+import org.hawkular.metrics.core.impl.MetricsService;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -109,16 +107,19 @@ public class CounterHandler {
     })
     public void createCounter(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(required = true) MetricDefinition metricDefinition,
+            @ApiParam(required = true) Metric<Long> metric,
             @Context UriInfo uriInfo
     ) {
-        if(metricDefinition.getType() != null && MetricType.COUNTER != metricDefinition.getType()) {
-            asyncResponse.resume(badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+        if (metric.getType() != null
+                && MetricType.UNDEFINED != metric.getType()
+                && MetricType.COUNTER != metric.getType()) {
+            asyncResponse
+                    .resume(badRequest(new ApiError("Metric type does not match " + MetricType
                     .COUNTER.getText())));
         }
-        Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, metricDefinition.getId()),
-                metricDefinition.getTags(), metricDefinition.getDataRetention());
-        URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getId().getName());
+        metric = new Metric<>(new MetricId<>(tenantId, COUNTER, metric.getId()),
+                metric.getTags(), metric.getDataRetention());
+        URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getMetricId().getName());
         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
     }
 
@@ -126,7 +127,7 @@ public class CounterHandler {
     @Path("/")
     @ApiOperation(value = "Find tenant's counter metric definitions.",
                     notes = "Does not include any metric values. ",
-                    response = MetricDefinition.class, responseContainer = "List")
+                    response = Metric.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully retrieved at least one metric definition."),
             @ApiResponse(code = 204, message = "No metrics found."),
@@ -143,7 +144,6 @@ public class CounterHandler {
                 : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), COUNTER);
 
         metricObservable
-                .map(MetricDefinition::new)
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {
@@ -157,7 +157,7 @@ public class CounterHandler {
 
     @GET
     @Path("/{id}")
-    @ApiOperation(value = "Retrieve a counter definition.", response = MetricDefinition.class)
+    @ApiOperation(value = "Retrieve a counter definition.", response = Metric.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's definition was successfully retrieved."),
             @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
@@ -166,7 +166,6 @@ public class CounterHandler {
     public void getCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
 
         metricsService.findMetric(new MetricId<>(tenantId, COUNTER, id))
-                .map(MetricDefinition::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(noContent()))
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
@@ -229,10 +228,11 @@ public class CounterHandler {
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data points",
                     response = ApiError.class)
     })
-    public void addData(@Suspended final AsyncResponse asyncResponse,
-                        @ApiParam(value = "List of metrics", required = true) List<Counter> counters
+    public void addData(
+            @Suspended final AsyncResponse asyncResponse,
+            @ApiParam(value = "List of metrics", required = true) List<Metric<Long>> counters
     ) {
-        Observable<Metric<Long>> metrics = Counter.toObservable(tenantId, counters);
+        Observable<Metric<Long>> metrics = Functions.metricToObservable(tenantId, counters, COUNTER);
         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
@@ -250,9 +250,9 @@ public class CounterHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
             @ApiParam(value = "List of data points containing timestamp and value", required = true)
-            List<CounterDataPoint> data
+            List<DataPoint<Long>> data
     ) {
-        Observable<Metric<Long>> metrics = CounterDataPoint.toObservable(tenantId, id, data);
+        Observable<Metric<Long>> metrics = Functions.dataPointToObservable(tenantId, id, data, COUNTER);
         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
@@ -261,7 +261,7 @@ public class CounterHandler {
     @Path("/{id}/data")
     @ApiOperation(value = "Retrieve counter data points.", notes = "When buckets or bucketDuration query parameter " +
             "is used, the time range between start and end will be divided in buckets of equal duration, and metric " +
-            "statistics will be computed for each bucket.", response = CounterDataPoint.class, responseContainer =
+            "statistics will be computed for each bucket.", response = DataPoint.class, responseContainer =
             "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
@@ -295,7 +295,6 @@ public class CounterHandler {
         Buckets buckets = bucketConfig.getBuckets();
         if (buckets == null) {
             metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
-                    .map(CounterDataPoint::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
@@ -318,7 +317,7 @@ public class CounterHandler {
             "used, the time range between start and end will be divided in buckets of equal duration, and metric " +
             "statistics will be computed for each bucket. Reset events are detected and data points that immediately " +
             "follow such events are filtered out prior to calculating the rates. This avoid misleading or inaccurate " +
-            "rates when resets occur.", response = GaugeDataPoint.class, responseContainer = "List")
+            "rates when resets occur.", response = DataPoint.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),
@@ -351,7 +350,6 @@ public class CounterHandler {
         Buckets buckets = bucketConfig.getBuckets();
         if (buckets == null) {
             metricsService.findRateData(metricId, timeRange.getStart(), timeRange.getEnd())
-                    .map(GaugeDataPoint::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));

@@ -25,6 +25,8 @@ import java.util.Map;
 
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.DataPoint;
+import org.hawkular.metrics.core.api.Metric;
+import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.api.Tenant;
 import org.joda.time.Duration;
@@ -33,6 +35,8 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.utils.UUIDs;
 import com.google.common.base.Function;
+
+import rx.Observable;
 
 /**
  * @author jsanda
@@ -101,10 +105,23 @@ public class Functions {
 
     public static Tenant getTenant(Row row) {
         String tenantId = row.getString(0);
-        Map<MetricType<?>, Integer> retentions = row.getMap(1, String.class, Integer.class).entrySet().stream().collect(
-                toMap(entry -> MetricType.fromTextCode(entry.getKey()), Map.Entry::getValue));
+        Map<MetricType<?>, Integer> retentions = row.getMap(1, String.class, Integer.class).entrySet().stream()
+                .collect(toMap(entry -> MetricType.fromTextCode(entry.getKey()), Map.Entry::getValue));
 
         return new Tenant(tenantId, retentions);
+    }
+
+    public static <S> Observable<Metric<S>> metricToObservable(
+            String tenantId, List<Metric<S>> metrics, MetricType<S> type) {
+        return Observable.from(metrics).map(g -> {
+            return new Metric<>(new MetricId<>(tenantId, type, g.getMetricId().getName()), g.getDataPoints());
+        });
+    }
+
+    public static <T> Observable<Metric<T>> dataPointToObservable(String tenantId, String metricId,
+            List<DataPoint<T>> points, MetricType<T> type) {
+        Metric<T> metric = new Metric<T>(new MetricId<>(tenantId, type, metricId), points);
+        return Observable.just(metric);
     }
 
     /**

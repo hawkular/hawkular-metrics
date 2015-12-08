@@ -21,8 +21,8 @@ import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 
-import org.hawkular.metrics.api.jaxrs.model.ApiError;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.core.api.ApiError;
 
 import rx.Observer;
 

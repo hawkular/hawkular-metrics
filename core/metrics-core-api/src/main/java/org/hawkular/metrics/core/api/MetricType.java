@@ -34,6 +34,9 @@ public final class MetricType<T> {
     public static final MetricType<AvailabilityType> AVAILABILITY = new MetricType<>((byte) 1, "availability", true);
     public static final MetricType<Long> COUNTER = new MetricType<>((byte) 2, "counter", true);
     public static final MetricType<Double> COUNTER_RATE = new MetricType<>((byte) 3, "counter_rate", false);
+
+    @SuppressWarnings("rawtypes")
+    public static final MetricType UNDEFINED = new MetricType((byte) 127, "undefined", false);
     // If you add a new type: don't forget to update the "all" and "userTypes" sets
 
     private static final Set<MetricType<?>> all = ImmutableSet.of(GAUGE, AVAILABILITY, COUNTER, COUNTER_RATE);
@@ -96,7 +99,10 @@ public final class MetricType<T> {
     }
 
     public static MetricType<?> fromTextCode(String textCode) {
-        checkArgument(textCode != null, "textCode is null");
+        if (textCode == null || textCode.trim().isEmpty()) {
+            return UNDEFINED;
+        }
+
         MetricType<?> type = texts.get(textCode);
         if (type == null) {
             throw new IllegalArgumentException(textCode + " is not a recognized metric type");

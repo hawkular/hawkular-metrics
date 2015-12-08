@@ -27,6 +27,7 @@ import java.util.StringTokenizer;
 
 import javax.ws.rs.ext.Provider;
 
+import org.hawkular.metrics.core.api.param.Tags;
 import org.jboss.resteasy.spi.StringConverter;
 
 /**

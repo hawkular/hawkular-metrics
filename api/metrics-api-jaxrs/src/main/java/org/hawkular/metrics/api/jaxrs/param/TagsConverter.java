@@ -27,6 +27,8 @@ import java.util.StringTokenizer;
 
 import javax.ws.rs.ext.ParamConverter;
 
+import org.hawkular.metrics.core.api.param.Tags;
+
 /**
  * A JAX-RS {@link ParamConverter} for {@link Tags} parameters. The string format is a list of tags in the {@code
  * name:value} form, comma-separated.

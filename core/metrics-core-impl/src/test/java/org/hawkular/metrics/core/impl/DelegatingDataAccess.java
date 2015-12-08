@@ -191,7 +191,7 @@ public class DelegatingDataAccess implements DataAccess {
 
     @Override
     public <T> Observable<ResultSet> updateRetentionsIndex(String tenantId, MetricType<T> type,
-                                                       Map<String, Integer> retentions) {
+            Map<String, Integer> retentions) {
         return delegate.updateRetentionsIndex(tenantId, type, retentions);
     }
 

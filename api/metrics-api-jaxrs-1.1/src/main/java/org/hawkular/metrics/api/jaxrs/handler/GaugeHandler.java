@@ -47,22 +47,21 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import org.hawkular.metrics.api.jaxrs.model.ApiError;
-import org.hawkular.metrics.api.jaxrs.model.Gauge;
-import org.hawkular.metrics.api.jaxrs.model.GaugeDataPoint;
-import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
-import org.hawkular.metrics.api.jaxrs.param.BucketConfig;
-import org.hawkular.metrics.api.jaxrs.param.Duration;
-import org.hawkular.metrics.api.jaxrs.param.Percentiles;
-import org.hawkular.metrics.api.jaxrs.param.Tags;
-import org.hawkular.metrics.api.jaxrs.param.TimeRange;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.core.api.ApiError;
 import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
+import org.hawkular.metrics.core.api.param.BucketConfig;
+import org.hawkular.metrics.core.api.param.Duration;
+import org.hawkular.metrics.core.api.param.Percentiles;
+import org.hawkular.metrics.core.api.param.Tags;
+import org.hawkular.metrics.core.api.param.TimeRange;
+import org.hawkular.metrics.core.impl.Functions;
+import org.hawkular.metrics.core.impl.MetricsService;
 
 import rx.Observable;
 
@@ -84,22 +83,24 @@ public class GaugeHandler {
     @POST
     @Path("/")
     public Response createGaugeMetric(
-            MetricDefinition metricDefinition,
+            Metric<Double> metric,
             @Context UriInfo uriInfo
     ) {
-        if(metricDefinition.getType() != null && MetricType.GAUGE != metricDefinition.getType()) {
-            return badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+        if (metric.getType() != null
+                && MetricType.UNDEFINED != metric.getType()
+                && MetricType.GAUGE != metric.getType()) {
+            return badRequest(new ApiError("Metric type does not match " + MetricType
                     .GAUGE.getText()));
         }
-        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metricDefinition.getId()),
-                metricDefinition.getTags(), metricDefinition.getDataRetention());
-        URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getId().getName());
+        metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metric.getId()),
+                metric.getTags(), metric.getDataRetention());
+        URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getMetricId().getName());
         try {
             Observable<Void> observable = metricsService.createMetric(metric);
             observable.toBlocking().lastOrDefault(null);
             return Response.created(location).build();
         } catch (MetricAlreadyExistsException e) {
-            String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
+            String message = "A metric with name [" + e.getMetric().getMetricId().getName() + "] already exists";
             return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
         } catch (Exception e) {
             return serverError(e);
@@ -117,7 +118,6 @@ public class GaugeHandler {
 
         try {
             return metricObservable
-                    .map(MetricDefinition::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .toBlocking()
@@ -134,7 +134,6 @@ public class GaugeHandler {
     public Response getGaugeMetric(@PathParam("id") String id) {
         try {
             return metricsService.findMetric(new MetricId<>(tenantId, GAUGE, id))
-                .map(MetricDefinition::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                     .switchIfEmpty(Observable.just(noContent())).toBlocking().lastOrDefault(null);
         } catch (Exception e) {
@@ -189,9 +188,9 @@ public class GaugeHandler {
     @Path("/{id}/data")
     public Response addDataForMetric(
             @PathParam("id") String id,
-            List<GaugeDataPoint> data
+            List<DataPoint<Double>> data
     ) {
-        Observable<Metric<Double>> metrics = GaugeDataPoint.toObservable(tenantId, id, data);
+        Observable<Metric<Double>> metrics = Functions.dataPointToObservable(tenantId, id, data, GAUGE);
         try {
             metricsService.addDataPoints(GAUGE, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
@@ -203,9 +202,9 @@ public class GaugeHandler {
     @POST
     @Path("/data")
     public Response addGaugeData(
-            List<Gauge> gauges
+            List<Metric<Double>> gauges
     ) {
-        Observable<Metric<Double>> metrics = Gauge.toObservable(tenantId, gauges);
+        Observable<Metric<Double>> metrics = Functions.metricToObservable(tenantId, gauges, GAUGE);
         try {
             metricsService.addDataPoints(GAUGE, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
@@ -239,7 +238,6 @@ public class GaugeHandler {
             if (buckets == null) {
                 return metricsService
                         .findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
-                        .map(GaugeDataPoint::new)
                         .toList()
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()

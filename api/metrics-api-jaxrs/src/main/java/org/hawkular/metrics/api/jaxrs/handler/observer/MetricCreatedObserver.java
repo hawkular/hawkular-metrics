@@ -23,8 +23,8 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.hawkular.metrics.api.jaxrs.model.ApiError;
-import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
+import org.hawkular.metrics.core.api.ApiError;
+import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
 
 /**
  * An implementation of {@code EntityCreatedObserver} for metric entities.
@@ -43,7 +43,7 @@ public class MetricCreatedObserver extends EntityCreatedObserver<MetricAlreadyEx
     }
 
     private static Response getMetricAlreadyExistsResponse(MetricAlreadyExistsException e) {
-        String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
+        String message = "A metric with name [" + e.getMetric().getMetricId().getName() + "] already exists";
         return Response.status(Status.CONFLICT).entity(new ApiError(message)).build();
     }
 }

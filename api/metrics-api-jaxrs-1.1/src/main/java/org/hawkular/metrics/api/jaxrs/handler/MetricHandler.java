@@ -41,21 +41,18 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import org.hawkular.metrics.api.jaxrs.model.ApiError;
-import org.hawkular.metrics.api.jaxrs.model.Availability;
-import org.hawkular.metrics.api.jaxrs.model.Counter;
-import org.hawkular.metrics.api.jaxrs.model.Gauge;
-import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
-import org.hawkular.metrics.api.jaxrs.model.MixedMetricsRequest;
-import org.hawkular.metrics.api.jaxrs.param.Tags;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.api.jaxrs.util.MetricTypeTextConverter;
+import org.hawkular.metrics.core.api.ApiError;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.MixedMetricsRequest;
+import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
+import org.hawkular.metrics.core.api.param.Tags;
+import org.hawkular.metrics.core.impl.Functions;
+import org.hawkular.metrics.core.impl.MetricsService;
 
 import rx.Observable;
 
@@ -77,15 +74,15 @@ public class MetricHandler {
 
     @POST
     @Path("/")
-    public Response createMetric(
-            MetricDefinition metricDefinition,
+    public <T> Response createMetric(
+            Metric<T> metric,
             @Context UriInfo uriInfo
     ) {
-        if (metricDefinition.getType() == null || !metricDefinition.getType().isUserType()) {
-            return badRequest(new ApiError("MetricDefinition type is invalid"));
+        if (metric.getType() == null || !metric.getType().isUserType()) {
+            return badRequest(new ApiError("Metric type is invalid"));
         }
-        MetricId<?> id = new MetricId<>(tenantId, metricDefinition.getType(), metricDefinition.getId());
-        Metric<?> metric = new Metric<>(id, metricDefinition.getTags(), metricDefinition.getDataRetention());
+        MetricId<T> id = new MetricId<>(tenantId, metric.getMetricId().getType(), metric.getId());
+        metric = new Metric<>(id, metric.getTags(), metric.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/{type}/{id}").build(MetricTypeTextConverter.getLongForm(id
                 .getType()), id.getName());
 
@@ -94,7 +91,7 @@ public class MetricHandler {
             observable.toBlocking().lastOrDefault(null);
             return Response.created(location).build();
         } catch (MetricAlreadyExistsException e) {
-            String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
+            String message = "A metric with name [" + e.getMetric().getMetricId().getName() + "] already exists";
             return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
         } catch (Exception e) {
             return serverError(e);
@@ -117,7 +114,6 @@ public class MetricHandler {
 
         try {
             return metricObservable
-                    .map(MetricDefinition::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .toBlocking()
@@ -138,10 +134,11 @@ public class MetricHandler {
             return emptyPayload();
         }
 
-        Observable<Metric<Double>> gauges = Gauge.toObservable(tenantId, metricsRequest.getGauges());
-        Observable<Metric<AvailabilityType>> availabilities = Availability.toObservable(tenantId,
-                metricsRequest.getAvailabilities());
-        Observable<Metric<Long>> counters = Counter.toObservable(tenantId, metricsRequest.getCounters());
+        Observable<Metric<Double>> gauges = Functions.metricToObservable(tenantId, metricsRequest.getGauges(), GAUGE);
+        Observable<Metric<AvailabilityType>> availabilities = Functions.metricToObservable(tenantId,
+                metricsRequest.getAvailabilities(), AVAILABILITY);
+        Observable<Metric<Long>> counters = Functions.metricToObservable(tenantId, metricsRequest.getCounters(),
+                COUNTER);
 
         try {
             metricsService.addDataPoints(GAUGE, gauges)

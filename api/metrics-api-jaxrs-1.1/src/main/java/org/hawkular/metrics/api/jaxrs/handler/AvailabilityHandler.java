@@ -46,22 +46,21 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import org.hawkular.metrics.api.jaxrs.model.ApiError;
-import org.hawkular.metrics.api.jaxrs.model.Availability;
-import org.hawkular.metrics.api.jaxrs.model.AvailabilityDataPoint;
-import org.hawkular.metrics.api.jaxrs.model.MetricDefinition;
-import org.hawkular.metrics.api.jaxrs.param.BucketConfig;
-import org.hawkular.metrics.api.jaxrs.param.Duration;
-import org.hawkular.metrics.api.jaxrs.param.Tags;
-import org.hawkular.metrics.api.jaxrs.param.TimeRange;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.core.api.ApiError;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Buckets;
+import org.hawkular.metrics.core.api.DataPoint;
 import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricAlreadyExistsException;
 import org.hawkular.metrics.core.api.MetricId;
 import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
+import org.hawkular.metrics.core.api.param.BucketConfig;
+import org.hawkular.metrics.core.api.param.Duration;
+import org.hawkular.metrics.core.api.param.Tags;
+import org.hawkular.metrics.core.api.param.TimeRange;
+import org.hawkular.metrics.core.impl.Functions;
+import org.hawkular.metrics.core.impl.MetricsService;
 
 import rx.Observable;
 
@@ -83,22 +82,25 @@ public class AvailabilityHandler {
     @POST
     @Path("/")
     public Response createAvailabilityMetric(
-            MetricDefinition metricDefinition,
+            Metric<AvailabilityType> metric,
             @Context UriInfo uriInfo
     ) {
-        if(metricDefinition.getType() != null && MetricType.AVAILABILITY != metricDefinition.getType()) {
-            return ApiUtils.badRequest(new ApiError("MetricDefinition type does not match " + MetricType
+        if (metric.getType() != null
+                && MetricType.UNDEFINED != metric.getType()
+                && MetricType.AVAILABILITY != metric.getType()) {
+            return ApiUtils
+                    .badRequest(new ApiError("Metric type does not match " + MetricType
                     .AVAILABILITY.getText()));
         }
-        URI location = uriInfo.getBaseUriBuilder().path("/availability/{id}").build(metricDefinition.getId());
-        Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, metricDefinition.getId()),
-                metricDefinition.getTags(), metricDefinition.getDataRetention());
+        URI location = uriInfo.getBaseUriBuilder().path("/availability/{id}").build(metric.getId());
+        metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, metric.getId()),
+                metric.getTags(), metric.getDataRetention());
         try {
             Observable<Void> observable = metricsService.createMetric(metric);
             observable.toBlocking().lastOrDefault(null);
             return Response.created(location).build();
         } catch (MetricAlreadyExistsException e) {
-            String message = "A metric with name [" + e.getMetric().getId().getName() + "] already exists";
+            String message = "A metric with name [" + e.getMetric().getMetricId().getName() + "] already exists";
             return Response.status(Response.Status.CONFLICT).entity(new ApiError(message)).build();
         } catch (Exception e) {
             return serverError(e);
@@ -116,7 +118,6 @@ public class AvailabilityHandler {
 
         try {
             return metricObservable
-                    .map(MetricDefinition::new)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .toBlocking()
@@ -133,7 +134,6 @@ public class AvailabilityHandler {
     public Response getAvailabilityMetric(@PathParam("id") String id) {
         try {
             return metricsService.findMetric(new MetricId<>(tenantId, AVAILABILITY, id))
-                .map(MetricDefinition::new)
                 .map(metricDef -> Response.ok(metricDef).build())
                 .switchIfEmpty(Observable.just(noContent()))
                 .toBlocking()
@@ -198,9 +198,10 @@ public class AvailabilityHandler {
     @Path("/{id}/data")
     public Response addAvailabilityForMetric(
             @PathParam("id") String id,
-            List<AvailabilityDataPoint> data
+            List<DataPoint<AvailabilityType>> data
     ) {
-        Observable<Metric<AvailabilityType>> metrics = AvailabilityDataPoint.toObservable(tenantId, id, data);
+        Observable<Metric<AvailabilityType>> metrics = Functions.dataPointToObservable(tenantId, id, data,
+                AVAILABILITY);
         try {
             metricsService.addDataPoints(AVAILABILITY, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
@@ -212,9 +213,10 @@ public class AvailabilityHandler {
     @POST
     @Path("/data")
     public Response addAvailabilityData(
-            List<Availability> availabilities
+            List<Metric<AvailabilityType>> availabilities
     ) {
-        Observable<Metric<AvailabilityType>> metrics = Availability.toObservable(tenantId, availabilities);
+        Observable<Metric<AvailabilityType>> metrics = Functions.metricToObservable(tenantId, availabilities,
+                AVAILABILITY);
         try {
             metricsService.addDataPoints(AVAILABILITY, metrics).toBlocking().lastOrDefault(null);
             return Response.ok().build();
@@ -247,7 +249,6 @@ public class AvailabilityHandler {
         try {
             if (buckets == null) {
                 return metricsService.findAvailabilityData(metricId, timeRange.getStart(), timeRange.getEnd(), distinct)
-                        .map(AvailabilityDataPoint::new)
                         .toList()
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()

@@ -65,6 +65,16 @@
       <artifactId>commons-math3</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>io.reactivex</groupId>
+      <artifactId>rxjava</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.reactivex</groupId>
+      <artifactId>rxjava-math</artifactId>
+    </dependency>
+
     <!-- JBoss Logging Annotations Processor -->
 
     <dependency>

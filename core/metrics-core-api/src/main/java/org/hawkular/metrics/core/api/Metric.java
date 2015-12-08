@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.core.api;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
 
@@ -26,6 +28,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.hawkular.metrics.core.api.fasterxml.jackson.MetricTypeDeserializer;
+import org.hawkular.metrics.core.api.fasterxml.jackson.MetricTypeSerializer;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonCreator.Mode;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
+
+import io.swagger.annotations.ApiModelProperty;
+
 /**
  * @author jsanda
  */
@@ -34,6 +49,41 @@ public class Metric<T> {
     private final Map<String, String> tags;
     private final Integer dataRetention;
     private final List<DataPoint<T>> dataPoints;
+
+    @SuppressWarnings("unchecked")
+    @JsonCreator(mode = Mode.PROPERTIES)
+    @org.codehaus.jackson.annotate.JsonCreator
+    public Metric(
+            @JsonProperty("id")
+            @org.codehaus.jackson.annotate.JsonProperty("id")
+            String id,
+            @JsonProperty(value = "tags")
+            @org.codehaus.jackson.annotate.JsonProperty("tags")
+            Map<String, String> tags,
+            @JsonProperty("dataRetention")
+            @org.codehaus.jackson.annotate.JsonProperty("dataRetention")
+            Integer dataRetention,
+            @JsonProperty("type")
+            @org.codehaus.jackson.annotate.JsonProperty("type")
+            @JsonDeserialize(using = MetricTypeDeserializer.class)
+            @org.codehaus.jackson.map.annotate.JsonDeserialize(
+                    using = org.hawkular.metrics.core.api.codehaus.jackson.MetricTypeDeserializer.class
+            )
+            MetricType<T> type,
+            @JsonProperty("data") @org.codehaus.jackson.annotate.JsonProperty("data")
+            List<DataPoint<T>> data
+    ) {
+        checkArgument(id != null, "Metric id is null");
+
+        if (type == null) {
+            type = MetricType.UNDEFINED;
+        }
+
+        this.id = new MetricId<T>("", type, id);
+        this.tags = tags == null ? emptyMap() : unmodifiableMap(tags);
+        this.dataRetention = dataRetention;
+        this.dataPoints = data == null || data.isEmpty() ? emptyList() : unmodifiableList(data);
+    }
 
     public Metric(MetricId<T> id) {
         this(id, Collections.emptyMap(), null, Collections.emptyList());
@@ -64,28 +114,46 @@ public class Metric<T> {
         this.dataPoints = unmodifiableList(dataPoints);
     }
 
-    @Deprecated
+    public String getId() {
+        return getMetricId().getName();
+    }
+
     public String getTenantId() {
-        return getId().getTenantId();
+        return getMetricId().getTenantId();
     }
 
-    @Deprecated
+    @ApiModelProperty(value = "Metric type", dataType = "string", allowableValues = "gauge, availability, counter")
+    @JsonSerialize(using = MetricTypeSerializer.class)
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            using = org.hawkular.metrics.core.api.codehaus.jackson.MetricTypeSerializer.class)
     public MetricType<T> getType() {
-        return getId().getType();
+        return getMetricId().getType();
     }
 
-    public MetricId<T> getId() {
+    @JsonIgnore
+    @org.codehaus.jackson.annotate.JsonIgnore
+    public MetricId<T> getMetricId() {
         return id;
     }
 
+    @ApiModelProperty("Metric tags")
+    @JsonSerialize(include = Inclusion.NON_EMPTY)
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY
+    )
     public Map<String, String> getTags() {
         return tags;
     }
 
+    @ApiModelProperty("How long, in days, a data point of this metric stays in the system after it is stored")
     public Integer getDataRetention() {
         return dataRetention;
     }
 
+    @ApiModelProperty("Metric data points")
+    @JsonSerialize(include = Inclusion.NON_EMPTY)
+    @org.codehaus.jackson.map.annotate.JsonSerialize(
+            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     public List<DataPoint<T>> getDataPoints() {
         return dataPoints;
     }
@@ -111,6 +179,7 @@ public class Metric<T> {
                 .add("id", id)
                 .add("tags", tags)
                 .add("dataRetention", dataRetention)
+                .add("dataPoints", dataPoints)
                 .toString();
     }
 }

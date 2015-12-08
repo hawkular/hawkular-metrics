@@ -31,7 +31,7 @@ import org.hawkular.metrics.api.jaxrs.ServiceReady;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.core.api.AvailabilityType;
 import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricsService;
+import org.hawkular.metrics.core.impl.MetricsService;
 import org.jboss.logging.Logger;
 
 import rx.Observable;
@@ -66,7 +66,7 @@ public class InsertedDataSubscriber {
 
     private void onInsertedData(Metric<?> metric) {
         log.tracef("Inserted metric: %s", metric);
-        if (metric.getId().getType() == AVAILABILITY) {
+        if (metric.getMetricId().getType() == AVAILABILITY) {
             @SuppressWarnings("unchecked")
             Metric<AvailabilityType> avail = (Metric<AvailabilityType>) metric;
             availDataPublisher.publish(avail);
