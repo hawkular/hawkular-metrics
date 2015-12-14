@@ -412,7 +412,7 @@
         <module>rx-java-driver</module>
         <module>schema-manager</module>
         <module>task-queue</module>
-        <module>core/metrics-core-api</module>
+        <module>core/metrics-models</module>
         <module>core/metrics-core-impl</module>
         <module>api/metrics-api-common</module>
         <module>api/metrics-api-jaxrs</module>
@@ -437,7 +437,7 @@
         <module>rx-java-driver</module>
         <module>schema-manager</module>
         <module>task-queue</module>
-        <module>core/metrics-core-api</module>
+        <module>core/metrics-models</module>
         <module>core/metrics-core-impl</module>
         <module>api/model</module>
         <module>api/metrics-api-common</module>

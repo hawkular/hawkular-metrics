@@ -28,11 +28,11 @@
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
-  <artifactId>hawkular-metrics-core-api</artifactId>
+  <artifactId>hawkular-metrics-models</artifactId>
   <packaging>bundle</packaging>
 
-  <name>Hawkular Metrics Core API</name>
-  <description>Hawkular Metrics Core API</description>
+  <name>Hawkular Metrics Models</name>
+  <description>Hawkular Metrics Models</description>
 
   <dependencies>
     <dependency>

@@ -44,7 +44,7 @@
 
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>hawkular-metrics-core-api</artifactId>
+      <artifactId>hawkular-metrics-models</artifactId>
       <version>${project.version}</version>
     </dependency>
 
