@@ -409,9 +409,9 @@
         </property>
       </activation>
       <modules>
-        <module>rx-java-driver</module>
-        <module>schema-manager</module>
-        <module>task-queue</module>
+        <module>core/rx-java-driver</module>
+        <module>core/schema-manager</module>
+        <module>core/task-queue</module>
         <module>core/metrics-models</module>
         <module>core/metrics-core-service</module>
         <module>api/metrics-api-common</module>
@@ -434,9 +434,9 @@
         <skipTests>true</skipTests>
       </properties>
       <modules>
-        <module>rx-java-driver</module>
-        <module>schema-manager</module>
-        <module>task-queue</module>
+        <module>core/rx-java-driver</module>
+        <module>core/schema-manager</module>
+        <module>core/task-queue</module>
         <module>core/metrics-models</module>
         <module>core/metrics-core-service</module>
         <module>api/model</module>
