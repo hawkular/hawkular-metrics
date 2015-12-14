@@ -19,12 +19,12 @@ package org.hawkular.metrics.core.impl;
 import java.util.Map;
 import java.util.Set;
 
-import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.Tenant;
+import org.hawkular.metrics.models.AvailabilityType;
+import org.hawkular.metrics.models.Interval;
+import org.hawkular.metrics.models.Metric;
+import org.hawkular.metrics.models.MetricId;
+import org.hawkular.metrics.models.MetricType;
+import org.hawkular.metrics.models.Tenant;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;

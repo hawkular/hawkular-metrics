@@ -19,7 +19,7 @@ package org.hawkular.metrics.api.jaxrs.param;
 
 import javax.ws.rs.ext.Provider;
 
-import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.models.MetricType;
 import org.jboss.resteasy.spi.StringConverter;
 
 /**

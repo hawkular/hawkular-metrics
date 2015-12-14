@@ -16,16 +16,16 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import static org.hawkular.metrics.core.api.AvailabilityType.DOWN;
-import static org.hawkular.metrics.core.api.AvailabilityType.UP;
 import static org.hawkular.metrics.core.impl.AvailabilityBucketPointMatcher.matchesAvailabilityBucketPoint;
+import static org.hawkular.metrics.models.AvailabilityType.DOWN;
+import static org.hawkular.metrics.models.AvailabilityType.UP;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
-import org.hawkular.metrics.core.api.AvailabilityBucketPoint;
-import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.Buckets;
-import org.hawkular.metrics.core.api.DataPoint;
+import org.hawkular.metrics.models.AvailabilityBucketPoint;
+import org.hawkular.metrics.models.AvailabilityType;
+import org.hawkular.metrics.models.Buckets;
+import org.hawkular.metrics.models.DataPoint;
 import org.junit.Before;
 import org.junit.Test;
 

@@ -37,9 +37,9 @@ import org.hawkular.bus.common.Endpoint;
 import org.hawkular.bus.common.MessageProcessor;
 import org.hawkular.bus.common.producer.ProducerConnectionContext;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
-import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.models.AvailabilityType;
+import org.hawkular.metrics.models.Metric;
+import org.hawkular.metrics.models.MetricId;
 import org.jboss.logging.Logger;
 
 /**

@@ -26,10 +26,10 @@ import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
 import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 
-import static org.hawkular.metrics.core.api.MetricType.COUNTER;
-import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.MetricTypeFilter.COUNTER_FILTER;
 import static org.hawkular.metrics.core.impl.MetricTypeFilter.GAUGE_FILTER;
+import static org.hawkular.metrics.models.MetricType.COUNTER;
+import static org.hawkular.metrics.models.MetricType.GAUGE;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -82,12 +82,12 @@ import org.hawkular.metrics.api.jaxrs.influx.query.validation.IllegalQueryExcept
 import org.hawkular.metrics.api.jaxrs.influx.query.validation.QueryValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InfluxObjectValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InvalidObjectException;
-import org.hawkular.metrics.core.api.Buckets;
-import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricType;
 import org.hawkular.metrics.core.impl.MetricsService;
+import org.hawkular.metrics.models.Buckets;
+import org.hawkular.metrics.models.DataPoint;
+import org.hawkular.metrics.models.Metric;
+import org.hawkular.metrics.models.MetricId;
+import org.hawkular.metrics.models.MetricType;
 import org.jboss.logging.Logger;
 import org.joda.time.Instant;
 import org.joda.time.Interval;

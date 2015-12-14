@@ -18,10 +18,10 @@ package org.hawkular.metrics.core.impl;
 
 import static java.util.stream.Collectors.toMap;
 
-import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
-import static org.hawkular.metrics.core.api.MetricType.COUNTER;
-import static org.hawkular.metrics.core.api.MetricType.GAUGE;
 import static org.hawkular.metrics.core.impl.TimeUUIDUtils.getTimeUUID;
+import static org.hawkular.metrics.models.MetricType.AVAILABILITY;
+import static org.hawkular.metrics.models.MetricType.COUNTER;
+import static org.hawkular.metrics.models.MetricType.GAUGE;
 
 import java.nio.ByteBuffer;
 import java.util.Date;
@@ -29,14 +29,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Interval;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.Tenant;
 import org.hawkular.metrics.core.impl.transformers.BatchStatementTransformer;
+import org.hawkular.metrics.models.AvailabilityType;
+import org.hawkular.metrics.models.DataPoint;
+import org.hawkular.metrics.models.Interval;
+import org.hawkular.metrics.models.Metric;
+import org.hawkular.metrics.models.MetricId;
+import org.hawkular.metrics.models.MetricType;
+import org.hawkular.metrics.models.Tenant;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 

@@ -18,7 +18,7 @@ package org.hawkular.metrics.core.impl;
 
 import java.util.Objects;
 
-import org.hawkular.metrics.core.api.DataPoint;
+import org.hawkular.metrics.models.DataPoint;
 
 /**
  * Data points are purged using Cassandra's Time To Live, i.e., TTL, feature. There are scenarios such as tagging

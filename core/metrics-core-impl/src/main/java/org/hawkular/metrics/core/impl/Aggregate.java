@@ -16,8 +16,8 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.MetricId;
+import org.hawkular.metrics.models.DataPoint;
+import org.hawkular.metrics.models.MetricId;
 
 import rx.Observable;
 import rx.functions.Func1;

@@ -19,9 +19,9 @@ package org.hawkular.metrics.core.impl;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.Retention;
+import org.hawkular.metrics.models.MetricId;
+import org.hawkular.metrics.models.MetricType;
+import org.hawkular.metrics.models.Retention;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;

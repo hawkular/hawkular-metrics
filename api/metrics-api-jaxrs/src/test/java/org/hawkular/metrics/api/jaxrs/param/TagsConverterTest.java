@@ -18,15 +18,15 @@
 package org.hawkular.metrics.api.jaxrs.param;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.runners.Parameterized.Parameters;
 
 import java.util.Arrays;
 import java.util.Collections;
 
-import org.hawkular.metrics.core.api.param.Tags;
+import org.hawkular.metrics.models.param.Tags;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import com.google.common.collect.ImmutableMap;
 

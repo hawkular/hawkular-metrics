@@ -16,8 +16,8 @@
  */
 package org.hawkular.metrics.core.impl.transformers;
 
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.models.MetricId;
+import org.hawkular.metrics.models.MetricType;
 
 import com.datastax.driver.core.Row;
 

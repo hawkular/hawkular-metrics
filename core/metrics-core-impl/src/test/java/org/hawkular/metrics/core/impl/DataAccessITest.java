@@ -19,20 +19,20 @@ package org.hawkular.metrics.core.impl;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 
-import static org.hawkular.metrics.core.api.AvailabilityType.UP;
-import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
-import static org.hawkular.metrics.core.api.MetricType.GAUGE;
+import static org.hawkular.metrics.models.AvailabilityType.UP;
+import static org.hawkular.metrics.models.MetricType.AVAILABILITY;
+import static org.hawkular.metrics.models.MetricType.GAUGE;
 import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
 import java.util.List;
 
-import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.Tenant;
+import org.hawkular.metrics.models.AvailabilityType;
+import org.hawkular.metrics.models.DataPoint;
+import org.hawkular.metrics.models.Metric;
+import org.hawkular.metrics.models.MetricId;
+import org.hawkular.metrics.models.Tenant;
 import org.joda.time.DateTime;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;

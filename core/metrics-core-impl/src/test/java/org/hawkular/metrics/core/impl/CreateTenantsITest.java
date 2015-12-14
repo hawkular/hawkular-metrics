@@ -25,7 +25,7 @@ import static org.testng.Assert.assertEquals;
 import java.util.List;
 import java.util.Set;
 
-import org.hawkular.metrics.core.api.Tenant;
+import org.hawkular.metrics.models.Tenant;
 import org.hawkular.metrics.tasks.api.SingleExecutionTrigger;
 import org.hawkular.metrics.tasks.api.Trigger;
 import org.hawkular.metrics.tasks.impl.Task2Impl;

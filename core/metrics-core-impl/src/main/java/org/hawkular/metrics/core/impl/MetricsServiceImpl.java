@@ -16,13 +16,13 @@
  */
 package org.hawkular.metrics.core.impl;
 
-import static org.hawkular.metrics.core.api.MetricType.AVAILABILITY;
-import static org.hawkular.metrics.core.api.MetricType.COUNTER;
-import static org.hawkular.metrics.core.api.MetricType.COUNTER_RATE;
-import static org.hawkular.metrics.core.api.MetricType.GAUGE;
-import static org.hawkular.metrics.core.api.Utils.isValidTimeRange;
 import static org.hawkular.metrics.core.impl.Functions.isValidTagMap;
 import static org.hawkular.metrics.core.impl.Functions.makeSafe;
+import static org.hawkular.metrics.models.MetricType.AVAILABILITY;
+import static org.hawkular.metrics.models.MetricType.COUNTER;
+import static org.hawkular.metrics.models.MetricType.COUNTER_RATE;
+import static org.hawkular.metrics.models.MetricType.GAUGE;
+import static org.hawkular.metrics.models.Utils.isValidTimeRange;
 import static org.joda.time.Duration.standardMinutes;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -40,23 +40,23 @@ import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-import org.hawkular.metrics.core.api.AvailabilityBucketPoint;
-import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.Buckets;
-import org.hawkular.metrics.core.api.DataPoint;
-import org.hawkular.metrics.core.api.Metric;
-import org.hawkular.metrics.core.api.MetricId;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.NumericBucketPoint;
-import org.hawkular.metrics.core.api.Retention;
-import org.hawkular.metrics.core.api.Tenant;
-import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
-import org.hawkular.metrics.core.api.exception.TenantAlreadyExistsException;
 import org.hawkular.metrics.core.impl.log.CoreLogger;
 import org.hawkular.metrics.core.impl.log.CoreLogging;
 import org.hawkular.metrics.core.impl.transformers.ItemsToSetTransformer;
 import org.hawkular.metrics.core.impl.transformers.MetricsIndexRowTransformer;
 import org.hawkular.metrics.core.impl.transformers.TagsIndexRowTransformer;
+import org.hawkular.metrics.models.AvailabilityBucketPoint;
+import org.hawkular.metrics.models.AvailabilityType;
+import org.hawkular.metrics.models.Buckets;
+import org.hawkular.metrics.models.DataPoint;
+import org.hawkular.metrics.models.Metric;
+import org.hawkular.metrics.models.MetricId;
+import org.hawkular.metrics.models.MetricType;
+import org.hawkular.metrics.models.NumericBucketPoint;
+import org.hawkular.metrics.models.Retention;
+import org.hawkular.metrics.models.Tenant;
+import org.hawkular.metrics.models.exception.MetricAlreadyExistsException;
+import org.hawkular.metrics.models.exception.TenantAlreadyExistsException;
 import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.hawkular.rx.cassandra.driver.RxUtil;

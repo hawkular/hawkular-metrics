@@ -28,7 +28,7 @@ import javax.ws.rs.ext.Provider;
 import org.hawkular.metrics.api.jaxrs.handler.BaseHandler;
 import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
 import org.hawkular.metrics.api.jaxrs.handler.VirtualClockHandler;
-import org.hawkular.metrics.core.api.ApiError;
+import org.hawkular.metrics.models.ApiError;
 import org.jboss.resteasy.annotations.interception.ServerInterceptor;
 import org.jboss.resteasy.core.ResourceMethod;
 import org.jboss.resteasy.core.ServerResponse;

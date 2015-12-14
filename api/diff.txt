@@ -488,8 +488,8 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 51,52d48
 < import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 < import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
-60a57
-> import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
+62a59
+> import org.hawkular.metrics.models.exception.MetricAlreadyExistsException;
 68,74d64
 < import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 < 
@@ -810,10 +810,10 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 52,53d48
 < import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 < import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
-61c56
-< import org.hawkular.metrics.core.api.NumericBucketPoint;
+63c58
+< import org.hawkular.metrics.models.NumericBucketPoint;
 ---
-> import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
+> import org.hawkular.metrics.models.exception.MetricAlreadyExistsException;
 70,74d64
 < import io.swagger.annotations.Api;
 < import io.swagger.annotations.ApiOperation;
@@ -1379,10 +1379,10 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 51,52d49
 < import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 < import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
-60c57
-< import org.hawkular.metrics.core.api.NumericBucketPoint;
+62c59
+< import org.hawkular.metrics.models.NumericBucketPoint;
 ---
-> import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
+> import org.hawkular.metrics.models.exception.MetricAlreadyExistsException;
 69,73d65
 < import io.swagger.annotations.Api;
 < import io.swagger.annotations.ApiOperation;
@@ -1841,8 +1841,8 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 < import javax.ws.rs.container.Suspended;
 46d43
 < import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
-54a52
-> import org.hawkular.metrics.core.api.exception.MetricAlreadyExistsException;
+56a54
+> import org.hawkular.metrics.models.exception.MetricAlreadyExistsException;
 59,63d56
 < import io.swagger.annotations.Api;
 < import io.swagger.annotations.ApiOperation;
@@ -2010,15 +2010,15 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 < import org.hawkular.metrics.api.jaxrs.handler.observer.TenantCreatedObserver;
 ---
 > import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
-39a36
-> import org.hawkular.metrics.core.api.exception.TenantAlreadyExistsException;
-42,47d38
+41,46c37
+< 
 < import io.swagger.annotations.Api;
 < import io.swagger.annotations.ApiOperation;
 < import io.swagger.annotations.ApiParam;
 < import io.swagger.annotations.ApiResponse;
 < import io.swagger.annotations.ApiResponses;
-< 
+---
+> import org.hawkular.metrics.models.exception.TenantAlreadyExistsException;
 54d44
 < @Api(tags = "Tenant")
 61,75c51,52
@@ -2120,9 +2120,11 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 < import javax.ws.rs.ext.ParamConverter;
 ---
 > import javax.ws.rs.ext.Provider;
-21a23
+22c23
+< 
+---
 > import org.jboss.resteasy.spi.StringConverter;
-28c30,31
+29c30,31
 < public class MetricTypeConverter implements ParamConverter<MetricType<?>> {
 ---
 > @Provider
@@ -2132,13 +2134,15 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 < import javax.ws.rs.ext.ParamConverter;
 ---
 > import javax.ws.rs.ext.Provider;
-24a25
+25c25
+< 
+---
 > import org.jboss.resteasy.spi.StringConverter;
-27c28
+28c28
 <  * A JAX-RS ParamConverter from number,number,number input string to a Percentiles or vice-versa.
 ---
 >  * A RestEasy StringConverter from number,number,number input string to a Percentiles or vice-versa.
-31,33c32,34
+32,34c32,34
 < public class PercentilesConverter implements ParamConverter<Percentiles> {
 <     @Override
 <     public Percentiles fromString(String param) {
@@ -2146,7 +2150,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 > @Provider
 > public class PercentilesConverter implements StringConverter<Percentiles> {
 >     @Override public Percentiles fromString(String param) {
-37,38c38
+38,39c38
 <     @Override
 <     public String toString(Percentiles percentiles) {
 ---
@@ -2156,9 +2160,11 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 < import javax.ws.rs.ext.ParamConverter;
 ---
 > import javax.ws.rs.ext.Provider;
-30a31
+31c31
+< 
+---
 > import org.jboss.resteasy.spi.StringConverter;
-38c39,40
+39c39,40
 < public class TagsConverter implements ParamConverter<Tags> {
 ---
 > @Provider
@@ -2173,10 +2179,10 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 > import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 > import org.codehaus.jackson.map.module.SimpleModule;
 26,35c32,33
-< import org.hawkular.metrics.core.api.MetricType;
-< import org.hawkular.metrics.core.api.fasterxml.jackson.AvailabilityTypeDeserializer;
-< import org.hawkular.metrics.core.api.fasterxml.jackson.AvailabilityTypeSerializer;
-< import org.hawkular.metrics.core.api.fasterxml.jackson.MetricTypeDeserializer;
+< import org.hawkular.metrics.models.MetricType;
+< import org.hawkular.metrics.models.fasterxml.jackson.AvailabilityTypeDeserializer;
+< import org.hawkular.metrics.models.fasterxml.jackson.AvailabilityTypeSerializer;
+< import org.hawkular.metrics.models.fasterxml.jackson.MetricTypeDeserializer;
 < 
 < import com.fasterxml.jackson.annotation.JsonInclude.Include;
 < import com.fasterxml.jackson.core.JsonParser;
@@ -2184,8 +2190,8 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 < import com.fasterxml.jackson.databind.SerializationFeature;
 < import com.fasterxml.jackson.databind.module.SimpleModule;
 ---
-> import org.hawkular.metrics.core.api.codehaus.jackson.AvailabilityTypeDeserializer;
-> import org.hawkular.metrics.core.api.codehaus.jackson.AvailabilityTypeSerializer;
+> import org.hawkular.metrics.models.codehaus.jackson.AvailabilityTypeDeserializer;
+> import org.hawkular.metrics.models.codehaus.jackson.AvailabilityTypeSerializer;
 50,53c48,51
 <         mapper.setSerializationInclusion(Include.NON_EMPTY);
 <         mapper.setSerializationInclusion(Include.NON_NULL);

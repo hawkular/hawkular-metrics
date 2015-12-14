@@ -23,8 +23,9 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.hawkular.metrics.core.api.ApiError;
-import org.hawkular.metrics.core.api.exception.TenantAlreadyExistsException;
+import org.hawkular.metrics.models.ApiError;
+import org.hawkular.metrics.models.exception.TenantAlreadyExistsException;
+
 
 /**
  * An implementation of {@code EntityCreatedObserver} for tenant entities.
