@@ -51,7 +51,7 @@
   <dependencies>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
-      <artifactId>hawkular-metrics-core-impl</artifactId>
+      <artifactId>hawkular-metrics-core-service</artifactId>
       <version>${project.version}</version>
     </dependency>
 
