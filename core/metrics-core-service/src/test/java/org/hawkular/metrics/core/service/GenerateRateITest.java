@@ -20,20 +20,15 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.UUID.randomUUID;
 
-import static org.hawkular.metrics.models.MetricType.COUNTER;
+import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.joda.time.Duration.standardMinutes;
 import static org.testng.Assert.assertEquals;
 
 import java.util.List;
 
-import org.hawkular.metrics.core.service.DataAccess;
-import org.hawkular.metrics.core.service.DataAccessImpl;
-import org.hawkular.metrics.core.service.DateTimeService;
-import org.hawkular.metrics.core.service.GenerateRate;
-import org.hawkular.metrics.core.service.MetricsServiceImpl;
-import org.hawkular.metrics.models.DataPoint;
-import org.hawkular.metrics.models.Metric;
-import org.hawkular.metrics.models.MetricId;
+import org.hawkular.metrics.model.DataPoint;
+import org.hawkular.metrics.model.Metric;
+import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.tasks.api.SingleExecutionTrigger;
 import org.hawkular.metrics.tasks.api.Trigger;
 import org.hawkular.metrics.tasks.impl.Task2Impl;

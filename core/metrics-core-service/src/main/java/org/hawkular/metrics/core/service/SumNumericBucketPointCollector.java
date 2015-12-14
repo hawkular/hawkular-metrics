@@ -17,7 +17,7 @@
 package org.hawkular.metrics.core.service;
 
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
-import org.hawkular.metrics.models.NumericBucketPoint;
+import org.hawkular.metrics.model.NumericBucketPoint;
 
 /**
  * Accumulates numeric data points to produce a {@link NumericBucketPoint}.

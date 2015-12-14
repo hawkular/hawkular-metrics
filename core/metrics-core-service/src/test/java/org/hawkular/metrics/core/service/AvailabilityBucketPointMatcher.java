@@ -20,7 +20,7 @@ import org.hamcrest.Description;
 import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-import org.hawkular.metrics.models.AvailabilityBucketPoint;
+import org.hawkular.metrics.model.AvailabilityBucketPoint;
 
 import com.google.common.math.DoubleMath;
 

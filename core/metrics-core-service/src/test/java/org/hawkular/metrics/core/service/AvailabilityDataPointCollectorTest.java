@@ -17,16 +17,15 @@
 package org.hawkular.metrics.core.service;
 
 import static org.hawkular.metrics.core.service.AvailabilityBucketPointMatcher.matchesAvailabilityBucketPoint;
-import static org.hawkular.metrics.models.AvailabilityType.DOWN;
-import static org.hawkular.metrics.models.AvailabilityType.UP;
+import static org.hawkular.metrics.model.AvailabilityType.DOWN;
+import static org.hawkular.metrics.model.AvailabilityType.UP;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
-import org.hawkular.metrics.core.service.AvailabilityDataPointCollector;
-import org.hawkular.metrics.models.AvailabilityBucketPoint;
-import org.hawkular.metrics.models.AvailabilityType;
-import org.hawkular.metrics.models.Buckets;
-import org.hawkular.metrics.models.DataPoint;
+import org.hawkular.metrics.model.AvailabilityBucketPoint;
+import org.hawkular.metrics.model.AvailabilityType;
+import org.hawkular.metrics.model.Buckets;
+import org.hawkular.metrics.model.DataPoint;
 import org.junit.Before;
 import org.junit.Test;
 

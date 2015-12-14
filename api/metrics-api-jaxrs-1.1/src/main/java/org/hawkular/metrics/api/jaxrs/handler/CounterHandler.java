@@ -22,7 +22,7 @@ import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_N
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
-import static org.hawkular.metrics.models.MetricType.COUNTER;
+import static org.hawkular.metrics.model.MetricType.COUNTER;
 
 import java.net.URI;
 import java.util.Collections;
@@ -49,18 +49,18 @@ import javax.ws.rs.core.UriInfo;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.MetricsService;
-import org.hawkular.metrics.models.ApiError;
-import org.hawkular.metrics.models.Buckets;
-import org.hawkular.metrics.models.DataPoint;
-import org.hawkular.metrics.models.Metric;
-import org.hawkular.metrics.models.MetricId;
-import org.hawkular.metrics.models.MetricType;
-import org.hawkular.metrics.models.exception.MetricAlreadyExistsException;
-import org.hawkular.metrics.models.param.BucketConfig;
-import org.hawkular.metrics.models.param.Duration;
-import org.hawkular.metrics.models.param.Percentiles;
-import org.hawkular.metrics.models.param.Tags;
-import org.hawkular.metrics.models.param.TimeRange;
+import org.hawkular.metrics.model.ApiError;
+import org.hawkular.metrics.model.Buckets;
+import org.hawkular.metrics.model.DataPoint;
+import org.hawkular.metrics.model.Metric;
+import org.hawkular.metrics.model.MetricId;
+import org.hawkular.metrics.model.MetricType;
+import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
+import org.hawkular.metrics.model.param.BucketConfig;
+import org.hawkular.metrics.model.param.Duration;
+import org.hawkular.metrics.model.param.Percentiles;
+import org.hawkular.metrics.model.param.Tags;
+import org.hawkular.metrics.model.param.TimeRange;
 
 import rx.Observable;
 

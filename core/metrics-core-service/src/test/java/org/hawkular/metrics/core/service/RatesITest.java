@@ -21,21 +21,17 @@ import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import static org.hawkular.metrics.models.MetricType.COUNTER;
+import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.joda.time.Duration.standardMinutes;
 import static org.testng.Assert.assertEquals;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.hawkular.metrics.core.service.DataAccessImpl;
-import org.hawkular.metrics.core.service.DateTimeService;
-import org.hawkular.metrics.core.service.GenerateRate;
-import org.hawkular.metrics.core.service.MetricsServiceImpl;
-import org.hawkular.metrics.models.DataPoint;
-import org.hawkular.metrics.models.Metric;
-import org.hawkular.metrics.models.MetricId;
-import org.hawkular.metrics.models.Tenant;
+import org.hawkular.metrics.model.DataPoint;
+import org.hawkular.metrics.model.Metric;
+import org.hawkular.metrics.model.MetricId;
+import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.tasks.api.AbstractTrigger;
 import org.hawkular.metrics.tasks.impl.Queries;
 import org.hawkular.metrics.tasks.impl.TaskSchedulerImpl;

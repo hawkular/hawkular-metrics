@@ -23,8 +23,8 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.hawkular.metrics.models.ApiError;
-import org.hawkular.metrics.models.exception.TenantAlreadyExistsException;
+import org.hawkular.metrics.model.ApiError;
+import org.hawkular.metrics.model.exception.TenantAlreadyExistsException;
 
 
 /**

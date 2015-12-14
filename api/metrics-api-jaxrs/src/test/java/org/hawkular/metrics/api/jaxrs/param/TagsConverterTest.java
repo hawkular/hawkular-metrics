@@ -22,7 +22,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
 import java.util.Collections;
 
-import org.hawkular.metrics.models.param.Tags;
+import org.hawkular.metrics.model.param.Tags;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;

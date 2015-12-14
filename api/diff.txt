@@ -489,7 +489,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 < import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 < import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 62a59
-> import org.hawkular.metrics.models.exception.MetricAlreadyExistsException;
+> import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 68,74d64
 < import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 < 
@@ -811,9 +811,9 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 < import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 < import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 63c58
-< import org.hawkular.metrics.models.NumericBucketPoint;
+< import org.hawkular.metrics.model.NumericBucketPoint;
 ---
-> import org.hawkular.metrics.models.exception.MetricAlreadyExistsException;
+> import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 70,74d64
 < import io.swagger.annotations.Api;
 < import io.swagger.annotations.ApiOperation;
@@ -1380,9 +1380,9 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 < import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 < import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 62c59
-< import org.hawkular.metrics.models.NumericBucketPoint;
+< import org.hawkular.metrics.model.NumericBucketPoint;
 ---
-> import org.hawkular.metrics.models.exception.MetricAlreadyExistsException;
+> import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 69,73d65
 < import io.swagger.annotations.Api;
 < import io.swagger.annotations.ApiOperation;
@@ -1842,7 +1842,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 46d43
 < import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 56a54
-> import org.hawkular.metrics.models.exception.MetricAlreadyExistsException;
+> import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 59,63d56
 < import io.swagger.annotations.Api;
 < import io.swagger.annotations.ApiOperation;
@@ -2018,7 +2018,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 < import io.swagger.annotations.ApiResponse;
 < import io.swagger.annotations.ApiResponses;
 ---
-> import org.hawkular.metrics.models.exception.TenantAlreadyExistsException;
+> import org.hawkular.metrics.model.exception.TenantAlreadyExistsException;
 54d44
 < @Api(tags = "Tenant")
 61,75c51,52
@@ -2179,10 +2179,10 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 > import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 > import org.codehaus.jackson.map.module.SimpleModule;
 26,35c32,33
-< import org.hawkular.metrics.models.MetricType;
-< import org.hawkular.metrics.models.fasterxml.jackson.AvailabilityTypeDeserializer;
-< import org.hawkular.metrics.models.fasterxml.jackson.AvailabilityTypeSerializer;
-< import org.hawkular.metrics.models.fasterxml.jackson.MetricTypeDeserializer;
+< import org.hawkular.metrics.model.MetricType;
+< import org.hawkular.metrics.model.fasterxml.jackson.AvailabilityTypeDeserializer;
+< import org.hawkular.metrics.model.fasterxml.jackson.AvailabilityTypeSerializer;
+< import org.hawkular.metrics.model.fasterxml.jackson.MetricTypeDeserializer;
 < 
 < import com.fasterxml.jackson.annotation.JsonInclude.Include;
 < import com.fasterxml.jackson.core.JsonParser;
@@ -2190,8 +2190,8 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 < import com.fasterxml.jackson.databind.SerializationFeature;
 < import com.fasterxml.jackson.databind.module.SimpleModule;
 ---
-> import org.hawkular.metrics.models.codehaus.jackson.AvailabilityTypeDeserializer;
-> import org.hawkular.metrics.models.codehaus.jackson.AvailabilityTypeSerializer;
+> import org.hawkular.metrics.model.codehaus.jackson.AvailabilityTypeDeserializer;
+> import org.hawkular.metrics.model.codehaus.jackson.AvailabilityTypeSerializer;
 50,53c48,51
 <         mapper.setSerializationInclusion(Include.NON_EMPTY);
 <         mapper.setSerializationInclusion(Include.NON_NULL);

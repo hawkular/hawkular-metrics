@@ -16,13 +16,13 @@
  */
 package org.hawkular.metrics.core.service;
 
-import static org.hawkular.metrics.models.AvailabilityType.DOWN;
-import static org.hawkular.metrics.models.AvailabilityType.UP;
+import static org.hawkular.metrics.model.AvailabilityType.DOWN;
+import static org.hawkular.metrics.model.AvailabilityType.UP;
 
-import org.hawkular.metrics.models.AvailabilityBucketPoint;
-import org.hawkular.metrics.models.AvailabilityType;
-import org.hawkular.metrics.models.Buckets;
-import org.hawkular.metrics.models.DataPoint;
+import org.hawkular.metrics.model.AvailabilityBucketPoint;
+import org.hawkular.metrics.model.AvailabilityType;
+import org.hawkular.metrics.model.Buckets;
+import org.hawkular.metrics.model.DataPoint;
 
 /**
  * Accumulates availability data points to produce an {@link AvailabilityBucketPoint}.

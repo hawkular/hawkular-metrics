@@ -22,7 +22,7 @@ import static org.junit.Assert.assertArrayEquals
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
 
-import org.hawkular.metrics.core.impl.DateTimeService
+import org.hawkular.metrics.core.service.DateTimeService
 import org.influxdb.InfluxDB
 import org.influxdb.InfluxDBFactory
 import org.influxdb.dto.Serie

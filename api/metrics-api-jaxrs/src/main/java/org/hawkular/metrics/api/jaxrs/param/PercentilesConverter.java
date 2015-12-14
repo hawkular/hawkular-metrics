@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 import javax.ws.rs.ext.ParamConverter;
 
-import org.hawkular.metrics.models.param.Percentiles;
+import org.hawkular.metrics.model.param.Percentiles;
 
 
 /**

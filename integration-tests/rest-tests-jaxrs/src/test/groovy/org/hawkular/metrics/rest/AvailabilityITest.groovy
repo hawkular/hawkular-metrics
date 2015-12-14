@@ -19,7 +19,7 @@ package org.hawkular.metrics.rest
 import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
 
-import org.hawkular.metrics.core.api.AvailabilityType
+import org.hawkular.metrics.model.AvailabilityType
 import org.joda.time.DateTime
 import org.junit.Test
 

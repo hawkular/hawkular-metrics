@@ -17,7 +17,7 @@
 
 package org.hawkular.metrics.component.publish;
 
-import static org.hawkular.metrics.models.MetricType.AVAILABILITY;
+import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -30,8 +30,8 @@ import javax.inject.Inject;
 import org.hawkular.metrics.api.jaxrs.ServiceReady;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.core.service.MetricsService;
-import org.hawkular.metrics.models.AvailabilityType;
-import org.hawkular.metrics.models.Metric;
+import org.hawkular.metrics.model.AvailabilityType;
+import org.hawkular.metrics.model.Metric;
 import org.jboss.logging.Logger;
 
 import rx.Observable;

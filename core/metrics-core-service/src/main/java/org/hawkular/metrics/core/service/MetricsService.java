@@ -21,16 +21,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-import org.hawkular.metrics.models.AvailabilityBucketPoint;
-import org.hawkular.metrics.models.AvailabilityType;
-import org.hawkular.metrics.models.Buckets;
-import org.hawkular.metrics.models.DataPoint;
-import org.hawkular.metrics.models.Metric;
-import org.hawkular.metrics.models.MetricId;
-import org.hawkular.metrics.models.MetricType;
-import org.hawkular.metrics.models.NumericBucketPoint;
-import org.hawkular.metrics.models.Tenant;
-import org.hawkular.metrics.models.exception.MetricAlreadyExistsException;
+import org.hawkular.metrics.model.AvailabilityBucketPoint;
+import org.hawkular.metrics.model.AvailabilityType;
+import org.hawkular.metrics.model.Buckets;
+import org.hawkular.metrics.model.DataPoint;
+import org.hawkular.metrics.model.Metric;
+import org.hawkular.metrics.model.MetricId;
+import org.hawkular.metrics.model.MetricType;
+import org.hawkular.metrics.model.NumericBucketPoint;
+import org.hawkular.metrics.model.Tenant;
+import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 
 import rx.Observable;
 import rx.functions.Func1;

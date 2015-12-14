@@ -25,10 +25,10 @@ import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.rank.Max;
 import org.apache.commons.math3.stat.descriptive.rank.Min;
 import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile;
-import org.hawkular.metrics.models.Buckets;
-import org.hawkular.metrics.models.DataPoint;
-import org.hawkular.metrics.models.NumericBucketPoint;
-import org.hawkular.metrics.models.Percentile;
+import org.hawkular.metrics.model.Buckets;
+import org.hawkular.metrics.model.DataPoint;
+import org.hawkular.metrics.model.NumericBucketPoint;
+import org.hawkular.metrics.model.Percentile;
 
 /**
  * Accumulates numeric data points to produce a {@link NumericBucketPoint}.

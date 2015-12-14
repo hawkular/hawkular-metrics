@@ -23,12 +23,12 @@ import static org.joda.time.DateTime.now;
 import java.util.List;
 import java.util.Map;
 
-import org.hawkular.metrics.models.AvailabilityType;
-import org.hawkular.metrics.models.DataPoint;
-import org.hawkular.metrics.models.Metric;
-import org.hawkular.metrics.models.MetricId;
-import org.hawkular.metrics.models.MetricType;
-import org.hawkular.metrics.models.Tenant;
+import org.hawkular.metrics.model.AvailabilityType;
+import org.hawkular.metrics.model.DataPoint;
+import org.hawkular.metrics.model.Metric;
+import org.hawkular.metrics.model.MetricId;
+import org.hawkular.metrics.model.MetricType;
+import org.hawkular.metrics.model.Tenant;
 import org.joda.time.Duration;
 
 import com.datastax.driver.core.ResultSet;

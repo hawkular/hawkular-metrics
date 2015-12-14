@@ -18,7 +18,7 @@ package org.hawkular.metrics.api.jaxrs.param;
 
 import javax.ws.rs.ext.ParamConverter;
 
-import org.hawkular.metrics.models.MetricType;
+import org.hawkular.metrics.model.MetricType;
 
 
 /**

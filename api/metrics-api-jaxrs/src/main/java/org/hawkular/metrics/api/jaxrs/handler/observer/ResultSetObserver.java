@@ -22,7 +22,7 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
-import org.hawkular.metrics.models.ApiError;
+import org.hawkular.metrics.model.ApiError;
 
 import rx.Observer;
 

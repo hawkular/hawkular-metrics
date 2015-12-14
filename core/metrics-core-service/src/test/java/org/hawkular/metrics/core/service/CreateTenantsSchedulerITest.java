@@ -26,12 +26,7 @@ import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.hawkular.metrics.core.service.CreateTenants;
-import org.hawkular.metrics.core.service.DataAccess;
-import org.hawkular.metrics.core.service.DataAccessImpl;
-import org.hawkular.metrics.core.service.DateTimeService;
-import org.hawkular.metrics.core.service.MetricsServiceImpl;
-import org.hawkular.metrics.models.Tenant;
+import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.tasks.api.AbstractTrigger;
 import org.hawkular.metrics.tasks.impl.Queries;
 import org.hawkular.metrics.tasks.impl.TaskSchedulerImpl;

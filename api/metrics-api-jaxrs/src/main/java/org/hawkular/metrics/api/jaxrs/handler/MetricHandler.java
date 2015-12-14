@@ -22,9 +22,9 @@ import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_N
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
-import static org.hawkular.metrics.models.MetricType.AVAILABILITY;
-import static org.hawkular.metrics.models.MetricType.COUNTER;
-import static org.hawkular.metrics.models.MetricType.GAUGE;
+import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
+import static org.hawkular.metrics.model.MetricType.COUNTER;
+import static org.hawkular.metrics.model.MetricType.GAUGE;
 
 import java.net.URI;
 import java.util.regex.PatternSyntaxException;
@@ -48,13 +48,13 @@ import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.api.jaxrs.util.MetricTypeTextConverter;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.MetricsService;
-import org.hawkular.metrics.models.ApiError;
-import org.hawkular.metrics.models.AvailabilityType;
-import org.hawkular.metrics.models.Metric;
-import org.hawkular.metrics.models.MetricId;
-import org.hawkular.metrics.models.MetricType;
-import org.hawkular.metrics.models.MixedMetricsRequest;
-import org.hawkular.metrics.models.param.Tags;
+import org.hawkular.metrics.model.ApiError;
+import org.hawkular.metrics.model.AvailabilityType;
+import org.hawkular.metrics.model.Metric;
+import org.hawkular.metrics.model.MetricId;
+import org.hawkular.metrics.model.MetricType;
+import org.hawkular.metrics.model.MixedMetricsRequest;
+import org.hawkular.metrics.model.param.Tags;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

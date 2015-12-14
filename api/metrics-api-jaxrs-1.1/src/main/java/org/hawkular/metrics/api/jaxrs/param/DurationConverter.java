@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 
 import javax.ws.rs.ext.Provider;
 
-import org.hawkular.metrics.models.param.Duration;
+import org.hawkular.metrics.model.param.Duration;
 import org.jboss.resteasy.spi.StringConverter;
 
 import com.google.common.collect.ImmutableBiMap;

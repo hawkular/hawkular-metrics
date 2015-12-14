@@ -19,7 +19,7 @@ package org.hawkular.metrics.core.service.log;
 import static org.jboss.logging.Logger.Level.INFO;
 import static org.jboss.logging.Logger.Level.WARN;
 
-import org.hawkular.metrics.models.MetricType;
+import org.hawkular.metrics.model.MetricType;
 import org.jboss.logging.BasicLogger;
 import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.LogMessage;

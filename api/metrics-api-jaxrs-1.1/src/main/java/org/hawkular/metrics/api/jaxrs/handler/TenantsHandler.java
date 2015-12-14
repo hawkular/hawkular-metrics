@@ -32,9 +32,9 @@ import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.MetricsService;
-import org.hawkular.metrics.models.ApiError;
-import org.hawkular.metrics.models.TenantDefinition;
-import org.hawkular.metrics.models.exception.TenantAlreadyExistsException;
+import org.hawkular.metrics.model.ApiError;
+import org.hawkular.metrics.model.TenantDefinition;
+import org.hawkular.metrics.model.exception.TenantAlreadyExistsException;
 
 /**
  * @author Thomas Segismont

@@ -16,13 +16,13 @@
  */
 package org.hawkular.metrics.core.service;
 
-import static org.hawkular.metrics.models.MetricType.AVAILABILITY;
-import static org.hawkular.metrics.models.MetricType.COUNTER;
-import static org.hawkular.metrics.models.MetricType.GAUGE;
+import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
+import static org.hawkular.metrics.model.MetricType.COUNTER;
+import static org.hawkular.metrics.model.MetricType.GAUGE;
 
-import org.hawkular.metrics.models.AvailabilityType;
-import org.hawkular.metrics.models.Metric;
-import org.hawkular.metrics.models.MetricType;
+import org.hawkular.metrics.model.AvailabilityType;
+import org.hawkular.metrics.model.Metric;
+import org.hawkular.metrics.model.MetricType;
 
 import rx.Observable;
 import rx.Observable.Transformer;

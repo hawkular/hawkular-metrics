@@ -18,17 +18,17 @@ package org.hawkular.metrics.core.service;
 
 import static java.util.Collections.singletonList;
 
-import static org.hawkular.metrics.models.MetricType.COUNTER;
-import static org.hawkular.metrics.models.MetricType.COUNTER_RATE;
+import static org.hawkular.metrics.model.MetricType.COUNTER;
+import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
-import org.hawkular.metrics.models.DataPoint;
-import org.hawkular.metrics.models.Metric;
-import org.hawkular.metrics.models.MetricId;
+import org.hawkular.metrics.model.DataPoint;
+import org.hawkular.metrics.model.Metric;
+import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.tasks.api.Task2;
 
 import rx.Observable;

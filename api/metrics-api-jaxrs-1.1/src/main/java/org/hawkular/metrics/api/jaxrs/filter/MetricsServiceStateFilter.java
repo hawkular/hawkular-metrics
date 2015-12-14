@@ -27,7 +27,7 @@ import javax.ws.rs.ext.Provider;
 import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle;
 import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle.State;
 import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
-import org.hawkular.metrics.models.ApiError;
+import org.hawkular.metrics.model.ApiError;
 import org.jboss.resteasy.annotations.interception.ServerInterceptor;
 import org.jboss.resteasy.core.ResourceMethod;
 import org.jboss.resteasy.core.ServerResponse;

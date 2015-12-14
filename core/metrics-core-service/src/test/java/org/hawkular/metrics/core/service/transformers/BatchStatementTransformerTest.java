@@ -23,7 +23,6 @@ import static org.mockito.Mockito.mock;
 
 import java.util.List;
 
-import org.hawkular.metrics.core.service.transformers.BatchStatementTransformer;
 import org.junit.Before;
 import org.junit.Test;
 
