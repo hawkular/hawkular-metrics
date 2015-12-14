@@ -29,7 +29,7 @@ import javax.inject.Inject;
 
 import org.hawkular.metrics.api.jaxrs.ServiceReady;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
-import org.hawkular.metrics.core.impl.MetricsService;
+import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.models.AvailabilityType;
 import org.hawkular.metrics.models.Metric;
 import org.jboss.logging.Logger;

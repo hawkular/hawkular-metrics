@@ -26,8 +26,8 @@ import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
 import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 
-import static org.hawkular.metrics.core.impl.MetricTypeFilter.COUNTER_FILTER;
-import static org.hawkular.metrics.core.impl.MetricTypeFilter.GAUGE_FILTER;
+import static org.hawkular.metrics.core.service.MetricTypeFilter.COUNTER_FILTER;
+import static org.hawkular.metrics.core.service.MetricTypeFilter.GAUGE_FILTER;
 import static org.hawkular.metrics.models.MetricType.COUNTER;
 import static org.hawkular.metrics.models.MetricType.GAUGE;
 
@@ -82,7 +82,7 @@ import org.hawkular.metrics.api.jaxrs.influx.query.validation.IllegalQueryExcept
 import org.hawkular.metrics.api.jaxrs.influx.query.validation.QueryValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InfluxObjectValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InvalidObjectException;
-import org.hawkular.metrics.core.impl.MetricsService;
+import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.models.Buckets;
 import org.hawkular.metrics.models.DataPoint;
 import org.hawkular.metrics.models.Metric;

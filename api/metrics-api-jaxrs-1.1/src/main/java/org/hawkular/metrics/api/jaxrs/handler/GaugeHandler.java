@@ -48,8 +48,8 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
-import org.hawkular.metrics.core.impl.Functions;
-import org.hawkular.metrics.core.impl.MetricsService;
+import org.hawkular.metrics.core.service.Functions;
+import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.models.ApiError;
 import org.hawkular.metrics.models.Buckets;
 import org.hawkular.metrics.models.DataPoint;
