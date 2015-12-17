@@ -22,11 +22,11 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
 
-import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.fasterxml.jackson.AvailabilityTypeDeserializer;
-import org.hawkular.metrics.core.api.fasterxml.jackson.AvailabilityTypeSerializer;
-import org.hawkular.metrics.core.api.fasterxml.jackson.MetricTypeDeserializer;
+import org.hawkular.metrics.model.AvailabilityType;
+import org.hawkular.metrics.model.MetricType;
+import org.hawkular.metrics.model.fasterxml.jackson.AvailabilityTypeDeserializer;
+import org.hawkular.metrics.model.fasterxml.jackson.AvailabilityTypeSerializer;
+import org.hawkular.metrics.model.fasterxml.jackson.MetricTypeDeserializer;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonParser;

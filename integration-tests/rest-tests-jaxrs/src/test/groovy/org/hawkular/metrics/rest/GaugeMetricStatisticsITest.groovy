@@ -19,7 +19,7 @@ import org.apache.commons.math3.stat.descriptive.moment.Mean
 import org.apache.commons.math3.stat.descriptive.rank.Max
 import org.apache.commons.math3.stat.descriptive.rank.Min
 import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile
-import org.hawkular.metrics.core.impl.DateTimeService
+import org.hawkular.metrics.core.service.DateTimeService
 import org.joda.time.DateTime
 import org.joda.time.Duration
 import org.junit.Test

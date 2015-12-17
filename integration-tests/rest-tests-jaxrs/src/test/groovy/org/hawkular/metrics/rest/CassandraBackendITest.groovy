@@ -22,8 +22,8 @@ import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertTrue
 
-import org.hawkular.metrics.core.api.MetricType
-import org.hawkular.metrics.core.impl.DateTimeService
+import org.hawkular.metrics.model.MetricType
+import org.hawkular.metrics.core.service.DateTimeService
 import org.joda.time.DateTime
 import org.junit.Test
 

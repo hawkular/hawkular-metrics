@@ -19,7 +19,7 @@ package org.hawkular.metrics.api.jaxrs.param;
 
 import static java.util.stream.Collectors.joining;
 
-import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.model.MetricType;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;

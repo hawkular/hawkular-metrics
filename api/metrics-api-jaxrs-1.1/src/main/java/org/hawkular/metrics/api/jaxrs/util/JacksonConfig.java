@@ -28,9 +28,9 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 import org.codehaus.jackson.map.module.SimpleModule;
-import org.hawkular.metrics.core.api.AvailabilityType;
-import org.hawkular.metrics.core.api.codehaus.jackson.AvailabilityTypeDeserializer;
-import org.hawkular.metrics.core.api.codehaus.jackson.AvailabilityTypeSerializer;
+import org.hawkular.metrics.model.AvailabilityType;
+import org.hawkular.metrics.model.codehaus.jackson.AvailabilityTypeDeserializer;
+import org.hawkular.metrics.model.codehaus.jackson.AvailabilityTypeSerializer;
 
 @Provider
 @Produces(MediaType.APPLICATION_JSON)

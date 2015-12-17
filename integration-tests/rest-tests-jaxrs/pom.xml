@@ -40,7 +40,7 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>hawkular-metrics-core-impl</artifactId>
+      <artifactId>hawkular-metrics-core-service</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>

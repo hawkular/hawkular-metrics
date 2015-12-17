@@ -21,7 +21,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 
-import org.hawkular.metrics.core.api.ApiError;
+import org.hawkular.metrics.model.ApiError;
 import org.jboss.logging.Logger;
 
 import com.google.common.base.Throwables;

@@ -16,7 +16,7 @@
  */
 package org.hawkular.metrics.api.jaxrs.util;
 
-import org.hawkular.metrics.core.api.MetricType;
+import org.hawkular.metrics.model.MetricType;
 
 /**
  * Returns the longer path format used by the REST-interface from the given MetricType

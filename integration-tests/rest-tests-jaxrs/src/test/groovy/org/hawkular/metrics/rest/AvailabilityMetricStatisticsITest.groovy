@@ -22,7 +22,7 @@ import static org.joda.time.Minutes.minutes
 import static org.joda.time.Seconds.seconds
 import static org.junit.Assert.assertEquals
 
-import org.hawkular.metrics.core.impl.DateTimeService
+import org.hawkular.metrics.core.service.DateTimeService
 import org.joda.time.DateTime
 import org.junit.Test
 

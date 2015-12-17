@@ -21,7 +21,8 @@ import java.util.stream.Collectors;
 
 import javax.ws.rs.ext.ParamConverter;
 
-import org.hawkular.metrics.core.api.param.Percentiles;
+import org.hawkular.metrics.model.param.Percentiles;
+
 
 /**
  * A JAX-RS ParamConverter from number,number,number input string to a Percentiles or vice-versa.

@@ -23,10 +23,10 @@ import javax.ws.rs.ext.ParamConverter;
 import javax.ws.rs.ext.ParamConverterProvider;
 import javax.ws.rs.ext.Provider;
 
-import org.hawkular.metrics.core.api.MetricType;
-import org.hawkular.metrics.core.api.param.Duration;
-import org.hawkular.metrics.core.api.param.Percentiles;
-import org.hawkular.metrics.core.api.param.Tags;
+import org.hawkular.metrics.model.MetricType;
+import org.hawkular.metrics.model.param.Duration;
+import org.hawkular.metrics.model.param.Percentiles;
+import org.hawkular.metrics.model.param.Tags;
 
 import com.google.common.collect.ImmutableMap;
 
