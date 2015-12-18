@@ -45,7 +45,7 @@
     <dependencies>
       <dependency>
         <groupId>org.wildfly.bom</groupId>
-        <artifactId>jboss-javaee-7.0-wildfly</artifactId>
+        <artifactId>wildfly-javaee7</artifactId>
         <version>${version.org.wildfly}</version>
         <type>pom</type>
         <scope>import</scope>
@@ -264,7 +264,11 @@
                 <configuration>
                   <skip>${wildfly-maven-plugin.skip}</skip>
                   <port>${component.wildfly.management.port}</port>
-                  <jbossHome>${project.build.directory}/wildfly-run/wildfly-${version.org.wildfly}</jbossHome>
+                  <!-- <jbossHome>${project.build.directory}/wildfly-run/wildfly-${version.org.wildfly}</jbossHome> -->
+                  <!-- hardcoded to 9.0.1.Final after we upgraded to WF10.
+                       The hawkular-nest-distro zip does not exist anymore.
+                       This needs to be fixed by using some of the feauture packs (Bus, Nest, or plain WF) -->
+                  <jbossHome>${project.build.directory}/wildfly-run/wildfly-9.0.1.Final</jbossHome>
                   <executeCommands>
                     <commands>
                       <!-- In the Nest, org.hawkular logger is already defined, we only need to set the level -->
