@@ -18,15 +18,9 @@
 
 package org.hawkular.metrics.component.bus.test
 
-import static java.util.concurrent.TimeUnit.MINUTES
-import static org.hawkular.bus.common.Endpoint.Type.TOPIC
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertTrue
-
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.atomic.AtomicInteger
-
+import com.google.common.base.Charsets
+import groovyx.net.http.ContentType
+import groovyx.net.http.RESTClient
 import org.hawkular.bus.common.ConnectionContextFactory
 import org.hawkular.bus.common.Endpoint
 import org.hawkular.bus.common.MessageProcessor
@@ -38,16 +32,20 @@ import org.junit.After
 import org.junit.BeforeClass
 import org.junit.Test
 
-import com.google.common.base.Charsets
+import javax.jms.ConnectionFactory
+import javax.naming.Context
+import javax.naming.InitialContext
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.AtomicInteger
 
-import groovyx.net.http.ContentType
-import groovyx.net.http.RESTClient
+import static java.util.concurrent.TimeUnit.MINUTES
+import static org.hawkular.bus.common.Endpoint.Type.TOPIC
+import static org.junit.Assert.*
 
 /**
  * @author Thomas Segismont
  */
 class InsertedDataITest {
-  static final String BROKER_URL = System.getProperty("hawkular-bus.broker.url", "tcp://localhost:62626")
   static baseURI = System.getProperty('hawkular-metrics.base-uri') ?: '127.0.0.1:8080/hawkular/metrics'
   static final String TENANT_PREFIX = UUID.randomUUID().toString()
   static final AtomicInteger TENANT_ID_COUNTER = new AtomicInteger(0)
@@ -56,8 +54,21 @@ class InsertedDataITest {
   static defaultFailureHandler
   static final double DELTA = 0.001
 
+  static final String DEFAULT_CONNECTION_FACTORY = "jms/RemoteConnectionFactory";
+  static final String INITIAL_CONTEXT_FACTORY = "org.jboss.naming.remote.client.InitialContextFactory";
+  static final String PROVIDER_URL = System.getProperty('hawkular-metrics.remoting.url') ?: 'http-remoting://localhost:8080';
+  static ConnectionFactory connectionFactory;
+
   @BeforeClass
   static void initClient() {
+    println "Trying to use this provider URL: ${PROVIDER_URL}"
+    Properties env = new Properties();
+    env.put(Context.INITIAL_CONTEXT_FACTORY, INITIAL_CONTEXT_FACTORY);
+    env.put(Context.PROVIDER_URL, System.getProperty(Context.PROVIDER_URL, PROVIDER_URL));
+    Context context = new InitialContext(env);
+    String connectionFactoryString = System.getProperty("connection.factory", DEFAULT_CONNECTION_FACTORY);
+    connectionFactory = (ConnectionFactory) context.lookup(connectionFactoryString);
+
     hawkularMetrics = new RESTClient("http://$baseURI/", ContentType.JSON)
     defaultFailureHandler = hawkularMetrics.handler.failure
     hawkularMetrics.handler.failure = { resp ->
@@ -83,7 +94,7 @@ ${entity}
 
   def tenantId = nextTenantId()
 
-  def consumerFactory = new ConnectionContextFactory(BROKER_URL)
+  def consumerFactory = new ConnectionContextFactory(connectionFactory)
   ConsumerConnectionContext consumerContext
   def messageProcessor = new MessageProcessor()
 
@@ -97,6 +108,7 @@ ${entity}
   void testAvailData() {
     def endpoint = new Endpoint(TOPIC, 'HawkularAvailData')
     consumerContext = consumerFactory.createConsumerConnectionContext(endpoint)
+    consumerContext.setSession(connectionFactory.createConnection().createSession())
 
     def latch = new CountDownLatch(1)
     AvailDataMessage actual = null
