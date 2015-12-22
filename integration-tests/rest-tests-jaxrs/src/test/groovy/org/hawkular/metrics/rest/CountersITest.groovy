@@ -18,11 +18,13 @@ package org.hawkular.metrics.rest
 
 import static java.lang.Double.NaN
 import static org.joda.time.DateTime.now
+import static org.junit.Assert.assertArrayEquals
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
 
 import org.joda.time.DateTime
 import org.junit.Test
+import org.hawkular.metrics.core.service.DateTimeService
 
 /**
  * @author John Sanda
@@ -1212,5 +1214,63 @@ Actual:   ${response.data}
     assertDoubleEquals("The avg is wrong", (c1Rates.avg + c2Rates.avg)/2, actualCounterRateBucketById.avg)
     assertEquals("The [empty] property is wrong", false, actualCounterRateBucketById.empty)
     assertTrue("Expected the [median] property to be set", actualCounterRateBucketById.median != null)
+  }
+
+  @Test
+  void fromEarliestWithData() {
+    String tenantId = nextTenantId()
+    String metric = "testStats"
+
+    def response = hawkularMetrics.post(path: 'counters', body: [
+        id  : '$metric',
+        tags: ['type': 'counter_cpu_usage', 'host': 'server1', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: "counters/$metric/data", body: [
+        [timestamp: new DateTimeService().currentHour().minusHours(2).millis, value: 2]
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(path: "counters/$metric/data", body: [
+        [timestamp: new DateTimeService().currentHour().minusHours(3).millis, value: 3]
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: "counters/$metric/data",
+        query: [fromEarliest: "true", bucketDuration: "1h"], headers: [(tenantHeaderName): tenantId])
+
+    assertEquals(200, response.status)
+    assertEquals(4, response.data.size)
+
+    def expectedArray = [new BigDecimal(3), new BigDecimal(2), 'NaN', 'NaN'].toArray()
+    assertArrayEquals(expectedArray, response.data.min.toArray())
+    assertArrayEquals(expectedArray, response.data.max.toArray())
+    assertArrayEquals(expectedArray, response.data.avg.toArray())
+  }
+
+  @Test
+  void fromEarliestWithoutDataAndBad() {
+    String tenantId = nextTenantId()
+    String metric = "testStats"
+
+    def response = hawkularMetrics.post(path: 'counters', body: [
+        id  : '$metric',
+        tags: ['type': 'counter_cpu_usage', 'host': 'server1', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.get(path: "counters/$metric/data",
+        query: [fromEarliest: "true", bucketDuration: "1h"], headers: [(tenantHeaderName): tenantId])
+
+    assertEquals(204, response.status)
+    assertEquals(null, response.data)
+
+    badGet(path: "counters/$metric/data",
+      query: [start: 0, end: Long.MAX_VALUE, fromEarliest: "true"], headers: [(tenantHeaderName): tenantId]) {
+      exception ->
+        // From earliest works only with buckets
+        assertEquals(400, exception.response.status)
+    }
   }
 }

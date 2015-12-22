@@ -56,6 +56,7 @@ import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
+import org.hawkular.metrics.model.NumericBucketPoint;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.Duration;
@@ -219,6 +220,7 @@ public class GaugeHandler {
             @PathParam("id") String id,
             @QueryParam("start") final Long start,
             @QueryParam("end") final Long end,
+            @QueryParam("fromEarliest") Boolean fromEarliest,
             @QueryParam("buckets") Integer bucketsCount,
             @QueryParam("bucketDuration") Duration bucketDuration,
             @QueryParam("percentiles") Percentiles percentiles
@@ -230,6 +232,10 @@ public class GaugeHandler {
         BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
         if (!bucketConfig.isValid()) {
             return badRequest(new ApiError(bucketConfig.getProblem()));
+        }
+
+        if (bucketConfig.getBuckets() == null && Boolean.TRUE.equals(fromEarliest)) {
+            return badRequest(new ApiError("fromEarliest can only be used with bucketed results"));
         }
 
         MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
@@ -247,9 +253,34 @@ public class GaugeHandler {
                     percentiles = new Percentiles(Collections.<Double>emptyList());
                 }
 
-                return metricsService
-                        .findGaugeStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets,
-                                percentiles.getPercentiles())
+                Observable<TimeRange> observableTimeRange = Observable.just(timeRange);
+
+                if (Boolean.TRUE.equals(fromEarliest)) {
+                    metricsService.findMetric(metricId).first().map((metric) -> {
+                        long now = System.currentTimeMillis();
+                        long earliest = now - metric.getDataRetention() * 24 * 60 * 60 * 1000L;
+                        return new TimeRange(earliest, now);
+                    });
+                }
+
+                final Percentiles localPercentiles = percentiles;
+                return observableTimeRange
+                        .flatMap((localTimeRange) -> metricsService.findGaugeStats(metricId, localTimeRange.getStart(),
+                                localTimeRange.getEnd(), buckets, localPercentiles.getPercentiles()))
+                        .map((list) -> {
+                            if (Boolean.TRUE.equals(fromEarliest)) {
+                                int index = 0;
+                                for (NumericBucketPoint item : list) {
+                                    if (!item.isEmpty()) {
+                                        break;
+                                    }
+                                    index++;
+                                }
+                                return list.subList(index, list.size());
+                            }
+
+                            return list;
+                        })
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()
                         .lastOrDefault(null);
