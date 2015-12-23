@@ -720,8 +720,11 @@ class GaugeMetricStatisticsITest extends RESTTest {
     assertEquals(201, response.status)
 
     response = hawkularMetrics.get(path: "gauges/$metric/data",
-        query: [fromEarliest: "true", bucketDuration: "1h"], headers: [(tenantHeaderName): tenantId])
+      query: [start: 1, end: now().millis, bucketDuration: "1000d"], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
 
+    response = hawkularMetrics.get(path: "gauges/$metric/data",
+        query: [fromEarliest: "true", bucketDuration: "1h"], headers: [(tenantHeaderName): tenantId])
     assertEquals(204, response.status)
     assertEquals(null, response.data)
 
@@ -733,7 +736,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
     }
 
     badGet(path: "gauges/$metric/data",
-      query: [start: 0, end: Long.MAX_VALUE, fromEarliest: "true", buckets: "1h"], headers: [(tenantHeaderName): tenantId]) {
+      query: [start: 0, end: Long.MAX_VALUE, fromEarliest: "true", bucketDuration: "1h"], headers: [(tenantHeaderName): tenantId]) {
       exception ->
         // From earliest works only without start & end
         assertEquals(400, exception.response.status)
