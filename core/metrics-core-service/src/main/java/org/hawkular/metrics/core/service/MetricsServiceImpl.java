@@ -335,6 +335,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         this.dateTimeService = dateTimeService;
     }
 
+    @Override
     public int getDefaultTTL() {
         return defaultTTL;
     }

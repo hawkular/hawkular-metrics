@@ -726,9 +726,16 @@ class GaugeMetricStatisticsITest extends RESTTest {
     assertEquals(null, response.data)
 
     badGet(path: "gauges/$metric/data",
-      query: [start: 0, end: Long.MAX_VALUE, fromEarliest: "true"], headers: [(tenantHeaderName): tenantId]) {
+      query: [fromEarliest: "true"], headers: [(tenantHeaderName): tenantId]) {
       exception ->
         // From earliest works only with buckets
+        assertEquals(400, exception.response.status)
+    }
+
+    badGet(path: "gauges/$metric/data",
+      query: [start: 0, end: Long.MAX_VALUE, fromEarliest: "true", buckets: "1h"], headers: [(tenantHeaderName): tenantId]) {
+      exception ->
+        // From earliest works only without start & end
         assertEquals(400, exception.response.status)
     }
   }

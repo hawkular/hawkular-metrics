@@ -273,4 +273,10 @@ public interface MetricsService {
      * @return a hot {@link Observable} emitting {@link Metric} events after data has been inserted
      */
     Observable<Metric<?>> insertedDataEvents();
+
+    /**
+     * @return default TTL for metric storage
+     */
+    int getDefaultTTL();
+
 }

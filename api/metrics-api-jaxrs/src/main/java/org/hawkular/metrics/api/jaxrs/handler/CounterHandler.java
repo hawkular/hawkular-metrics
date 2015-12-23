@@ -282,6 +282,11 @@ public class CounterHandler {
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles
     ) {
+        if (Boolean.TRUE.equals(fromEarliest) && (start != null || end != null)) {
+            asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used without start & end")));
+            return;
+        }
+
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
@@ -313,9 +318,14 @@ public class CounterHandler {
             Observable<TimeRange> observableTimeRange = Observable.just(timeRange);
 
             if (Boolean.TRUE.equals(fromEarliest)) {
-                metricsService.findMetric(metricId).first().map((metric) -> {
+                observableTimeRange = metricsService.findMetric(metricId).first().map((metric) -> {
+                    long dataRetention = metric.getDataRetention() != null && metric.getDataRetention() != 0
+                            ? metric.getDataRetention() * 24 * 60 * 60 * 1000L
+                            : metricsService.getDefaultTTL() * 1000L;
+
                     long now = System.currentTimeMillis();
-                    long earliest = now - metric.getDataRetention() * 24 * 60 * 60 * 1000L;
+                    long earliest = now - dataRetention;
+
                     return new TimeRange(earliest, now);
                 });
             }

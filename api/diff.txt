@@ -1075,22 +1075,27 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >             @QueryParam("buckets") Integer bucketsCount,
 >             @QueryParam("bucketDuration") Duration bucketDuration,
 >             @QueryParam("percentiles") Percentiles percentiles
-287,288c227
+286,287c226
+<             asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used without start & end")));
+<             return;
+---
+>             return badRequest(new ApiError("fromEarliest can only be used without start & end"));
+292,293c231
 <             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
 <             return;
 ---
 >             return badRequest(new ApiError(timeRange.getProblem()));
-292,293c231
+297,298c235
 <             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
 <             return;
 ---
 >             return badRequest(new ApiError(bucketConfig.getProblem()));
-297,298c235
+302,303c239
 <             asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used with bucketed results")));
 <             return;
 ---
 >             return badRequest(new ApiError("fromEarliest can only be used with bucketed results"));
-303,332c240,274
+308,342c244,283
 <         if (buckets == null) {
 <             metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
 <                     .toList()
@@ -1104,9 +1109,14 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 <             Observable<TimeRange> observableTimeRange = Observable.just(timeRange);
 < 
 <             if (Boolean.TRUE.equals(fromEarliest)) {
-<                 metricsService.findMetric(metricId).first().map((metric) -> {
+<                 observableTimeRange = metricsService.findMetric(metricId).first().map((metric) -> {
+<                     long dataRetention = metric.getDataRetention() != null && metric.getDataRetention() != 0
+<                             ? metric.getDataRetention() * 24 * 60 * 60 * 1000L
+<                             : metricsService.getDefaultTTL() * 1000L;
+< 
 <                     long now = System.currentTimeMillis();
-<                     long earliest = now - metric.getDataRetention() * 24 * 60 * 60 * 1000L;
+<                     long earliest = now - dataRetention;
+< 
 <                     return new TimeRange(earliest, now);
 <                 });
 <             }
@@ -1137,9 +1147,14 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >                 Observable<TimeRange> observableTimeRange = Observable.just(timeRange);
 > 
 >                 if (Boolean.TRUE.equals(fromEarliest)) {
->                     metricsService.findMetric(metricId).first().map((metric) -> {
+>                     observableTimeRange = metricsService.findMetric(metricId).first().map((metric) -> {
+>                         long dataRetention = metric.getDataRetention() != null && metric.getDataRetention() != 0
+>                                 ? metric.getDataRetention() * 24 * 60 * 60 * 1000L
+>                                 : metricsService.getDefaultTTL() * 1000L;
+> 
 >                         long now = System.currentTimeMillis();
->                         long earliest = now - metric.getDataRetention() * 24 * 60 * 60 * 1000L;
+>                         long earliest = now - dataRetention;
+> 
 >                         return new TimeRange(earliest, now);
 >                     });
 >                 }
@@ -1157,14 +1172,14 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >                                         break;
 >                                     }
 >                                     index++;
-334c276
+344c285
 <                                 index++;
 ---
 >                                 return list.subList(index, list.size());
-336,337d277
+346,347d286
 <                             return list.subList(index, list.size());
 <                         }
-339,342c279,286
+349,352c288,295
 <                         return list;
 <                     })
 <                     .map(ApiUtils::collectionToResponse)
@@ -1178,7 +1193,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >            }
 >         } catch (Exception e) {
 >             return serverError(e);
-348,369c292,298
+358,379c301,307
 <     @ApiOperation(
 <             value = "Retrieve counter rate data points.", notes = "When buckets or bucketDuration query parameter is " +
 <             "used, the time range between start and end will be divided in buckets of equal duration, and metric " +
@@ -1209,17 +1224,17 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >         @QueryParam("buckets") Integer bucketsCount,
 >         @QueryParam("bucketDuration") Duration bucketDuration,
 >         @QueryParam("percentiles") Percentiles percentiles
-373,374c302
+383,384c311
 <             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
 <             return;
 ---
 >             return badRequest(new ApiError(timeRange.getProblem()));
-378,379c306
+388,389c315
 <             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
 <             return;
 ---
 >             return badRequest(new ApiError(bucketConfig.getProblem()));
-384,391c311,329
+394,401c320,338
 <         if (buckets == null) {
 <             metricsService.findRateData(metricId, timeRange.getStart(), timeRange.getEnd())
 <                     .toList()
@@ -1248,7 +1263,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >                         .map(ApiUtils::collectionToResponse)
 >                         .toBlocking()
 >                         .lastOrDefault(null);
-393,397c331,332
+403,407c340,341
 < 
 <             metricsService.findRateStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets,
 <                     percentiles.getPercentiles())
@@ -1257,7 +1272,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 ---
 >         } catch (Exception e) {
 >             return serverError(e);
-403,425c338,346
+413,435c347,355
 <     @ApiOperation(value = "Fetches data points from one or more metrics that are determined using either a tags " +
 <             "filter or a list of metric names. The time range between start and end is divided into buckets of " +
 <             "equal size (i.e., duration) using either the buckets or bucketDuration parameter. Functions  " +
@@ -1291,33 +1306,33 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >             @QueryParam("percentiles") Percentiles percentiles,
 >             @QueryParam("metrics") List<String> metricNames,
 >             @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
-429,430c350
+439,440c359
 <             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
 <             return;
 ---
 >             return badRequest(new ApiError(timeRange.getProblem()));
-434,436c354
+444,446c363
 <             asyncResponse.resume(badRequest(new ApiError(
 <                     "Either the buckets or bucketsDuration parameter must be used")));
 <             return;
 ---
 >             return badRequest(new ApiError("Either the buckets or bucketsDuration parameter must be used"));
-439,440c357
+449,450c366
 <             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
 <             return;
 ---
 >             return badRequest(new ApiError(bucketConfig.getProblem()));
-443,444c360
+453,454c369
 <             asyncResponse.resume(badRequest(new ApiError("Either metrics or tags parameter must be used")));
 <             return;
 ---
 >             return badRequest(new ApiError("Either metrics or tags parameter must be used"));
-447,448c363
+457,458c372
 <             asyncResponse.resume(badRequest(new ApiError("Cannot use both the metrics and tags parameters")));
 <             return;
 ---
 >             return badRequest(new ApiError("Cannot use both the metrics and tags parameters"));
-456,457c371,374
+466,467c380,383
 <             metricsService.findNumericStats(tenantId, MetricType.COUNTER, tags.getTags(), timeRange.getStart(),
 <                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
 ---
@@ -1325,24 +1340,24 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >                     .findNumericStats(tenantId, MetricType.COUNTER, tags.getTags(), timeRange.getStart(),
 >                             timeRange.getEnd(),
 >                             bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
-459c376,377
+469c385,386
 <                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
 ---
 >                     .toBlocking()
 >                     .lastOrDefault(null);
-461,462c379,381
+471,472c388,390
 <             metricsService.findNumericStats(tenantId, MetricType.COUNTER, metricNames, timeRange.getStart(),
 <                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
 ---
 >             return metricsService
 >                     .findNumericStats(tenantId, MetricType.COUNTER, metricNames, timeRange.getStart(),
 >                             timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
-464c383,384
+474c392,393
 <                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
 ---
 >                     .toBlocking()
 >                     .lastOrDefault(null);
-470,492c390,398
+480,502c399,407
 <     @ApiOperation(value = "Fetches data points from one or more metrics that are determined using either a tags " +
 <             "filter or a list of metric names. The time range between start and end is divided into buckets of " +
 <             "equal size (i.e., duration) using either the buckets or bucketDuration parameter. Functions are " +
@@ -1376,33 +1391,33 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >             @QueryParam("percentiles") Percentiles percentiles,
 >             @QueryParam("metrics") List<String> metricNames,
 >             @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
-496,497c402
+506,507c411
 <             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
 <             return;
 ---
 >             return badRequest(new ApiError(timeRange.getProblem()));
-501,503c406
+511,513c415
 <             asyncResponse.resume(badRequest(new ApiError(
 <                     "Either the buckets or bucketsDuration parameter must be used")));
 <             return;
 ---
 >             return badRequest(new ApiError("Either the buckets or bucketsDuration parameter must be used"));
-506,507c409
+516,517c418
 <             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
 <             return;
 ---
 >             return badRequest(new ApiError(bucketConfig.getProblem()));
-510,511c412
+520,521c421
 <             asyncResponse.resume(badRequest(new ApiError("Either metrics or tags parameter must be used")));
 <             return;
 ---
 >             return badRequest(new ApiError("Either metrics or tags parameter must be used"));
-514,515c415
+524,525c424
 <             asyncResponse.resume(badRequest(new ApiError("Cannot use both the metrics and tags parameters")));
 <             return;
 ---
 >             return badRequest(new ApiError("Cannot use both the metrics and tags parameters"));
-523,524c423,426
+533,534c432,435
 <             metricsService.findNumericStats(tenantId, MetricType.COUNTER_RATE, tags.getTags(), timeRange.getStart(),
 <                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
 ---
@@ -1410,19 +1425,19 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >                     .findNumericStats(tenantId, MetricType.COUNTER_RATE, tags.getTags(), timeRange.getStart(),
 >                             timeRange.getEnd(),
 >                             bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
-526c428,429
+536c437,438
 <                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
 ---
 >                     .toBlocking()
 >                     .lastOrDefault(null);
-528,529c431,433
+538,539c440,442
 <             metricsService.findNumericStats(tenantId, MetricType.COUNTER_RATE, metricNames, timeRange.getStart(),
 <                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
 ---
 >             return metricsService
 >                     .findNumericStats(tenantId, MetricType.COUNTER_RATE, metricNames, timeRange.getStart(),
 >                             timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
-531c435,436
+541c444,445
 <                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
 ---
 >                     .toBlocking()
@@ -1691,7 +1706,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 <             @Suspended AsyncResponse asyncResponse,
 ---
 >     public Response findGaugeData(
-275,281c221,227
+275,282c221,227
 <             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
 <             @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
 <             @ApiParam(value = "Use data from earliest received, subject to retention period")
@@ -1699,6 +1714,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 <             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
 <             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
 <             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles) {
+< 
 ---
 >             @QueryParam("start") final Long start,
 >             @QueryParam("end") final Long end,
@@ -1707,22 +1723,27 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >             @QueryParam("bucketDuration") Duration bucketDuration,
 >             @QueryParam("percentiles") Percentiles percentiles
 >     ) {
-284,285c230
+284,285c229
+<             asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used without start & end")));
+<             return;
+---
+>             return badRequest(new ApiError("fromEarliest can only be used without start & end"));
+290,291c234
 <             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
 <             return;
 ---
 >             return badRequest(new ApiError(timeRange.getProblem()));
-289,290c234
+295,296c238
 <             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
 <             return;
 ---
 >             return badRequest(new ApiError(bucketConfig.getProblem()));
-294,295c238
+300,301c242
 <             asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used with bucketed results")));
 <             return;
 ---
 >             return badRequest(new ApiError("fromEarliest can only be used with bucketed results"));
-300,329c243,277
+306,340c247,286
 <         if (buckets == null) {
 <             metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
 <                     .toList()
@@ -1736,9 +1757,14 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 <             Observable<TimeRange> observableTimeRange = Observable.just(timeRange);
 < 
 <             if (Boolean.TRUE.equals(fromEarliest)) {
-<                 metricsService.findMetric(metricId).first().map((metric) -> {
+<                 observableTimeRange = metricsService.findMetric(metricId).first().map((metric) -> {
+<                     long dataRetention = metric.getDataRetention() != null && metric.getDataRetention() != 0
+<                             ? metric.getDataRetention() * 24 * 60 * 60 * 1000L
+<                             : metricsService.getDefaultTTL() * 1000L;
+< 
 <                     long now = System.currentTimeMillis();
-<                     long earliest = now - metric.getDataRetention() * 24 * 60 * 60 * 1000L;
+<                     long earliest = now - dataRetention;
+< 
 <                     return new TimeRange(earliest, now);
 <                 });
 <             }
@@ -1770,9 +1796,14 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >                 Observable<TimeRange> observableTimeRange = Observable.just(timeRange);
 > 
 >                 if (Boolean.TRUE.equals(fromEarliest)) {
->                     metricsService.findMetric(metricId).first().map((metric) -> {
+>                     observableTimeRange = metricsService.findMetric(metricId).first().map((metric) -> {
+>                         long dataRetention = metric.getDataRetention() != null && metric.getDataRetention() != 0
+>                                 ? metric.getDataRetention() * 24 * 60 * 60 * 1000L
+>                                 : metricsService.getDefaultTTL() * 1000L;
+> 
 >                         long now = System.currentTimeMillis();
->                         long earliest = now - metric.getDataRetention() * 24 * 60 * 60 * 1000L;
+>                         long earliest = now - dataRetention;
+> 
 >                         return new TimeRange(earliest, now);
 >                     });
 >                 }
@@ -1789,14 +1820,14 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >                                         break;
 >                                     }
 >                                     index++;
-331c279
+342c288
 <                                 index++;
 ---
 >                                 return list.subList(index, list.size());
-333,334d280
+344,345d289
 <                             return list.subList(index, list.size());
 <                         }
-336,339c282,289
+347,350c291,298
 <                         return list;
 <                     })
 <                     .map(ApiUtils::collectionToResponse)
@@ -1810,7 +1841,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >             }
 >         } catch (Exception e) {
 >             return serverError(e);
-345,369c295,303
+356,380c304,312
 <     @ApiOperation(value = "Find stats for multiple metrics.", notes = "Fetches data points from one or more metrics"
 <             + " that are determined using either a tags filter or a list of metric names. The time range between " +
 <             "start and end is divided into buckets of equal size (i.e., duration) using either the buckets or " +
@@ -1846,33 +1877,33 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >             @QueryParam("percentiles") Percentiles percentiles,
 >             @QueryParam("metrics") List<String> metricNames,
 >             @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
-373,374c307
+384,385c316
 <             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
 <             return;
 ---
 >             return badRequest(new ApiError(timeRange.getProblem()));
-378,380c311
+389,391c320
 <             asyncResponse.resume(badRequest(new ApiError(
 <                     "Either the buckets or bucketsDuration parameter must be used")));
 <             return;
 ---
 >             return badRequest(new ApiError("Either the buckets or bucketsDuration parameter must be used"));
-383,384c314
+394,395c323
 <             asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
 <             return;
 ---
 >             return badRequest(new ApiError(bucketConfig.getProblem()));
-387,388c317
+398,399c326
 <             asyncResponse.resume(badRequest(new ApiError("Either metrics or tags parameter must be used")));
 <             return;
 ---
 >             return badRequest(new ApiError("Either metrics or tags parameter must be used"));
-391,392c320
+402,403c329
 <             asyncResponse.resume(badRequest(new ApiError("Cannot use both the metrics and tags parameters")));
 <             return;
 ---
 >             return badRequest(new ApiError("Cannot use both the metrics and tags parameters"));
-400,401c328,331
+411,412c337,340
 <             metricsService.findNumericStats(tenantId, MetricType.GAUGE, tags.getTags(), timeRange.getStart(),
 <                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
 ---
@@ -1880,24 +1911,24 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >                     .findNumericStats(tenantId, MetricType.GAUGE, tags.getTags(), timeRange.getStart(),
 >                             timeRange.getEnd(),
 >                             bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
-403c333,334
+414c342,343
 <                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
 ---
 >                     .toBlocking()
 >                     .lastOrDefault(null);
-405,406c336,338
+416,417c345,347
 <             metricsService.findNumericStats(tenantId, MetricType.GAUGE, metricNames, timeRange.getStart(),
 <                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
 ---
 >             return metricsService
 >                     .findNumericStats(tenantId, MetricType.GAUGE, metricNames, timeRange.getStart(),
 >                             timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
-408c340,341
+419c349,350
 <                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
 ---
 >                     .toBlocking()
 >                     .lastOrDefault(null);
-414,422c347
+425,433c356
 <     @ApiOperation(value = "Find condition periods.", notes = "Retrieve periods for which the condition holds true for" +
 <             " each consecutive data point.", response = List.class)
 <     @ApiResponses(value = {
@@ -1909,22 +1940,22 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 <             @Suspended final AsyncResponse asyncResponse,
 ---
 >     public Response findPeriods(
-424,426c349,350
+435,437c358,359
 <             @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") Long start,
 <             @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") Long end,
 <             @ApiParam(value = "A threshold against which values are compared", required = true)
 ---
 >             @QueryParam("start") final Long start,
 >             @QueryParam("end") final Long end,
-428,429d351
+439,440d360
 <             @ApiParam(value = "A comparison operation to perform between values and the threshold.", required = true,
 <                     allowableValues = "ge, gte, lt, lte, eq, neq")
-434,435c356
+445,446c365
 <             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
 <             return;
 ---
 >             return badRequest(new ApiError(timeRange.getProblem()));
-463,468c384,385
+474,479c393,394
 <             asyncResponse.resume(badRequest(
 <                     new ApiError(
 <                             "Invalid value for op parameter. Supported values are lt, "
@@ -1934,7 +1965,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 ---
 >             return badRequest(
 >                     new ApiError("Invalid value for op parameter. Supported values are lt, lte, eq, gt, gte."));
-470,473c387,394
+481,484c396,403
 <             MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
 <             metricsService.getPeriods(metricId, predicate, timeRange.getStart(), timeRange.getEnd())
 <                     .map(ApiUtils::collectionToResponse)
