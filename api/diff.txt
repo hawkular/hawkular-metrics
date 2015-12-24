@@ -1120,10 +1120,10 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >                 return badRequest(new ApiError(bucketConfig.getProblem()));
 351,360c289,304
 <         observableConfig
-<                 .flatMap((localBucketConfig) -> metricsService.findCounterStats(metricId,
-<                         localBucketConfig.getTimeRange().getStart(),
-<                         localBucketConfig.getTimeRange().getEnd(),
-<                         localBucketConfig.getBuckets(), localPercentiles.getPercentiles()))
+<                 .flatMap((config) -> metricsService.findCounterStats(metricId,
+<                         config.getTimeRange().getStart(),
+<                         config.getTimeRange().getEnd(),
+<                         config.getBuckets(), lPercentiles.getPercentiles()))
 <                 .flatMap(Observable::from)
 <                 .skipWhile(bucket -> Boolean.TRUE.equals(fromEarliest) && bucket.isEmpty())
 <                 .toList()
@@ -1132,10 +1132,10 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 ---
 >         try {
 >             return observableConfig
->                     .flatMap((localBucketConfig) -> metricsService.findCounterStats(metricId,
->                             localBucketConfig.getTimeRange().getStart(),
->                             localBucketConfig.getTimeRange().getEnd(),
->                             localBucketConfig.getBuckets(), localPercentiles.getPercentiles()))
+>                     .flatMap((config) -> metricsService.findCounterStats(metricId,
+>                             config.getTimeRange().getStart(),
+>                             config.getTimeRange().getEnd(),
+>                             config.getBuckets(), lPercentiles.getPercentiles()))
 >                     .flatMap(Observable::from)
 >                     .skipWhile(bucket -> Boolean.TRUE.equals(fromEarliest) && bucket.isEmpty())
 >                     .toList()
@@ -1719,10 +1719,10 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >                 return badRequest(new ApiError(bucketConfig.getProblem()));
 348,357c291,306
 <         observableConfig
-<                 .flatMap((localBucketConfig) -> metricsService.findGaugeStats(metricId,
-<                         localBucketConfig.getTimeRange().getStart(),
-<                         localBucketConfig.getTimeRange().getEnd(),
-<                         localBucketConfig.getBuckets(), localPercentiles.getPercentiles()))
+<                 .flatMap((config) -> metricsService.findGaugeStats(metricId,
+<                         config.getTimeRange().getStart(),
+<                         config.getTimeRange().getEnd(),
+<                         config.getBuckets(), lPercentiles.getPercentiles()))
 <                 .flatMap(Observable::from)
 <                 .skipWhile(bucket -> Boolean.TRUE.equals(fromEarliest) && bucket.isEmpty())
 <                 .toList()
@@ -1731,10 +1731,10 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 ---
 >         try {
 >             return observableConfig
->                     .flatMap((localBucketConfig) -> metricsService.findGaugeStats(metricId,
->                             localBucketConfig.getTimeRange().getStart(),
->                             localBucketConfig.getTimeRange().getEnd(),
->                             localBucketConfig.getBuckets(), localPercentiles.getPercentiles()))
+>                     .flatMap((config) -> metricsService.findGaugeStats(metricId,
+>                             config.getTimeRange().getStart(),
+>                             config.getTimeRange().getEnd(),
+>                             config.getBuckets(), lPercentiles.getPercentiles()))
 >                     .flatMap(Observable::from)
 >                     .skipWhile(bucket -> Boolean.TRUE.equals(fromEarliest) && bucket.isEmpty())
 >                     .toList()
