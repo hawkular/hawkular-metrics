@@ -61,6 +61,7 @@ import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NumericBucketPoint;
+import org.hawkular.metrics.model.exception.RuntimeApiError;
 import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.Duration;
 import org.hawkular.metrics.model.param.Percentiles;
@@ -282,75 +283,81 @@ public class CounterHandler {
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles
     ) {
-        if (Boolean.TRUE.equals(fromEarliest) && (start != null || end != null)) {
-            asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used without start & end")));
-            return;
-        }
-
-        TimeRange timeRange = new TimeRange(start, end);
-        if (!timeRange.isValid()) {
-            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
-            return;
-        }
-        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
-        if (!bucketConfig.isValid()) {
-            asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
-            return;
-        }
-
-        if (bucketConfig.getBuckets() == null && Boolean.TRUE.equals(fromEarliest)) {
-            asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used with bucketed results")));
-            return;
-        }
-
         MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
-        Buckets buckets = bucketConfig.getBuckets();
-        if (buckets == null) {
+
+        if (bucketsCount == null && bucketDuration == null && !Boolean.TRUE.equals(fromEarliest)) {
+            TimeRange timeRange = new TimeRange(start, end);
+            if (!timeRange.isValid()) {
+                asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+                return;
+            }
+
             metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
                     .toList()
                     .map(ApiUtils::collectionToResponse)
-                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
-        } else {
-            if(percentiles == null) {
-                percentiles = new Percentiles(Collections.<Double>emptyList());
-            }
-
-            Observable<TimeRange> observableTimeRange = Observable.just(timeRange);
-
-            if (Boolean.TRUE.equals(fromEarliest)) {
-                observableTimeRange = metricsService.findMetric(metricId).first().map((metric) -> {
-                    long dataRetention = metric.getDataRetention() != null && metric.getDataRetention() != 0
-                            ? metric.getDataRetention() * 24 * 60 * 60 * 1000L
-                            : metricsService.getDefaultTTL() * 1000L;
-
-                    long now = System.currentTimeMillis();
-                    long earliest = now - dataRetention;
-
-                    return new TimeRange(earliest, now);
-                });
-            }
-
-            final Percentiles localPercentiles = percentiles;
-            observableTimeRange
-                    .flatMap((localTimeRange) -> metricsService.findCounterStats(metricId, localTimeRange.getStart(),
-                            localTimeRange.getEnd(), buckets, localPercentiles.getPercentiles()))
-                    .map((list) -> {
-                        if (Boolean.TRUE.equals(fromEarliest)) {
-                            int index = 0;
-                            for (NumericBucketPoint item : list) {
-                                if (!item.isEmpty()) {
-                                    break;
-                                }
-                                index++;
-                            }
-                            return list.subList(index, list.size());
-                        }
-
-                        return list;
-                    })
-                    .map(ApiUtils::collectionToResponse)
-                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+            return;
         }
+
+        Observable<BucketConfig> observableConfig = null;
+
+        if (Boolean.TRUE.equals(fromEarliest)) {
+            if (start != null || end != null) {
+                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used without start & end")));
+                return;
+            }
+
+            if (bucketsCount == null && bucketDuration == null) {
+                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used with bucketed results")));
+                return;
+            }
+
+            observableConfig = metricsService.findMetric(metricId).first().map((metric) -> {
+                long dataRetention = metric.getDataRetention() != null && metric.getDataRetention() != 0
+                        ? metric.getDataRetention() * 24 * 60 * 60 * 1000L
+                        : metricsService.getDefaultTTL() * 1000L;
+
+                long now = System.currentTimeMillis();
+                long earliest = now - dataRetention;
+
+                BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration,
+                        new TimeRange(earliest, now));
+
+                if (!bucketConfig.isValid()) {
+                    throw new RuntimeApiError(bucketConfig.getProblem());
+                }
+
+                return bucketConfig;
+            });
+        } else {
+            TimeRange timeRange = new TimeRange(start, end);
+            if (!timeRange.isValid()) {
+                asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+                return;
+            }
+
+            BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+            if (!bucketConfig.isValid()) {
+                asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+                return;
+            }
+
+            observableConfig = Observable.just(bucketConfig);
+        }
+
+        final Percentiles localPercentiles = percentiles != null ? percentiles
+                : new Percentiles(Collections.<Double> emptyList());
+
+        observableConfig
+                .flatMap((localBucketConfig) -> metricsService.findCounterStats(metricId,
+                        localBucketConfig.getTimeRange().getStart(),
+                        localBucketConfig.getTimeRange().getEnd(),
+                        localBucketConfig.getBuckets(), localPercentiles.getPercentiles()))
+                .flatMap(Observable::from)
+                .skipWhile(bucket -> Boolean.TRUE.equals(fromEarliest) && bucket.isEmpty())
+                .toList()
+                .map(ApiUtils::collectionToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.error(t)));
     }
 
     @GET
@@ -442,7 +449,7 @@ public class CounterHandler {
         BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
         if (bucketConfig.isEmpty()) {
             asyncResponse.resume(badRequest(new ApiError(
-                    "Either the buckets or bucketsDuration parameter must be used")));
+                    "Either the buckets or bucketDuration parameter must be used")));
             return;
         }
         if (!bucketConfig.isValid()) {

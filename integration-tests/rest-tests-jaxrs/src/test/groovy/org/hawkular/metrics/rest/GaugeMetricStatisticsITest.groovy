@@ -75,13 +75,6 @@ class GaugeMetricStatisticsITest extends RESTTest {
       // Both buckets and bucketDuration parameters provided
       assertEquals(400, exception.response.status)
     }
-
-    badGet(path: "gauges/$metric/data",
-        query: [start: 0, end: Long.MAX_VALUE, fromEarliest: "true"], headers: [(tenantHeaderName): tenantId]) {
-        exception ->
-          // From earliest works only with buckets
-          assertEquals(400, exception.response.status)
-    }
   }
 
   @Test
@@ -722,6 +715,12 @@ class GaugeMetricStatisticsITest extends RESTTest {
     response = hawkularMetrics.get(path: "gauges/$metric/data",
       query: [start: 1, end: now().millis, bucketDuration: "1000d"], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+
+    badGet(path: "gauges/$metric/data",
+        query: [fromEarliest: "true", bucketDuration: "a"], headers: [(tenantHeaderName): tenantId]) {
+        exception ->
+          assertEquals(400, exception.response.status)
+    }
 
     response = hawkularMetrics.get(path: "gauges/$metric/data",
         query: [fromEarliest: "true", bucketDuration: "1h"], headers: [(tenantHeaderName): tenantId])

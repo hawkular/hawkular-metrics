@@ -1264,6 +1264,12 @@ Actual:   ${response.data}
       query: [start: 1, end: now().millis, bucketDuration: "1000d"], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
 
+    badGet(path: "counters/$metric/data",
+        query: [fromEarliest: "true", bucketDuration: "a"], headers: [(tenantHeaderName): tenantId]) {
+        exception ->
+          assertEquals(400, exception.response.status)
+    }
+
     response = hawkularMetrics.get(path: "counters/$metric/data",
         query: [fromEarliest: "true", bucketDuration: "1h"], headers: [(tenantHeaderName): tenantId])
     assertEquals(204, response.status)

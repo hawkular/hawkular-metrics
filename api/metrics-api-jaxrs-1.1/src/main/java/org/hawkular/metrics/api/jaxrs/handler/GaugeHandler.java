@@ -51,13 +51,12 @@ import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.model.ApiError;
-import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
-import org.hawkular.metrics.model.NumericBucketPoint;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
+import org.hawkular.metrics.model.exception.RuntimeApiError;
 import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.Duration;
 import org.hawkular.metrics.model.param.Percentiles;
@@ -225,75 +224,83 @@ public class GaugeHandler {
             @QueryParam("bucketDuration") Duration bucketDuration,
             @QueryParam("percentiles") Percentiles percentiles
     ) {
-        if (Boolean.TRUE.equals(fromEarliest) && (start != null || end != null)) {
-            return badRequest(new ApiError("fromEarliest can only be used without start & end"));
-        }
-
-        TimeRange timeRange = new TimeRange(start, end);
-        if (!timeRange.isValid()) {
-            return badRequest(new ApiError(timeRange.getProblem()));
-        }
-        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
-        if (!bucketConfig.isValid()) {
-            return badRequest(new ApiError(bucketConfig.getProblem()));
-        }
-
-        if (bucketConfig.getBuckets() == null && Boolean.TRUE.equals(fromEarliest)) {
-            return badRequest(new ApiError("fromEarliest can only be used with bucketed results"));
-        }
-
         MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
-        Buckets buckets = bucketConfig.getBuckets();
-        try {
-            if (buckets == null) {
-                return metricsService
-                        .findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
-                        .toList()
-                        .map(ApiUtils::collectionToResponse)
-                        .toBlocking()
-                        .lastOrDefault(null);
-            } else {
-                if (percentiles == null) {
-                    percentiles = new Percentiles(Collections.<Double>emptyList());
-                }
 
-                Observable<TimeRange> observableTimeRange = Observable.just(timeRange);
-
-                if (Boolean.TRUE.equals(fromEarliest)) {
-                    observableTimeRange = metricsService.findMetric(metricId).first().map((metric) -> {
-                        long dataRetention = metric.getDataRetention() != null && metric.getDataRetention() != 0
-                                ? metric.getDataRetention() * 24 * 60 * 60 * 1000L
-                                : metricsService.getDefaultTTL() * 1000L;
-
-                        long now = System.currentTimeMillis();
-                        long earliest = now - dataRetention;
-
-                        return new TimeRange(earliest, now);
-                    });
-                }
-
-                final Percentiles localPercentiles = percentiles;
-                return observableTimeRange
-                        .flatMap((localTimeRange) -> metricsService.findGaugeStats(metricId, localTimeRange.getStart(),
-                                localTimeRange.getEnd(), buckets, localPercentiles.getPercentiles()))
-                        .map((list) -> {
-                            if (Boolean.TRUE.equals(fromEarliest)) {
-                                int index = 0;
-                                for (NumericBucketPoint item : list) {
-                                    if (!item.isEmpty()) {
-                                        break;
-                                    }
-                                    index++;
-                                }
-                                return list.subList(index, list.size());
-                            }
-
-                            return list;
-                        })
-                        .map(ApiUtils::collectionToResponse)
-                        .toBlocking()
-                        .lastOrDefault(null);
+        if (bucketsCount == null && bucketDuration == null && !Boolean.TRUE.equals(fromEarliest)) {
+            TimeRange timeRange = new TimeRange(start, end);
+            if (!timeRange.isValid()) {
+                return badRequest(new ApiError(timeRange.getProblem()));
             }
+
+            try{
+            return metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
+                    .toList()
+                    .map(ApiUtils::collectionToResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
+            } catch (Exception e) {
+                return serverError(e);
+            }
+        }
+
+        Observable<BucketConfig> observableConfig = null;
+
+        if (Boolean.TRUE.equals(fromEarliest)) {
+            if (start != null || end != null) {
+                return badRequest(new ApiError("fromEarliest can only be used without start & end"));
+            }
+
+            if (bucketsCount == null && bucketDuration == null) {
+                return badRequest(new ApiError("fromEarliest can only be used with bucketed results"));
+            }
+
+            observableConfig = metricsService.findMetric(metricId).first().map((metric) -> {
+                long dataRetention = metric.getDataRetention() != null && metric.getDataRetention() != 0
+                        ? metric.getDataRetention() * 24 * 60 * 60 * 1000L
+                        : metricsService.getDefaultTTL() * 1000L;
+
+                long now = System.currentTimeMillis();
+                long earliest = now - dataRetention;
+
+                BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration,
+                        new TimeRange(earliest, now));
+
+                if (!bucketConfig.isValid()) {
+                    throw new RuntimeApiError(bucketConfig.getProblem());
+                }
+
+                return bucketConfig;
+            });
+        } else {
+            TimeRange timeRange = new TimeRange(start, end);
+            if (!timeRange.isValid()) {
+                return badRequest(new ApiError(timeRange.getProblem()));
+            }
+
+            BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+            if (!bucketConfig.isValid()) {
+                return badRequest(new ApiError(bucketConfig.getProblem()));
+            }
+
+            observableConfig = Observable.just(bucketConfig);
+        }
+
+        final Percentiles localPercentiles = percentiles != null ? percentiles
+                : new Percentiles(Collections.<Double> emptyList());
+
+        try {
+            return observableConfig
+                    .flatMap((localBucketConfig) -> metricsService.findGaugeStats(metricId,
+                            localBucketConfig.getTimeRange().getStart(),
+                            localBucketConfig.getTimeRange().getEnd(),
+                            localBucketConfig.getBuckets(), localPercentiles.getPercentiles()))
+                    .flatMap(Observable::from)
+                    .skipWhile(bucket -> Boolean.TRUE.equals(fromEarliest) && bucket.isEmpty())
+                    .toList()
+                    .map(ApiUtils::collectionToResponse)
+                    .toBlocking()
+                    .lastOrDefault(null);
+
         } catch (Exception e) {
             return serverError(e);
         }
