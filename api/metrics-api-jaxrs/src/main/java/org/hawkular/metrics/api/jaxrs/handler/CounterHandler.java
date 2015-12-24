@@ -312,7 +312,7 @@ public class CounterHandler {
                 return;
             }
 
-            observableConfig = metricsService.findMetric(metricId).first().map((metric) -> {
+            observableConfig = metricsService.findMetric(metricId).map((metric) -> {
                 long dataRetention = metric.getDataRetention() != null && metric.getDataRetention() != 0
                         ? metric.getDataRetention() * 24 * 60 * 60 * 1000L
                         : metricsService.getDefaultTTL() * 1000L;

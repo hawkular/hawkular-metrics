@@ -254,7 +254,7 @@ public class GaugeHandler {
                 return badRequest(new ApiError("fromEarliest can only be used with bucketed results"));
             }
 
-            observableConfig = metricsService.findMetric(metricId).first().map((metric) -> {
+            observableConfig = metricsService.findMetric(metricId).map((metric) -> {
                 long dataRetention = metric.getDataRetention() != null && metric.getDataRetention() != 0
                         ? metric.getDataRetention() * 24 * 60 * 60 * 1000L
                         : metricsService.getDefaultTTL() * 1000L;
