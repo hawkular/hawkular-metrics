@@ -53,7 +53,7 @@ public class Tags {
     }
 
     private static boolean isValid(String s) {
-        return s != null && !s.trim().isEmpty() && !s.contains(LIST_DELIMITER) && !s.contains(TAG_DELIMITER);
+        return s != null && !s.trim().isEmpty();
     }
 
     /**

@@ -20,6 +20,9 @@ import static java.util.stream.Collectors.joining;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -61,7 +64,12 @@ public class TagsConverter implements StringConverter<Tags> {
             }
             int colonIndex = token.indexOf(Tags.TAG_DELIMITER);
             checkArgument(hasExpectedForm(token, colonIndex), "Invalid tags: %s", value);
-            tags.put(token.substring(0, colonIndex), token.substring(colonIndex + 1));
+            try {
+                String tagValue = URLDecoder.decode(token.substring(colonIndex + 1), StandardCharsets.UTF_8.name());
+                tags.put(token.substring(0, colonIndex), tagValue);
+            } catch (UnsupportedEncodingException e) {
+                throw new RuntimeException(e);
+            }
             previousToken = token;
         }
         return new Tags(tags);
