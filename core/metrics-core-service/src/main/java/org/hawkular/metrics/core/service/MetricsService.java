@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -273,10 +273,4 @@ public interface MetricsService {
      * @return a hot {@link Observable} emitting {@link Metric} events after data has been inserted
      */
     Observable<Metric<?>> insertedDataEvents();
-
-    /**
-     * @return default TTL for metric storage
-     */
-    int getDefaultTTL();
-
 }

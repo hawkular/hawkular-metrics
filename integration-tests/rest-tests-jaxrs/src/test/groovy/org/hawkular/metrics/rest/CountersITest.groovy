@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -95,7 +95,7 @@ class CountersITest extends RESTTest {
     response = hawkularMetrics.get(path: "counters/$id", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
 
-    def expectedData = [tenantId: tenantId, id: id, type: 'counter']
+    def expectedData = [tenantId: tenantId, id: id, type: 'counter', dataRetention: 7]
     assertEquals(expectedData, response.data)
   }
 
@@ -176,7 +176,8 @@ class CountersITest extends RESTTest {
         [
             tenantId: tenantId,
             id: counter1,
-            type: 'counter'
+            type: 'counter',
+            dataRetention: 7
         ],
         [
             tenantId: tenantId,
@@ -185,7 +186,8 @@ class CountersITest extends RESTTest {
                 tag1: 'one',
                 tag2: 'two'
             ],
-            type: 'counter'
+            type: 'counter',
+            dataRetention: 7
         ]
     ]
     assertEquals(expectedData, response.data)

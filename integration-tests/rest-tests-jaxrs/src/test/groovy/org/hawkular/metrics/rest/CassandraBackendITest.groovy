@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -415,8 +415,8 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            [tenantId: tenantId, id: 'm11', type: 'gauge'],
-            [tenantId: tenantId, id: 'm12', type: 'gauge'],
+            [dataRetention: 7, tenantId: tenantId, id: 'm11', type: 'gauge'],
+            [dataRetention: 7, tenantId: tenantId, id: 'm12', type: 'gauge'],
             [tenantId: tenantId, id: 'm13', tags: [a1: 'A', B1: 'B'], dataRetention: 32, type: 'gauge']
         ],
         response.data
@@ -455,8 +455,8 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            [tenantId: tenantId, id: 'm14', type: 'availability'],
-            [tenantId: tenantId, id: 'm15', type: 'availability'],
+            [dataRetention: 7, tenantId: tenantId, id: 'm14', type: 'availability'],
+            [dataRetention: 7, tenantId: tenantId, id: 'm15', type: 'availability'],
             [tenantId: tenantId, id: 'm16', tags: [a10: '10', a11: '11'], dataRetention: 7, type: 'availability']
         ],
         response.data
@@ -497,6 +497,7 @@ class CassandraBackendITest extends RESTTest {
     response = hawkularMetrics.get(path: "gauges/Empty1", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertEquals([
+            dataRetention: 7,
             tenantId: tenantId,
             id: 'Empty1',
             type: 'gauge'

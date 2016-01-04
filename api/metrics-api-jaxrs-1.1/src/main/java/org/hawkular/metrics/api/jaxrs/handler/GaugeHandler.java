@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -255,10 +255,7 @@ public class GaugeHandler {
             }
 
             observableConfig = metricsService.findMetric(metricId).map((metric) -> {
-                long dataRetention = metric.getDataRetention() != null && metric.getDataRetention() != 0
-                        ? metric.getDataRetention() * 24 * 60 * 60 * 1000L
-                        : metricsService.getDefaultTTL() * 1000L;
-
+                long dataRetention = metric.getDataRetention() * 24 * 60 * 60 * 1000L;
                 long now = System.currentTimeMillis();
                 long earliest = now - dataRetention;
 

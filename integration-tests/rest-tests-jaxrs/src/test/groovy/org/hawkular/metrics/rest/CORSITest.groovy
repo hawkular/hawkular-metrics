@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -138,8 +138,8 @@ class CORSITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            [tenantId: tenantId, id: "m11", type: "gauge"],
-            [tenantId: tenantId, id: "m12", type: "gauge"],
+            [dataRetention: 7, tenantId: tenantId, id: "m11", type: "gauge"],
+            [dataRetention: 7, tenantId: tenantId, id: "m12", type: "gauge"],
         ],
         response.data
     )
@@ -179,8 +179,8 @@ class CORSITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            [tenantId: tenantId, id: "m11", type: "gauge"],
-            [tenantId: tenantId, id: "m12", type: "gauge"],
+            [dataRetention: 7, tenantId: tenantId, id: "m11", type: "gauge"],
+            [dataRetention: 7, tenantId: tenantId, id: "m12", type: "gauge"],
         ],
         response.data
     )

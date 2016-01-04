@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -335,8 +335,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
         this.dateTimeService = dateTimeService;
     }
 
-    @Override
-    public int getDefaultTTL() {
+    private int getDefaultTTL() {
         return defaultTTL;
     }
 
@@ -464,7 +463,7 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     public <T> Observable<Metric<T>> findMetric(final MetricId<T> id) {
         return dataAccess.findMetric(id)
                 .flatMap(Observable::from)
-                .map(row -> new Metric<>(id, row.getMap(1, String.class, String.class), row.getInt(2)));
+                .compose(new MetricsIndexRowTransformer<>(id.getTenantId(), id.getType(), defaultTTL));
     }
 
     @Override
@@ -478,11 +477,11 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                     })
                     .flatMap(type -> dataAccess.findMetricsInMetricsIndex(tenantId, type)
                             .flatMap(Observable::from)
-                            .compose(new MetricsIndexRowTransformer<>(tenantId, type)));
+                            .compose(new MetricsIndexRowTransformer<>(tenantId, type, defaultTTL)));
         }
         return dataAccess.findMetricsInMetricsIndex(tenantId, metricType)
                 .flatMap(Observable::from)
-                .compose(new MetricsIndexRowTransformer<>(tenantId, metricType));
+                .compose(new MetricsIndexRowTransformer<>(tenantId, metricType, defaultTTL));
     }
 
     @Override

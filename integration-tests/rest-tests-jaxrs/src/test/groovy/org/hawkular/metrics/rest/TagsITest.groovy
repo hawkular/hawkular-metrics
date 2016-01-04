@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -88,6 +88,7 @@ class TagsITest extends RESTTest {
           tenantId: tenantId,
           id  : 'N1',
           tags: ['  a  1   ': '   A', 'bsq   d1': 'B   '],
+          dataRetention: 7,
           type: it.type
       ], response.data)
 
@@ -143,13 +144,15 @@ class TagsITest extends RESTTest {
       // Create metric
       def response = hawkularMetrics.post(path: it.path, body: [
         id  : 'N1',
-        tags: ['a1': 'A', 'd1': 'B']
+        tags: ['a1': 'A', 'd1': 'B'],
+        dataRetention: 7
       ], headers: [(tenantHeaderName): tenantId])
       assertEquals(201, response.status)
 
       response = hawkularMetrics.post(path: it.path, body: [
         id  : 'N2',
-        tags: ['a1': 'A2']
+        tags: ['a1': 'A2'],
+        dataRetention: 7
       ], headers: [(tenantHeaderName): tenantId])
       assertEquals(201, response.status)
 
@@ -167,12 +170,14 @@ class TagsITest extends RESTTest {
         assertTrue(lresponse.data instanceof List)
         assertEquals(2, lresponse.data.size())
         assertTrue((lresponse.data ?: []).contains([
+          dataRetention: 7,
           tenantId: tenantId,
           id      : 'N1',
           tags    : ['a1': 'A', 'd1': 'B'],
           type: it.type
         ]))
         assertTrue((lresponse.data ?: []).contains([
+          dataRetention: 7,
           tenantId: tenantId,
           id      : 'N2',
           tags    : ['a1': 'A2'],
@@ -195,6 +200,7 @@ class TagsITest extends RESTTest {
           tenantId: tenantId,
           id      : 'N1',
           tags    : ['a1': 'A', 'd1': 'B'],
+          dataRetention: 7,
           type: it.type
         ]], lresponse.data)
       }
