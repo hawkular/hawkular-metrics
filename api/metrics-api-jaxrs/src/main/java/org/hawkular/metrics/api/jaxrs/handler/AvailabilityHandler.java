@@ -138,7 +138,7 @@ public class AvailabilityHandler {
 
         Observable<Metric<AvailabilityType>> metricObservable = (tags == null)
                 ? metricsService.findMetrics(tenantId, AVAILABILITY)
-                : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), AVAILABILITY);
+                : metricsService.findMetricsWithFilters(tenantId, AVAILABILITY, tags.getTags());
 
         metricObservable
                 .toList()

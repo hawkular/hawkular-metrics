@@ -115,7 +115,7 @@ public class CounterHandler {
 
         Observable<Metric<Long>> metricObservable = (tags == null)
                 ? metricsService.findMetrics(tenantId, COUNTER)
-                : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), COUNTER);
+                : metricsService.findMetricsWithFilters(tenantId, COUNTER, tags.getTags());
 
         try {
             return metricObservable

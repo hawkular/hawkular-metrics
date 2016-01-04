@@ -54,7 +54,10 @@ import org.hawkular.metrics.model.MixedMetricsRequest;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.model.param.Tags;
 
+import com.google.common.collect.ObjectArrays;
+
 import rx.Observable;
+import rx.functions.Func1;
 
 /**
  * Interface to deal with metrics
@@ -102,15 +105,21 @@ public class MetricHandler {
     @Path("/")
     public <T> Response findMetrics(
             @QueryParam("type") MetricType<T> metricType,
-            @QueryParam("tags") Tags tags
+            @QueryParam("tags") Tags tags,
+            @QueryParam("id") String id
     ) {
         if (metricType != null && !metricType.isUserType()) {
             return badRequest(new ApiError("Incorrect type param " + metricType.toString()));
         }
 
+        Func1<Metric<T>, Boolean>[] metricFuncs = ObjectArrays.newArray(Func1.class, 0);
+        if(id != null) {
+            metricFuncs = ObjectArrays.concat(metricFuncs, metricsService.idFilter(id));
+        }
+
         Observable<Metric<T>> metricObservable = (tags == null)
                 ? metricsService.findMetrics(tenantId, metricType)
-                : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), metricType);
+                : metricsService.findMetricsWithFilters(tenantId, metricType, tags.getTags(), metricFuncs);
 
         try {
             return metricObservable

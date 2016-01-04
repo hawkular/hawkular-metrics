@@ -481,33 +481,49 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                 .compose(new MetricsIndexRowTransformer<>(tenantId, metricType, defaultTTL));
     }
 
-    @Override
-    public <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, Map<String, String> tagsQueries,
-            MetricType<T> metricType) {
+    private <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType,
+                                                            Map<String, String> tagsQueries) {
         // Fetch everything from the tagsQueries
         return Observable.from(tagsQueries.entrySet())
-                .flatMap(entry -> {
-                    // Special case "*" allowed and ! indicates match shouldn't happen
-                    boolean positive = (!entry.getValue().startsWith("!"));
-                    Pattern p = filterPattern(entry.getValue());
-
-                    return Observable.just(entry)
-                            .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
-                                    .flatMap(Observable::from)
-                                    .filter(r -> positive == p.matcher(r.getString(2)).matches()) // XNOR
-                                    .compose(new TagsIndexRowTransformer<>(tenantId, metricType))
-                                    .compose(new ItemsToSetTransformer<>())
-                                    .reduce((s1, s2) -> {
-                                        s1.addAll(s2);
-                                        return s1;
-                                    }));
-                })
+                .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
+                        .flatMap(Observable::from)
+                        .filter(tagValueFilter(e.getValue()))
+                        .compose(new TagsIndexRowTransformer<>(tenantId, metricType))
+                        .compose(new ItemsToSetTransformer<>())
+                        .reduce((s1, s2) -> {
+                            s1.addAll(s2);
+                            return s1;
+                        }))
                 .reduce((s1, s2) -> {
                     s1.retainAll(s2);
                     return s1;
                 })
                 .flatMap(Observable::from)
                 .flatMap(this::findMetric);
+    }
+
+    @Override
+    public <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType, Map<String,
+            String> tagsQueries, Func1<Metric<T>, Boolean>... filters) {
+        Observable<Metric<T>> metricObservable = findMetricsWithFilters(tenantId, metricType, tagsQueries);
+
+        for (Func1<Metric<T>, Boolean> filter : filters) {
+            metricObservable = metricObservable.filter(filter);
+        }
+
+        return metricObservable;
+    }
+
+    private Func1<Row, Boolean> tagValueFilter(String regexp) {
+        boolean positive = (!regexp.startsWith("!"));
+        Pattern p = filterPattern(regexp);
+        return r -> positive == p.matcher(r.getString(2)).matches(); // XNOR
+    }
+
+    public <T> Func1<Metric<T>, Boolean> idFilter(String regexp) {
+        boolean positive = (!regexp.startsWith("!"));
+        Pattern p = filterPattern(regexp);
+        return tMetric -> positive == p.matcher(tMetric.getId()).matches();
     }
 
     /**
@@ -720,11 +736,11 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
 
         if (!stacked) {
             if (MetricType.COUNTER.equals(metricType) || MetricType.GAUGE.equals(metricType)) {
-                return bucketize(findMetricsWithFilters(tenantId, tagFilters, metricType)
+                return bucketize(findMetricsWithFilters(tenantId, metricType, tagFilters)
                         .flatMap(metric -> findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC)), buckets,
                         percentiles);
             } else {
-                return bucketize(findMetricsWithFilters(tenantId, tagFilters, MetricType.COUNTER)
+                return bucketize(findMetricsWithFilters(tenantId, MetricType.COUNTER, tagFilters)
                         .flatMap(metric -> findRateData(metric.getMetricId(), start, end)),
                         buckets, percentiles);
             }
@@ -732,19 +748,19 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
             Observable<Observable<NumericBucketPoint>> individualStats = null;
 
             if (MetricType.COUNTER.equals(metricType) || MetricType.GAUGE.equals(metricType)) {
-                individualStats = findMetricsWithFilters(tenantId, tagFilters, metricType)
+                individualStats = findMetricsWithFilters(tenantId, metricType, tagFilters)
                         .map(metric -> bucketize(findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC),
                                 buckets, percentiles)
                                 .flatMap(Observable::from));
             } else {
-                individualStats = findMetricsWithFilters(tenantId, tagFilters, MetricType.COUNTER)
+                individualStats = findMetricsWithFilters(tenantId, MetricType.COUNTER, tagFilters)
                         .map(metric -> bucketize(findRateData(metric.getMetricId(), start, end), buckets, percentiles)
                                 .flatMap(Observable::from));
             }
 
             return Observable.merge(individualStats)
                     .groupBy(g -> g.getStart())
-                    .flatMap(group -> group.collect(() -> new SumNumericBucketPointCollector(),
+                    .flatMap(group -> group.collect(SumNumericBucketPointCollector::new,
                             SumNumericBucketPointCollector::increment))
                     .map(SumNumericBucketPointCollector::toBucketPoint)
                     .toList();
