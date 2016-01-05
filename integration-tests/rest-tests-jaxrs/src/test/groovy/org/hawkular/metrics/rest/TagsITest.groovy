@@ -241,7 +241,8 @@ class TagsITest extends RESTTest {
                             tenantId: tenantId,
                             id      : 'N1',
                             tags    : ['a1': 'A/B', 'd1': 'B:A'],
-                            type: it.type
+                            type: it.type,
+                            dataRetention: 7
                         ]], lresponse.data)
         }
       }
