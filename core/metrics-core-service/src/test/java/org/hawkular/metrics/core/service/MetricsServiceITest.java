@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -198,7 +198,8 @@ public class MetricsServiceITest extends MetricsITest {
                 .toBlocking()
                 .lastOrDefault(null);
         assertNotNull(actual);
-        assertEquals(actual, em1, "The metric does not match the expected value");
+        Metric<Double> em2 = new Metric<Double>(em1.getMetricId(), 7);
+        assertEquals(actual, em2, "The metric does not match the expected value");
 
         Set<Tenant> actualTenants = ImmutableSet.copyOf(metricsService.getTenants().toBlocking().toIterable());
         assertEquals(actualTenants.size(), 1);
@@ -218,7 +219,8 @@ public class MetricsServiceITest extends MetricsITest {
                 .toBlocking()
                 .lastOrDefault(null);
         assertNotNull(actual);
-        assertEquals(actual, em1, "The metric does not match the expected value");
+        Metric<Double> em2 = new Metric<>(em1.getMetricId(), 7);
+        assertEquals(actual, em2, "The metric does not match the expected value");
 
         Metric<Double> m1 = new Metric<>(new MetricId<>("t1", GAUGE, "m1"), ImmutableMap.of("a1", "1", "a2", "2"), 24);
         metricsService.createMetric(m1).toBlocking().lastOrDefault(null);
@@ -266,7 +268,10 @@ public class MetricsServiceITest extends MetricsITest {
                 ImmutableMap.of("a1", "A", "a2", ""), null);
         metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
 
-        assertMetricIndexMatches("t1", GAUGE, asList(em1, m1, gm2, m3, m4));
+        assertMetricIndexMatches("t1", GAUGE, asList(new Metric<>(em1.getMetricId(), 7), m1,
+                new Metric<>(gm2.getMetricId(), gm2.getTags(), 7),
+                m3,
+                new Metric<>(m4.getMetricId(), m4.getTags(), 7)));
         assertMetricIndexMatches("t1", AVAILABILITY, singletonList(m2));
 
         assertDataRetentionsIndexMatches("t1", GAUGE, ImmutableSet.of(new Retention(m3.getMetricId(), 24),
@@ -421,8 +426,8 @@ public class MetricsServiceITest extends MetricsITest {
 
         Metric<Long> actual = metricsService.<Long> findMetric(id).toBlocking().lastOrDefault(null);
 
-        assertEquals(actual, counter, "The counter metric does not match");
-        assertMetricIndexMatches(tenantId, COUNTER, singletonList(counter));
+        assertEquals(actual, new Metric<>(counter.getMetricId(), 7), "The counter metric does not match");
+        assertMetricIndexMatches(tenantId, COUNTER, singletonList(new Metric<>(counter.getMetricId(), 7)));
     }
 
     @Test
@@ -436,9 +441,10 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.createMetric(counter).toBlocking().lastOrDefault(null);
 
         Metric<Long> actual = metricsService.findMetric(id).toBlocking().lastOrDefault(null);
-        assertEquals(actual, counter, "The counter metric does not match");
+        Metric<Long> ec = new Metric<>(counter.getMetricId(), counter.getTags(), 7);
+        assertEquals(actual, ec, "The counter metric does not match");
 
-        assertMetricIndexMatches(tenantId, COUNTER, singletonList(counter));
+        assertMetricIndexMatches(tenantId, COUNTER, singletonList(ec));
         assertMetricsTagsIndexMatches(tenantId, "x", singletonList(new MetricsTagsIndexEntry("1", id)));
     }
 
@@ -531,7 +537,7 @@ public class MetricsServiceITest extends MetricsITest {
         );
 
         assertEquals(actual, expected, "The data does not match the expected values");
-        assertMetricIndexMatches("t1", GAUGE, singletonList(m1));
+        assertMetricIndexMatches("t1", GAUGE, singletonList(new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7)));
     }
 
     @Test
@@ -561,7 +567,8 @@ public class MetricsServiceITest extends MetricsITest {
         );
 
         assertEquals(actual, expected, "The counter data does not match the expected values");
-        assertMetricIndexMatches(tenantId, COUNTER, singletonList(counter));
+        assertMetricIndexMatches(tenantId, COUNTER,
+                singletonList(new Metric<>(counter.getMetricId(), counter.getDataPoints(), 7)));
     }
 
     @Test
@@ -590,7 +597,7 @@ public class MetricsServiceITest extends MetricsITest {
         List<Double> expected = asList(10.0, 40.0, 25.0, 100.0);
 
         assertEquals(actual, expected, "The data does not match the expected values");
-        assertMetricIndexMatches("t1", GAUGE, singletonList(m1));
+        assertMetricIndexMatches("t1", GAUGE, singletonList(new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7)));
     }
 
     @Test
@@ -1361,7 +1368,11 @@ public class MetricsServiceITest extends MetricsITest {
         assertEquals(toList(observable4), expected.getDataPoints(),
                 "The gauge data for " + m4.getMetricId() + " does not match");
 
-        assertMetricIndexMatches(tenantId, GAUGE, asList(m1, m2, m3, m4));
+        assertMetricIndexMatches(tenantId, GAUGE, asList(
+                new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7),
+                new Metric<>(m2.getMetricId(), m2.getDataPoints(), 7),
+                new Metric<>(m3.getMetricId(), 7),
+                m4));
     }
 
     @Test
@@ -1410,7 +1421,11 @@ public class MetricsServiceITest extends MetricsITest {
                 singletonList(new DataPoint<>(start.plusMinutes(2).getMillis(), UP)));
         assertEquals(actual, expected.getDataPoints(), "The availability data does not match expected values");
 
-        assertMetricIndexMatches(tenantId, AVAILABILITY, asList(m1, m2, m3, m4));
+        assertMetricIndexMatches(tenantId, AVAILABILITY, asList(
+                new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7),
+                new Metric<>(m2.getMetricId(), m2.getDataPoints(), 7),
+                new Metric<>(m3.getMetricId(), 7),
+                m4));
     }
 
     @Test

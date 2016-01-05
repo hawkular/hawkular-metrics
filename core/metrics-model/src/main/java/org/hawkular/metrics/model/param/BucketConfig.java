@@ -28,11 +28,14 @@ import org.hawkular.metrics.model.Buckets;
  */
 public class BucketConfig {
     private final Buckets buckets;
+    private final TimeRange timeRange;
     private final boolean valid;
     private final String problem;
 
     public BucketConfig(Integer bucketsCount, Duration bucketDuration, TimeRange timeRange) {
         checkArgument(timeRange != null, "Time range is null");
+        this.timeRange = timeRange;
+
         if (!timeRange.isValid()) {
             throw new IllegalArgumentException("Invalid time range: " + timeRange.getProblem());
         }
@@ -69,6 +72,10 @@ public class BucketConfig {
 
     public Buckets getBuckets() {
         return buckets;
+    }
+
+    public TimeRange getTimeRange() {
+        return timeRange;
     }
 
     public boolean isValid() {

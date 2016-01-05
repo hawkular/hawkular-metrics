@@ -26,6 +26,7 @@ import javax.ws.rs.core.Response;
 import org.hawkular.metrics.api.jaxrs.log.RestLogger;
 import org.hawkular.metrics.api.jaxrs.log.RestLogging;
 import org.hawkular.metrics.model.ApiError;
+import org.hawkular.metrics.model.exception.RuntimeApiError;
 
 import com.google.common.base.Throwables;
 
@@ -41,6 +42,15 @@ public class ApiUtils {
 
     public static Response mapToResponse(Map<?, ?> map) {
         return map.isEmpty() ? noContent() : Response.ok(map).type(MediaType.APPLICATION_JSON).build();
+    }
+
+    public static Response error(Throwable t) {
+        if(t instanceof RuntimeApiError) {
+            return badRequest(t);
+        } else {
+            return serverError(t);
+        }
+
     }
 
     public static Response serverError(Throwable t, String message) {

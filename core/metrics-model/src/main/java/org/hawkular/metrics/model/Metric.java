@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -89,6 +89,10 @@ public class Metric<T> {
         this(id, Collections.emptyMap(), null, Collections.emptyList());
     }
 
+    public Metric(MetricId<T> id, Integer dataRetention) {
+        this(id, Collections.emptyMap(), dataRetention, Collections.emptyList());
+    }
+
     public Metric(MetricId<T> id, Map<String, String> tags, Integer dataRetention) {
         this(id, tags, dataRetention, Collections.emptyList());
     }
@@ -97,20 +101,17 @@ public class Metric<T> {
         this(id, Collections.emptyMap(), null, dataPoints);
     }
 
+    public Metric(MetricId<T> id, List<DataPoint<T>> dataPoints, Integer dataRetention) {
+        this(id, Collections.emptyMap(), dataRetention, dataPoints);
+    }
+
     public Metric(MetricId<T> id, Map<String, String> tags, Integer dataRetention, List<DataPoint<T>> dataPoints) {
         checkArgument(id != null, "id is null");
         checkArgument(tags != null, "tags is null");
         checkArgument(dataPoints != null, "dataPoints is null");
         this.id = id;
         this.tags = unmodifiableMap(tags);
-        // If the data_retention column is not set, the driver returns zero instead of null.
-        // We are (at least for now) using null to indicate that the metric does not have
-        // the data retention set.
-        if (dataRetention == null || dataRetention == 0) {
-            this.dataRetention = null;
-        } else {
-            this.dataRetention = dataRetention;
-        }
+        this.dataRetention = dataRetention;
         this.dataPoints = unmodifiableList(dataPoints);
     }
 

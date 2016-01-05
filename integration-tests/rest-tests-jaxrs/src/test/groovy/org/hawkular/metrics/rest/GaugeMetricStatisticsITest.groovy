@@ -27,8 +27,10 @@ import org.junit.Test
 import static java.lang.Double.NaN
 import static org.joda.time.DateTime.now
 import static org.joda.time.Seconds.seconds
+import static org.junit.Assert.assertArrayEquals
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
+
 /**
  * @author Thomas Segismont
  */
@@ -664,6 +666,80 @@ class GaugeMetricStatisticsITest extends RESTTest {
         headers: [(tenantHeaderName): tenantId]
     )
     assertEquals(400, response.status)
+  }
+
+  @Test
+  void fromEarliestWithData() {
+    String tenantId = nextTenantId()
+    String metric = "testStats"
+
+    def response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : '$metric',
+        tags: ['type': 'counter_cpu_usage', 'host': 'server1', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: "gauges/$metric/data", body: [
+        [timestamp: new DateTimeService().currentHour().minusHours(2).millis, value: 2]
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(path: "gauges/$metric/data", body: [
+        [timestamp: new DateTimeService().currentHour().minusHours(3).millis, value: 3]
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: "gauges/$metric/data",
+        query: [fromEarliest: "true", bucketDuration: "1h"], headers: [(tenantHeaderName): tenantId])
+
+    assertEquals(200, response.status)
+    assertEquals(4, response.data.size)
+
+    def expectedArray = [new BigDecimal(3), new BigDecimal(2), 'NaN', 'NaN'].toArray()
+    assertArrayEquals(expectedArray, response.data.min.toArray())
+    assertArrayEquals(expectedArray, response.data.max.toArray())
+    assertArrayEquals(expectedArray, response.data.avg.toArray())
+  }
+
+  @Test
+  void fromEarliestWithoutDataAndBad() {
+    String tenantId = nextTenantId()
+    String metric = "testStats"
+
+    def response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : '$metric',
+        tags: ['type': 'counter_cpu_usage', 'host': 'server1', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.get(path: "gauges/$metric/data",
+      query: [start: 1, end: now().millis, bucketDuration: "1000d"], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    badGet(path: "gauges/$metric/data",
+        query: [fromEarliest: "true", bucketDuration: "a"], headers: [(tenantHeaderName): tenantId]) {
+        exception ->
+          assertEquals(400, exception.response.status)
+    }
+
+    response = hawkularMetrics.get(path: "gauges/$metric/data",
+        query: [fromEarliest: "true", bucketDuration: "1h"], headers: [(tenantHeaderName): tenantId])
+    assertEquals(204, response.status)
+    assertEquals(null, response.data)
+
+    badGet(path: "gauges/$metric/data",
+      query: [fromEarliest: "true"], headers: [(tenantHeaderName): tenantId]) {
+      exception ->
+        // From earliest works only with buckets
+        assertEquals(400, exception.response.status)
+    }
+
+    badGet(path: "gauges/$metric/data",
+      query: [start: 0, end: Long.MAX_VALUE, fromEarliest: "true", bucketDuration: "1h"], headers: [(tenantHeaderName): tenantId]) {
+      exception ->
+        // From earliest works only without start & end
+        assertEquals(400, exception.response.status)
+    }
   }
 
   private static List<Double> createSample(int sampleSize) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,12 +54,12 @@ import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.model.ApiError;
-import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NumericBucketPoint;
+import org.hawkular.metrics.model.exception.RuntimeApiError;
 import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.Duration;
 import org.hawkular.metrics.model.param.Percentiles;
@@ -274,37 +274,84 @@ public class GaugeHandler {
             @PathParam("id") String id,
             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
             @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Use data from earliest received, subject to retention period")
+                @QueryParam("fromEarliest") Boolean fromEarliest,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles) {
-        TimeRange timeRange = new TimeRange(start, end);
-        if (!timeRange.isValid()) {
-            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
-            return;
-        }
-        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
-        if (!bucketConfig.isValid()) {
-            asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
-            return;
-        }
 
         MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
-        Buckets buckets = bucketConfig.getBuckets();
-        if (buckets == null) {
+
+        if (bucketsCount == null && bucketDuration == null && !Boolean.TRUE.equals(fromEarliest)) {
+            TimeRange timeRange = new TimeRange(start, end);
+            if (!timeRange.isValid()) {
+                asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+                return;
+            }
+
             metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
-        } else {
-            if(percentiles == null) {
-                percentiles = new Percentiles(Collections.<Double>emptyList());
+            return;
+        }
+
+        Observable<BucketConfig> observableConfig = null;
+
+        if (Boolean.TRUE.equals(fromEarliest)) {
+            if (start != null || end != null) {
+                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used without start & end")));
+                return;
             }
 
-            metricsService.findGaugeStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets,
-                    percentiles.getPercentiles())
-                    .map(ApiUtils::collectionToResponse)
-                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+            if (bucketsCount == null && bucketDuration == null) {
+                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used with bucketed results")));
+                return;
+            }
+
+            observableConfig = metricsService.findMetric(metricId).map((metric) -> {
+                long dataRetention = metric.getDataRetention() * 24 * 60 * 60 * 1000L;
+                long now = System.currentTimeMillis();
+                long earliest = now - dataRetention;
+
+                BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration,
+                        new TimeRange(earliest, now));
+
+                if (!bucketConfig.isValid()) {
+                    throw new RuntimeApiError(bucketConfig.getProblem());
+                }
+
+                return bucketConfig;
+            });
+        } else {
+            TimeRange timeRange = new TimeRange(start, end);
+            if (!timeRange.isValid()) {
+                asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+                return;
+            }
+
+            BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+            if (!bucketConfig.isValid()) {
+                asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+                return;
+            }
+
+            observableConfig = Observable.just(bucketConfig);
         }
+
+        final Percentiles lPercentiles = percentiles != null ? percentiles
+                : new Percentiles(Collections.<Double> emptyList());
+
+        observableConfig
+                .flatMap((config) -> metricsService.findGaugeStats(metricId,
+                        config.getTimeRange().getStart(),
+                        config.getTimeRange().getEnd(),
+                        config.getBuckets(), lPercentiles.getPercentiles()))
+                .flatMap(Observable::from)
+                .skipWhile(bucket -> Boolean.TRUE.equals(fromEarliest) && bucket.isEmpty())
+                .toList()
+                .map(ApiUtils::collectionToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.error(t)));
     }
 
     @GET
@@ -343,7 +390,7 @@ public class GaugeHandler {
         BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
         if (bucketConfig.isEmpty()) {
             asyncResponse.resume(badRequest(new ApiError(
-                    "Either the buckets or bucketsDuration parameter must be used")));
+                    "Either the buckets or bucketDuration parameter must be used")));
             return;
         }
         if (!bucketConfig.isValid()) {

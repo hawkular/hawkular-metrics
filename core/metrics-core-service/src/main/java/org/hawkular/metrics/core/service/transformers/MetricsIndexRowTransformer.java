@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +20,7 @@ package org.hawkular.metrics.core.service.transformers;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
+import org.joda.time.Duration;
 
 import com.datastax.driver.core.Row;
 
@@ -35,17 +36,21 @@ import rx.Observable.Transformer;
 public class MetricsIndexRowTransformer<T> implements Transformer<Row, Metric<T>> {
     private final MetricType<T> type;
     private final String tenantId;
+    private final int defaultDataRetention;
 
-    public MetricsIndexRowTransformer(String tenantId, MetricType<T> type) {
+    public MetricsIndexRowTransformer(String tenantId, MetricType<T> type, int defaultTTL) {
         this.type = type;
         this.tenantId = tenantId;
+        this.defaultDataRetention = (int) Duration.standardSeconds(defaultTTL).getStandardDays();
     }
 
     @Override
     public Observable<Metric<T>> call(Observable<Row> rows) {
         return rows.map(row -> {
             MetricId<T> metricId = new MetricId<>(tenantId, type, row.getString(0));
-            return new Metric<>(metricId, row.getMap(1, String.class, String.class), row.getInt(2));
+            int dataRetention = row.getInt(2);
+            dataRetention = dataRetention != 0 ? dataRetention : defaultDataRetention;
+            return new Metric<>(metricId, row.getMap(1, String.class, String.class), dataRetention);
         });
     }
 }
