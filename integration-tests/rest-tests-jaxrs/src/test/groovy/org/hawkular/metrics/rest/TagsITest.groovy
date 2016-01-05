@@ -207,4 +207,37 @@ class TagsITest extends RESTTest {
       }
     }
   }
+
+  @Test
+  void findWithEncodedTagsValues() {
+      metricTypes.each {
+        def tenantId = nextTenantId()
+
+        // Create metric
+        def response = hawkularMetrics.post(path: it.path, body: [
+            id  : 'N1',
+            tags: ['a1': 'A/B', 'd1': 'B:A']
+        ], headers: [(tenantHeaderName): tenantId])
+        assertEquals(201, response.status)
+
+        // Fetch metrics using tags
+        response = hawkularMetrics.get(path: "metrics",
+            query: [tags: "d1:B%3AA"],
+            headers: [(tenantHeaderName): tenantId])
+
+        def alternateResponse = hawkularMetrics.get(path: it.path,
+            query: [tags: "a1:A%2FB"],
+            headers: [(tenantHeaderName): tenantId])
+
+        [response, alternateResponse].each {  lresponse ->
+          assertEquals(200, lresponse.status)
+          assertEquals([[
+                            tenantId: tenantId,
+                            id      : 'N1',
+                            tags    : ['a1': 'A/B', 'd1': 'B:A'],
+                            type: it.type
+                        ]], lresponse.data)
+        }
+      }
+  }
 }
