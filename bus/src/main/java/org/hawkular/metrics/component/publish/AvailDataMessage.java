@@ -18,6 +18,7 @@
 package org.hawkular.metrics.component.publish;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.hawkular.bus.common.AbstractMessage;
 
@@ -51,6 +52,19 @@ public class AvailDataMessage extends AbstractMessage {
         this.availData = availData;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        AvailDataMessage that = (AvailDataMessage) o;
+        return Objects.equals(availData, that.availData);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(availData);
+    }
+
     public static class AvailData {
         @JsonInclude
         List<SingleAvail> data;
@@ -69,6 +83,17 @@ public class AvailDataMessage extends AbstractMessage {
         @Override
         public String toString() {
             return "AvailData [data=" + data + "]";
+        }
+
+        @Override public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            AvailData availData = (AvailData) o;
+            return Objects.equals(data, availData.data);
+        }
+
+        @Override public int hashCode() {
+            return Objects.hash(data);
         }
     }
 
@@ -133,6 +158,21 @@ public class AvailDataMessage extends AbstractMessage {
                     + avail + "]";
         }
 
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            SingleAvail that = (SingleAvail) o;
+            return Objects.equals(timestamp, that.timestamp) &&
+                    Objects.equals(tenantId, that.tenantId) &&
+                    Objects.equals(id, that.id) &&
+                    Objects.equals(avail, that.avail);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(tenantId, id, timestamp, avail);
+        }
     }
 
 }

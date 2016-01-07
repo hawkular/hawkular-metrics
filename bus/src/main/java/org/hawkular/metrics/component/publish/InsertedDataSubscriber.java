@@ -28,8 +28,8 @@ import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import org.hawkular.metrics.api.jaxrs.ServiceReady;
+import org.hawkular.metrics.api.jaxrs.ServiceReadyEvent;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
-import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.Metric;
 import org.jboss.logging.Logger;
@@ -55,9 +55,8 @@ public class InsertedDataSubscriber {
 
     private Subscription subscription;
 
-    public void onMetricsServiceReady(@Observes @ServiceReady MetricsService metricsService) {
-        Observable<List<Metric<?>>> events = metricsService.insertedDataEvents()
-                .buffer(50, TimeUnit.MILLISECONDS, 100)
+    public void onMetricsServiceReady(@Observes @ServiceReady ServiceReadyEvent event) {
+        Observable<List<Metric<?>>> events = event.getInsertedData().buffer(50, TimeUnit.MILLISECONDS, 100)
                 .filter(list -> !list.isEmpty())
                 .onBackpressureBuffer()
                 .observeOn(Schedulers.io());

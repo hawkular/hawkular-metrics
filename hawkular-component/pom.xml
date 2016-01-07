@@ -50,6 +50,13 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <dependency>
+        <groupId>org.jboss.arquillian</groupId>
+        <artifactId>arquillian-bom</artifactId>
+        <version>1.1.10.Final</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -61,26 +68,9 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.hawkular.bus</groupId>
-      <artifactId>hawkular-bus-common</artifactId>
-      <version>${version.org.hawkular.bus}</version>
-      <scope>provided</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.activemq</groupId>
-          <artifactId>activemq-all</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.activemq</groupId>
-          <artifactId>activemq-jaas</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <!-- Nest provided -->
-    <dependency>
-      <groupId>org.apache.activemq</groupId>
-      <artifactId>activemq-client</artifactId>
-      <version>${version.org.apache.activemq}</version>
+      <groupId>org.hawkular.metrics</groupId>
+      <artifactId>hawkular-metrics-bus</artifactId>
+      <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <!-- Wildfly provided -->
@@ -91,13 +81,9 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.jboss.spec.javax.ejb</groupId>
-      <artifactId>jboss-ejb-api_3.2_spec</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>org.jboss.spec.javax.jms</groupId>
       <artifactId>jboss-jms-api_2.0_spec</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.jboss.spec.javax.enterprise.concurrent</groupId>
@@ -135,6 +121,18 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jboss.arquillian.junit</groupId>
+      <artifactId>arquillian-junit-container</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.wildfly.arquillian</groupId>
+      <artifactId>wildfly-arquillian-container-managed</artifactId>
+      <version>1.0.2.Final</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

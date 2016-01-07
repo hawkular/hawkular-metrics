@@ -151,7 +151,7 @@ public class MetricsServiceLifecycle {
 
     @Inject
     @ServiceReady
-    Event<MetricsService> metricsServiceReady;
+    Event<ServiceReadyEvent> metricsServiceReady;
 
     private volatile State state;
     private int connectionAttempts;
@@ -244,7 +244,7 @@ public class MetricsServiceLifecycle {
 
             initJobs();
 
-            metricsServiceReady.fire(metricsService);
+            metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
 
             state = State.STARTED;
             log.infoServiceStarted();
