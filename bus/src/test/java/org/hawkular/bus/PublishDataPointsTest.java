@@ -196,7 +196,7 @@ public class PublishDataPointsTest {
         }
 
         public List<T> getMessages(long timeout, TimeUnit timeUnit) throws Exception {
-            latch.await();
+            latch.await(timeout, timeUnit);
             return messages.stream().map(this::parseMessage).collect(toList());
         }
 

@@ -19,16 +19,22 @@ package org.hawkular.bus;
 import java.util.Collections;
 import java.util.Map;
 
+import javax.annotation.Resource;
+import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.enterprise.context.Dependent;
-import javax.inject.Inject;
+import javax.jms.CompletionListener;
+import javax.jms.ConnectionFactory;
 import javax.jms.Destination;
-import javax.jms.JMSConnectionFactory;
 import javax.jms.JMSContext;
 import javax.jms.JMSException;
+import javax.jms.JMSProducer;
 import javax.jms.Message;
+import javax.jms.TextMessage;
 
 import org.hawkular.bus.common.BasicMessage;
-import org.hawkular.bus.common.MessageId;
+import org.jboss.logging.Logger;
+
+import rx.Observable;
 
 /**
  * @author jsanda
@@ -38,35 +44,69 @@ public class Bus {
 
     public static final String HEADER_BASIC_MESSAGE_CLASS = "basicMessageClassName";
 
+    private static final Logger log = Logger.getLogger(Bus.class);
+
     /**
      * HawkularBusConnectionFactory is a non-pooled connection factory. It is important that we use a non-pooled factory
      * because JMS message listeners cannot be used in a web or enterprise application with a pooled connection factory.
      * This is mandated by the JEE spec.
      */
-    @Inject
-    @JMSConnectionFactory("java:/HawkularBusConnectionFactory")
-    private JMSContext context;
+    @Resource(name = "java:/HawkularBusConnectionFactory")
+    private ConnectionFactory connectionFactory;
 
-    public <T extends BasicMessage> MessageId send(Destination destination, T message) throws JMSException {
-        return send(destination, message, Collections.emptyMap());
+    @Resource
+    private ManagedExecutorService executorService;
+
+    /**
+     * Sends a message asynchronously.
+     *
+     * @param destination The queue or topic to which the message is being sent
+     * @param message The message to send
+     * @param <T> The message type which must be a subtype of {@link BasicMessage}
+     * @return An {@link Observable} that emits the actual JMS message that is sent.
+     */
+    public <T extends BasicMessage> Observable<TextMessage> send(Destination destination, T message) {
+        return Observable.create(subscriber -> {
+            try {
+                // We create a context per request (i.e., method invocation) in order to avoid any concurrency
+                // issues since the underlying JMS session is intended for single threaded usage.
+                JMSContext context = connectionFactory.createContext();
+                try {
+                    JMSProducer producer = context.createProducer();
+                    TextMessage jmsMessage = context.createTextMessage();
+                    prepareJMSMessage(message, jmsMessage, Collections.emptyMap());
+                    producer.setAsync(new CompletionListener() {
+                        @Override
+                        public void onCompletion(Message message) {
+                            subscriber.onNext((TextMessage) message);
+                            close(context);
+                            // TODO Should we wait until context is closed to call onCompleted?
+                            subscriber.onCompleted();
+                        }
+
+                        @Override
+                        public void onException(Message message, Exception exception) {
+                            close(context);
+                            subscriber.onError(exception);
+                        }
+                    });
+                    producer.send(destination, jmsMessage);
+                } catch (Exception e) {
+                    close(context);
+                    subscriber.onError(e);
+
+                }
+            } catch (Exception e) {
+                // No need to call close() here since we failed to create the context
+                subscriber.onError(e);
+            }
+        });
     }
 
-    public <T extends BasicMessage> MessageId send(Destination destination, T message, Map<String, String> headers)
-            throws JMSException {
-        Message jmsMessage = prepareJMSMessage(message, headers);
-
-        context.createProducer().send(destination, jmsMessage);
-
-        message.setMessageId(new MessageId(jmsMessage.getJMSMessageID()));
-
-        return message.getMessageId();
-    }
-
-    private <T extends BasicMessage> Message prepareJMSMessage(T message, Map<String, String> headers)
-            throws JMSException {
+    private <T extends BasicMessage> Message prepareJMSMessage(T message, TextMessage jmsMessage,
+            Map<String, String> headers) throws JMSException {
         String json = message.toJSON();
-        Message jmsMessage = context.createTextMessage(json);
-
+        jmsMessage.setText(json);
         setHeaders(jmsMessage, message, headers);
         if (message.getCorrelationId() != null) {
             jmsMessage.setJMSCorrelationID(message.getCorrelationId().getId());
@@ -91,6 +131,19 @@ public class Bus {
             } catch (JMSException e) {
                 throw new RuntimeException("Failed to set header {key: " + entry.getKey() + ", value: " +
                         entry.getValue() + "}", e);
+            }
+        });
+    }
+
+    private void close(AutoCloseable closeable) {
+        executorService.submit(() -> {
+            try {
+                log.debug("Closing " + closeable);
+                if (closeable != null) {
+                    closeable.close();
+                }
+            } catch (Exception e) {
+                log.warn("Failed to close " + closeable, e);
             }
         });
     }
