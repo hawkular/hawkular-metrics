@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -78,6 +78,7 @@ public class OpenshiftSeedProvider implements SeedProvider {
     private static final String MASTER = getEnv("CASSANDRA_MASTER", "false");
 
 
+    private List<InetAddress> seeds = null;
 
     // properties to determine how long to wait for the service to come online.
     // Currently set to 60 seconds
@@ -98,33 +99,37 @@ public class OpenshiftSeedProvider implements SeedProvider {
 
     @Override
     public List<InetAddress> getSeeds() {
-        List<InetAddress> seeds = new ArrayList<>();
 
-        try {
-            for (int i = 0; i < SERVICE_TRIES; i++) {
-                List<InetAddress> serviceList = getInetAddresses(CASSANDRA_NODES_SERVICE_NAME);
-                if (!serviceList.isEmpty()) {
-                    seeds = serviceList;
-                    break;
+        if (seeds == null) {
+
+            seeds = new ArrayList<>();
+
+            try {
+                for (int i = 0; i < SERVICE_TRIES; i++) {
+                    List<InetAddress> serviceList = getInetAddresses(CASSANDRA_NODES_SERVICE_NAME);
+                    if (!serviceList.isEmpty()) {
+                        seeds = serviceList;
+                        break;
+                    }
+
+                    // If we are a master node and we didn't find another other nodes in the service, then we assume
+                    // We are the only node available, so we will use our own IP address listed in the seed
+                    // configuration file.
+                    if (MASTER.equalsIgnoreCase("true") && i >= 3) {
+                        logger.debug("Did not find any other nodes running in the cluster and this instance is " +
+                                             "marked as a Master. Configuring this node to use its own IP as a seed.");
+                        seeds = getSeedsFromConfig();
+                        return seeds;
+                    }
+
+                    Thread.sleep(SERVICE_TRY_WAIT_TIME_MILLISECONDS);
                 }
-
-                // If we are a master node and we didn't find another other nodes in the service, then we assume
-                // We are the only node available, so we will use our own IP address listed in the seed configuration
-                // file.
-                if (MASTER.equalsIgnoreCase("true") && i >= 3) {
-                    logger.debug("Did not find any other nodes running in the cluster and this instance is " +
-                                         "marked as a Master. Configuring this node to use its own IP as a seed.");
-                    return getSeedsFromConfig();
-                }
-
-                Thread.sleep(SERVICE_TRY_WAIT_TIME_MILLISECONDS);
+            } catch (Exception exception) {
+                logger.error("Could not resolve the list of seeds for the Cassandra cluster. Aborting.", exception);
+                throw new RuntimeException(exception);
             }
-        }
-        catch(Exception exception) {
-            logger.error("Could not resolve the list of seeds for the Cassandra cluster. Aborting.", exception);
-            throw new RuntimeException(exception);
-        }
 
+        }
         return seeds;
     }
 
