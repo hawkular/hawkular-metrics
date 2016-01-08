@@ -400,7 +400,7 @@ public class CounterHandler {
     }
 
     @GET
-    @Path("/data/rate")
+    @Path("/rate")
     public Response findCounterRateDataStats(
             @QueryParam("start") final Long start,
             @QueryParam("end") final Long end,

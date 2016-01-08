@@ -2204,15 +2204,15 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 ---
 >     @Override public String toString(Percentiles percentiles) {
 diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/org/hawkular/metrics/api/jaxrs/param/TagsConverter.java api/metrics-api-jaxrs-1.1/src/main/java/org/hawkular/metrics/api/jaxrs/param/TagsConverter.java
-28c28
+31c31
 < import javax.ws.rs.ext.ParamConverter;
 ---
 > import javax.ws.rs.ext.Provider;
-31c31
+34c34
 < 
 ---
 > import org.jboss.resteasy.spi.StringConverter;
-39c39,40
+42c42,43
 < public class TagsConverter implements ParamConverter<Tags> {
 ---
 > @Provider
