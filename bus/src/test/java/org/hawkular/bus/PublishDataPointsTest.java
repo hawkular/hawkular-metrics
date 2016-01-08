@@ -26,7 +26,6 @@ import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.junit.Assert.assertEquals;
 
-import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -58,10 +57,8 @@ import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
-import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.jboss.shrinkwrap.impl.base.exporter.zip.ZipExporterImpl;
 import org.jboss.shrinkwrap.resolver.api.Resolvers;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenResolverSystem;
 import org.junit.Test;
@@ -97,8 +94,8 @@ public class PublishDataPointsTest {
                 .addAsLibraries(dependencies)
                 .setManifest(new StringAsset("Manifest-Version: 1.0\nDependencies: com.google.guava\n"));
 
-        ZipExporter exporter = new ZipExporterImpl(archive);
-        exporter.exportTo(new File("target", "test-archive.war"));
+//        ZipExporter exporter = new ZipExporterImpl(archive);
+//        exporter.exportTo(new File("target", "test-archive.war"));
         return archive;
     }
 
