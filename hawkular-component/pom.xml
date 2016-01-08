@@ -41,72 +41,16 @@
     <cassandra.keyspace>hawkular_metrics_component_integration_tests</cassandra.keyspace>
   </properties>
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.wildfly.bom</groupId>
-        <artifactId>wildfly-javaee7</artifactId>
-        <version>${version.org.wildfly}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
   <dependencies>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
       <artifactId>hawkular-metrics-api-common</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.hawkular.bus</groupId>
-      <artifactId>hawkular-bus-common</artifactId>
-      <version>${version.org.hawkular.bus}</version>
-      <scope>provided</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.activemq</groupId>
-          <artifactId>activemq-all</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.activemq</groupId>
-          <artifactId>activemq-jaas</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <!-- Nest provided -->
-    <dependency>
-      <groupId>org.apache.activemq</groupId>
-      <artifactId>activemq-client</artifactId>
-      <version>${version.org.apache.activemq}</version>
-      <scope>provided</scope>
-    </dependency>
-    <!-- Wildfly provided -->
-    <!-- No need to set the jboss-logging scope here since Wildfly BOM includes jboss-logging -->
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.spec.javax.ejb</groupId>
-      <artifactId>jboss-ejb-api_3.2_spec</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.spec.javax.jms</groupId>
-      <artifactId>jboss-jms-api_2.0_spec</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.spec.javax.enterprise.concurrent</groupId>
-      <artifactId>jboss-concurrency-api_1.0_spec</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>javax.enterprise</groupId>
-      <artifactId>cdi-api</artifactId>
-      <scope>provided</scope>
+      <groupId>org.hawkular.metrics</groupId>
+      <artifactId>hawkular-metrics-bus</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <!-- Overlay -->
     <dependency>
@@ -160,162 +104,9 @@
           </overlays>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <excludes>
-            <exclude>**/*ITest*</exclude>
-          </excludes>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.wildfly.plugins</groupId>
-        <artifactId>wildfly-maven-plugin</artifactId>
-        <configuration>
-          <groupId>org.hawkular.nest</groupId>
-          <artifactId>hawkular-nest-distro</artifactId>
-          <version>${version.org.hawkular.bus}</version>
-          <classifier>distribution</classifier>
-        </configuration>
-      </plugin>
     </plugins>
   </build>
 
-  <profiles>
-    <profile>
-      <id>component-integration-tests</id>
-      <activation>
-        <property>
-          <name>!skipTests</name>
-        </property>
-      </activation>
-      <properties>
-        <wildfly-maven-plugin.skip>false</wildfly-maven-plugin.skip>
-        <component.wildfly.port.offset>3</component.wildfly.port.offset>
-        <!-- IMPORTANT: The port must be the port offset + 8080. -->
-        <base-uri>127.0.0.1:8083/hawkular/metrics</base-uri>
-        <!-- IMPORTANT: The port must be the port offset + 62626. -->
-        <broker.url>tcp://localhost:62629</broker.url>
-        <!-- IMPORTANT: The management port must be the port offset + 9990. -->
-        <component.wildfly.management.port>9993</component.wildfly.management.port>
-        <wildfly.logging.console.level>ERROR</wildfly.logging.console.level>
-        <wildfly.logging.file.level>ERROR</wildfly.logging.file.level>
-      </properties>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <configuration>
-              <includes>
-                <include>**/*ITest*</include>
-              </includes>
-              <systemPropertyVariables>
-                <keyspace>${cassandra.keyspace}</keyspace>
-                <hawkular-metrics.base-uri>${base-uri}</hawkular-metrics.base-uri>
-                <hawkular-bus.broker.url>${broker.url}</hawkular-bus.broker.url>
-              </systemPropertyVariables>
-            </configuration>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>integration-test</goal>
-                  <goal>verify</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <groupId>org.wildfly.plugins</groupId>
-            <artifactId>wildfly-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>start-wildfly</id>
-                <phase>pre-integration-test</phase>
-                <goals>
-                  <goal>start</goal>
-                </goals>
-                <configuration>
-                  <skip>${wildfly-maven-plugin.skip}</skip>
-                  <port>${component.wildfly.management.port}</port>
-                  <javaOpts>
-                    <javaOpt>-Xms64m</javaOpt>
-                    <javaOpt>-Xmx512m</javaOpt>
-                    <javaOpt>-Xss256k</javaOpt>
-                    <javaOpt>-Djava.net.preferIPv4Stack=true</javaOpt>
-                    <javaOpt>-Dsun.rmi.dgc.client.gcInterval=3600000</javaOpt>
-                    <javaOpt>-Dsun.rmi.dgc.server.gcInterval=3600000</javaOpt>
-                    <javaOpt>-Djboss.socket.binding.port-offset=${component.wildfly.port.offset}</javaOpt>
-                    <javaOpt>-Dcassandra.keyspace=${cassandra.keyspace}</javaOpt>
-                    <javaOpt>-Dcassandra.resetdb</javaOpt>
-                    <javaOpt>-Dhawkular.metrics.waitForService</javaOpt>
-                    <javaOpt>-Xdebug</javaOpt>
-                    <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
-                  </javaOpts>
-                </configuration>
-              </execution>
-              <execution>
-                <id>configure-loggers</id>
-                <phase>pre-integration-test</phase>
-                <goals>
-                  <goal>execute-commands</goal>
-                </goals>
-                <configuration>
-                  <skip>${wildfly-maven-plugin.skip}</skip>
-                  <port>${component.wildfly.management.port}</port>
-                  <!-- <jbossHome>${project.build.directory}/wildfly-run/wildfly-${version.org.wildfly}</jbossHome> -->
-                  <!-- hardcoded to 9.0.1.Final after we upgraded to WF10.
-                       The hawkular-nest-distro zip does not exist anymore.
-                       This needs to be fixed by using some of the feauture packs (Bus, Nest, or plain WF) -->
-                  <jbossHome>${project.build.directory}/wildfly-run/wildfly-9.0.1.Final</jbossHome>
-                  <executeCommands>
-                    <commands>
-                      <!-- In the Nest, org.hawkular logger is already defined, we only need to set the level -->
-                      <command>
-                        /subsystem=logging/logger=org.hawkular:write-attribute(name="level",value="TRACE")
-                      </command>
-                      <command>
-                        /subsystem=logging/console-handler=CONSOLE:write-attribute(name="level",value="${wildfly.logging.console.level}")
-                      </command>
-                      <command>
-                        /subsystem=logging/periodic-rotating-file-handler=FILE:write-attribute(name="level",value="${wildfly.logging.file.level}")
-                      </command>
-                      <commmand>
-                        /subsystem=logging/periodic-rotating-file-handler=FILE:write-attribute(name="file",value={path="${project.build.directory}/wildfly-test.log"})
-                      </commmand>
-                    </commands>
-                  </executeCommands>
-                </configuration>
-              </execution>
-              <execution>
-                <id>deploy-webapp</id>
-                <phase>pre-integration-test</phase>
-                <goals>
-                  <goal>deploy-only</goal>
-                </goals>
-                <configuration>
-                  <skip>${wildfly-maven-plugin.skip}</skip>
-                  <port>${component.wildfly.management.port}</port>
-                </configuration>
-              </execution>
-              <execution>
-                <id>stop-wildfly</id>
-                <phase>post-integration-test</phase>
-                <goals>
-                  <goal>shutdown</goal>
-                </goals>
-                <configuration>
-                  <skip>${wildfly-maven-plugin.skip}</skip>
-                  <port>${component.wildfly.management.port}</port>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
 
-  </profiles>
 
 </project>

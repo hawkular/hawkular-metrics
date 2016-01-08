@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@ package org.hawkular.metrics.component.publish;
 
 
 import java.util.List;
+import java.util.Objects;
 
 import org.hawkular.bus.common.AbstractMessage;
 
@@ -52,6 +53,26 @@ public class MetricDataMessage extends AbstractMessage {
         this.metricData = metricData;
     }
 
+    @Override
+    public String toString() {
+        return "MetricDataMessage{" +
+                "metricData=" + metricData +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MetricDataMessage that = (MetricDataMessage) o;
+        return Objects.equals(metricData, that.metricData);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(metricData);
+    }
+
     public static class MetricData {
         @JsonInclude
         String tenantId;
@@ -80,6 +101,18 @@ public class MetricDataMessage extends AbstractMessage {
         @Override
         public String toString() {
             return "MetricData [tenantId=" + tenantId + ", data=" + data + "]";
+        }
+
+        @Override public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MetricData that = (MetricData) o;
+            return Objects.equals(tenantId, that.tenantId) &&
+                    Objects.equals(data, that.data);
+        }
+
+        @Override public int hashCode() {
+            return Objects.hash(tenantId, data);
         }
     }
 
@@ -130,6 +163,21 @@ public class MetricDataMessage extends AbstractMessage {
         @Override
         public String toString() {
             return "SingleMetric [source=" + source + ", timestamp=" + timestamp + ", value=" + value + "]";
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            SingleMetric that = (SingleMetric) o;
+            return Objects.equals(timestamp, that.timestamp) &&
+                    Objects.equals(value, that.value) &&
+                    Objects.equals(source, that.source);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(source, timestamp, value);
         }
     }
 }
