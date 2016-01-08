@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,8 +16,10 @@
  */
 package org.hawkular.metrics.rest
 
+import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
 
+import org.joda.time.DateTime
 import org.junit.Test
 
 /**
@@ -108,5 +110,142 @@ class GaugesITest extends RESTTest {
   @Test
   void shouldNotAcceptDataWithInvalidValue() {
     invalidPointCheck("gauges", tenantId, [[timestamp: 13, value: ["dsqdqs"]]])
+  }
+
+  @Test
+  void addDataForSingleGaugeAndFindWithLimitAndSort() {
+    String gauge = "G1"
+    DateTime start = now().minusHours(1)
+
+    def response = hawkularMetrics.post(
+        path: "gauges/$gauge/data",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [timestamp: start.millis, value: 100.1],
+            [timestamp: start.plusMinutes(1).millis, value: 200.2],
+            [timestamp: start.plusMinutes(2).millis, value: 300.3],
+            [timestamp: start.plusMinutes(3).millis, value: 400.4],
+            [timestamp: start.plusMinutes(4).millis, value: 500.5],
+            [timestamp: start.plusMinutes(5).millis, value: 600.6],
+            [timestamp: now().plusSeconds(30).millis, value: 750.7]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(
+        path: "gauges/$gauge/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [limit: 2]
+    )
+    assertEquals(200, response.status)
+
+    def expectedData = [
+        [timestamp: start.plusMinutes(5).millis, value: 600.6],
+        [timestamp: start.plusMinutes(4).millis, value: 500.5]
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = hawkularMetrics.get(
+        path: "gauges/$gauge/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [limit: 2, order: "DESC"]
+    )
+    assertEquals(200, response.status)
+
+    expectedData = [
+        [timestamp: start.plusMinutes(5).millis, value: 600.6],
+        [timestamp: start.plusMinutes(4).millis, value: 500.5]
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = hawkularMetrics.get(
+        path: "gauges/$gauge/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [limit: 3, order: "ASC"]
+    )
+    assertEquals(200, response.status)
+
+    expectedData = [
+        [timestamp: start.millis, value: 100.1],
+        [timestamp: start.plusMinutes(1).millis, value: 200.2],
+        [timestamp: start.plusMinutes(2).millis, value: 300.3],
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = hawkularMetrics.get(
+        path: "gauges/$gauge/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [limit: 3, start: start.plusMinutes(1).millis]
+    )
+    assertEquals(200, response.status)
+
+    expectedData = [
+        [timestamp: start.plusMinutes(1).millis, value: 200.2],
+        [timestamp: start.plusMinutes(2).millis, value: 300.3],
+        [timestamp: start.plusMinutes(3).millis, value: 400.4]
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = hawkularMetrics.get(
+        path: "gauges/$gauge/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [limit: 3, end: (start.plusMinutes(5).millis + 1)]
+    )
+    assertEquals(200, response.status)
+
+    expectedData = [
+        [timestamp: start.plusMinutes(5).millis, value: 600.6],
+        [timestamp: start.plusMinutes(4).millis, value: 500.5],
+        [timestamp: start.plusMinutes(3).millis, value: 400.4]
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = hawkularMetrics.get(
+        path: "gauges/$gauge/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [limit: 3, start: (start.plusMinutes(1).millis - 1), order: "DESC"]
+    )
+    assertEquals(200, response.status)
+
+    expectedData = [
+        [timestamp: start.plusMinutes(5).millis, value: 600.6],
+        [timestamp: start.plusMinutes(4).millis, value: 500.5],
+        [timestamp: start.plusMinutes(3).millis, value: 400.4]
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = hawkularMetrics.get(
+        path: "gauges/$gauge/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [limit: -1, order: "DESC"]
+    )
+    assertEquals(200, response.status)
+
+    expectedData = [
+        [timestamp: start.plusMinutes(5).millis, value: 600.6],
+        [timestamp: start.plusMinutes(4).millis, value: 500.5],
+        [timestamp: start.plusMinutes(3).millis, value: 400.4],
+        [timestamp: start.plusMinutes(2).millis, value: 300.3],
+        [timestamp: start.plusMinutes(1).millis, value: 200.2],
+        [timestamp: start.millis, value: 100.1],
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = hawkularMetrics.get(
+        path: "gauges/$gauge/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [limit: -100, order: "ASC"]
+    )
+    assertEquals(200, response.status)
+
+    expectedData = [
+        [timestamp: start.millis, value: 100.1],
+        [timestamp: start.plusMinutes(1).millis, value: 200.2],
+        [timestamp: start.plusMinutes(2).millis, value: 300.3],
+        [timestamp: start.plusMinutes(3).millis, value: 400.4],
+        [timestamp: start.plusMinutes(4).millis, value: 500.5],
+        [timestamp: start.plusMinutes(5).millis, value: 600.6],
+    ]
+    assertEquals(expectedData, response.data)
   }
 }

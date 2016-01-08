@@ -49,6 +49,7 @@ import javax.ws.rs.core.UriInfo;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.MetricsService;
+import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
@@ -220,9 +221,16 @@ public class CounterHandler {
             @QueryParam("fromEarliest") Boolean fromEarliest,
             @QueryParam("buckets") Integer bucketsCount,
             @QueryParam("bucketDuration") Duration bucketDuration,
-            @QueryParam("percentiles") Percentiles percentiles
+            @QueryParam("percentiles") Percentiles percentiles,
+            @QueryParam("limit") Integer limit,
+            @QueryParam("order") Order order
     ) {
         MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+
+        if ((bucketsCount != null || bucketDuration != null) &&
+                (limit != null || order != null)) {
+            return badRequest(new ApiError("Limit and order cannot be used with bucketed results"));
+        }
 
         if (bucketsCount == null && bucketDuration == null && !Boolean.TRUE.equals(fromEarliest)) {
             TimeRange timeRange = new TimeRange(start, end);
@@ -230,8 +238,27 @@ public class CounterHandler {
                 return badRequest(new ApiError(timeRange.getProblem()));
             }
 
+            if (limit != null) {
+                if (order == null) {
+                    if (start == null && end != null) {
+                        order = Order.DESC;
+                    } else if (start != null && end == null) {
+                        order = Order.ASC;
+                    } else {
+                        order = Order.DESC;
+                    }
+                }
+            } else {
+                limit = 0;
+            }
+
+            if (order == null) {
+                order = Order.DESC;
+            }
+
             try {
-                return metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
+                return metricsService
+                        .findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), limit, order)
                         .toList()
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()

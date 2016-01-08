@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -113,7 +113,7 @@ public class DataAccessITest extends MetricsITest {
         dataAccess.insertGaugeData(metric, DEFAULT_TTL).toBlocking().last();
 
         Observable<ResultSet> observable = dataAccess.findGaugeData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
-                start.getMillis(), end.getMillis());
+                start.getMillis(), end.getMillis(), 0, Order.DESC, false);
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
                 .flatMap(Observable::from)
                 .map(Functions::getGaugeDataPoint)
@@ -150,7 +150,7 @@ public class DataAccessITest extends MetricsITest {
         dataAccess.insertGaugeData(metric, DEFAULT_TTL).toBlocking().last();
 
         Observable<ResultSet> observable = dataAccess.findGaugeData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
-                start.getMillis(), end.getMillis());
+                start.getMillis(), end.getMillis(), 0, Order.DESC, false);
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
                 .flatMap(Observable::from)
                 .map(Functions::getGaugeDataPoint)
@@ -177,7 +177,8 @@ public class DataAccessITest extends MetricsITest {
         dataAccess.insertAvailabilityData(metric, 360).toBlocking().lastOrDefault(null);
 
         List<DataPoint<AvailabilityType>> actual = dataAccess
-                .findAvailabilityData(new MetricId<>(tenantId, AVAILABILITY, "m1"), start.getMillis(), end.getMillis())
+                .findAvailabilityData(new MetricId<>(tenantId, AVAILABILITY, "m1"), start.getMillis(), end.getMillis(),
+                        0, Order.DESC, false)
                 .flatMap(Observable::from)
                 .map(Functions::getAvailabilityDataPoint)
                 .toList().toBlocking().lastOrDefault(null);

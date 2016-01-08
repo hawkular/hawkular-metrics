@@ -139,6 +139,49 @@ Either or both of them can be omitted. `start` defaults to _now_ minus 8 eight h
 /hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data?end=20202020
 ----
 
+=== Limit and Order
+
+The API offers the ability to limit the number of data points returned as well specify the order of the results.
+Limit and order only work with raw data; if used in conjunction with bucketed results, it will return an error.
+
+Usage and default value details:
+
+* default order is descending
+* no limit imposed if parameter not specified
+* limit of 0 or negative is equivalent to no limit
+* if the user specifies limit, then the order is important because it returns data points up to limit in the specified order
+* start time and end time influence the default order if actual limit is specified
+ ** if only start time is specified then order is ascending
+ ** if only end time is specified then order is descending
+ ** if both are specified then order is descending
+ ** if none are specified then order is descending
+ ** order defaults are overridden if order specified
+* default order is descending if limit is not specified regardless of specified time range
+
+NOTE: please refer to `Time Ranges` section for defaults when omitting end, start, or both.
+
+Sample operations with time range query parameters
+[source,bash]
+----
+# Implicit time range, not limit, and descending order
+/hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data
+
+# Explicit limit of 10, implicit time range, implicit descending order
+/hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data?limit=10
+
+# Explicit limit of 10, implicit time range, explicit ascending order
+/hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data?limit=10&order=ASC
+
+# Explicit limit of 10, explicit time range, implicit descending order
+/hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data?start=10101010&end=20202020&limit=10
+
+# Explicit limit of 10, explicit start, implicit end, implicit ascending order
+/hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data?start=20202020&limit=10
+
+# Explicit limit of 10, explicit start, implicit end, explicit descending order
+/hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data?start=20202020&limit=10&order=DESC
+----
+
 === Bucket parameters
 
 The API offers the ability to retrieve statistics on gauges, counter and availability metrics.

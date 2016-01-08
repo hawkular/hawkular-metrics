@@ -243,8 +243,8 @@ class CountersITest extends RESTTest {
     assertEquals(200, response.status)
 
     expectedData = [
-        [timestamp: start.millis, value: 150],
-        [timestamp: start.plusMinutes(1).millis, value: 225]
+        [timestamp: start.plusMinutes(1).millis, value: 225],
+        [timestamp: start.millis, value: 150]
     ]
     assertEquals(expectedData, response.data)
   }
@@ -273,8 +273,145 @@ class CountersITest extends RESTTest {
     assertEquals(200, response.status)
 
     def expectedData = [
-        [timestamp: start.plusHours(1).millis, value: 200],
-        [timestamp: start.plusHours(4).millis, value: 500]
+        [timestamp: start.plusHours(4).millis, value: 500],
+        [timestamp: start.plusHours(1).millis, value: 200]
+    ]
+    assertEquals(expectedData, response.data)
+  }
+
+  @Test
+  void addDataForSingleCounterAndFindWithLimitAndSort() {
+    String counter = "C1"
+    DateTime start = now().minusHours(1)
+
+    def response = hawkularMetrics.post(
+        path: "counters/$counter/data",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [timestamp: start.millis, value: 100],
+            [timestamp: start.plusMinutes(1).millis, value :200],
+            [timestamp: start.plusMinutes(2).millis, value: 300],
+            [timestamp: start.plusMinutes(3).millis, value: 400],
+            [timestamp: start.plusMinutes(4).millis, value: 500],
+            [timestamp: start.plusMinutes(5).millis, value: 600],
+            [timestamp: now().plusSeconds(30).millis, value: 750]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(
+        path: "counters/$counter/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [limit: 2]
+    )
+    assertEquals(200, response.status)
+
+    def expectedData = [
+        [timestamp: start.plusMinutes(5).millis, value: 600],
+        [timestamp: start.plusMinutes(4).millis, value: 500]
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = hawkularMetrics.get(
+        path: "counters/$counter/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [limit: 2, order: "DESC"]
+    )
+    assertEquals(200, response.status)
+
+    expectedData = [
+        [timestamp: start.plusMinutes(5).millis, value: 600],
+        [timestamp: start.plusMinutes(4).millis, value: 500]
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = hawkularMetrics.get(
+        path: "counters/$counter/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [limit: 3, order: "ASC"]
+    )
+    assertEquals(200, response.status)
+
+    expectedData = [
+        [timestamp: start.millis, value: 100],
+        [timestamp: start.plusMinutes(1).millis, value: 200],
+        [timestamp: start.plusMinutes(2).millis, value: 300],
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = hawkularMetrics.get(
+        path: "counters/$counter/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [limit: 3, start: start.plusMinutes(1).millis]
+    )
+    assertEquals(200, response.status)
+
+    expectedData = [
+        [timestamp: start.plusMinutes(1).millis, value: 200],
+        [timestamp: start.plusMinutes(2).millis, value: 300],
+        [timestamp: start.plusMinutes(3).millis, value: 400]
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = hawkularMetrics.get(
+        path: "counters/$counter/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [limit: 3, end: (start.plusMinutes(5).millis + 1)]
+    )
+    assertEquals(200, response.status)
+
+    expectedData = [
+        [timestamp: start.plusMinutes(5).millis, value: 600],
+        [timestamp: start.plusMinutes(4).millis, value: 500],
+        [timestamp: start.plusMinutes(3).millis, value: 400]
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = hawkularMetrics.get(
+        path: "counters/$counter/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [limit: 3, start: (start.plusMinutes(1).millis - 1), order: "DESC"]
+    )
+    assertEquals(200, response.status)
+
+    expectedData = [
+        [timestamp: start.plusMinutes(5).millis, value: 600],
+        [timestamp: start.plusMinutes(4).millis, value: 500],
+        [timestamp: start.plusMinutes(3).millis, value: 400]
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = hawkularMetrics.get(
+        path: "counters/$counter/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [limit: -1, order: "DESC"]
+    )
+    assertEquals(200, response.status)
+
+    expectedData = [
+        [timestamp: start.plusMinutes(5).millis, value: 600],
+        [timestamp: start.plusMinutes(4).millis, value: 500],
+        [timestamp: start.plusMinutes(3).millis, value: 400],
+        [timestamp: start.plusMinutes(2).millis, value: 300],
+        [timestamp: start.plusMinutes(1).millis, value: 200],
+        [timestamp: start.millis, value: 100],
+    ]
+    assertEquals(expectedData, response.data)
+
+    response = hawkularMetrics.get(
+        path: "counters/$counter/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [limit: -100, order: "ASC"]
+    )
+    assertEquals(200, response.status)
+
+    expectedData = [
+        [timestamp: start.millis, value: 100],
+        [timestamp: start.plusMinutes(1).millis, value: 200],
+        [timestamp: start.plusMinutes(2).millis, value: 300],
+        [timestamp: start.plusMinutes(3).millis, value: 400],
+        [timestamp: start.plusMinutes(4).millis, value: 500],
+        [timestamp: start.plusMinutes(5).millis, value: 600],
     ]
     assertEquals(expectedData, response.data)
   }

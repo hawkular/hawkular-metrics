@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -69,28 +69,23 @@ public interface DataAccess {
 
     Observable<Integer> insertCounterData(Metric<Long> counter, int ttl);
 
-    Observable<ResultSet> findCounterData(MetricId<Long> id, long startTime, long endTime);
+    Observable<ResultSet> findCounterData(MetricId<Long> id, long startTime, long endTime, int limit, Order order);
 
-    Observable<ResultSet> findGaugeData(MetricId<Double> id, long startTime, long endTime);
-
-    Observable<ResultSet> findGaugeData(Metric<Double> metric, long startTime, long endTime, Order order);
-
-    Observable<ResultSet> findGaugeData(MetricId<Double> id, long startTime, long endTime, boolean includeWriteTime);
-
-    Observable<ResultSet> findGaugeData(Metric<Double> metric, long timestamp, boolean includeWriteTime);
-
-    Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long startTime, long endTime);
-
-    Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long startTime, long endTime,
+    Observable<ResultSet> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order,
             boolean includeWriteTime);
 
-    Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long timestamp);
+    Observable<ResultSet> findGaugeData(MetricId<Double> id, long timestamp, boolean includeWriteTime);
+
+    Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime, int limit,
+            Order order, boolean includeWriteTime);
+
+    Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp);
+
 
     Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart);
 
     Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl);
 
-    Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime);
 
     <T> ResultSetFuture findDataRetentions(String tenantId, MetricType<T> type);
 

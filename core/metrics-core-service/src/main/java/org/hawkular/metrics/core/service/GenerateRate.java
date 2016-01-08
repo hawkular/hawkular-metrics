@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -57,7 +57,8 @@ public class GenerateRate implements Action1<Task2> {
         long end = start + TimeUnit.MINUTES.toMillis(1);
 
         Observable<Metric<Double>> rates = metricsService.<Long> findMetrics(tenant, COUNTER)
-                .flatMap(counter -> metricsService.<Long> findDataPoints(counter.getMetricId(), start, end)
+                .flatMap(counter ->
+                        metricsService.<Long> findDataPoints(counter.getMetricId(), start, end, 0, Order.DESC)
                         .take(1)
                         .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
                         .map(rate -> new Metric<>(

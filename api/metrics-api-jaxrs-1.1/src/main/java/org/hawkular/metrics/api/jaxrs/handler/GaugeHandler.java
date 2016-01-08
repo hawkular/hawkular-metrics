@@ -50,6 +50,7 @@ import javax.ws.rs.core.UriInfo;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.MetricsService;
+import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -222,9 +223,16 @@ public class GaugeHandler {
             @QueryParam("fromEarliest") Boolean fromEarliest,
             @QueryParam("buckets") Integer bucketsCount,
             @QueryParam("bucketDuration") Duration bucketDuration,
-            @QueryParam("percentiles") Percentiles percentiles
+            @QueryParam("percentiles") Percentiles percentiles,
+            @QueryParam("limit") Integer limit,
+            @QueryParam("order") Order order
     ) {
         MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+
+        if ((bucketsCount != null || bucketDuration != null) &&
+                (limit != null || order != null)) {
+            return badRequest(new ApiError("Limit and order cannot be used with bucketed results"));
+        }
 
         if (bucketsCount == null && bucketDuration == null && !Boolean.TRUE.equals(fromEarliest)) {
             TimeRange timeRange = new TimeRange(start, end);
@@ -232,12 +240,31 @@ public class GaugeHandler {
                 return badRequest(new ApiError(timeRange.getProblem()));
             }
 
-            try{
-            return metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
-                    .toList()
-                    .map(ApiUtils::collectionToResponse)
-                    .toBlocking()
-                    .lastOrDefault(null);
+            if (limit != null) {
+                if (order == null) {
+                    if (start == null && end != null) {
+                        order = Order.DESC;
+                    } else if (start != null && end == null) {
+                        order = Order.ASC;
+                    } else {
+                        order = Order.DESC;
+                    }
+                }
+            } else {
+                limit = 0;
+            }
+
+            if (order == null) {
+                order = Order.DESC;
+            }
+
+            try {
+                return metricsService
+                        .findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), limit, order)
+                        .toList()
+                        .map(ApiUtils::collectionToResponse)
+                        .toBlocking()
+                        .lastOrDefault(null);
             } catch (Exception e) {
                 return serverError(e);
             }

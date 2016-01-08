@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -90,11 +90,27 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findCounterDataExclusive;
 
+    private PreparedStatement findCounterDataExclusiveWithLimit;
+
+    private PreparedStatement findCounterDataExclusiveASC;
+
+    private PreparedStatement findCounterDataExclusiveWithLimitASC;
+
     private PreparedStatement findGaugeDataByDateRangeExclusive;
+
+    private PreparedStatement findGaugeDataByDateRangeExclusiveWithLimit;
 
     private PreparedStatement findGaugeDataByDateRangeExclusiveASC;
 
+    private PreparedStatement findGaugeDataByDateRangeExclusiveWithLimitASC;
+
     private PreparedStatement findGaugeDataWithWriteTimeByDateRangeExclusive;
+
+    private PreparedStatement findGaugeDataWithWriteTimeByDateRangeExclusiveASC;
+
+    private PreparedStatement findGaugeDataWithWriteTimeByDateRangeExclusiveWithLimit;
+
+    private PreparedStatement findGaugeDataWithWriteTimeByDateRangeExclusiveWithLimitASC;
 
     private PreparedStatement findGaugeDataByDateRangeInclusive;
 
@@ -108,6 +124,20 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findAvailabilities;
 
+    private PreparedStatement findAvailabilitiesWithLimit;
+
+    private PreparedStatement findAvailabilitiesASC;
+
+    private PreparedStatement findAvailabilitiesWithLimitASC;
+
+    private PreparedStatement findAvailabilitiesWithWriteTime;
+
+    private PreparedStatement findAvailabilitiesWithWriteTimeWithLimit;
+
+    private PreparedStatement findAvailabilitiesWithWriteTimeASC;
+
+    private PreparedStatement findAvailabilitiesWithWriteTimeWithLimitASC;
+
     private PreparedStatement updateMetricsIndex;
 
     private PreparedStatement addTagsToMetricsIndex;
@@ -115,8 +145,6 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement deleteTagsFromMetricsIndex;
 
     private PreparedStatement readMetricsIndex;
-
-    private PreparedStatement findAvailabilitiesWithWriteTime;
 
     private PreparedStatement updateRetentionsIndex;
 
@@ -211,19 +239,61 @@ public class DataAccessImpl implements DataAccess {
             "SELECT time, data_retention, n_value FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
 
+        findGaugeDataByDateRangeExclusiveWithLimit = session.prepare(
+            "SELECT time, data_retention, n_value FROM data " +
+            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
+            " LIMIT ?");
+
         findGaugeDataByDateRangeExclusiveASC = session.prepare(
             "SELECT time, data_retention, n_value FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
             " AND time < ? ORDER BY time ASC");
 
+        findGaugeDataByDateRangeExclusiveWithLimitASC = session.prepare(
+            "SELECT time, data_retention, n_value FROM data" +
+            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
+            " AND time < ? ORDER BY time ASC" +
+            " LIMIT ?");
+
         findCounterDataExclusive = session.prepare(
+            "SELECT time, data_retention, l_value FROM data " +
+            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? ");
+
+        findCounterDataExclusiveWithLimit = session.prepare(
+            "SELECT time, data_retention, l_value FROM data " +
+            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
+            " LIMIT ?");
+
+        findCounterDataExclusiveASC = session.prepare(
             "SELECT time, data_retention, l_value FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
             "ORDER BY time ASC");
 
+        findCounterDataExclusiveWithLimitASC = session.prepare(
+            "SELECT time, data_retention, l_value FROM data " +
+            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
+            " ORDER BY time ASC" +
+            " LIMIT ?");
+
         findGaugeDataWithWriteTimeByDateRangeExclusive = session.prepare(
             "SELECT time, data_retention, n_value, WRITETIME(n_value) FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
+
+        findGaugeDataWithWriteTimeByDateRangeExclusiveASC = session.prepare(
+            "SELECT time, data_retention, n_value, WRITETIME(n_value) FROM data " +
+            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
+            " ORDER BY time ASC");
+
+        findGaugeDataWithWriteTimeByDateRangeExclusiveWithLimit = session.prepare(
+            "SELECT time, data_retention, n_value, WRITETIME(n_value) FROM data " +
+            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
+            " LIMIT ?");
+
+        findGaugeDataWithWriteTimeByDateRangeExclusiveWithLimitASC = session.prepare(
+            "SELECT time, data_retention, n_value, WRITETIME(n_value) FROM data " +
+            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
+            " ORDER BY time ASC" +
+            " LIMIT ?");
 
         findGaugeDataByDateRangeInclusive = session.prepare(
             "SELECT tenant_id, metric, dpart, time, data_retention, n_value " +
@@ -250,15 +320,51 @@ public class DataAccessImpl implements DataAccess {
 
         findAvailabilities = session.prepare(
             "SELECT time, data_retention, availability " +
-            "FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?"
-                + " AND time < ? " +
-            "ORDER BY time ASC");
+            " FROM data " +
+            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? ");
+
+        findAvailabilitiesWithLimit = session.prepare(
+            "SELECT time, data_retention, availability " +
+            " FROM data " +
+            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
+            " LIMIT ?");
+
+        findAvailabilitiesASC = session.prepare(
+            "SELECT time, data_retention, availability " +
+            " FROM data " +
+            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
+            " ORDER BY time ASC");
+
+        findAvailabilitiesWithLimitASC = session.prepare(
+            "SELECT time, data_retention, availability " +
+            " FROM data " +
+            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
+            " ORDER BY time ASC" +
+            " LIMIT ?");
 
         findAvailabilitiesWithWriteTime = session.prepare(
             "SELECT time, data_retention, availability, WRITETIME(availability) " +
-            "FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
+            " FROM data " +
+            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
+
+        findAvailabilitiesWithWriteTimeWithLimit = session.prepare(
+            "SELECT time, data_retention, availability, WRITETIME(availability) " +
+            " FROM data " +
+            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
+            " LIMIT ?");
+
+        findAvailabilitiesWithWriteTimeASC = session.prepare(
+            "SELECT time, data_retention, availability, WRITETIME(availability) " +
+            " FROM data " +
+            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
+            " ORDER BY time ASC");
+
+        findAvailabilitiesWithWriteTimeWithLimitASC = session.prepare(
+            "SELECT time, data_retention, availability, WRITETIME(availability) " +
+            " FROM data " +
+            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
+            " ORDER BY time ASC" +
+            " LIMIT ?");
 
         updateRetentionsIndex = session.prepare(
             "INSERT INTO retentions_idx (tenant_id, type, metric, retention) VALUES (?, ?, ?, ?)");
@@ -404,46 +510,83 @@ public class DataAccessImpl implements DataAccess {
                 DPART, getTimeUUID(timestamp));
     }
 
-    @Override
-    public Observable<ResultSet> findGaugeData(MetricId<Double> id, long startTime, long endTime) {
-        return findGaugeData(id, startTime, endTime, false);
-    }
 
     @Override
-    public Observable<ResultSet> findCounterData(MetricId<Long> id, long startTime, long endTime) {
-        return rxSession.execute(findCounterDataExclusive.bind(id.getTenantId(), COUNTER.getCode(), id.getName(),
-                DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
-    }
-
-    @Override
-    public Observable<ResultSet> findGaugeData(Metric<Double> metric, long startTime, long endTime, Order
-            order) {
-        MetricId<Double> metricId = metric.getMetricId();
+    public Observable<ResultSet> findCounterData(MetricId<Long> id, long startTime, long endTime, int limit,
+            Order order) {
         if (order == Order.ASC) {
-            return rxSession.execute(findGaugeDataByDateRangeExclusiveASC.bind(metricId.getTenantId(),
-                    GAUGE.getCode(), metricId.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+            if (limit <= 0) {
+                return rxSession
+                        .execute(findCounterDataExclusiveASC.bind(id.getTenantId(), COUNTER.getCode(), id.getName(),
+                                DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+            } else {
+                return rxSession
+                        .execute(findCounterDataExclusiveWithLimitASC.bind(id.getTenantId(), COUNTER.getCode(),
+                                id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime), limit));
+            }
         } else {
-            return rxSession.execute(findGaugeDataByDateRangeExclusive.bind(metricId.getTenantId(),
-                    GAUGE.getCode(), metricId.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+            if (limit <= 0) {
+                return rxSession
+                        .execute(findCounterDataExclusive.bind(id.getTenantId(), COUNTER.getCode(), id.getName(),
+                                DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+            } else {
+                return rxSession
+                        .execute(findCounterDataExclusiveWithLimit.bind(id.getTenantId(), COUNTER.getCode(),
+                                id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime), limit));
+            }
         }
     }
 
     @Override
-    public Observable<ResultSet> findGaugeData(MetricId<Double> id, long startTime, long endTime,
-            boolean includeWriteTime) {
+    public Observable<ResultSet> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit,
+            Order order, boolean includeWriteTime) {
         if (includeWriteTime) {
-            return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeExclusive.bind(id.getTenantId(),
-                    id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+            if (order == Order.ASC) {
+                if (limit <= 0) {
+                    return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeExclusiveASC.bind(id.getTenantId(),
+                            id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
+                            getTimeUUID(endTime)));
+                } else {
+                    return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeExclusiveWithLimitASC.bind(
+                            id.getTenantId(), id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
+                            getTimeUUID(endTime), limit));
+                }
+            } else {
+                if (limit <= 0) {
+                    return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeExclusive.bind(id.getTenantId(),
+                            id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
+                            getTimeUUID(endTime)));
+                } else {
+                    return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeExclusiveWithLimit.bind(
+                            id.getTenantId(), id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
+                            getTimeUUID(endTime), limit));
+                }
+            }
         } else {
-            return rxSession.execute(findGaugeDataByDateRangeExclusive.bind(id.getTenantId(),
-                    id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+            if (order == Order.ASC) {
+                if (limit <= 0) {
+                    return rxSession.execute(findGaugeDataByDateRangeExclusiveASC.bind(id.getTenantId(),
+                            GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+                } else {
+                    return rxSession.execute(findGaugeDataByDateRangeExclusiveWithLimitASC.bind(id.getTenantId(),
+                            GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
+                            limit));
+                }
+            } else {
+                if (limit <= 0) {
+                    return rxSession.execute(findGaugeDataByDateRangeExclusive.bind(id.getTenantId(),
+                        GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+                } else {
+                    return rxSession.execute(findGaugeDataByDateRangeExclusiveWithLimit.bind(id.getTenantId(),
+                            GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
+                            limit));
+                }
+            }
         }
     }
 
     @Override
-    public Observable<ResultSet> findGaugeData(Metric<Double> metric, long timestamp,
-            boolean includeWriteTime) {
-        MetricId<Double> metricId = metric.getMetricId();
+    public Observable<ResultSet> findGaugeData(MetricId<Double> metricId, long timestamp, boolean includeWriteTime) {
         if (includeWriteTime) {
             return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeInclusive.bind(metricId.getTenantId(),
                     metricId.getType().getCode(), metricId.getName(), DPART, UUIDs.startOf(timestamp),
@@ -456,30 +599,56 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long startTime, long
-            endTime) {
-        return findAvailabilityData(metric, startTime, endTime, false);
-    }
-
-    @Override
-    public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long startTime, long
-            endTime, boolean
-            includeWriteTime) {
-        MetricId<AvailabilityType> metricId = metric.getMetricId();
+    public Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime,
+            int limit, Order order, boolean includeWriteTime) {
         if (includeWriteTime) {
-            return rxSession.execute(findAvailabilitiesWithWriteTime.bind(metricId.getTenantId(),
-                    AVAILABILITY.getCode(), metricId.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+            if (order == Order.ASC) {
+                if (limit <= 0) {
+                    return rxSession.execute(findAvailabilitiesWithWriteTimeASC.bind(id.getTenantId(),
+                            AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime),
+                            getTimeUUID(endTime)));
+                } else {
+                    return rxSession.execute(findAvailabilitiesWithWriteTimeWithLimitASC.bind(id.getTenantId(),
+                            AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime),
+                            getTimeUUID(endTime), limit));
+                }
+            } else {
+                if (limit <= 0) {
+                    return rxSession.execute(findAvailabilitiesWithWriteTime.bind(id.getTenantId(),
+                            AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime),
+                            getTimeUUID(endTime)));
+                } else {
+                    return rxSession.execute(findAvailabilitiesWithWriteTimeWithLimit.bind(id.getTenantId(),
+                            AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime),
+                            getTimeUUID(endTime), limit));
+                }
+            }
         } else {
-            return rxSession.execute(findAvailabilities.bind(metricId.getTenantId(), AVAILABILITY.getCode(),
-                    metricId.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+            if (order == Order.ASC) {
+                if (limit <= 0) {
+                    return rxSession.execute(findAvailabilitiesASC.bind(id.getTenantId(), AVAILABILITY.getCode(),
+                            id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+                } else {
+                    return rxSession
+                            .execute(findAvailabilitiesWithLimitASC.bind(id.getTenantId(), AVAILABILITY.getCode(),
+                                    id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime), limit));
+                }
+            } else {
+                if (limit <= 0) {
+                    return rxSession.execute(findAvailabilities.bind(id.getTenantId(), AVAILABILITY.getCode(),
+                    id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+                } else {
+                    return rxSession.execute(findAvailabilitiesWithLimit.bind(id.getTenantId(), AVAILABILITY.getCode(),
+                            id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime), limit));
+                }
+            }
         }
     }
 
     @Override
-    public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long timestamp) {
-        MetricId<AvailabilityType> metricId = metric.getMetricId();
-        return rxSession.execute(findAvailabilityByDateRangeInclusive.bind(metricId.getTenantId(),
-                AVAILABILITY.getCode(), metricId.getName(), DPART, UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
+    public Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp) {
+        return rxSession.execute(findAvailabilityByDateRangeInclusive.bind(id.getTenantId(),
+                AVAILABILITY.getCode(), id.getName(), DPART, UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
     }
 
     @Override
@@ -499,12 +668,6 @@ public class DataAccessImpl implements DataAccess {
 
     private ByteBuffer getBytes(DataPoint<AvailabilityType> dataPoint) {
         return ByteBuffer.wrap(new byte[]{dataPoint.getValue().getCode()});
-    }
-
-    @Override
-    public Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime) {
-        return rxSession.execute(findAvailabilities.bind(id.getTenantId(), AVAILABILITY.getCode(), id.getName(), DPART,
-                getTimeUUID(startTime), getTimeUUID(endTime)));
     }
 
     @Override

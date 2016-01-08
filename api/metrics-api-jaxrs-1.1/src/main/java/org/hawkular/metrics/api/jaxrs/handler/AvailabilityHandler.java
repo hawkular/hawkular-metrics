@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,6 +49,7 @@ import javax.ws.rs.core.UriInfo;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.MetricsService;
+import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.Buckets;
@@ -233,8 +234,15 @@ public class AvailabilityHandler {
             @QueryParam("end") final Long end,
             @QueryParam("buckets") Integer bucketsCount,
             @QueryParam("bucketDuration") Duration bucketDuration,
-            @QueryParam("distinct") @DefaultValue("false") Boolean distinct
+            @QueryParam("distinct") @DefaultValue("false") Boolean distinct,
+            @QueryParam("limit") Integer limit,
+            @QueryParam("order") Order order
     ) {
+        if ((bucketsCount != null || bucketDuration != null) &&
+                (limit != null || order != null)) {
+            return badRequest(new ApiError("Limit and order cannot be used with bucketed results"));
+        }
+
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
             return badRequest(new ApiError(timeRange.getProblem()));
@@ -248,7 +256,27 @@ public class AvailabilityHandler {
         Buckets buckets = bucketConfig.getBuckets();
         try {
             if (buckets == null) {
-                return metricsService.findAvailabilityData(metricId, timeRange.getStart(), timeRange.getEnd(), distinct)
+                if (limit != null) {
+                    if (order == null) {
+                        if (start == null && end != null) {
+                            order = Order.DESC;
+                        } else if (start != null && end == null) {
+                            order = Order.ASC;
+                        } else {
+                            order = Order.DESC;
+                        }
+                    }
+                } else {
+                    limit = 0;
+                }
+
+                if (order == null) {
+                    order = Order.DESC;
+                }
+
+                return metricsService
+                        .findAvailabilityData(metricId, timeRange.getStart(), timeRange.getEnd(), distinct, limit,
+                                order)
                         .toList()
                         .map(ApiUtils::collectionToResponse)
                         .toBlocking()
