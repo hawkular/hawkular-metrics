@@ -85,9 +85,22 @@ public class PublishDataPointsTest {
                 "io.reactivex:rxjava:1.0.13"
         );
 
-        Collection<JavaArchive> dependencies = new HashSet<JavaArchive>();
-        dependencies.addAll(asList(mavenResolver.loadPomFromFile("pom.xml").resolve(deps)
-                .withoutTransitivity().as(JavaArchive.class)));
+        Collection<JavaArchive> dependencies = new HashSet<>();
+        dependencies.addAll(asList(mavenResolver.loadPomFromFile("pom.xml")
+                .resolve("org.hawkular.metrics:hawkular-metrics-model:" + projectVersion).withoutTransitivity()
+                .as(JavaArchive.class)));
+        dependencies.addAll(asList(mavenResolver.loadPomFromFile("pom.xml")
+                .resolve("org.hawkular.metrics:hawkular-metrics-api-util:" + projectVersion).withoutTransitivity()
+                .as(JavaArchive.class)));
+        dependencies.addAll(asList(mavenResolver.loadPomFromFile("pom.xml")
+                .resolve("org.hawkular.commons:hawkular-bus-common:0.3.2.Final").withoutTransitivity()
+                .as(JavaArchive.class)));
+        dependencies.addAll(asList(mavenResolver.loadPomFromFile("pom.xml")
+                .resolve("io.reactivex:rxjava:1.0.13").withoutTransitivity()
+                .as(JavaArchive.class)));
+
+//        dependencies.addAll(asList(mavenResolver.loadPomFromFile("pom.xml").resolve(deps)
+//                .withoutTransitivity().as(JavaArchive.class)));
 
         WebArchive archive = ShrinkWrap.create(WebArchive.class)
                 .addPackages(true, "org.hawkular.bus", "org.hawkular.metrics.component.publish")
