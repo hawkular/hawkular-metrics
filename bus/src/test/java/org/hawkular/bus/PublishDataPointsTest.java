@@ -60,6 +60,7 @@ import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.resolver.api.Resolvers;
+import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenResolverSystem;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -86,18 +87,37 @@ public class PublishDataPointsTest {
         );
 
         Collection<JavaArchive> dependencies = new HashSet<>();
-        dependencies.addAll(asList(mavenResolver.loadPomFromFile("pom.xml")
-                .resolve("org.hawkular.metrics:hawkular-metrics-model:" + projectVersion).withoutTransitivity()
-                .as(JavaArchive.class)));
-        dependencies.addAll(asList(mavenResolver.loadPomFromFile("pom.xml")
-                .resolve("org.hawkular.metrics:hawkular-metrics-api-util:" + projectVersion).withoutTransitivity()
-                .as(JavaArchive.class)));
-        dependencies.addAll(asList(mavenResolver.loadPomFromFile("pom.xml")
-                .resolve("org.hawkular.commons:hawkular-bus-common:0.3.2.Final").withoutTransitivity()
-                .as(JavaArchive.class)));
-        dependencies.addAll(asList(mavenResolver.loadPomFromFile("pom.xml")
-                .resolve("io.reactivex:rxjava:1.0.13").withoutTransitivity()
-                .as(JavaArchive.class)));
+
+        JavaArchive rxjava = Maven.configureResolver().resolve("io.reactivex:rxjava:1.0.13").withoutTransitivity()
+                .asSingleResolvedArtifact().as(JavaArchive.class);
+
+        JavaArchive busCommon = Maven.configureResolver().resolve(
+                "org.hawkular.commons:hawkular-bus-common:0.3.2.Final").withoutTransitivity().asSingleResolvedArtifact()
+                .as(JavaArchive.class);
+
+        JavaArchive metricsModel = Maven.configureResolver().resolve("org.hawkular.metrics:hawkular-metrics-model:" +
+                projectVersion).withoutTransitivity().asSingleResolvedArtifact().as(JavaArchive.class);
+        
+        JavaArchive apiUtil = Maven.configureResolver().resolve("org.hawkular.metrics:hawkular-metrics-api-util:" +
+                projectVersion).withoutTransitivity().asSingleResolvedArtifact().as(JavaArchive.class);
+
+        dependencies.add(metricsModel);
+        dependencies.add(apiUtil);
+        dependencies.add(busCommon);
+        dependencies.add(rxjava);
+
+//        dependencies.addAll(asList(mavenResolver.loadPomFromFile("pom.xml")
+//                .resolve("org.hawkular.metrics:hawkular-metrics-model:" + projectVersion).withoutTransitivity()
+//                .as(JavaArchive.class)));
+//        dependencies.addAll(asList(mavenResolver.loadPomFromFile("pom.xml")
+//                .resolve("org.hawkular.metrics:hawkular-metrics-api-util:" + projectVersion).withoutTransitivity()
+//                .as(JavaArchive.class)));
+//        dependencies.addAll(asList(mavenResolver.loadPomFromFile("pom.xml")
+//                .resolve("org.hawkular.commons:hawkular-bus-common:0.3.2.Final").withoutTransitivity()
+//                .as(JavaArchive.class)));
+//        dependencies.addAll(asList(mavenResolver.loadPomFromFile("pom.xml")
+//                .resolve("io.reactivex:rxjava:1.0.13").withoutTransitivity()
+//                .as(JavaArchive.class)));
 
 //        dependencies.addAll(asList(mavenResolver.loadPomFromFile("pom.xml").resolve(deps)
 //                .withoutTransitivity().as(JavaArchive.class)));
